@@ -1,13 +1,11 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { DocTree, type TreeItem } from '@/components/DocTree';
-import { Search } from '@/components/Search';
-import { NewDoc } from '@/components/NewDoc';
+import { type TreeItem } from '@/components/DocTree';
+import { Rail } from '@/components/Rail';
 import { PeekProvider } from '@/components/PeekProvider';
 import { getProject } from '@/lib/projects';
 import { loadGraph, loadMarkdown } from '@/lib/load';
-import { documentTree, nodeIndex, outline, type DocNode } from '@/lib/doc';
+import { documentTree, nodeIndex, outline, splitDocument, type DocNode } from '@/lib/doc';
 
 export default async function ProjectLayout({ children, params }: { children: ReactNode; params: Promise<{ project: string }> }) {
   const { project } = await params;
@@ -15,28 +13,29 @@ export default async function ProjectLayout({ children, params }: { children: Re
   if (!p) notFound();
   const g = await loadGraph(p.graphPath);
   const tree = documentTree(g);
-  const outlines = new Map<string, TreeItem['outline']>();
-  await Promise.all([...tree.byFile.values()].map(async d => { outlines.set(d.file, outline(await loadMarkdown(p.rootPath, d.file))); }));
-  const toItem = (d: DocNode): TreeItem => ({ slug: d.slug, title: d.title, outline: outlines.get(d.file) ?? [], children: d.children.map(toItem) });
+  const outlines = new Map<string, ReturnType<typeof outline>>();
+  const icons = new Map<string, string>();
+  await Promise.all([...tree.byFile.values()].map(async d => { const md = await loadMarkdown(p.rootPath, d.file); outlines.set(d.file, outline(md)); icons.set(d.file, splitDocument(md).frontmatter.icon ?? ''); }));
+  const toItem = (d: DocNode): TreeItem => ({ slug: d.slug, title: d.title, icon: icons.get(d.file) || defaultIcon(d.slug), children: d.children.map(toItem) });
   const roots = tree.roots.map(toItem);
   const docs = [...tree.byFile.values()].map(d => ({ slug: d.slug, title: d.title }));
   const headings = [...tree.byFile.values()].flatMap(d => (outlines.get(d.file) ?? []).map(h => ({ doc: d.slug, slug: h.slug, text: h.text })));
   const index = nodeIndex(g);
-  const reqs = g.nodes.filter(n => n.kind === 'req' && n.defined).length;
   return (
     <PeekProvider project={p.name} index={index}>
       <div className="shell">
-        <nav className="rail">
-          <div className="rail-head">
-            <Link href={`/p/${p.name}`} className="rail-title">{p.title}</Link>
-            <div className="rail-sub">{docs.length} documents · {reqs} requirements · {Object.keys(index).length} nodes</div>
-            <Search project={p.name} docs={docs} headings={headings} />
-          </div>
-          <div className="rail-body"><DocTree project={p.name} roots={roots} /><NewDoc project={p.name} docs={docs} defaultParent={tree.main?.slug ?? docs[0]?.slug ?? ''} /></div>
-          <div className="rail-foot"><Link href={`/p/${p.name}/graph`}>Graph</Link><Link href={`/p/${p.name}/graph?preset=Drift`}>Drift</Link></div>
-        </nav>
+        <Rail project={p.name} projectTitle={p.title} roots={roots} docs={docs} headings={headings} mainSlug={tree.main?.slug ?? docs[0]?.slug ?? ''} />
         <main className="content">{children}</main>
       </div>
     </PeekProvider>
   );
+}
+
+function defaultIcon(slug: string): string {
+  if (/prd|requirement/.test(slug)) return '📋';
+  if (/dev|design|arch/.test(slug)) return '🛠️';
+  if (/test/.test(slug)) return '🧪';
+  if (/plan/.test(slug)) return '🗺️';
+  if (/project/.test(slug)) return '🏠';
+  return '📄';
 }

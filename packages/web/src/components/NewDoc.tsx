@@ -3,9 +3,11 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { TEMPLATES } from '@/lib/templates';
 
-export function NewDoc({ project, docs, defaultParent }: { project: string; docs: { slug: string; title: string }[]; defaultParent: string }) {
+export function NewDoc({ project, docs, defaultParent, open: forceOpen, onClose }: { project: string; docs: { slug: string; title: string }[]; defaultParent: string; open?: boolean; onClose?: () => void }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = forceOpen ?? openState;
+  const setOpen = (v: boolean) => { setOpenState(v); if (!v) onClose?.(); };
   const [title, setTitle] = useState('');
   const [template, setTemplate] = useState<string>('prd');
   const [parent, setParent] = useState(defaultParent);

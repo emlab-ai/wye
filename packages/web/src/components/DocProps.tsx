@@ -16,7 +16,7 @@ export function DocProps({ project, slug, file, fm }: { project: string; slug: s
     const r = await fetch(`/api/p/${project}/doc/${slug}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'frontmatter', patch: { [key]: vals[key] ?? '' } }) });
     setState(r.ok ? 'saved' : 'error'); router.refresh();
   }
-  const field = (key: string, cls = '') => <input className={`prop-in ${cls}`} value={vals[key] ?? ''} placeholder={key} onChange={e => setVals(v => ({ ...v, [key]: e.target.value }))} onBlur={() => commit(key)} onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />;
+  const field = (key: string, cls = '') => <input className={`prop-in ${cls}`} value={vals[key] ?? ''} placeholder={key === 'icon' ? '📄' : key} onChange={e => setVals(v => ({ ...v, [key]: e.target.value }))} onBlur={() => commit(key)} onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />;
   return (
     <header className="doc-head">
       <div className="pills">
@@ -24,7 +24,7 @@ export function DocProps({ project, slug, file, fm }: { project: string; slug: s
         <select className="status-sel" value={vals.status ?? ''} onChange={e => { setVals(v => ({ ...v, status: e.target.value })); }} onBlur={() => commit('status')}>{[vals.status ?? '', ...STATUSES].filter((v, i, a) => a.indexOf(v) === i).map(v => <option key={v} value={v}>{v || '—'}</option>)}</select>
         <span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'error' ? 'save failed' : ''}</span>
       </div>
-      {field('title', 'h1')}
+      <div className="doc-title-row">{field('icon', 'icon')}{field('title', 'h1')}</div>
       <p className="sub">{file} · owner {field('owner')} · verified {field('last-verified')}</p>
     </header>
   );
