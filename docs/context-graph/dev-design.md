@@ -837,6 +837,12 @@ description: One paragraph stating the same contract for agents that do not load
   status: unverified
   verified-by: [test:prose, test:web-lib#import]
 
+- id: rule:mention-menu
+  statement: Typing @ in the editor opens a search over every node and document by id or title; choosing one inserts its tag inline. Typing an id as plain text (`req:wf2.ui`) also becomes a tag when the block loses focus. Selecting a phrase and choosing "⌁ node" links the phrase instead of inserting a tag.
+  source: packages/web/src/components/DocEditor.tsx#mentionItems
+  status: unverified
+  requires-tests: [ui-test:edit-node-flow]
+
 - id: rule:doc-links
   statement: A link whose target is a module id is a document link: clicking it (or the module tag) opens that document. The link picker offers "new document" for any typed title: it creates the page from the blank template under the current document and links the selection to module:<slug>. Frontmatter keys that name relations (part-of, see, …) are edges from the module node, so a document declares its parent in its own header.
   source: packages/web/src/components/DocEditor.tsx#LinkNodePicker; packages/web/src/components/SmartTag.tsx; lib/parse.js

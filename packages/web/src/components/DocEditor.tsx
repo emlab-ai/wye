@@ -26,7 +26,7 @@ const Tag = createReactInlineContentSpec(
 function stopEditorEvents(el: HTMLDivElement | null) {
   if (!el || (el as unknown as { __stopped?: boolean }).__stopped) return;
   (el as unknown as { __stopped?: boolean }).__stopped = true;
-  for (const ev of ['mousedown', 'mouseup', 'click', 'keydown', 'keypress', 'keyup']) el.addEventListener(ev, e => e.stopPropagation());
+  for (const ev of ['mousedown', 'keydown']) el.addEventListener(ev, e => e.stopPropagation()); // click and change still reach React
 }
 
 // A typed block (requirement, entity, rule, …): header with kind, id and status; the text is normal inline content.
@@ -182,6 +182,15 @@ export default function DocEditor({ project, slug, body, ifMatch, fallback }: { 
     editor.createLink(id, linkReq.text || id);
     setLinkReq(null); touched.current = true; changed();
   };
+  // "@" inserts a tag for any node (or document) by id or title.
+  const mentionItems = (q: string) => {
+    const n = q.trim().toLowerCase();
+    return Object.values(index)
+      .filter(e => e.id.toLowerCase().includes(n) || e.title.toLowerCase().includes(n))
+      .sort((a, b) => Number(b.defined) - Number(a.defined) || a.id.length - b.id.length)
+      .slice(0, 10)
+      .map(e => ({ title: e.id, subtext: e.title, group: 'Link a node', onItemClick: () => { editor.insertInlineContent([{ type: 'tag', props: { id: e.id } }, ' '] as never); touched.current = true; changed(); } }));
+  };
   const nodeItems = CARD_KINDS.map(kind => ({
     title: `${kind} block`, group: 'Waterfall', subtext: `a new ${kind} written as prose`,
     onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'node', props: { kind, slug: `new-${Math.floor(Math.random() * 900 + 100)}`, form: 'prose', textKey: 'text', check: kind === 'task' ? 'todo' : '', status: kind === 'task' ? 'open' : '' } } as never); },
@@ -203,6 +212,7 @@ export default function DocEditor({ project, slug, body, ifMatch, fallback }: { 
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false}>
         <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /></FormattingToolbar>} />
         <SuggestionMenuController triggerCharacter="/" getItems={async q => filterSuggestionItems([...getDefaultReactSlashMenuItems(editor), ...nodeItems], q)} />
+        <SuggestionMenuController triggerCharacter="@" minQueryLength={1} getItems={async q => mentionItems(q)} />
       </BlockNoteView>
       {linkReq && <LinkNodePicker req={linkReq} onClose={() => setLinkReq(null)} apply={applyLink} createDoc={createDoc} />}
     </div>

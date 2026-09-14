@@ -503,7 +503,7 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   then: it is a single editor; prose, headings, lists, tables and code are ordinary blocks; each node is a typed block with kind, slug and status; a paragraph that starts with an id (`req:<slug> When …`) becomes a requirement; any phrase can be linked to any node and the graph records the relation (verb inferred from the words before it, else related-to); every id is a tag whose click opens a peek panel with the node's card, relations and Go to definition
   status: unverified
   note: single-page editor shipped 2026-09-14 (packages/web); pure modules tested, pages verified in the browser; server-backed data pending
-  satisfied-by: [page:web/node, rule:single-page-editor, rule:prose-nodes, rule:todo-tasks, rule:doc-links, rule:smart-tags, rule:node-cards]
+  satisfied-by: [page:web/node, rule:single-page-editor, rule:prose-nodes, rule:todo-tasks, rule:doc-links, rule:mention-menu, rule:smart-tags, rule:node-cards]
   requires-tests: [test:web-components#node-page-properties, test:web-components#node-page-prose-editor]
   see: req:wf.view.sheet
   refines: req:wf2.ui

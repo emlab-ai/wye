@@ -45,6 +45,8 @@ A checkbox line is a task: `- [ ] task:kitchen-screen Build the kitchen screen, 
 The verb comes from the words before an id ("satisfied by", "verified by", "refines", "part of", …), otherwise `related-to`.
 Yaml blocks keep working exactly as before; both forms live in one file.
 
+In the web app: type `@` to insert a tag for any node or document, select a phrase and press “⌁ node” to link it (or create a new document from the same picker), `/` to insert a typed block, and click a task's checkbox to mark it done.
+
 ## Skills (Claude Code)
 
 - **waterfall-describe-module** — the repeatable process that produced `inventory.md`: fan out server/client explorers, read the human docs, write the file from the template, `ctx build && ctx check`, publish the viewer, report drift.
