@@ -1,5 +1,5 @@
-export const KINDS = ['req', 'rule', 'entity', 'value', 'state', 'op', 'page', 'action', 'gate', 'flag', 'test', 'ui-test', 'module', 'product', 'tool', 'setting', 'field', 'drift', 'question', 'decision'] as const;
-export const ALIASES: Record<string, string> = { et: 'entity', rq: 'req', rl: 'rule', pg: 'page', st: 'state', dc: 'decision', qn: 'question', vl: 'value', ac: 'action', gt: 'gate', fl: 'flag' };
+export const KINDS = ['req', 'rule', 'entity', 'value', 'state', 'op', 'page', 'action', 'gate', 'flag', 'test', 'ui-test', 'module', 'product', 'task', 'tool', 'setting', 'field', 'drift', 'question', 'decision'] as const;
+export const ALIASES: Record<string, string> = { et: 'entity', rq: 'req', rl: 'rule', pg: 'page', st: 'state', dc: 'decision', qn: 'question', vl: 'value', ac: 'action', gt: 'gate', fl: 'flag', tk: 'task' };
 export const ID_RE = new RegExp('\\b(' + [...KINDS, ...Object.keys(ALIASES)].join('|') + '):([A-Za-z0-9_][A-Za-z0-9_./#\\-]*)', 'g');
 
 export function cleanId(tok: string): string {

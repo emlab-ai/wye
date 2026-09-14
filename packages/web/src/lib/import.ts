@@ -124,7 +124,7 @@ function firstText(b: AnyBlock): string {
 
 // A paragraph or list item whose content starts with "kind:slug " becomes a prose node block.
 function proseNode(b: AnyBlock): AnyBlock | null {
-  if (!['paragraph', 'bulletListItem', 'numberedListItem'].includes(b.type) || !Array.isArray(b.content)) return null;
+  if (!['paragraph', 'bulletListItem', 'numberedListItem', 'checkListItem'].includes(b.type) || !Array.isArray(b.content)) return null;
   const items = b.content as Inline[];
   const head = items[0];
   if (!head || head.type !== 'text') return null;
@@ -141,6 +141,9 @@ function proseNode(b: AnyBlock): AnyBlock | null {
     s = s.replace(STATUS_TAG, (_, st) => { status = st; return ''; });
     restItems[restItems.length - 1] = { ...(last as InlineText), text: s.replace(/\s+$/, '') };
   }
-  const props: NodeProps = { kind, slug: rest.join(':'), status, form: 'prose', textKey: 'text', body: '', extra };
+  const check: NodeProps['check'] = b.type === 'checkListItem' ? ((b.props as { checked?: boolean })?.checked ? 'done' : 'todo') : '';
+  if (check && !status) status = check === 'done' ? 'done' : 'open';
+  const list: NodeProps['list'] = !check && (b.type === 'bulletListItem' || b.type === 'numberedListItem') ? 'bullet' : '';
+  const props: NodeProps = { kind, slug: rest.join(':'), status, form: 'prose', textKey: 'text', body: '', extra, check, list };
   return { type: 'node', props: props as unknown as Record<string, unknown>, content: restItems, children: b.children };
 }

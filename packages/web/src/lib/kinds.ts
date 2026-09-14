@@ -1,8 +1,9 @@
 // Per-kind skeletons for new cards, from the required/recommended keys in schema/kinds.yaml.
-export const CARD_KINDS = ['req', 'rule', 'entity', 'value', 'state', 'op', 'page', 'gate', 'flag', 'decision', 'question', 'test'] as const;
+export const CARD_KINDS = ['task', 'req', 'rule', 'entity', 'value', 'state', 'op', 'page', 'gate', 'flag', 'decision', 'question', 'test'] as const;
 export type CardKind = typeof CARD_KINDS[number];
 
 export const SKELETONS: Record<CardKind, string[]> = {
+  task: ['title: ', 'status: open', 'part-of: '],
   req: ['title: ', 'when: ', 'then: ', 'status: proposed', 'satisfied-by: []', 'requires-tests: []'],
   rule: ['statement: ', 'source: ', 'status: proposed', 'requires-tests: []'],
   entity: ['description: ', 'source: ', 'fields:', '  name: string'],

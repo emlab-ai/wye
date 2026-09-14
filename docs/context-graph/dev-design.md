@@ -831,6 +831,18 @@ description: One paragraph stating the same contract for agents that do not load
   status: unverified
   verified-by: [test:web-lib#serialize, test:web-lib#import]
 
+- id: rule:todo-tasks
+  statement: A checkbox line whose first token is an id (`- [ ] task:slug Do the thing`) defines that node with status open, `- [x]` with status done; a #status hashtag overrides. In the editor such a node shows a checkbox in its header; toggling it rewrites the line. task is a node kind (alias tk:) and the default for the "task block" slash item.
+  source: lib/parse.js; packages/web/src/lib/import.ts#proseNode; packages/web/src/lib/serialize.ts#nodeToMarkdown
+  status: unverified
+  verified-by: [test:prose, test:web-lib#import]
+
+- id: rule:doc-links
+  statement: A link whose target is a module id is a document link: clicking it (or the module tag) opens that document. The link picker offers "new document" for any typed title: it creates the page from the blank template under the current document and links the selection to module:<slug>. Frontmatter keys that name relations (part-of, see, …) are edges from the module node, so a document declares its parent in its own header.
+  source: packages/web/src/components/DocEditor.tsx#LinkNodePicker; packages/web/src/components/SmartTag.tsx; lib/parse.js
+  status: unverified
+  verified-by: [test:prose]
+
 - id: rule:node-cards
   statement: A yaml block is split into chunks on id lines exactly as the parser does; a chunk whose id the graph defines renders as a card, any other chunk as a code block. A block with no defined ids renders as code.
   source: packages/web/src/lib/doc.ts#splitDocument; packages/web/src/components/Document.tsx

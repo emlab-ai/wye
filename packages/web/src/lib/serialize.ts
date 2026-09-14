@@ -2,7 +2,7 @@
 // run on plain JSON in tests. Node blocks (our custom block) become prose lines or yaml blocks.
 import type { Inline } from './mdflow';
 
-export interface NodeProps { kind: string; slug: string; status: string; form: 'prose' | 'yaml'; textKey: string; body: string; extra: string }
+export interface NodeProps { kind: string; slug: string; status: string; form: 'prose' | 'yaml'; textKey: string; body: string; extra: string; check?: '' | 'todo' | 'done'; list?: '' | 'bullet' }
 export interface AnyBlock { type: string; props?: Record<string, unknown>; content?: unknown; children?: AnyBlock[] }
 
 export function inlineToMarkdown(items: Inline[] | undefined): string {
@@ -27,7 +27,10 @@ function styled(text: string, st: Record<string, unknown> = {}): string {
 export function nodeToMarkdown(p: NodeProps, text: string): string[] {
   const id = `${p.kind}:${p.slug}`;
   if (p.form === 'prose') {
-    return [`${id} ${text.trim()}${p.status ? ' #' + p.status : ''}${p.extra ? ' (' + p.extra + ')' : ''}`];
+    const box = p.check === 'done' ? '- [x] ' : p.check === 'todo' ? '- [ ] ' : p.list === 'bullet' ? '- ' : '';
+    const implied = p.check === 'done' ? 'done' : p.check === 'todo' ? 'open' : '';
+    const status = p.status && p.status !== implied ? ' #' + p.status : '';
+    return [`${box}${id} ${text.trim()}${status}${p.extra ? ' (' + p.extra + ')' : ''}`];
   }
   // yaml form: rewrite the text key and status inside the original body, keeping every other line in place.
   const lines = p.body ? p.body.split('\n') : [`id: ${id}`];
@@ -78,7 +81,13 @@ export function blocksToMarkdown(blocks: AnyBlock[]): string {
     }
     i++;
     switch (b.type) {
-      case 'node': blank(); push(...nodeToMarkdown(b.props as unknown as NodeProps, inlineToMarkdown(b.content as Inline[]))); blank(); break;
+      case 'node': {
+        const np = b.props as unknown as NodeProps;
+        const lines = nodeToMarkdown(np, inlineToMarkdown(b.content as Inline[]));
+        if (np.check || np.list) { const prevList = out.length && /^(\s*)([-*]|\d+\.)\s/.test(out[out.length - 1]); if (!prevList) blank(); push(...lines); }
+        else { blank(); push(...lines); blank(); }
+        break;
+      }
       case 'paragraph': { const t = inlineToMarkdown(b.content as Inline[]); if (t.trim()) { blank(); push(t); blank(); } break; }
       case 'heading': { const lvl = Number((b.props as { level?: number })?.level ?? 1); blank(); push('#'.repeat(lvl) + ' ' + inlineToMarkdown(b.content as Inline[])); blank(); break; }
       case 'bulletListItem': case 'numberedListItem': case 'checkListItem': {

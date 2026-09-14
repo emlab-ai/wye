@@ -163,3 +163,30 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .linknode button { width: 100%; text-align: left; background: none; border: 0; padding: 5px 6px; border-radius: 5px; color: var(--ink); font: 12px var(--font-m); display: flex; flex-direction: column; cursor: pointer; }
 .linknode button:hover { background: var(--sunk); } .linknode small { font: 11px var(--font-b); color: var(--muted); }
 .linknode-sel { font: 11px var(--font-m); color: var(--muted); margin: 0 0 4px 2px; }
+
+/* ===== AFFiNE-like shell ===== */
+.shell { grid-template-columns: 260px 1fr; }
+.rail { background: var(--ground); border-right: 1px solid var(--line); }
+.rail-head { padding: 16px 14px 8px; border-bottom: 0; }
+.rail-title { font-size: 15px; }
+.rail-body { padding: 4px 8px 40px; }
+.dt-row { font-size: 13.5px; padding: 5px 10px; border-radius: 8px; }
+.dt-row.on { background: var(--sunk); font-weight: 600; }
+.dt-outline a { font-size: 12px; opacity: .85; }
+.rail-foot { border-top: 0; padding: 8px 18px 14px; }
+.content { background: var(--ground); }
+.page { max-width: 780px; margin: 0 auto; padding: 40px 32px 120px; }
+.prop-in.h1 { font-size: 36px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; margin: 0 0 6px -6px; }
+.doc-head .sub { color: var(--muted); }
+.doc-editor { margin: 4px -14px 0; }
+.nblock { border: 0; border-left: 3px solid var(--line-2); border-radius: 0 8px 8px 0; background: transparent; padding: 4px 12px 6px; margin: 6px 0; }
+.nblock:hover, .nblock:focus-within { background: var(--sunk); }
+.nblock.k-req { border-left-color: var(--k-req); } .nblock.k-rule { border-left-color: var(--k-rule); } .nblock.k-entity { border-left-color: var(--k-entity); } .nblock.k-op { border-left-color: var(--k-op); } .nblock.k-page { border-left-color: var(--k-page); } .nblock.k-decision { border-left-color: var(--k-decision); } .nblock.k-question { border-left-color: var(--k-question); } .nblock.k-task { border-left-color: var(--k-state); } .nblock.k-state { border-left-color: var(--k-state); } .nblock.k-value { border-left-color: var(--k-value); } .nblock.k-test { border-left-color: var(--k-test); } .nblock.k-module { border-left-color: var(--k-module); }
+.nblock-head { margin-bottom: 2px; gap: 8px; }
+.nblock-head .pill.k { font-size: 10px; padding: 1px 7px; }
+.nblock-check { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; cursor: pointer; }
+.nblock.done .nblock-text { text-decoration: line-through; opacity: .6; }
+.status-sel { border-color: transparent; } .nblock:hover .status-sel, .nblock:focus-within .status-sel { border-color: var(--line-2); }
+.nblock-extra { opacity: 0; } .nblock:hover .nblock-extra, .nblock:focus-within .nblock-extra, .nblock-extra:not(:placeholder-shown) { opacity: 1; }
+.bn-editor a[href^="module:"], .bn-editor a[href^="req:"], .bn-editor a[href^="rule:"], .bn-editor a[href^="entity:"], .bn-editor a[href^="op:"], .bn-editor a[href^="page:"], .bn-editor a[href^="task:"], .bn-editor a[href^="decision:"], .bn-editor a[href^="question:"], .bn-editor a[href^="state:"], .bn-editor a[href^="value:"], .bn-editor a[href^="test:"] { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent-soft); }
+.linknode button.create span { color: var(--accent); }

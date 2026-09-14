@@ -49,6 +49,14 @@ describe('expand', () => {
     expect(c[1].href).toBe('entity:kitchen-item'); expect(c[1].content![0].text).toBe('kitchen items');
     expect(blocksToMarkdown(blocks)).toBe('req:a When all [kitchen items](entity:kitchen-item) are done. #proposed\n');
   });
+  it('turns checkbox items with ids into task nodes whose status follows the box', () => {
+    const blocks = expand([{ type: 'checkListItem', props: { checked: false }, content: [t('task:a Build it')] }, { type: 'checkListItem', props: { checked: true }, content: [t('tk:b Ship it')] }], []);
+    expect(blocks[0].props).toMatchObject({ kind: 'task', slug: 'a', status: 'open', check: 'todo' });
+    expect(blocks[1].props).toMatchObject({ kind: 'task', slug: 'b', status: 'done', check: 'done' });
+    expect(blocksToMarkdown(blocks)).toBe('- [ ] task:a Build it\n- [x] task:b Ship it\n');
+    const bl = expand([{ type: 'bulletListItem', content: [t('qn:x Is it?')] }], []);
+    expect(blocksToMarkdown(bl)).toBe('- question:x Is it?\n');
+  });
   it('round-trips through the serializer', () => {
     const src = 'req:sale.close When done, entity:order is Closed. #proposed (owner: alex)\n\n---\n\n```yaml\n- id: rule:x\n  statement: S\n  source: f.ts\n```\n';
     const p = prepare(src);

@@ -40,7 +40,8 @@ req:sale.close When a sale is completed and all [kitchen items](entity:kitchen-i
 rule:close-on-complete Closed only when every kitchen item is done; satisfied by op:close-sale and verified by test:sales#close.
 ```
 
-`#status` sets the status; a trailing `(key: value, …)` group carries other keys; `et:`, `rq:`, `rl:`, `pg:`, `st:`, `dc:`, `qn:` are aliases.
+A checkbox line is a task: `- [ ] task:kitchen-screen Build the kitchen screen, part of req:sale.close` (open; `[x]` is done).
+`#status` sets the status; a trailing `(key: value, …)` group carries other keys; `et:`, `rq:`, `rl:`, `pg:`, `st:`, `dc:`, `qn:`, `tk:` are aliases.
 The verb comes from the words before an id ("satisfied by", "verified by", "refines", "part of", …), otherwise `related-to`.
 Yaml blocks keep working exactly as before; both forms live in one file.
 
