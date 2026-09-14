@@ -1,39 +1,31 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { StatusPill } from './Pills';
+import { useEffect, useState } from 'react';
 
-const KEYS = ['title', 'status', 'owner', 'last-verified'] as const;
+const STATUSES = ['proposed', 'partial', 'shipped', 'deprecated'];
 
-// The document header: title and properties, editable in place through the frontmatter op.
+// The document header: title and properties, always editable; a field saves when it loses focus.
 export function DocProps({ project, slug, file, fm }: { project: string; slug: string; file: string; fm: Record<string, string> }) {
   const router = useRouter();
-  const [editing, setEditing] = useState(false);
-  const [vals, setVals] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState(false);
-  function start() { setVals(Object.fromEntries(KEYS.map(k => [k, fm[k] ?? '']))); setEditing(true); }
-  async function save() {
-    setBusy(true);
-    const patch: Record<string, string> = {}; for (const k of KEYS) if ((vals[k] ?? '') !== (fm[k] ?? '')) patch[k] = vals[k];
-    if (Object.keys(patch).length) await fetch(`/api/p/${project}/doc/${slug}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'frontmatter', patch }) });
-    setBusy(false); setEditing(false); router.refresh();
+  const [vals, setVals] = useState<Record<string, string>>(fm);
+  const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  useEffect(() => { setVals(fm); }, [fm]);
+  async function commit(key: string) {
+    if ((vals[key] ?? '') === (fm[key] ?? '')) return;
+    setState('saving');
+    const r = await fetch(`/api/p/${project}/doc/${slug}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'frontmatter', patch: { [key]: vals[key] ?? '' } }) });
+    setState(r.ok ? 'saved' : 'error'); router.refresh();
   }
-  if (!editing) {
-    return (
-      <header className="doc-head sec">
-        <div className="sec-tools"><button onClick={start}>Edit properties</button></div>
-        <div className="pills"><span className="pill k" style={{ background: 'var(--k-module)' }}>document</span><StatusPill status={fm.status ?? ''} /></div>
-        <h1>{fm.title ?? slug}</h1>
-        <p className="sub">{file}{fm['last-verified'] && <> · verified {fm['last-verified']}</>}{fm.owner && <> · {fm.owner}</>}</p>
-      </header>
-    );
-  }
+  const field = (key: string, cls = '') => <input className={`prop-in ${cls}`} value={vals[key] ?? ''} placeholder={key} onChange={e => setVals(v => ({ ...v, [key]: e.target.value }))} onBlur={() => commit(key)} onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />;
   return (
-    <header className="doc-head card editing">
-      <div className="form">
-        {KEYS.map(k => <label key={k}><span>{k}</span><input value={vals[k] ?? ''} onChange={e => setVals(v => ({ ...v, [k]: e.target.value }))} /></label>)}
+    <header className="doc-head">
+      <div className="pills">
+        <span className="pill k" style={{ background: 'var(--k-module)' }}>document</span>
+        <select className="status-sel" value={vals.status ?? ''} onChange={e => { setVals(v => ({ ...v, status: e.target.value })); }} onBlur={() => commit('status')}>{[vals.status ?? '', ...STATUSES].filter((v, i, a) => a.indexOf(v) === i).map(v => <option key={v} value={v}>{v || '—'}</option>)}</select>
+        <span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'error' ? 'save failed' : ''}</span>
       </div>
-      <div className="sec-actions"><button className="pri" disabled={busy} onClick={save}>Save</button><button disabled={busy} onClick={() => setEditing(false)}>Cancel</button></div>
+      {field('title', 'h1')}
+      <p className="sub">{file} · owner {field('owner')} · verified {field('last-verified')}</p>
     </header>
   );
 }

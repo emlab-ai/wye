@@ -445,7 +445,7 @@ display-rules:
   - a card: kind and status pills, title (or id), when/then/unless as one sentence, prose keys as paragraphs, remaining keys as a property strip, raw yaml behind a toggle, anchor n-<id>
   - clicking a tag opens the peek panel (card + relations grouped by verb + Go to definition + Show in graph) without leaving the document; Escape closes
   - the document ends with Linked documents: other files reached by structural edges in either direction, with counts (rule:document-tree)
-  - hover a section or card for Edit; prose edits in BlockNote or raw markdown (rule:prose-round-trip), cards as a form (rule:card-form), "+ card" after blocks and sections, Edit properties on the header; the rail has "+ New document" (rule:new-document)
+  - nothing has an edit mode: prose sections are live block editors (rule:prose-round-trip), cards are live fields (rule:card-form), the header's title, status, owner and last-verified are inline inputs saved on blur; "+ card" after blocks and sections inserts a skeleton that is immediately editable; the rail has "+ New document" (rule:new-document); a save-state hint (saving / saved / changed on disk) sits on each section and card
   - right rail (proposed): linked tasks, decisions (superseded greyed), open contradictions
 ```
 
@@ -801,13 +801,14 @@ description: One paragraph stating the same contract for agents that do not load
   verified-by: [test:web-lib#write]
 
 - id: rule:prose-round-trip
-  statement: The block editor only ever sees one prose section (the text between yaml blocks and --- rules); yaml blocks and rules are boundaries outside the editor, so they survive untouched. Ids are plain text inside the editor and become tags again after save. Every section has a raw-markdown mode for anything the block editor cannot represent.
+  statement: Every prose section is a live block editor (the text between yaml blocks and --- rules); yaml blocks and rules are boundaries outside the editor, so they survive untouched. Hard-wrapped paragraphs are unwrapped before import; ids become tag inline content on import and on blur, and export as plain id text. A section saves only after the user has focused and changed it (programmatic loads never save), 700 ms after the last change, with the section's hash; empty table rows the importer invents are dropped from the export. Every section has a raw-markdown mode.
+  note: BlockNote's export reflows the section it exports (paragraph wrapping, table column widths), so an edited section is rewritten in the editor's formatting; untouched sections are byte-identical.
   source: packages/web/src/components/SectionEditor.tsx; packages/web/src/components/BlockEditor.tsx
   status: unverified
   requires-tests: [ui-test:edit-node-flow]
 
 - id: rule:card-form
-  statement: A card edits as a form built from its yaml: prose keys as multi-line text, list keys as comma-separated ids with autocomplete from the node index, nested blocks as raw text; saving serialises the fields back in their original order (lists as flow lists, long prose as > blocks) and never changes the id.
+  statement: A card is always editable in place: title, status (select), when/then/unless, prose keys as growing text areas, list keys as tag chips with an add box (autocomplete from the node index), nested blocks as raw text, and a yaml toggle for the raw chunk. Changes autosave 700 ms after the last keystroke with the chunk's hash; the fields serialise back in their original order (lists as flow lists, long prose as > blocks) and the id never changes.
   source: packages/web/src/lib/yaml-form.ts; packages/web/src/components/CardEditor.tsx
   status: unverified
   verified-by: [test:web-lib#yaml-form]

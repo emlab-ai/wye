@@ -116,5 +116,30 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .addcard-form { margin: 8px 0 16px; }
 .newdoc { margin: 12px 10px; width: calc(100% - 20px); border-style: dashed; }
 .newdoc-form { margin: 10px; padding: 10px; border: 1px solid var(--accent); border-radius: 8px; background: var(--ground); }
-.bn-wrap { border: 1px solid var(--line-2); border-radius: 8px; background: var(--ground); min-height: 80px; }
+.bn-wrap { border: 0; border-radius: 8px; background: transparent; min-height: 40px; }
 .bn-wrap .bn-container { --bn-colors-editor-background: transparent; }
+
+/* ===== always-editable ===== */
+.live { position: relative; margin: 0 0 4px; }
+.live-tools { position: absolute; right: -6px; top: -2px; display: flex; gap: 6px; align-items: center; z-index: 2; opacity: 0; transition: opacity .15s; }
+.live:hover .live-tools, .live:focus-within .live-tools { opacity: 1; }
+.live-tools button, .mini { background: none; border: 1px solid var(--line-2); border-radius: 5px; padding: 1px 7px; font: 11px var(--font-m); color: var(--muted); cursor: pointer; }
+.save-state { font: 11px var(--font-m); color: var(--muted); } .save-state.saved { color: var(--ok); } .save-state.conflict, .save-state.error { color: var(--bad); }
+.bn-wrap { margin: 0 -14px; } .bn-wrap .bn-container { --bn-colors-editor-background: transparent; }
+.bn-wrap .bn-editor { padding-inline: 14px; }
+.live-card input, .live-card textarea, .prop-in { background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--ink); font: inherit; padding: 2px 6px; margin-left: -6px; width: calc(100% + 6px); resize: none; }
+.live-card input:hover, .live-card textarea:hover, .prop-in:hover { border-color: var(--line); }
+.live-card input:focus, .live-card textarea:focus, .prop-in:focus { border-color: var(--accent); outline: none; background: var(--ground); }
+.live-card .title { font-weight: 600; font-size: 16px; margin: 6px 0 2px; }
+.live-card .sentence-field { display: flex; gap: 8px; align-items: baseline; margin: 2px 0; } .live-card .sentence-field .pk { flex: none; width: 46px; }
+.live-card textarea.auto { line-height: 1.5; overflow: hidden; } .live-card textarea.mono { font: 12.5px/1.5 var(--font-m); }
+.live-card .strip dd input { font-size: 13px; }
+.live-card header .save-state { margin-left: 6px; } .live-card header .mini { margin-left: 6px; }
+.status-sel { background: transparent; border: 1px dashed var(--line-2); border-radius: 999px; color: var(--ink-2); font: 500 11px var(--font-m); text-transform: uppercase; padding: 2px 6px; }
+.taglist { display: inline-flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+.chip-x { display: inline-flex; align-items: center; gap: 2px; } .chip-x button { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 0 2px; font-size: 12px; } .chip-x button:hover { color: var(--bad); }
+.taglist input { width: 110px !important; margin: 0 !important; font: 12px var(--font-m) !important; }
+.prop-in.h1 { font-size: 24px; font-weight: 700; margin: 0 0 4px -6px; }
+.doc-head .sub .prop-in { width: 120px; display: inline-block; font: 12px var(--font-m); color: var(--muted); }
+.addcard.open { display: flex; gap: 6px; align-items: center; margin: 4px 0 12px; } .addcard.open select, .addcard.open input { background: var(--ground); color: var(--ink); border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 8px; font: 13px var(--font-b); } .addcard.open input { width: 260px; }
+.addcard.open .pri { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }

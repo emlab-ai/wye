@@ -2,7 +2,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkTags from '@/lib/remark-tags';
 import { headingSlug, type SplitDoc, type IndexEntry } from '@/lib/doc';
-import { NodeCard } from './NodeCard';
 import { SmartTag } from './SmartTag';
 import { SectionEditor } from './SectionEditor';
 import { CardEditor } from './CardEditor';
@@ -38,7 +37,7 @@ export function Document({ doc, index, project, slug, hashes }: { doc: SplitDoc;
         return (
           <div key={i} className="cards">
             {anyDefined ? s.chunks.map((c, j) => c.id && index[c.id]
-              ? <CardEditor key={c.id + j} project={project} slug={slug} segment={i} chunk={j} id={c.id} body={c.body} ifMatch={chunkHashes[j]}><NodeCard id={c.id} body={c.body} entry={index[c.id]} /></CardEditor>
+              ? <CardEditor key={c.id + j} project={project} slug={slug} segment={i} chunk={j} id={c.id} body={c.body} ifMatch={chunkHashes[j]} entry={index[c.id]} />
               : <pre key={j} className="yaml">{c.body}</pre>)
               : <pre className="yaml">{s.raw}</pre>}
             <AddCard project={project} slug={slug} segment={i} mode="append" />

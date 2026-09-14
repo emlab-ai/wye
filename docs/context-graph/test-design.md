@@ -183,7 +183,8 @@ runner: vitest for core, server, clerk, cli and web components; Playwright for u
     - write: replaceSegment (exact span, conflict, bad index), replaceChunk (list re-indent), appendChunk, insertYamlAfterSegment, patchFrontmatter
     - yaml-form: bodyToFields classification and flattening, fieldsToBody round trip, empty fields dropped, long prose wrapped
     - templates: slugify, placeholder filling
-  count: 38
+    - mdflow: unwrapParagraphs keeps lists, tables, code, headings, rules and hard breaks; tagifyInline splits text on ids, keeps punctuation, turns code-only ids into tags, recurses into links and table cells
+  count: 43
 ```
 
 ### Web components (vitest + React Testing Library)
