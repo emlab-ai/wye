@@ -1,0 +1,12 @@
+{
+    "name": "waterfall",
+    "version": "0.1.0",
+    "description": "Product context graph: describe a system as requirements, entities, rules, ops and pages in markdown; query it as a graph; publish a phone-friendly viewer.",
+    "private": true,
+    "bin": { "ctx": "bin/ctx.js" },
+    "scripts": {
+        "test": "node test/smoke.js"
+    },
+    "engines": { "node": ">=18" },
+    "license": "UNLICENSED"
+}

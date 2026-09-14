@@ -1,0 +1,25 @@
+# A delta is how a feature enters the graph BEFORE any code is written.
+# Path: docs/context-graph/_deltas/<YYYY-MM-DD>-<slug>/delta.yaml  (+ node files or a patch to the module .md)
+# Lifecycle: proposed → approved (human, in the delta PR) → shipped (code PR passes `ctx check --strict`)
+id: delta:<YYYY-MM-DD>-<slug>
+status: proposed
+intent: <one sentence, user's words>
+module: module:<slug>
+adds:                      # new nodes; each must also be written out in the module .md (or a sidecar .md in this folder)
+  - req:<mod>.<capability>.<detail>
+  - op:<name>
+  - action:<slug>
+  - rule:<slug>
+changes:                   # existing nodes whose body changes (say what in `notes`)
+  - entity:<name>
+resolves:                  # questions or drift rows this delta closes
+  - question:<slug>
+  - drift:<mod>.<n>
+requires-tests:            # test ids the implementation PR must make real
+  - test:<Class>#<Method>
+constraints-checked:       # graph queries that must hold after this delta (ctx check runs them)
+  - every new op has a gated-by edge
+  - every new req has satisfied-by and verified-by
+  - no new rule text-overlaps an existing rule without a refines/contradicts edge
+notes: |
+  <design notes, alternatives rejected>
