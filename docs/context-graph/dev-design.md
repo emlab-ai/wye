@@ -302,7 +302,7 @@ fields:
 | value:pair-verdict | packages/server/src/clerk/classify.ts#Verdict | consistent, refines, duplicate, contradicts |
 | value:error-code | packages/server/src/errors.ts#ErrorCode | conflict (409), invalid_patch (422), not_found (404), lint_failed (422), unauthorized (401) |
 | value:sse-event | packages/server/src/events.ts#EventKind | graph.changed, graph.parse_error, task.changed, decision.changed, contradiction.changed, delta.changed |
-| value:prose-key | packages/web/src/lib/keys.ts#PROSE_KEYS | purpose, note, notes, statement, description, context, consequences, intent, q |
+| value:prose-key | packages/web/src/lib/graph.ts#PROSE_KEYS | purpose, note, notes, statement, description, context, consequences, intent, q |
 
 ---
 
@@ -409,7 +409,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
 ```yaml
 id: page:web/sidebar
 route: every route; first screen at phone width
-component: packages/web/src/components/Sidebar.tsx
+component: packages/web/src/components/Sidebar.tsx; packages/web/src/app/p/[project]/layout.tsx
 reads: [op:projects.list, op:graph.search, op:tasks.list, op:contradictions.list]
 actions:
   - action:search:          type to search ids, titles, bodies -(calls)-> op:graph.search
@@ -449,7 +449,7 @@ display-rules:
 ```yaml
 id: page:web/graph
 route: /p/<project>/graph?focus=<id>&preset=<name>
-component: packages/web/src/app/p/[project]/graph/page.tsx
+component: packages/web/src/app/p/[project]/graph/page.tsx; packages/web/src/components/GraphView.tsx
 reads: [op:graph.neighbors, op:graph.get]
 actions:
   - action:preset:          Requirements | Mechanics | Data | Drift | Everything (rule:graph-presets)
@@ -779,14 +779,15 @@ description: One paragraph stating the same contract for agents that do not load
 ```yaml
 - id: rule:deep-links
   statement: Every view is a route under /p/<project>; the node page is /n/<id>, the graph /graph?focus=<id>&preset=<name>, lists carry their filters in the query; navigating updates the URL and loading a URL restores the view.
-  source: packages/web/src/app/p/[project]/layout.tsx
-  status: proposed
+  source: packages/web/src/app/p/[project]/layout.tsx; packages/web/src/app/p/[project]/graph/page.tsx
+  status: unverified
   requires-tests: [ui-test:deep-link]
 
 - id: rule:prose-keys
   statement: A yaml key is prose if it is in value:prose-key or its value is a block scalar (> or |); prose keys get the block editor, everything else a form field; edge keys get id lists with typeahead over graph.search.
-  source: packages/web/src/lib/keys.ts#isProse
-  status: proposed
+  source: packages/web/src/lib/graph.ts#parseBody
+  status: unverified
+  verified-by: [test:web-lib#graph]
   requires-tests: [test:web-components#node-page-properties]
 
 - id: rule:blocknote-prose-only
@@ -797,7 +798,8 @@ description: One paragraph stating the same contract for agents that do not load
 
 - id: rule:mindmap-layout
   statement: The graph view lays out the focus node's tree (refines and has edges, outgoing from the focus, depth from the preset) with dagre left-to-right, draws remaining structural edges among visible nodes as cross-links, and hides mentions unless the preset is Everything.
-  source: packages/web/src/components/graph/layout.ts
-  status: proposed
+  source: packages/web/src/lib/layout.ts#layoutMindMap
+  status: unverified
+  verified-by: [test:web-lib#layout]
   requires-tests: [test:web-components#graph-layout]
 ```

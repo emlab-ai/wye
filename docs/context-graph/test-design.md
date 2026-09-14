@@ -168,6 +168,19 @@ runner: vitest for core, server, clerk, cli and web components; Playwright for u
   count: 2
 ```
 
+### Web pure modules (vitest)
+
+```yaml
+- id: test:web-lib
+  file: packages/web/src/lib/graph.test.ts
+  description: vitest over the pure modules of the web app — also packages/web/src/lib/presets.test.ts and packages/web/src/lib/layout.test.ts.
+  cases:
+    - graph: indexGraph, sidebarTree (file order), neighborhood (depth, structural), parseBody (prose keys, block scalars), relations
+    - presets: Requirements, Mechanics, Drift, focus override, Everything
+    - layout: every node positioned, children right of the focus, tree edges vs cross-links, forest without focus
+  count: 14
+```
+
 ### Web components (vitest + React Testing Library)
 
 ```yaml

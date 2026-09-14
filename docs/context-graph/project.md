@@ -25,7 +25,8 @@ questions. The other three documents are:
 | Dev design | `docs/context-graph/dev-design.md` (module:wf2-dev) | entities, values, state machines, operations (API tools), pages (web UI), rules |
 | Test design | `docs/context-graph/test-design.md` (module:wf2-test) | test nodes, what each verifies, untested surfaces |
 
-Everything is `status: proposed`. Sources are intended paths under `packages/*`; `ctx check` reports them as
+Everything starts as `status: proposed`; a node moves to `unverified` when its slice ships without a page test and to
+`shipped` once a `verified-by` test exists. Sources are intended paths under `packages/*`; `ctx check` reports them as
 warnings until the code exists, and `--strict` turns them into errors, which is the definition of done.
 
 ---
@@ -257,6 +258,7 @@ Each row is a structural contradiction the server will import; each is resolved 
 | 5 | gate:none | gate:agent-token | v0.1 has no identity at all; v2 records who calls but still enforces nothing locally — identity without authorization until hosted | docs/context-graph/waterfall.md vs decision:wf2.local-first-hosted-ready |
 | 6 | req:wf2.contradictions.strict | module:yessensei-pos | the pilot has 17 open drift rows; under the v2 strict rule its check goes red until they are resolved or dismissed with a reason | spec §6.3 vs inventory.md §10 |
 | 7 | req:wf.query.packet | req:wf2.api.packet-task | v0.1's packet cites files only from nodes with a source key, so requirement-heavy packets cite nothing; v2 adds task seeding and appends decisions and contradictions but does not fix the file list on its own | lib/graph.js:131-137 |
+| 8 | decision:wf2.stack | package.json | the decision says pnpm monorepo; pnpm is not installed on the dev machine, so the workspace uses npm workspaces. Same layout, different tool; switch when pnpm is adopted | package.json vs spec §2 |
 
 ---
 

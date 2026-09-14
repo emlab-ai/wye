@@ -481,7 +481,8 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   title: The product opens on a sidebar and a page
   when: the web app opens
   then: a sidebar tree of product, project, module, section and node sits beside the selected node's page; every view has a URL (/p/<project>/n/<id>, /p/<project>/graph?focus=<id>) that reopens it
-  status: proposed
+  status: unverified
+  note: read-only first slice shipped 2026-09-14 (packages/web); no automated page test yet, server-backed data and editing pending
   satisfied-by: [page:web/sidebar, page:web/node, rule:deep-links]
   requires-tests: [test:web-components#sidebar-tree, ui-test:deep-link]
   see: req:wf.view
@@ -490,7 +491,8 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   title: The sidebar finds anything
   when: the user types in the sidebar search or expands the tree
   then: search hits come from graph.search; rows carry a kind icon and status dot; Tasks, Decisions and Contradictions sit above the tree with open counts
-  status: proposed
+  status: unverified
+  note: read-only first slice shipped 2026-09-14 (packages/web); no automated page test yet, server-backed data and editing pending
   satisfied-by: [page:web/sidebar, op:graph.search]
   requires-tests: [test:web-components#sidebar-search]
   refines: req:wf2.ui
@@ -499,7 +501,8 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   title: A node is a page with properties and relations
   when: a node is opened
   then: its yaml keys render as fields (text, enum for status, id lists with typeahead for edge keys), prose keys open in a block editor, relations show grouped by verb both ways as chips, and a right rail lists linked tasks, decisions and contradictions
-  status: proposed
+  status: unverified
+  note: read-only first slice shipped 2026-09-14 (packages/web); no automated page test yet, server-backed data and editing pending
   satisfied-by: [page:web/node, rule:prose-keys, rule:blocknote-prose-only]
   requires-tests: [test:web-components#node-page-properties, test:web-components#node-page-prose-editor]
   see: req:wf.view.sheet
@@ -518,7 +521,8 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   title: The graph is a mind map around a focus
   when: the graph view opens with a focus node
   then: the focus sits in the centre with refines and has edges laid out as a tree and other structural verbs as cross-links; mentions are hidden; presets Requirements, Mechanics, Data, Drift and Everything change the visible set; click opens the node page in a side panel and double-click re-centres
-  status: proposed
+  status: unverified
+  note: read-only first slice shipped 2026-09-14 (packages/web); no automated page test yet, server-backed data and editing pending
   satisfied-by: [page:web/graph, rule:mindmap-layout, rule:graph-presets]
   requires-tests: [test:web-components#graph-layout, test:web-components#graph-presets]
   see: req:wf.view.graph
