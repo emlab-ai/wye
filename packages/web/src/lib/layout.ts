@@ -10,13 +10,15 @@ export function layoutMindMap(nodes: GraphNode[], edges: GraphEdge[], focus: str
   g.setDefaultEdgeLabel(() => ({}));
   for (const n of nodes) g.setNode(n.id, { width: NODE_W, height: NODE_H });
   const treeEdges = new Set<string>();
+  // Every visible edge ranks the layout so non-tree presets (Drift, Data) still spread into layers;
+  // only refines/has are marked as tree edges for styling. refines points child → parent; has points
+  // parent → child; both are ranked parent → child. Other verbs rank from → to.
   for (const e of edges) {
-    if (!TREE_VERBS.includes(e.verb)) continue;
-    // refines points child → parent; has points parent → child. Draw the tree parent → child.
+    const tree = TREE_VERBS.includes(e.verb);
     const parent = e.verb === 'refines' ? e.to : e.from, child = e.verb === 'refines' ? e.from : e.to;
-    if (parent === child) continue;
+    if (parent === child || !g.hasNode(parent) || !g.hasNode(child)) continue;
     g.setEdge(parent, child);
-    treeEdges.add(`${e.from}|${e.verb}|${e.to}`);
+    if (tree) treeEdges.add(`${e.from}|${e.verb}|${e.to}`);
   }
   if (focus && g.hasNode(focus)) g.setNode(focus, { width: NODE_W, height: NODE_H, rank: 0 });
   dagre.layout(g);

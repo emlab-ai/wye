@@ -82,3 +82,17 @@ code, pre { font-family: var(--font-m); }
 .chip.stub { border-style: dashed; }
 .chip .nid { border: 0; color: var(--ink); }
 .muted { color: var(--muted); }
+
+/* ===== graph page ===== */
+.gwrap { display: flex; flex-direction: column; height: 100dvh; }
+.gbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.gbar .chip { text-decoration: none; color: var(--ink-2); cursor: pointer; }
+.gbar .chip.on { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+.gbar .chip.on a { color: var(--ground); margin-left: 6px; text-decoration: none; }
+.gbar .cnt { margin-left: auto; font: 11px var(--font-m); color: var(--muted); }
+.gcanvas { flex: 1; min-height: 0; position: relative; background: var(--ground); }
+.gpanel { position: absolute; right: 12px; top: 12px; width: min(380px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: 0 8px 30px rgba(0,0,0,.15); z-index: 5; }
+.gpanel h3 { margin: 6px 0 2px; font-size: 15px; } .gpanel code { font-size: 11px; color: var(--muted); word-break: break-all; }
+.gp-acts { display: flex; gap: 10px; margin: 8px 0; font-size: 13px; } .gp-acts button { background: none; border: 0; color: var(--accent); cursor: pointer; font: inherit; padding: 0; }
+.props.small { margin: 6px 0 0; padding: 8px 10px; grid-template-columns: 90px 1fr; font-size: 12px; }
+.react-flow__node { cursor: pointer; }

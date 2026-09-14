@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getProject } from '@/lib/projects';
-import { indexGraph, loadGraph, parseBody, relations } from '@/lib/graph';
+import { indexGraph, parseBody, relations } from '@/lib/graph';
+import { loadGraph } from '@/lib/load';
 import { KindPill, StatusPill, StubPill } from '@/components/Pills';
 import { NodeBody } from '@/components/NodeBody';
 import { Relations } from '@/components/Relations';

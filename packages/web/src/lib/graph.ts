@@ -1,5 +1,3 @@
-import { readFile } from 'node:fs/promises';
-
 export interface GraphNode { id: string; kind: string; title: string; status: string; section: string; subsection: string; body: string; defined: boolean; file: string; line: number; owner?: string }
 export interface GraphEdge { from: string; to: string; verb: string }
 export interface GraphModule { id: string; title: string; file: string; verified: string; sourceRoots: string[] }
@@ -10,10 +8,6 @@ export interface ModuleGroup { module: GraphNode; file: string; sections: { titl
 
 export const STRUCTURAL = new Set(['refines', 'satisfied-by', 'verified-by', 'governed-by', 'gated-by', 'has', 'refs', 'owns', 'calls', 'has-action', 'reads', 'writes', 'navigates', 'triggers', 'set-by', 'embedded-in', 'typed-as', 'contradicts', 'owned-by', 'applies-to', 'governs', 'edge-to', 'resolves', 'depends-on', 'adds', 'changes']);
 export const PROSE_KEYS = new Set(['purpose', 'note', 'notes', 'statement', 'description', 'context', 'consequences', 'intent', 'q']);
-
-export async function loadGraph(graphPath: string): Promise<GraphData> {
-  return JSON.parse(await readFile(graphPath, 'utf8')) as GraphData;
-}
 
 export function indexGraph(g: GraphData): GraphIndex {
   const byId = new Map(g.nodes.map(n => [n.id, n]));

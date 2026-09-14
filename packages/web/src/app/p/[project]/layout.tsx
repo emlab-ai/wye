@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { getProject } from '@/lib/projects';
-import { loadGraph, sidebarTree } from '@/lib/graph';
+import { sidebarTree } from '@/lib/graph';
+import { loadGraph } from '@/lib/load';
 
 export default async function ProjectLayout({ children, params }: { children: ReactNode; params: Promise<{ project: string }> }) {
   const { project } = await params;

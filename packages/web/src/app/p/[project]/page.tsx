@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getProject } from '@/lib/projects';
-import { indexGraph, loadGraph, type GraphNode } from '@/lib/graph';
+import { indexGraph, type GraphNode } from '@/lib/graph';
+import { loadGraph } from '@/lib/load';
 import { statusMark } from '@/components/Pills';
 
 export default async function ProjectHome({ params }: { params: Promise<{ project: string }> }) {
