@@ -17,7 +17,7 @@ export function Document({ doc, index }: { doc: SplitDoc; index: Record<string, 
   };
   return (
     <div className="doc">
-      {doc.segments.map((s, i) => s.type === 'markdown'
+      {doc.segments.map((s, i) => s.type === 'hr' ? <hr key={i} /> : s.type === 'markdown'
         ? <ReactMarkdown key={i} remarkPlugins={[remarkGfm, remarkTags]} components={components}>{s.text}</ReactMarkdown>
         : s.chunks.some(c => c.id && index[c.id]?.defined)
           ? <div key={i} className="cards">{s.chunks.map((c, j) => c.id && index[c.id] ? <NodeCard key={c.id + j} id={c.id} body={c.body} entry={index[c.id]} /> : <pre key={j} className="yaml">{c.body}</pre>)}</div>

@@ -40,6 +40,7 @@ verbs:
   triggers:     external event / other module → rule | op
   contradicts:  drift | rule → node   (must be resolved before building on either side)
   edge-to:      module → module   (boundary; described only at the border)
+  part-of:      module → module   (a document declares its parent document; the inverse of has, used for the document tree)
   see:          req → req          (alias, no duplication)
   mentions:     generated — any node whose text names another node or a field; weak edge, hidden by default in the viewer
 

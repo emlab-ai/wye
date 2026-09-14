@@ -1,6 +1,10 @@
 import type { GraphData, GraphIndex, GraphNode } from './graph';
 
-export type Segment = { type: 'markdown'; text: string } | { type: 'yaml'; raw: string; chunks: { id: string | null; body: string }[] };
+export interface Chunk { id: string | null; body: string; raw: string; start: number; end: number; list: boolean }
+export type Segment =
+  | { type: 'markdown'; text: string; start: number; end: number }
+  | { type: 'hr'; start: number; end: number }
+  | { type: 'yaml'; raw: string; chunks: Chunk[]; start: number; end: number };
 export interface SplitDoc { frontmatter: Record<string, string>; segments: Segment[] }
 export interface DocNode { module: GraphNode; file: string; slug: string; title: string; children: DocNode[] }
 export type IndexEntry = { id: string; kind: string; title: string; status: string; defined: boolean; file: string };
@@ -13,49 +17,70 @@ export function headingSlug(text: string): string {
 
 export function splitDocument(md: string): SplitDoc {
   const frontmatter: Record<string, string> = {};
-  let body = md;
+  let offset = 0;
   const fm = md.match(/^---\n([\s\S]*?)\n---\n?/);
   if (fm) {
-    body = md.slice(fm[0].length);
+    offset = fm[0].length;
     for (const line of fm[1].split('\n')) { const m = line.match(/^([\w-]+):\s*(.*)$/); if (m) frontmatter[m[1]] = m[2].trim(); }
   }
   const segments: Segment[] = [];
-  const lines = body.split('\n');
-  let buf: string[] = []; let inYaml = false; let inOther = false; let yamlBuf: string[] = [];
-  const flushMd = () => { const text = buf.join('\n').trim(); if (text) segments.push({ type: 'markdown', text }); buf = []; };
+  // Walk lines keeping absolute character offsets so writers can replace exact spans.
+  const lines: { text: string; start: number }[] = [];
+  let pos = offset;
+  for (const text of md.slice(offset).split('\n')) { lines.push({ text, start: pos }); pos += text.length + 1; }
+  let buf: { text: string; start: number }[] = []; let inYaml = false; let inOther = false; let yamlBuf: { text: string; start: number }[] = []; let fenceStart = 0;
+  const flushMd = () => {
+    let a = 0, b = buf.length;
+    while (a < b && !buf[a].text.trim()) a++;
+    while (b > a && !buf[b - 1].text.trim()) b--;
+    if (a < b) { const start = buf[a].start; const end = buf[b - 1].start + buf[b - 1].text.length; segments.push({ type: 'markdown', text: md.slice(start, end), start, end }); }
+    buf = [];
+  };
+  const flushYaml = (fenceEnd: number) => {
+    segments.push({ type: 'yaml', raw: yamlBuf.map(l => l.text).join('\n'), chunks: chunkYaml(yamlBuf), start: fenceStart, end: fenceEnd });
+    yamlBuf = [];
+  };
   for (const line of lines) {
-    if (/^```/.test(line)) {
-      if (inYaml) { inYaml = false; segments.push({ type: 'yaml', raw: yamlBuf.join('\n'), chunks: chunkYaml(yamlBuf) }); yamlBuf = []; continue; }
+    if (/^```/.test(line.text)) {
+      if (inYaml) { inYaml = false; flushYaml(line.start + line.text.length); continue; }
       if (inOther) { inOther = false; buf.push(line); continue; }
-      if (/^```ya?ml/.test(line)) { flushMd(); inYaml = true; continue; }
+      if (/^```ya?ml/.test(line.text)) { flushMd(); inYaml = true; fenceStart = line.start; continue; }
       inOther = true; buf.push(line); continue;
     }
-    if (inYaml) yamlBuf.push(line); else buf.push(line);
+    if (inYaml) { yamlBuf.push(line); continue; }
+    if (!inOther && /^---\s*$/.test(line.text)) { flushMd(); segments.push({ type: 'hr', start: line.start, end: line.start + line.text.length }); continue; }
+    buf.push(line);
   }
-  if (inYaml) segments.push({ type: 'yaml', raw: yamlBuf.join('\n'), chunks: chunkYaml(yamlBuf) });
+  if (inYaml) flushYaml(md.length);
   flushMd();
   return { frontmatter, segments };
 }
 
-function chunkYaml(lines: string[]): { id: string | null; body: string }[] {
-  const chunks: { id: string | null; lines: string[] }[] = [];
-  let cur: { id: string | null; lines: string[] } | null = null;
-  for (const raw of lines) {
-    const idm = raw.match(/^\s*-?\s*id:\s*([a-z-]+:[A-Za-z0-9_./#\-]+)/);
-    if (idm) { if (cur) chunks.push(cur); cur = { id: idm[1], lines: [raw] }; continue; }
-    if (/^---\s*$/.test(raw)) { if (cur) chunks.push(cur); cur = null; continue; }
+function chunkYaml(lines: { text: string; start: number }[]): Chunk[] {
+  const groups: { id: string | null; lines: { text: string; start: number }[] }[] = [];
+  let cur: { id: string | null; lines: { text: string; start: number }[] } | null = null;
+  for (const line of lines) {
+    const idm = line.text.match(/^\s*-?\s*id:\s*([a-z-]+:[A-Za-z0-9_./#\-]+)/);
+    if (idm) { if (cur) groups.push(cur); cur = { id: idm[1], lines: [line] }; continue; }
+    if (/^---\s*$/.test(line.text)) { if (cur) groups.push(cur); cur = null; continue; }
     if (!cur) cur = { id: null, lines: [] };
-    cur.lines.push(raw);
+    cur.lines.push(line);
   }
-  if (cur) chunks.push(cur);
-  return chunks.map(c => {
-    const first = c.lines[0]?.replace(/^\s*-\s*id:/, 'id:').trim() ?? '';
-    const rest = c.lines.slice(1); const nonEmpty = rest.filter(l => l.trim());
-    const indent = nonEmpty.length ? Math.min(...nonEmpty.map(l => l.match(/^\s*/)![0].length)) : 0;
-    const body = (c.id ? [first, ...rest.map(l => l.slice(indent))] : c.lines).join('\n').trim();
-    return { id: c.id, body };
+  if (cur) groups.push(cur);
+  return groups.map(c => {
+    // trim trailing blank lines out of the span so appends land after the last real line
+    let n = c.lines.length; while (n > 0 && !c.lines[n - 1].text.trim()) n--;
+    const kept = c.lines.slice(0, n);
+    const first = kept[0]?.text.replace(/^\s*-\s*id:/, 'id:').trim() ?? '';
+    const list = /^\s*-\s*id:/.test(kept[0]?.text ?? '');
+    const rest = kept.slice(1); const nonEmpty = rest.filter(l => l.text.trim());
+    const indent = nonEmpty.length ? Math.min(...nonEmpty.map(l => l.text.match(/^\s*/)![0].length)) : 0;
+    const body = (c.id ? [first, ...rest.map(l => l.text.slice(indent))] : kept.map(l => l.text)).join('\n').trim();
+    const start = kept[0]?.start ?? 0; const last = kept[kept.length - 1]; const end = last ? last.start + last.text.length : start;
+    return { id: c.id, body, raw: md_slice(kept), start, end, list };
   }).filter(c => c.body);
 }
+const md_slice = (ls: { text: string; start: number }[]) => ls.map(l => l.text).join('\n');
 
 export function outline(md: string): { level: 2 | 3; text: string; slug: string }[] {
   const out: { level: 2 | 3; text: string; slug: string }[] = [];
@@ -78,8 +103,10 @@ export function documentTree(g: GraphData): { roots: DocNode[]; main: DocNode | 
   }
   const hasParent = new Set<string>();
   for (const e of g.edges) {
-    if (e.verb !== 'has' || !nodes.has(e.from) || !nodes.has(e.to) || e.from === e.to) continue;
-    nodes.get(e.from)!.children.push(nodes.get(e.to)!); hasParent.add(e.to);
+    if (!nodes.has(e.from) || !nodes.has(e.to) || e.from === e.to) continue;
+    const [parent, child] = e.verb === 'has' ? [e.from, e.to] : e.verb === 'part-of' ? [e.to, e.from] : [null, null];
+    if (!parent || !child || hasParent.has(child)) continue;
+    nodes.get(parent)!.children.push(nodes.get(child)!); hasParent.add(child);
   }
   const roots = [...nodes.values()].filter(d => !hasParent.has(d.module.id));
   const main = [...roots].sort((a, b) => b.children.length - a.children.length || a.title.localeCompare(b.title))[0] ?? null;
@@ -93,7 +120,7 @@ export function linkedDocuments(g: GraphData, idx: GraphIndex, file: string) {
   for (const e of g.edges) {
     const a = idx.byId.get(e.from), b = idx.byId.get(e.to);
     if (!a || !b || !a.defined || !b.defined) continue;
-    if (a.kind === 'module' && b.kind === 'module') continue; // containment, shown in the tree instead
+    if (a.kind === 'module' && b.kind === 'module' && (e.verb === 'has' || e.verb === 'part-of')) continue; // containment, shown in the tree instead
     const other = a.file === file && b.file !== file ? b.file : b.file === file && a.file !== file ? a.file : null;
     if (!other || !byFile.has(other)) continue;
     counts.set(other, (counts.get(other) ?? 0) + 1);

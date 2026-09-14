@@ -44,7 +44,10 @@ describe('splitDocument', () => {
     expect(y.chunks.map(c => c.id)).toEqual(['req:m.a', 'req:m.b']);
     expect(y.chunks[0].body).toBe('id: req:m.a\ntitle: A\nwhen: x\nthen: y');
     const cfg = d.segments[3]; if (cfg.type !== 'yaml') throw new Error();
-    expect(cfg.chunks).toEqual([{ id: null, body: 'just: config' }]);
+    expect(cfg.chunks.map(c => ({ id: c.id, body: c.body }))).toEqual([{ id: null, body: 'just: config' }]);
+    expect(md.slice(y.start, y.end).startsWith('```yaml')).toBe(true);
+    expect(md.slice(y.chunks[0].start, y.chunks[0].end)).toBe('- id: req:m.a\n  title: A\n  when: x\n  then: y');
+    expect(y.chunks[0].list).toBe(true);
   });
   it('drops the frontmatter from the first markdown segment', () => {
     const d = splitDocument(md);
