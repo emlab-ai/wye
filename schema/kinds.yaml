@@ -2,6 +2,7 @@
 # Ids are stable slugs: kind:slug. Slugs are kebab-case; req slugs are dotted paths (hierarchy).
 
 kinds:
+  product:  { purpose: a thing being built; groups projects (repos). v2 — one node per product, described in the project file, required: [description, projects] }
   module:   { purpose: a bounded area of the product; one file per module,      required: [purpose, submodules] }
   req:      { purpose: a BEHAVIOUR — when <trigger>, <actor/system> <outcome> [unless <exception>]. Root of every feature,
               required: [title, when, then, status, satisfied-by], recommended: [verified-by, refines, unless, note] }
