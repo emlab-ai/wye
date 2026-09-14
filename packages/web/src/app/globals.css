@@ -94,3 +94,27 @@ code, pre { font-family: var(--font-m); }
 .linked { margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--line); } .linked ul { padding-left: 18px; }
 .muted { color: var(--muted); }
 @media (max-width: 720px) { .shell { grid-template-columns: 1fr; } .rail { height: auto; max-height: 45dvh; } }
+
+/* ===== editing ===== */
+.sec { position: relative; }
+.sec-tools { position: absolute; right: -4px; top: 2px; display: none; gap: 4px; z-index: 2; }
+.sec:hover > .sec-tools { display: flex; }
+.sec-tools button, .sec-actions button, .newdoc, .addcard button { background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 9px; font: 12px var(--font-b); color: var(--ink-2); cursor: pointer; }
+.sec-tools button:hover, .sec-actions button:hover, .newdoc:hover, .addcard button:hover { border-color: var(--accent); color: var(--ink); }
+.sec-actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.sec-actions .pri { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.sec.editing { border: 1px solid var(--accent); border-radius: 10px; padding: 10px 12px; margin: 8px 0; background: var(--surface); }
+.card.editing { border-color: var(--accent); }
+textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk); color: var(--ink); border: 1px solid var(--line-2); border-radius: 8px; padding: 10px; resize: vertical; }
+.form { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; align-items: start; margin: 8px 0; }
+.form label { display: contents; }
+.form label > span { font: 500 11px/2.2 var(--font-m); color: var(--muted); }
+.form input, .form select, .form textarea { width: 100%; font: 13px/1.5 var(--font-b); background: var(--ground); color: var(--ink); border: 1px solid var(--line-2); border-radius: 6px; padding: 5px 8px; }
+.form textarea { font-family: var(--font-m); font-size: 12.5px; resize: vertical; }
+.notice { font: 12px var(--font-m); color: var(--warn); margin: 6px 0 0; }
+.addcard { margin: 2px 0 10px; } .addcard button { border-style: dashed; color: var(--muted); }
+.addcard-form { margin: 8px 0 16px; }
+.newdoc { margin: 12px 10px; width: calc(100% - 20px); border-style: dashed; }
+.newdoc-form { margin: 10px; padding: 10px; border: 1px solid var(--accent); border-radius: 8px; background: var(--ground); }
+.bn-wrap { border: 1px solid var(--line-2); border-radius: 8px; background: var(--ground); min-height: 80px; }
+.bn-wrap .bn-container { --bn-colors-editor-background: transparent; }

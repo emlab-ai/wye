@@ -509,11 +509,12 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   refines: req:wf2.ui
 
 - id: req:wf2.ui.node-page.save
-  title: Saving a page is a patch with a hash
-  when: the user saves a node page
-  then: graph.patch is called with the page's hash; on conflict the page shows a diff between the user's version and the current one and offers to reload or overwrite
-  status: proposed
-  satisfied-by: [page:web/node, op:graph.patch, rule:if-match]
+  title: Editing happens in place and saves with a hash
+  when: the user edits a prose section (block editor or raw markdown), a card (form), the document properties, or adds a card or a document from a template
+  then: the change is written to exactly that span of the markdown file with the span's hash as ifMatch; a stale hash is refused and the user is told to reload; after every save the graph is rebuilt and the page, outline and search reflect it
+  status: unverified
+  note: shipped 2026-09-14 in packages/web through the doc API (rule:segment-write); agents will use graph.patch on the server instead
+  satisfied-by: [page:web/node, rule:segment-write, rule:prose-round-trip, op:graph.patch, rule:if-match]
   requires-tests: [ui-test:edit-node-flow, test:web-components#conflict-diff]
   refines: req:wf2.ui.node-page
 

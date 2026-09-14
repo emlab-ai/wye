@@ -29,7 +29,7 @@ cd ~/Projects/waterfall && ./install.sh     # links `ctx` into ~/.local/bin and 
 | `ctx reqs [--status s]` | requirement tree with status glyphs (● tested ◐ untested/unverified ○ proposed ? question) |
 | `ctx site [--out dir]` | build the viewer (index.html + data.js) ready for the Artifact tool |
 | `ctx stats` | counts by kind, verb, requirement status |
-| `npm run dev` | web app (packages/web, Next.js) at http://localhost:3000 — sidebar, node pages, React Flow mind map over `_build/graph.json`; run `ctx build` first. Use `npx --workspace=packages/web next dev -p 3456` for another port |
+| `npm run dev` | web app (packages/web, Next.js) at http://localhost:3000: documents with node cards and smart tags, in-place editing (BlockNote for prose, forms for cards, templates for new documents), peek panel, React Flow mind map. Reads `_build/graph.json` and rebuilds it after every save; run `ctx build` once first. Use `npx --workspace=packages/web next dev -p 3456` for another port |
 
 ## Skills (Claude Code)
 

@@ -1,4 +1,4 @@
-import type { GraphData, GraphIndex, GraphNode } from './graph';
+import { STRUCTURAL, type GraphData, type GraphIndex, type GraphNode } from './graph';
 
 export interface Chunk { id: string | null; body: string; raw: string; start: number; end: number; list: boolean }
 export type Segment =
@@ -119,7 +119,7 @@ export function linkedDocuments(g: GraphData, idx: GraphIndex, file: string) {
   const counts = new Map<string, number>();
   for (const e of g.edges) {
     const a = idx.byId.get(e.from), b = idx.byId.get(e.to);
-    if (!a || !b || !a.defined || !b.defined) continue;
+    if (!a || !b || !a.defined || !b.defined || !STRUCTURAL.has(e.verb)) continue; // mentions are too weak to count as a link
     if (a.kind === 'module' && b.kind === 'module' && (e.verb === 'has' || e.verb === 'part-of')) continue; // containment, shown in the tree instead
     const other = a.file === file && b.file !== file ? b.file : b.file === file && a.file !== file ? a.file : null;
     if (!other || !byFile.has(other)) continue;

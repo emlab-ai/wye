@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { DocTree, type TreeItem } from '@/components/DocTree';
 import { Search } from '@/components/Search';
+import { NewDoc } from '@/components/NewDoc';
 import { PeekProvider } from '@/components/PeekProvider';
 import { getProject } from '@/lib/projects';
 import { loadGraph, loadMarkdown } from '@/lib/load';
@@ -31,7 +32,7 @@ export default async function ProjectLayout({ children, params }: { children: Re
             <div className="rail-sub">{docs.length} documents · {reqs} requirements · {Object.keys(index).length} nodes</div>
             <Search project={p.name} docs={docs} headings={headings} />
           </div>
-          <div className="rail-body"><DocTree project={p.name} roots={roots} /></div>
+          <div className="rail-body"><DocTree project={p.name} roots={roots} /><NewDoc project={p.name} docs={docs} defaultParent={tree.main?.slug ?? docs[0]?.slug ?? ''} /></div>
           <div className="rail-foot"><Link href={`/p/${p.name}/graph`}>Graph</Link><Link href={`/p/${p.name}/graph?preset=Drift`}>Drift</Link></div>
         </nav>
         <main className="content">{children}</main>

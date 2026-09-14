@@ -444,7 +444,8 @@ display-rules:
   - the document renders as text: frontmatter header, prose, tables, and one card per node in each yaml block (rule:node-cards); ids everywhere are smart tags (rule:smart-tags)
   - a card: kind and status pills, title (or id), when/then/unless as one sentence, prose keys as paragraphs, remaining keys as a property strip, raw yaml behind a toggle, anchor n-<id>
   - clicking a tag opens the peek panel (card + relations grouped by verb + Go to definition + Show in graph) without leaving the document; Escape closes
-  - the document ends with Linked documents: other files reached by edges in either direction, with counts (rule:document-tree)
+  - the document ends with Linked documents: other files reached by structural edges in either direction, with counts (rule:document-tree)
+  - hover a section or card for Edit; prose edits in BlockNote or raw markdown (rule:prose-round-trip), cards as a form (rule:card-form), "+ card" after blocks and sections, Edit properties on the header; the rail has "+ New document" (rule:new-document)
   - right rail (proposed): linked tasks, decisions (superseded greyed), open contradictions
 ```
 
@@ -792,6 +793,30 @@ description: One paragraph stating the same contract for agents that do not load
   source: packages/web/src/lib/remark-tags.ts; packages/web/src/components/SmartTag.tsx; packages/web/src/components/IdLink.tsx#Linkified
   status: unverified
   verified-by: [test:web-lib#remark-tags]
+
+- id: rule:segment-write
+  statement: The web app writes a document by span, never by regenerating it. splitDocument records character offsets for every prose segment and yaml chunk; a write re-reads the file, re-splits it, compares the sha256 of the target span with ifMatch (409 on mismatch), splices the new text (a chunk keeps its list style by re-indenting under "- "), writes <file>.tmp-<pid> and renames it, then runs ctx build and ctx check in the project root and returns the new hashes and lint errors.
+  source: packages/web/src/lib/write.ts; packages/web/src/app/api/p/[project]/doc/[slug]/route.ts
+  status: unverified
+  verified-by: [test:web-lib#write]
+
+- id: rule:prose-round-trip
+  statement: The block editor only ever sees one prose section (the text between yaml blocks and --- rules); yaml blocks and rules are boundaries outside the editor, so they survive untouched. Ids are plain text inside the editor and become tags again after save. Every section has a raw-markdown mode for anything the block editor cannot represent.
+  source: packages/web/src/components/SectionEditor.tsx; packages/web/src/components/BlockEditor.tsx
+  status: unverified
+  requires-tests: [ui-test:edit-node-flow]
+
+- id: rule:card-form
+  statement: A card edits as a form built from its yaml: prose keys as multi-line text, list keys as comma-separated ids with autocomplete from the node index, nested blocks as raw text; saving serialises the fields back in their original order (lists as flow lists, long prose as > blocks) and never changes the id.
+  source: packages/web/src/lib/yaml-form.ts; packages/web/src/components/CardEditor.tsx
+  status: unverified
+  verified-by: [test:web-lib#yaml-form]
+
+- id: rule:new-document
+  statement: A new document is created from templates/docs/<template>.md with the title, slug, parent and date filled in; its frontmatter declares part-of module:<parent> so the tree picks it up without editing the parent file; the slug is derived from the title and an existing file is refused.
+  source: packages/web/src/app/api/p/[project]/doc/route.ts; packages/web/src/lib/templates.ts; templates/docs
+  status: unverified
+  verified-by: [test:web-lib#templates]
 
 - id: rule:node-cards
   statement: A yaml block is split into chunks on id lines exactly as the parser does; a chunk whose id the graph defines renders as a card, any other chunk as a code block. A block with no defined ids renders as code.

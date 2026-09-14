@@ -180,7 +180,10 @@ runner: vitest for core, server, clerk, cli and web components; Playwright for u
     - layout: every node positioned, children right of the focus, tree edges vs cross-links, forest without focus
     - doc: splitDocument (frontmatter, markdown/yaml segments, chunking on id lines), outline, documentTree (roots, main, byFile), linkedDocuments (excludes containment), nodeIndex, docSlug
     - remark-tags: ids in text and inline code become tag links, trailing punctuation stays text, test #method kept in label, existing links untouched
-  count: 24
+    - write: replaceSegment (exact span, conflict, bad index), replaceChunk (list re-indent), appendChunk, insertYamlAfterSegment, patchFrontmatter
+    - yaml-form: bodyToFields classification and flattening, fieldsToBody round trip, empty fields dropped, long prose wrapped
+    - templates: slugify, placeholder filling
+  count: 38
 ```
 
 ### Web components (vitest + React Testing Library)
