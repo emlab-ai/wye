@@ -8,6 +8,8 @@ import '@blocknote/mantine/style.css';
 import { prepare, expand } from '@/lib/import';
 import { blocksToMarkdown, type AnyBlock } from '@/lib/serialize';
 import { CARD_KINDS } from '@/lib/kinds';
+import { parseBody } from '@/lib/graph';
+import { Linkified } from './IdLink';
 import { SmartTag } from './SmartTag';
 import { usePeek } from './PeekProvider';
 import { ID_RE } from '@/lib/ids';
@@ -21,9 +23,18 @@ const Tag = createReactInlineContentSpec(
   { render: props => <SmartTag id={props.inlineContent.props.id} />, toExternalHTML: props => <span>{props.inlineContent.props.id}</span> },
 );
 
+// A yaml flow list "[a, b]" renders as its items; anything else as linkified text.
+function PropValue({ value }: { value: string }) {
+  const m = value.match(/^\[(.*)\]$/s);
+  if (!m) return <Linkified text={value} />;
+  const items = m[1].split(/,\s*(?![^()]*\))/).map(x => x.trim()).filter(Boolean);
+  if (!items.length) return <span className="muted">none</span>;
+  return <span className="list">{items.map((it, i) => <span key={i} className="item"><Linkified text={it} /></span>)}</span>;
+}
+
 // ProseMirror listens natively on the editor root and would treat a click on a header control as a node selection;
 // stop mouse and key events at the header so inputs, selects and checkboxes behave normally.
-function stopEditorEvents(el: HTMLDivElement | null) {
+function stopEditorEvents(el: HTMLElement | null) {
   if (!el || (el as unknown as { __stopped?: boolean }).__stopped) return;
   (el as unknown as { __stopped?: boolean }).__stopped = true;
   for (const ev of ['mousedown', 'keydown']) el.addEventListener(ev, e => e.stopPropagation()); // click and change still reach React
@@ -34,8 +45,10 @@ const NodeBlock = createReactBlockSpec(
   { type: 'node', propSchema: { kind: { default: 'req' }, slug: { default: '' }, status: { default: '' }, form: { default: 'prose' }, textKey: { default: 'text' }, body: { default: '' }, extra: { default: '' }, check: { default: '' }, list: { default: '' } }, content: 'inline' },
   {
     render: props => {
-      const p = props.block.props as { kind: string; slug: string; status: string; form: string; body: string; extra: string; check: string };
+      const p = props.block.props as { kind: string; slug: string; status: string; form: string; body: string; extra: string; check: string; textKey: string };
       const [showYaml, setShowYaml] = useState(false);
+      // every other key of a yaml node is shown read-only under the text; the yaml toggle edits them
+      const rows = p.form === 'yaml' ? parseBody(p.body).filter(r => r.key !== p.textKey && r.key !== 'status') : [];
       const set = (patch: Partial<typeof p>) => props.editor.updateBlock(props.block, { props: { ...p, ...patch } } as never);
       return (
         <div className={`nblock k-${p.kind} ${p.check === 'done' || p.status === 'done' ? 'done' : ''}`} data-id={`${p.kind}:${p.slug}`}>
@@ -50,6 +63,16 @@ const NodeBlock = createReactBlockSpec(
             {p.form === 'prose' && <input className="nblock-extra" value={p.extra} placeholder="key: value, key: value" onChange={e => set({ extra: e.target.value })} />}
           </div>
           <div className="nblock-text" ref={props.contentRef} />
+          {rows.length > 0 && !showYaml && (
+            <dl className="nblock-props" contentEditable={false} ref={stopEditorEvents}>
+              {rows.map(r => (
+                <div key={r.key}>
+                  <dt>{r.key}</dt>
+                  <dd>{r.value.includes('\n') ? <pre><Linkified text={r.value} /></pre> : <PropValue value={r.value} />}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
           {showYaml && p.form === 'yaml' && <textarea className="nblock-yaml" contentEditable={false} value={p.body} rows={Math.min(24, p.body.split('\n').length + 1)} onChange={e => set({ body: e.target.value })} />}
         </div>
       );

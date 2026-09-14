@@ -190,3 +190,9 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .nblock-extra { opacity: 0; } .nblock:hover .nblock-extra, .nblock:focus-within .nblock-extra, .nblock-extra:not(:placeholder-shown) { opacity: 1; }
 .bn-editor a[href^="module:"], .bn-editor a[href^="req:"], .bn-editor a[href^="rule:"], .bn-editor a[href^="entity:"], .bn-editor a[href^="op:"], .bn-editor a[href^="page:"], .bn-editor a[href^="task:"], .bn-editor a[href^="decision:"], .bn-editor a[href^="question:"], .bn-editor a[href^="state:"], .bn-editor a[href^="value:"], .bn-editor a[href^="test:"] { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent-soft); }
 .linknode button.create span { color: var(--accent); }
+.nblock-props { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 6px 0 2px; font-size: 13px; }
+.nblock-props > div { display: contents; }
+.nblock-props dt { font: 500 11px/1.9 var(--font-m); color: var(--muted); }
+.nblock-props dd { margin: 0; min-width: 0; word-break: break-word; color: var(--ink-2); }
+.nblock-props pre { margin: 0; font: 12px/1.5 var(--font-m); white-space: pre-wrap; background: var(--sunk); border-radius: 6px; padding: 6px 8px; }
+.nblock-props .list { display: inline-flex; flex-wrap: wrap; gap: 4px 6px; }
