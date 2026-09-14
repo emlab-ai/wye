@@ -4,7 +4,7 @@
 :root{
   --ground:#F5F7F4; --surface:#FFFFFF; --sunk:#ECEFEB; --ink:#1B1F1D; --ink-2:#4E5754; --muted:#7B847F; --line:#D8DED9; --line-2:#C4CBC5;
   --accent:#1F6F6B; --accent-ink:#FFFFFF; --accent-soft:#DDEEEC;
-  --k-req:#C8612A; --k-rule:#2E6E9E; --k-entity:#3E8A57; --k-op:#7452B3; --k-page:#B5405F; --k-action:#D08A2E; --k-gate:#8C8A2A; --k-flag:#8C8A2A; --k-state:#1F8F8A; --k-value:#6C7A82; --k-test:#7A8C96; --k-ui-test:#7A8C96; --k-drift:#C93B3B; --k-module:#333A37; --k-field:#4E7F8C; --k-other:#8A8F8C;
+  --k-req:#C8612A; --k-rule:#2E6E9E; --k-entity:#3E8A57; --k-op:#7452B3; --k-page:#B5405F; --k-action:#D08A2E; --k-gate:#8C8A2A; --k-flag:#8C8A2A; --k-state:#1F8F8A; --k-value:#6C7A82; --k-test:#7A8C96; --k-ui-test:#7A8C96; --k-drift:#C93B3B; --k-module:#333A37; --k-product:#333A37; --k-field:#4E7F8C; --k-decision:#5B6FB5; --k-question:#B5405F; --k-other:#8A8F8C;
   --ok:#2F8F4E; --warn:#C48A12; --bad:#C93B3B;
   --shadow:0 -8px 30px rgba(20,30,26,.14);
   --font-d:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
@@ -16,7 +16,7 @@
   :root:not([data-theme="light"]){
     --ground:#111413; --surface:#181C1A; --sunk:#1F2422; --ink:#ECEFEC; --ink-2:#BFC7C2; --muted:#8B948F; --line:#2A302D; --line-2:#3A423E;
     --accent:#5FBFB8; --accent-ink:#0F1A19; --accent-soft:#1B302E;
-    --k-req:#E8834C; --k-rule:#5B9BD0; --k-entity:#63B47B; --k-op:#A182E0; --k-page:#E0688A; --k-action:#E5A64E; --k-gate:#BEBB55; --k-flag:#BEBB55; --k-state:#4FC1BB; --k-value:#98A7AF; --k-test:#9FB0BA; --k-ui-test:#9FB0BA; --k-drift:#EB6B6B; --k-module:#D3D8D5; --k-field:#7FB3C2; --k-other:#A0A5A2;
+    --k-req:#E8834C; --k-rule:#5B9BD0; --k-entity:#63B47B; --k-op:#A182E0; --k-page:#E0688A; --k-action:#E5A64E; --k-gate:#BEBB55; --k-flag:#BEBB55; --k-state:#4FC1BB; --k-value:#98A7AF; --k-test:#9FB0BA; --k-ui-test:#9FB0BA; --k-drift:#EB6B6B; --k-module:#D3D8D5; --k-product:#D3D8D5; --k-field:#7FB3C2; --k-decision:#8FA1E6; --k-question:#E0688A; --k-other:#A0A5A2;
     --ok:#56B975; --warn:#E0AE3D; --bad:#EB6B6B;
     --shadow:0 -8px 30px rgba(0,0,0,.5);
     color-scheme:dark;
@@ -25,7 +25,7 @@
 :root[data-theme="dark"]{
   --ground:#111413; --surface:#181C1A; --sunk:#1F2422; --ink:#ECEFEC; --ink-2:#BFC7C2; --muted:#8B948F; --line:#2A302D; --line-2:#3A423E;
   --accent:#5FBFB8; --accent-ink:#0F1A19; --accent-soft:#1B302E;
-  --k-req:#E8834C; --k-rule:#5B9BD0; --k-entity:#63B47B; --k-op:#A182E0; --k-page:#E0688A; --k-action:#E5A64E; --k-gate:#BEBB55; --k-flag:#BEBB55; --k-state:#4FC1BB; --k-value:#98A7AF; --k-test:#9FB0BA; --k-ui-test:#9FB0BA; --k-drift:#EB6B6B; --k-module:#D3D8D5; --k-field:#7FB3C2; --k-other:#A0A5A2;
+  --k-req:#E8834C; --k-rule:#5B9BD0; --k-entity:#63B47B; --k-op:#A182E0; --k-page:#E0688A; --k-action:#E5A64E; --k-gate:#BEBB55; --k-flag:#BEBB55; --k-state:#4FC1BB; --k-value:#98A7AF; --k-test:#9FB0BA; --k-ui-test:#9FB0BA; --k-drift:#EB6B6B; --k-module:#D3D8D5; --k-product:#D3D8D5; --k-field:#7FB3C2; --k-decision:#8FA1E6; --k-question:#E0688A; --k-other:#A0A5A2;
   --ok:#56B975; --warn:#E0AE3D; --bad:#EB6B6B;
   --shadow:0 -8px 30px rgba(0,0,0,.5);
   color-scheme:dark;
@@ -52,7 +52,7 @@ a{color:var(--accent)}
 /* pills */
 .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font:500 11px/1.4 var(--font-m);letter-spacing:.02em;text-transform:uppercase;border:1px solid var(--line-2);color:var(--ink-2);white-space:nowrap}
 .pill.k{border-color:transparent;color:#fff;background:var(--k-other)}
-.pill.k.req{background:var(--k-req)}.pill.k.rule{background:var(--k-rule)}.pill.k.entity{background:var(--k-entity)}.pill.k.op{background:var(--k-op)}.pill.k.page{background:var(--k-page)}.pill.k.action{background:var(--k-action)}.pill.k.gate,.pill.k.flag{background:var(--k-gate)}.pill.k.state{background:var(--k-state)}.pill.k.value{background:var(--k-value)}.pill.k.test,.pill.k.ui-test{background:var(--k-test)}.pill.k.drift{background:var(--k-drift)}.pill.k.module{background:var(--k-module)}.pill.k.field{background:var(--k-field)}
+.pill.k.req{background:var(--k-req)}.pill.k.rule{background:var(--k-rule)}.pill.k.entity{background:var(--k-entity)}.pill.k.op{background:var(--k-op)}.pill.k.page{background:var(--k-page)}.pill.k.action{background:var(--k-action)}.pill.k.gate,.pill.k.flag{background:var(--k-gate)}.pill.k.state{background:var(--k-state)}.pill.k.value{background:var(--k-value)}.pill.k.test,.pill.k.ui-test{background:var(--k-test)}.pill.k.drift{background:var(--k-drift)}.pill.k.module,.pill.k.product{background:var(--k-module)}.pill.k.decision{background:var(--k-decision)}.pill.k.question{background:var(--k-question)}.pill.k.field{background:var(--k-field)}
 .pill.s::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
 .pill.s.shipped{color:var(--ok);border-color:var(--ok)}
 .pill.s.unverified,.pill.s.api-only{color:var(--warn);border-color:var(--warn)}
@@ -217,7 +217,7 @@ for (const e of G.edges) {
 }
 const deg = id => (out.get(id)||[]).length + (inc.get(id)||[]).length;
 const KIND_COLOR = k => getComputedStyle(document.documentElement).getPropertyValue('--k-' + k).trim() || getComputedStyle(document.documentElement).getPropertyValue('--k-other').trim();
-const ID_RE = /\b(req|rule|entity|value|state|op|page|action|gate|flag|test|ui-test|module|drift|tool|setting|field):([A-Za-z0-9_][A-Za-z0-9_./#\-]*)/g;
+const ID_RE = /\b(req|rule|entity|value|state|op|page|action|gate|flag|test|ui-test|module|product|drift|tool|setting|field|question|decision):([A-Za-z0-9_][A-Za-z0-9_./#\-]*)/g;
 const cleanId = t => { t = t.replace(/[.,;:)\]]+$/, ''); if (t.includes('|')) t = t.split('|')[0]; if (/^(test|ui-test):/.test(t)) t = t.replace(/#.*$/, ''); return t; };
 const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const FIELDS = G.fieldIndex || {};
@@ -278,10 +278,10 @@ function setHash(patch){ const o = Object.assign(hashObj(), patch); history.repl
 
 // ---------- Graph view
 let gInit=false, sim, canvas, ctx, zoomT = d3.zoomIdentity, nodesV=[], edgesV=[], selected=null, hover=null, W=0, H=0, dpr=1, quad;
-const KINDS = ['req','rule','entity','field','op','page','action','state','flag','gate','value','test','ui-test','drift','module'];
+const KINDS = ['req','rule','entity','field','op','page','action','state','flag','gate','value','test','ui-test','drift','decision','question','module','product'];
 const PRESETS = {
   'Requirements': { kinds:['req'], verbs:['refines'] },
-  'Mechanics':    { kinds:['req','rule','entity','op','page','action','state','flag','gate'], verbs:['refines','satisfied-by','governed-by','gated-by','has','refs','owns','calls','has-action','reads','writes','navigates','triggers','set-by','embedded-in'] },
+  'Mechanics':    { kinds:['req','rule','entity','op','page','action','state','flag','gate','decision'], verbs:['refines','satisfied-by','governed-by','gated-by','has','refs','owns','calls','has-action','reads','writes','navigates','triggers','set-by','embedded-in','governs','resolves'] },
   'Data':         { kinds:['entity','field','value','flag','state'], verbs:['has','typed-as','refs','owns','embedded-in'] },
   'Drift':        { kinds:['drift','rule','op','entity','page','gate','req','flag'], verbs:['contradicts'], onlyTouching:'drift' },
   'Everything':   { kinds:KINDS, verbs:null },
@@ -448,7 +448,7 @@ function openNode(id){
   document.getElementById('s-pills').innerHTML = `<span class="pill k ${n.kind}">${n.kind}</span>${st?`<span class="pill s ${st}">${st}</span>`:''}${n.defined?'':'<span class="pill stub">referenced only</span>'}<button class="x" id="s-close">Close</button>`;
   document.getElementById('s-title').textContent = n.title || n.id;
   document.getElementById('s-id').textContent = n.id + (n.owner ? '  ·  field of ' + n.owner : (n.section ? '  ·  §' + n.section.split('.')[0] : '')) + '  ·  ' + deg(id) + ' links';
-  const kindOrder = ['req','rule','op','page','action','entity','field','value','state','flag','gate','drift','test','ui-test','module'];
+  const kindOrder = ['req','rule','op','page','action','entity','field','value','state','flag','gate','decision','question','drift','test','ui-test','module','product'];
   const groups = (list, dir) => { const g={}; for (const e of list){ const v=e.verb; (g[v]=g[v]||[]).push(dir==='out'?e.to:e.from); } for (const v in g) g[v].sort((a,b)=> kindOrder.indexOf(a.split(':')[0]) - kindOrder.indexOf(b.split(':')[0]) || a.localeCompare(b)); return Object.entries(g).sort((a,b)=>b[1].length-a[1].length); };
   const chip = oid => { const o=byId.get(oid); const k=o?o.kind:oid.split(':')[0]; return `<button data-id="${esc(oid)}" class="${o&&o.defined?'':'stub'}" style="--kc:${KIND_COLOR(k)}"><i></i><span>${esc(o&&o.kind==='req'?oid.slice(4):oid)}</span></button>`; };
   let body = n.body ? `<pre>${linkifyPre(n.body)}</pre>` : `<p class="section-tag">Referenced by other nodes but not described in the document yet.</p>`;
