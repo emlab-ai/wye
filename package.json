@@ -1,11 +1,13 @@
 {
     "name": "waterfall",
-    "version": "0.1.0",
-    "description": "Product context graph: describe a system as requirements, entities, rules, ops and pages in markdown; query it as a graph; publish a phone-friendly viewer.",
+    "version": "0.2.0",
+    "description": "Product context graph: describe a system as requirements, entities, rules, ops and pages in markdown; query it as a graph; browse and edit it in a web app.",
     "private": true,
     "bin": { "ctx": "bin/ctx.js" },
+    "workspaces": ["packages/*"],
     "scripts": {
-        "test": "node test/smoke.js"
+        "test": "node test/smoke.js && npm run test --workspace=packages/web",
+        "dev": "npm run dev --workspace=packages/web"
     },
     "engines": { "node": ">=18" },
     "license": "UNLICENSED"
