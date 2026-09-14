@@ -47,6 +47,18 @@ runner: vitest for core, server, clerk, cli and web components; Playwright for u
 ### Core
 
 ```yaml
+- id: test:prose
+  file: test/prose.js
+  description: Prose nodes in the current parser (lib/parse.js): a temp document with id-first paragraphs and list items, aliases, hashtag status, a trailing key group, links with inferred verbs, a plain-prose link, and a yaml block alongside.
+  cases:
+    - alias-expands: et:<x> → entity:<x>
+    - verb-inference: "satisfied by" → satisfied-by, no phrase → related-to
+    - prose-req-defined: title is the first sentence, status from #proposed, text and extra keys in the body
+    - edges: refines, related-to, satisfied-by, verified-by from one line
+    - list-item-node and see-verb
+    - plain mention is not a link; plain-prose link relates the document
+  count: 6
+
 - id: test:core-parser
   file: packages/core/test/parse.test.ts
   description: The TypeScript port parses exactly as lib/parse.js did.
@@ -183,8 +195,10 @@ runner: vitest for core, server, clerk, cli and web components; Playwright for u
     - write: replaceSegment (exact span, conflict, bad index), replaceChunk (list re-indent), appendChunk, insertYamlAfterSegment, patchFrontmatter
     - yaml-form: bodyToFields classification and flattening, fieldsToBody round trip, empty fields dropped, long prose wrapped
     - templates: slugify, placeholder filling
-    - mdflow: unwrapParagraphs keeps lists, tables, code, headings, rules and hard breaks; tagifyInline splits text on ids, keeps punctuation, turns code-only ids into tags, recurses into links and table cells
-  count: 43
+    - mdflow: unwrapParagraphs keeps lists, tables, code, headings, rules and hard breaks; tagifyInline splits text on ids, keeps punctuation, turns code-only ids into tags, recurses into links and table cells, leaves code blocks alone
+    - serialize: inline styles, tags and links; prose and yaml node lines (text key and status rewritten in place, comments kept); headings, lists, tables, code, dividers, merged yaml groups
+    - import: prepare lifts yaml blocks, rules and id links into markers and escapes tag-like angle brackets; expand turns markers into divider and node blocks, id-first paragraphs into prose nodes, link markers into links; round trip through the serializer
+  count: 57
 ```
 
 ### Web components (vitest + React Testing Library)

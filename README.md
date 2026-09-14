@@ -31,6 +31,19 @@ cd ~/Projects/waterfall && ./install.sh     # links `ctx` into ~/.local/bin and 
 | `ctx stats` | counts by kind, verb, requirement status |
 | `npm run dev` | web app (packages/web, Next.js) at http://localhost:3000: documents with node cards and smart tags, in-place editing (BlockNote for prose, forms for cards, templates for new documents), peek panel, React Flow mind map. Reads `_build/graph.json` and rebuilds it after every save; run `ctx build` once first. Use `npx --workspace=packages/web next dev -p 3456` for another port |
 
+## Writing nodes as prose
+
+A paragraph or list item that starts with an id defines that node; links and ids in its text become edges:
+
+```
+req:sale.close When a sale is completed and all [kitchen items](entity:kitchen-item) are completed, et:order is marked Closed. #proposed
+rule:close-on-complete Closed only when every kitchen item is done; satisfied by op:close-sale and verified by test:sales#close.
+```
+
+`#status` sets the status; a trailing `(key: value, …)` group carries other keys; `et:`, `rq:`, `rl:`, `pg:`, `st:`, `dc:`, `qn:` are aliases.
+The verb comes from the words before an id ("satisfied by", "verified by", "refines", "part of", …), otherwise `related-to`.
+Yaml blocks keep working exactly as before; both forms live in one file.
+
 ## Skills (Claude Code)
 
 - **waterfall-describe-module** — the repeatable process that produced `inventory.md`: fan out server/client explorers, read the human docs, write the file from the template, `ctx build && ctx check`, publish the viewer, report drift.

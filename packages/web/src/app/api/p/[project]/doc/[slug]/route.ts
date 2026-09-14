@@ -13,6 +13,17 @@ type Op =
   | { op: 'frontmatter'; patch: Record<string, string> }
   | { op: 'replace-body'; ifMatch: string; body: string };
 
+export async function GET(_req: Request, { params }: { params: Promise<{ project: string; slug: string }> }) {
+  const { project, slug } = await params;
+  const p = getProject(project); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  const g = await loadGraph(p.graphPath);
+  const d = [...documentTree(g).byFile.values()].find(x => x.slug === slug);
+  if (!d) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  const md = await loadMarkdown(p.rootPath, d.file);
+  const body = bodyOf(md);
+  return NextResponse.json({ file: d.file, body, bodyHash: hashOf(body) });
+}
+
 export async function PUT(req: Request, { params }: { params: Promise<{ project: string; slug: string }> }) {
   const { project, slug } = await params;
   const p = getProject(project); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });

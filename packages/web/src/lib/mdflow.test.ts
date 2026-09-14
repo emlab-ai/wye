@@ -20,6 +20,10 @@ describe('tagifyInline', () => {
     expect(tagifyInline([{ type: 'text', text: 'page:web/node', styles: { code: true } }, { type: 'text', text: 'ctx check', styles: { code: true } }])).toEqual([
       { type: 'tag', props: { id: 'page:web/node' } }, { type: 'text', text: 'ctx check', styles: { code: true } }]);
   });
+  it('leaves code blocks alone', () => {
+    const out = tagifyBlocks([{ type: 'codeBlock', content: [{ type: 'text', text: '- module:a -(calls)-> op:b', styles: {} }] }] as never[]);
+    expect(JSON.stringify(out)).not.toContain('"tag"');
+  });
   it('recurses into links and table cells', () => {
     const blocks = tagifyBlocks([{ type: 'paragraph', content: [{ type: 'link', href: 'x', content: [{ type: 'text', text: 'op:o', styles: {} }] }] }, { type: 'table', content: { type: 'tableContent', rows: [{ cells: [[{ type: 'text', text: 'req:a', styles: {} }]] }] } }] as never[]);
     expect(JSON.stringify(blocks)).toContain('"type":"tag","props":{"id":"op:o"}');

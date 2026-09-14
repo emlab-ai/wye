@@ -498,12 +498,12 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   refines: req:wf2.ui
 
 - id: req:wf2.ui.node-page
-  title: A document reads as text, with a card per node and smart tags
+  title: A document is one editable page where any block can be a typed node and any word can link to anything
   when: a document is opened
-  then: prose, tables and headings render as text; each yaml node becomes a card (title, when/then sentence, prose keys, property strip, raw yaml behind a toggle); every id is a smart tag whose click opens a peek panel with the node's card, relations and Go to definition; prose keys open in a block editor once editing lands; a right rail will list linked tasks, decisions and contradictions
+  then: it is a single editor; prose, headings, lists, tables and code are ordinary blocks; each node is a typed block with kind, slug and status; a paragraph that starts with an id (`req:<slug> When …`) becomes a requirement; any phrase can be linked to any node and the graph records the relation (verb inferred from the words before it, else related-to); every id is a tag whose click opens a peek panel with the node's card, relations and Go to definition
   status: unverified
-  note: documents-first reader shipped 2026-09-14 (packages/web); no automated page test yet, server-backed data and editing pending
-  satisfied-by: [page:web/node, rule:node-cards, rule:smart-tags, rule:prose-keys, rule:blocknote-prose-only]
+  note: single-page editor shipped 2026-09-14 (packages/web); pure modules tested, pages verified in the browser; server-backed data pending
+  satisfied-by: [page:web/node, rule:single-page-editor, rule:prose-nodes, rule:smart-tags, rule:node-cards]
   requires-tests: [test:web-components#node-page-properties, test:web-components#node-page-prose-editor]
   see: req:wf.view.sheet
   refines: req:wf2.ui

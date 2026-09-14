@@ -445,7 +445,7 @@ display-rules:
   - a card: kind and status pills, title (or id), when/then/unless as one sentence, prose keys as paragraphs, remaining keys as a property strip, raw yaml behind a toggle, anchor n-<id>
   - clicking a tag opens the peek panel (card + relations grouped by verb + Go to definition + Show in graph) without leaving the document; Escape closes
   - the document ends with Linked documents: other files reached by structural edges in either direction, with counts (rule:document-tree)
-  - nothing has an edit mode: prose sections are live block editors (rule:prose-round-trip), cards are live fields (rule:card-form), the header's title, status, owner and last-verified are inline inputs saved on blur; "+ card" after blocks and sections inserts a skeleton that is immediately editable; the rail has "+ New document" (rule:new-document); a save-state hint (saving / saved / changed on disk) sits on each section and card
+  - the document is a single Notion-style page (rule:single-page-editor): every block is editable in place, typed blocks carry kind, slug and status, "/" inserts a typed block, selecting a phrase and choosing "⌁ node" links it to any node; the header's title, status, owner and last-verified are inline inputs saved on blur; the rail has "+ New document" (rule:new-document); one save-state hint for the page
   - right rail (proposed): linked tasks, decisions (superseded greyed), open contradictions
 ```
 
@@ -818,6 +818,18 @@ description: One paragraph stating the same contract for agents that do not load
   source: packages/web/src/app/api/p/[project]/doc/route.ts; packages/web/src/lib/templates.ts; templates/docs
   status: unverified
   verified-by: [test:web-lib#templates]
+
+- id: rule:prose-nodes
+  statement: A paragraph or list item whose first token is an id defines that node (`req:<slug> When a sale …`); the text after the id is its `text` (title = first sentence), `#status` sets status, a trailing `(key: value, …)` group carries other keys. Links `[phrase](kind:slug)` and bare ids in the text become edges whose verb is inferred from the words before the id ("satisfied by", "verified by", "refines", "part of", …) and is related-to otherwise. Short aliases (et:, rq:, rl:, pg:, st:, dc:, qn:) expand to full kinds. A link in plain prose relates the document to its target. Yaml blocks keep defining nodes exactly as before.
+  source: lib/parse.js#proseRefs; lib/parse.js#inferVerb; schema/kinds.yaml
+  status: unverified
+  verified-by: [test:prose]
+
+- id: rule:single-page-editor
+  statement: A document is one editor. Prose blocks, headings, lists, tables, code and dividers are ordinary blocks; every node (from a yaml block or a prose line) is a typed block with kind, slug and status in its header and its text as editable inline content; ids are tag inline content; a phrase can be linked to any node from the selection toolbar. Import lifts yaml blocks, rules and id links out of the markdown before the browser parser sees them; export is our own serializer, so untouched text round-trips (paragraph wrapping, table alignment and block grouping are normalised). A paragraph typed with a leading id becomes a node block when the editor loses focus. The whole body autosaves with a hash; a failed import disables editing and shows the reader; a save that would drop more than half of the text is refused.
+  source: packages/web/src/components/DocEditor.tsx; packages/web/src/lib/import.ts; packages/web/src/lib/serialize.ts
+  status: unverified
+  verified-by: [test:web-lib#serialize, test:web-lib#import]
 
 - id: rule:node-cards
   statement: A yaml block is split into chunks on id lines exactly as the parser does; a chunk whose id the graph defines renders as a card, any other chunk as a code block. A block with no defined ids renders as code.

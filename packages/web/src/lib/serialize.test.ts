@@ -18,6 +18,11 @@ describe('nodeToMarkdown', () => {
     const body = 'id: req:m.a\ntitle: Old\nwhen: x\nstatus: proposed\nsatisfied-by: [rule:r1]';
     expect(nodeToMarkdown({ kind: 'req', slug: 'm.a', status: 'shipped', form: 'yaml', textKey: 'title', body, extra: '' }, 'New title')).toEqual(['id: req:m.a', 'title: New title', 'when: x', 'status: shipped', 'satisfied-by: [rule:r1]']);
   });
+  it('keeps a status comment when the status is unchanged', () => {
+    const body = 'id: req:c\ntitle: T\nstatus: shipped   # as a rule, not enforced';
+    expect(nodeToMarkdown({ kind: 'req', slug: 'c', status: 'shipped', form: 'yaml', textKey: 'title', body, extra: '' }, 'T')).toEqual(['id: req:c', 'title: T', 'status: shipped   # as a rule, not enforced']);
+    expect(nodeToMarkdown({ kind: 'req', slug: 'c', status: 'proposed', form: 'yaml', textKey: 'title', body, extra: '' }, 'T')[2]).toBe('status: proposed');
+  });
   it('replaces a block scalar text key and adds a missing status', () => {
     const body = 'id: rule:r\nstatement: >\n  long\n  text\nsource: a.ts';
     expect(nodeToMarkdown({ kind: 'rule', slug: 'r', status: 'proposed', form: 'yaml', textKey: 'statement', body, extra: '' }, 'short')).toEqual(['id: rule:r', 'statement: short', 'source: a.ts', 'status: proposed']);

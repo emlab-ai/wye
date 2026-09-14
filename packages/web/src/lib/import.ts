@@ -19,9 +19,36 @@ export function prepare(body: string): Prepared {
   for (const s of split.segments) {
     if (s.type === 'yaml') { yaml.push(s.chunks.map(c => ({ id: c.id ?? '', body: c.body }))); parts.push(`%%YAML:${yaml.length - 1}%%`); }
     else if (s.type === 'hr') parts.push('%%DIVIDER%%');
-    else parts.push(unwrapParagraphs(s.text));
+    else parts.push(escapeAngles(liftLinks(unwrapParagraphs(s.text))));
   }
   return { md: parts.join('\n\n'), yaml };
+}
+
+// "<id or suffix>" outside code spans would be parsed as an HTML tag and vanish; escape it so it stays text.
+export function escapeAngles(md: string): string {
+  return md.split(/(`[^`]*`)/).map((part, i) => i % 2 === 1 ? part : part.replace(/<(?=[A-Za-z/])/g, '&lt;')).join('');
+}
+
+// [label](kind:slug) → ⟦label|kind:slug⟧ so the browser markdown parser never sees a scheme-less link.
+export function liftLinks(md: string): string {
+  return md.replace(/\[([^\]]+)\]\(([a-z-]+:[A-Za-z0-9_./#\-]+)\)/g, (_, label, id) => `⟦${label}|${cleanId(id)}⟧`);
+}
+// Split text runs on ⟦label|id⟧ markers into link inline content.
+export function expandLinks(items: Inline[]): Inline[] {
+  const out: Inline[] = [];
+  for (const it of items) {
+    if (it.type !== 'text') { out.push(it); continue; }
+    const t = it as InlineText; const re = /⟦([^|⟧]+)\|([^⟧]+)⟧/g; let last = 0; let m: RegExpExecArray | null; let any = false;
+    while ((m = re.exec(t.text))) {
+      any = true;
+      if (m.index > last) out.push({ ...t, text: t.text.slice(last, m.index) });
+      out.push({ type: 'link', href: m[2], content: [{ type: 'text', text: m[1], styles: t.styles }] } as unknown as Inline);
+      last = m.index + m[0].length;
+    }
+    if (!any) { out.push(it); continue; }
+    if (last < t.text.length) out.push({ ...t, text: t.text.slice(last) });
+  }
+  return out;
 }
 
 export function nodePropsFromChunk(chunk: { id: string; body: string }): { props: NodeProps; text: string } | null {
@@ -63,10 +90,31 @@ export function expand(blocks: AnyBlock[], yaml: Prepared['yaml']): AnyBlock[] {
       continue;
     }
     const pn = proseNode(b);
-    if (pn) { out.push(pn); continue; }
-    out.push(b.children?.length ? { ...b, children: expand(b.children, yaml) } : b);
+    if (pn) { out.push(withLinks(pn)); continue; }
+    out.push(withLinks(b.children?.length ? { ...b, children: expand(b.children, yaml) } : b));
   }
-  return tagifyBlocks(out as never[]) as AnyBlock[];
+  return (tagifyBlocks(out as never[]) as AnyBlock[]).map(unescapeBlock);
+}
+
+// The escaped "<" from escapeAngles is decoded back so the editor shows the real character.
+function unescapeInline(items: Inline[]): Inline[] {
+  return items.map(it => it.type === 'text' ? { ...it, text: (it as InlineText).text.replace(/&lt;/g, '<') } : (it.type !== 'tag' && Array.isArray((it as { content?: unknown }).content)) ? { ...it, content: unescapeInline((it as { content: Inline[] }).content) } : it);
+}
+function unescapeBlock(b: AnyBlock): AnyBlock {
+  if (b.type === 'codeBlock') return b;
+  let nb = b;
+  if (Array.isArray(nb.content)) nb = { ...nb, content: unescapeInline(nb.content as Inline[]) };
+  const tc = nb.content as { rows?: { cells: unknown[] }[] } | undefined;
+  if (tc && Array.isArray(tc.rows)) nb = { ...nb, content: { ...tc, rows: tc.rows.map(r => ({ ...r, cells: r.cells.map(c => Array.isArray(c) ? unescapeInline(c as Inline[]) : (c && typeof c === 'object' && Array.isArray((c as { content?: unknown }).content)) ? { ...(c as object), content: unescapeInline((c as { content: Inline[] }).content) } : c) })) } };
+  if (nb.children?.length) nb = { ...nb, children: nb.children.map(unescapeBlock) };
+  return nb;
+}
+
+function withLinks(b: AnyBlock): AnyBlock {
+  if (Array.isArray(b.content)) return { ...b, content: expandLinks(b.content as Inline[]) };
+  const tc = b.content as { rows?: { cells: unknown[] }[] } | undefined;
+  if (tc && Array.isArray(tc.rows)) return { ...b, content: { ...tc, rows: tc.rows.map(r => ({ ...r, cells: r.cells.map(c => Array.isArray(c) ? expandLinks(c as Inline[]) : (c && typeof c === 'object' && Array.isArray((c as { content?: unknown }).content)) ? { ...(c as object), content: expandLinks((c as { content: Inline[] }).content) } : c) })) } };
+  return b;
 }
 
 function firstText(b: AnyBlock): string {

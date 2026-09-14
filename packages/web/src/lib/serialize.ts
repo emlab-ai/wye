@@ -37,7 +37,11 @@ export function nodeToMarkdown(p: NodeProps, text: string): string[] {
     const l = lines[i];
     const km = l.match(/^([A-Za-z][A-Za-z0-9 ()|_-]*?):(?:\s+(.*))?$/);
     if (km && km[1] === p.textKey) { out.push(...textLines(p.textKey)); sawText = true; i++; while (i < lines.length && /^\s/.test(lines[i])) i++; continue; }
-    if (km && km[1] === 'status') { if (p.status) out.push(`status: ${p.status}`); sawStatus = true; i++; continue; }
+    if (km && km[1] === 'status') {
+      const orig = (km[2] ?? '').split(/\s+#/)[0].trim(); const comment = (km[2] ?? '').match(/\s+#.*$/)?.[0] ?? '';
+      if (p.status) out.push(`status: ${p.status}${orig === p.status ? comment : ''}`);
+      sawStatus = true; i++; continue;
+    }
     out.push(l); i++;
   }
   if (!sawText && text.trim()) out.splice(1, 0, ...textLines(p.textKey || 'title'));

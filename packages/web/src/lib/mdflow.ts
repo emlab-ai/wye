@@ -54,9 +54,10 @@ export function tagifyInline(items: Inline[]): Inline[] {
 }
 
 // Apply tagifyInline to every block (and nested children / table cells) in place-safe fashion.
-export function tagifyBlocks<T extends { content?: unknown; children?: T[] }>(blocks: T[]): T[] {
+export function tagifyBlocks<T extends { type?: string; content?: unknown; children?: T[] }>(blocks: T[]): T[] {
   return blocks.map(b => {
-    const nb = { ...b } as T & { content?: unknown; children?: T[] };
+    const nb = { ...b } as T & { type?: string; content?: unknown; children?: T[] };
+    if (nb.type === 'codeBlock') return nb; // code keeps its text verbatim
     if (Array.isArray(nb.content)) nb.content = tagifyInline(nb.content as Inline[]);
     else if (nb.content && typeof nb.content === 'object' && Array.isArray((nb.content as { rows?: unknown[] }).rows)) {
       const table = nb.content as { rows: { cells: unknown[] }[] };
