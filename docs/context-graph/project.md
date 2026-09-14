@@ -9,6 +9,7 @@ verified-against: docs/superpowers/specs/2026-09-14-waterfall-v2-design.md (desi
 source-roots: [., packages/core, packages/server, packages/web, packages/cli, skills, docs]
 sources:
   - docs/superpowers/specs/2026-09-14-waterfall-v2-design.md   # the approved design this graph is derived from
+  - docs/superpowers/specs/2026-09-14-web-ui-documents-first-design.md   # the reader: documents first, cards, smart tags, peek panel
   - docs/context-graph/waterfall.md                              # v0.1 self-description; v2 refines and resolves parts of it
   - schema/kinds.yaml
 ---

@@ -408,17 +408,19 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
 
 ```yaml
 id: page:web/sidebar
-route: every route; first screen at phone width
-component: packages/web/src/components/Sidebar.tsx; packages/web/src/app/p/[project]/layout.tsx
+route: every route; the left rail; first screen at phone width
+component: packages/web/src/app/p/[project]/layout.tsx; packages/web/src/components/DocTree.tsx; packages/web/src/components/Search.tsx
 reads: [op:projects.list, op:graph.search, op:tasks.list, op:contradictions.list]
 actions:
-  - action:search:          type to search ids, titles, bodies -(calls)-> op:graph.search
-  - action:open-node:       tap a row -(navigates)-> page:web/node
+  - action:search:          type to search document titles, headings, node ids and titles; a node hit opens its definition -(navigates)-> page:web/node
+  - action:open-document:   tap a document in the tree -(navigates)-> page:web/node
+  - action:open-heading:    tap an outline entry under the open document (scrolls to the ## heading)
   - action:open-tasks:      fixed entry with open count -(navigates)-> page:web/tasks
   - action:open-decisions:  fixed entry -(navigates)-> page:web/decisions
   - action:open-contradictions: fixed entry with open count -(navigates)-> page:web/contradictions
 display-rules:
-  - tree is product → project → module → section (## heading) → node; kind icon and status dot per row
+  - the rail lists documents, not nodes: root documents → sub-documents (rule:document-tree); the open document shows its ## outline beneath it
+  - foot links: Graph, Drift (page:web/graph)
   - counts refresh on task.changed and contradiction.changed events (rule:sse-refresh)
 ```
 
@@ -426,8 +428,8 @@ display-rules:
 
 ```yaml
 id: page:web/node
-route: /p/<project>/n/<id>
-component: packages/web/src/app/p/[project]/n/[id]/page.tsx
+route: /p/<project>/d/<doc>#n-<id>   (a node's page is its definition inside its document; /p/<project>/n/<id> redirects there)
+component: packages/web/src/app/p/[project]/d/[doc]/page.tsx; packages/web/src/components/Document.tsx; packages/web/src/components/NodeCard.tsx; packages/web/src/components/PeekPanel.tsx
 reads: [op:graph.get, op:tasks.list, op:decisions.list, op:contradictions.list]
 actions:
   - action:edit-property:   change a yaml key in the properties panel (text, enum for status, id list with typeahead for edge keys)
@@ -439,9 +441,11 @@ actions:
   - action:recheck:         ask the clerk to re-check this node -(calls)-> op:clerk.run
   - action:retry-clerk:     retry a failed clerk run for a decision on the right rail -(calls)-> op:clerk.run
 display-rules:
-  - properties panel lists every key of the body in file order; edge keys (satisfied-by, verified-by, refines, governed-by, gated-by, resolves, see) render as id lists (rule:prose-keys decides which keys get the block editor)
-  - relations grouped by verb, outgoing then incoming, sorted req → rule → op → page → action → entity → field
-  - right rail: linked tasks, decisions (superseded greyed), open contradictions
+  - the document renders as text: frontmatter header, prose, tables, and one card per node in each yaml block (rule:node-cards); ids everywhere are smart tags (rule:smart-tags)
+  - a card: kind and status pills, title (or id), when/then/unless as one sentence, prose keys as paragraphs, remaining keys as a property strip, raw yaml behind a toggle, anchor n-<id>
+  - clicking a tag opens the peek panel (card + relations grouped by verb + Go to definition + Show in graph) without leaving the document; Escape closes
+  - the document ends with Linked documents: other files reached by edges in either direction, with counts (rule:document-tree)
+  - right rail (proposed): linked tasks, decisions (superseded greyed), open contradictions
 ```
 
 ### page:web/graph
@@ -777,6 +781,24 @@ description: One paragraph stating the same contract for agents that do not load
 ### Web app
 
 ```yaml
+- id: rule:document-tree
+  statement: A document is one markdown file in the project's graph folder. The tree comes from has edges between module nodes; a module with no incoming has from another module is a root; the main root (where /p/<project> lands) is the root with the most sub-documents, ties broken by title. Linked documents exclude module-to-module containment edges.
+  source: packages/web/src/lib/doc.ts#documentTree; packages/web/src/lib/doc.ts#linkedDocuments
+  status: unverified
+  verified-by: [test:web-lib#doc]
+
+- id: rule:smart-tags
+  statement: Every kind:slug token in prose, inline code, table cells and card properties renders as a tag (kind dot, slug; req tags drop the prefix; dashed when the node is referenced but never defined) whose hover shows title and status and whose click opens the peek panel. Trailing punctuation stays text; a test id keeps its #method in the label but links to the test node. Text already inside a link is left alone.
+  source: packages/web/src/lib/remark-tags.ts; packages/web/src/components/SmartTag.tsx; packages/web/src/components/IdLink.tsx#Linkified
+  status: unverified
+  verified-by: [test:web-lib#remark-tags]
+
+- id: rule:node-cards
+  statement: A yaml block is split into chunks on id lines exactly as the parser does; a chunk whose id the graph defines renders as a card, any other chunk as a code block. A block with no defined ids renders as code.
+  source: packages/web/src/lib/doc.ts#splitDocument; packages/web/src/components/Document.tsx
+  status: unverified
+  verified-by: [test:web-lib#doc]
+
 - id: rule:deep-links
   statement: Every view is a route under /p/<project>; the node page is /n/<id>, the graph /graph?focus=<id>&preset=<name>, lists carry their filters in the query; navigating updates the URL and loading a URL restores the view.
   source: packages/web/src/app/p/[project]/layout.tsx; packages/web/src/app/p/[project]/graph/page.tsx

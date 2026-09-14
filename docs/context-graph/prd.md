@@ -478,9 +478,9 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
 
 ```yaml
 - id: req:wf2.ui
-  title: The product opens on a sidebar and a page
-  when: the web app opens
-  then: a sidebar tree of product, project, module, section and node sits beside the selected node's page; every view has a URL (/p/<project>/n/<id>, /p/<project>/graph?focus=<id>) that reopens it
+  title: The product opens on its documents
+  when: the web app opens a project
+  then: it lands on the project's main document; the left rail lists the documents as a tree with the open document's outline; every view has a URL (/p/<project>/d/<doc>#n-<id>, /p/<project>/graph?focus=<id>) that reopens it
   status: unverified
   note: read-only first slice shipped 2026-09-14 (packages/web); no automated page test yet, server-backed data and editing pending
   satisfied-by: [page:web/sidebar, page:web/node, rule:deep-links]
@@ -488,9 +488,9 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   see: req:wf.view
 
 - id: req:wf2.ui.sidebar
-  title: The sidebar finds anything
-  when: the user types in the sidebar search or expands the tree
-  then: search hits come from graph.search; rows carry a kind icon and status dot; Tasks, Decisions and Contradictions sit above the tree with open counts
+  title: The rail finds anything
+  when: the user types in the rail search or opens the tree
+  then: hits list documents, headings and nodes (a node hit opens its definition); the tree shows documents, not nodes; Tasks, Decisions and Contradictions sit above the tree with open counts
   status: unverified
   note: read-only first slice shipped 2026-09-14 (packages/web); no automated page test yet, server-backed data and editing pending
   satisfied-by: [page:web/sidebar, op:graph.search]
@@ -498,12 +498,12 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   refines: req:wf2.ui
 
 - id: req:wf2.ui.node-page
-  title: A node is a page with properties and relations
-  when: a node is opened
-  then: its yaml keys render as fields (text, enum for status, id lists with typeahead for edge keys), prose keys open in a block editor, relations show grouped by verb both ways as chips, and a right rail lists linked tasks, decisions and contradictions
+  title: A document reads as text, with a card per node and smart tags
+  when: a document is opened
+  then: prose, tables and headings render as text; each yaml node becomes a card (title, when/then sentence, prose keys, property strip, raw yaml behind a toggle); every id is a smart tag whose click opens a peek panel with the node's card, relations and Go to definition; prose keys open in a block editor once editing lands; a right rail will list linked tasks, decisions and contradictions
   status: unverified
-  note: read-only first slice shipped 2026-09-14 (packages/web); no automated page test yet, server-backed data and editing pending
-  satisfied-by: [page:web/node, rule:prose-keys, rule:blocknote-prose-only]
+  note: documents-first reader shipped 2026-09-14 (packages/web); no automated page test yet, server-backed data and editing pending
+  satisfied-by: [page:web/node, rule:node-cards, rule:smart-tags, rule:prose-keys, rule:blocknote-prose-only]
   requires-tests: [test:web-components#node-page-properties, test:web-components#node-page-prose-editor]
   see: req:wf.view.sheet
   refines: req:wf2.ui
