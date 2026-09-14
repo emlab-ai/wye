@@ -64,3 +64,21 @@ code, pre { font-family: var(--font-m); }
   .shell { grid-template-columns: 1fr; }
   .sidebar { height: auto; max-height: 45dvh; }
 }
+
+/* ===== node page ===== */
+.node .pills { display: flex; gap: 6px; margin-bottom: 8px; }
+.props { display: grid; grid-template-columns: minmax(120px, 160px) 1fr; gap: 6px 14px; margin: 16px 0; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; background: var(--surface); }
+.prop { display: contents; }
+.prop dt { font: 500 12px var(--font-m); color: var(--muted); padding-top: 4px; }
+.prop dd { margin: 0; min-width: 0; }
+.prop dd pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 13px; line-height: 1.5; }
+.prop dd p { margin: 2px 0; max-width: 70ch; }
+.nid { text-decoration: none; border-bottom: 1px dotted currentColor; color: var(--accent); }
+.nid.k-req { color: var(--k-req); } .nid.k-rule { color: var(--k-rule); } .nid.k-entity { color: var(--k-entity); } .nid.k-op { color: var(--k-op); } .nid.k-page { color: var(--k-page); } .nid.k-action { color: var(--k-action); } .nid.k-gate, .nid.k-flag { color: var(--k-gate); } .nid.k-state { color: var(--k-state); } .nid.k-test, .nid.k-ui-test { color: var(--k-test); } .nid.k-drift { color: var(--k-drift); } .nid.k-field { color: var(--k-field); } .nid.k-decision { color: var(--k-decision); } .nid.k-question { color: var(--k-question); }
+.rels h4 { margin: 14px 0 6px; font: 600 11px var(--font-m); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); font: 12px var(--font-m); }
+.chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--kc); }
+.chip.stub { border-style: dashed; }
+.chip .nid { border: 0; color: var(--ink); }
+.muted { color: var(--muted); }
