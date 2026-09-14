@@ -6,7 +6,7 @@
     "bin": { "ctx": "bin/ctx.js" },
     "workspaces": ["packages/*"],
     "scripts": {
-        "test": "node test/smoke.js && npm run test --workspace=packages/web",
+        "test": "node test/smoke.js && node test/prose.js && npm run test --workspace=packages/web",
         "dev": "npm run dev --workspace=packages/web"
     },
     "engines": { "node": ">=18" },

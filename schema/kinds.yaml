@@ -41,6 +41,7 @@ verbs:
   contradicts:  drift | rule → node   (must be resolved before building on either side)
   edge-to:      module → module   (boundary; described only at the border)
   part-of:      module → module   (a document declares its parent document; the inverse of has, used for the document tree)
+  related-to:   any → any         (a link on a phrase or a bare id inside a prose node whose preceding words name no verb)
   see:          req → req          (alias, no duplication)
   mentions:     generated — any node whose text names another node or a field; weak edge, hidden by default in the viewer
 
@@ -48,6 +49,26 @@ statuses:
   req:  [shipped, api-only, unverified, proposed, question]   # shipped requires ≥1 verified-by; ctx check --strict enforces it
   node: [proposed, approved, shipped, deprecated]              # lifecycle used by deltas
   drift: [drift]
+
+aliases:   # short kind prefixes accepted anywhere an id is written; normalised to the full kind
+  et: entity
+  rq: req
+  rl: rule
+  pg: page
+  st: state
+  dc: decision
+  qn: question
+  vl: value
+  ac: action
+  gt: gate
+  fl: flag
+
+prose-nodes: |
+  A paragraph or list item whose first token is an id defines that node: `req:sale.close When a sale …`.
+  The text after the id is the node's `text` (title = first sentence). `#status` sets status. A trailing
+  `(key: value, key: value)` group carries other keys. Links `[phrase](kind:slug)` and bare ids in the text become
+  edges; the verb is inferred from the words before the id ("satisfied by", "verified by", "refines", …), else related-to.
+  A yaml block still defines nodes exactly as before; both forms coexist in one file.
 
 conventions:
   - every rule cites `source: path[:line | #Symbol]`; a rule without a source is a wish, not a fact (ctx check errors on it)

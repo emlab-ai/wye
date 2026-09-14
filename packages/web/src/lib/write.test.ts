@@ -73,3 +73,13 @@ describe('patchFrontmatter', () => {
   });
   it('refuses a file without frontmatter', () => { expect(patchFrontmatter('# no fm', { title: 'x' }).error).toBe('invalid'); });
 });
+
+describe('replaceBody', () => {
+  it('keeps the frontmatter and swaps the body with a hash check', () => {
+    const { bodyOf, replaceBody } = require('./write') as typeof import('./write');
+    const cur = bodyOf(md);
+    const r = replaceBody(md, hashOf(cur), '# New\n\nbody\n');
+    expect(r.md).toBe('---\nnode: module:m\ntitle: Module M\nstatus: proposed\n---\n\n# New\n\nbody\n');
+    expect(replaceBody(md, 'stale', 'x').error).toBe('conflict');
+  });
+});

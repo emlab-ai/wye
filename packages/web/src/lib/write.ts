@@ -45,6 +45,16 @@ export function insertYamlAfterSegment(md: string, segment: number, body: string
   return { md: md.slice(0, seg.end) + block + md.slice(seg.end) };
 }
 
+// Replace everything after the frontmatter (the editor owns the whole body).
+export function replaceBody(md: string, ifMatch: string, body: string): WriteResult {
+  const fm = md.match(/^---\n([\s\S]*?)\n---\n?/);
+  const head = fm ? fm[0] : '';
+  const current = md.slice(head.length);
+  if (hashOf(current) !== ifMatch) return { md, error: 'conflict', current };
+  return { md: head + (head && !head.endsWith('\n') ? '\n' : '') + '\n' + body.replace(/^\n+/, '').replace(/\n*$/, '\n') };
+}
+export function bodyOf(md: string): string { const fm = md.match(/^---\n([\s\S]*?)\n---\n?/); return md.slice(fm ? fm[0].length : 0); }
+
 export function patchFrontmatter(md: string, patch: Record<string, string>): WriteResult {
   const fm = md.match(/^---\n([\s\S]*?)\n---\n/);
   if (!fm) return { md, error: 'invalid' };

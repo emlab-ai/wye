@@ -4,7 +4,7 @@ import { Linkified } from './IdLink';
 import { KindPill, StatusPill, StubPill } from './Pills';
 
 const SENTENCE: Record<string, string> = { when: 'When', then: 'then', unless: 'unless' };
-const PARAGRAPH = new Set(['statement', 'description', 'purpose', 'context', 'choice', 'consequences', 'intent', 'q', 'note', 'options']);
+const PARAGRAPH = new Set(['text', 'statement', 'description', 'purpose', 'context', 'choice', 'consequences', 'intent', 'q', 'note', 'options']);
 const HIDE = new Set(['title', 'status']);
 
 // A yaml flow list "[a, b, c]" renders as its items; anything else as linkified text.
