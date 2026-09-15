@@ -14,7 +14,7 @@ import { SmartTag } from './SmartTag';
 import { usePeek } from './PeekProvider';
 import { ID_RE } from '@/lib/ids';
 
-const STATUSES = ['', 'proposed', 'approved', 'unverified', 'api-only', 'shipped', 'deprecated', 'question', 'open', 'in-progress', 'blocked', 'done'];
+const STATUSES = ['', 'proposed', 'approved', 'unverified', 'api-only', 'shipped', 'deprecated', 'question', 'open', 'in-progress', 'blocked', 'done', 'non-goal', 'draft', 'active', 'complete'];
 
 // kind:slug as inline content: a clickable tag in the editor, plain id text when serialised.
 const Tag = createReactInlineContentSpec(
