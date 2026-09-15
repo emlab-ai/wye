@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { prepare, expand, nodePropsFromChunk, escapeAngles } from './import';
+import { prepare, expand, nodePropsFromChunk, escapeAngles, protectCode, splitCode, BS } from './import';
 import { blocksToMarkdown } from './serialize';
 
 const t = (text: string) => ({ type: 'text', text, styles: {} });
@@ -14,9 +14,33 @@ describe('prepare', () => {
 
 describe('escapeAngles', () => {
   it('escapes tag-like angle brackets outside code spans only', () => {
-    expect(escapeAngles('| op:x | <id or suffix> | `<kept>` | a < b |')).toBe('| op:x | &lt;id or suffix> | `<kept>` | a < b |');
+    expect(escapeAngles('| op:x | <id or suffix> | `<kept>` | a < b |')).toBe('| op:x | &lt;id or suffix> | `&lt;kept>` | a < b |');
     const blocks = expand([{ type: 'paragraph', content: [t('args &lt;id or suffix>')] }], []);
     expect((blocks[0].content as { text: string }[])[0].text).toBe('args <id or suffix>');
+  });
+});
+
+describe('splitCode', () => {
+  it('separates fenced, indented and inline code from text', () => {
+    const md = 'a `x` b\n\n    ind\n    ent\n\ntext\n```sh\nfen\n```\ntail';
+    const parts = splitCode(md);
+    expect(parts.filter((_, i) => i % 2 === 1)).toEqual(['`x`', '    ind\n    ent\n\n', '```sh\nfen\n```\n']);
+    expect(parts.join('')).toBe(md);
+  });
+  it('escapes tag-like angle brackets everywhere, code included, and the importer restores them', () => {
+    expect(escapeAngles('see <b>\n\n    <tag>\n\n```\n<x>\n```')).toBe('see &lt;b>\n\n    &lt;tag>\n\n```\n&lt;x>\n```');
+    const blocks = expand([{ type: 'codeBlock', props: { language: 'sh' }, content: [t('run --target &lt;sim udid>')] }], []);
+    expect((blocks[0].content as { text: string }[])[0].text).toBe('run --target <sim udid>');
+  });
+});
+
+describe('protectCode', () => {
+  it('holds backslashes inside inline code and restores them after parsing', () => {
+    const md = 'run `grep -rho "10\\.0\\|x"` now \\ outside';
+    const p = protectCode(md);
+    expect(p).toBe(`run \`grep -rho "10${BS}.0${BS}|x"\` now \\ outside`);
+    const blocks = expand([{ type: 'paragraph', content: [t('a '), { type: 'text', text: `grep "10${BS}.0"`, styles: { code: true } }] }], []);
+    expect(JSON.stringify(blocks)).toContain('grep \\"10\\\\.0\\"');
   });
 });
 

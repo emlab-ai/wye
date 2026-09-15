@@ -19,14 +19,46 @@ export function prepare(body: string): Prepared {
   for (const s of split.segments) {
     if (s.type === 'yaml') { yaml.push(s.chunks.map(c => ({ id: c.id ?? '', body: c.body }))); parts.push(`%%YAML:${yaml.length - 1}%%`); }
     else if (s.type === 'hr') parts.push('%%DIVIDER%%');
-    else parts.push(escapeAngles(liftLinks(unwrapParagraphs(s.text))));
+    else parts.push(protectCode(escapeAngles(liftLinks(unwrapParagraphs(s.text)))));
   }
   return { md: parts.join('\n\n'), yaml };
 }
 
-// "<id or suffix>" outside code spans would be parsed as an HTML tag and vanish; escape it so it stays text.
+// Split markdown into alternating [text, code, text, code, …] regions: fenced blocks, indented (4-space) blocks
+// and inline spans count as code. Even indexes are text, odd indexes are code.
+export function splitCode(md: string): string[] {
+  const out: string[] = []; let text = ''; let code = '';
+  const flushText = () => { out.push(text); text = ''; }; const flushCode = () => { out.push(code); code = ''; };
+  const lines = md.split('\n'); let fence: string | null = null; let indented = false;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i]; const nl = i < lines.length - 1 ? '\n' : '';
+    if (fence) { code += l + nl; if (l.trim().startsWith(fence)) { fence = null; flushCode(); } continue; }
+    const fm = l.match(/^(```+|~~~+)/);
+    if (fm) { if (indented) { indented = false; flushCode(); } flushText(); fence = fm[1]; code += l + nl; continue; }
+    const prevBlank = i === 0 || !lines[i - 1].trim();
+    if (/^ {4}|^\t/.test(l) && (indented || prevBlank)) { if (!indented) { flushText(); indented = true; } code += l + nl; continue; }
+    if (indented && !l.trim()) { code += l + nl; continue; }
+    if (indented) { indented = false; flushCode(); }
+    // inline spans inside a text line
+    const parts = l.split(/(`[^`]*`)/);
+    for (let k = 0; k < parts.length; k++) { if (k % 2 === 1) { flushText(); out.push(parts[k]); } else text += parts[k]; }
+    text += nl;
+  }
+  if (fence || indented) flushCode(); else flushText();
+  return out;
+}
+const mapRegions = (md: string, onText: (s: string) => string, onCode: (s: string) => string) => splitCode(md).map((part, i) => i % 2 === 1 ? onCode(part) : onText(part)).join('');
+
+// "<id or suffix>" would be parsed as an HTML tag and vanish, in prose and in code alike; escape it so it stays
+// text. The importer turns &lt; back into < in every text run, code included.
 export function escapeAngles(md: string): string {
-  return md.split(/(`[^`]*`)/).map((part, i) => i % 2 === 1 ? part : part.replace(/<(?=[A-Za-z/])/g, '&lt;')).join('');
+  return md.replace(/<(?=[A-Za-z/])/g, '&lt;');
+}
+
+// Backslashes inside code would be unescaped by the browser parser; hold them in a placeholder.
+export const BS = '⟪bs⟫';
+export function protectCode(md: string): string {
+  return mapRegions(md, t => t, c => c.replace(/\\/g, BS));
 }
 
 // [label](kind:slug) → ⟦label|kind:slug⟧ so the browser markdown parser never sees a scheme-less link.
@@ -98,10 +130,9 @@ export function expand(blocks: AnyBlock[], yaml: Prepared['yaml']): AnyBlock[] {
 
 // The escaped "<" from escapeAngles is decoded back so the editor shows the real character.
 function unescapeInline(items: Inline[]): Inline[] {
-  return items.map(it => it.type === 'text' ? { ...it, text: (it as InlineText).text.replace(/&lt;/g, '<') } : (it.type !== 'tag' && Array.isArray((it as { content?: unknown }).content)) ? { ...it, content: unescapeInline((it as { content: Inline[] }).content) } : it);
+  return items.map(it => it.type === 'text' ? { ...it, text: (it as InlineText).text.replace(/&lt;/g, '<').split(BS).join('\\') } : (it.type !== 'tag' && Array.isArray((it as { content?: unknown }).content)) ? { ...it, content: unescapeInline((it as { content: Inline[] }).content) } : it);
 }
 function unescapeBlock(b: AnyBlock): AnyBlock {
-  if (b.type === 'codeBlock') return b;
   let nb = b;
   if (Array.isArray(nb.content)) nb = { ...nb, content: unescapeInline(nb.content as Inline[]) };
   const tc = nb.content as { rows?: { cells: unknown[] }[] } | undefined;
