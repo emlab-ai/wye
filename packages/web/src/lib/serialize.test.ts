@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { blocksToMarkdown, inlineToMarkdown, nodeToMarkdown } from './serialize';
+import type { AnyBlock } from './serialize';
 
 const t = (text: string, styles: Record<string, unknown> = {}) => ({ type: 'text', text, styles });
 const tag = (id: string) => ({ type: 'tag', props: { id } });
@@ -30,6 +31,37 @@ describe('nodeToMarkdown', () => {
 });
 
 describe('blocksToMarkdown', () => {
+  it('numbers numbered items and numbered nodes in sequence', () => {
+    const rule = (slug: string) => ({ type: 'node', props: { kind: 'rule', slug, status: '', form: 'prose', textKey: 'text', body: '', extra: '', check: '', list: 'number' }, content: [t('R ' + slug)] });
+    const md = blocksToMarkdown([
+      { type: 'numberedListItem', content: [t('one')] },
+      { type: 'numberedListItem', content: [t('two')], children: [{ type: 'numberedListItem', content: [t('two a')] }, { type: 'numberedListItem', content: [t('two b')] }] },
+      rule('x'), rule('y'),
+      { type: 'paragraph', content: [t('break')] },
+      rule('z'),
+    ]);
+    expect(md).toBe('1. one\n2. two\n  1. two a\n  2. two b\n3. rule:x R x\n4. rule:y R y\n\nbreak\n\n1. rule:z R z\n');
+  });
+  it('writes the children of a node block as nested list lines, nested nodes included', () => {
+    const task = (slug: string, check: 'todo' | 'done', text: string, children?: AnyBlock[]) => ({ type: 'node', props: { kind: 'task', slug, status: check === 'done' ? 'done' : 'open', form: 'prose', textKey: 'text', body: '', extra: '', check, list: '' }, content: [t(text)], children });
+    const md = blocksToMarkdown([
+      task('a', 'todo', 'Build it', [
+        { type: 'numberedListItem', content: [t('first step')] },
+        { type: 'numberedListItem', content: [t('second step')], children: [{ type: 'bulletListItem', content: [t('detail')] }] },
+        task('b', 'done', 'Sub task'),
+        { type: 'paragraph', content: [t('a trailing note')] },
+      ]),
+      task('c', 'todo', 'Next'),
+    ]);
+    expect(md).toBe(`- [ ] task:a Build it
+  1. first step
+  2. second step
+    - detail
+  - [x] task:b Sub task
+  a trailing note
+- [ ] task:c Next
+`);
+  });
   it('serialises headings, paragraphs, lists, tables, code, dividers and nodes', () => {
     const md = blocksToMarkdown([
       { type: 'heading', props: { level: 2 }, content: [t('Section')] },

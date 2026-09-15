@@ -4,15 +4,20 @@ import { ID_RE, cleanId } from './ids';
 // Lists, tables, headings, quotes, fenced code and indented code are left alone.
 export function unwrapParagraphs(md: string): string {
   const out: string[] = [];
-  let fence = false;
+  let fence = false; let inItem = false; // inItem: the previous output line is a list item (or its joined continuation)
+  const isListItem = (l: string) => /^\s*([-*+]|\d+[.)])\s/.test(l);
   const isBlockStart = (l: string) => /^(\s*([-*+]|\d+[.)])\s|\s*[|#>]|\s{4,}|```|~~~|\s*$)/.test(l) || /^---\s*$/.test(l);
   for (const line of md.split('\n')) {
-    if (/^(```|~~~)/.test(line)) { fence = !fence; out.push(line); continue; }
+    if (/^\s*(```|~~~)/.test(line)) { fence = !fence; out.push(line); inItem = false; continue; }
     if (fence) { out.push(line); continue; }
     const prev = out[out.length - 1];
-    const canJoin = prev !== undefined && prev.trim() !== '' && !isBlockStart(prev) && !isBlockStart(line) && !/( {2}|\\)$/.test(prev);
-    if (canJoin) out[out.length - 1] = prev.replace(/\s+$/, '') + ' ' + line.trim();
-    else out.push(line);
+    const hardBreak = prev !== undefined && /( {2}|\\)$/.test(prev);
+    // a wrapped list item: an indented, non-blank line that is not itself a list item, heading, table or fence
+    const lazy = inItem && /^\s+\S/.test(line) && !isListItem(line) && !/^\s*[|#>]/.test(line) && !hardBreak;
+    const canJoin = prev !== undefined && prev.trim() !== '' && !isBlockStart(prev) && !isBlockStart(line) && !hardBreak;
+    if (lazy || canJoin) { out[out.length - 1] = prev.replace(/\s+$/, '') + ' ' + line.trim(); continue; }
+    out.push(line);
+    inItem = isListItem(line);
   }
   return out.join('\n');
 }

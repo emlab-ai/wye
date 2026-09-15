@@ -56,9 +56,12 @@ export function escapeAngles(md: string): string {
 }
 
 // Backslashes inside code would be unescaped by the browser parser; hold them in a placeholder.
+export const PIPE = '⟪pipe⟫';
 export const BS = '⟪bs⟫';
 export function protectCode(md: string): string {
-  return mapRegions(md, t => t, c => c.replace(/\\/g, BS));
+  // "\|" on a table row is a cell-escaped pipe even inside a code span (GFM); hold it whole so the row keeps its cells.
+  const rows = md.split('\n').map(l => /^\s*\|/.test(l) ? l.replace(/\\\|/g, PIPE) : l).join('\n');
+  return mapRegions(rows, t => t, c => c.replace(/\\/g, BS));
 }
 
 // [label](kind:slug) → ⟦label|kind:slug⟧ so the browser markdown parser never sees a scheme-less link.
@@ -121,7 +124,7 @@ export function expand(blocks: AnyBlock[], yaml: Prepared['yaml']): AnyBlock[] {
       }
       continue;
     }
-    const pn = proseNode(b);
+    const pn = proseNode(b, yaml);
     if (pn) { out.push(withLinks(pn)); continue; }
     out.push(withLinks(b.children?.length ? { ...b, children: expand(b.children, yaml) } : b));
   }
@@ -130,7 +133,7 @@ export function expand(blocks: AnyBlock[], yaml: Prepared['yaml']): AnyBlock[] {
 
 // The escaped "<" from escapeAngles is decoded back so the editor shows the real character.
 function unescapeInline(items: Inline[]): Inline[] {
-  return items.map(it => it.type === 'text' ? { ...it, text: (it as InlineText).text.replace(/&lt;/g, '<').split(BS).join('\\') } : (it.type !== 'tag' && Array.isArray((it as { content?: unknown }).content)) ? { ...it, content: unescapeInline((it as { content: Inline[] }).content) } : it);
+  return items.map(it => it.type === 'text' ? { ...it, text: (it as InlineText).text.replace(/&lt;/g, '<').split(BS).join('\\').split(PIPE).join('|') } : (it.type !== 'tag' && Array.isArray((it as { content?: unknown }).content)) ? { ...it, content: unescapeInline((it as { content: Inline[] }).content) } : it);
 }
 function unescapeBlock(b: AnyBlock): AnyBlock {
   let nb = b;
@@ -154,7 +157,7 @@ function firstText(b: AnyBlock): string {
 }
 
 // A paragraph or list item whose content starts with "kind:slug " becomes a prose node block.
-function proseNode(b: AnyBlock): AnyBlock | null {
+function proseNode(b: AnyBlock, yaml: Prepared['yaml']): AnyBlock | null {
   if (!['paragraph', 'bulletListItem', 'numberedListItem', 'checkListItem'].includes(b.type) || !Array.isArray(b.content)) return null;
   const items = b.content as Inline[];
   const head = items[0];
@@ -174,7 +177,8 @@ function proseNode(b: AnyBlock): AnyBlock | null {
   }
   const check: NodeProps['check'] = b.type === 'checkListItem' ? ((b.props as { checked?: boolean })?.checked ? 'done' : 'todo') : '';
   if (check && !status) status = check === 'done' ? 'done' : 'open';
-  const list: NodeProps['list'] = !check && (b.type === 'bulletListItem' || b.type === 'numberedListItem') ? 'bullet' : '';
+  const list: NodeProps['list'] = check ? '' : b.type === 'bulletListItem' ? 'bullet' : b.type === 'numberedListItem' ? 'number' : '';
   const props: NodeProps = { kind, slug: rest.join(':'), status, form: 'prose', textKey: 'text', body: '', extra, check, list };
-  return { type: 'node', props: props as unknown as Record<string, unknown>, content: restItems, children: b.children };
+  // nested list items under the node (details, sub-tasks) stay its children; nested ids become nodes too
+  return { type: 'node', props: props as unknown as Record<string, unknown>, content: restItems, children: b.children?.length ? expand(b.children, yaml) : b.children };
 }

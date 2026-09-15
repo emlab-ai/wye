@@ -2,7 +2,7 @@
 // run on plain JSON in tests. Node blocks (our custom block) become prose lines or yaml blocks.
 import type { Inline } from './mdflow';
 
-export interface NodeProps { kind: string; slug: string; status: string; form: 'prose' | 'yaml'; textKey: string; body: string; extra: string; check?: '' | 'todo' | 'done'; list?: '' | 'bullet' }
+export interface NodeProps { kind: string; slug: string; status: string; form: 'prose' | 'yaml'; textKey: string; body: string; extra: string; check?: '' | 'todo' | 'done'; list?: '' | 'bullet' | 'number' }
 export interface AnyBlock { type: string; props?: Record<string, unknown>; content?: unknown; children?: AnyBlock[] }
 
 export function inlineToMarkdown(items: Inline[] | undefined): string {
@@ -24,10 +24,11 @@ function styled(text: string, st: Record<string, unknown> = {}): string {
   return t;
 }
 
-export function nodeToMarkdown(p: NodeProps, text: string): string[] {
+// n: position of a numbered item among its numbered siblings (1-based).
+export function nodeToMarkdown(p: NodeProps, text: string, n = 1): string[] {
   const id = `${p.kind}:${p.slug}`;
   if (p.form === 'prose') {
-    const box = p.check === 'done' ? '- [x] ' : p.check === 'todo' ? '- [ ] ' : p.list === 'bullet' ? '- ' : '';
+    const box = p.check === 'done' ? '- [x] ' : p.check === 'todo' ? '- [ ] ' : p.list === 'bullet' ? '- ' : p.list === 'number' ? `${n}. ` : '';
     const implied = p.check === 'done' ? 'done' : p.check === 'todo' ? 'open' : '';
     const status = p.status && p.status !== implied ? ' #' + p.status : '';
     return [`${box}${id} ${text.trim()}${status}${p.extra ? ' (' + p.extra + ')' : ''}`];
@@ -63,8 +64,9 @@ function wrap(text: string, width: number): string[] {
 
 export function blocksToMarkdown(blocks: AnyBlock[]): string {
   const out: string[] = [];
-  let i = 0;
+  let i = 0; let n = 0; // n counts consecutive numbered items
   const push = (...s: string[]) => { out.push(...s); };
+  const isNumbered = (x: AnyBlock) => x.type === 'numberedListItem' || (x.type === 'node' && (x.props as unknown as NodeProps).list === 'number');
   const blank = () => { if (out.length && out[out.length - 1] !== '') out.push(''); };
   while (i < blocks.length) {
     const b = blocks[i];
@@ -80,20 +82,22 @@ export function blocksToMarkdown(blocks: AnyBlock[]): string {
       push('```'); blank(); continue;
     }
     i++;
+    n = isNumbered(b) ? n + 1 : 0;
     switch (b.type) {
       case 'node': {
         const np = b.props as unknown as NodeProps;
-        const lines = nodeToMarkdown(np, inlineToMarkdown(b.content as Inline[]));
-        if (np.check || np.list) { const prevList = out.length && /^(\s*)([-*]|\d+\.)\s/.test(out[out.length - 1]); if (!prevList) blank(); push(...lines); }
-        else { blank(); push(...lines); blank(); }
+        const lines = nodeToMarkdown(np, inlineToMarkdown(b.content as Inline[]), n);
+        const kids = childrenLines(b.children, 1);
+        if (np.check || np.list) { const prevList = out.length && inList(out[out.length - 1]); if (!prevList) blank(); push(...lines, ...kids); }
+        else { blank(); push(...lines, ...kids); blank(); }
         break;
       }
       case 'paragraph': { const t = inlineToMarkdown(b.content as Inline[]); if (t.trim()) { blank(); push(t); blank(); } break; }
       case 'heading': { const lvl = Number((b.props as { level?: number })?.level ?? 1); blank(); push('#'.repeat(lvl) + ' ' + inlineToMarkdown(b.content as Inline[])); blank(); break; }
       case 'bulletListItem': case 'numberedListItem': case 'checkListItem': {
-        const prevList = out.length && /^(\s*)([-*]|\d+\.)\s/.test(out[out.length - 1]);
+        const prevList = out.length && inList(out[out.length - 1]);
         if (!prevList) blank();
-        push(...listLines(b, 0)); break;
+        push(...listLines(b, 0, n)); break;
       }
       case 'table': { blank(); push(...tableLines(b)); blank(); break; }
       case 'codeBlock': { blank(); const lang = String((b.props as { language?: string })?.language ?? ''); push('```' + (lang === 'text' ? '' : lang)); push(...plainText(b.content as Inline[]).split('\n')); push('```'); blank(); break; }
@@ -106,11 +110,27 @@ export function blocksToMarkdown(blocks: AnyBlock[]): string {
   return out.join('\n') + '\n';
 }
 
-function listLines(b: AnyBlock, depth: number): string[] {
+// The previous line belongs to a list when it carries a marker or is an indented continuation.
+const inList = (l: string) => /^(\s*)([-*]|\d+\.)\s|^\s+\S/.test(l);
+
+function listLines(b: AnyBlock, depth: number, n = 1): string[] {
   const pad = '  '.repeat(depth);
-  const marker = b.type === 'numberedListItem' ? '1. ' : b.type === 'checkListItem' ? ((b.props as { checked?: boolean })?.checked ? '- [x] ' : '- [ ] ') : '- ';
-  const lines = [pad + marker + inlineToMarkdown(b.content as Inline[])];
-  for (const c of b.children ?? []) lines.push(...(c.type.endsWith('ListItem') ? listLines(c, depth + 1) : [pad + '  ' + inlineToMarkdown(c.content as Inline[])]));
+  const marker = b.type === 'numberedListItem' ? `${n}. ` : b.type === 'checkListItem' ? ((b.props as { checked?: boolean })?.checked ? '- [x] ' : '- [ ] ') : '- ';
+  return [pad + marker + inlineToMarkdown(b.content as Inline[]), ...childrenLines(b.children, depth + 1)];
+}
+
+// Blocks nested under a list item or a node: list items keep their markers (numbered ones count in sequence), prose
+// nodes become their line, anything else is indented text.
+function childrenLines(children: AnyBlock[] | undefined, depth: number): string[] {
+  const pad = '  '.repeat(depth);
+  const lines: string[] = []; let n = 0;
+  for (const c of children ?? []) {
+    const numbered = c.type === 'numberedListItem' || (c.type === 'node' && (c.props as unknown as NodeProps).list === 'number');
+    n = numbered ? n + 1 : 0;
+    if (c.type.endsWith('ListItem')) lines.push(...listLines(c, depth, n));
+    else if (c.type === 'node') lines.push(...nodeToMarkdown(c.props as unknown as NodeProps, inlineToMarkdown(c.content as Inline[]), n).map(l => pad + l), ...childrenLines(c.children, depth + 1));
+    else lines.push(pad + inlineToMarkdown(c.content as Inline[]));
+  }
   return lines;
 }
 

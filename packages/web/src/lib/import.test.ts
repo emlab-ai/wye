@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { prepare, expand, nodePropsFromChunk, escapeAngles, protectCode, splitCode, BS } from './import';
+import { prepare, expand, nodePropsFromChunk, escapeAngles, protectCode, splitCode, BS, PIPE } from './import';
 import { blocksToMarkdown } from './serialize';
 
 const t = (text: string) => ({ type: 'text', text, styles: {} });
@@ -42,6 +42,13 @@ describe('protectCode', () => {
     const blocks = expand([{ type: 'paragraph', content: [t('a '), { type: 'text', text: `grep "10${BS}.0"`, styles: { code: true } }] }], []);
     expect(JSON.stringify(blocks)).toContain('grep \\"10\\\\.0\\"');
   });
+  it('keeps an escaped pipe inside a table cell as one token and restores it as a pipe', () => {
+    const md = '| a | b |\n|---|---|\n| `x \\| y` | z |';
+    const p = protectCode(md);
+    expect(p).toBe(`| a | b |\n|---|---|\n| \`x ${PIPE} y\` | z |`);
+    const blocks = expand([{ type: 'paragraph', content: [{ type: 'text', text: `x ${PIPE} y`, styles: { code: true } }] }], []);
+    expect((blocks[0].content as { text: string }[])[0].text).toBe('x | y');
+  });
 });
 
 describe('nodePropsFromChunk', () => {
@@ -80,6 +87,23 @@ describe('expand', () => {
     expect(blocksToMarkdown(blocks)).toBe('- [ ] task:a Build it\n- [x] task:b Ship it\n');
     const bl = expand([{ type: 'bulletListItem', content: [t('qn:x Is it?')] }], []);
     expect(blocksToMarkdown(bl)).toBe('- question:x Is it?\n');
+    const nl = expand([{ type: 'numberedListItem', content: [t('rl:a First')] }, { type: 'numberedListItem', content: [t('rl:b Second')] }], []);
+    expect(nl[1].props).toMatchObject({ list: 'number' });
+    expect(blocksToMarkdown(nl)).toBe('1. rule:a First\n2. rule:b Second\n');
+  });
+  it('keeps and expands the children of an id-first list item', () => {
+    const blocks = expand([{ type: 'checkListItem', props: { checked: false }, content: [t('task:a Build it')], children: [
+      { type: 'bulletListItem', content: [t('a detail about entity:order')] },
+      { type: 'checkListItem', props: { checked: true }, content: [t('task:b Sub task')] },
+    ] }], []);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].type).toBe('node');
+    expect(blocks[0].children).toHaveLength(2);
+    expect(blocks[0].children?.[0].type).toBe('bulletListItem');
+    expect(blocks[0].children?.[0].content).toEqual([t('a detail about '), { type: 'tag', props: { id: 'entity:order' } }]);
+    expect(blocks[0].children?.[1].type).toBe('node');
+    expect(blocks[0].children?.[1].props).toMatchObject({ kind: 'task', slug: 'b', check: 'done' });
+    expect(blocksToMarkdown(blocks)).toBe('- [ ] task:a Build it\n  - a detail about entity:order\n  - [x] task:b Sub task\n');
   });
   it('round-trips through the serializer', () => {
     const src = 'req:sale.close When done, entity:order is Closed. #proposed (owner: alex)\n\n---\n\n```yaml\n- id: rule:x\n  statement: S\n  source: f.ts\n```\n';

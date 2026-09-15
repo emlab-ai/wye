@@ -875,9 +875,14 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     after the user has focused and changed it (programmatic loads never save), 700 ms after the last change, with
     the section's hash; empty table rows the importer invents are dropped from the export. Every section has a
     raw-markdown mode.
-  note: BlockNote's export reflows the section it exports (paragraph wrapping, table column widths), so an edited section is rewritten in the editor's formatting; untouched sections are byte-identical.
-  source: packages/web/src/components/SectionEditor.tsx; packages/web/src/components/BlockEditor.tsx
-  status: unverified
+  note: >
+    Our own serializer (not BlockNote's) writes the document back: wrapped list-item continuation lines are joined
+    on import; list items nested under a task or requirement line stay its children and are written back indented
+    (nested ids become nodes too); numbered items and numbered nodes are renumbered in sequence; an escaped pipe on
+    a table row survives even inside a code span. Verified on the four consolidated YesSensei pages (import → export
+    equal, 2026-09-15).
+  source: packages/web/src/lib/import.ts; packages/web/src/lib/serialize.ts; packages/web/src/lib/mdflow.ts
+  status: shipped
   requires-tests: [ui-test:edit-node-flow]
 - id: rule:card-form
   statement: >
