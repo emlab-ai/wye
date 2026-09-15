@@ -1,7 +1,7 @@
 import { STRUCTURAL, neighborhood, type GraphData, type GraphEdge, type GraphIndex, type GraphNode } from './graph';
 
 export type PresetName = 'Requirements' | 'Mechanics' | 'Data' | 'Drift' | 'Everything';
-export const ALL_KINDS = ['req', 'rule', 'entity', 'field', 'op', 'page', 'action', 'state', 'flag', 'gate', 'value', 'test', 'ui-test', 'drift', 'decision', 'question', 'module', 'product'];
+export const ALL_KINDS = ['req', 'rule', 'entity', 'field', 'op', 'page', 'action', 'state', 'flag', 'gate', 'value', 'test', 'ui-test', 'drift', 'decision', 'question', 'module', 'product', 'goal', 'task'];
 
 export const PRESETS: Record<PresetName, { kinds: string[]; verbs: string[] | null; onlyTouching?: string }> = {
   Requirements: { kinds: ['req'], verbs: ['refines'] },
