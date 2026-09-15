@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Rail } from '@/components/Rail';
 import { PeekProvider } from '@/components/PeekProvider';
+import { Shell } from '@/components/Shell';
 import { listProducts } from '@/lib/products';
 import { loadScope, treeFor } from '@/lib/scope';
 import { loadMarkdown } from '@/lib/load';
@@ -20,10 +21,10 @@ export default async function ProductLayout({ children, params }: { children: Re
   const headings = scope.graph.modules.flatMap(m => (outlines.get(m.file) ?? []).map(h => ({ doc: m.file, slug: h.slug, text: h.text })));
   return (
     <PeekProvider product={scope.product.slug} index={scope.index}>
-      <div className="shell">
+      <Shell>
         <Rail products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} headings={headings} />
         <main className="content">{children}</main>
-      </div>
+      </Shell>
     </PeekProvider>
   );
 }
