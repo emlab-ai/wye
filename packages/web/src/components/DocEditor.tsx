@@ -13,7 +13,6 @@ import { Linkified } from './IdLink';
 import { SmartTag } from './SmartTag';
 import { usePeek } from './PeekProvider';
 import { ID_RE } from '@/lib/ids';
-import { docSlug } from '@/lib/doc';
 
 const STATUSES = ['', 'proposed', 'approved', 'unverified', 'api-only', 'shipped', 'deprecated', 'question', 'open', 'in-progress', 'blocked', 'done'];
 
@@ -115,11 +114,12 @@ function LinkNodePicker({ req, onClose, apply, createDoc }: { req: LinkRequest; 
   );
 }
 
-export default function DocEditor({ project, slug, body, ifMatch, fallback }: { project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode }) {
+export default function DocEditor({ product, project, slug, body, ifMatch, fallback }: { product: string; project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode }) {
   const router = useRouter();
-  const { open: openPeek, index } = usePeek();
+  const { open: openPeek, index, hrefFor } = usePeek();
   const editor = useCreateBlockNote({ schema });
   if (typeof window !== 'undefined') { const w = window as unknown as { __wf: unknown; __wfExport: () => string }; w.__wf = editor; w.__wfExport = () => blocksToMarkdown(editor.document as unknown as AnyBlock[]); } // dev inspection
+  void index;
   const [ready, setReady] = useState(false);
   const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'conflict' | 'error'>('idle');
   const [lintMsg, setLintMsg] = useState<string | null>(null);
@@ -159,7 +159,7 @@ export default function DocEditor({ project, slug, body, ifMatch, fallback }: { 
 
   async function save(md: string) {
     setState('saving');
-    const r = await fetch(`/api/p/${project}/doc/${slug}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'replace-body', ifMatch: hash.current, body: md }) });
+    const r = await fetch(`/api/${product}/${project}/doc/${slug}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'replace-body', ifMatch: hash.current, body: md }) });
     const j = await r.json();
     if (!r.ok) { setState(j.error === 'conflict' ? 'conflict' : 'error'); return; }
     hash.current = j.bodyHash ?? hash.current;
@@ -189,7 +189,7 @@ export default function DocEditor({ project, slug, body, ifMatch, fallback }: { 
     changed(); // the converted blocks may serialise differently (aliases expanded, node lines); save that
   };
   const createDoc = async (title: string): Promise<string | null> => {
-    const r = await fetch(`/api/p/${project}/doc`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title, template: 'blank', parent: slug }) });
+    const r = await fetch(`/api/${product}/${project}/doc`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title, template: 'blank', parent: slug }) });
     const j = await r.json();
     if (!r.ok) { setLintMsg(`could not create document: ${j.message ?? j.error}`); return null; }
     router.refresh();
@@ -227,8 +227,8 @@ export default function DocEditor({ project, slug, body, ifMatch, fallback }: { 
         const href = a?.getAttribute('href') ?? '';
         if (a && !a.classList.contains('tag') && new RegExp('^' + ID_RE.source + '$').test(href)) {
           e.preventDefault();
-          const entry = index[href];
-          if (href.startsWith('module:') && entry?.file) router.push(`/p/${project}/d/${docSlug(entry.file)}`); else openPeek(href);
+          const doc = href.startsWith('module:') ? hrefFor(href) : null;
+          if (doc) router.push(doc.replace(/#.*$/, '')); else openPeek(href);
         }
       }}>
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}</div>

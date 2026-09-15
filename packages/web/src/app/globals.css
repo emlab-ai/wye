@@ -225,3 +225,27 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .newdoc-form { margin: 6px 14px; }
 .shell { grid-template-columns: 280px 1fr; }
 .prop-in.icon::placeholder { opacity: .5; }
+
+/* ===== product / knowledge / inbox ===== */
+.rail-space-sel { flex: 1; background: transparent; border: 0; color: var(--ink); font: 600 15px var(--font-b); cursor: pointer; }
+.rail-project { margin-top: 6px; }
+.rail-project-head { display: flex; align-items: center; margin: 0 6px; border-radius: 8px; }
+.rail-project-head:hover { background: var(--sunk); } .rail-project-head.on { background: var(--sunk); }
+.rail-project-link { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; padding: 6px 8px; color: var(--ink); text-decoration: none; font-weight: 600; font-size: 14px; }
+.rail-kind { font: 10px var(--font-m); color: var(--muted); border: 1px solid var(--line-2); border-radius: 999px; padding: 0 6px; margin-left: 4px; }
+.rail-mini { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 0 8px; font-size: 14px; opacity: 0; } .rail-project-head:hover .rail-mini { opacity: 1; }
+.lede { color: var(--ink-2); max-width: 70ch; margin: 4px 0 8px; }
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 8px 0 24px; }
+.tile { display: block; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--surface); color: var(--ink); text-decoration: none; }
+.tile:hover { border-color: var(--accent); } .tile p { margin: 6px 0; font-size: 13px; color: var(--ink-2); } .tile small { color: var(--muted); font: 11px var(--font-m); }
+.tile-head { display: flex; align-items: center; gap: 8px; }
+.tile.small { display: flex; flex-direction: column; gap: 2px; } .tile.small b { font-size: 22px; } .tile.small span { font-size: 12px; color: var(--muted); }
+.kind-section { margin: 18px 0; } .kind-section h2 { font-size: 16px; margin: 0 0 6px; border: 0; padding: 0; } .kind-section h2 a { color: var(--ink); text-decoration: none; }
+.more { font: 12px var(--font-m); color: var(--accent); align-self: center; text-decoration: none; }
+.crumbs { font: 12px var(--font-m); color: var(--muted); margin: 0 0 4px; } .crumbs a { color: var(--muted); }
+.klist { list-style: none; margin: 8px 0; padding: 0; } .klist li { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.klist-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .klist-doc { font: 11px var(--font-m); color: var(--muted); text-decoration: none; margin-left: auto; }
+.klist-title { margin: 4px 0 0; color: var(--ink-2); } .klist-rels { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; } .klist-rel { display: inline-flex; align-items: center; gap: 4px; } .klist-rel small { font: 10px var(--font-m); color: var(--muted); }
+.klist-page { color: var(--ink); text-decoration: none; font-weight: 500; }
+.inbox-form { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 20px; } .inbox-form input, .inbox-form textarea { background: var(--surface); color: var(--ink); border: 1px solid var(--line-2); border-radius: 8px; padding: 8px 10px; font: 14px var(--font-b); }
+.page h2 { font-size: 18px; margin: 24px 0 8px; }

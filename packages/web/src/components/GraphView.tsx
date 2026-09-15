@@ -11,9 +11,9 @@ import { parseBody } from '@/lib/graph';
 
 type LiteNode = { id: string; kind: string; title: string; status: string; defined: boolean };
 type Summary = { title: string; kind: string; status: string; defined: boolean; body: string };
-interface Props { project: string; preset: PresetName; focus: string | null; nodes: LiteNode[]; edges: GraphEdge[]; summaries: Record<string, Summary> }
+interface Props { product: string; preset: PresetName; focus: string | null; nodes: LiteNode[]; edges: GraphEdge[]; summaries: Record<string, Summary> }
 
-export function GraphView({ project, preset, focus, nodes, edges, summaries }: Props) {
+export function GraphView({ product, preset, focus, nodes, edges, summaries }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(focus);
   const computed = useMemo(() => {
@@ -41,16 +41,16 @@ export function GraphView({ project, preset, focus, nodes, edges, summaries }: P
   useEffect(() => { setNodes(computed.rfNodes); setEdges(computed.rfEdges); }, [computed, setNodes, setEdges]);
 
   const onNodeClick: NodeMouseHandler = useCallback((_, n) => setSelected(n.id), []);
-  const onNodeDoubleClick: NodeMouseHandler = useCallback((_, n) => router.push(`/p/${project}/graph?focus=${encodeURIComponent(n.id)}&preset=${preset}`), [router, project, preset]);
+  const onNodeDoubleClick: NodeMouseHandler = useCallback((_, n) => router.push(`/${product}/graph?focus=${encodeURIComponent(n.id)}&preset=${preset}`), [router, product, preset]);
   const sel = selected ? summaries[selected] : null;
 
   return (
     <div className="gwrap">
       <div className="gbar">
         {(Object.keys(PRESETS) as PresetName[]).map(p => (
-          <Link key={p} href={`/p/${project}/graph?preset=${p}`} className={`chip ${p === preset && !focus ? 'on' : ''}`}>{p}</Link>
+          <Link key={p} href={`/${product}/graph?preset=${p}`} className={`chip ${p === preset && !focus ? 'on' : ''}`}>{p}</Link>
         ))}
-        {focus && <span className="chip on">focus: {focus} <Link href={`/p/${project}/graph?preset=${preset}`}>×</Link></span>}
+        {focus && <span className="chip on">focus: {focus} <Link href={`/${product}/graph?preset=${preset}`}>×</Link></span>}
         <span className="cnt">{nodes.length} nodes · {edges.length} edges</span>
       </div>
       <div className="gcanvas">
@@ -65,8 +65,8 @@ export function GraphView({ project, preset, focus, nodes, edges, summaries }: P
             <h3>{sel.title || selected}</h3>
             <code>{selected}</code>
             <div className="gp-acts">
-              <Link href={`/p/${project}/n/${encodeURIComponent(selected)}`}>Open page</Link>
-              <Link href={`/p/${project}/graph?focus=${encodeURIComponent(selected)}&preset=${preset}`}>Focus here</Link>
+              <Link href={`/${product}/n/${encodeURIComponent(selected)}`}>Open page</Link>
+              <Link href={`/${product}/graph?focus=${encodeURIComponent(selected)}&preset=${preset}`}>Focus here</Link>
               <button onClick={() => setSelected(null)}>Close</button>
             </div>
             <dl className="props small">{parseBody(sel.body).slice(0, 8).map(r => <div key={r.key} className="prop"><dt>{r.key}</dt><dd><pre>{r.value}</pre></dd></div>)}</dl>

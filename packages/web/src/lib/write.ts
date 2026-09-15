@@ -71,21 +71,24 @@ export async function writeAtomic(file: string, text: string): Promise<void> {
   await rename(tmp, file);
 }
 
-// Rebuild the project's graph.json with the ctx CLI that ships in this repo (packages/web → repo root).
-export function rebuild(rootPath: string): Promise<{ code: number; output: string }> {
-  const ctx = path.resolve(process.cwd(), '../../bin/ctx.js');
+// Rebuild a product's graph.json with the ctx CLI that ships in this repo, run from the repo root so file paths
+// in graph.json are repo-relative.
+export function rebuild(productDir: string): Promise<{ code: number; output: string }> {
+  const repo = path.resolve(process.cwd(), '../..');
+  const ctx = path.join(repo, 'bin/ctx.js');
   return new Promise(resolve => {
-    const child = spawn(process.execPath, [ctx, 'build'], { cwd: rootPath });
+    const child = spawn(process.execPath, [ctx, 'build', '--root', path.relative(repo, productDir)], { cwd: repo });
     let output = '';
     child.stdout.on('data', d => { output += d; }); child.stderr.on('data', d => { output += d; });
     child.on('close', code => resolve({ code: code ?? 1, output }));
   });
 }
 
-export function lint(rootPath: string): Promise<{ code: number; output: string }> {
-  const ctx = path.resolve(process.cwd(), '../../bin/ctx.js');
+export function lint(productDir: string): Promise<{ code: number; output: string }> {
+  const repo = path.resolve(process.cwd(), '../..');
+  const ctx = path.join(repo, 'bin/ctx.js');
   return new Promise(resolve => {
-    const child = spawn(process.execPath, [ctx, 'check'], { cwd: rootPath });
+    const child = spawn(process.execPath, [ctx, 'check', '--root', path.relative(repo, productDir)], { cwd: repo });
     let output = '';
     child.stdout.on('data', d => { output += d; }); child.stderr.on('data', d => { output += d; });
     child.on('close', code => resolve({ code: code ?? 1, output }));

@@ -5,9 +5,21 @@ pages/actions, rules, gates and tests — in markdown that is also a graph. Quer
 browse it from a phone. Built from the YesSensei inventory pilot (2026-09-12).
 
 ```
-docs/context-graph/<module>.md     ← the source of truth (one file per module, hand-written by an agent + you)
-docs/context-graph/_build/         ← generated: graph.json, data.js, site/ (gitignore or commit, your call)
+data/products/<product>/projects/<project>/docs/<module>.md     ← the source of truth (one file per module, hand-written by an agent + you)
+data/products/<product>/_build/         ← generated: graph.json, data.js, site/ (gitignore or commit, your call)
 ```
+
+## Data layout
+
+```
+data/products/<product>/_product.md                 title, icon, description
+data/products/<product>/projects/<project>/_project.md   title, kind (project | goal), status
+data/products/<product>/projects/<project>/docs/*.md     the pages (PRD, dev design, test design, plan, …)
+data/products/<product>/inbox/                            dropped notes, conversations, files (not processed yet)
+data/products/<product>/_build/graph.json                 the product's knowledge, built from every page
+```
+
+Waterfall's own product lives in `data/products/waterfall`; `ctx` defaults to it.
 
 ## Install
 
@@ -19,7 +31,7 @@ cd ~/Projects/waterfall && ./install.sh     # links `ctx` into ~/.local/bin and 
 
 | command | what |
 |---|---|
-| `ctx build [files]` | parse `docs/context-graph/*.md` → `_build/graph.json` + `data.js` |
+| `ctx build [files]` | parse `data/products/<product>/projects/*/docs/*.md` → `_build/graph.json` + `data.js` |
 | `ctx check [--strict] [--repo dir]` | lint: rules without source, reqs without satisfied-by, undefined rule/req ids, missing source paths, drift count. Exit 1 on errors |
 | `ctx get <id>` | one node with every edge (`ctx get oversell` resolves suffixes) |
 | `ctx neighbors <id> [-d N] [--structural] [--kinds a,b]` | neighbourhood by hops |

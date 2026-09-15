@@ -5,7 +5,7 @@ description: The read/write contract between a coding agent and the product cont
 
 # Working with the context graph
 
-The graph in `docs/context-graph/*.md` is the product's single source of truth for **what the system does and why**.
+The graph in `data/products/<product>/projects/*/docs/*.md` is the product's single source of truth for **what the system does and why**.
 Treat it as external memory: read from it before you read code, write to it before you write code.
 `ctx` is the CLI (`~/Projects/waterfall/bin/ctx.js`, on PATH after `install.sh`). Never `cat` the graph files; query.
 

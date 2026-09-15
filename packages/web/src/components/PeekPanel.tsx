@@ -6,24 +6,25 @@ import { NodeCard } from './NodeCard';
 import { SmartTag } from './SmartTag';
 import type { GraphNode } from '@/lib/graph';
 
-type Details = { node: GraphNode; relations: { out: [string, string[]][]; inc: [string, string[]][] }; doc: { slug: string; title: string } | null };
+type Details = { node: GraphNode; relations: { out: [string, string[]][]; inc: [string, string[]][] } };
 
 export function PeekPanel() {
-  const { project, index, openId, close } = usePeek();
+  const { product, index, openId, close, hrefFor } = usePeek();
   const [d, setD] = useState<Details | null>(null);
   useEffect(() => {
     if (!openId) { setD(null); return; }
     let live = true;
-    fetch(`/api/p/${project}/node/${encodeURIComponent(openId)}`).then(r => r.ok ? r.json() : null).then(j => { if (live) setD(j); });
+    fetch(`/api/${product}/node/${encodeURIComponent(openId)}`).then(r => r.ok ? r.json() : null).then(j => { if (live) setD(j); });
     return () => { live = false; };
-  }, [openId, project]);
+  }, [openId, product]);
   if (!openId) return null;
   const entry = index[openId];
+  const def = hrefFor(openId);
   return (
     <aside className="peek" role="dialog" aria-label={openId}>
       <div className="peek-bar">
-        {d?.doc ? <Link href={`/p/${project}/d/${d.doc.slug}#n-${encodeURIComponent(openId)}`} onClick={close}>Go to definition · {d.doc.title}</Link> : <span className="muted">{entry?.defined ? '…' : 'referenced only, no definition'}</span>}
-        <Link href={`/p/${project}/graph?focus=${encodeURIComponent(openId)}&preset=Mechanics`}>Show in graph</Link>
+        {def ? <Link href={def} onClick={close}>Go to definition</Link> : <span className="muted">{entry?.defined ? '…' : 'referenced only, no definition'}</span>}
+        <Link href={`/${product}/graph?focus=${encodeURIComponent(openId)}&preset=Mechanics`}>Show in graph</Link>
         <button onClick={close}>Close</button>
       </div>
       {d ? <NodeCard id={openId} body={d.node.body} entry={entry} /> : <p className="muted">Loading {openId}…</p>}

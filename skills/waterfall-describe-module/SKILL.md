@@ -1,12 +1,12 @@
 ---
 name: waterfall-describe-module
-description: Build the product context graph for one module — requirements, entities, state machines, ops, pages/actions, rules with sources, gates, tests, drift — as docs/context-graph/<module>.md, then build/check it with ctx and publish the phone viewer. Use when asked to "describe module X", "graph the Y feature", "add Z to the context graph", or to repeat the inventory pilot for another area.
+description: Build the product context graph for one module — requirements, entities, state machines, ops, pages/actions, rules with sources, gates, tests, drift — as data/products/<product>/projects/<project>/docs/<module>.md, then build/check it with ctx and publish the phone viewer. Use when asked to "describe module X", "graph the Y feature", "add Z to the context graph", or to repeat the inventory pilot for another area.
 ---
 
 # Describe a module as a context graph
 
-You are producing `docs/context-graph/<module>.md`: a code-free, graph-shaped description of one module that a
-script can parse (`ctx build`) and lint (`ctx check`). The inventory pilot (`docs/context-graph/inventory.md`) is the
+You are producing `data/products/<product>/projects/<project>/docs/<module>.md`: a code-free, graph-shaped description of one module that a
+script can parse (`ctx build`) and lint (`ctx check`). The inventory pilot (`data/products/waterfall/projects/v2/docs/inventory.md`) is the
 reference example. The schema is `~/Projects/waterfall/schema/kinds.yaml`; the skeleton is `~/Projects/waterfall/templates/module.md`.
 
 Rules that are not negotiable:

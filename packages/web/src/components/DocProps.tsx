@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 const STATUSES = ['proposed', 'partial', 'shipped', 'deprecated'];
 
 // The document header: title and properties, always editable; a field saves when it loses focus.
-export function DocProps({ project, slug, file, fm }: { project: string; slug: string; file: string; fm: Record<string, string> }) {
+export function DocProps({ product, project, slug, file, fm }: { product: string; project: string; slug: string; file: string; fm: Record<string, string> }) {
   const router = useRouter();
   const [vals, setVals] = useState<Record<string, string>>(fm);
   const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -13,7 +13,7 @@ export function DocProps({ project, slug, file, fm }: { project: string; slug: s
   async function commit(key: string) {
     if ((vals[key] ?? '') === (fm[key] ?? '')) return;
     setState('saving');
-    const r = await fetch(`/api/p/${project}/doc/${slug}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'frontmatter', patch: { [key]: vals[key] ?? '' } }) });
+    const r = await fetch(`/api/${product}/${project}/doc/${slug}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'frontmatter', patch: { [key]: vals[key] ?? '' } }) });
     setState(r.ok ? 'saved' : 'error'); router.refresh();
   }
   const field = (key: string, cls = '') => <input className={`prop-in ${cls}`} value={vals[key] ?? ''} placeholder={key === 'icon' ? '📄' : key} onChange={e => setVals(v => ({ ...v, [key]: e.target.value }))} onBlur={() => commit(key)} onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />;

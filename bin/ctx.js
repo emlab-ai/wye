@@ -20,14 +20,19 @@ const argv = process.argv.slice(2);
 const cmd = argv[0];
 const opt = (name, def) => { const i = argv.indexOf('--' + name); if (i === -1) return def; const v = argv[i + 1]; return v === undefined || v.startsWith('--') ? true : v; };
 const positional = argv.slice(1).filter((a, i, arr) => !a.startsWith('-') && !(arr[i - 1] && arr[i - 1].startsWith('--') && !['--strict', '--structural', '--json'].includes(arr[i - 1])));
-const ROOT = opt('root', process.env.CTX_ROOT || 'docs/context-graph');
+const ROOT = opt('root', process.env.CTX_ROOT || (require('fs').existsSync('data/products/waterfall') ? 'data/products/waterfall' : 'docs/context-graph'));
 const BUILD = path.join(ROOT, '_build');
 const graphFile = opt('graph', path.join(BUILD, 'graph.json'));
 
+// Every .md under the root (a product folder: projects/*/docs/*.md, or a flat docs folder), skipping _build and
+// files or folders that start with "_" (product and project metadata, generated output).
 function findDocs(files) {
     if (files.length) return files.map(f => path.resolve(f));
     if (!fs.existsSync(ROOT)) die(`no ${ROOT}; pass files explicitly or --root`);
-    return fs.readdirSync(ROOT).filter(f => f.endsWith('.md') && !f.startsWith('_')).map(f => path.join(process.cwd(), ROOT, f));
+    const out = [];
+    const walk = dir => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { if (e.name.startsWith('_') || e.name === 'node_modules' || e.name === 'inbox') continue; const p = path.join(dir, e.name); if (e.isDirectory()) walk(p); else if (e.name.endsWith('.md')) out.push(path.resolve(p)); } };
+    walk(ROOT);
+    return out.sort();
 }
 function die(msg) { console.error('ctx: ' + msg); process.exit(2); }
 function load() { if (!fs.existsSync(graphFile)) die(`no ${graphFile} — run \`ctx build\` first`); return Graph.load(graphFile); }

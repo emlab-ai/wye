@@ -133,3 +133,17 @@ export function nodeIndex(g: GraphData): Record<string, IndexEntry> {
   for (const n of g.nodes) { if (n.kind === 'field') continue; out[n.id] = { id: n.id, kind: n.kind, title: n.title, status: n.status, defined: n.defined, file: n.file }; }
   return out;
 }
+
+// Where a graph file lives in the product layout: projects/<project>/docs/<doc>.md → { project, doc }.
+export function docRoute(file: string): { project: string; doc: string } | null {
+  const m = file.match(/\/projects\/([^/]+)\/docs\/([^/]+)\.md$/);
+  return m ? { project: m[1], doc: m[2] } : null;
+}
+// The document tree of one project: only modules whose file is under that project's docs folder.
+export function projectTree(g: GraphData, project: string) {
+  const all = documentTree(g);
+  const inProject = (d: DocNode) => docRoute(d.file)?.project === project;
+  const roots = all.roots.filter(inProject);
+  const main = roots.length ? [...roots].sort((a, b) => b.children.length - a.children.length || a.title.localeCompare(b.title))[0] : null;
+  return { roots, main, byFile: all.byFile };
+}
