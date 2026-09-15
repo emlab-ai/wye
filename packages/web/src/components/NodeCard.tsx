@@ -22,7 +22,7 @@ export function NodeCard({ id, body, entry, showYaml = false }: { id: string; bo
   const kind = id.split(':')[0];
   // Without an explicit title the parser derives one from the statement/description; the card shows that text
   // as a paragraph already, so the heading falls back to the id.
-  const title = get('title') || id;
+  const title = get('title') || (entry?.title && entry.title !== id ? entry.title : id);
   const status = get('status')?.split(/\s+#/)[0].trim() || entry?.status || '';
   const sentence = ['when', 'then', 'unless'].filter(k => get(k)).map(k => `${SENTENCE[k]} ${get(k)}`).join(', ');
   const paras = rows.filter(r => PARAGRAPH.has(r.key));
@@ -30,7 +30,7 @@ export function NodeCard({ id, body, entry, showYaml = false }: { id: string; bo
   return (
     <article className="card" id={`n-${id}`}>
       <header><KindPill kind={kind} /><StatusPill status={status} />{entry && <StubPill defined={entry.defined} />}<code className="cid">{id}</code></header>
-      <h4>{title}</h4>
+      {!paras.some(r => r.value.startsWith(title.replace(/\s*[(:—-]*\s*$/, ''))) && <h4>{title}</h4>}
       {sentence && <p className="sentence"><Linkified text={sentence + (/[.!?]$/.test(sentence) ? '' : '.')} /></p>}
       {paras.map(r => <p key={r.key} className="para"><span className="pk">{r.key}</span> <Linkified text={r.value} /></p>)}
       {props.length > 0 && <dl className="strip">{props.map(r => <div key={r.key}><dt>{r.key}</dt><dd><PropValue value={r.value} /></dd></div>)}</dl>}

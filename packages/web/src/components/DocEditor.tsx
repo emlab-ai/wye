@@ -55,7 +55,8 @@ const NodeBlock = createReactBlockSpec(
             {(p.check || p.kind === 'task') && (
               <input type="checkbox" className="nblock-check" checked={p.check === 'done' || p.status === 'done'} onChange={e => set({ check: e.target.checked ? 'done' : 'todo', status: e.target.checked ? 'done' : 'open' })} title="done?" />
             )}
-            <span className="pill k" style={{ background: `var(--k-${p.kind}, var(--k-other))` }}>{p.kind}</span>
+            <button type="button" className="pill k nblock-peek" style={{ background: `var(--k-${p.kind}, var(--k-other))` }} title="Show everything connected to this node"
+                    onClick={() => window.dispatchEvent(new CustomEvent('wf:peek', { detail: `${p.kind}:${p.slug}` }))}>{p.kind}</button>
             <input className="nblock-slug" value={p.slug} spellCheck={false} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />
             <select className="status-sel" value={p.status} onChange={e => set({ status: e.target.value })}>{STATUSES.map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
             {p.form === 'yaml' && <button className="mini" onClick={() => setShowYaml(v => !v)}>{showYaml ? 'hide yaml' : 'yaml'}</button>}
@@ -117,6 +118,8 @@ function LinkNodePicker({ req, onClose, apply, createDoc }: { req: LinkRequest; 
 export default function DocEditor({ product, project, slug, body, ifMatch, fallback }: { product: string; project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode }) {
   const router = useRouter();
   const { open: openPeek, index, hrefFor } = usePeek();
+  // node blocks render inside the editor, so they ask for the peek panel through a window event
+  useEffect(() => { const h = (e: Event) => openPeek((e as CustomEvent<string>).detail); window.addEventListener('wf:peek', h); return () => window.removeEventListener('wf:peek', h); }, [openPeek]);
   const editor = useCreateBlockNote({ schema });
   if (typeof window !== 'undefined') { const w = window as unknown as { __wf: unknown; __wfExport: () => string }; w.__wf = editor; w.__wfExport = () => blocksToMarkdown(editor.document as unknown as AnyBlock[]); } // dev inspection
   void index;
