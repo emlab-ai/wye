@@ -103,6 +103,8 @@ export function blocksToMarkdown(blocks: AnyBlock[]): string {
       case 'codeBlock': { blank(); const lang = String((b.props as { language?: string })?.language ?? ''); push('```' + (lang === 'text' ? '' : lang)); push(...plainText(b.content as Inline[]).split('\n')); push('```'); blank(); break; }
       case 'quote': { blank(); push(...inlineToMarkdown(b.content as Inline[]).split('\n').map(l => '> ' + l)); blank(); break; }
       case 'divider': { blank(); push('---'); blank(); break; }
+      case 'drawing': { const dp = b.props as { src?: string; title?: string }; blank(); push(`![${dp.title ?? ''}](${dp.src ?? ''})`); blank(); break; }
+      case 'image': case 'video': case 'audio': case 'file': { const fp = b.props as { url?: string; caption?: string; name?: string }; if (fp.url) { blank(); push(`![${fp.caption || fp.name || ''}](${fp.url})`); blank(); } break; }
       default: { const t = inlineToMarkdown(b.content as Inline[]); if (t.trim()) { blank(); push(t); blank(); } }
     }
   }

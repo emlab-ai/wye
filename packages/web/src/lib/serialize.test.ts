@@ -31,6 +31,9 @@ describe('nodeToMarkdown', () => {
 });
 
 describe('blocksToMarkdown', () => {
+  it('writes drawings and images as image links', () => {
+    expect(blocksToMarkdown([{ type: 'drawing', props: { src: 'drawings/a.excalidraw', title: 'A' } }, { type: 'image', props: { url: 'pic.png', caption: 'Pic' } }])).toBe('![A](drawings/a.excalidraw)\n\n![Pic](pic.png)\n');
+  });
   it('numbers numbered items and numbered nodes in sequence', () => {
     const rule = (slug: string) => ({ type: 'node', props: { kind: 'rule', slug, status: '', form: 'prose', textKey: 'text', body: '', extra: '', check: '', list: 'number' }, content: [t('R ' + slug)] });
     const md = blocksToMarkdown([

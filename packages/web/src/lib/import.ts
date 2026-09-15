@@ -9,19 +9,24 @@ import type { AnyBlock, NodeProps } from './serialize';
 const TEXT_KEYS = ['title', 'statement', 'description', 'purpose', 'q', 'text', 'context', 'does', 'intent'];
 const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|non-goal|partial|active|draft|complete)\b/;
 
-export interface Prepared { md: string; yaml: { id: string; body: string }[][] }
+export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[] }
+
+// A drawing is referenced like an image whose file is an Excalidraw scene: ![Title](drawings/name.excalidraw)
+export const DRAWING_LINE = /^!\[([^\]]*)\]\((\S+\.excalidraw)\)\s*$/;
 
 // Replace yaml blocks with %%YAML:n%% paragraphs and --- rules with %%DIVIDER%% paragraphs; unwrap prose.
 export function prepare(body: string): Prepared {
   const split = splitDocument(body); // the body has no frontmatter; only its segments matter
   const yaml: { id: string; body: string }[][] = [];
+  const drawings: { title: string; src: string }[] = [];
   const parts: string[] = [];
+  const liftDrawings = (text: string) => text.split('\n').map(l => { const m = l.match(DRAWING_LINE); if (!m) return l; drawings.push({ title: m[1], src: m[2] }); return `\n%%DRAWING:${drawings.length - 1}%%\n`; }).join('\n');
   for (const s of split.segments) {
     if (s.type === 'yaml') { yaml.push(s.chunks.map(c => ({ id: c.id ?? '', body: c.body }))); parts.push(`%%YAML:${yaml.length - 1}%%`); }
     else if (s.type === 'hr') parts.push('%%DIVIDER%%');
-    else parts.push(protectCode(escapeAngles(liftLinks(unwrapParagraphs(s.text)))));
+    else parts.push(protectCode(escapeAngles(liftLinks(unwrapParagraphs(liftDrawings(s.text))))));
   }
-  return { md: parts.join('\n\n'), yaml };
+  return { md: parts.join('\n\n'), yaml, drawings };
 }
 
 // Split markdown into alternating [text, code, text, code, …] regions: fenced blocks, indented (4-space) blocks
@@ -110,11 +115,13 @@ function topLevel(body: string): Map<string, string> {
 const text = (s: string): InlineText => ({ type: 'text', text: s, styles: {} });
 
 // Expand markers and id-first paragraphs into node/divider blocks, then tag ids everywhere.
-export function expand(blocks: AnyBlock[], yaml: Prepared['yaml']): AnyBlock[] {
+export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Prepared['drawings'] = []): AnyBlock[] {
   const out: AnyBlock[] = [];
   for (const b of blocks) {
     const first = firstText(b);
     if ((b.type === 'paragraph') && /^%%DIVIDER%%$/.test(first.trim())) { out.push({ type: 'divider' }); continue; }
+    const dm = first.trim().match(/^%%DRAWING:(\d+)%%$/);
+    if (b.type === 'paragraph' && dm && drawings[Number(dm[1])]) { const dr = drawings[Number(dm[1])]; out.push({ type: 'drawing', props: { src: dr.src, title: dr.title } }); continue; }
     const ym = first.trim().match(/^%%YAML:(\d+)%%$/);
     if (b.type === 'paragraph' && ym) {
       for (const chunk of yaml[Number(ym[1])] ?? []) {
@@ -124,9 +131,9 @@ export function expand(blocks: AnyBlock[], yaml: Prepared['yaml']): AnyBlock[] {
       }
       continue;
     }
-    const pn = proseNode(b, yaml);
+    const pn = proseNode(b, yaml, drawings);
     if (pn) { out.push(withLinks(pn)); continue; }
-    out.push(withLinks(b.children?.length ? { ...b, children: expand(b.children, yaml) } : b));
+    out.push(withLinks(b.children?.length ? { ...b, children: expand(b.children, yaml, drawings) } : b));
   }
   return (tagifyBlocks(out as never[]) as AnyBlock[]).map(unescapeBlock);
 }
@@ -157,7 +164,7 @@ function firstText(b: AnyBlock): string {
 }
 
 // A paragraph or list item whose content starts with "kind:slug " becomes a prose node block.
-function proseNode(b: AnyBlock, yaml: Prepared['yaml']): AnyBlock | null {
+function proseNode(b: AnyBlock, yaml: Prepared['yaml'], drawings: Prepared['drawings'] = []): AnyBlock | null {
   if (!['paragraph', 'bulletListItem', 'numberedListItem', 'checkListItem'].includes(b.type) || !Array.isArray(b.content)) return null;
   const items = b.content as Inline[];
   const head = items[0];
@@ -180,5 +187,5 @@ function proseNode(b: AnyBlock, yaml: Prepared['yaml']): AnyBlock | null {
   const list: NodeProps['list'] = check ? '' : b.type === 'bulletListItem' ? 'bullet' : b.type === 'numberedListItem' ? 'number' : '';
   const props: NodeProps = { kind, slug: rest.join(':'), status, form: 'prose', textKey: 'text', body: '', extra, check, list };
   // nested list items under the node (details, sub-tasks) stay its children; nested ids become nodes too
-  return { type: 'node', props: props as unknown as Record<string, unknown>, content: restItems, children: b.children?.length ? expand(b.children, yaml) : b.children };
+  return { type: 'node', props: props as unknown as Record<string, unknown>, content: restItems, children: b.children?.length ? expand(b.children, yaml, drawings) : b.children };
 }

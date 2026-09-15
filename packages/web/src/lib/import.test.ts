@@ -105,6 +105,14 @@ describe('expand', () => {
     expect(blocks[0].children?.[1].props).toMatchObject({ kind: 'task', slug: 'b', check: 'done' });
     expect(blocksToMarkdown(blocks)).toBe('- [ ] task:a Build it\n  - a detail about entity:order\n  - [x] task:b Sub task\n');
   });
+  it('lifts drawing links into markers and expands them into drawing blocks', () => {
+    const p = prepare('Intro.\n\n![Sync flow](drawings/sync-flow.excalidraw)\n\nAfter.\n');
+    expect(p.drawings).toEqual([{ title: 'Sync flow', src: 'drawings/sync-flow.excalidraw' }]);
+    expect(p.md).toContain('%%DRAWING:0%%');
+    const blocks = expand(p.md.split(/\n\n+/).filter(Boolean).map(x => ({ type: 'paragraph', content: [t(x.trim())] })), p.yaml, p.drawings);
+    expect(blocks[1]).toEqual({ type: 'drawing', props: { src: 'drawings/sync-flow.excalidraw', title: 'Sync flow' } });
+    expect(blocksToMarkdown(blocks)).toBe('Intro.\n\n![Sync flow](drawings/sync-flow.excalidraw)\n\nAfter.\n');
+  });
   it('round-trips through the serializer', () => {
     const src = 'req:sale.close When done, entity:order is Closed. #proposed (owner: alex)\n\n---\n\n```yaml\n- id: rule:x\n  statement: S\n  source: f.ts\n```\n';
     const p = prepare(src);

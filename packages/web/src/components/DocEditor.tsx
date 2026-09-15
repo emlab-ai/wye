@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useRef, useState, type FocusEvent as ReactFocusEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, filterSuggestionItems, insertOrUpdateBlockForSlashMenu } from '@blocknote/core';
-import { useCreateBlockNote, createReactInlineContentSpec, createReactBlockSpec, FormattingToolbar, FormattingToolbarController, getFormattingToolbarItems, SuggestionMenuController, getDefaultReactSlashMenuItems, useBlockNoteEditor, useComponentsContext } from '@blocknote/react';
+import { useCreateBlockNote, createReactInlineContentSpec, createReactBlockSpec, FormattingToolbar, FormattingToolbarController, getFormattingToolbarItems, SuggestionMenuController, getDefaultReactSlashMenuItems, useBlockNoteEditor, useComponentsContext, SideMenuController, SideMenu, DragHandleMenu, RemoveBlockItem, BlockColorsItem, useExtensionState } from '@blocknote/react';
+import { SideMenuExtension } from '@blocknote/core/extensions';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
 import { prepare, expand } from '@/lib/import';
@@ -11,6 +12,7 @@ import { CARD_KINDS } from '@/lib/kinds';
 import { parseBody } from '@/lib/graph';
 import { Linkified } from './IdLink';
 import { SmartTag } from './SmartTag';
+import { DrawingBlock, newDrawingSlug, sceneFromText } from './DrawingBlock';
 import { usePeek } from './PeekProvider';
 import { ID_RE } from '@/lib/ids';
 
@@ -80,7 +82,16 @@ const NodeBlock = createReactBlockSpec(
   },
 );
 
-const schema = BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, node: NodeBlock() }, inlineContentSpecs: { ...defaultInlineContentSpecs, tag: Tag } });
+const schema = BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, node: NodeBlock(), drawing: DrawingBlock() }, inlineContentSpecs: { ...defaultInlineContentSpecs, tag: Tag } });
+
+// Drag-handle menu entry on code blocks: turn an ASCII diagram into an editable drawing.
+function ToDrawingItem({ convert }: { convert: (b: AnyBlock) => void }) {
+  const Components = useComponentsContext()!;
+  const editor = useBlockNoteEditor();
+  const block = useExtensionState(SideMenuExtension, { editor, selector: st => st?.block });
+  if (!block || (block as { type: string }).type !== 'codeBlock') return null;
+  return <Components.Generic.Menu.Item className="bn-menu-item" onClick={() => convert(block as unknown as AnyBlock)}>Turn into drawing</Components.Generic.Menu.Item>;
+}
 
 // "Link to node": link the selected text to any node, searched by id or title. The selection range is captured
 // when the picker opens (typing in the picker collapses the editor selection) and restored when the link is applied.
@@ -138,9 +149,9 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const load = (md: string) => {
     loading.current = true;
     try {
-      const { md: prepared, yaml } = prepare(md);
+      const { md: prepared, yaml, drawings } = prepare(md);
       const parsed = editor.tryParseMarkdownToBlocks(prepared) as unknown as AnyBlock[];
-      const blocks = expand(parsed, yaml);
+      const blocks = expand(parsed, yaml, drawings);
       editor.replaceBlocks(editor.document, blocks as never);
       lastExported.current = blocksToMarkdown(editor.document as unknown as AnyBlock[]);
       const shrink = lastExported.current.replace(/\s+/g, '').length / Math.max(1, md.replace(/\s+/g, '').length);
@@ -222,9 +233,25 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'node', props: { kind, slug: `new-${Math.floor(Math.random() * 900 + 100)}`, form: 'prose', textKey: 'text', check: kind === 'task' ? 'todo' : '', status: kind === 'task' ? 'open' : '' } } as never); },
   }));
 
+  // Drawings: a new empty scene, or the current code block turned into a monospace text element (ASCII diagrams).
+  const codeToDrawing = async (cur: AnyBlock) => {
+    if (cur.type !== 'codeBlock') { setLintMsg('put the cursor in a code block first'); return; }
+    const text = ((cur.content ?? []) as { type: string; text?: string }[]).map(i => i.text ?? '').join('');
+    const slug = newDrawingSlug();
+    const ok = await sceneFromText(product, project, slug, text);
+    if (!ok) { setLintMsg('could not create the drawing'); return; }
+    editor.replaceBlocks([cur as never], [{ type: 'drawing', props: { src: `drawings/${slug}.excalidraw`, title: 'Diagram' } } as never]);
+    touched.current = true; changed();
+  };
+  if (typeof window !== 'undefined') (window as unknown as { __wfCodeToDrawing: (id: string) => void }).__wfCodeToDrawing = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock | undefined; if (b) codeToDrawing(b); }; // dev inspection
+  const drawingItems = [
+    { title: 'Drawing', group: 'Waterfall', subtext: 'an Excalidraw sketch saved next to the document', onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'drawing', props: { src: `drawings/${newDrawingSlug()}.excalidraw`, title: 'Drawing' } } as never); touched.current = true; changed(); } },
+    { title: 'Code block → drawing', group: 'Waterfall', subtext: 'turn this ASCII diagram into an editable drawing', onItemClick: () => codeToDrawing(editor.getTextCursorPosition().block as unknown as AnyBlock) },
+  ];
+
   if (loadError) return <div className="doc-editor"><p className="notice">Editing is off for this document: {loadError}. The text below is read-only.</p>{fallback}</div>;
   return (
-    <div className="doc-editor" onBlur={retag} onFocus={() => { touched.current = true; }}
+    <div className="doc-editor" data-product={product} data-project={project} onBlur={retag} onFocus={() => { touched.current = true; }}
       onClick={e => { // a link whose target is a node id opens the peek panel instead of navigating
         const a = (e.target as HTMLElement).closest('a[href]') as HTMLAnchorElement | null;
         const href = a?.getAttribute('href') ?? '';
@@ -235,9 +262,10 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
         }
       }}>
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}</div>
-      <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false}>
+      <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false}>
+        <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /></DragHandleMenu>} />} />
         <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /></FormattingToolbar>} />
-        <SuggestionMenuController triggerCharacter="/" getItems={async q => filterSuggestionItems([...getDefaultReactSlashMenuItems(editor), ...nodeItems], q)} />
+        <SuggestionMenuController triggerCharacter="/" getItems={async q => filterSuggestionItems([...getDefaultReactSlashMenuItems(editor), ...nodeItems, ...drawingItems], q)} />
         <SuggestionMenuController triggerCharacter="@" minQueryLength={1} getItems={async q => mentionItems(q)} />
       </BlockNoteView>
       {linkReq && <LinkNodePicker req={linkReq} onClose={() => setLinkReq(null)} apply={applyLink} createDoc={createDoc} />}

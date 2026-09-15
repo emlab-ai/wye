@@ -155,6 +155,11 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .doc-editor-bar { display: flex; gap: 12px; align-items: center; padding: 0 14px 4px; min-height: 18px; }
 .doc-editor .bn-container { --bn-colors-editor-background: transparent; }
 .doc-editor .bn-editor { padding-inline: 14px; }
+.doc-editor .bn-block-content[data-content-type="codeBlock"] pre, .doc-editor .bn-block-content[data-content-type="codeBlock"] code { white-space: pre !important; overflow-x: auto; }
+.drawing { margin: 6px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.drawing-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--line); font: 12px var(--font-m); color: var(--muted); } .drawing-head input { flex: 1; background: none; border: 0; color: var(--ink); font: 500 13px var(--font-s, inherit); outline: none; } .drawing-head button { background: none; border: 1px solid var(--line-2); border-radius: 6px; padding: 2px 8px; color: var(--ink-2); cursor: pointer; font: 11px var(--font-m); }
+.drawing-preview { display: block; cursor: pointer; min-height: 80px; padding: 8px; text-align: center; background: #fff; } .drawing-preview img { max-width: 100%; height: auto; } .drawing-preview.empty { color: var(--muted); font-size: 13px; padding: 28px; }
+.drawing-modal { position: fixed; inset: 0; z-index: 60; background: var(--ground); display: flex; flex-direction: column; } .drawing-modal-bar { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--line); font-size: 13px; } .drawing-modal-bar .pri { margin-left: auto; } .drawing-modal-canvas { flex: 1; min-height: 0; }
 .nblock { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 8px 12px 10px; margin: 4px 0; width: 100%; }
 .nblock-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
 .nblock-slug { font: 500 12px var(--font-m); color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 5px; padding: 1px 5px; min-width: 120px; width: 26ch; }
