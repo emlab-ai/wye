@@ -94,3 +94,13 @@ export function lint(productDir: string): Promise<{ code: number; output: string
     child.on('close', code => resolve({ code: code ?? 1, output }));
   });
 }
+
+// Serialise read-modify-write cycles on one file so two quick edits (status, then owner) cannot lose each other.
+const locks = new Map<string, Promise<unknown>>();
+export function withFileLock<T>(file: string, fn: () => Promise<T>): Promise<T> {
+  const prev = locks.get(file) ?? Promise.resolve();
+  const run = prev.catch(() => undefined).then(fn);
+  locks.set(file, run);
+  run.finally(() => { if (locks.get(file) === run) locks.delete(file); });
+  return run;
+}

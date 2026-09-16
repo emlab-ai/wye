@@ -1,4 +1,4 @@
-export interface GraphNode { id: string; kind: string; title: string; status: string; section: string; subsection: string; body: string; defined: boolean; file: string; line: number; owner?: string }
+export interface GraphNode { id: string; kind: string; title: string; status: string; section: string; subsection: string; body: string; defined: boolean; file: string; line: number; owner?: string; form?: 'prose' | 'yaml' }
 export interface GraphEdge { from: string; to: string; verb: string }
 export interface GraphModule { id: string; title: string; file: string; verified: string; sourceRoots: string[] }
 export interface GraphData { generatedAt: string; modules: GraphModule[]; files: string[]; nodes: GraphNode[]; edges: GraphEdge[]; fieldIndex: Record<string, string> }

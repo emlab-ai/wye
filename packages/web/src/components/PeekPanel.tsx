@@ -12,6 +12,7 @@ import { SmartTag } from './SmartTag';
 import { StatusPill } from './Pills';
 import { KIND_ORDER } from '@/lib/knowledge';
 import { ProgressBar } from './Progress';
+import { TrackEditor } from './TrackEditor';
 import type { GraphNode } from '@/lib/graph';
 import type { IndexEntry } from '@/lib/doc';
 
@@ -26,12 +27,13 @@ export function PeekPanel() {
   const [d, setD] = useState<Details | null>(null);
   const [view, setView] = useState<'list' | 'graph'>('list');
   const [depth, setDepth] = useState<1 | 2>(1);
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     if (!openId) { setD(null); return; }
     let live = true;
     fetch(`/api/${product}/node/${encodeURIComponent(openId)}?depth=${depth}`).then(r => r.ok ? r.json() : null).then(j => { if (live) setD(j); });
     return () => { live = false; };
-  }, [openId, product, depth]);
+  }, [openId, product, depth, tick]);
   if (!openId && !showContext && !stack.length) return null;
   const chips = (
     <div className="peek-nav">
@@ -77,8 +79,9 @@ export function PeekPanel() {
         <Link href={`/${product}/graph?focus=${encodeURIComponent(openId)}&preset=Mechanics`}>Show in graph</Link>
         <button className="linkish" onClick={() => requestSend({ refs: [openId], text: d ? nodeText(d.node.body) : entry?.title })}>Send to agent</button>
       </div>
-      {d ? <NodeCard id={openId} body={d.node.body} entry={entry} /> : <p className="muted">Loading {openId}…</p>}
-      {d && (entry?.kind === 'goal' || entry?.kind === 'task') && <Tracking entry={entry} index={index} inc={d.relations.inc} />}
+      {d && (entry?.kind === 'goal' || entry?.kind === 'task')
+        ? <><TrackEditor key={entry.id} entry={entry} index={index} text={nodeText(d.node.body)} form={d.node.form} onSaved={() => setTick(t => t + 1)} /><Tracking entry={entry} index={index} inc={d.relations.inc} /></>
+        : d ? <NodeCard id={openId} body={d.node.body} entry={entry} /> : <p className="muted">Loading {openId}…</p>}
       {d && (
         <div className="peek-views">
           <h4>Connected <span className="muted">{d.graph.nodes.length - 1}</span></h4>
@@ -128,12 +131,6 @@ function Tracking({ entry, index, inc }: { entry: IndexEntry; index: Record<stri
   const done = (p: IndexEntry) => ['done', 'complete', 'shipped'].includes(p.status) || (p.progress ?? 0) >= 100;
   return (
     <section className="tracking">
-      <div className="tracking-grid">
-        <div><small>status</small><StatusPill status={entry.status} /></div>
-        <div><small>{entry.kind === 'goal' ? 'target' : 'due'}</small><span>{entry.target ?? '—'}</span></div>
-        <div><small>owner</small><span>{entry.owner ?? '—'}</span></div>
-        <div className="tracking-prog"><small>progress</small><span><ProgressBar value={entry.progress} width={120} /> {entry.progress !== undefined ? `${entry.progress}%` : '—'}</span>{entry.parts && <em className="muted">{entry.parts.done} of {entry.parts.total} parts done</em>}</div>
-      </div>
       {entry.kind === 'goal' && (['goal', 'task', 'req'] as const).map(k => {
         const items = byKind(k); if (!items.length) return null;
         const label = k === 'goal' ? 'Sub-goals' : k === 'task' ? 'Tasks' : 'Requirements';
@@ -144,7 +141,7 @@ function Tracking({ entry, index, inc }: { entry: IndexEntry; index: Record<stri
           </div>
         );
       })}
-      {entry.kind === 'task' && entry.parent && <p className="tracking-parent"><small>part of</small> <SmartTag id={entry.parent} /></p>}
+
     </section>
   );
 }

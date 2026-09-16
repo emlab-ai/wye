@@ -18,6 +18,7 @@ export function TrackList({ product, kind, rows }: { product: string; kind: 'goa
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<string>('');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [groupBy, setGroupBy] = useState<'none' | 'doc' | 'goal' | 'status' | 'owner'>('none');
   const statuses = kind === 'goal' ? GOAL_STATUSES : TASK_STATUSES;
   const n = q.trim().toLowerCase();
   const matches = (r: TrackRow): boolean => (!n || r.id.toLowerCase().includes(n) || plain(r.title).toLowerCase().includes(n) || (r.owner ?? '').toLowerCase().includes(n)) && (!status || r.status === status || (status === 'off-track-or-blocked' && ['off-track', 'blocked', 'at-risk'].includes(r.status)));
@@ -29,6 +30,15 @@ export function TrackList({ product, kind, rows }: { product: string; kind: 'goa
   const counts = useMemo(() => { const c: Record<string, number> = {}; const walk = (r: TrackRow) => { c[r.status || '—'] = (c[r.status || '—'] ?? 0) + 1; r.children.forEach(walk); }; rows.forEach(walk); return c; }, [rows]);
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const toggle = (id: string) => setCollapsed(s => { const x = new Set(s); if (x.has(id)) x.delete(id); else x.add(id); return x; });
+  // Grouping flattens the tree and buckets rows by document, goal, status or owner.
+  const groups = useMemo(() => {
+    if (groupBy === 'none') return null;
+    const flat: TrackRow[] = []; const walk = (r: TrackRow) => { flat.push({ ...r, children: [] }); r.children.forEach(walk); }; visible.forEach(walk);
+    const keyOf = (r: TrackRow) => groupBy === 'doc' ? (docRoute(r.file) ? `${docRoute(r.file)!.project} / ${docRoute(r.file)!.doc}` : r.file || '—') : groupBy === 'goal' ? (r.parent ?? '— no goal') : groupBy === 'status' ? (r.status || '— none') : (r.owner ?? '— unassigned');
+    const m = new Map<string, TrackRow[]>();
+    for (const r of flat) { const k = keyOf(r); if (!m.has(k)) m.set(k, []); m.get(k)!.push(r); }
+    return [...m].sort((a, b) => a[0].startsWith('—') ? 1 : b[0].startsWith('—') ? -1 : a[0].localeCompare(b[0]));
+  }, [visible, groupBy]);
   const Row = ({ r, depth }: { r: TrackRow; depth: number }) => {
     const route = docRoute(r.file);
     return (
@@ -57,6 +67,10 @@ export function TrackList({ product, kind, rows }: { product: string; kind: 'goa
       <div className="track-tools">
         <input type="search" placeholder={`Search ${kind}s…`} value={q} onChange={e => setQ(e.target.value)} />
         <div className="chips">
+          <span className="chips-label">group by</span>
+          {(['none', 'doc', 'goal', 'status', 'owner'] as const).map(g => <button key={g} className={`chip ${groupBy === g ? 'on' : ''}`} onClick={() => setGroupBy(g)}>{g === 'doc' ? 'document' : g}</button>)}
+        </div>
+        <div className="chips">
           <button className={`chip ${status === '' ? 'on' : ''}`} onClick={() => setStatus('')}>All <small>{total}</small></button>
           {kind === 'goal' && <button className={`chip ${status === 'off-track-or-blocked' ? 'on' : ''}`} onClick={() => setStatus('off-track-or-blocked')}>Needs attention <small>{(counts['at-risk'] ?? 0) + (counts['off-track'] ?? 0)}</small></button>}
           {statuses.filter(st => counts[st]).map(st => <button key={st} className={`chip s-${st} ${status === st ? 'on' : ''}`} onClick={() => setStatus(status === st ? '' : st)}>{st} <small>{counts[st]}</small></button>)}
@@ -65,7 +79,13 @@ export function TrackList({ product, kind, rows }: { product: string; kind: 'goa
       </div>
       <div className="ttable" role="table">
         <div className="trow thead" role="row"><div className="tcell tname">Name</div><div className="tcell">Status</div><div className="tcell tdate">{kind === 'goal' ? 'Target' : 'Due'}</div><div className="tcell tprog">{kind === 'goal' ? 'Progress' : 'Goal'}</div><div className="tcell towner">Owner</div><div className="tcell tdoc">Document</div></div>
-        {visible.map(r => <Row key={r.id} r={r} depth={0} />)}
+        {groups
+          ? groups.map(([label, rs]) => (
+            <div key={label} className="tgroup">
+              <div className="tgroup-head" onClick={() => toggle('g:' + label)}><span className="tchev">{collapsed.has('g:' + label) ? '▸' : '▾'}</span>{groupBy === 'goal' && !label.startsWith('—') ? <><span className="ttitle">{plain(goalTitle(label))}</span><code className="tid">{label.replace(/^goal:/, '')}</code></> : <span className="ttitle">{label}</span>}<small className="muted">{rs.length}</small></div>
+              {!collapsed.has('g:' + label) && rs.map(r => <Row key={r.id} r={r} depth={0} />)}
+            </div>))
+          : visible.map(r => <Row key={r.id} r={r} depth={0} />)}
         {!visible.length && <p className="muted" style={{ padding: 16 }}>No {kind}s match.</p>}
       </div>
     </div>
