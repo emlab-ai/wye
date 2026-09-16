@@ -87,9 +87,13 @@ const g: GraphData = {
 describe('documentTree', () => {
   it('builds roots from module has-edges and picks the main root', () => {
     const t = documentTree(g);
-    expect(t.roots.map(r => r.slug)).toEqual(['project', 'old']);
-    expect(t.roots[0].children.map(c => c.slug)).toEqual(['prd']);
+    // siblings without an order: sort by title (Old < Waterfall)
+    expect(t.roots.map(r => r.slug)).toEqual(['old', 'project']);
+    expect(t.roots[1].children.map(c => c.slug)).toEqual(['prd']);
     expect(t.main?.slug).toBe('project');
+    // an explicit order wins over the title
+    const g2 = { ...g, nodes: g.nodes.map(n => n.id === 'module:wf2' ? { ...n, body: 'order: 1\n' + n.body } : n) };
+    expect(documentTree(g2).roots.map(r => r.slug)).toEqual(['project', 'old']);
     expect(t.byFile.get('docs/context-graph/prd.md')?.title).toBe('PRD');
   });
 });
