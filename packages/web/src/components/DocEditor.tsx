@@ -16,6 +16,7 @@ import { DrawingBlock, newDrawingSlug, sceneFromText } from './DrawingBlock';
 import { usePeek } from './PeekProvider';
 import { ID_RE } from '@/lib/ids';
 import { parseExtra, withExtra, GOAL_STATUSES, TASK_STATUSES } from '@/lib/props';
+import { slugify } from '@/lib/templates';
 import { ProgressBar } from './Progress';
 import { requestSend } from './SendToAgent';
 
@@ -69,6 +70,7 @@ function RowNode({ p, set, contentRef, block }: { p: { kind: string; slug: strin
   const rowRef = useRef<HTMLDivElement>(null);
   const { index } = usePeek();
   const id = `${p.kind}:${p.slug}`; const e = index[id];
+  const empty = !p.slug && !rowText(block);
   const ex = parseExtra(p.extra);
   const statuses = p.kind === 'goal' ? GOAL_STATUSES : TASK_STATUSES;
   const done = p.check === 'done' || p.status === 'done' || p.status === 'complete';
@@ -76,11 +78,11 @@ function RowNode({ p, set, contentRef, block }: { p: { kind: string; slug: strin
   const progress = explicit ?? (done ? 100 : e?.progress);
   const setStatus = (st: string) => set(p.kind === 'task' ? { status: st, check: st === 'done' ? 'done' : 'todo' } : { status: st });
   return (
-    <div className={`nrow k-${p.kind} ${done ? 'done' : ''}`} data-id={id} ref={rowRef}>
+    <div className={`nrow k-${p.kind} ${done ? 'done' : ''} ${empty ? 'empty' : ''}`} data-id={id} ref={rowRef}>
       <div className="nrow-cell nrow-name">
         {p.kind === 'task' && <input type="checkbox" className="nblock-check" checked={done} onChange={ev => setStatus(ev.target.checked ? 'done' : 'todo')} title="done?" onMouseDown={ev => ev.stopPropagation()} />}
         <button type="button" className="nrow-open" contentEditable={false} title={id} onMouseDown={ev => ev.stopPropagation()} onClick={() => window.dispatchEvent(new CustomEvent('wf:peek', { detail: id }))}><i style={{ background: `var(--k-${p.kind}, var(--k-other))` }} /></button>
-        <div className="nrow-text" ref={contentRef} />
+        <div className="nrow-text" ref={contentRef} data-placeholder={`New ${p.kind}…`} />
         <button type="button" className="nrow-send" contentEditable={false} title="Send to agent" onMouseDown={ev => ev.stopPropagation()} onClick={() => sendBlock(block, rowRef.current)}>⇢</button>
       </div>
       <div className="nrow-cell" contentEditable={false} ref={stopEditorEvents}>
@@ -102,23 +104,49 @@ function RowNode({ p, set, contentRef, block }: { p: { kind: string; slug: strin
   );
 }
 
+// An empty row for a goals/tasks table: typing into it makes it a real item.
+const emptyRow = (kind: string) => ({ type: 'node', props: { kind, slug: '', status: kind === 'goal' ? 'proposed' : 'open', form: 'prose', textKey: 'text', body: '', extra: '', check: kind === 'task' ? 'todo' : '', list: 'bullet', row: kind }, content: [] as unknown[] });
+const rowText = (b: AnyBlock) => (Array.isArray(b.content) ? (b.content as { type: string; text?: string; props?: { id?: string } }[]).map(i => i.type === 'text' ? i.text ?? '' : i.type === 'tag' ? i.props?.id ?? '' : '').join('') : '').trim();
+
+// Every goals/tasks table ends with one empty row; a row that gained text gets its id, and a new empty row follows.
+// Returns true when blocks were changed.
+function settleCollections(editor: { document: unknown; updateBlock: (b: unknown, u: unknown) => void }, taken: Set<string>, assignSlugs: boolean): boolean {
+  let changed = false;
+  for (const b of editor.document as AnyBlock[]) {
+    if (b.type !== 'collection') continue;
+    const kind = (b.props as { kind: string }).kind;
+    const kids = [...(b.children ?? [])] as AnyBlock[];
+    // ids for rows that have text but no slug yet
+    for (const k of kids) {
+      if (k.type !== 'node') continue;
+      const p = k.props as unknown as { slug: string; kind: string };
+      const text = rowText(k);
+      if (assignSlugs && !p.slug && text) {
+        let base = slugify(text.split(/\s+/).slice(0, 4).join(' ')) || kind; let slug = base; let n = 2;
+        while (taken.has(`${kind}:${slug}`)) slug = `${base}-${n++}`;
+        taken.add(`${kind}:${slug}`);
+        k.props = { ...k.props, slug }; changed = true;
+      }
+    }
+    // exactly one empty row, at the end (empty rows elsewhere are dropped)
+    const filled = kids.filter(k => k.type !== 'node' || rowText(k) || (k.props as unknown as { slug: string }).slug === '' && k === kids[kids.length - 1]);
+    const lastEmpty = filled.length && filled[filled.length - 1].type === 'node' && !rowText(filled[filled.length - 1]);
+    const next = lastEmpty ? filled : [...filled, emptyRow(kind) as unknown as AnyBlock];
+    if (changed || next.length !== kids.length || next.some((k, i) => k !== kids[i])) { editor.updateBlock(b, { children: next }); changed = true; }
+  }
+  return changed;
+}
+
 // A goals or tasks table: the header row; the rows are the block's children (goal/task nodes in row mode).
 const CollectionBlock = createReactBlockSpec(
   { type: 'collection', propSchema: { kind: { default: 'goal' } }, content: 'none' },
   {
     render: props => {
       const kind = (props.block.props as { kind: string }).kind;
-      const add = () => {
-        const slug = `${kind}-${Math.floor(Math.random() * 9000 + 1000)}`;
-        const row = { type: 'node', props: { kind, slug, status: kind === 'goal' ? 'proposed' : 'open', form: 'prose', textKey: 'text', body: '', extra: '', check: kind === 'task' ? 'todo' : '', list: 'bullet', row: kind }, content: `New ${kind}` };
-        const kids = (props.block.children ?? []) as unknown[];
-        props.editor.updateBlock(props.block, { children: [...kids, row] } as never);
-        setTimeout(() => { const last = (props.editor.getBlock(props.block.id) as { children?: { id: string }[] } | undefined)?.children?.slice(-1)[0]; if (last) { props.editor.setTextCursorPosition(last.id, 'end'); props.editor.focus(); } }, 0);
-      };
       return (
         <div className={`collection c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
           <div className="nrow nrow-head">
-            <div className="nrow-cell nrow-name">{kind === 'goal' ? 'Goals' : 'Tasks'}<button className="collection-add" onClick={add} title={`Add a ${kind} row`}>+ add</button></div><div className="nrow-cell">Status</div><div className="nrow-cell">{kind === 'goal' ? 'Target' : 'Due'}</div><div className="nrow-cell nrow-progress">Progress</div><div className="nrow-cell">Owner</div>
+            <div className="nrow-cell nrow-name">{kind === 'goal' ? 'Goals' : 'Tasks'}</div><div className="nrow-cell">Status</div><div className="nrow-cell">{kind === 'goal' ? 'Target' : 'Due'}</div><div className="nrow-cell nrow-progress">Progress</div><div className="nrow-cell">Owner</div>
           </div>
         </div>
       );
@@ -235,10 +263,13 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
 
   // Publish the block under the cursor (its plain text and the ids it already carries) as the editing context for
   // the Context panel; the insert callback drops a tag at the current cursor position.
+  const lastBlockId = useRef<string>('');
   const publishContext = () => {
     if (loading.current) return;
     let block: AnyBlock | undefined;
     try { block = editor.getTextCursorPosition().block as unknown as AnyBlock; } catch { block = undefined; }
+    const bid = String((block as { id?: string } | undefined)?.id ?? '');
+    if (bid !== lastBlockId.current) { lastBlockId.current = bid; if (touched.current && !loading.current && settle(true)) changed(); }
     if (!block || !Array.isArray(block.content)) { setEditing(null); return; }
     const items = block.content as { type: string; text?: string; props?: { id?: string }; href?: string; content?: { text?: string }[] }[];
     const text = items.map(i => i.type === 'text' ? i.text ?? '' : i.type === 'link' ? (i.content ?? []).map(c => c.text ?? '').join('') : '').join('');
@@ -259,6 +290,8 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   // The context column is always there on a document page; it leaves with the editor.
   useEffect(() => { setShowContext(true); return () => { setEditing(null); setShowContext(false); }; }, [setEditing, setShowContext]);
 
+  // ids already used in this product (so a new row never collides)
+  const settle = (assignSlugs = false) => { const taken = new Set(Object.keys(index)); for (const b of editor.document as unknown as AnyBlock[]) for (const k of b.children ?? []) if (k.type === 'node') { const p = k.props as unknown as { kind: string; slug: string }; if (p.slug) taken.add(`${p.kind}:${p.slug}`); } return settleCollections(editor as never, taken, assignSlugs); };
   const load = (md: string) => {
     loading.current = true;
     try {
@@ -266,6 +299,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       const parsed = editor.tryParseMarkdownToBlocks(prepared) as unknown as AnyBlock[];
       const blocks = expand(parsed, yaml, drawings);
       editor.replaceBlocks(editor.document, blocks as never);
+      settle();
       lastExported.current = blocksToMarkdown(editor.document as unknown as AnyBlock[]);
       const shrink = lastExported.current.replace(/\s+/g, '').length / Math.max(1, md.replace(/\s+/g, '').length);
       if (shrink < 0.9) throw new Error(`the editor could not represent this document faithfully (${Math.round(shrink * 100)}% of the text survived import)`);
@@ -293,8 +327,11 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     setLintMsg(j.lintOk ? null : (j.lintErrors as string[]).join(' · '));
     setState('saved'); router.refresh();
   }
+  const settling = useRef(false);
   const changed = () => {
-    if (loading.current || !touched.current || lastExported.current === null) return;
+    if (loading.current) return;
+    if (!settling.current) { settling.current = true; try { settle(); } finally { settling.current = false; } }
+    if (!touched.current || lastExported.current === null) return;
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       if (lastExported.current === null) return;
@@ -309,6 +346,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   // On leaving the editor: ids typed as text become tags and a paragraph that starts with an id becomes a node block.
   const retag = (e: ReactFocusEvent<HTMLDivElement>) => {
     if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+    if (settle(true)) changed();
     const before = JSON.stringify(editor.document);
     const after = expand(editor.document as unknown as AnyBlock[], []);
     if (JSON.stringify(after) === before) return;
@@ -359,7 +397,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   if (typeof window !== 'undefined') (window as unknown as { __wfCodeToDrawing: (id: string) => void }).__wfCodeToDrawing = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock | undefined; if (b) codeToDrawing(b); }; // dev inspection
   const collectionItems = (['goal', 'task'] as const).map(kind => ({
     title: `${kind === 'goal' ? 'Goals' : 'Tasks'} table`, group: 'Waterfall', subtext: `a table of ${kind}s with status, ${kind === 'goal' ? 'target' : 'due date'}, progress and owner`,
-    onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'collection', props: { kind }, children: [{ type: 'node', props: { kind, slug: `${kind}-${Math.floor(Math.random() * 9000 + 1000)}`, status: kind === 'goal' ? 'proposed' : 'open', form: 'prose', textKey: 'text', body: '', extra: '', check: kind === 'task' ? 'todo' : '', list: 'bullet', row: kind }, content: `New ${kind}` }] } as never); touched.current = true; changed(); },
+    onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'collection', props: { kind }, children: [emptyRow(kind)] } as never); setTimeout(() => settle(), 0); touched.current = true; changed(); },
   }));
   const drawingItems = [
     { title: 'Drawing', group: 'Waterfall', subtext: 'an Excalidraw sketch saved next to the document', onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'drawing', props: { src: `drawings/${newDrawingSlug()}.excalidraw`, title: 'Drawing' } } as never); touched.current = true; changed(); } },
