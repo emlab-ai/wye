@@ -943,6 +943,25 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   source: packages/web/src/components/DocEditor.tsx#mentionItems
   status: unverified
   requires-tests: [ui-test:edit-node-flow]
+- id: rule:context-panel
+  statement: >
+    While a block is being edited, the right panel's Context mode shows the product knowledge closest to that
+    block's text: the text is embedded locally (transformers.js, MiniLM) and ranked against every defined node by
+    cosine similarity blended 70/30 with a keyword score; the node being edited and ids it already links are
+    excluded. "+ link" inserts the node's tag at the cursor (padded with a space when glued to a word); the tag or
+    row opens the node. Embeddings are cached in the product's _build/embeddings.json and refreshed per node when
+    its text changes. Nothing is sent off the machine.
+  source: packages/web/src/lib/semantic.ts; packages/web/src/components/ContextPanel.tsx; packages/web/src/app/api/[product]/context/route.ts
+  status: shipped
+  verified-by: [test:web-lib#semantic]
+- id: decision:wf2.local-semantic-search
+  title: Relevant-context search runs locally with a small sentence model, not a hosted embedding API
+  context: The context panel must suggest related requirements, rules and decisions while a person or agent writes; product knowledge is confidential and the tool must work offline.
+  choice: transformers.js with all-MiniLM-L6-v2 (q8, ~23 MB, cached under .cache/models) in the Next.js server process; per-product vector cache next to graph.json; keyword blend for ids and code names the model does not know.
+  alternatives: [hosted embeddings (OpenAI/Voyage) — better quality but sends product text out and needs a key, keyword-only search — misses paraphrases, a vector database — overkill for a few thousand nodes]
+  consequences: First query after a cold start pays ~5 s to load the model; quality is adequate for short technical text, and a larger local model can be swapped in by changing one constant.
+  status: approved
+  date: 2026-09-16
 - id: rule:doc-links
   statement: >
     A link whose target is a module id is a document link: clicking it (or the module tag) opens that document.

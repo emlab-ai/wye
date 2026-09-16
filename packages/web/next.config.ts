@@ -1,3 +1,4 @@
 import type { NextConfig } from 'next';
-const config: NextConfig = { reactStrictMode: true };
+// transformers.js and its ONNX runtime are native/server-only; keep them out of the bundler.
+const config: NextConfig = { reactStrictMode: true, serverExternalPackages: ['@huggingface/transformers', 'onnxruntime-node', 'sharp'] };
 export default config;

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState, type FocusEvent as ReactFocusEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, filterSuggestionItems, insertOrUpdateBlockForSlashMenu } from '@blocknote/core';
-import { useCreateBlockNote, createReactInlineContentSpec, createReactBlockSpec, FormattingToolbar, FormattingToolbarController, getFormattingToolbarItems, SuggestionMenuController, getDefaultReactSlashMenuItems, useBlockNoteEditor, useComponentsContext, SideMenuController, SideMenu, DragHandleMenu, RemoveBlockItem, BlockColorsItem, useExtensionState } from '@blocknote/react';
+import { useCreateBlockNote, createReactInlineContentSpec, createReactBlockSpec, FormattingToolbar, FormattingToolbarController, getFormattingToolbarItems, SuggestionMenuController, getDefaultReactSlashMenuItems, useBlockNoteEditor, useComponentsContext, SideMenuController, SideMenu, DragHandleMenu, RemoveBlockItem, BlockColorsItem, useExtensionState, useEditorSelectionChange, useEditorChange } from '@blocknote/react';
 import { SideMenuExtension } from '@blocknote/core/extensions';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
@@ -128,7 +128,7 @@ function LinkNodePicker({ req, onClose, apply, createDoc }: { req: LinkRequest; 
 
 export default function DocEditor({ product, project, slug, body, ifMatch, fallback }: { product: string; project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode }) {
   const router = useRouter();
-  const { open: openPeek, index, hrefFor } = usePeek();
+  const { open: openPeek, index, hrefFor, setEditing, showContext, setShowContext } = usePeek();
   // node blocks render inside the editor, so they ask for the peek panel through a window event
   useEffect(() => { const h = (e: Event) => openPeek((e as CustomEvent<string>).detail); window.addEventListener('wf:peek', h); return () => window.removeEventListener('wf:peek', h); }, [openPeek]);
   const editor = useCreateBlockNote({ schema });
@@ -145,6 +145,31 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const touched = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const theme = useMemo(() => (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'), []);
+
+  // Publish the block under the cursor (its plain text and the ids it already carries) as the editing context for
+  // the Context panel; the insert callback drops a tag at the current cursor position.
+  const publishContext = () => {
+    if (loading.current) return;
+    let block: AnyBlock | undefined;
+    try { block = editor.getTextCursorPosition().block as unknown as AnyBlock; } catch { block = undefined; }
+    if (!block || !Array.isArray(block.content)) { setEditing(null); return; }
+    const items = block.content as { type: string; text?: string; props?: { id?: string }; href?: string; content?: { text?: string }[] }[];
+    const text = items.map(i => i.type === 'text' ? i.text ?? '' : i.type === 'link' ? (i.content ?? []).map(c => c.text ?? '').join('') : '').join('');
+    const linked = items.flatMap(i => i.type === 'tag' && i.props?.id ? [i.props.id] : i.type === 'link' && i.href && /^[a-z-]+:/.test(i.href) ? [i.href] : []);
+    const np = block.type === 'node' ? block.props as unknown as { kind: string; slug: string } : null;
+    if (np) linked.push(`${np.kind}:${np.slug}`);
+    setEditing({ docSlug: slug, blockId: String((block as { id?: string }).id ?? ''), text, linked, insert: (id: string) => {
+      editor.focus();
+      // a tag glued to the previous word would change it; pad with a space unless the cursor already follows one
+      const st = (editor as unknown as { _tiptapEditor: { state: { selection: { from: number }; doc: { textBetween: (a: number, b: number) => string } } } })._tiptapEditor.state;
+      const before = st.selection.from > 0 ? st.doc.textBetween(st.selection.from - 1, st.selection.from) : '';
+      editor.insertInlineContent([...(before && !/\s/.test(before) ? [' '] : []), { type: 'tag', props: { id } }, ' '] as never);
+      touched.current = true; changed(); publishContext();
+    } });
+  };
+  useEditorSelectionChange(publishContext, editor);
+  useEditorChange(publishContext, editor);
+  useEffect(() => () => setEditing(null), [setEditing]);
 
   const load = (md: string) => {
     loading.current = true;
@@ -261,7 +286,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
           if (doc) router.push(doc.replace(/#.*$/, '')); else openPeek(href);
         }
       }}>
-      <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}</div>
+      <div className="doc-editor-bar"><button className={`ctx-toggle ${showContext ? 'on' : ''}`} onClick={() => setShowContext(!showContext)} title="Show knowledge related to the block you are editing">◈ Context</button><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false}>
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /></DragHandleMenu>} />} />
         <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /></FormattingToolbar>} />

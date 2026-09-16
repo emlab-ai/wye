@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { PeekGraph, type LiteNode } from './PeekGraph';
+import { ContextPanel } from './ContextPanel';
 import type { GraphEdge } from '@/lib/graph';
 import Link from 'next/link';
 import { usePeek } from './PeekProvider';
@@ -18,7 +19,7 @@ const OUT: Record<string, string> = { refines: 'Refines', 'satisfied-by': 'Satis
 const INC: Record<string, string> = { refines: 'Refined by', 'satisfied-by': 'Satisfies', 'verified-by': 'Verifies', 'depends-on': 'Needed by', 'part-of': 'Contains', 'related-to': 'Related from', 'governed-by': 'Governs', 'gated-by': 'Gates', has: 'Belongs to', refs: 'Referenced by', contradicts: 'Contradicted by', resolves: 'Resolved by', 'applies-to': 'Applied by', 'has-action': 'Action of', navigates: 'Reached from', reads: 'Read by', writes: 'Written by' };
 
 export function PeekPanel() {
-  const { product, index, openId, open, close, hrefFor } = usePeek();
+  const { product, index, openId, open, close, hrefFor, showContext, setShowContext, editing } = usePeek();
   const [d, setD] = useState<Details | null>(null);
   const [view, setView] = useState<'list' | 'graph'>('list');
   const [depth, setDepth] = useState<1 | 2>(1);
@@ -28,7 +29,13 @@ export function PeekPanel() {
     fetch(`/api/${product}/node/${encodeURIComponent(openId)}?depth=${depth}`).then(r => r.ok ? r.json() : null).then(j => { if (live) setD(j); });
     return () => { live = false; };
   }, [openId, product, depth]);
-  if (!openId) return null;
+  if (!openId && !showContext) return null;
+  if (!openId) return (
+    <aside className="peek" role="complementary" aria-label="Context">
+      <div className="peek-bar"><strong>Context</strong><span className="muted">{editing ? 'for the block you are editing' : ''}</span><button onClick={close}>Close</button></div>
+      <ContextPanel />
+    </aside>
+  );
   const entry = index[openId];
   const def = hrefFor(openId);
   return (
@@ -36,6 +43,7 @@ export function PeekPanel() {
       <div className="peek-bar">
         {def ? <Link href={def} onClick={close}>Go to definition</Link> : <span className="muted">{entry?.defined ? '…' : 'referenced only, no definition'}</span>}
         <Link href={`/${product}/graph?focus=${encodeURIComponent(openId)}&preset=Mechanics`}>Show in graph</Link>
+        {editing && <button className="peek-ctx" onClick={() => { setShowContext(true); open(''); }} title="Back to context for the block you are editing">← Context</button>}
         <button onClick={close}>Close</button>
       </div>
       {d ? <NodeCard id={openId} body={d.node.body} entry={entry} /> : <p className="muted">Loading {openId}…</p>}
