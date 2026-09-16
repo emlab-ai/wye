@@ -19,7 +19,7 @@ const OUT: Record<string, string> = { refines: 'Refines', 'satisfied-by': 'Satis
 const INC: Record<string, string> = { refines: 'Refined by', 'satisfied-by': 'Satisfies', 'verified-by': 'Verifies', 'depends-on': 'Needed by', 'part-of': 'Contains', 'related-to': 'Related from', 'governed-by': 'Governs', 'gated-by': 'Gates', has: 'Belongs to', refs: 'Referenced by', contradicts: 'Contradicted by', resolves: 'Resolved by', 'applies-to': 'Applied by', 'has-action': 'Action of', navigates: 'Reached from', reads: 'Read by', writes: 'Written by' };
 
 export function PeekPanel() {
-  const { product, index, openId, open, close, hrefFor, showContext, editing } = usePeek();
+  const { product, index, openId, stack, cursor, open, back, go, togglePin, remove, close, hrefFor, showContext, editing } = usePeek();
   const [d, setD] = useState<Details | null>(null);
   const [view, setView] = useState<'list' | 'graph'>('list');
   const [depth, setDepth] = useState<1 | 2>(1);
@@ -29,9 +29,29 @@ export function PeekPanel() {
     fetch(`/api/${product}/node/${encodeURIComponent(openId)}?depth=${depth}`).then(r => r.ok ? r.json() : null).then(j => { if (live) setD(j); });
     return () => { live = false; };
   }, [openId, product, depth]);
-  if (!openId && !showContext) return null;
+  if (!openId && !showContext && !stack.length) return null;
+  const chips = (
+    <div className="peek-nav">
+      <button className="peek-back" onClick={back} disabled={cursor < 0} title="Back (Esc)">←</button>
+      <div className="peek-chips">
+        {showContext && <button className={`chip ${cursor < 0 ? 'on' : ''}`} onClick={() => go(-1)} title="Context for the block you are editing">◈ Context</button>}
+        {stack.map((e, i) => {
+          const en = index[e.id]; const kind = e.id.split(':')[0];
+          return (
+            <span key={e.id + i} className={`chip peek-chip k-${kind} ${i === cursor ? 'on' : ''} ${e.pinned ? 'pinned' : ''}`} title={en?.title || e.id}>
+              <button className="peek-chip-go" onClick={() => go(i)}><i style={{ background: `var(--k-${kind}, var(--k-other))` }} />{e.id.replace(/^req:/, '')}</button>
+              <button className="peek-chip-pin" onClick={() => togglePin(i)} title={e.pinned ? 'Unpin' : 'Pin: keep this item in the bar'}>{e.pinned ? '📌' : '📍'}</button>
+              {e.pinned || <button className="peek-chip-x" onClick={() => remove(i)} title="Remove">×</button>}
+            </span>
+          );
+        })}
+      </div>
+      {!showContext && <button className="peek-bar-close" onClick={close} title="Close the column">×</button>}
+    </div>
+  );
   if (!openId) return (
     <aside className="peek" role="complementary" aria-label="Context">
+      {chips}
       <div className="peek-bar"><strong>Context</strong><span className="muted">{editing ? 'for the block you are editing' : 'put the cursor in the text'}</span></div>
       <ContextPanel />
     </aside>
@@ -40,10 +60,10 @@ export function PeekPanel() {
   const def = hrefFor(openId);
   return (
     <aside className="peek" role="dialog" aria-label={openId}>
+      {chips}
       <div className="peek-bar">
-        {def ? <Link href={def} onClick={close}>Go to definition</Link> : <span className="muted">{entry?.defined ? '…' : 'referenced only, no definition'}</span>}
+        {def ? <Link href={def} onClick={() => go(-1)}>Go to definition</Link> : <span className="muted">{entry?.defined ? '…' : 'referenced only, no definition'}</span>}
         <Link href={`/${product}/graph?focus=${encodeURIComponent(openId)}&preset=Mechanics`}>Show in graph</Link>
-        {showContext ? <button className="peek-bar-close" onClick={close} title="Back to context for the block you are editing">← Context</button> : <button onClick={close}>Close</button>}
       </div>
       {d ? <NodeCard id={openId} body={d.node.body} entry={entry} /> : <p className="muted">Loading {openId}…</p>}
       {d && (

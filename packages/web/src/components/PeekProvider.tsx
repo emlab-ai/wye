@@ -6,19 +6,41 @@ import { docRoute } from '@/lib/doc';
 // What the editor is working on right now: the current block's text, the ids it already links, and a function that
 // inserts a tag at the cursor. The panel's Context mode searches the product's knowledge for it.
 export type EditingContext = { docSlug: string; blockId: string; text: string; linked: string[]; insert: (id: string) => void };
-interface Ctx { product: string; index: Record<string, IndexEntry>; openId: string | null; open: (id: string) => void; close: () => void; hrefFor: (id: string) => string | null; editing: EditingContext | null; setEditing: (e: EditingContext | null) => void; showContext: boolean; setShowContext: (v: boolean) => void }
+// The right column is a navigation stack: the root is Context (on document pages) and every opened node is pushed
+// on top. `back` pops; `go(i)` jumps to an entry, dropping what is above it — except pinned entries, which are kept.
+export type StackEntry = { id: string; pinned: boolean };
+interface Ctx {
+  product: string; index: Record<string, IndexEntry>;
+  openId: string | null; stack: StackEntry[]; cursor: number;
+  open: (id: string) => void; back: () => void; go: (i: number) => void; togglePin: (i: number) => void; remove: (i: number) => void; close: () => void;
+  hrefFor: (id: string) => string | null;
+  editing: EditingContext | null; setEditing: (e: EditingContext | null) => void; showContext: boolean; setShowContext: (v: boolean) => void;
+}
 const PeekCtx = createContext<Ctx | null>(null);
 
 export function PeekProvider({ product, index, children }: { product: string; index: Record<string, IndexEntry>; children: ReactNode }) {
-  const [openId, setOpenId] = useState<string | null>(null);
+  // One state object so pushes, pops and pins stay consistent: `cursor` indexes `stack`; -1 is the Context root.
+  const [nav, setNav] = useState<{ stack: StackEntry[]; cursor: number }>({ stack: [], cursor: -1 });
+  const { stack, cursor } = nav;
   const [editing, setEditing] = useState<EditingContext | null>(null);
   const [showContext, setShowContext] = useState(false);
-  const open = useCallback((id: string) => setOpenId(id || null), []);
-  // Closing a node leaves the column in whatever mode the page keeps: document pages keep Context on, so the
-  // column stays; elsewhere it disappears.
-  const close = useCallback(() => setOpenId(null), []);
+  const openId = cursor >= 0 ? stack[cursor]?.id ?? null : null;
+  // Opening pushes on top of the current position; unpinned entries above it are dropped, pinned ones stay.
+  const open = useCallback((id: string) => setNav(n => {
+    if (!id) return { ...n, cursor: -1 };
+    const kept = n.stack.filter((e, i) => i <= n.cursor || e.pinned);
+    const existing = kept.findIndex(e => e.id === id);
+    if (existing >= 0) return { stack: kept, cursor: existing };
+    return { stack: [...kept, { id, pinned: false }], cursor: kept.length };
+  }), []);
+  const back = useCallback(() => setNav(n => ({ ...n, cursor: Math.max(-1, n.cursor - 1) })), []);
+  const go = useCallback((i: number) => setNav(n => ({ ...n, cursor: Math.min(i, n.stack.length - 1) })), []);
+  const togglePin = useCallback((i: number) => setNav(n => ({ ...n, stack: n.stack.map((e, k) => k === i ? { ...e, pinned: !e.pinned } : e) })), []);
+  const remove = useCallback((i: number) => setNav(n => ({ stack: n.stack.filter((_, k) => k !== i), cursor: n.cursor >= i ? n.cursor - 1 : n.cursor })), []);
+  // Close: on document pages fall back to the Context root; elsewhere clear the column entirely.
+  const close = useCallback(() => setNav(n => showContext ? { ...n, cursor: -1 } : { stack: n.stack.filter(e => e.pinned), cursor: -1 }), [showContext]);
   const hrefFor = useCallback((id: string) => { const e = index[id]; const r = e?.file ? docRoute(e.file) : null; return r ? `/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(id)}` : null; }, [index, product]);
-  useEffect(() => { const h = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [close]);
-  return <PeekCtx.Provider value={{ product, index, openId, open, close, hrefFor, editing, setEditing, showContext, setShowContext }}>{children}</PeekCtx.Provider>;
+  useEffect(() => { const h = (e: KeyboardEvent) => { if (e.key === 'Escape') back(); }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [back]);
+  return <PeekCtx.Provider value={{ product, index, openId, stack, cursor, open, back, go, togglePin, remove, close, hrefFor, editing, setEditing, showContext, setShowContext }}>{children}</PeekCtx.Provider>;
 }
 export function usePeek(): Ctx { const c = useContext(PeekCtx); if (!c) throw new Error('PeekProvider missing'); return c; }
