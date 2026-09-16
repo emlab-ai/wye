@@ -22,7 +22,8 @@ The running plan. Every task is a checkbox line that starts with a `task:` id; t
 
 ## Next
 
-- [ ] task:livestream A live stream view like a console: agents append lines to it over the API and a human follows in real time; the stream is per project, persisted, and filterable by agent and task. Not implemented yet; part of req:wf2.ui.live and depends on req:wf2.serve.live.
+- [ ] task:livestream A live stream view like a console: agents append lines to it over the API and a human follows in real time; the stream is per project, persisted, and filterable by agent and task. #in-progress (note: the UI half shipped 2026-09-16 as sessions — see rule:agent-sessions; the runner that executes a session and streams its log is still open)
+- [ ] task:session-runner A runner that picks up queued sessions (`_sessions/*.json`, status queued), launches the chosen agent (Claude Code, Codex) with the instruction plus the referenced nodes as context, streams stdout into the session log over `PATCH /api/<product>/sessions/<id>` and marks done/failed. Depends on rule:agent-sessions.. Not implemented yet; part of req:wf2.ui.live and depends on req:wf2.serve.live.
 - [ ] task:plan-progress Show progress per document (checked tasks over all tasks) in the rail and on the plan page, part of req:wf2.ui.
 - [ ] task:autolink Suggest links for phrases that match a node's title or aliases (later the clerk does this), part of rule:smart-tags.
 - [ ] task:phase-1-server Core + server + MCP so agents read and write the graph, implements req:wf2.serve and req:wf2.api.

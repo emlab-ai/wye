@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { PeekGraph, type LiteNode } from './PeekGraph';
 import { ContextPanel } from './ContextPanel';
+import { SessionView } from './SessionView';
+import { requestSend } from './SendToAgent';
 import type { GraphEdge } from '@/lib/graph';
 import Link from 'next/link';
 import { usePeek } from './PeekProvider';
@@ -38,9 +40,10 @@ export function PeekPanel() {
         {showContext && <button className={`chip ${cursor < 0 ? 'on' : ''}`} onClick={() => go(-1)} title="Context for the block you are editing">◈ Context</button>}
         {stack.map((e, i) => {
           const en = index[e.id]; const kind = e.id.split(':')[0];
+          const label = kind === 'session' ? `session ${e.id.slice(8, 14)}` : e.id.replace(/^req:/, '');
           return (
             <span key={e.id + i} className={`chip peek-chip k-${kind} ${i === cursor ? 'on' : ''} ${e.pinned ? 'pinned' : ''}`} title={en?.title || e.id}>
-              <button className="peek-chip-go" onClick={() => go(i)}><i style={{ background: `var(--k-${kind}, var(--k-other))` }} />{e.id.replace(/^req:/, '')}</button>
+              <button className="peek-chip-go" onClick={() => go(i)}><i style={{ background: `var(--k-${kind}, var(--k-other))` }} />{label}</button>
               <button className="peek-chip-pin" onClick={() => togglePin(i)} title={e.pinned ? 'Unpin' : 'Pin: keep this item in the bar'}>{e.pinned ? '📌' : '📍'}</button>
               {e.pinned || <button className="peek-chip-x" onClick={() => remove(i)} title="Remove">×</button>}
             </span>
@@ -57,6 +60,13 @@ export function PeekPanel() {
       <ContextPanel />
     </aside>
   );
+  if (openId.startsWith('session:')) return (
+    <aside className="peek" role="dialog" aria-label={openId}>
+      {chips}
+      <div className="peek-bar"><strong>Session</strong><Link href={`/${product}/sessions`}>All sessions</Link></div>
+      <SessionView id={openId.slice('session:'.length)} />
+    </aside>
+  );
   const entry = index[openId];
   const def = hrefFor(openId);
   return (
@@ -65,6 +75,7 @@ export function PeekPanel() {
       <div className="peek-bar">
         {def ? <Link href={def} onClick={() => go(-1)}>Go to definition</Link> : <span className="muted">{entry?.defined ? '…' : 'referenced only, no definition'}</span>}
         <Link href={`/${product}/graph?focus=${encodeURIComponent(openId)}&preset=Mechanics`}>Show in graph</Link>
+        <button className="linkish" onClick={() => requestSend({ refs: [openId], text: d ? nodeText(d.node.body) : entry?.title })}>Send to agent</button>
       </div>
       {d ? <NodeCard id={openId} body={d.node.body} entry={entry} /> : <p className="muted">Loading {openId}…</p>}
       {d && (entry?.kind === 'goal' || entry?.kind === 'task') && <Tracking entry={entry} index={index} inc={d.relations.inc} />}
@@ -136,4 +147,9 @@ function Tracking({ entry, index, inc }: { entry: IndexEntry; index: Record<stri
       {entry.kind === 'task' && entry.parent && <p className="tracking-parent"><small>part of</small> <SmartTag id={entry.parent} /></p>}
     </section>
   );
+}
+
+// The text of a node body for a session: its text/statement/description line.
+function nodeText(body: string): string {
+  const m = body.match(/^(?:text|statement|description|title):\s*(.+)$/m); return m ? m[1] : '';
 }

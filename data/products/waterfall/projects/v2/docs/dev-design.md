@@ -967,6 +967,17 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   source: packages/web/src/components/TrackList.tsx; packages/web/src/lib/track.ts; packages/web/src/lib/doc.ts#nodeIndex; packages/web/src/components/DocEditor.tsx#RowNode
   status: shipped
   verified-by: [test:web-lib#import, test:web-lib#props]
+- id: rule:agent-sessions
+  statement: >
+    Any block can be sent to an agent: "Send to agent" sits in every block's drag-handle menu, on node block headers,
+    on goal/task table rows and in the right column's node view. The dialog takes an agent (Claude Code, Codex, the
+    Waterfall clerk) and an instruction prefilled with the block text and the ids it defines or links; sending creates
+    a session (`data/products/<product>/_sessions/<id>.json`, status queued, gitignored) and opens it in the right
+    column, which shows the instruction, refs, status and a log that is polled while the session is queued or
+    running. The Sessions page lists sessions (active first). Runners update a session with PATCH { status, line,
+    result }; none is connected yet.
+  source: packages/web/src/components/SendToAgent.tsx; packages/web/src/components/SessionView.tsx; packages/web/src/lib/sessions.ts; packages/web/src/app/api/[product]/sessions
+  status: shipped
 - id: decision:wf2.local-semantic-search
   title: Relevant-context search runs locally with a small sentence model, not a hosted embedding API
   context: The context panel must suggest related requirements, rules and decisions while a person or agent writes; product knowledge is confidential and the tool must work offline.

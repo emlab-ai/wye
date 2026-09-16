@@ -17,6 +17,7 @@ import { usePeek } from './PeekProvider';
 import { ID_RE } from '@/lib/ids';
 import { parseExtra, withExtra, GOAL_STATUSES, TASK_STATUSES } from '@/lib/props';
 import { ProgressBar } from './Progress';
+import { requestSend } from './SendToAgent';
 
 const STATUSES = ['', 'proposed', 'approved', 'unverified', 'api-only', 'shipped', 'deprecated', 'question', 'open', 'in-progress', 'blocked', 'done', 'non-goal', 'draft', 'active', 'complete', 'on-track', 'at-risk', 'off-track', 'paused'];
 
@@ -43,9 +44,29 @@ function stopEditorEvents(el: HTMLElement | null) {
   for (const ev of ['mousedown', 'keydown']) el.addEventListener(ev, e => e.stopPropagation()); // click and change still reach React
 }
 
+// Send a block to an agent: its plain text, the ids it defines or links, and where it lives.
+function sendBlock(block: AnyBlock, host: HTMLElement | null) {
+  const doc = host?.closest('.doc-editor') as HTMLElement | null;
+  const items = Array.isArray(block.content) ? block.content as { type: string; text?: string; props?: { id?: string }; href?: string; content?: { text?: string }[] }[] : [];
+  const text = items.map(i => i.type === 'text' ? i.text ?? '' : i.type === 'link' ? (i.content ?? []).map(c => c.text ?? '').join('') : i.type === 'tag' ? i.props?.id ?? '' : '').join('');
+  const refs = items.flatMap(i => i.type === 'tag' && i.props?.id ? [i.props.id] : i.type === 'link' && i.href && /^[a-z-]+:/.test(i.href) ? [i.href] : []);
+  if (block.type === 'node') { const np = block.props as unknown as { kind: string; slug: string }; refs.unshift(`${np.kind}:${np.slug}`); }
+  requestSend({ text, refs, source: { project: doc?.dataset.project, doc: doc?.dataset.doc, blockId: String((block as { id?: string }).id ?? '') } });
+}
+
+// Drag-handle menu entry on every block: send it to an agent.
+function SendToAgentItem() {
+  const Components = useComponentsContext()!;
+  const editor = useBlockNoteEditor();
+  const block = useExtensionState(SideMenuExtension, { editor, selector: st => st?.block });
+  if (!block) return null;
+  return <Components.Generic.Menu.Item className="bn-menu-item" onClick={() => sendBlock(block as unknown as AnyBlock, editor.domElement as HTMLElement | null)}>Send to agent</Components.Generic.Menu.Item>;
+}
+
 // A goal or task shown as a table row inside a goals/tasks collection: name (editable inline content), status, target,
 // progress, owner. Tracking fields live in the node's trailing property group.
-function RowNode({ p, set, contentRef }: { p: { kind: string; slug: string; status: string; extra: string; check: string; row: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void }) {
+function RowNode({ p, set, contentRef, block }: { p: { kind: string; slug: string; status: string; extra: string; check: string; row: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock }) {
+  const rowRef = useRef<HTMLDivElement>(null);
   const { index } = usePeek();
   const id = `${p.kind}:${p.slug}`; const e = index[id];
   const ex = parseExtra(p.extra);
@@ -55,11 +76,12 @@ function RowNode({ p, set, contentRef }: { p: { kind: string; slug: string; stat
   const progress = explicit ?? (done ? 100 : e?.progress);
   const setStatus = (st: string) => set(p.kind === 'task' ? { status: st, check: st === 'done' ? 'done' : 'todo' } : { status: st });
   return (
-    <div className={`nrow k-${p.kind} ${done ? 'done' : ''}`} data-id={id}>
+    <div className={`nrow k-${p.kind} ${done ? 'done' : ''}`} data-id={id} ref={rowRef}>
       <div className="nrow-cell nrow-name">
         {p.kind === 'task' && <input type="checkbox" className="nblock-check" checked={done} onChange={ev => setStatus(ev.target.checked ? 'done' : 'todo')} title="done?" onMouseDown={ev => ev.stopPropagation()} />}
         <button type="button" className="nrow-open" contentEditable={false} title={id} onMouseDown={ev => ev.stopPropagation()} onClick={() => window.dispatchEvent(new CustomEvent('wf:peek', { detail: id }))}><i style={{ background: `var(--k-${p.kind}, var(--k-other))` }} /></button>
         <div className="nrow-text" ref={contentRef} />
+        <button type="button" className="nrow-send" contentEditable={false} title="Send to agent" onMouseDown={ev => ev.stopPropagation()} onClick={() => sendBlock(block, rowRef.current)}>⇢</button>
       </div>
       <div className="nrow-cell" contentEditable={false} ref={stopEditorEvents}>
         <select className={`status-sel s-${p.status}`} value={p.status} onChange={ev => setStatus(ev.target.value)}>
@@ -114,7 +136,7 @@ const NodeBlock = createReactBlockSpec(
       // every other key of a yaml node is shown read-only under the text; the yaml toggle edits them
       const rows = p.form === 'yaml' ? parseBody(p.body).filter(r => r.key !== p.textKey && r.key !== 'status') : [];
       const set = (patch: Partial<typeof p>) => props.editor.updateBlock(props.block, { props: { ...p, ...patch } } as never);
-      if (p.row) return <RowNode p={p} set={set} contentRef={props.contentRef} />;
+      if (p.row) return <RowNode p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} />;
       return (
         <div className={`nblock k-${p.kind} ${p.check === 'done' || p.status === 'done' ? 'done' : ''}`} data-id={`${p.kind}:${p.slug}`}>
           <div className="nblock-head" contentEditable={false} ref={stopEditorEvents}>
@@ -127,6 +149,7 @@ const NodeBlock = createReactBlockSpec(
             <select className="status-sel" value={p.status} onChange={e => set({ status: e.target.value })}>{STATUSES.map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
             {p.form === 'yaml' && <button className="mini" onClick={() => setShowYaml(v => !v)}>{showYaml ? 'hide yaml' : 'yaml'}</button>}
             {p.form === 'prose' && <input className="nblock-extra" value={p.extra} placeholder="key: value, key: value" onChange={e => set({ extra: e.target.value })} />}
+            <button type="button" className="nblock-send" title="Send this node to an agent" onClick={e => sendBlock(props.block as unknown as AnyBlock, e.currentTarget)}>⇢ agent</button>
           </div>
           <div className="nblock-text" ref={props.contentRef} />
           {rows.length > 0 && !showYaml && (
@@ -345,7 +368,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
 
   if (loadError) return <div className="doc-editor"><p className="notice">Editing is off for this document: {loadError}. The text below is read-only.</p>{fallback}</div>;
   return (
-    <div className="doc-editor" data-product={product} data-project={project} onBlur={retag} onFocus={() => { touched.current = true; }}
+    <div className="doc-editor" data-product={product} data-project={project} data-doc={slug} onBlur={retag} onFocus={() => { touched.current = true; }}
       onClick={e => { // a link whose target is a node id opens the peek panel instead of navigating
         const a = (e.target as HTMLElement).closest('a[href]') as HTMLAnchorElement | null;
         const href = a?.getAttribute('href') ?? '';
@@ -357,7 +380,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       }}>
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false}>
-        <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /></DragHandleMenu>} />} />
+        <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><SendToAgentItem /></DragHandleMenu>} />} />
         <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /></FormattingToolbar>} />
         <SuggestionMenuController triggerCharacter="/" getItems={async q => filterSuggestionItems([...getDefaultReactSlashMenuItems(editor), ...nodeItems, ...collectionItems, ...drawingItems], q)} />
         <SuggestionMenuController triggerCharacter="@" minQueryLength={1} getItems={async q => mentionItems(q)} />
