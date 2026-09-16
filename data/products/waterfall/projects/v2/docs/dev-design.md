@@ -988,6 +988,38 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     another project moves the file into that project's docs folder. A document cannot be moved under itself.
   source: packages/web/src/components/DocTree.tsx; packages/web/src/app/api/[product]/docs/move/route.ts; packages/web/src/lib/doc.ts#documentTree
   status: shipped
+- id: rule:block-links
+  statement: >
+    Every block has a stable link: `<web>/<product>/<project>/d/<doc>#<anchor>` where the anchor is `n-<id>` for a
+    node block, the heading slug for a heading, and `b-<8-hex FNV-1a hash of the normalised text>` for any other
+    block. "Copy link" is in every block's drag-handle menu, on node headers and table rows. Opening a link scrolls
+    to and flashes the block; `GET /api/<product>/resolve?link=` (and `wf resolve`) return the document, node, block
+    text or heading section the link points at. A hashed link whose text changed falls back to the document.
+  source: packages/web/src/lib/anchors.ts; packages/web/src/app/api/[product]/resolve/route.ts; packages/web/src/components/DocEditor.tsx#blockAnchor
+  status: shipped
+  verified-by: [test:web-lib#anchors]
+- id: rule:agent-runner
+  statement: >
+    External agents connect through the `wf` CLI (bin/wf.js) against the running web app. `wf agent listen --product
+    p --agent claude-code|codex` registers a runner (heartbeat every 10 s to /api/<product>/runners, entries expire
+    after 30 s), claims the oldest queued session for its agent (POST /sessions/claim, first come first served),
+    builds a prompt (instruction + every ref and the source link resolved to text + how to talk back), runs the
+    agent command with the prompt on stdin (`claude -p …` / `codex exec …`, overridable with --cmd), streams every
+    output line into the session log, and marks the session done or failed from the exit code. Agents read and write
+    through `wf resolve|doc|node|context|node set|doc write|session log|done|fail|handoff`. A hand-off creates a
+    queued child session for another agent carrying the instruction, refs, log tail and result; the parent is
+    cancelled if still active and both are linked. `/wf-restore <id>` picks a session up interactively (`wf session
+    take`). The Sessions page shows runners online, how many are working, and every session's live log.
+  source: bin/wf.js; packages/web/src/lib/sessions.ts; skills/waterfall-agent/SKILL.md; skills/wf-restore/SKILL.md
+  status: shipped
+- id: decision:wf2.agents-via-cli
+  title: Agents integrate through a CLI over the web app's HTTP API, not through an MCP server or direct file access
+  context: Claude Code and Codex both run shell commands well; sessions, links and knowledge must reach any agent the same way, and writes must go through the app so the graph rebuilds and locks hold.
+  choice: One `wf` CLI (read, write, sessions, runner) talking to the Next.js API; runners are plain processes started next to the code they work on; skills teach Claude Code the CLI.
+  alternatives: [MCP server per agent — more tooling to keep in sync and Codex support differs, agents editing markdown directly — bypasses locks and rebuilds and loses the session log, a message queue — unnecessary for a local-first tool]
+  consequences: The web app must be running for agents to work; an MCP wrapper can be added later on top of the same API.
+  status: approved
+  date: 2026-09-16
 - id: decision:wf2.local-semantic-search
   title: Relevant-context search runs locally with a small sentence model, not a hosted embedding API
   context: The context panel must suggest related requirements, rules and decisions while a person or agent writes; product knowledge is confidential and the tool must work offline.

@@ -17,6 +17,8 @@ import { usePeek } from './PeekProvider';
 import { ID_RE } from '@/lib/ids';
 import { parseExtra, withExtra, GOAL_STATUSES, TASK_STATUSES } from '@/lib/props';
 import { slugify } from '@/lib/templates';
+import { blockHash } from '@/lib/anchors';
+import { headingSlug } from '@/lib/doc';
 import { ProgressBar } from './Progress';
 import { requestSend } from './SendToAgent';
 
@@ -52,7 +54,36 @@ function sendBlock(block: AnyBlock, host: HTMLElement | null) {
   const text = items.map(i => i.type === 'text' ? i.text ?? '' : i.type === 'link' ? (i.content ?? []).map(c => c.text ?? '').join('') : i.type === 'tag' ? i.props?.id ?? '' : '').join('');
   const refs = items.flatMap(i => i.type === 'tag' && i.props?.id ? [i.props.id] : i.type === 'link' && i.href && /^[a-z-]+:/.test(i.href) ? [i.href] : []);
   if (block.type === 'node') { const np = block.props as unknown as { kind: string; slug: string }; refs.unshift(`${np.kind}:${np.slug}`); }
-  requestSend({ text, refs, source: { project: doc?.dataset.project, doc: doc?.dataset.doc, blockId: String((block as { id?: string }).id ?? '') } });
+  requestSend({ text, refs, source: { project: doc?.dataset.project, doc: doc?.dataset.doc, blockId: String((block as { id?: string }).id ?? ''), link: blockLink(block, host) } });
+}
+
+// The stable address of a block: node id, heading slug, or a hash of its text (see lib/anchors).
+function blockAnchor(block: AnyBlock): string {
+  if (block.type === 'node') { const np = block.props as unknown as { kind: string; slug: string }; return `n-${encodeURIComponent(`${np.kind}:${np.slug}`)}`; }
+  const text = rowText(block);
+  if (block.type === 'heading') return headingSlug(text);
+  return `b-${blockHash(text)}`;
+}
+function blockLink(block: AnyBlock, host: HTMLElement | null): string {
+  const doc = host?.closest('.doc-editor') as HTMLElement | null;
+  return `${location.origin}/${doc?.dataset.product}/${doc?.dataset.project}/d/${doc?.dataset.doc}#${blockAnchor(block)}`;
+}
+async function copyBlockLink(block: AnyBlock, host: HTMLElement | null) {
+  const url = blockLink(block, host);
+  try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch { toast(url); }
+}
+function toast(text: string) {
+  const el = document.createElement('div'); el.className = 'toast'; el.textContent = text; document.body.appendChild(el);
+  setTimeout(() => el.classList.add('on'), 10); setTimeout(() => { el.classList.remove('on'); setTimeout(() => el.remove(), 300); }, 1800);
+}
+
+// Drag-handle menu entry on every block: copy its link.
+function CopyLinkItem() {
+  const Components = useComponentsContext()!;
+  const editor = useBlockNoteEditor();
+  const block = useExtensionState(SideMenuExtension, { editor, selector: st => st?.block });
+  if (!block) return null;
+  return <Components.Generic.Menu.Item className="bn-menu-item" onClick={() => copyBlockLink(block as unknown as AnyBlock, editor.domElement as HTMLElement | null)}>Copy link</Components.Generic.Menu.Item>;
 }
 
 // Drag-handle menu entry on every block: send it to an agent.
@@ -83,6 +114,7 @@ function RowNode({ p, set, contentRef, block }: { p: { kind: string; slug: strin
         {p.kind === 'task' && <input type="checkbox" className="nblock-check" checked={done} onChange={ev => setStatus(ev.target.checked ? 'done' : 'todo')} title="done?" onMouseDown={ev => ev.stopPropagation()} />}
         <button type="button" className="nrow-open" contentEditable={false} title={id} onMouseDown={ev => ev.stopPropagation()} onClick={() => window.dispatchEvent(new CustomEvent('wf:peek', { detail: id }))}><i style={{ background: `var(--k-${p.kind}, var(--k-other))` }} /></button>
         <div className="nrow-text" ref={contentRef} data-placeholder={`New ${p.kind}…`} />
+        <button type="button" className="nrow-send" contentEditable={false} title="Copy link" onMouseDown={ev => ev.stopPropagation()} onClick={() => copyBlockLink(block, rowRef.current)}>⧉</button>
         <button type="button" className="nrow-send" contentEditable={false} title="Send to agent" onMouseDown={ev => ev.stopPropagation()} onClick={() => sendBlock(block, rowRef.current)}>⇢</button>
       </div>
       <div className="nrow-cell" contentEditable={false} ref={stopEditorEvents}>
@@ -177,6 +209,7 @@ const NodeBlock = createReactBlockSpec(
             <select className="status-sel" value={p.status} onChange={e => set({ status: e.target.value })}>{STATUSES.map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
             {p.form === 'yaml' && <button className="mini" onClick={() => setShowYaml(v => !v)}>{showYaml ? 'hide yaml' : 'yaml'}</button>}
             {p.form === 'prose' && <input className="nblock-extra" value={p.extra} placeholder="key: value, key: value" onChange={e => set({ extra: e.target.value })} />}
+            <button type="button" className="nblock-send" title="Copy a link to this node" onClick={e => copyBlockLink(props.block as unknown as AnyBlock, e.currentTarget)}>⧉ link</button>
             <button type="button" className="nblock-send" title="Send this node to an agent" onClick={e => sendBlock(props.block as unknown as AnyBlock, e.currentTarget)}>⇢ agent</button>
           </div>
           <div className="nblock-text" ref={props.contentRef} />
@@ -247,7 +280,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   // node blocks render inside the editor, so they ask for the peek panel through a window event
   useEffect(() => { const h = (e: Event) => openPeek((e as CustomEvent<string>).detail); window.addEventListener('wf:peek', h); return () => window.removeEventListener('wf:peek', h); }, [openPeek]);
   const editor = useCreateBlockNote({ schema });
-  if (typeof window !== 'undefined') { const w = window as unknown as { __wf: unknown; __wfExport: () => string }; w.__wf = editor; w.__wfExport = () => blocksToMarkdown(editor.document as unknown as AnyBlock[]); } // dev inspection
+  if (typeof window !== 'undefined') { const w = window as unknown as { __wf: unknown; __wfExport: () => string; __wfLink: (id: string) => string }; w.__wf = editor; w.__wfExport = () => blocksToMarkdown(editor.document as unknown as AnyBlock[]); w.__wfLink = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock; return `${location.origin}/${product}/${project}/d/${slug}#${blockAnchor(b)}`; }; } // dev inspection
   void index;
   const [ready, setReady] = useState(false);
   const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'conflict' | 'error'>('idle');
@@ -315,6 +348,13 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     if (lastExported.current !== null && norm(lastExported.current) === norm(body)) return;
     load(body);
     if (!ready) setReady(true);
+    // a link to a block: find it by anchor and bring it into view
+    const frag = typeof location !== 'undefined' ? location.hash.replace(/^#/, '') : '';
+    if (frag) setTimeout(() => {
+      const target = (editor.document as unknown as AnyBlock[]).flatMap(b => [b, ...(b.children ?? [])]).find(b => blockAnchor(b) === frag || (frag.startsWith('n-') && b.type === 'node' && blockAnchor(b) === frag));
+      const el = target ? (document.querySelector(`[data-id="${String((target as { id?: string }).id)}"]`) as HTMLElement | null) : null;
+      if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 2000); }
+    }, 300);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, body, ifMatch]);
 
@@ -418,7 +458,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       }}>
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false}>
-        <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><SendToAgentItem /></DragHandleMenu>} />} />
+        <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
         <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /></FormattingToolbar>} />
         <SuggestionMenuController triggerCharacter="/" getItems={async q => filterSuggestionItems([...getDefaultReactSlashMenuItems(editor), ...nodeItems, ...collectionItems, ...drawingItems], q)} />
         <SuggestionMenuController triggerCharacter="@" minQueryLength={1} getItems={async q => mentionItems(q)} />

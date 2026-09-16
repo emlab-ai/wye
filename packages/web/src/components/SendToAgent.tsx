@@ -7,7 +7,7 @@ import { AGENTS } from '@/lib/session-types';
 
 // The "Send to agent" dialog. Anything in the UI opens it by dispatching a `wf:send` window event with
 // { text, refs, source }; sending creates a queued session and opens it in the right column.
-export type SendRequest = { text?: string; refs?: string[]; source?: { project?: string; doc?: string; blockId?: string } };
+export type SendRequest = { text?: string; refs?: string[]; source?: { project?: string; doc?: string; blockId?: string; link?: string } };
 export function requestSend(detail: SendRequest) { window.dispatchEvent(new CustomEvent('wf:send', { detail })); }
 
 export function SendToAgentHost() {

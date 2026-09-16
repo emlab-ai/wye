@@ -10,7 +10,7 @@ export const when = (iso: string) => { const d = new Date(iso); const m = (Date.
 
 // One agent session in the right column: what was sent, its status, and the live log (polled while active).
 export function SessionView({ id }: { id: string }) {
-  const { product } = usePeek();
+  const { product, open } = usePeek();
   const [s, setS] = useState<Session | null | undefined>(undefined);
   useEffect(() => {
     let live = true; let timer: ReturnType<typeof setTimeout> | null = null;
@@ -22,6 +22,12 @@ export function SessionView({ id }: { id: string }) {
     load();
     return () => { live = false; if (timer) clearTimeout(timer); };
   }, [product, id]);
+  const [handoff, setHandoff] = useState<{ agent: string; note: string } | null>(null);
+  const doHandoff = async () => {
+    if (!handoff) return;
+    const r = await fetch(`/api/${product}/sessions/${id}/handoff`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(handoff) });
+    if (r.ok) { const j = await r.json(); setHandoff(null); open(`session:${j.id}`); }
+  };
   const patch = async (body: object) => { const r = await fetch(`/api/${product}/sessions/${id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); if (r.ok) setS(await r.json()); };
   if (s === undefined) return <p className="muted">Loading session…</p>;
   if (!s) return <p className="notice">Session {id} not found.</p>;
@@ -32,8 +38,20 @@ export function SessionView({ id }: { id: string }) {
         <span className={`pill s ${s.status} session-status`}>{s.status}</span>
         <strong>{agentLabel(s.agent)}</strong>
         <span className="muted">{when(s.createdAt)}</span>
-        {active && <button className="mini" onClick={() => patch({ status: 'cancelled' })}>Cancel</button>}
+        <span className="session-acts">
+          <button className="mini" onClick={() => setHandoff(h => h ? null : { agent: AGENTS.find(a => a.id !== s.agent)?.id ?? s.agent, note: '' })} title="Continue this work under another agent">Hand off…</button>
+          {active && <button className="mini" onClick={() => patch({ status: 'cancelled' })}>Cancel</button>}
+        </span>
       </div>
+      {s.runner && <p className="muted session-src">runner {s.runner}{s.startedAt ? ` · started ${when(s.startedAt)}` : ''}{s.finishedAt ? ` · finished ${when(s.finishedAt)}` : ''}</p>}
+      {(s.parent || (s.children && s.children.length > 0)) && <p className="session-src">{s.parent && <>continues <button className="linkish" onClick={() => open(`session:${s.parent}`)}>session {s.parent.slice(0, 6)}</button></>}{s.children && s.children.length > 0 && <> handed off to {s.children.map(c => <button key={c} className="linkish" onClick={() => open(`session:${c}`)}>session {c.slice(0, 6)}</button>)}</>}</p>}
+      {handoff && (
+        <div className="handoff form">
+          <label><span>to agent</span><select value={handoff.agent} onChange={e => setHandoff({ ...handoff, agent: e.target.value })}>{AGENTS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}</select></label>
+          <label><span>note</span><input value={handoff.note} placeholder="what the next agent should know" onChange={e => setHandoff({ ...handoff, note: e.target.value })} onKeyDown={e => { if (e.key === 'Enter') doHandoff(); }} /></label>
+          <div className="sec-actions"><button className="pri" onClick={doHandoff}>Hand off</button><button onClick={() => setHandoff(null)}>Cancel</button><span className="muted" style={{ fontSize: 11 }}>a new session for that agent continues this one with its log and result; this one is cancelled if still active</span></div>
+        </div>
+      )}
       {s.refs.length > 0 && <div className="tags session-refs">{s.refs.map(r => <SmartTag key={r} id={r} />)}</div>}
       <pre className="session-instruction">{s.instruction}</pre>
       {s.source?.doc && <p className="muted session-src">from {s.source.project ? `${s.source.project} / ` : ''}{s.source.doc}</p>}

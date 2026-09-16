@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getProduct } from '@/lib/products';
-import { AGENTS, createSession, listSessions } from '@/lib/sessions';
+import { AGENTS, createSession, listSessions, listRunners } from '@/lib/sessions';
 
 // GET → { sessions } ; POST { agent, instruction, refs?, source? } → the new session (status queued).
 export async function GET(_req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  return NextResponse.json({ sessions: await listSessions(p.dir) });
+  return NextResponse.json({ sessions: await listSessions(p.dir), runners: await listRunners(p.dir) }, { headers: { 'cache-control': 'no-store' } });
 }
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;

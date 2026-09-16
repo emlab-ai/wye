@@ -12,7 +12,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ product
 export async function PATCH(req: Request, { params }: { params: Promise<{ product: string; id: string }> }) {
   const { product, id } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const body = (await req.json()) as { status?: SessionStatus; line?: string; result?: string };
+  const body = (await req.json()) as { status?: SessionStatus; line?: string; lines?: string[]; result?: string; runner?: string };
   const ok: SessionStatus[] = ['queued', 'running', 'done', 'failed', 'cancelled'];
   if (body.status && !ok.includes(body.status)) return NextResponse.json({ error: 'invalid', message: 'bad status' }, { status: 422 });
   const s = await updateSession(p.dir, id, body); if (!s) return NextResponse.json({ error: 'not_found' }, { status: 404 });
