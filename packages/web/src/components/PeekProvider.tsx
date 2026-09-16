@@ -13,8 +13,10 @@ export function PeekProvider({ product, index, children }: { product: string; in
   const [openId, setOpenId] = useState<string | null>(null);
   const [editing, setEditing] = useState<EditingContext | null>(null);
   const [showContext, setShowContext] = useState(false);
-  const open = useCallback((id: string) => { setOpenId(id || null); if (id) setShowContext(false); }, []);
-  const close = useCallback(() => { setOpenId(null); setShowContext(false); }, []);
+  const open = useCallback((id: string) => setOpenId(id || null), []);
+  // Closing a node leaves the column in whatever mode the page keeps: document pages keep Context on, so the
+  // column stays; elsewhere it disappears.
+  const close = useCallback(() => setOpenId(null), []);
   const hrefFor = useCallback((id: string) => { const e = index[id]; const r = e?.file ? docRoute(e.file) : null; return r ? `/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(id)}` : null; }, [index, product]);
   useEffect(() => { const h = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [close]);
   return <PeekCtx.Provider value={{ product, index, openId, open, close, hrefFor, editing, setEditing, showContext, setShowContext }}>{children}</PeekCtx.Provider>;

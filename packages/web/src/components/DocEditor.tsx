@@ -128,7 +128,7 @@ function LinkNodePicker({ req, onClose, apply, createDoc }: { req: LinkRequest; 
 
 export default function DocEditor({ product, project, slug, body, ifMatch, fallback }: { product: string; project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode }) {
   const router = useRouter();
-  const { open: openPeek, index, hrefFor, setEditing, showContext, setShowContext } = usePeek();
+  const { open: openPeek, index, hrefFor, setEditing, setShowContext } = usePeek();
   // node blocks render inside the editor, so they ask for the peek panel through a window event
   useEffect(() => { const h = (e: Event) => openPeek((e as CustomEvent<string>).detail); window.addEventListener('wf:peek', h); return () => window.removeEventListener('wf:peek', h); }, [openPeek]);
   const editor = useCreateBlockNote({ schema });
@@ -169,7 +169,8 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   };
   useEditorSelectionChange(publishContext, editor);
   useEditorChange(publishContext, editor);
-  useEffect(() => () => setEditing(null), [setEditing]);
+  // The context column is always there on a document page; it leaves with the editor.
+  useEffect(() => { setShowContext(true); return () => { setEditing(null); setShowContext(false); }; }, [setEditing, setShowContext]);
 
   const load = (md: string) => {
     loading.current = true;
@@ -286,7 +287,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
           if (doc) router.push(doc.replace(/#.*$/, '')); else openPeek(href);
         }
       }}>
-      <div className="doc-editor-bar"><button className={`ctx-toggle ${showContext ? 'on' : ''}`} onClick={() => setShowContext(!showContext)} title="Show knowledge related to the block you are editing">◈ Context</button><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}</div>
+      <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false}>
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /></DragHandleMenu>} />} />
         <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /></FormattingToolbar>} />
