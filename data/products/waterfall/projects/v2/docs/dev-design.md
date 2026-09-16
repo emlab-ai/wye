@@ -978,6 +978,16 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     result }; none is connected yet.
   source: packages/web/src/components/SendToAgent.tsx; packages/web/src/components/SessionView.tsx; packages/web/src/lib/sessions.ts; packages/web/src/app/api/[product]/sessions
   status: shipped
+- id: rule:documents-tree
+  statement: >
+    The rail shows one Documents tree per product: every document with its sub-documents, regardless of the project
+    folder it lives in (projects stay folders on disk; a new top-level document picks its folder when there are
+    several). Any row has "+" for a sub-document; the section "+" creates a top-level one. Rows drag: dropping onto
+    a row nests the document under it (its `part-of` frontmatter), dropping between rows reorders siblings (`order:`
+    frontmatter, renumbered in tens), and a drop zone under the tree makes it top level. Moving under a document of
+    another project moves the file into that project's docs folder. A document cannot be moved under itself.
+  source: packages/web/src/components/DocTree.tsx; packages/web/src/app/api/[product]/docs/move/route.ts; packages/web/src/lib/doc.ts#documentTree
+  status: shipped
 - id: decision:wf2.local-semantic-search
   title: Relevant-context search runs locally with a small sentence model, not a hosted embedding API
   context: The context panel must suggest related requirements, rules and decisions while a person or agent writes; product knowledge is confidential and the tool must work offline.

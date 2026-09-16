@@ -55,13 +55,14 @@ export function replaceBody(md: string, ifMatch: string, body: string): WriteRes
 }
 export function bodyOf(md: string): string { const fm = md.match(/^---\n([\s\S]*?)\n---\n?/); return md.slice(fm ? fm[0].length : 0); }
 
-export function patchFrontmatter(md: string, patch: Record<string, string>): WriteResult {
+// A null value removes the key.
+export function patchFrontmatter(md: string, patch: Record<string, string | null>): WriteResult {
   const fm = md.match(/^---\n([\s\S]*?)\n---\n/);
   if (!fm) return { md, error: 'invalid' };
   const lines = fm[1].split('\n');
   const seen = new Set<string>();
-  const out = lines.map(l => { const m = l.match(/^([\w-]+):/); if (m && m[1] in patch) { seen.add(m[1]); return `${m[1]}: ${patch[m[1]]}`; } return l; });
-  for (const [k, v] of Object.entries(patch)) if (!seen.has(k)) out.push(`${k}: ${v}`);
+  const out = lines.flatMap(l => { const m = l.match(/^([\w-]+):/); if (m && m[1] in patch) { seen.add(m[1]); return patch[m[1]] === null ? [] : [`${m[1]}: ${patch[m[1]]}`]; } return [l]; });
+  for (const [k, v] of Object.entries(patch)) if (!seen.has(k) && v !== null) out.push(`${k}: ${v}`);
   return { md: '---\n' + out.join('\n') + '\n---\n' + md.slice(fm[0].length) };
 }
 

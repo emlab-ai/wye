@@ -110,7 +110,11 @@ export function documentTree(g: GraphData): { roots: DocNode[]; main: DocNode | 
     if (!parent || !child || hasParent.has(child)) continue;
     nodes.get(parent)!.children.push(nodes.get(child)!); hasParent.add(child);
   }
-  const roots = [...nodes.values()].filter(d => !hasParent.has(d.module.id));
+  // siblings follow their `order:` frontmatter (a number), then their title
+  const orderOf = (d: DocNode) => { const m = d.module.body.match(/^order:\s*(-?\d+)/m); return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER; };
+  const bySib = (a: DocNode, b: DocNode) => orderOf(a) - orderOf(b) || a.title.localeCompare(b.title);
+  for (const d of nodes.values()) d.children.sort(bySib);
+  const roots = [...nodes.values()].filter(d => !hasParent.has(d.module.id)).sort(bySib);
   const main = [...roots].sort((a, b) => b.children.length - a.children.length || a.title.localeCompare(b.title))[0] ?? null;
   const byFile = new Map([...nodes.values()].map(d => [d.file, d]));
   return { roots, main, byFile };
