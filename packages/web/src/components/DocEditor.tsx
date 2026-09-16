@@ -15,8 +15,10 @@ import { SmartTag } from './SmartTag';
 import { DrawingBlock, newDrawingSlug, sceneFromText } from './DrawingBlock';
 import { usePeek } from './PeekProvider';
 import { ID_RE } from '@/lib/ids';
+import { parseExtra, withExtra, GOAL_STATUSES, TASK_STATUSES } from '@/lib/props';
+import { ProgressBar } from './Progress';
 
-const STATUSES = ['', 'proposed', 'approved', 'unverified', 'api-only', 'shipped', 'deprecated', 'question', 'open', 'in-progress', 'blocked', 'done', 'non-goal', 'draft', 'active', 'complete'];
+const STATUSES = ['', 'proposed', 'approved', 'unverified', 'api-only', 'shipped', 'deprecated', 'question', 'open', 'in-progress', 'blocked', 'done', 'non-goal', 'draft', 'active', 'complete', 'on-track', 'at-risk', 'off-track', 'paused'];
 
 // kind:slug as inline content: a clickable tag in the editor, plain id text when serialised.
 const Tag = createReactInlineContentSpec(
@@ -41,16 +43,78 @@ function stopEditorEvents(el: HTMLElement | null) {
   for (const ev of ['mousedown', 'keydown']) el.addEventListener(ev, e => e.stopPropagation()); // click and change still reach React
 }
 
-// A typed block (requirement, entity, rule, …): header with kind, id and status; the text is normal inline content.
-const NodeBlock = createReactBlockSpec(
-  { type: 'node', propSchema: { kind: { default: 'req' }, slug: { default: '' }, status: { default: '' }, form: { default: 'prose' }, textKey: { default: 'text' }, body: { default: '' }, extra: { default: '' }, check: { default: '' }, list: { default: '' } }, content: 'inline' },
+// A goal or task shown as a table row inside a goals/tasks collection: name (editable inline content), status, target,
+// progress, owner. Tracking fields live in the node's trailing property group.
+function RowNode({ p, set, contentRef }: { p: { kind: string; slug: string; status: string; extra: string; check: string; row: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void }) {
+  const { index } = usePeek();
+  const id = `${p.kind}:${p.slug}`; const e = index[id];
+  const ex = parseExtra(p.extra);
+  const statuses = p.kind === 'goal' ? GOAL_STATUSES : TASK_STATUSES;
+  const done = p.check === 'done' || p.status === 'done' || p.status === 'complete';
+  const explicit = ex.progress ? Number(ex.progress) : undefined;
+  const progress = explicit ?? (done ? 100 : e?.progress);
+  const setStatus = (st: string) => set(p.kind === 'task' ? { status: st, check: st === 'done' ? 'done' : 'todo' } : { status: st });
+  return (
+    <div className={`nrow k-${p.kind} ${done ? 'done' : ''}`} data-id={id}>
+      <div className="nrow-cell nrow-name">
+        {p.kind === 'task' && <input type="checkbox" className="nblock-check" checked={done} onChange={ev => setStatus(ev.target.checked ? 'done' : 'todo')} title="done?" onMouseDown={ev => ev.stopPropagation()} />}
+        <button type="button" className="nrow-open" contentEditable={false} title={id} onMouseDown={ev => ev.stopPropagation()} onClick={() => window.dispatchEvent(new CustomEvent('wf:peek', { detail: id }))}><i style={{ background: `var(--k-${p.kind}, var(--k-other))` }} /></button>
+        <div className="nrow-text" ref={contentRef} />
+      </div>
+      <div className="nrow-cell" contentEditable={false} ref={stopEditorEvents}>
+        <select className={`status-sel s-${p.status}`} value={p.status} onChange={ev => setStatus(ev.target.value)}>
+          {(statuses.includes(p.status) || !p.status ? [] : [p.status]).concat(['', ...statuses]).map(st => <option key={st} value={st}>{st || '— status'}</option>)}
+        </select>
+      </div>
+      <div className="nrow-cell" contentEditable={false} ref={stopEditorEvents}>
+        <input className="nrow-in" value={ex.target ?? ex.due ?? ''} placeholder={p.kind === 'goal' ? 'target' : 'due'} title="target date or month" onChange={ev => set({ extra: withExtra(p.extra, p.kind === 'goal' ? 'target' : 'due', ev.target.value) })} />
+      </div>
+      <div className="nrow-cell nrow-progress" contentEditable={false} ref={stopEditorEvents} title={explicit !== undefined ? 'explicit progress — clear to compute from parts' : e?.parts ? `${e.parts.done} of ${e.parts.total} parts done` : 'no parts yet — type a percentage'}>
+        <ProgressBar value={progress} width={52} />
+        <input className="nrow-in nrow-pct" value={ex.progress ?? ''} placeholder={progress !== undefined ? `${progress}%` : '—'} onChange={ev => set({ extra: withExtra(p.extra, 'progress', ev.target.value.replace(/[^0-9]/g, '')) })} />
+      </div>
+      <div className="nrow-cell" contentEditable={false} ref={stopEditorEvents}>
+        <input className="nrow-in" value={ex.owner ?? ''} placeholder="owner" onChange={ev => set({ extra: withExtra(p.extra, 'owner', ev.target.value) })} />
+      </div>
+    </div>
+  );
+}
+
+// A goals or tasks table: the header row; the rows are the block's children (goal/task nodes in row mode).
+const CollectionBlock = createReactBlockSpec(
+  { type: 'collection', propSchema: { kind: { default: 'goal' } }, content: 'none' },
   {
     render: props => {
-      const p = props.block.props as { kind: string; slug: string; status: string; form: string; body: string; extra: string; check: string; textKey: string };
+      const kind = (props.block.props as { kind: string }).kind;
+      const add = () => {
+        const slug = `${kind}-${Math.floor(Math.random() * 9000 + 1000)}`;
+        const row = { type: 'node', props: { kind, slug, status: kind === 'goal' ? 'proposed' : 'open', form: 'prose', textKey: 'text', body: '', extra: '', check: kind === 'task' ? 'todo' : '', list: 'bullet', row: kind }, content: `New ${kind}` };
+        const kids = (props.block.children ?? []) as unknown[];
+        props.editor.updateBlock(props.block, { children: [...kids, row] } as never);
+        setTimeout(() => { const last = (props.editor.getBlock(props.block.id) as { children?: { id: string }[] } | undefined)?.children?.slice(-1)[0]; if (last) { props.editor.setTextCursorPosition(last.id, 'end'); props.editor.focus(); } }, 0);
+      };
+      return (
+        <div className={`collection c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
+          <div className="nrow nrow-head">
+            <div className="nrow-cell nrow-name">{kind === 'goal' ? 'Goals' : 'Tasks'}<button className="collection-add" onClick={add} title={`Add a ${kind} row`}>+ add</button></div><div className="nrow-cell">Status</div><div className="nrow-cell">{kind === 'goal' ? 'Target' : 'Due'}</div><div className="nrow-cell nrow-progress">Progress</div><div className="nrow-cell">Owner</div>
+          </div>
+        </div>
+      );
+    },
+  },
+);
+
+// A typed block (requirement, entity, rule, …): header with kind, id and status; the text is normal inline content.
+const NodeBlock = createReactBlockSpec(
+  { type: 'node', propSchema: { kind: { default: 'req' }, slug: { default: '' }, status: { default: '' }, form: { default: 'prose' }, textKey: { default: 'text' }, body: { default: '' }, extra: { default: '' }, check: { default: '' }, list: { default: '' }, row: { default: '' } }, content: 'inline' },
+  {
+    render: props => {
+      const p = props.block.props as { kind: string; slug: string; status: string; form: string; body: string; extra: string; check: string; textKey: string; row: string };
       const [showYaml, setShowYaml] = useState(false);
       // every other key of a yaml node is shown read-only under the text; the yaml toggle edits them
       const rows = p.form === 'yaml' ? parseBody(p.body).filter(r => r.key !== p.textKey && r.key !== 'status') : [];
       const set = (patch: Partial<typeof p>) => props.editor.updateBlock(props.block, { props: { ...p, ...patch } } as never);
+      if (p.row) return <RowNode p={p} set={set} contentRef={props.contentRef} />;
       return (
         <div className={`nblock k-${p.kind} ${p.check === 'done' || p.status === 'done' ? 'done' : ''}`} data-id={`${p.kind}:${p.slug}`}>
           <div className="nblock-head" contentEditable={false} ref={stopEditorEvents}>
@@ -82,7 +146,7 @@ const NodeBlock = createReactBlockSpec(
   },
 );
 
-const schema = BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, node: NodeBlock(), drawing: DrawingBlock() }, inlineContentSpecs: { ...defaultInlineContentSpecs, tag: Tag } });
+const schema = BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, node: NodeBlock(), drawing: DrawingBlock(), collection: CollectionBlock() }, inlineContentSpecs: { ...defaultInlineContentSpecs, tag: Tag } });
 
 // Drag-handle menu entry on code blocks: turn an ASCII diagram into an editable drawing.
 function ToDrawingItem({ convert }: { convert: (b: AnyBlock) => void }) {
@@ -270,6 +334,10 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     touched.current = true; changed();
   };
   if (typeof window !== 'undefined') (window as unknown as { __wfCodeToDrawing: (id: string) => void }).__wfCodeToDrawing = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock | undefined; if (b) codeToDrawing(b); }; // dev inspection
+  const collectionItems = (['goal', 'task'] as const).map(kind => ({
+    title: `${kind === 'goal' ? 'Goals' : 'Tasks'} table`, group: 'Waterfall', subtext: `a table of ${kind}s with status, ${kind === 'goal' ? 'target' : 'due date'}, progress and owner`,
+    onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'collection', props: { kind }, children: [{ type: 'node', props: { kind, slug: `${kind}-${Math.floor(Math.random() * 9000 + 1000)}`, status: kind === 'goal' ? 'proposed' : 'open', form: 'prose', textKey: 'text', body: '', extra: '', check: kind === 'task' ? 'todo' : '', list: 'bullet', row: kind }, content: `New ${kind}` }] } as never); touched.current = true; changed(); },
+  }));
   const drawingItems = [
     { title: 'Drawing', group: 'Waterfall', subtext: 'an Excalidraw sketch saved next to the document', onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'drawing', props: { src: `drawings/${newDrawingSlug()}.excalidraw`, title: 'Drawing' } } as never); touched.current = true; changed(); } },
     { title: 'Code block → drawing', group: 'Waterfall', subtext: 'turn this ASCII diagram into an editable drawing', onItemClick: () => codeToDrawing(editor.getTextCursorPosition().block as unknown as AnyBlock) },
@@ -291,7 +359,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false}>
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /></DragHandleMenu>} />} />
         <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /></FormattingToolbar>} />
-        <SuggestionMenuController triggerCharacter="/" getItems={async q => filterSuggestionItems([...getDefaultReactSlashMenuItems(editor), ...nodeItems, ...drawingItems], q)} />
+        <SuggestionMenuController triggerCharacter="/" getItems={async q => filterSuggestionItems([...getDefaultReactSlashMenuItems(editor), ...nodeItems, ...collectionItems, ...drawingItems], q)} />
         <SuggestionMenuController triggerCharacter="@" minQueryLength={1} getItems={async q => mentionItems(q)} />
       </BlockNoteView>
       {linkReq && <LinkNodePicker req={linkReq} onClose={() => setLinkReq(null)} apply={applyLink} createDoc={createDoc} />}

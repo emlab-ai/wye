@@ -9,6 +9,7 @@ import { NodeCard } from './NodeCard';
 import { SmartTag } from './SmartTag';
 import { StatusPill } from './Pills';
 import { KIND_ORDER } from '@/lib/knowledge';
+import { ProgressBar } from './Progress';
 import type { GraphNode } from '@/lib/graph';
 import type { IndexEntry } from '@/lib/doc';
 
@@ -66,6 +67,7 @@ export function PeekPanel() {
         <Link href={`/${product}/graph?focus=${encodeURIComponent(openId)}&preset=Mechanics`}>Show in graph</Link>
       </div>
       {d ? <NodeCard id={openId} body={d.node.body} entry={entry} /> : <p className="muted">Loading {openId}…</p>}
+      {d && (entry?.kind === 'goal' || entry?.kind === 'task') && <Tracking entry={entry} index={index} inc={d.relations.inc} />}
       {d && (
         <div className="peek-views">
           <h4>Connected <span className="muted">{d.graph.nodes.length - 1}</span></h4>
@@ -105,5 +107,33 @@ function Relations({ out, inc, index }: { out: [string, string[]][]; inc: [strin
         </section>
       ))}
     </div>
+  );
+}
+
+// Goal / task tracking: status, target, owner, progress and what contributes to it.
+function Tracking({ entry, index, inc }: { entry: IndexEntry; index: Record<string, IndexEntry>; inc: [string, string[]][] }) {
+  const parts = (inc.find(([v]) => v === 'part-of')?.[1] ?? []).map(id => index[id]).filter(Boolean);
+  const byKind = (k: string) => parts.filter(p => p.kind === k);
+  const done = (p: IndexEntry) => ['done', 'complete', 'shipped'].includes(p.status) || (p.progress ?? 0) >= 100;
+  return (
+    <section className="tracking">
+      <div className="tracking-grid">
+        <div><small>status</small><StatusPill status={entry.status} /></div>
+        <div><small>{entry.kind === 'goal' ? 'target' : 'due'}</small><span>{entry.target ?? '—'}</span></div>
+        <div><small>owner</small><span>{entry.owner ?? '—'}</span></div>
+        <div className="tracking-prog"><small>progress</small><span><ProgressBar value={entry.progress} width={120} /> {entry.progress !== undefined ? `${entry.progress}%` : '—'}</span>{entry.parts && <em className="muted">{entry.parts.done} of {entry.parts.total} parts done</em>}</div>
+      </div>
+      {entry.kind === 'goal' && (['goal', 'task', 'req'] as const).map(k => {
+        const items = byKind(k); if (!items.length) return null;
+        const label = k === 'goal' ? 'Sub-goals' : k === 'task' ? 'Tasks' : 'Requirements';
+        return (
+          <div key={k} className="tracking-parts">
+            <h5>{label} <span className="muted">{items.filter(done).length}/{items.length}</span></h5>
+            <ul>{items.map(p => <li key={p.id} className={done(p) ? 'done' : ''}><SmartTag id={p.id} /><StatusPill status={p.status} />{p.progress !== undefined && k === 'goal' && <span className="tpct">{p.progress}%</span>}<span className="rt">{p.title !== p.id ? plain(p.title) : ''}</span></li>)}</ul>
+          </div>
+        );
+      })}
+      {entry.kind === 'task' && entry.parent && <p className="tracking-parent"><small>part of</small> <SmartTag id={entry.parent} /></p>}
+    </section>
   );
 }

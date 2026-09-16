@@ -7,7 +7,9 @@ export type Segment =
   | { type: 'yaml'; raw: string; chunks: Chunk[]; start: number; end: number };
 export interface SplitDoc { frontmatter: Record<string, string>; segments: Segment[] }
 export interface DocNode { module: GraphNode; file: string; slug: string; title: string; children: DocNode[] }
-export type IndexEntry = { id: string; kind: string; title: string; status: string; defined: boolean; file: string };
+export type IndexEntry = { id: string; kind: string; title: string; status: string; defined: boolean; file: string; owner?: string; target?: string; progress?: number; parts?: { done: number; total: number }; parent?: string };
+
+export const DONE_STATUSES = new Set(['done', 'shipped', 'complete']);
 
 export function docSlug(file: string): string { return file.split('/').pop()!.replace(/\.md$/, ''); }
 
@@ -130,7 +132,25 @@ export function linkedDocuments(g: GraphData, idx: GraphIndex, file: string) {
 
 export function nodeIndex(g: GraphData): Record<string, IndexEntry> {
   const out: Record<string, IndexEntry> = {};
-  for (const n of g.nodes) { if (n.kind === 'field') continue; out[n.id] = { id: n.id, kind: n.kind, title: n.title, status: n.status, defined: n.defined, file: n.file }; }
+  const field = (body: string, key: string) => body.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'))?.[1].trim();
+  for (const n of g.nodes) {
+    if (n.kind === 'field') continue;
+    const e: IndexEntry = { id: n.id, kind: n.kind, title: n.title, status: n.status, defined: n.defined, file: n.file };
+    if (n.kind === 'goal' || n.kind === 'task') {
+      const owner = field(n.body, 'owner'); const target = field(n.body, 'target') ?? field(n.body, 'due'); const progress = Number(field(n.body, 'progress'));
+      if (owner) e.owner = owner; if (target) e.target = target; if (!Number.isNaN(progress) && field(n.body, 'progress')) e.progress = Math.max(0, Math.min(100, progress));
+    }
+    out[n.id] = e;
+  }
+  // Progress of a goal = share of the tasks, requirements and sub-goals that are part of it and done; a task's parent
+  // goal is the goal it is part of.
+  const parts = new Map<string, string[]>();
+  for (const ed of g.edges) if (ed.verb === 'part-of' && out[ed.to]?.kind === 'goal' && out[ed.from] && ['task', 'req', 'goal'].includes(out[ed.from].kind)) {
+    if (!parts.has(ed.to)) parts.set(ed.to, []); parts.get(ed.to)!.push(ed.from);
+    if (out[ed.from].kind !== 'req') out[ed.from].parent = ed.to;
+  }
+  const isDone = (id: string) => { const e = out[id]; return DONE_STATUSES.has(e.status) || (e.progress ?? 0) >= 100; };
+  for (const [goal, ids] of parts) { const done = ids.filter(isDone).length; out[goal].parts = { done, total: ids.length }; if (out[goal].progress === undefined && ids.length) out[goal].progress = Math.round(100 * done / ids.length); }
   return out;
 }
 

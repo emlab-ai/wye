@@ -954,6 +954,19 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   source: packages/web/src/lib/semantic.ts; packages/web/src/components/ContextPanel.tsx; packages/web/src/app/api/[product]/context/route.ts
   status: shipped
   verified-by: [test:web-lib#semantic]
+- id: rule:goals-and-tasks
+  statement: >
+    Goals and tasks are tracked like Atlassian goals. Every product has a Goals page and a Tasks page (search, status
+    chips, sub-goals nested under the goal they are part of, columns name / status / target or due / progress or goal /
+    owner / document); a row opens the item in the right column, whose node view adds a tracking section (status,
+    target, owner, progress, sub-goals, tasks and requirements that are part of it). A document may hold a goals or
+    tasks table: the lines between `<!-- goals -->` and `<!-- /goals -->` (or tasks) are ordinary goal/task lines to
+    the parser and an editable table in the editor (status select, target/due, progress, owner; "+ add" appends a
+    row). Progress is `(progress: n)` when given, else the share of done/shipped/complete parts. Goal statuses are
+    proposed, on-track, at-risk, off-track, paused, complete, non-goal.
+  source: packages/web/src/components/TrackList.tsx; packages/web/src/lib/track.ts; packages/web/src/lib/doc.ts#nodeIndex; packages/web/src/components/DocEditor.tsx#RowNode
+  status: shipped
+  verified-by: [test:web-lib#import, test:web-lib#props]
 - id: decision:wf2.local-semantic-search
   title: Relevant-context search runs locally with a small sentence model, not a hosted embedding API
   context: The context panel must suggest related requirements, rules and decisions while a person or agent writes; product knowledge is confidential and the tool must work offline.

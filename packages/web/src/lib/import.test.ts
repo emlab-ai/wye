@@ -113,6 +113,22 @@ describe('expand', () => {
     expect(blocks[1]).toEqual({ type: 'drawing', props: { src: 'drawings/sync-flow.excalidraw', title: 'Sync flow' } });
     expect(blocksToMarkdown(blocks)).toBe('Intro.\n\n![Sync flow](drawings/sync-flow.excalidraw)\n\nAfter.\n');
   });
+  it('turns a <!-- goals --> region into a collection block whose rows are goal nodes, and writes it back', () => {
+    const src = 'Intro.\n\n<!-- goals -->\n- goal:g1 First goal #on-track (owner: alex, target: 2026-10)\n- goal:g2 Second goal\n<!-- /goals -->\n\nAfter.\n';
+    const p = prepare(src);
+    expect(p.md).toContain('%%COLLECTION:goals%%');
+    const parsed: { type: string; content: { type: string; text: string; styles: object }[] }[] = [];
+    for (const para of p.md.split(/\n\n+/).map(x => x.trim()).filter(Boolean)) {
+      if (para.startsWith('- ')) for (const line of para.split('\n')) parsed.push({ type: 'bulletListItem', content: [t(line.replace(/^- /, ''))] });
+      else parsed.push({ type: 'paragraph', content: [t(para)] });
+    }
+    const blocks = expand(parsed, p.yaml, p.drawings);
+    expect(blocks.map(b => b.type)).toEqual(['paragraph', 'collection', 'paragraph']);
+    expect(blocks[1].props).toEqual({ kind: 'goal' });
+    expect(blocks[1].children?.map(c => c.type)).toEqual(['node', 'node']);
+    expect(blocks[1].children?.[0].props).toMatchObject({ kind: 'goal', slug: 'g1', status: 'on-track', extra: 'owner: alex, target: 2026-10', row: 'goal', list: 'bullet' });
+    expect(blocksToMarkdown(blocks)).toBe(src);
+  });
   it('round-trips through the serializer', () => {
     const src = 'req:sale.close When done, entity:order is Closed. #proposed (owner: alex)\n\n---\n\n```yaml\n- id: rule:x\n  statement: S\n  source: f.ts\n```\n';
     const p = prepare(src);

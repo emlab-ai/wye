@@ -50,7 +50,16 @@ verbs:
 statuses:
   req:  [shipped, api-only, unverified, proposed, question]   # shipped requires ≥1 verified-by; ctx check --strict enforces it
   node: [proposed, approved, shipped, deprecated]              # lifecycle used by deltas
+  goal: [proposed, on-track, at-risk, off-track, paused, complete, non-goal]   # goal health, Atlassian-style; progress is computed from what is part of the goal
+  task: [todo, open, in-progress, blocked, done]              # a checkbox line sets open/done; #in-progress / #blocked override
   drift: [drift]
+
+goal-and-task-properties: |
+  Goals and tasks carry their tracking fields in the trailing property group: `(owner: alex, target: 2026-10, progress: 40)`.
+  `target`/`due` is a date or month, `owner` a person, `progress` an explicit percentage; without `progress` the UI
+  computes it from the nodes that are `part of` the goal (tasks, requirements, sub-goals) counting done/shipped/complete.
+  A document may hold a goals or tasks table: the lines between `<!-- goals -->` and `<!-- /goals -->` (or `tasks`)
+  are ordinary goal/task lines to the parser and an editable table in the UI.
 
 aliases:   # short kind prefixes accepted anywhere an id is written; normalised to the full kind
   et: entity

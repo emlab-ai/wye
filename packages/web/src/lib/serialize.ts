@@ -2,7 +2,7 @@
 // run on plain JSON in tests. Node blocks (our custom block) become prose lines or yaml blocks.
 import type { Inline } from './mdflow';
 
-export interface NodeProps { kind: string; slug: string; status: string; form: 'prose' | 'yaml'; textKey: string; body: string; extra: string; check?: '' | 'todo' | 'done'; list?: '' | 'bullet' | 'number' }
+export interface NodeProps { kind: string; slug: string; status: string; form: 'prose' | 'yaml'; textKey: string; body: string; extra: string; check?: '' | 'todo' | 'done'; list?: '' | 'bullet' | 'number'; row?: '' | 'goal' | 'task' }
 export interface AnyBlock { type: string; props?: Record<string, unknown>; content?: unknown; children?: AnyBlock[] }
 
 export function inlineToMarkdown(items: Inline[] | undefined): string {
@@ -103,6 +103,12 @@ export function blocksToMarkdown(blocks: AnyBlock[]): string {
       case 'codeBlock': { blank(); const lang = String((b.props as { language?: string })?.language ?? ''); push('```' + (lang === 'text' ? '' : lang)); push(...plainText(b.content as Inline[]).split('\n')); push('```'); blank(); break; }
       case 'quote': { blank(); push(...inlineToMarkdown(b.content as Inline[]).split('\n').map(l => '> ' + l)); blank(); break; }
       case 'divider': { blank(); push('---'); blank(); break; }
+      case 'collection': { // a goals/tasks table: its rows are node blocks, written as plain list lines inside comment markers
+        const ck = (b.props as { kind?: string }).kind === 'task' ? 'tasks' : 'goals';
+        blank(); push(`<!-- ${ck} -->`);
+        push(...childrenLines((b.children ?? []).map(c => c.type === 'node' && !(c.props as unknown as NodeProps).check && !(c.props as unknown as NodeProps).list ? { ...c, props: { ...c.props, list: 'bullet' } } : c), 0));
+        push(`<!-- /${ck} -->`); blank(); break;
+      }
       case 'drawing': { const dp = b.props as { src?: string; title?: string }; blank(); push(`![${dp.title ?? ''}](${dp.src ?? ''})`); blank(); break; }
       case 'image': case 'video': case 'audio': case 'file': { const fp = b.props as { url?: string; caption?: string; name?: string }; if (fp.url) { blank(); push(`![${fp.caption || fp.name || ''}](${fp.url})`); blank(); } break; }
       default: { const t = inlineToMarkdown(b.content as Inline[]); if (t.trim()) { blank(); push(t); blank(); } }

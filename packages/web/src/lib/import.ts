@@ -7,11 +7,14 @@ import { tagifyBlocks, unwrapParagraphs, type Inline, type InlineText } from './
 import type { AnyBlock, NodeProps } from './serialize';
 
 const TEXT_KEYS = ['title', 'statement', 'description', 'purpose', 'q', 'text', 'context', 'does', 'intent'];
-const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|non-goal|partial|active|draft|complete)\b/;
+const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused)\b/;
 
 export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[] }
 
 // A drawing is referenced like an image whose file is an Excalidraw scene: ![Title](drawings/name.excalidraw)
+// A goals/tasks table region: ordinary node lines between <!-- goals --> and <!-- /goals --> (or tasks).
+export const COLLECTION_OPEN = /^<!--\s*(goals|tasks)\s*-->\s*$/;
+export const COLLECTION_CLOSE = /^<!--\s*\/(goals|tasks)\s*-->\s*$/;
 export const DRAWING_LINE = /^!\[([^\]]*)\]\((\S+\.excalidraw)\)\s*$/;
 
 // Replace yaml blocks with %%YAML:n%% paragraphs and --- rules with %%DIVIDER%% paragraphs; unwrap prose.
@@ -20,7 +23,12 @@ export function prepare(body: string): Prepared {
   const yaml: { id: string; body: string }[][] = [];
   const drawings: { title: string; src: string }[] = [];
   const parts: string[] = [];
-  const liftDrawings = (text: string) => text.split('\n').map(l => { const m = l.match(DRAWING_LINE); if (!m) return l; drawings.push({ title: m[1], src: m[2] }); return `\n%%DRAWING:${drawings.length - 1}%%\n`; }).join('\n');
+  const liftDrawings = (text: string) => text.split('\n').map(l => {
+    const m = l.match(DRAWING_LINE); if (m) { drawings.push({ title: m[1], src: m[2] }); return `\n%%DRAWING:${drawings.length - 1}%%\n`; }
+    const o = l.match(COLLECTION_OPEN); if (o) return `\n%%COLLECTION:${o[1]}%%\n`;
+    const c = l.match(COLLECTION_CLOSE); if (c) return `\n%%/COLLECTION%%\n`;
+    return l;
+  }).join('\n');
   for (const s of split.segments) {
     if (s.type === 'yaml') { yaml.push(s.chunks.map(c => ({ id: c.id ?? '', body: c.body }))); parts.push(`%%YAML:${yaml.length - 1}%%`); }
     else if (s.type === 'hr') parts.push('%%DIVIDER%%');
@@ -117,23 +125,28 @@ const text = (s: string): InlineText => ({ type: 'text', text: s, styles: {} });
 // Expand markers and id-first paragraphs into node/divider blocks, then tag ids everywhere.
 export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Prepared['drawings'] = []): AnyBlock[] {
   const out: AnyBlock[] = [];
+  let coll: AnyBlock | null = null; // the goals/tasks table being filled; blocks until %%/COLLECTION%% become its rows
+  const push = (blk: AnyBlock) => { if (coll) coll.children!.push(blk); else out.push(blk); };
   for (const b of blocks) {
     const first = firstText(b);
-    if ((b.type === 'paragraph') && /^%%DIVIDER%%$/.test(first.trim())) { out.push({ type: 'divider' }); continue; }
+    const cm = first.trim().match(/^%%COLLECTION:(goals|tasks)%%$/);
+    if (b.type === 'paragraph' && cm) { coll = { type: 'collection', props: { kind: cm[1] === 'goals' ? 'goal' : 'task' }, children: [] }; out.push(coll); continue; }
+    if (b.type === 'paragraph' && /^%%\/COLLECTION%%$/.test(first.trim())) { coll = null; continue; }
+    if ((b.type === 'paragraph') && /^%%DIVIDER%%$/.test(first.trim())) { push({ type: 'divider' }); continue; }
     const dm = first.trim().match(/^%%DRAWING:(\d+)%%$/);
-    if (b.type === 'paragraph' && dm && drawings[Number(dm[1])]) { const dr = drawings[Number(dm[1])]; out.push({ type: 'drawing', props: { src: dr.src, title: dr.title } }); continue; }
+    if (b.type === 'paragraph' && dm && drawings[Number(dm[1])]) { const dr = drawings[Number(dm[1])]; push({ type: 'drawing', props: { src: dr.src, title: dr.title } }); continue; }
     const ym = first.trim().match(/^%%YAML:(\d+)%%$/);
     if (b.type === 'paragraph' && ym) {
       for (const chunk of yaml[Number(ym[1])] ?? []) {
         const n = nodePropsFromChunk(chunk);
-        if (n) out.push({ type: 'node', props: n.props as unknown as Record<string, unknown>, content: [text(n.text)] });
-        else out.push({ type: 'codeBlock', props: { language: 'yaml' }, content: [text(chunk.body)] });
+        if (n) push({ type: 'node', props: n.props as unknown as Record<string, unknown>, content: [text(n.text)] });
+        else push({ type: 'codeBlock', props: { language: 'yaml' }, content: [text(chunk.body)] });
       }
       continue;
     }
     const pn = proseNode(b, yaml, drawings);
-    if (pn) { out.push(withLinks(pn)); continue; }
-    out.push(withLinks(b.children?.length ? { ...b, children: expand(b.children, yaml, drawings) } : b));
+    if (pn) { if (coll) pn.props = { ...pn.props, row: (coll.props as { kind: string }).kind }; push(withLinks(pn)); continue; }
+    push(withLinks(b.children?.length ? { ...b, children: expand(b.children, yaml, drawings) } : b));
   }
   return (tagifyBlocks(out as never[]) as AnyBlock[]).map(unescapeBlock);
 }
