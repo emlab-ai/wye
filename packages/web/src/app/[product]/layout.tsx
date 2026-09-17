@@ -9,6 +9,7 @@ import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { listProducts } from '@/lib/products';
 import { loadScope, treeFor } from '@/lib/scope';
+import { isBaseType, isImplicit } from '@/lib/types';
 import { loadMarkdown } from '@/lib/load';
 import { outline, splitDocument, docRoute, type DocNode } from '@/lib/doc';
 import { REPO_ROOT } from '@/lib/products';
@@ -27,8 +28,10 @@ export default async function ProductLayout({ children, params }: { children: Re
   const docs: Record<string, DocMeta> = {};
   const walk = async (d: DocNode, parent?: string) => { const r = docRoute(d.file); let mtime = ''; try { mtime = (await stat(path.join(REPO_ROOT, d.file))).mtime.toISOString(); } catch { /* gone */ } docs[d.slug] = { slug: d.slug, title: d.title, icon: icons.get(d.file) || defaultIcon(d.slug), project: r?.project ?? '', parent, mtime }; for (const c of d.children) await walk(c, d.slug); };
   for (const p of scope.projects) for (const r of treeFor(scope, p.slug).roots) await walk(r);
+  // the product's own types with the columns a table of them shows: every declared property but the root type's
+  const ownTypes = (scope.graph.types ?? []).filter(t => !isBaseType(t)).map(t => ({ slug: t.slug, cols: t.props.filter(p => !isImplicit(p)).map(p => ({ name: p.name, type: p.type, enum: p.enum, ref: p.ref, required: p.required })) }));
   return (
-    <PeekProvider product={scope.product.slug} index={scope.index} kinds={scope.graph.kinds}>
+    <PeekProvider product={scope.product.slug} index={scope.index} kinds={scope.graph.kinds} types={ownTypes}>
       <Shell>
         <Rail products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} headings={headings} />
         <LiveRefresh product={scope.product.slug} />

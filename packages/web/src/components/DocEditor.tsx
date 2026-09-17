@@ -14,12 +14,12 @@ import { setBodyField } from '@/lib/yaml-form';
 import { Linkified } from './IdLink';
 import { SmartTag } from './SmartTag';
 import { DrawingBlock, newDrawingSlug, sceneFromText, sceneFromImage } from './DrawingBlock';
-import { usePeek } from './PeekProvider';
+import { usePeek, type OwnType } from './PeekProvider';
 import { ID_RE } from '@/lib/ids';
 import { parseExtra, withExtra, GOAL_STATUSES, TASK_STATUSES } from '@/lib/props';
 import { slugify } from '@/lib/templates';
 import { blockHash } from '@/lib/anchors';
-import { headingSlug } from '@/lib/doc';
+import { headingSlug, DONE_STATUSES } from '@/lib/doc';
 import { ProgressBar } from './Progress';
 import { requestSend } from './SendToAgent';
 import { AskAgentBox, type AskRequest } from './AskAgent';
@@ -179,8 +179,47 @@ function RowNode({ p, set, contentRef, block }: { p: { kind: string; slug: strin
   );
 }
 
-// An empty row for a goals/tasks table: typing into it makes it a real item.
-const emptyRow = (kind: string) => ({ type: 'node', props: { kind, slug: '', status: kind === 'goal' ? 'proposed' : 'open', form: 'prose', textKey: 'text', body: '', extra: '', check: kind === 'task' ? 'todo' : '', list: 'bullet', row: kind }, content: [] as unknown[] });
+// A row of a type table (a product's own type): name, status, then one cell per property of the type; values live in
+// the node's trailing property group, so the line stays `- bug:slug Text #status (severity: high, …)`.
+function TypeRow({ p, set, contentRef, block, type }: { p: { kind: string; slug: string; status: string; extra: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; type: OwnType }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const id = `${p.kind}:${p.slug}`;
+  const empty = !p.slug && !rowText(block);
+  const ex = parseExtra(p.extra);
+  const done = DONE_STATUSES.has(p.status);
+  return (
+    <div className={`nrow nrow-type k-${p.kind} ${done ? 'done' : ''} ${empty ? 'empty' : ''}`} data-id={id} ref={rowRef} style={{ gridTemplateColumns: typeGrid(type) }}>
+      <div className="nrow-cell nrow-name">
+        <button type="button" className="nrow-open" contentEditable={false} title={id} onMouseDown={ev => ev.stopPropagation()} onClick={() => window.dispatchEvent(new CustomEvent('wf:peek', { detail: id }))}><i style={{ background: `var(--k-${p.kind}, var(--k-other))` }} /></button>
+        <div className="nrow-text" ref={contentRef} data-placeholder={`New ${p.kind}…`} />
+        <button type="button" className="nrow-send" contentEditable={false} title="Copy link" onMouseDown={ev => ev.stopPropagation()} onClick={() => copyBlockLink(block, rowRef.current)}>⧉</button>
+        <button type="button" className="nrow-send" contentEditable={false} title="Send to agent" onMouseDown={ev => ev.stopPropagation()} onClick={() => sendBlock(block, rowRef.current)}>⇢</button>
+      </div>
+      <div className="nrow-cell" contentEditable={false} ref={stopEditorEvents}>
+        <select className={`status-sel s-${p.status}`} value={p.status} onChange={ev => set({ status: ev.target.value })}>
+          {(STATUSES.includes(p.status) ? [] : [p.status]).concat(STATUSES).map(st => <option key={st} value={st}>{st || '— status'}</option>)}
+        </select>
+      </div>
+      {type.cols.map(c => (
+        <div key={c.name} className="nrow-cell" contentEditable={false} ref={stopEditorEvents}>
+          {c.enum ? (
+            <select className="nrow-in" value={ex[c.name] ?? ''} onChange={ev => set({ extra: withExtra(p.extra, c.name, ev.target.value) })}>
+              {(ex[c.name] && !c.enum.includes(ex[c.name]) ? [ex[c.name]] : []).concat(['', ...c.enum]).map(v => <option key={v} value={v}>{v || `— ${c.name}`}</option>)}
+            </select>
+          ) : c.type === 'bool' ? (
+            <input type="checkbox" checked={ex[c.name] === 'true' || ex[c.name] === 'yes'} title={c.name} onChange={ev => set({ extra: withExtra(p.extra, c.name, ev.target.checked ? 'true' : '') })} />
+          ) : (
+            <input className="nrow-in" value={ex[c.name] ?? ''} placeholder={c.ref ? `${c.ref}:…` : c.name} title={c.ref ? `${c.name} — a ${c.ref} id` : `${c.name} (${c.type})`} onChange={ev => set({ extra: withExtra(p.extra, c.name, ev.target.value) })} />
+          )}
+        </div>))}
+    </div>
+  );
+}
+// name, status, then one column per property (comma-separated values such as ids get room)
+const typeGrid = (t: OwnType) => `minmax(0, 1fr) 100px${t.cols.map(c => c.type === 'bool' ? ' 40px' : c.ref ? ' minmax(90px, 150px)' : ' minmax(72px, 120px)').join('')}`;
+
+// An empty row for a goals/tasks/type table: typing into it makes it a real item.
+const emptyRow = (kind: string) => ({ type: 'node', props: { kind, slug: '', status: kind === 'goal' ? 'proposed' : kind === 'task' ? 'open' : '', form: 'prose', textKey: 'text', body: '', extra: '', check: kind === 'task' ? 'todo' : '', list: 'bullet', row: kind }, content: [] as unknown[] });
 const rowText = (b: AnyBlock) => (Array.isArray(b.content) ? (b.content as { type: string; text?: string; props?: { id?: string } }[]).map(i => i.type === 'text' ? i.text ?? '' : i.type === 'tag' ? i.props?.id ?? '' : '').join('') : '').trim();
 
 // Every goals/tasks table ends with one empty row; a row that gained text gets its id, and a new empty row follows.
@@ -212,12 +251,29 @@ function settleCollections(editor: { document: unknown; updateBlock: (b: unknown
   return changed;
 }
 
+// looks the row's type up in the product's own types; an unknown type still gets a row with name and status
+function TypeRowFor({ p, set, contentRef, block }: { p: { kind: string; slug: string; status: string; extra: string; row: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock }) {
+  const { ownTypes } = usePeek();
+  const type = ownTypes.find(t => t.slug === p.row) ?? { slug: p.row, cols: [] };
+  return <TypeRow p={p} set={set} contentRef={contentRef} block={block} type={type} />;
+}
+
 // A goals or tasks table: the header row; the rows are the block's children (goal/task nodes in row mode).
 const CollectionBlock = createReactBlockSpec(
   { type: 'collection', propSchema: { kind: { default: 'goal' } }, content: 'none' },
   {
     render: props => {
       const kind = (props.block.props as { kind: string }).kind;
+      const { ownTypes } = usePeek();
+      const type = kind === 'goal' || kind === 'task' ? undefined : ownTypes.find(t => t.slug === kind);
+      if (kind !== 'goal' && kind !== 'task') return (
+        <div className={`collection c-type c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
+          <div className="nrow nrow-head nrow-type" style={{ gridTemplateColumns: typeGrid(type ?? { slug: kind, cols: [] }) }}>
+            <div className="nrow-cell nrow-name">{kind}s{!type && <span className="muted" title="the product declares no such type; rows are still written">?</span>}</div><div className="nrow-cell">Status</div>
+            {(type?.cols ?? []).map(c => <div key={c.name} className="nrow-cell" title={c.ref ? `${c.type}` : c.type}>{c.name}</div>)}
+          </div>
+        </div>
+      );
       return (
         <div className={`collection c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
           <div className="nrow nrow-head">
@@ -239,6 +295,7 @@ const NodeBlock = createReactBlockSpec(
       // every other key of a yaml node is shown read-only under the text; the yaml toggle edits them
       const rows = p.form === 'yaml' ? parseBody(p.body).filter(r => r.key !== p.textKey && r.key !== 'status') : [];
       const set = (patch: Partial<typeof p>) => props.editor.updateBlock(props.block, { props: { ...p, ...patch } } as never);
+      if (p.row && p.row !== 'goal' && p.row !== 'task') return <TypeRowFor p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} />;
       if (p.row) return <RowNode p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} />;
       if (p.kind === 'question' && p.form === 'yaml') return <QuestionNode p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} />;
       return (
@@ -348,7 +405,7 @@ function LinkNodePicker({ req, onClose, apply, createDoc }: { req: LinkRequest; 
 
 export default function DocEditor({ product, project, slug, body, ifMatch, fallback }: { product: string; project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode }) {
   const router = useRouter();
-  const { open: openPeek, index, hrefFor, setEditing, setShowContext, ownKinds } = usePeek();
+  const { open: openPeek, index, hrefFor, setEditing, setShowContext, ownKinds, ownTypes } = usePeek();
   // node blocks render inside the editor, so they ask for the peek panel through a window event
   useEffect(() => { const h = (e: Event) => openPeek((e as CustomEvent<string>).detail); window.addEventListener('wf:peek', h); return () => window.removeEventListener('wf:peek', h); }, [openPeek]);
   // pasted or dropped images go to the project's docs/assets folder; the block keeps the relative url the markdown uses
@@ -531,10 +588,18 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   };
   if (typeof window !== 'undefined') (window as unknown as { __wfAnnotate: (id: string) => void }).__wfAnnotate = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock | undefined; if (b) imageToDrawing(b); };
   if (typeof window !== 'undefined') (window as unknown as { __wfCodeToDrawing: (id: string) => void }).__wfCodeToDrawing = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock | undefined; if (b) codeToDrawing(b); }; // dev inspection
-  const collectionItems = (['goal', 'task'] as const).map(kind => ({
-    title: `${kind === 'goal' ? 'Goals' : 'Tasks'} table`, group: 'Waterfall', subtext: `a table of ${kind}s with status, ${kind === 'goal' ? 'target' : 'due date'}, progress and owner`,
-    onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'collection', props: { kind }, children: [emptyRow(kind)] } as never); setTimeout(() => settle(), 0); touched.current = true; changed(); },
-  }));
+  const insertCollection = (kind: string) => { insertOrUpdateBlockForSlashMenu(editor, { type: 'collection', props: { kind }, children: [emptyRow(kind)] } as never); setTimeout(() => settle(), 0); touched.current = true; changed(); };
+  const collectionItems = [
+    ...(['goal', 'task'] as const).map(kind => ({
+      title: `${kind === 'goal' ? 'Goals' : 'Tasks'} table`, group: 'Waterfall', subtext: `a table of ${kind}s with status, ${kind === 'goal' ? 'target' : 'due date'}, progress and owner`,
+      onItemClick: () => insertCollection(kind),
+    })),
+    // one table per type the product declares: its rows are instances, its columns the type's properties
+    ...ownTypes.map(t => ({
+      title: `${t.slug[0].toUpperCase()}${t.slug.slice(1)}s table`, group: 'Waterfall', subtext: `a table of ${t.slug}s${t.cols.length ? ` with ${t.cols.map(c => c.name).join(', ')}` : ''}`,
+      onItemClick: () => insertCollection(t.slug),
+    })),
+  ];
   const drawingItems = [
     { title: 'Drawing', group: 'Waterfall', subtext: 'an Excalidraw sketch saved next to the document', onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'drawing', props: { src: `drawings/${newDrawingSlug()}.excalidraw`, title: 'Drawing' } } as never); touched.current = true; changed(); } },
     { title: 'Code block → drawing', group: 'Waterfall', subtext: 'turn this ASCII diagram into an editable drawing', onItemClick: () => codeToDrawing(editor.getTextCursorPosition().block as unknown as AnyBlock) },

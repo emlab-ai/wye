@@ -4,7 +4,8 @@
 import { ID_RE, cleanId } from './ids';
 import { splitDocument } from './doc';
 import { tagifyBlocks, unwrapParagraphs, type Inline, type InlineText } from './mdflow';
-import type { AnyBlock, NodeProps } from './serialize';
+import { collectionKind, type AnyBlock, type NodeProps } from './serialize';
+import { EXTRA_GROUP } from './props';
 
 const TEXT_KEYS = ['title', 'statement', 'description', 'purpose', 'q', 'text', 'context', 'does', 'intent'];
 const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused|resolved|rejected)\b/;
@@ -12,9 +13,11 @@ const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|depr
 export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[] }
 
 // A drawing is referenced like an image whose file is an Excalidraw scene: ![Title](drawings/name.excalidraw)
-// A goals/tasks table region: ordinary node lines between <!-- goals --> and <!-- /goals --> (or tasks).
-export const COLLECTION_OPEN = /^<!--\s*(goals|tasks)\s*-->\s*$/;
-export const COLLECTION_CLOSE = /^<!--\s*\/(goals|tasks)\s*-->\s*$/;
+// A table region: ordinary node lines between <!-- goals --> and <!-- /goals --> (or tasks), or for any type
+// <!-- table:<slug> --> … <!-- /table:<slug> -->. The marker carries the kind of its rows.
+export const COLLECTION_OPEN = /^<!--\s*(goals|tasks|table:[a-z][a-z0-9-]*)\s*-->\s*$/;
+export const COLLECTION_CLOSE = /^<!--\s*\/(goals|tasks|table:[a-z][a-z0-9-]*)\s*-->\s*$/;
+
 export const DRAWING_LINE = /^!\[([^\]]*)\]\((\S+\.excalidraw)\)\s*$/;
 
 // Replace yaml blocks with %%YAML:n%% paragraphs and --- rules with %%DIVIDER%% paragraphs; unwrap prose.
@@ -25,7 +28,7 @@ export function prepare(body: string): Prepared {
   const parts: string[] = [];
   const liftDrawings = (text: string) => text.split('\n').map(l => {
     const m = l.match(DRAWING_LINE); if (m) { drawings.push({ title: m[1], src: m[2] }); return `\n%%DRAWING:${drawings.length - 1}%%\n`; }
-    const o = l.match(COLLECTION_OPEN); if (o) return `\n%%COLLECTION:${o[1]}%%\n`;
+    const o = l.match(COLLECTION_OPEN); if (o) return `\n%%COLLECTION:${collectionKind(o[1])}%%\n`;
     const c = l.match(COLLECTION_CLOSE); if (c) return `\n%%/COLLECTION%%\n`;
     return l;
   }).join('\n');
@@ -129,8 +132,8 @@ export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Pre
   const push = (blk: AnyBlock) => { if (coll) coll.children!.push(blk); else out.push(blk); };
   for (const b of blocks) {
     const first = firstText(b);
-    const cm = first.trim().match(/^%%COLLECTION:(goals|tasks)%%$/);
-    if (b.type === 'paragraph' && cm) { coll = { type: 'collection', props: { kind: cm[1] === 'goals' ? 'goal' : 'task' }, children: [] }; out.push(coll); continue; }
+    const cm = first.trim().match(/^%%COLLECTION:([a-z][a-z0-9-]*)%%$/);
+    if (b.type === 'paragraph' && cm) { coll = { type: 'collection', props: { kind: cm[1] }, children: [] }; out.push(coll); continue; }
     if (b.type === 'paragraph' && /^%%\/COLLECTION%%$/.test(first.trim())) { coll = null; continue; }
     if ((b.type === 'paragraph') && /^%%DIVIDER%%$/.test(first.trim())) { push({ type: 'divider' }); continue; }
     const dm = first.trim().match(/^%%DRAWING:(\d+)%%$/);
@@ -191,7 +194,7 @@ function proseNode(b: AnyBlock, yaml: Prepared['yaml'], drawings: Prepared['draw
   const last = restItems[restItems.length - 1];
   if (last && last.type === 'text') {
     let s = (last as InlineText).text;
-    const g = s.match(/\s*\(([a-z-]+:\s*[^()]*?(?:,\s*[a-z-]+:\s*[^()]*?)*)\)\s*$/); if (g) { extra = g[1]; s = s.slice(0, g.index); }
+    const g = s.match(EXTRA_GROUP); if (g) { extra = g[1]; s = s.slice(0, g.index); }
     s = s.replace(STATUS_TAG, (_, st) => { status = st; return ''; });
     restItems[restItems.length - 1] = { ...(last as InlineText), text: s.replace(/\s+$/, '') };
   }

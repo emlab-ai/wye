@@ -2,6 +2,10 @@
 // run on plain JSON in tests. Node blocks (our custom block) become prose lines or yaml blocks.
 import type { Inline } from './mdflow';
 
+// A table region's marker names the kind of its rows: goals, tasks, or table:<type slug> for a product's own type.
+export const collectionKind = (marker: string) => marker === 'goals' ? 'goal' : marker === 'tasks' ? 'task' : marker.replace(/^table:/, '');
+export const collectionMarker = (kind: string) => kind === 'goal' ? 'goals' : kind === 'task' ? 'tasks' : `table:${kind}`;
+
 export interface NodeProps { kind: string; slug: string; status: string; form: 'prose' | 'yaml'; textKey: string; body: string; extra: string; check?: '' | 'todo' | 'done'; list?: '' | 'bullet' | 'number'; row?: '' | 'goal' | 'task' }
 export interface AnyBlock { type: string; props?: Record<string, unknown>; content?: unknown; children?: AnyBlock[] }
 
@@ -103,8 +107,8 @@ export function blocksToMarkdown(blocks: AnyBlock[]): string {
       case 'codeBlock': { blank(); const lang = String((b.props as { language?: string })?.language ?? ''); push('```' + (lang === 'text' ? '' : lang)); push(...plainText(b.content as Inline[]).split('\n')); push('```'); blank(); break; }
       case 'quote': { blank(); push(...inlineToMarkdown(b.content as Inline[]).split('\n').map(l => '> ' + l)); blank(); break; }
       case 'divider': { blank(); push('---'); blank(); break; }
-      case 'collection': { // a goals/tasks table: its rows are node blocks, written as plain list lines inside comment markers
-        const ck = (b.props as { kind?: string }).kind === 'task' ? 'tasks' : 'goals';
+      case 'collection': { // a goals/tasks/type table: its rows are node blocks, written as plain list lines inside comment markers
+        const ck = collectionMarker((b.props as { kind?: string }).kind ?? 'goal');
         blank(); push(`<!-- ${ck} -->`);
         // the editor keeps an empty row at the end for typing the next item; rows without text are not written
         const rows = (b.children ?? []).filter(c => c.type !== 'node' || (inlineToMarkdown(c.content as Inline[]).trim() && (c.props as unknown as NodeProps).slug));

@@ -1,6 +1,7 @@
 // A prose node line ("- [ ] task:x Text #status (k: v)") taken apart and put back together, so a single node can be
 // edited in place without touching the rest of its document.
 import { ID_RE, cleanId } from './ids';
+import { EXTRA_GROUP, EXTRA_KEY, EXTRA_SPLIT } from './props';
 
 export interface NodeLine { prefix: string; check: '' | 'todo' | 'done'; id: string; text: string; status: string; extra: string }
 const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused|resolved|rejected)\b/;
@@ -10,7 +11,7 @@ export function parseNodeLine(line: string): NodeLine | null {
   const m = line.match(new RegExp('^(?<prefix>\\s*(?:[-*+]|\\d+[.)])\\s+)?(?:\\[(?<box> |x|X)\\]\\s+)?(?<id>' + ID_RE.source + ')\\s+(?<rest>\\S.*)$'));
   if (!m || !m.groups) return null;
   const prefix = m.groups.prefix ?? ''; const box = m.groups.box; const id = cleanId(m.groups.id); let text = m.groups.rest;
-  let extra = ''; const g = text.match(/\s*\(([a-z-]+:\s*[^()]*?(?:,\s*[a-z-]+:\s*[^()]*?)*)\)\s*$/); if (g) { extra = g[1]; text = text.slice(0, g.index); }
+  let extra = ''; const g = text.match(EXTRA_GROUP); if (g) { extra = g[1]; text = text.slice(0, g.index); }
   let status = ''; text = text.replace(STATUS_TAG, (_, st) => { status = st; return ''; }).trim();
   const check: NodeLine['check'] = box === undefined ? '' : box === ' ' ? 'todo' : 'done';
   if (check && !status) status = check === 'done' ? 'done' : 'open';
@@ -31,7 +32,7 @@ export function patchNodeLine(line: string, patch: { status?: string; text?: str
   if (patch.text !== undefined && patch.text.trim()) n.text = patch.text.replace(/\s*\n\s*/g, ' ').trim();
   if (patch.props) {
     const m: Record<string, string> = {};
-    for (const kv of n.extra.split(/,\s*(?=[a-z-]+:)/)) { const mm = kv.match(/^\s*([a-z-]+):\s*(.*?)\s*$/); if (mm && mm[2]) m[mm[1]] = mm[2]; }
+    for (const kv of n.extra.split(EXTRA_SPLIT)) { const mm = kv.match(new RegExp(`^\\s*(${EXTRA_KEY}):\\s*(.*?)\\s*$`)); if (mm && mm[2]) m[mm[1]] = mm[2]; }
     for (const [k, v] of Object.entries(patch.props)) { if (v === null || !String(v).trim()) delete m[k]; else m[k] = String(v).trim(); }
     n.extra = Object.entries(m).map(([k, v]) => `${k}: ${v}`).join(', ');
   }

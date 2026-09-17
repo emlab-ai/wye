@@ -184,6 +184,7 @@ Each phase is a plan task, ships alone and leaves the documents readable by the 
 - [x] task:ontology.inverses Named inverses and collections: the inverse declaration on properties, generated reverse edges, inverse names in the peek panel and node page, base verbs declared with inverses, cardinality inferred. Part of module:ontology-design; depends on task:ontology.types. (session: 94ac3cf3e0)
 - [x] task:ontology.blocks Every block a node: `block:` ids from anchor hashes, document→heading→block `has` tree, phrase links owned by the block, hidden by default in rail/search/site. Part of module:ontology-design; depends on task:ontology.inverses and rule:block-links. (session: 94ac3cf3e0)
 - [x] task:ontology.add-type Add a type from the Types index: "+ add type" (name, extends, purpose, destination document) writes the `type:` card to the ontology document and opens the new type in the context column for its properties. Implements req:ontology.add-type; part of module:ontology-design; depends on task:ontology.types. (session: 8aa3926e18)
+- [x] task:ontology.type-table A "<Type>s table" block for every own type: `<!-- table:<slug> -->` regions of prose instance lines, editable in the editor with a column per declared property. Implements req:ontology.type-table; part of module:ontology-design; depends on task:ontology.add-type. (session: 8aa3926e18)
 - [ ] task:ontology.kinds-yaml-generated Generate `schema/kinds.yaml` (kinds, verbs, statuses) from `schema/base-ontology.md` so the two cannot drift; today kinds.yaml is a hand-kept summary with a header pointing at the ontology. Part of module:ontology-design; depends on decision:ontology.base-ontology-referenced.
 - [ ] task:ontology.unique Cardinality on the inverse side: a `unique` modifier on a `list of` property makes the target's inverse a single ref instead of a collection; today every inverse renders as a list. Part of module:ontology-design; depends on task:ontology.inverses.
 - [ ] task:ontology.ref-slot-picker The editor's link picker filters targets by the property's declared type: a `ref employee` slot only offers employees and their subtypes; the block menu already offers the product's own types. Part of module:ontology-design; depends on task:ontology.types.
@@ -255,6 +256,17 @@ What shipped, as requirements the tests verify and rules the code enforces. Stat
   status: proposed
   satisfied-by: [page:web/types, op:types.create]
   verified-by: [test:type-edit-web]
+- id: req:ontology.type-table
+  title: A document shows a table of a type's instances
+  when: a person types "/<type>" in a document and picks "<Type>s table" (for any type the product declares, e.g. type:bug)
+  then: >
+    a table block appears with a column for status and one per property of the type; typing into its last row
+    creates an instance (`<type>:<slug>` prose line inside `<!-- table:<slug> -->` markers), each cell edits that
+    line's trailing property group, and the rows are instances the type page and the graph see
+  unless: the type declares no properties — the table still has name and status
+  status: proposed
+  satisfied-by: [rule:type-tables]
+  verified-by: [test:web-lib#import]
 - id: req:ontology.blocks
   title: Every block of a document is a node
   when: a document is parsed

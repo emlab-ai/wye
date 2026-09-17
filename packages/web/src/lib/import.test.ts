@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { prepare, expand, nodePropsFromChunk, escapeAngles, protectCode, splitCode, BS, PIPE } from './import';
 import { blocksToMarkdown } from './serialize';
-
+import { ID_RE, cleanId, setKinds } from './ids';
 const t = (text: string) => ({ type: 'text', text, styles: {} });
 
 describe('prepare', () => {
@@ -116,7 +116,7 @@ describe('expand', () => {
   it('turns a <!-- goals --> region into a collection block whose rows are goal nodes, and writes it back', () => {
     const src = 'Intro.\n\n<!-- goals -->\n- goal:g1 First goal #on-track (owner: alex, target: 2026-10)\n- goal:g2 Second goal\n<!-- /goals -->\n\nAfter.\n';
     const p = prepare(src);
-    expect(p.md).toContain('%%COLLECTION:goals%%');
+    expect(p.md).toContain('%%COLLECTION:goal%%');
     const parsed: { type: string; content: { type: string; text: string; styles: object }[] }[] = [];
     for (const para of p.md.split(/\n\n+/).map(x => x.trim()).filter(Boolean)) {
       if (para.startsWith('- ')) for (const line of para.split('\n')) parsed.push({ type: 'bulletListItem', content: [t(line.replace(/^- /, ''))] });
@@ -127,6 +127,22 @@ describe('expand', () => {
     expect(blocks[1].props).toEqual({ kind: 'goal' });
     expect(blocks[1].children?.map(c => c.type)).toEqual(['node', 'node']);
     expect(blocks[1].children?.[0].props).toMatchObject({ kind: 'goal', slug: 'g1', status: 'on-track', extra: 'owner: alex, target: 2026-10', row: 'goal', list: 'bullet' });
+    expect(blocksToMarkdown(blocks)).toBe(src);
+  });
+  it('turns a <!-- table:bug --> region into a collection of that type, keeps camelCase keys, and writes it back', () => {
+    setKinds(['bug']); // the product declares type:bug
+    const src = 'Intro.\n\n<!-- table:bug -->\n- bug:login Login fails on Safari #open (severity: high, foundIn: 1.2)\n- bug:crash App crashes\n<!-- /table:bug -->\n\nAfter.\n';
+    const p = prepare(src);
+    expect(p.md).toContain('%%COLLECTION:bug%%');
+    const parsed: { type: string; content: { type: string; text: string; styles: object }[] }[] = [];
+    for (const para of p.md.split(/\n\n+/).map(x => x.trim()).filter(Boolean)) {
+      if (para.startsWith('- ')) for (const line of para.split('\n')) parsed.push({ type: 'bulletListItem', content: [t(line.replace(/^- /, ''))] });
+      else parsed.push({ type: 'paragraph', content: [t(para)] });
+    }
+    const blocks = expand(parsed, p.yaml, p.drawings);
+    expect(blocks.map(b => b.type)).toEqual(['paragraph', 'collection', 'paragraph']);
+    expect(blocks[1].props).toEqual({ kind: 'bug' });
+    expect(blocks[1].children?.[0].props).toMatchObject({ kind: 'bug', slug: 'login', status: 'open', extra: 'severity: high, foundIn: 1.2', row: 'bug', list: 'bullet' });
     expect(blocksToMarkdown(blocks)).toBe(src);
   });
   it('round-trips through the serializer', () => {

@@ -1054,6 +1054,20 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   source: packages/web/src/components/TrackList.tsx; packages/web/src/lib/track.ts; packages/web/src/lib/doc.ts#nodeIndex; packages/web/src/components/DocEditor.tsx#RowNode
   status: shipped
   verified-by: [test:web-lib#import, test:web-lib#props]
+- id: rule:type-tables
+  statement: >
+    A document may hold a table of any type the product declares: the lines between `<!-- table:<slug> -->` and
+    `<!-- /table:<slug> -->` are ordinary prose node lines of that kind (`- bug:login Login fails #open (priority:
+    high, foundIn: 1.2)`) to the parser — so each row is an instance the type page and `wf` see — and an editable
+    table in the editor with a column for status and one per declared property (own and inherited, the root type's
+    left out): an enum property is a select, a bool a checkbox, a ref a text cell holding the id, anything else a
+    text cell. Values live in the line's trailing property group, whose keys may be camelCase like the type's
+    (lib/parse.js grammar). The slash menu offers "<Type>s table" for every own type next to the Goals and Tasks
+    tables; a table of a type the product no longer declares keeps its rows with name and status only.
+  source: packages/web/src/lib/serialize.ts#collectionMarker; packages/web/src/lib/import.ts#COLLECTION_OPEN; packages/web/src/components/DocEditor.tsx#TypeRow; packages/web/src/lib/props.ts#EXTRA_KEY
+  status: shipped
+  verified-by: [test:web-lib#import, test:web-lib#props]
+  related-to: [rule:goals-and-tasks, req:ontology.type-table]
 - id: rule:agent-sessions
   statement: >
     Any block can be sent to an agent: "Send to agent" sits in every block's drag-handle menu, on node block headers,
