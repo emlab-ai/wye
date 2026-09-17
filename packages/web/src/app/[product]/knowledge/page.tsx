@@ -9,11 +9,11 @@ export default async function KnowledgePage({ params }: { params: Promise<{ prod
   const { product } = await params;
   const scope = await loadScope(product); if (!scope) notFound();
   const byKind = new Map<string, typeof scope.graph.nodes>();
-  for (const n of scope.graph.nodes) { if (!n.defined || n.kind === 'field' || n.kind === 'module') continue; if (!byKind.has(n.kind)) byKind.set(n.kind, []); byKind.get(n.kind)!.push(n); }
+  for (const n of scope.graph.nodes) { if (!n.defined || n.kind === 'field' || n.kind === 'prop' || n.kind === 'type' || n.kind === 'module') continue; if (!byKind.has(n.kind)) byKind.set(n.kind, []); byKind.get(n.kind)!.push(n); }
   const kinds = KIND_ORDER.filter(k => byKind.has(k)).concat([...byKind.keys()].filter(k => !KIND_ORDER.includes(k)));
   return (
     <div className="page">
-      <header className="doc-head"><h1 className="prop-in h1" style={{ margin: 0 }}>Knowledge</h1><p className="lede">Everything {scope.product.meta.title} knows, built from its documents. {scope.graph.nodes.filter(n => n.defined).length} nodes, {scope.graph.edges.length} relations.</p></header>
+      <header className="doc-head"><h1 className="prop-in h1" style={{ margin: 0 }}>Knowledge</h1><p className="lede">Everything {scope.product.meta.title} knows, built from its documents. {scope.graph.nodes.filter(n => n.defined).length} nodes, {scope.graph.edges.length} relations. <Link href={`/${product}/types`}>Types →</Link></p></header>
       {kinds.map(k => {
         const items = byKind.get(k)!;
         return (

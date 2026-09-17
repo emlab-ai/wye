@@ -339,7 +339,7 @@ function LinkNodePicker({ req, onClose, apply, createDoc }: { req: LinkRequest; 
 
 export default function DocEditor({ product, project, slug, body, ifMatch, fallback }: { product: string; project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode }) {
   const router = useRouter();
-  const { open: openPeek, index, hrefFor, setEditing, setShowContext } = usePeek();
+  const { open: openPeek, index, hrefFor, setEditing, setShowContext, ownKinds } = usePeek();
   // node blocks render inside the editor, so they ask for the peek panel through a window event
   useEffect(() => { const h = (e: Event) => openPeek((e as CustomEvent<string>).detail); window.addEventListener('wf:peek', h); return () => window.removeEventListener('wf:peek', h); }, [openPeek]);
   const editor = useCreateBlockNote({ schema });
@@ -484,7 +484,8 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       .slice(0, 10)
       .map(e => ({ title: e.id, subtext: e.title, group: 'Link a node', onItemClick: () => { editor.insertInlineContent([{ type: 'tag', props: { id: e.id } }, ' '] as never); touched.current = true; changed(); } }));
   };
-  const nodeItems = CARD_KINDS.map(kind => ({
+  // base kinds, then the product's own types (its type: cards) — an instance is a prose line `team:slug …`
+  const nodeItems = [...CARD_KINDS, ...ownKinds].map(kind => ({
     title: `${kind} block`, group: 'Waterfall', subtext: `a new ${kind} written as prose`,
     onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'node', props: { kind, slug: `new-${Math.floor(Math.random() * 900 + 100)}`, form: 'prose', textKey: 'text', check: kind === 'task' ? 'todo' : '', status: kind === 'task' ? 'open' : '' } } as never); },
   }));

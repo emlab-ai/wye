@@ -3,6 +3,7 @@ import { getProduct, getProject, listProjects, type Product, type Project } from
 import { loadGraph } from './load';
 import { indexGraph, type GraphData, type GraphIndex } from './graph';
 import { nodeIndex, projectTree, type IndexEntry } from './doc';
+import { setKinds } from './ids';
 
 export interface Scope { product: Product; projects: Project[]; project?: Project; graph: GraphData; idx: GraphIndex; index: Record<string, IndexEntry> }
 
@@ -14,6 +15,7 @@ export async function loadScope(productSlug: string, projectSlug?: string): Prom
   const project = projectSlug ? await getProject(product, projectSlug) : undefined;
   if (projectSlug && !project) return null;
   let graph: GraphData; try { graph = await loadGraph(product.graphPath); } catch { graph = EMPTY; }
+  setKinds(graph.kinds);
   return { product, projects, project, graph, idx: indexGraph(graph), index: nodeIndex(graph) };
 }
 

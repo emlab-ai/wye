@@ -1,7 +1,10 @@
 export interface GraphNode { id: string; kind: string; title: string; status: string; section: string; subsection: string; body: string; defined: boolean; file: string; line: number; owner?: string; form?: 'prose' | 'yaml' }
-export interface GraphEdge { from: string; to: string; verb: string }
+export interface GraphEdge { from: string; to: string; verb: string; generated?: boolean }
 export interface GraphModule { id: string; title: string; file: string; verified: string; sourceRoots: string[] }
-export interface GraphData { generatedAt: string; modules: GraphModule[]; files: string[]; nodes: GraphNode[]; edges: GraphEdge[]; fieldIndex: Record<string, string> }
+// ontology (lib/parse.js pass 1): a property of a type, effective on the type (own or inherited from `from`)
+export interface PropDef { name: string; from: string; type: string; ref: string | null; many: boolean; required: boolean; inverse: string | null; enum: string[] | null }
+export interface TypeDef { id: string; slug: string; extends: string | null; chain: string[]; open: boolean; purpose: string; home: string; props: PropDef[]; file: string; line: number }
+export interface GraphData { generatedAt: string; modules: GraphModule[]; files: string[]; nodes: GraphNode[]; edges: GraphEdge[]; fieldIndex: Record<string, string>; kinds?: string[]; types?: TypeDef[]; inverses?: Record<string, string>; problems?: { level: 'error' | 'warning'; msg: string }[] }
 export interface GraphIndex { byId: Map<string, GraphNode>; out: Map<string, GraphEdge[]>; inc: Map<string, GraphEdge[]> }
 export interface BodyRow { key: string; value: string; prose: boolean }
 export interface ModuleGroup { module: GraphNode; file: string; sections: { title: string; nodes: GraphNode[] }[] }
@@ -12,7 +15,9 @@ export const PROSE_KEYS = new Set(['purpose', 'note', 'notes', 'statement', 'des
 export function indexGraph(g: GraphData): GraphIndex {
   const byId = new Map(g.nodes.map(n => [n.id, n]));
   const out = new Map<string, GraphEdge[]>(), inc = new Map<string, GraphEdge[]>();
+  // generated inverse edges (lib/parse.js) are the forward edges read backwards: `inc` already shows them
   for (const e of g.edges) {
+    if (e.generated) continue;
     if (!out.has(e.from)) out.set(e.from, []); out.get(e.from)!.push(e);
     if (!inc.has(e.to)) inc.set(e.to, []); inc.get(e.to)!.push(e);
   }
@@ -24,7 +29,7 @@ export function sidebarTree(g: GraphData): ModuleGroup[] {
   return g.modules.map(m => {
     const module = byId.get(m.id)!;
     const sections = new Map<string, GraphNode[]>();
-    const own = g.nodes.filter(n => n.file === m.file && n.defined && n.kind !== 'field' && n.id !== m.id).sort((a, b) => a.line - b.line);
+    const own = g.nodes.filter(n => n.file === m.file && n.defined && n.kind !== 'field' && n.kind !== 'prop' && n.id !== m.id).sort((a, b) => a.line - b.line);
     for (const n of own) {
       const title = n.section || 'Other';
       if (!sections.has(title)) sections.set(title, []);

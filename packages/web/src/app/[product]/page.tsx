@@ -8,7 +8,7 @@ export default async function ProductPage({ params }: { params: Promise<{ produc
   const { product } = await params;
   const scope = await loadScope(product); if (!scope) notFound();
   const counts: Record<string, number> = {};
-  for (const n of scope.graph.nodes) if (n.defined && n.kind !== 'field' && n.kind !== 'module') counts[n.kind] = (counts[n.kind] ?? 0) + 1;
+  for (const n of scope.graph.nodes) if (n.defined && n.kind !== 'field' && n.kind !== 'prop' && n.kind !== 'module') counts[n.kind] = (counts[n.kind] ?? 0) + 1;
   return (
     <div className="page">
       <header className="doc-head">

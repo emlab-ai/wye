@@ -15,10 +15,11 @@ import { ProgressBar } from './Progress';
 import { TrackEditor } from './TrackEditor';
 import { Produced } from './Produced';
 import { DocPeek } from './DocPeek';
-import type { GraphNode } from '@/lib/graph';
+import type { GraphNode, TypeDef } from '@/lib/graph';
+import type { NodeProp } from '@/lib/types';
 import type { IndexEntry } from '@/lib/doc';
 
-type Details = { node: GraphNode; relations: { out: [string, string[]][]; inc: [string, string[]][] }; graph: { nodes: LiteNode[]; edges: GraphEdge[] } };
+type Details = { node: GraphNode; relations: { out: [string, string[]][]; inc: [string, string[]][] }; graph: { nodes: LiteNode[]; edges: GraphEdge[] }; type?: TypeDef | null; props?: NodeProp[]; inverses?: Record<string, string> };
 
 // How an edge reads from the open node's side.
 const OUT: Record<string, string> = { refines: 'Refines', 'satisfied-by': 'Satisfied by', 'verified-by': 'Verified by', 'depends-on': 'Depends on', 'part-of': 'Part of', 'related-to': 'Related to', 'governed-by': 'Governed by', 'gated-by': 'Gated by', has: 'Has', refs: 'References', contradicts: 'Contradicts', resolves: 'Resolves', 'applies-to': 'Applies to', 'has-action': 'Actions', navigates: 'Navigates to', reads: 'Reads', writes: 'Writes', produced: 'Produced' };
@@ -88,19 +89,21 @@ function NodeView({ id }: { id: string }) {
         <button className="linkish" onClick={() => requestSend({ refs: [id], text: entry.title })}>Send to agent</button>
       </div>
       <DocPeek id={id} href={def.replace(/#.*$/, '')} />
-      {d && <><div className="peek-views"><h4>Connected <span className="muted">{[...d.relations.out, ...d.relations.inc].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0)}</span></h4></div><Relations out={d.relations.out} inc={d.relations.inc} index={index} /></>}
+      {d && <><div className="peek-views"><h4>Connected <span className="muted">{[...d.relations.out, ...d.relations.inc].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0)}</span></h4></div><Relations out={d.relations.out} inc={d.relations.inc} index={index} inverses={d.inverses} /></>}
     </>
   );
   return (
     <>
       <div className="peek-bar">
-        {def ? <Link href={def} onClick={() => go(-1)}>Go to definition</Link> : <span className="muted">{entry?.defined ? '…' : 'referenced only, no definition'}</span>}
+        {id.startsWith('type:') && <Link href={`/${product}/types/${id.slice(5)}`} className="pri-link">Open type page →</Link>}
+        {def ? <Link href={def} onClick={() => go(-1)}>Go to definition</Link> : id.startsWith('type:') ? null : <span className="muted">{entry?.defined ? '…' : 'referenced only, no definition'}</span>}
         <Link href={`/${product}/graph?focus=${encodeURIComponent(id)}&preset=Mechanics`}>Show in graph</Link>
         <button className="linkish" onClick={() => requestSend({ refs: [id], text: d ? nodeText(d.node.body) : entry?.title })}>Send to agent</button>
       </div>
       {d && (entry?.kind === 'goal' || entry?.kind === 'task')
         ? <><TrackEditor key={entry.id} entry={entry} index={index} text={nodeText(d.node.body)} form={d.node.form} onSaved={() => setTick(t => t + 1)} />{entry.sessions && entry.sessions.length > 0 && <Produced sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}<Tracking entry={entry} index={index} inc={d.relations.inc} /></>
         : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
+      {d && d.type && !d.type.open && d.props && <Properties type={d.type} props={d.props} inc={d.relations.inc} inverses={d.inverses ?? {}} product={product} />}
       {d && (
         <div className="peek-views">
           <h4>Connected <span className="muted">{[...d.relations.out, ...d.relations.inc].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0)}</span></h4>
@@ -111,7 +114,7 @@ function NodeView({ id }: { id: string }) {
           {view === 'graph' && <div className="seg small" title="how many hops from this node"><button className={depth === 1 ? 'on' : ''} onClick={() => setDepth(1)}>1 hop</button><button className={depth === 2 ? 'on' : ''} onClick={() => setDepth(2)}>2 hops</button></div>}
         </div>
       )}
-      {d && view === 'list' && <Relations out={d.relations.out} inc={d.relations.inc} index={index} />}
+      {d && view === 'list' && <Relations out={d.relations.out} inc={d.relations.inc} index={index} inverses={d.inverses} />}
       {d && view === 'graph' && (d.graph.nodes.length > 1 ? <PeekGraph focus={id} nodes={d.graph.nodes} edges={d.graph.edges} onPick={open} /> : <p className="muted rels-empty">Nothing links to or from this node yet.</p>)}
     </>
   );
@@ -121,9 +124,10 @@ function NodeView({ id }: { id: string }) {
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');
 
 // Every node connected to the open one, grouped by how it is connected, each row with its title and status.
-function Relations({ out, inc, index }: { out: [string, string[]][]; inc: [string, string[]][]; index: Record<string, IndexEntry> }) {
-  // generated 'mentions' edges (a node's text naming a field) are noise next to real relations
-  const groups = [...out.filter(([v]) => v !== 'mentions').map(([v, ids]) => ({ key: 'o' + v, label: OUT[v] ?? `${v} →`, ids })), ...inc.filter(([v]) => v !== 'mentions').map(([v, ids]) => ({ key: 'i' + v, label: INC[v] ?? `← ${v}`, ids }))];
+function Relations({ out, inc, index, inverses = {} }: { out: [string, string[]][]; inc: [string, string[]][]; index: Record<string, IndexEntry>; inverses?: Record<string, string> }) {
+  // generated 'mentions' edges (a node's text naming a field) are noise next to real relations; an incoming edge
+  // reads by its inverse name (the ontology's, else the built-in label)
+  const groups = [...out.filter(([v]) => v !== 'mentions').map(([v, ids]) => ({ key: 'o' + v, label: OUT[v] ?? `${v} →`, ids })), ...inc.filter(([v]) => v !== 'mentions').map(([v, ids]) => ({ key: 'i' + v, label: INC[v] ?? (inverses[v] ? inverses[v] : `← ${v}`), ids }))];
   const total = groups.reduce((n, g) => n + g.ids.length, 0);
   const rank = (id: string) => { const k = KIND_ORDER.indexOf(id.split(':')[0]); return k < 0 ? 99 : k; };
   if (!total) return <p className="muted rels-empty">Nothing links to or from this node yet.</p>;
@@ -141,6 +145,28 @@ function Relations({ out, inc, index }: { out: [string, string[]][]; inc: [strin
         </section>
       ))}
     </div>
+  );
+}
+
+// A typed node's properties: every effective property of its type (own and inherited), filled or as a placeholder
+// with its value type, then the inverses — incoming links named from this side (memberOf: team:platform).
+function Properties({ type, props, inc, inverses, product }: { type: TypeDef; props: NodeProp[]; inc: [string, string[]][]; inverses: Record<string, string>; product: string }) {
+  const shown = props.filter(p => (p.from !== 'type:node' && !['title', 'status', 'text'].includes(p.name)) || (p.value && !['title', 'status', 'text'].includes(p.name)));
+  const back = inc.filter(([v]) => inverses[v]).map(([v, ids]) => ({ name: inverses[v], ids }));
+  const ids = (v: string) => v.replace(/^\[|\]$/g, '').split(/,\s*/).map(x => x.trim()).filter(Boolean);
+  return (
+    <section className="props">
+      <h4>Properties <span className="muted"><Link href={`/${product}/types/${type.slug}`}>type:{type.slug}</Link></span></h4>
+      <dl className="strip">
+        {shown.map(p => (
+          <div key={p.name} className={p.value ? '' : 'empty'}>
+            <dt title={p.from === type.id ? `declared on ${type.id}` : `inherited from ${p.from}`}>{p.name}{p.from !== type.id && <small> {p.from.slice(5)}</small>}</dt>
+            <dd>{p.value ? (p.ref ? <span className="list">{ids(p.value).map(x => <span key={x} className="item">{/^[a-z][a-z0-9-]*:/.test(x) ? <SmartTag id={x} /> : x}</span>)}</span> : p.value) : <span className="muted">{p.ref ? `${p.many ? 'list of' : 'ref'} ${p.ref}` : p.type}{p.required ? ' · required' : ''}</span>}</dd>
+          </div>))}
+        {back.length > 0 && <div className="divider"><dt /><dd /></div>}
+        {back.map(b => <div key={b.name} className="inverse"><dt title="inverse: not written here, derived from the other side">{b.name}</dt><dd><span className="list">{b.ids.map(id => <span key={id} className="item"><SmartTag id={id} /></span>)}</span></dd></div>)}
+      </dl>
+    </section>
   );
 }
 

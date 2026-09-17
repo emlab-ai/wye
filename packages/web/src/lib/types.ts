@@ -1,0 +1,25 @@
+// Ontology helpers over graph.json: a node's type (its kind prefix), the extends chain, instances of a type and the
+// properties a node has — declared on its type or inherited — with the values it fills in.
+import { parseBody, type GraphData, type GraphNode, type TypeDef, type PropDef } from './graph';
+
+export type { TypeDef, PropDef };
+export interface NodeProp extends PropDef { value: string }
+
+export function typeOf(g: GraphData, id: string): TypeDef | undefined { return (g.types ?? []).find(t => t.slug === id.split(':')[0]); }
+export function typeBySlug(g: GraphData, slug: string): TypeDef | undefined { return (g.types ?? []).find(t => t.slug === slug); }
+export function isA(g: GraphData, id: string, slug: string): boolean { if (slug === 'node') return true; const t = typeOf(g, id); return !!t && t.chain.includes('type:' + slug); }
+// user-defined types: declared in a product document, not in the shipped base ontology
+export function isBaseType(t: TypeDef): boolean { return !t.file || t.file.startsWith('schema/'); }
+export function instancesOf(g: GraphData, slug: string): GraphNode[] {
+  return g.nodes.filter(n => n.defined && n.kind !== 'type' && isA(g, n.id, slug)).sort((a, b) => a.id.localeCompare(b.id));
+}
+// the root type's properties are what every node has; pages fold them away unless a node fills one in
+export function isImplicit(p: PropDef): boolean { return p.from === 'type:node'; }
+export function subtypesOf(g: GraphData, slug: string): TypeDef[] { return (g.types ?? []).filter(t => t.extends === 'type:' + slug); }
+export function nodeProps(g: GraphData, n: GraphNode): NodeProp[] {
+  const t = typeOf(g, n.id); if (!t) return [];
+  const rows = new Map(parseBody(n.body).map(r => [r.key, r.value]));
+  return t.props.map(p => ({ ...p, value: rows.get(p.name) ?? '' }));
+}
+// what an incoming edge with this verb is called from the target's side ('' when the verb has no declared inverse)
+export function inverseLabel(g: GraphData, verb: string): string { return g.inverses?.[verb] ?? ''; }

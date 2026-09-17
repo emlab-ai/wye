@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { loadScope } from '@/lib/scope';
 import { relations, neighborhood } from '@/lib/graph';
+import { typeOf, nodeProps } from '@/lib/types';
 import { editNode, type NodePatch } from '@/lib/node-edit';
 import { recordArtifact } from '@/lib/artifacts';
 
@@ -12,8 +13,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ product:
   // the node's neighbourhood for the graph view: every node within `depth` hops and the edges among them
   const ids = neighborhood(scope.idx, id, depth, false);
   const nodes = [...ids].map(i => scope.idx.byId.get(i)).filter(Boolean).map(n => ({ id: n!.id, kind: n!.kind, title: n!.title, status: n!.status, defined: n!.defined }));
-  const edges = scope.graph.edges.filter(e => ids.has(e.from) && ids.has(e.to));
-  return NextResponse.json({ node, relations: relations(scope.idx, id), graph: { nodes, edges } });
+  const edges = scope.graph.edges.filter(e => !e.generated && ids.has(e.from) && ids.has(e.to));
+  const type = typeOf(scope.graph, id);
+  return NextResponse.json({ node, relations: relations(scope.idx, id), graph: { nodes, edges }, type: type ?? null, props: type ? nodeProps(scope.graph, node) : [], inverses: scope.graph.inverses ?? {} });
 }
 
 // PUT { status?, text?, props?: { key: value | null } } → edits the prose line that defines the node in place, then

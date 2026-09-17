@@ -106,4 +106,9 @@ assert(has(c.warnings, /team:platform: size "two" is not a number/), 'value type
 assert(has(c.warnings, /person:ana: required property name missing/) === false, 'referenced-only instance is not validated');
 assert(c.ok, 'no errors: ' + c.errors.join('; '));
 
-console.log('ok — ontology: types, inheritance, edges, inverses, check');
+// --- render / packet carry the type chain so an agent knows a manager is an employee
+const rendered = g.render(g.node('manager:ana'));
+assert(/type: manager < employee < person/.test(rendered), 'render shows the type chain: ' + rendered.split('\n')[1]);
+assert(!/type: req/.test(g.render(g.node('type:person'))) , 'base kinds do not repeat their trivial chain');
+
+console.log('ok — ontology: types, inheritance, edges, inverses, check, render');

@@ -28,7 +28,7 @@ export default async function ProductLayout({ children, params }: { children: Re
   const walk = async (d: DocNode, parent?: string) => { const r = docRoute(d.file); let mtime = ''; try { mtime = (await stat(path.join(REPO_ROOT, d.file))).mtime.toISOString(); } catch { /* gone */ } docs[d.slug] = { slug: d.slug, title: d.title, icon: icons.get(d.file) || defaultIcon(d.slug), project: r?.project ?? '', parent, mtime }; for (const c of d.children) await walk(c, d.slug); };
   for (const p of scope.projects) for (const r of treeFor(scope, p.slug).roots) await walk(r);
   return (
-    <PeekProvider product={scope.product.slug} index={scope.index}>
+    <PeekProvider product={scope.product.slug} index={scope.index} kinds={scope.graph.kinds}>
       <Shell>
         <Rail products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} headings={headings} />
         <LiveRefresh product={scope.product.slug} />

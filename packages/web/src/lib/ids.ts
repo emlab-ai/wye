@@ -1,6 +1,10 @@
-export const KINDS = ['req', 'rule', 'entity', 'value', 'state', 'op', 'page', 'action', 'gate', 'flag', 'test', 'ui-test', 'module', 'product', 'task', 'goal', 'tool', 'setting', 'field', 'drift', 'question', 'decision'] as const;
+export const KINDS = ['req', 'rule', 'entity', 'value', 'state', 'op', 'page', 'action', 'gate', 'flag', 'test', 'ui-test', 'module', 'product', 'task', 'goal', 'tool', 'setting', 'field', 'drift', 'question', 'decision', 'type', 'prop', 'block'] as const;
 export const ALIASES: Record<string, string> = { et: 'entity', rq: 'req', rl: 'rule', pg: 'page', st: 'state', dc: 'decision', qn: 'question', vl: 'value', ac: 'action', gt: 'gate', fl: 'flag', tk: 'task', gl: 'goal' };
-export const ID_RE = new RegExp('\\b(' + [...KINDS, ...Object.keys(ALIASES)].join('|') + '):([A-Za-z0-9_][A-Za-z0-9_./#\\-]*)', 'g');
+const idRegex = (kinds: readonly string[]) => new RegExp('\\b(' + [...kinds.map(k => k.replace(/-/g, '\\-')), ...Object.keys(ALIASES)].join('|') + '):([A-Za-z0-9_][A-Za-z0-9_./#\\-]*)', 'g');
+// The kind list is open: a product's type: cards add kinds (graph.kinds). setKinds is called with the graph's kinds
+// on the server (loadScope) and in the client provider, so every consumer of ID_RE sees the product's ids.
+export let ID_RE = idRegex(KINDS);
+export function setKinds(kinds: readonly string[] | undefined) { ID_RE = idRegex([...new Set([...KINDS, ...(kinds ?? [])])]); }
 
 export function cleanId(tok: string): string {
   let t = tok.replace(/[.,;:)\]]+$/, '');
