@@ -5,6 +5,7 @@ import { ProgressBar } from './Progress';
 import { StatusPill } from './Pills';
 import { docRoute } from '@/lib/doc';
 import { GOAL_STATUSES, TASK_STATUSES } from '@/lib/props';
+import { requestSend } from './SendToAgent';
 
 export type TrackRow = { id: string; title: string; status: string; target?: string; owner?: string; progress?: number; parts?: { done: number; total: number }; parent?: string; file: string; doc?: string; children: TrackRow[] };
 
@@ -56,7 +57,8 @@ export function TrackList({ product, kind, rows }: { product: string; kind: 'goa
             ? <div className="tcell tprog"><ProgressBar value={r.progress} width={80} /><span className="tpct">{r.progress !== undefined ? `${r.progress}%` : '—'}</span>{r.parts && <small className="muted" title="parts done / total">{r.parts.done}/{r.parts.total}</small>}</div>
             : <div className="tcell tgoal">{r.parent && <button className="tparent" onClick={e => { e.stopPropagation(); open(r.parent!); }} title={r.parent}>{plain(goalTitle(r.parent))}</button>}</div>}
           <div className="tcell towner">{r.owner ?? ''}</div>
-          <div className="tcell tdoc">{route && <a href={`/${product}/${route.project}/d/${route.doc}#n-${encodeURIComponent(r.id)}`} onClick={e => e.stopPropagation()} title="Open the document where it is defined">{route.doc}</a>}</div>
+          <div className="tcell tdoc">{route && <a href={`/${product}/${route.project}/d/${route.doc}#n-${encodeURIComponent(r.id)}`} onClick={e => e.stopPropagation()} title="Open the document where it is defined">{route.doc}</a>}
+            <button className="tsend" title="Send to agent" onClick={e => { e.stopPropagation(); requestSend({ refs: [r.id], text: plain(r.title), source: route ? { project: route.project, doc: route.doc, link: `${location.origin}/${product}/${route.project}/d/${route.doc}#n-${encodeURIComponent(r.id)}` } : undefined }); }}>⇢</button></div>
         </div>
         {!collapsed.has(r.id) && r.children.map(c => <Row key={c.id} r={c} depth={depth + 1} />)}
       </>
