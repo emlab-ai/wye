@@ -1,6 +1,6 @@
 'use client';
 import { AskQuestions, type AskInput } from './AskQuestions';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { usePeek } from './PeekProvider';
@@ -19,6 +19,13 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
   const bottom = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const id = session.id;
+  // `wf session log` lines and the `wf session done` summary are part of the conversation, placed by time
+  const flow = useMemo(() => {
+    const extra: ChatEvent[] = (session.log ?? []).map(l => ({ t: l.t, kind: 'log' as const, text: l.line }));
+    if (session.result) extra.push({ t: session.finishedAt ?? session.updatedAt, kind: 'summary', text: session.result });
+    if (!extra.length) return events;
+    return [...events, ...extra].sort((a, b) => a.t.localeCompare(b.t));
+  }, [events, session.log, session.result, session.finishedAt, session.updatedAt]);
   useEffect(() => {
     const es = new EventSource(`/api/${product}/sessions/${id}/stream`);
     es.addEventListener('snapshot', e => { const j = JSON.parse((e as MessageEvent).data); setEvents(j.transcript); setLive(j.live); if (j.queue) setQueue(j.queue); });
@@ -62,10 +69,10 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
         </div>
       )}
       <div className="console-log" onScroll={e => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40; }}>
-        {foldActivity(groupSubagents(events)).map((g, i) => g.parent
+        {foldActivity(groupSubagents(flow)).map((g, i) => g.parent
           ? <Subagent key={'s' + i} events={g.events} task={events.find(e => e.kind === 'tool_use' && e.toolUseId === g.parent)} finished={events.some(e => e.kind === 'tool_result' && e.toolUseId === g.parent)} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />
           : g.activity
-            ? <Activity key={'a' + i} events={g.events} live={live && i === foldActivity(groupSubagents(events)).length - 1} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />
+            ? <Activity key={'a' + i} events={g.events} live={live && i === foldActivity(groupSubagents(flow)).length - 1} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />
             : <Event key={i} e={g.events[0]} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />)}
         <div ref={bottom} />
       </div>
@@ -105,6 +112,8 @@ function Event({ e, answered, answers, showThinking, answer }: { e: ChatEvent; a
     case 'result': return <div className="ev ev-turn">{time}<span className="muted">turn done{e.durationMs ? ` · ${(e.durationMs / 1000).toFixed(1)} s` : ''}{e.costUsd !== undefined ? ` · $${e.costUsd.toFixed(3)} total` : ''}{e.isError ? ' · error' : ''}</span></div>;
     case 'init': return <div className="ev ev-note">{time}<span className="muted">{e.text}{e.cwd ? ` · ${e.cwd}` : ''}</span></div>;
     case 'note': return e.requestId ? null : <div className="ev ev-note">{time}<span className="muted">{e.text}</span></div>;
+    case 'log': return <div className="ev ev-note ev-log">{time}<span className="muted"><i>log</i> {e.text}</span></div>;
+    case 'summary': return <div className="ev ev-summary">{time}<div className="ev-body"><span className="ev-summary-tag">session summary</span><ReactMarkdown remarkPlugins={[remarkGfm]}>{e.text ?? ''}</ReactMarkdown></div></div>;
     case 'stderr': return <div className="ev ev-stderr">{time}<pre className="ev-pre">{e.text}</pre></div>;
     case 'exit': return <div className="ev ev-note">{time}<span className="muted">{e.text}</span></div>;
     default: return null;

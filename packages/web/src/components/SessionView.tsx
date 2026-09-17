@@ -59,7 +59,7 @@ export function SessionView({ id }: { id: string }) {
       {s.mode === 'chat' && <Console session={s} onStatus={st => setS(x => x ? { ...x, status: st as Session['status'] } : x)} />}
       {s.mode !== 'chat' && <><h5>Log {active && <span className="live-dot" title="following" />}</h5>
       <pre className="session-log">{s.log.map((l, i) => <span key={i}><time>{new Date(l.t).toLocaleTimeString()}</time> {l.line}{'\n'}</span>)}{s.status === 'queued' && <span className="muted">waiting for an agent runner to pick this up…{'\n'}</span>}</pre></>}
-      {s.result && <><h5>Result</h5><pre className="session-result">{s.result}</pre></>}
+      {s.result && s.mode !== 'chat' && <><h5>Result</h5><pre className="session-result">{s.result}</pre></>}
     </div>
   );
 }
