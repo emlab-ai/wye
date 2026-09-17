@@ -7,7 +7,9 @@ export type SessionMode = 'run' | 'chat';
 // Work waiting for the agent: sent one at a time (batch 'one') or all pending items joined into one message ('all').
 export interface QueueItem { id: string; text: string; refs?: string[]; link?: string; images?: string[]; addedAt: string; sentAt?: string }
 // plan: the agent understands and proposes before it builds (rule:plan-first) — set by the command palette
-export interface Session { id: string; product: string; agent: string; mode?: SessionMode; plan?: boolean; queue?: QueueItem[]; batch?: 'one' | 'all'; status: SessionStatus; createdAt: string; updatedAt: string; instruction: string; refs: string[]; source: SessionSource; log: { t: string; line: string }[]; result?: string; runner?: string; startedAt?: string; finishedAt?: string; parent?: string; children?: string[]; cwd?: string; images?: string[]; agentSessionId?: string; transcript?: ChatEvent[]; totalCostUsd?: number; artifacts?: { docs: string[]; nodes: string[] } }
+export interface Session { id: string; product: string; agent: string; mode?: SessionMode; plan?: boolean; queue?: QueueItem[]; batch?: 'one' | 'all'; status: SessionStatus; createdAt: string; updatedAt: string; instruction: string; refs: string[]; source: SessionSource; log: { t: string; line: string }[]; result?: string; runner?: string; startedAt?: string; finishedAt?: string; parent?: string; children?: string[]; cwd?: string; images?: string[]; agentSessionId?: string; transcript?: ChatEvent[]; totalCostUsd?: number; artifacts?: { docs: string[]; nodes: string[] }; live?: boolean; busy?: boolean }
+// A conversation's process may outlive its recorded status: `wf session done` marks the work done while claude or codex
+// stays up to take the next message. `live`/`busy` come from the API (agent-host#liveState), never from disk.
 // Tokens of one turn: `in` everything the model read (fresh, cache writes and cache reads), `out` what it wrote,
 // `context` the prompt size of the turn's last call (how full the context is), `window` the model's limit.
 export type TurnUsage = { in: number; out: number; context?: number; window?: number }

@@ -38,7 +38,7 @@ export function Rail({ products, product, projects, headings }: { products: { sl
         {item(`${base}/graph`, 'Graph', '⌬')}
         {item(`${base}/questions`, 'Questions', '?')}
         {item(`${base}/inbox`, 'Inbox', '⇩')}
-        {item(`${base}/sessions`, 'Sessions', '⚡')}
+        {item(`${base}/sessions`, 'Agents', '⚡')}
       </ul>
       {showSearch && <div className="rail-search"><Search product={product.slug} projects={projects.map(p => ({ slug: p.slug, docs: p.docs }))} headings={headings} /></div>}
       <div className="rail-pages-head"><span>Documents</span><button onClick={() => setNewIn(newIn === '' ? null : '')} title="New document">+</button></div>

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getProduct } from '@/lib/products';
 import { getSession, updateSession, type SessionStatus } from '@/lib/sessions';
-import { openInSession } from '@/lib/agent-host';
+import { openInSession, liveState } from '@/lib/agent-host';
 import { openTarget } from '@/lib/open-target';
 
 // GET → the session ; PATCH { status?, line?, result? } → appends to the log / changes status (used by runners and Cancel);
@@ -10,7 +10,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ product
   const { product, id } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const s = await getSession(p.dir, id); if (!s) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  return NextResponse.json(s, { headers: { 'cache-control': 'no-store' } });
+  return NextResponse.json({ ...s, ...(s.mode === 'chat' ? liveState(s.id) : {}) }, { headers: { 'cache-control': 'no-store' } });
 }
 export async function PATCH(req: Request, { params }: { params: Promise<{ product: string; id: string }> }) {
   const { product, id } = await params;

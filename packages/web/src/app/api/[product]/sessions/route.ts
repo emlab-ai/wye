@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getProduct } from '@/lib/products';
 import { AGENTS, createSession, listSessions, listRunners } from '@/lib/sessions';
-import { startChat, isLive, reconcileStale } from '@/lib/agent-host';
+import { startChat, liveState, reconcileStale } from '@/lib/agent-host';
 import { stat } from 'node:fs/promises';
 import { REPO_ROOT } from '@/lib/products';
 
@@ -10,7 +10,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ product
   const { product } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   await reconcileStale(p.dir);
-  const sessions = (await listSessions(p.dir)).map(s => ({ ...s, transcript: undefined, live: s.mode === 'chat' && isLive(s.id) }));
+  const sessions = (await listSessions(p.dir)).map(s => ({ ...s, transcript: undefined, ...(s.mode === 'chat' ? liveState(s.id) : {}) }));
   return NextResponse.json({ sessions, runners: await listRunners(p.dir), defaults: { cwd: p.meta.repo ?? '', waterfall: REPO_ROOT } }, { headers: { 'cache-control': 'no-store' } });
 }
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {

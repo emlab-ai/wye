@@ -419,7 +419,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - action:open-graph:      Graph -(navigates)-> page:web/graph
     - action:open-questions:  Questions — open question blocks and inbox questions
     - action:open-inbox:      Inbox — proposed blocks and raw notes awaiting review
-    - action:open-sessions:   Sessions — agent sessions and runners -(navigates)-> page:web/sessions
+    - action:open-sessions:   Agents — every conversation and run, and the runners (the rail and the top bar say "Agents", task:new-917) -(navigates)-> page:web/sessions
     - action:new-document:    + next to Documents creates a document under a parent
   display-rules:
     - menu order: Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inbox, Sessions; then the Documents tree (rule:documents-tree); the rail is collapsible (rule:app-navigation)
@@ -515,7 +515,8 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
 
 ```yaml
 - id: page:web/sessions
-  route: /<product>/sessions; a session opens in the context column
+  title: Agents
+  route: /<product>/sessions (named "Agents" in the rail, the top bar and its heading); a session opens in the context column
   component: packages/web/src/app/[product]/sessions/page.tsx; packages/web/src/components/SessionList.tsx; packages/web/src/components/SessionView.tsx; packages/web/src/components/Console.tsx; packages/web/src/components/AskQuestions.tsx
   actions:
     - action:new-conversation: + New conversation starts a chat session with the default agent
@@ -1137,6 +1138,17 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   status: shipped
   verified-by: [ui-test:table-rows]
   related-to: [rule:goals-and-tasks, rule:type-tables]
+- id: rule:process-is-active
+  statement: >
+    A conversation whose claude or codex process is up is active whatever its recorded status: `wf session done`
+    marks the work done while the process stays up to take the next message. The API adds `live` (process up) and
+    `busy` (a turn is open) to every chat session from the server's own process table (agent-host#liveState —
+    never from disk, so a restarted app shows nothing as live until it starts a process). The Agents page counts
+    such sessions as active and shows `working` / `live` pills in place of the status (the title keeps the
+    recorded one); the session header does the same; the command box's "to" picker offers exactly these.
+  source: packages/web/src/lib/agent-host.ts#liveState; packages/web/src/components/SessionList.tsx#isActive; packages/web/src/app/api/[product]/sessions/route.ts
+  status: shipped
+  related-to: [rule:agent-sessions, rule:console-flow]
 - id: rule:agent-sessions
   statement: >
     Any block can be sent to an agent: "Send to agent" sits in every block's drag-handle menu, on node block headers,
@@ -1146,8 +1158,8 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     Waterfall clerk), a working folder and plan-first — starts a new one; sending creates
     a session (`data/products/<product>/_sessions/<id>.json`, status queued, gitignored) and opens it in the right
     column, which shows the instruction, refs, status and a log that is polled while the session is queued or
-    running. The Sessions page lists sessions (active first). Runners update a session with PATCH { status, line,
-    result }; none is connected yet.
+    running. The Agents page lists sessions (active first). Runners update a session with PATCH { status, line,
+    result }.
   source: packages/web/src/components/CommandBox.tsx; packages/web/src/components/SessionView.tsx; packages/web/src/lib/sessions.ts; packages/web/src/app/api/[product]/sessions
   status: shipped
 - id: rule:documents-tree

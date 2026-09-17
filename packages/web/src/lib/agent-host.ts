@@ -17,6 +17,8 @@ const g = globalThis as unknown as { __wfAgentHost?: Map<string, Live> };
 const live = () => (g.__wfAgentHost ??= new Map<string, Live>());
 
 export function isLive(id: string): boolean { const l = live().get(id); return !!l && (!!l.proc || l.agent === 'codex'); }
+// What the process behind a session is doing: live (alive, whatever its recorded status) and busy (a turn is open)
+export function liveState(id: string): { live: boolean; busy: boolean } { const l = live().get(id); return { live: isLive(id), busy: !!l && (l.turnBusy || !!(l.agent === 'codex' && l.proc)) }; }
 export function liveIds(): string[] { return [...live().keys()]; }
 
 function emit(l: Live, e: Omit<ChatEvent, 't'> & { t?: string }) {

@@ -5,6 +5,7 @@ import { SmartTag } from './SmartTag';
 import type { Session } from '@/lib/session-types';
 import { AGENTS } from '@/lib/session-types';
 import { Console } from './Console';
+import { shownStatus } from './SessionList';
 
 export const agentLabel = (id: string) => AGENTS.find(a => a.id === id)?.label ?? id;
 export const when = (iso: string) => { const d = new Date(iso); const m = (Date.now() - d.getTime()) / 60000; return m < 1 ? 'just now' : m < 60 ? `${Math.round(m)} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : d.toLocaleDateString(); };
@@ -40,7 +41,7 @@ export function SessionView({ id }: { id: string }) {
   return (
     <div className="session">
       <div className="session-head">
-        <span className={`pill s ${s.status} session-status`}>{s.status}</span>
+        <span className={`pill s ${shownStatus(s)} session-status`} title={s.live ? `process up · recorded status: ${s.status}` : s.status}>{shownStatus(s)}</span>
         <strong>{agentLabel(s.agent)}</strong>{s.mode === 'chat' && <span className="pill">chat</span>}
         <span className="muted">{when(s.createdAt)}</span>
         <span className="session-acts">
