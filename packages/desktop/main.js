@@ -18,16 +18,21 @@ function ping() { return new Promise(res => { const r = http.get(URL_ + '/api/pr
 async function startServer() {
   if (await ping()) { console.log(`server already running at ${URL_}; attaching`); return; }
   const args = DEV ? ['--workspace=packages/web', 'run', 'dev', '--', '-p', String(PORT)] : ['--workspace=packages/web', 'run', 'start', '--', '-p', String(PORT)];
-  server = spawn('npm', args, { cwd: ROOT, env: { ...process.env, PORT: String(PORT), BROWSER: 'none' }, stdio: ['ignore', 'pipe', 'pipe'] });
-  server.stdout.on('data', d => process.stdout.write('[web] ' + d));
-  server.stderr.on('data', d => process.stderr.write('[web] ' + d));
-  server.on('exit', code => { server = null; if (!quitting) dialog.showErrorBox('Waterfall', `The app server stopped (exit ${code}).`); });
+  // The server runs in its own process group with its output in a log file, so a desktop relaunch (hot reload)
+  // leaves it running and a real quit can take the whole group down.
+  const fs = require('node:fs');
+  fs.mkdirSync(path.join(ROOT, '.cache'), { recursive: true });
+  const log = fs.openSync(path.join(ROOT, '.cache/desktop-web.log'), 'a');
+  console.log(`[desktop] starting the web server (${DEV ? 'dev' : 'production'}); log: .cache/desktop-web.log`);
+  server = spawn('npm', args, { cwd: ROOT, env: { ...process.env, PORT: String(PORT), BROWSER: 'none' }, stdio: ['ignore', log, log], detached: true });
+  server.on('exit', code => { server = null; if (!quitting) dialog.showErrorBox('Waterfall', `The app server stopped (exit ${code}). See .cache/desktop-web.log`); });
   for (let i = 0; i < 120; i++) { if (await ping()) return; await new Promise(r => setTimeout(r, 500)); }
   throw new Error(`the app server did not answer on ${URL_}`);
 }
 
 function createWindow() {
-  win = new BrowserWindow({ width: 1500, height: 960, minWidth: 900, minHeight: 600, title: 'Waterfall', titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default', backgroundColor: '#141614', webPreferences: { contextIsolation: true, nodeIntegration: false } });
+  // standard OS title bar and window controls on every platform
+  win = new BrowserWindow({ width: 1500, height: 960, minWidth: 900, minHeight: 600, title: 'Waterfall', backgroundColor: '#141614', webPreferences: { contextIsolation: true, nodeIntegration: false } });
   win.loadURL(URL_);
   win.webContents.setWindowOpenHandler(({ url }) => { if (url.startsWith(URL_)) return { action: 'allow' }; shell.openExternal(url); return { action: 'deny' }; });
   win.on('closed', () => { win = null; });
@@ -52,11 +57,27 @@ function createTray() {
   tray.setContextMenu(Menu.buildFromTemplate([{ label: 'Open Waterfall', click: () => { if (win) win.show(); else createWindow(); } }, { label: 'Sessions', click: () => { if (!win) createWindow(); win.loadURL(URL_ + '/'); } }, { type: 'separator' }, { role: 'quit' }]));
 }
 
+// Hot reload. The page itself hot-reloads through Next.js Fast Refresh (the window loads the dev server). The
+// Electron side relaunches itself when a file in packages/desktop changes.
+function watchSelf() {
+  const fs = require('node:fs');
+  let timer = null;
+  try {
+    fs.watch(__dirname, { recursive: true }, (_ev, file) => {
+      if (!file || !/\.(js|json)$/.test(file) || file.includes('node_modules')) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { console.log(`[desktop] ${file} changed — relaunching`); quitting = true; relaunching = true; if (server) server.unref(); app.relaunch(); app.exit(0); }, 300);
+    });
+  } catch (e) { console.warn('[desktop] cannot watch for changes:', e.message); }
+}
+
 app.whenReady().then(async () => {
   buildMenu();
+  if (DEV) watchSelf();
   try { await startServer(); } catch (e) { dialog.showErrorBox('Waterfall', e.message); app.quit(); return; }
   createWindow(); createTray();
   app.on('activate', () => { if (!win) createWindow(); });
 });
 app.on('window-all-closed', () => { app.quit(); });
-app.on('before-quit', () => { quitting = true; if (server) { server.kill('SIGTERM'); } });
+let relaunching = false;
+app.on('before-quit', () => { quitting = true; if (server && !relaunching) { try { process.kill(-server.pid, 'SIGTERM'); } catch { server.kill('SIGTERM'); } } });
