@@ -6,10 +6,11 @@ description: How an agent works with Waterfall through the wf CLI — resolve a 
 # Working in Waterfall
 
 The full contract is `prompts/agent-system.md` in the Waterfall repo (also served at `$WF_URL/api/<product>/agent-prompt`).
-The short version: read Waterfall before you act, and **record every decision — the person's or yours — in the
-product inbox before moving on** (`wf inbox add --type decision --title … --choice …`), plus every new
-requirement, rule and question. Knowledge documents are maintained through review: agents do not add nodes to them
-directly, only the reviewer files inbox items. Statuses of existing nodes may be set directly (`wf node set`).
+The short version: read Waterfall before you act, and **write every decision — the person's or yours — as a
+`decision:` block (status proposed) in the document it belongs to before moving on**; every open question as a
+`question:` block where it arose; requirements as `req:` blocks, rules as `rule:` blocks, work as `task:` lines.
+Never as prose. The Inbox and Questions views are the review of those blocks. Statuses of existing nodes may be
+set directly (`wf node set`); `wf inbox add` is only for raw notes without a document.
 
 Waterfall keeps a product's knowledge (goals, requirements, rules, decisions, entities, tasks) as markdown documents
 with a graph on top, and a web app that people and agents share. `wf` is the CLI; it talks to the running web app
@@ -30,9 +31,9 @@ A link like `…/yessensei/offline/d/prd#n-goal%3Aoffline.g2` points at a node; 
 
 ## Write back
 
-- New knowledge → the inbox, for review: `wf inbox add --type decision|requirement|rule|question|note --title "…"
-  [--context … --choice … --alternatives … --consequences …] [--when … --then …] [--statement … --source …] [--q …]
-  --ref <ids>`. `wf inbox list` shows what waits.
+- New knowledge → typed blocks in the document (yaml card or id-first prose line) with `status: proposed`
+  (decisions, requirements, rules) or `status: open` (questions); the Inbox page lists what waits for approval.
+- Raw notes without a document: `wf inbox add --type note --title "…"` (pasted conversations, meeting notes).
 - Statuses and tracking fields of existing nodes: `wf node set <id> --status done --set owner=alex --set due=2026-10`
   (edits the defining line in place; `--unset key` removes a property; the graph rebuilds).
 - Editing the documents themselves (`wf doc write`, or the markdown under `data/products/<product>/projects/<project>/docs/`)

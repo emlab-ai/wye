@@ -3,7 +3,7 @@
 import { ID_RE, cleanId } from './ids';
 
 export interface NodeLine { prefix: string; check: '' | 'todo' | 'done'; id: string; text: string; status: string; extra: string }
-const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused)\b/;
+const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused|resolved|rejected)\b/;
 
 export function parseNodeLine(line: string): NodeLine | null {
   // ID_RE has capture groups of its own, so the id is wrapped in a named group and the rest is read after it

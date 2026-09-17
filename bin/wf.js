@@ -8,9 +8,8 @@
 //   wf node <id> [--product p]           a node with its relations
 //   wf node set <id> --product p [--status s] [--text t] [--set key=value ...] [--unset key ...]
 //   wf context "<text>" --product p      knowledge closest to a text (local semantic search)
-//   wf inbox add --product p --type decision|requirement|rule|question|note --title "…" [--context …] [--choice …]
-//        [--alternatives …] [--consequences …] [--when …] [--then …] [--statement …] [--q …] [--ref id ...] [--session id]
-//        (or the body on stdin)          record knowledge for review; a person (or the clerk) files it into a document
+//   wf inbox add --product p --title "…" [--ref id ...] (body on stdin)   a raw note (pasted material) for later filing;
+//        decisions, questions, requirements and rules are blocks in the documents, not inbox items
 //   wf inbox list --product p [--all]    what is waiting for review
 //   wf session list --product p [--all]  sessions (active first); runners online
 //   wf session show <id> --product p     one session with its log (--full for everything)

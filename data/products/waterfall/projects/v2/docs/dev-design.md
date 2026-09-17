@@ -1093,23 +1093,22 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   status: shipped
 - id: rule:inbox-review
   statement: >
-    The inbox holds knowledge candidates: typed items (decision, requirement, rule, question, note) with fields
-    (context/choice/alternatives/consequences, when/then, statement/source, q), refs, the session that produced
-    them, and a status (new, filed, dismissed), as markdown files under data/products/<product>/inbox/. Nothing
-    enters a document without review: the Inbox page suggests a home (the document where the closest existing
-    knowledge lives, by local semantic search; the kind's home document breaks ties) and an id, shows the closest
-    nodes so duplicates get refined instead of added, and "File as node" appends a yaml node to the chosen document
-    and rebuilds the graph; "Dismiss" keeps the item for the record. Automatic filing by the clerk is a later step.
-  source: packages/web/src/lib/inbox.ts; packages/web/src/components/InboxList.tsx; packages/web/src/app/api/[product]/inbox
+    The Inbox is a review view over the documents, not a store: it lists the blocks nobody has approved yet —
+    decisions, requirements, rules, goals with `status: proposed` (or draft) and questions still open — grouped by
+    kind with their fields and refs. Approve / Reject / Resolve change the block's status in its document (prose
+    lines and yaml cards alike); "Approve all" takes a group. Raw notes without a document (pasted material) still
+    land in the inbox folder below the queue. The Questions page shows question blocks only.
+  source: packages/web/src/lib/review.ts; packages/web/src/components/ReviewList.tsx; packages/web/src/lib/node-edit.ts
   status: shipped
-- id: decision:wf2.inbox-before-documents
-  title: Agents record knowledge in an inbox that is reviewed before it enters the documents
-  context: Letting agents write decisions and requirements straight into the PRD or tech design produced edits nobody had checked, in places nobody had chosen.
-  choice: Agents (and people) drop typed items into the product inbox; a reviewer — a person now, the clerk later — files each item into the right document as a node or dismisses it. Only statuses of existing nodes are changed directly by agents.
-  alternatives: [direct edits with a git-style review — heavier and the graph would carry unreviewed nodes meanwhile, a decisions-only log document — loses the review step and the placement question]
-  consequences: Knowledge documents stay curated; the inbox needs regular review or it piles up, which is what the automatic clerk is for.
+- id: decision:wf2.typed-blocks-in-documents
+  title: Agents write decisions, questions, requirements and rules as typed blocks in the documents; the Inbox reviews them there
+  context: A separate inbox store made agents' decisions and questions invisible in the documents they concerned, and design documents came back with questions as bullets and decisions as prose.
+  choice: Content rules in the agent contract — every decision a `decision:` block (proposed), every question a `question:` block (open), requirements and rules as blocks, follow-ups as task lines — and the Inbox and Questions pages read those blocks from the graph; review flips their status in place. The inbox folder keeps only raw notes.
+  alternatives: [inbox files filed by a reviewer — knowledge lived in two places until someone filed it, free prose plus a clerk that extracts blocks later — unreliable and delayed]
+  consequences: Documents written by agents are structurally checkable (ctx check, the Inbox count); the earlier `wf inbox add` types other than note are retired; existing inbox decisions and questions were migrated into their document as blocks.
   status: approved
   date: 2026-09-17
+  supersedes: decision:wf2.inbox-before-documents
 - id: rule:app-navigation
   statement: >
     The app frame has a collapsible rail (hidden by default on document and session pages, shown elsewhere; toggle

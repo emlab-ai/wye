@@ -7,7 +7,7 @@ import { tagifyBlocks, unwrapParagraphs, type Inline, type InlineText } from './
 import type { AnyBlock, NodeProps } from './serialize';
 
 const TEXT_KEYS = ['title', 'statement', 'description', 'purpose', 'q', 'text', 'context', 'does', 'intent'];
-const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused)\b/;
+const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused|resolved|rejected)\b/;
 
 export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[] }
 

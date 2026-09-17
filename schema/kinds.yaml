@@ -53,6 +53,8 @@ statuses:
   node: [proposed, approved, shipped, deprecated]              # lifecycle used by deltas
   goal: [proposed, on-track, at-risk, off-track, paused, complete, non-goal]   # goal health, Atlassian-style; progress is computed from what is part of the goal
   task: [todo, open, in-progress, blocked, done]              # a checkbox line sets open/done; #in-progress / #blocked override
+  question: [open, resolved, rejected]                         # a question block is open until a person resolves it (the answer is a decision)
+  decision: [proposed, approved, rejected]                     # agents write decisions as proposed; a person approves
   drift: [drift]
 
 goal-and-task-properties: |
