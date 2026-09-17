@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { usePeek } from './PeekProvider';
+import { useRouter } from 'next/navigation';
 import type { ChatEvent, Session } from '@/lib/session-types';
 
 // The live conversation with an agent: every event of the transcript, streamed over SSE, plus a message box.
@@ -19,6 +20,7 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
   const bottom = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const id = session.id;
+  const router = useRouter();
   // `wf session log` lines and the `wf session done` summary are part of the conversation, placed by time
   const flow = useMemo(() => {
     const extra: ChatEvent[] = (session.log ?? []).map(l => ({ t: l.t, kind: 'log' as const, text: l.line }));
@@ -26,15 +28,16 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
     if (!extra.length) return events;
     return [...events, ...extra].sort((a, b) => a.t.localeCompare(b.t));
   }, [events, session.log, session.result, session.finishedAt, session.updatedAt]);
+  // `wf session open` moves the page only when it arrives live; a replayed transcript (snapshot) never navigates
   useEffect(() => {
     const es = new EventSource(`/api/${product}/sessions/${id}/stream`);
     es.addEventListener('snapshot', e => { const j = JSON.parse((e as MessageEvent).data); setEvents(j.transcript); setLive(j.live); if (j.queue) setQueue(j.queue); });
     es.addEventListener('queue', e => setQueue(JSON.parse((e as MessageEvent).data)));
-    es.addEventListener('event', e => { const ev = JSON.parse((e as MessageEvent).data) as ChatEvent; setEvents(evs => [...evs, ev]); if (ev.kind === 'exit') { setLive(false); onStatus(ev.code === 0 ? 'done' : 'failed'); } if (ev.kind === 'init') setLive(true); });
+    es.addEventListener('event', e => { const ev = JSON.parse((e as MessageEvent).data) as ChatEvent; setEvents(evs => [...evs, ev]); if (ev.kind === 'open' && ev.text) router.push(ev.text); if (ev.kind === 'exit') { setLive(false); onStatus(ev.code === 0 ? 'done' : 'failed'); } if (ev.kind === 'init') setLive(true); });
     es.addEventListener('ping', e => { const j = JSON.parse((e as MessageEvent).data); setLive(j.live); });
     es.onerror = () => { /* the browser reconnects */ };
     return () => es.close();
-  }, [product, id, onStatus]);
+  }, [product, id, onStatus, router]);
   useEffect(() => { if (stick.current) bottom.current?.scrollIntoView({ block: 'end' }); }, [events]);
   // images from the clipboard (or dropped files) ride along with the message, the way Claude Code takes them
   const addFiles = (files: FileList | File[]) => {
@@ -113,6 +116,7 @@ function Event({ e, answered, answers, showThinking, answer }: { e: ChatEvent; a
     case 'init': return <div className="ev ev-note">{time}<span className="muted">{e.text}{e.cwd ? ` · ${e.cwd}` : ''}</span></div>;
     case 'note': return e.requestId ? null : <div className="ev ev-note">{time}<span className="muted">{e.text}</span></div>;
     case 'log': return <div className="ev ev-note ev-log">{time}<span className="muted"><i>log</i> {e.text}</span></div>;
+    case 'open': return <div className="ev ev-note ev-log">{time}<span className="muted"><i>opened</i> <a href={e.text}>{e.text}</a></span></div>;
     case 'summary': return <div className="ev ev-summary">{time}<div className="ev-body"><span className="ev-summary-tag">session summary</span><ReactMarkdown remarkPlugins={[remarkGfm]}>{e.text ?? ''}</ReactMarkdown></div></div>;
     case 'stderr': return <div className="ev ev-stderr">{time}<pre className="ev-pre">{e.text}</pre></div>;
     case 'exit': return <div className="ev ev-note">{time}<span className="muted">{e.text}</span></div>;

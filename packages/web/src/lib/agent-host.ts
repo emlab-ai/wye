@@ -38,12 +38,22 @@ export function subscribe(id: string, fn: (e: ChatEvent) => void): () => void {
 // Plan-first protocol (rule:plan-first): a request from the command palette is understood and proposed before anything
 // is built; the person confirms through the agent's question card (rule:agent-questions).
 export const PLAN_FIRST = `
-## Before you build — plan first
-This request came from the command palette (⌘P). Do not change code or documents until the person has confirmed a plan:
+## Before you build — plan first, on the page
+This request came from the command palette (⌘P). The plan is a page the person and you work on together, not a chat message. Do not change code until the person has confirmed it:
 1. Understand: run \`wf context "<the request in your words>"\`, resolve the nodes it returns (\`wf resolve\`) and read the documents they live in; look at the code areas involved. Work out which part of the app and which knowledge — modules, documents, requirements, rules, decisions, tasks — the change touches.
-2. Propose: write the plan as a message in the conversation, before any question — a few lines: what changes where (documents and node ids to add or refine, code files), what stays untouched, and any open question. The person reads this message; the question's options are not the place for it.
-3. Confirm: ask the person with one AskUserQuestion — header "Plan", the question "Build it this way?", options "Proceed" (build as proposed), "Adjust" (they say what to change), "Cancel". Wait for the answer; on Adjust revise the plan and ask again; on Cancel stop after \`wf session done\`.
-4. Build: only after Proceed — knowledge blocks first (proposed), then code and tests, then the task lines and \`wf session done\`.`;
+2. Model: name the subject of the request as one node, \`kind:slug\` — the node under the cursor or the document from Context when they fit, else the node you found, else the new node the request creates ("add a page X" → \`page:x\`). Make sure its type exists: \`wf node type:<kind>\` (base types such as page, entity, op, action, component, req, rule, decision, task exist already); if not, \`wf type add <kind> --extends <parent> --purpose "…"\` writes a proposed type card into the product's ontology document. Pick the subject's page: the document where the node is defined, else the document open in the palette (Context above), else the type's home; only when the subject is new and no document fits, create one — \`wf doc create <product/project/slug> --title "…" [--parent <doc>]\`.
+3. Write the plan on that page (\`wf doc\` to read, edit the file, \`ctx --root data/products/<product> check\` green): the subject's card when it is new (a yaml card with its id and the type's properties), then everything you understood as typed blocks in the page's sections — \`req:\` (when/then/unless, status: proposed), \`decision:\` (status: proposed), \`question:\` (status: open) for what you cannot answer, \`- [ ] task:\` lines for the work, links to the modules and code the change touches. Prose explains; blocks carry what is required, decided, asked and to do.
+4. Show it: \`wf session open <session id> <product/project/doc>[#node]\` — the person's browser navigates to the page while this conversation stays in the context column. Say in one chat line what is on the page.
+5. Collaborate: the person adds, comments, changes and answers on the page. Ask with one AskUserQuestion — header "Plan", the question "Build what the page says?", options "Proceed", "Adjust" (they say what to change, here or on the page), "Cancel". Wait for the answer; on Adjust re-read the page (\`wf doc\`), revise it and ask again; on Cancel stop after \`wf session done\`.
+6. Build: only after Proceed — re-read the page once more (the person may have changed it), then code and tests for what it says, then statuses (\`wf node set task:… --status done\`, reqs shipped) and \`wf session done\`.`;
+
+// `wf session open`: navigate the person to a page. Only a chat session with a live console can move the browser;
+// the session log keeps the line either way.
+export function openInSession(id: string, path: string): boolean {
+  const l = live().get(id); if (!l) return false;
+  emit(l, { kind: 'open', text: path });
+  return true;
+}
 
 // The first message: the instruction plus every ref and the source link resolved to text, and how to talk back.
 export async function buildPrompt(product: string, s: Session, wfUrl: string): Promise<string> {

@@ -5,9 +5,11 @@
 //   wf resolve <link|id>                 what a link points at: document, node, block or section (text included)
 //   wf doc <product/project/doc>         a document's markdown body
 //   wf doc write <product/project/doc> [--file f]   replace the body (stdin or --file), checked against the current hash
+//   wf doc create <product/project/slug> --title "…" [--template blank] [--parent doc]   a new document in a project
 //   wf node <id> [--product p]           a node with its relations
 //   wf node set <id> --product p [--status s] [--text t] [--set key=value ...] [--unset key ...]
 //   wf context "<text>" --product p      knowledge closest to a text (local semantic search)
+//   wf type add <slug> --product p [--extends parent] [--purpose "…"] [--doc product/project/doc]   a proposed type card
 //   wf inbox add --product p --title "…" [--ref id ...] (body on stdin)   a raw note (pasted material) for later filing;
 //        decisions, questions, requirements and rules are blocks in the documents, not inbox items
 //   wf inbox list --product p [--all]    what is waiting for review
@@ -17,6 +19,7 @@
 //   wf session log <id> --product p "<line>" | (stdin)   append to the log
 //   wf session done|fail <id> --product p ["result"]     finish a session
 //   wf session handoff <id> --product p --agent a ["note"]  continue it under another agent
+//   wf session open <id> --product p <product/project/doc[#node] | url>   navigate the person's browser to a page
 //   wf session take <id> --product p       mark it running under you (interactive pick-up, e.g. /wf-restore)
 //   wf agent listen --product p --agent claude-code|codex [--cmd "<command>"] [--name n] [--once]
 //        pick up queued sessions for that agent, run the command with the prompt on stdin, stream output to the log
@@ -84,6 +87,12 @@ async function resolve(link) {
 const commands = {
   async resolve() { if (!pos[1]) die('wf resolve <link|id>'); await resolve(pos[1]); },
   async doc() {
+    if (pos[1] === 'create') {
+      const d = docRef(pos[2] || die('wf doc create <product/project/slug> --title "…"'));
+      const j = await api('POST', `/api/${d.product}/${d.project}/doc`, { title: flags.title || die('--title is required'), template: flags.template || 'blank', parent: flags.parent || '' });
+      if (j.slug !== d.doc) console.error(`note: the slug comes from the title — created ${j.slug}, not ${d.doc}`);
+      return out(flags.json ? j : `created ${d.product}/${d.project}/${j.slug} (${WF_URL}/${d.product}/${d.project}/d/${j.slug})`);
+    }
     if (pos[1] === 'write') {
       const d = docRef(pos[2]); const body = flags.file ? fs.readFileSync(flags.file, 'utf8') : await readStdin();
       const cur = await api('GET', `/api/${d.product}/${d.project}/doc/${d.doc}`);
@@ -108,6 +117,14 @@ const commands = {
     if (flags.json) return out(j);
     console.log(`${j.node.id} [${j.node.kind}${j.node.status ? ', ' + j.node.status : ''}] ${j.node.file}:${j.node.line}\n${j.node.body}`);
     for (const [v, ids] of j.relations.out) console.log(`  ${v} → ${ids.join(', ')}`); for (const [v, ids] of j.relations.inc) console.log(`  ← ${v}: ${ids.join(', ')}`);
+  },
+  async type() {
+    if (pos[1] !== 'add') die('wf type add <slug> [--extends parent] [--purpose "…"] [--doc product/project/doc]');
+    const slug = pos[2] || die('wf type add <slug>'); const p = product();
+    const body = { slug, extends: flags.extends || 'node', purpose: flags.purpose || '' };
+    if (flags.doc) { const d = docRef(flags.doc); body.doc = `data/products/${d.product}/projects/${d.project}/docs/${d.doc}.md`; body.project = d.project; } // the route wants the repo-relative file
+    const j = await api('POST', `/api/${p}/types`, body);
+    return out(flags.json ? j : `type:${slug} added to ${j.file} (proposed — properties: wf node set or the type page ${WF_URL}/${p}/types/${slug})`);
   },
   async context() {
     const text = pos[1] || (await readStdin()); const j = await api('POST', `/api/${product()}/context`, { text, limit: Number(flags.limit || 10) });
@@ -155,6 +172,7 @@ const commands = {
     if (sub === 'log') { const text = pos[3] || (await readStdin()); const lines = text.split('\n').filter(Boolean); await api('PATCH', `/api/${p}/sessions/${id}`, { lines }); return; }
     if (sub === 'done' || sub === 'fail') { const result = pos[3] !== undefined ? pos[3] : process.stdin.isTTY ? undefined : await readStdin(); await api('PATCH', `/api/${p}/sessions/${id}`, { status: sub === 'done' ? 'done' : 'failed', result }); return out(`session ${id} ${sub === 'done' ? 'done' : 'failed'}`); }
     if (sub === 'take') { const runner = flags.runner || `interactive-${os.hostname().split('.')[0]}`; await api('PATCH', `/api/${p}/sessions/${id}`, { status: 'running', runner, line: `taken over interactively (${runner})` }); return out(`session ${id} running under ${runner}`); }
+    if (sub === 'open') { const target = pos[3] || die('wf session open <id> <product/project/doc[#node] | url>'); const j = await api('PATCH', `/api/${p}/sessions/${id}`, { open: target }); return out(flags.json ? j : `opened ${j.path}${j.live ? '' : ' (no live console — logged only)'}`); }
     if (sub === 'cancel') { await api('PATCH', `/api/${p}/sessions/${id}`, { status: 'cancelled' }); return out(`session ${id} cancelled`); }
     if (sub === 'handoff') { const j = await api('POST', `/api/${p}/sessions/${id}/handoff`, { agent: flags.agent || die('--agent required'), note: pos[3] || '' }); return out(flags.json ? j : `session ${j.id} queued for ${j.agent}, continuing ${id}`); }
     die(`unknown session command: ${sub}`);

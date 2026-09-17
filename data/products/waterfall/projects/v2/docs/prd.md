@@ -653,13 +653,15 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   then: >
     a command box opens in the middle of the screen; the request starts a chat session with the chosen agent in
     the product's working folder, taking the node under the cursor and the document as context; the session opens
-    in the context column, where the agent first says which part of the app and of the knowledge base the change
-    touches and proposes the change, asks the person to confirm (Proceed / Adjust / Cancel), and builds only after
-    Proceed
+    in the context column, where the agent first names the entity the request is about (creating its type and its
+    card when they do not exist yet), writes what it understood — requirements, decisions, questions, tasks — as
+    proposed blocks on that entity's page (an existing document when one fits, a new one otherwise), navigates the
+    person to that page so they can add, comment and change it, asks the person to confirm (Proceed / Adjust /
+    Cancel), and builds what the page says only after Proceed
   unless: the person unticks "plan first" in the box — then the agent starts building at once
   status: proposed
   refines: req:wf2.ui.live
-  satisfied-by: [action:command-palette, rule:plan-first]
+  satisfied-by: [action:command-palette, rule:plan-first, op:session.open]
   verified-by: [ui-test:command-palette]
 - id: req:wf2.sessions.questions
   title: The agent's questions reach the person and the answer reaches the agent

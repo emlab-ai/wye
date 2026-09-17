@@ -933,6 +933,15 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     card's props block and scalar keys (purpose, extends, open) in place under the file lock
   gate: none (local app)
   source: packages/web/src/app/api/[product]/types/[slug]/route.ts; packages/web/src/lib/instances.ts; packages/web/src/lib/type-edit.ts
+- id: op:session.open
+  args: product, session id; PATCH { open: "<product/project/doc>[#node]" | "<url>" } (wf session open <id> <target>)
+  does: >
+    resolves the target to an app path (a document ref becomes /<product>/<project>/d/<doc>, a node suffix its
+    anchor, an app URL its path), logs "opened <path>" on the session and emits a live `open` event; the console
+    of a chat session that is open in the context column navigates the page to it, once, on the live event only
+    (a replayed transcript never navigates). A runner session without a live console just keeps the log line.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/sessions/[id]/route.ts; packages/web/src/lib/agent-host.ts#openInSession; packages/web/src/lib/open-target.ts; packages/web/src/components/Console.tsx; bin/wf.js#session
 ```
 
 ```yaml
@@ -1265,22 +1274,50 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   date: 2026-09-17
   related-to: [rule:plan-first, rule:agent-questions, decision:wf2.agent-questions-are-forms]
   session: 8aa3926e18
+- id: decision:wf2.plan-is-a-page
+  title: The plan is the subject's page, worked on together, not a chat message
+  context: >
+    The first plan-first protocol had the agent propose in a chat message and ask Proceed / Adjust / Cancel. A chat
+    message is gone once the session ends, the person can only answer it, and nothing forced the agent to say which
+    entity the request is about, whether its type exists, or where it lives.
+  choice: >
+    The plan lives on the subject's page: the agent names the subject as one node, makes sure its type and its
+    document exist (existing document first, a new one only when nothing fits), writes what it understood there as
+    typed blocks (req, decision, question, task — proposed), navigates the person to the page (`wf session open`),
+    and the two work on the page until the person answers Proceed. The build is what the page says at that moment.
+  alternatives: >
+    Keep the plan in chat and copy blocks to a document afterwards — the person cannot edit the plan itself and the
+    copy drifts; a dedicated "plan" document per session — one more place to look, and the knowledge belongs with
+    the entity anyway.
+  consequences: rule:plan-first; op:session.open; `wf doc create`, `wf type add`, `wf session open` in bin/wf.js; req:wf2.ui.command-palette
+  status: proposed
+  date: 2026-09-17
+  related-to: [decision:wf2.plan-first-is-a-prompt, rule:plan-first, rule:agent-questions]
+  session: 0e07e8fd53
 - id: rule:plan-first
   statement: >
     A session started from the command palette carries `plan: true`, and its first message ends with a plan-first
-    section: before changing code or documents the agent (1) understands — `wf context` on the request, resolves
-    the nodes, reads their documents and the code involved, and works out which part of the app and which knowledge
-    (modules, documents, requirements, rules, decisions, tasks) the change touches; (2) proposes the change in a
-    few lines — what changes where, what stays untouched, open questions; (3) confirms with one AskUserQuestion
-    (header "Plan", "Build it this way?", Proceed / Adjust / Cancel) rendered as a question card in the console
-    (rule:agent-questions) and waits; Adjust revises and asks again, Cancel ends the session; (4) builds only after
-    Proceed — knowledge first, then code and tests, then `wf session done`. The palette can switch the protocol
-    off for a plain run. The flag is part of the prompt, not a session mode: the session, host and console are the
-    ones every conversation uses.
-  source: packages/web/src/components/CommandPalette.tsx; packages/web/src/lib/agent-host.ts#PLAN_FIRST; packages/web/src/lib/sessions.ts#createSession
-  status: shipped
+    section. Before changing code the agent (1) understands — `wf context` on the request, resolves the nodes,
+    reads their documents and the code involved; (2) models — names the subject of the request as one node
+    (`kind:slug`: the node under the cursor or the document the palette sent when they fit, else found, else the
+    new node the request creates), makes sure its type exists (`wf node type:<slug>`; else `wf type add`, a
+    proposed `type:` card in the product's ontology document) and picks the subject's page: the document where the
+    node is defined, else the one open in the palette, else the type's home, and only when the subject is new and
+    no document fits a new one (`wf doc create`); (3) writes the plan on that page, not in chat — the subject's
+    card when it is new, and everything understood as blocks in the page's sections: `req:` (proposed),
+    `decision:` (proposed), `question:` (open), `- [ ] task:` lines, links to the modules and code touched; `ctx
+    check` green; (4) shows it — `wf session open <id> <product/project/doc>[#node]` navigates the person's browser
+    to the page while the session stays in the context column, and one chat line says what is there; (5)
+    collaborates — the person edits, comments and answers on the page; one AskUserQuestion (header "Plan", "Build
+    what the page says?", Proceed / Adjust / Cancel) rendered as a question card (rule:agent-questions); Adjust
+    re-reads the page and revises it, Cancel ends the session; (6) builds only after Proceed, after re-reading the
+    page once more — code and tests for what the page says, then statuses (tasks done, reqs shipped) and `wf
+    session done`. The palette can switch the protocol off for a plain run. The flag is part of the prompt, not a
+    session mode: the session, host and console are the ones every conversation uses.
+  source: packages/web/src/components/CommandPalette.tsx; packages/web/src/lib/agent-host.ts#PLAN_FIRST; packages/web/src/lib/sessions.ts#createSession; bin/wf.js#session
+  status: proposed
   verified-by: [ui-test:command-palette]
-  related-to: [rule:agent-questions, rule:agent-host, component:send-to-agent]
+  related-to: [rule:agent-questions, rule:agent-host, component:send-to-agent, decision:wf2.plan-is-a-page, op:session.open]
 - id: rule:agent-questions
   statement: >
     An agent's question (Claude Code's AskUserQuestion, which arrives as a permission request over the stdio
