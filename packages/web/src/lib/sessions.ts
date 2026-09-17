@@ -26,9 +26,9 @@ export async function getSession(productDir: string, id: string): Promise<Sessio
   if (!ID.test(id)) return null;
   try { return JSON.parse(await readFile(file(productDir, id), 'utf8')); } catch { return null; }
 }
-export async function createSession(productDir: string, product: string, input: { agent: string; instruction: string; refs?: string[]; source?: SessionSource; mode?: 'run' | 'chat'; cwd?: string }): Promise<Session> {
+export async function createSession(productDir: string, product: string, input: { agent: string; instruction: string; refs?: string[]; source?: SessionSource; mode?: 'run' | 'chat'; cwd?: string; plan?: boolean }): Promise<Session> {
   const now = new Date().toISOString();
-  const s: Session = { id: randomBytes(5).toString('hex'), product, agent: input.agent, mode: input.mode ?? 'run', cwd: input.cwd, status: 'queued', createdAt: now, updatedAt: now, instruction: input.instruction, refs: [...new Set(input.refs ?? [])], source: input.source ?? {}, log: [{ t: now, line: input.mode === 'chat' ? 'chat session created' : `queued for ${input.agent}` }] };
+  const s: Session = { id: randomBytes(5).toString('hex'), product, agent: input.agent, mode: input.mode ?? 'run', cwd: input.cwd, ...(input.plan ? { plan: true } : {}), status: 'queued', createdAt: now, updatedAt: now, instruction: input.instruction, refs: [...new Set(input.refs ?? [])], source: input.source ?? {}, log: [{ t: now, line: input.mode === 'chat' ? 'chat session created' : `queued for ${input.agent}` }] };
   await saveSession(productDir, s);
   return s;
 }

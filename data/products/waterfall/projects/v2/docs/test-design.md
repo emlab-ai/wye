@@ -236,6 +236,14 @@ One node per test file. Requirements and rules point here with `requires-tests: 
   file: packages/web/src/lib/node-edit.test.ts
   cases: 5
   covers: patchYamlCard — scalar keys in place or appended, null removes, folded blocks for long or multi-line values, the text key by name
+- id: ui-test:command-palette
+  file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    on a document page with the cursor in a node, press ⌘P — the command box opens in the middle with the node and
+    the document as context tags and the product's working folder filled in; type a request and press Enter — a
+    chat session with plan: true starts and opens in the context column; in its transcript the agent states what
+    the request touches, proposes, and asks one "Plan" question (Proceed / Adjust / Cancel) before any change
+    (2026-09-17, session 3d2f42d484)
 - id: ui-test:table-rows
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >

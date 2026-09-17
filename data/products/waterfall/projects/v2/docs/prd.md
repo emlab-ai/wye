@@ -647,6 +647,20 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
 #### Sessions console (2026-09-17)
 
 ```yaml
+- id: req:wf2.ui.command-palette
+  title: A request typed anywhere becomes a planned agent session
+  when: a person presses ⌘P (Ctrl+P) on any page, types what to fix, build or change, and presses Enter
+  then: >
+    a command box opens in the middle of the screen; the request starts a chat session with the chosen agent in
+    the product's working folder, taking the node under the cursor and the document as context; the session opens
+    in the context column, where the agent first says which part of the app and of the knowledge base the change
+    touches and proposes the change, asks the person to confirm (Proceed / Adjust / Cancel), and builds only after
+    Proceed
+  unless: the person unticks "plan first" in the box — then the agent starts building at once
+  status: proposed
+  refines: req:wf2.ui.live
+  satisfied-by: [action:command-palette, rule:plan-first]
+  verified-by: [ui-test:command-palette]
 - id: req:wf2.sessions.questions
   title: The agent's questions reach the person and the answer reaches the agent
   when: an agent in a chat session asks the person a question (Claude Code's AskUserQuestion)

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { patchYamlCard } from './node-edit';
+import { patchYamlCard, continuationEnd } from './node-edit';
 
 const md = `# Doc
 
@@ -34,4 +34,13 @@ describe('patchYamlCard', () => {
     expect(patchYamlCard(md, 'bug:y', { text: 'A worse bug' }).md).toContain('- id: bug:y\n  text: A worse bug\n  priority: p2');
   });
   it('reports a missing card', () => { expect(patchYamlCard(md, 'bug:nope', { status: 'done' }).error).toBe('not_found'); });
+});
+
+describe('continuationEnd', () => {
+  it('joins wrapped lines of a prose node and stops at a blank, a list item, a fence or a comment', () => {
+    expect(continuationEnd(['- task:a First', 'second line', 'third', '', 'para'], 0)).toBe(3);
+    expect(continuationEnd(['- task:a First', '- task:b Next'], 0)).toBe(1);
+    expect(continuationEnd(['task:a First', 'more', '```yaml', 'x'], 0)).toBe(2);
+    expect(continuationEnd(['task:a First', '<!-- /tasks -->'], 0)).toBe(1);
+  });
 });

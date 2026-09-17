@@ -35,6 +35,16 @@ export function subscribe(id: string, fn: (e: ChatEvent) => void): () => void {
   l.subs.add(fn); return () => { l.subs.delete(fn); };
 }
 
+// Plan-first protocol (rule:plan-first): a request from the command palette is understood and proposed before anything
+// is built; the person confirms through the agent's question card (rule:agent-questions).
+export const PLAN_FIRST = `
+## Before you build — plan first
+This request came from the command palette (⌘P). Do not change code or documents until the person has confirmed a plan:
+1. Understand: run \`wf context "<the request in your words>"\`, resolve the nodes it returns (\`wf resolve\`) and read the documents they live in; look at the code areas involved. Work out which part of the app and which knowledge — modules, documents, requirements, rules, decisions, tasks — the change touches.
+2. Propose: write the plan as a message in the conversation, before any question — a few lines: what changes where (documents and node ids to add or refine, code files), what stays untouched, and any open question. The person reads this message; the question's options are not the place for it.
+3. Confirm: ask the person with one AskUserQuestion — header "Plan", the question "Build it this way?", options "Proceed" (build as proposed), "Adjust" (they say what to change), "Cancel". Wait for the answer; on Adjust revise the plan and ask again; on Cancel stop after \`wf session done\`.
+4. Build: only after Proceed — knowledge blocks first (proposed), then code and tests, then the task lines and \`wf session done\`.`;
+
 // The first message: the instruction plus every ref and the source link resolved to text, and how to talk back.
 export async function buildPrompt(product: string, s: Session, wfUrl: string): Promise<string> {
   const scope = await loadScope(product);
@@ -46,6 +56,7 @@ export async function buildPrompt(product: string, s: Session, wfUrl: string): P
   }
   if (ctx.length) parts.push(`\n## Context\n${ctx.join('\n\n')}`);
   if (s.parent) parts.push(`\nThis session continues session ${s.parent}; its log and result are in the instruction above.`);
+  if (s.plan) parts.push(PLAN_FIRST);
   parts.push(`\n## How to work\n- The Waterfall CLI is \`wf\` (WF_URL=${wfUrl}, WF_PRODUCT=${product}). Read: \`wf resolve <link|id>\`, \`wf doc <product/project/doc>\`, \`wf node <id>\`, \`wf context "<text>"\`. Write: \`wf node set <id> --status s --set key=value\`, \`wf doc write <product/project/doc> --file f\`.\n- Product documents live under ${REPO_ROOT}/data/products/${product}/projects/<project>/docs/ (markdown; a line that starts with an id defines that node; keep ids stable). Run \`ctx --root data/products/${product} check\` from ${REPO_ROOT} after editing them.\n- This is a conversation: the person can reply here. Ask when something is unclear; say plainly what you changed.`);
   return parts.join('\n');
 }

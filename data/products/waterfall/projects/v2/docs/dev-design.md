@@ -519,6 +519,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   component: packages/web/src/app/[product]/sessions/page.tsx; packages/web/src/components/SessionList.tsx; packages/web/src/components/SessionView.tsx; packages/web/src/components/Console.tsx; packages/web/src/components/AskQuestions.tsx
   actions:
     - action:new-conversation: + New conversation starts a chat session with the default agent
+    - action:command-palette:  ⌘P / Ctrl+P anywhere opens a command box in the middle of the screen; what is typed starts a chat session that plans first (rule:plan-first); the node under the cursor and the document travel along as refs; the session opens in the context column
     - action:open-session:     a row opens the session in the context column: status, agent, instruction, refs, then the console
     - action:send-message:     type (⌘↵) or paste images; sent now or queued while a turn runs (rule:session-queue)
     - action:answer-question:  choose options / type an answer on the agent's question card; Answer returns the choices to the agent, Skip lets it go on (rule:agent-questions)
@@ -1246,6 +1247,40 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   source: packages/web/src/lib/annotations.ts; packages/web/src/components/DrawingBlock.tsx#sceneFromImage; packages/web/src/components/DocEditor.tsx#AnnotateItem; packages/web/src/lib/resolve.ts; bin/wf.js#resolve
   status: proposed
   verified-by: [test:annotations-web]
+- id: decision:wf2.plan-first-is-a-prompt
+  title: Plan-first is a section of the first message, not a session mode or a second agent
+  context: >
+    The command palette (⌘P) must make an agent understand and propose before it builds, and let the person confirm.
+    That could be a distinct session mode with its own host and console, a separate planning agent that hands off,
+    or a protocol in the prompt.
+  choice: >
+    A `plan: true` flag on the session appends a plan-first section to the first message (understand → propose →
+    confirm with one AskUserQuestion → build). The confirmation uses the question card every conversation already
+    renders (rule:agent-questions); the session, host and console are unchanged. The palette can untick it.
+  alternatives: >
+    A session mode — duplicates the host and console for one difference; a planning agent handing off to a builder
+    — loses the context it just gathered; a fixed "plan" tool — Claude Code's AskUserQuestion already is the form.
+  consequences: rule:plan-first; action:command-palette; a later agent can carry the same flag from any entry point
+  status: proposed
+  date: 2026-09-17
+  related-to: [rule:plan-first, rule:agent-questions, decision:wf2.agent-questions-are-forms]
+  session: 8aa3926e18
+- id: rule:plan-first
+  statement: >
+    A session started from the command palette carries `plan: true`, and its first message ends with a plan-first
+    section: before changing code or documents the agent (1) understands — `wf context` on the request, resolves
+    the nodes, reads their documents and the code involved, and works out which part of the app and which knowledge
+    (modules, documents, requirements, rules, decisions, tasks) the change touches; (2) proposes the change in a
+    few lines — what changes where, what stays untouched, open questions; (3) confirms with one AskUserQuestion
+    (header "Plan", "Build it this way?", Proceed / Adjust / Cancel) rendered as a question card in the console
+    (rule:agent-questions) and waits; Adjust revises and asks again, Cancel ends the session; (4) builds only after
+    Proceed — knowledge first, then code and tests, then `wf session done`. The palette can switch the protocol
+    off for a plain run. The flag is part of the prompt, not a session mode: the session, host and console are the
+    ones every conversation uses.
+  source: packages/web/src/components/CommandPalette.tsx; packages/web/src/lib/agent-host.ts#PLAN_FIRST; packages/web/src/lib/sessions.ts#createSession
+  status: shipped
+  verified-by: [ui-test:command-palette]
+  related-to: [rule:agent-questions, rule:agent-host, component:send-to-agent]
 - id: rule:agent-questions
   statement: >
     An agent's question (Claude Code's AskUserQuestion, which arrives as a permission request over the stdio

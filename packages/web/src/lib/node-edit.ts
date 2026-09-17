@@ -26,9 +26,12 @@ export async function editNode(scope: Scope, id: string, patch: NodePatch, opts:
     let i = node.line - 1;
     if (!lines[i] || !defines(lines[i])) i = lines.findIndex(defines);
     if (i < 0) return { ok: false as const, error: 'not_found', message: 'defining line not found' };
-    const next = patchNodeLine(lines[i], patch);
+    // continuation lines belong to the node (lib/parse.js joins them): patch the whole text as one line
+    const j = continuationEnd(lines, i);
+    const whole = [lines[i], ...lines.slice(i + 1, j).map(l => l.trim())].join(' ');
+    const next = patchNodeLine(whole, patch);
     if (next === null) return { ok: false as const, error: 'invalid', message: 'the defining line is not a prose node line' };
-    if (next !== lines[i]) { lines[i] = next; await writeAtomic(abs, lines.join('\n')); if (opts.rebuild !== false) await rebuild(scope.product.dir); }
+    if (next !== lines[i] || j > i + 1) { lines.splice(i, j - i, next); await writeAtomic(abs, lines.join('\n')); if (opts.rebuild !== false) await rebuild(scope.product.dir); }
     return { ok: true as const, line: next, file: node.file };
   });
 }
@@ -60,4 +63,12 @@ export function patchYamlCard(md: string, id: string, patch: NodePatch): { md: s
   if (patch.status !== undefined) setKey('status', patch.status || null);
   for (const [k, v] of Object.entries(patch.props ?? {})) setKey(k, v);
   return { md: lines.join('\n'), line: lines[start] };
+}
+
+// Where a prose node's text ends: the first blank line, fence, heading, table row, list item, rule or html comment
+// after its defining line (the same rule lib/parse.js uses to join continuation lines).
+export function continuationEnd(lines: string[], i: number): number {
+  let j = i + 1;
+  while (j < lines.length && lines[j].trim() && !/^(```|#|\||\s*([-*+]|\d+[.)])\s|---\s*$|\s*<!--)/.test(lines[j])) j++;
+  return j;
 }
