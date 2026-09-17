@@ -1,4 +1,6 @@
 # Waterfall context-graph schema. The parser (lib/parse.js) recognises these kinds and verbs.
+# The kind list is open: base-ontology.md declares each kind as a type: card (properties, inverses) and a product may
+# add its own types the same way; this file is the human-readable summary and must be kept in step with it.
 # Ids are stable slugs: kind:slug. Slugs are kebab-case; req slugs are dotted paths (hierarchy).
 
 kinds:

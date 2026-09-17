@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { loadScope } from '@/lib/scope';
+import { HIDDEN_KINDS } from '@/lib/graph';
 import { KIND_LABELS, KIND_ORDER } from '@/lib/knowledge';
 import { SmartTag } from '@/components/SmartTag';
 
@@ -9,7 +10,7 @@ export default async function KnowledgePage({ params }: { params: Promise<{ prod
   const { product } = await params;
   const scope = await loadScope(product); if (!scope) notFound();
   const byKind = new Map<string, typeof scope.graph.nodes>();
-  for (const n of scope.graph.nodes) { if (!n.defined || n.kind === 'field' || n.kind === 'prop' || n.kind === 'type' || n.kind === 'module') continue; if (!byKind.has(n.kind)) byKind.set(n.kind, []); byKind.get(n.kind)!.push(n); }
+  for (const n of scope.graph.nodes) { if (!n.defined || HIDDEN_KINDS.has(n.kind) || n.kind === 'type' || n.kind === 'module') continue; if (!byKind.has(n.kind)) byKind.set(n.kind, []); byKind.get(n.kind)!.push(n); }
   const kinds = KIND_ORDER.filter(k => byKind.has(k)).concat([...byKind.keys()].filter(k => !KIND_ORDER.includes(k)));
   return (
     <div className="page">

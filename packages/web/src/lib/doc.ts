@@ -1,4 +1,4 @@
-import { STRUCTURAL, type GraphData, type GraphIndex, type GraphNode } from './graph';
+import { STRUCTURAL, type GraphData, type GraphIndex, type GraphNode, HIDDEN_KINDS } from './graph';
 
 export interface Chunk { id: string | null; body: string; raw: string; start: number; end: number; list: boolean }
 export type Segment =
@@ -138,7 +138,7 @@ export function nodeIndex(g: GraphData): Record<string, IndexEntry> {
   const out: Record<string, IndexEntry> = {};
   const field = (body: string, key: string) => body.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'))?.[1].trim();
   for (const n of g.nodes) {
-    if (n.kind === 'field') continue;
+    if (HIDDEN_KINDS.has(n.kind)) continue;
     const e: IndexEntry = { id: n.id, kind: n.kind, title: n.title, status: n.status, defined: n.defined, file: n.file };
     if (n.kind === 'goal' || n.kind === 'task') {
       const owner = field(n.body, 'owner'); const target = field(n.body, 'target') ?? field(n.body, 'due'); const progress = Number(field(n.body, 'progress'));

@@ -71,7 +71,8 @@ bin/ctx.js            CLI
 lib/parse.js          markdown → graph (nodes, typed edges, generated field nodes + mentions)
 lib/graph.js          queries, packet, lint
 viewer/index.html     phone-first viewer: Reqs tree · force graph (canvas, d3) · rendered text; node sheet with edges
-schema/kinds.yaml     node kinds, verbs, statuses, conventions
+schema/base-ontology.md  the base types: every kind as a type: card with its properties and inverses (parser pass 1)
+schema/kinds.yaml     kinds, verbs, statuses, conventions in prose (kept in step with base-ontology.md)
 templates/module.md   skeleton for a new module file
 templates/delta.yaml  how a feature enters the graph before code
 skills/               Claude Code skills (symlinked by install.sh)

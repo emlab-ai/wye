@@ -39,6 +39,11 @@ show the blocks in the documents that nobody has approved or resolved yet. So:
 - Block forms: a yaml card in a fenced ```yaml block (`- id: decision:<product>.<slug>` … one key per line, `>`
   for long text) or a prose line that starts with the id (`req:x When … #proposed`, `question:y Is …? #open`).
   Ids are `kind:<product>.<slug>`; ids in text become edges ("part of goal:x", "depends on entity:y").
+- Types: the kinds are open. A product declares its own with a `type:` card (`extends: type:node`, `props:` with
+  `name: string`, `manager: ref employee -(inverse)-> reports`, `members: list of person -(inverse)-> memberOf`);
+  an instance is `team:<slug>` as a card or a prose line. Properties inherit along `extends`; a ref/list property
+  is an edge named by the property and the inverse appears on the other side without being written. Read a
+  type with `wf node type:<slug>`; `ctx check` reports missing required, undeclared and mistyped properties.
 - What you MAY change without review: statuses and tracking fields of existing nodes — `wf node set task:x
   --status done`, `wf node set req:y --status shipped`, `wf node set goal:z --status at-risk --set owner=…`.
 - The inbox folder (`wf inbox add`) is only for raw material that has no document yet: a pasted conversation, a

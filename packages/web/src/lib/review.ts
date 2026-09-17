@@ -2,7 +2,7 @@
 // Decisions, requirements, rules, goals and entities carry `proposed` until approved; questions stay open until
 // resolved. Nothing here is stored separately — approving edits the node's status in its document.
 import type { GraphData, GraphIndex, GraphNode } from './graph';
-import { parseBody } from './graph';
+import { parseBody, HIDDEN_KINDS } from './graph';
 import { docRoute } from './doc';
 
 export type ReviewKind = 'question' | 'decision' | 'req' | 'rule' | 'goal' | 'entity' | 'other';
@@ -12,7 +12,7 @@ const OPEN_QUESTION = (s: string) => !['resolved', 'rejected', 'done', 'dismisse
 const NEEDS_APPROVAL = new Set(['proposed', 'draft', 'unverified']);
 
 export function isReviewable(n: GraphNode): boolean {
-  if (!n.defined || n.kind === 'module' || n.kind === 'field' || n.kind === 'product') return false;
+  if (!n.defined || n.kind === 'module' || HIDDEN_KINDS.has(n.kind) || n.kind === 'product') return false;
   if (n.kind === 'question' || n.status === 'question') return OPEN_QUESTION(n.status === 'question' ? 'open' : n.status || 'open');
   return NEEDS_APPROVAL.has(n.status) && ['decision', 'req', 'rule', 'goal', 'entity', 'task'].includes(n.kind) && n.status !== 'unverified';
 }

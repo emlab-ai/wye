@@ -59,7 +59,9 @@ const v = g.node('req:sale.void'); assert(v && v.defined && v.status === 'shippe
 const rule = g.node('rule:close-on-complete'); assert(rule && rule.defined, 'prose rule defined');
 assert((g.out.get('rule:close-on-complete') || []).some(e => e.verb === 'see' && e.to === 'rule:kitchen-done'), 'see verb inferred');
 assert(!(g.out.get('module:pos') || []).some(e => e.to === 'req:sale.close' && e.verb === 'related-to'), 'a plain mention is not a link');
-assert((g.out.get('module:pos') || []).some(e => e.verb === 'related-to' && e.to === 'entity:kitchen-item'), 'plain-prose link relates the document');
+// a plain-prose link is owned by its block; the document reaches it through has → block (h1) → block
+const reach = (id, depth) => depth < 0 ? [] : (g.out.get(id) || []).flatMap(e => e.verb === 'has' ? [e.to, ...reach(e.to, depth - 1)] : []);
+assert(reach('module:pos', 3).some(b => (g.out.get(b) || []).some(e => e.verb === 'related-to' && e.to === 'entity:kitchen-item')), 'plain-prose link is a block\'s edge under the document');
 const t1 = g.node('task:kitchen-screen'); assert(t1 && t1.defined && t1.status === 'open', 'unchecked task is open: ' + (t1 && t1.status));
 assert((g.out.get('task:kitchen-screen') || []).some(e => e.verb === 'part-of' && e.to === 'req:sale.close'), 'task part-of inferred');
 const t2 = g.node('task:wire-order'); assert(t2 && t2.status === 'done', 'checked task is done');

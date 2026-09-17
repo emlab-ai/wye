@@ -6,6 +6,7 @@ import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import type { GraphData, GraphNode } from './graph';
+import { HIDDEN_KINDS } from './graph';
 import { parseBody } from './graph';
 import { REPO_ROOT } from './products';
 
@@ -39,7 +40,7 @@ const hashOf = (s: string) => createHash('sha1').update(s).digest('hex').slice(0
 const indexes = new Map<string, Promise<{ nodes: GraphNode[]; texts: Map<string, string>; vecs: Map<string, number[]> }>>();
 
 async function buildIndex(productDir: string, graph: GraphData) {
-  const nodes = graph.nodes.filter(n => n.defined && n.kind !== 'field' && n.kind !== 'module');
+  const nodes = graph.nodes.filter(n => n.defined && !HIDDEN_KINDS.has(n.kind) && n.kind !== 'module');
   const texts = new Map(nodes.map(n => [n.id, nodeText(n)]));
   const file = path.join(productDir, '_build/embeddings.json');
   let cache: Cache = { model: MODEL, entries: {} };

@@ -71,7 +71,9 @@ const ana = g.node('manager:ana');
 assert(ana && ana.defined && ana.kind === 'manager', 'manager:ana defined from a card with an open kind');
 const bo = g.node('employee:bo');
 assert(bo && bo.defined && bo.form === 'prose', 'employee:bo defined as a prose node with an open kind');
-assert((g.out.get("module:people") || []).some(e => e.verb === "related-to" && e.to === "team:platform"), "open kinds are recognised in plain prose links");
+const reach = (id, depth) => depth < 0 ? [] : (g.out.get(id) || []).flatMap(e => e.verb === 'has' ? [e.to, ...reach(e.to, depth - 1)] : []);
+const linkBlock = reach('module:people', 3).flatMap(b => g.out.get(b) || []).find(e => e.verb === 'related-to' && e.to === 'team:platform');
+assert(linkBlock && linkBlock.from.startsWith('block:people.'), 'open kinds are recognised in plain prose links (owned by the block)');
 
 // --- graph.types carries chain and effective properties
 const types = Object.fromEntries(data.types.map(t => [t.id, t]));

@@ -10,6 +10,8 @@ export interface BodyRow { key: string; value: string; prose: boolean }
 export interface ModuleGroup { module: GraphNode; file: string; sections: { title: string; nodes: GraphNode[] }[] }
 
 export const STRUCTURAL = new Set(['refines', 'satisfied-by', 'verified-by', 'governed-by', 'gated-by', 'has', 'refs', 'owns', 'calls', 'has-action', 'reads', 'writes', 'navigates', 'triggers', 'set-by', 'embedded-in', 'typed-as', 'contradicts', 'owned-by', 'applies-to', 'governs', 'edge-to', 'resolves', 'depends-on', 'adds', 'changes', 'part-of', 'related-to', 'produced']);
+// generated or anonymous nodes: they exist for addressing and links and stay out of lists, rails, search and the index
+export const HIDDEN_KINDS = new Set(['field', 'prop', 'block']);
 export const PROSE_KEYS = new Set(['purpose', 'note', 'notes', 'statement', 'description', 'context', 'consequences', 'intent', 'q', 'text']);
 
 export function indexGraph(g: GraphData): GraphIndex {
@@ -29,7 +31,7 @@ export function sidebarTree(g: GraphData): ModuleGroup[] {
   return g.modules.map(m => {
     const module = byId.get(m.id)!;
     const sections = new Map<string, GraphNode[]>();
-    const own = g.nodes.filter(n => n.file === m.file && n.defined && n.kind !== 'field' && n.kind !== 'prop' && n.id !== m.id).sort((a, b) => a.line - b.line);
+    const own = g.nodes.filter(n => n.file === m.file && n.defined && !HIDDEN_KINDS.has(n.kind) && n.id !== m.id).sort((a, b) => a.line - b.line);
     for (const n of own) {
       const title = n.section || 'Other';
       if (!sections.has(title)) sections.set(title, []);
@@ -79,5 +81,12 @@ export function relations(idx: GraphIndex, id: string): { out: [string, string[]
     for (const e of edges) { if (!g.has(e.verb)) g.set(e.verb, []); g.get(e.verb)!.push(pick(e)); }
     return [...g];
   };
-  return { out: group(idx.out.get(id) ?? [], e => e.to), inc: group(idx.inc.get(id) ?? [], e => e.from) };
+  // a document's or heading's phrase links live on its blocks (has → block → related-to); read them as the node's own,
+  // and keep the blocks themselves out of the list
+  const own = (idx.out.get(id) ?? []).filter(e => !e.to.startsWith('block:'));
+  const viaBlocks: GraphEdge[] = [];
+  const walk = (from: string, depth: number) => { for (const e of idx.out.get(from) ?? []) { if (e.verb !== 'has' || !e.to.startsWith('block:')) continue; for (const b of idx.out.get(e.to) ?? []) if (b.verb !== 'has') viaBlocks.push({ ...b, from: id }); if (depth > 0) walk(e.to, depth - 1); } };
+  walk(id, 4);
+  const seen = new Set(own.map(e => e.verb + '|' + e.to));
+  return { out: group([...own, ...viaBlocks.filter(e => !seen.has(e.verb + '|' + e.to) && seen.add(e.verb + '|' + e.to))], e => e.to), inc: group((idx.inc.get(id) ?? []).filter(e => !e.from.startsWith('block:')), e => e.from) };
 }

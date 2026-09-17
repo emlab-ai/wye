@@ -77,3 +77,15 @@ describe('relations', () => {
     expect(r.inc).toEqual([['refines', ['req:m.a.b']]]);
   });
 });
+
+describe('relations with block nodes', () => {
+  it('reads a document\'s phrase links from its blocks and hides the blocks', () => {
+    const g: GraphData = { ...fixture, nodes: [...fixture.nodes,
+      { id: 'block:m.h', kind: 'block', title: 'Heading', status: '', section: '', subsection: '', body: 'text: ## H', defined: true, file: fixture.files[0], line: 3 },
+      { id: 'block:m.p', kind: 'block', title: 'Para', status: '', section: '', subsection: '', body: 'text: para', defined: true, file: fixture.files[0], line: 5 }],
+      edges: [...fixture.edges, { from: 'module:m', to: 'block:m.h', verb: 'has' }, { from: 'block:m.h', to: 'block:m.p', verb: 'has' }, { from: 'block:m.p', to: 'entity:e', verb: 'related-to' }, { from: 'block:m.p', to: 'module:m', verb: 'part-of', generated: true }] };
+    const r = relations(indexGraph(g), 'module:m');
+    expect(r.out).toEqual([['related-to', ['entity:e']]]);
+    expect(r.inc).toEqual([]);
+  });
+});

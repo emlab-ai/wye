@@ -57,6 +57,8 @@ switch (cmd) {
     case 'site': {
         const files = findDocs(positional);
         const graph = parseFiles(files);
+        // anonymous block nodes exist for addressing; the phone viewer does not need them (--blocks keeps them)
+        if (!argv.includes('--blocks')) { const drop = new Set(graph.nodes.filter(n => n.kind === 'block').map(n => n.id)); graph.nodes = graph.nodes.filter(n => !drop.has(n.id)); graph.edges = graph.edges.filter(e => !drop.has(e.from) && !drop.has(e.to)); }
         const out = path.resolve(opt('out', path.join(BUILD, 'site')));
         writeBuild(graph, out);
         fs.copyFileSync(path.join(__dirname, '..', 'viewer', 'index.html'), path.join(out, 'index.html'));
