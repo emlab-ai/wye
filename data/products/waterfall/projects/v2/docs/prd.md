@@ -586,6 +586,39 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   refines: req:wf2.ui
 ```
 
+#### Images for agents (2026-09-17)
+
+```yaml
+- id: req:wf2.ui.annotate-images
+  title: A person annotates an image and an agent understands the annotation
+  when: a person chooses Annotate image on an image in a document, draws boxes, labels and arrows over it and saves
+  then: >
+    the document shows the annotated image; an agent that receives the block (wf resolve, ⇢ send, ask) gets the
+    annotations as text — labelled regions with their position on the image, arrows from one region to another, free
+    labels — and the path of a rendered PNG it can look at
+  status: proposed
+  refines: req:wf2.ui
+  satisfied-by: [rule:image-annotations, rule:drawings]
+  verified-by: [test:annotations-web]
+- id: decision:wf2.annotations-text-and-png
+  title: An annotated image reaches the agent as text and as a rendered picture
+  context: >
+    Agents read words; some can also see images. A drawing over a screenshot means nothing to an agent unless it is
+    translated, and a translation alone loses what the picture shows.
+  choice: >
+    Both: the scene is described as text (regions, arrows, labels, positions in percent of the image) and flattened
+    to a PNG; wf resolve gives the text and names the PNG. The image is embedded in the Excalidraw scene as a locked
+    element so the scene is self-contained.
+  alternatives: >
+    Text only — loses the picture; PNG only — an agent without vision gets nothing and one with vision guesses at
+    labels; a separate annotation format instead of Excalidraw — a second drawing tool.
+  consequences: rule:image-annotations; scene files grow by the image's size; the description is derived, never edited.
+  status: proposed
+  date: 2026-09-17
+  related-to: [module:wf2-prd, rule:drawings]
+  session: 94ac3cf3e0
+```
+
 #### Sessions console (2026-09-17)
 
 ```yaml

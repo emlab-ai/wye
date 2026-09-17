@@ -13,7 +13,7 @@ import { parseBody } from '@/lib/graph';
 import { setBodyField } from '@/lib/yaml-form';
 import { Linkified } from './IdLink';
 import { SmartTag } from './SmartTag';
-import { DrawingBlock, newDrawingSlug, sceneFromText } from './DrawingBlock';
+import { DrawingBlock, newDrawingSlug, sceneFromText, sceneFromImage } from './DrawingBlock';
 import { usePeek } from './PeekProvider';
 import { ID_RE } from '@/lib/ids';
 import { parseExtra, withExtra, GOAL_STATUSES, TASK_STATUSES } from '@/lib/props';
@@ -287,6 +287,15 @@ function ToDrawingItem({ convert }: { convert: (b: AnyBlock) => void }) {
   return <Components.Generic.Menu.Item className="bn-menu-item" onClick={() => convert(block as unknown as AnyBlock)}>Turn into drawing</Components.Generic.Menu.Item>;
 }
 
+// Drag-handle menu entry on image blocks: annotate the image in Excalidraw (shapes, labels, arrows on top of it).
+function AnnotateItem({ annotate }: { annotate: (b: AnyBlock) => void }) {
+  const Components = useComponentsContext()!;
+  const editor = useBlockNoteEditor();
+  const block = useExtensionState(SideMenuExtension, { editor, selector: st => st?.block });
+  if (!block || (block as { type: string }).type !== 'image') return null;
+  return <Components.Generic.Menu.Item className="bn-menu-item" onClick={() => annotate(block as unknown as AnyBlock)}>Annotate image</Components.Generic.Menu.Item>;
+}
+
 // "Ask": a command to an agent about the selected text, with the block and the page attached.
 function AskAgentButton({ onRequest }: { onRequest: (r: Omit<AskRequest, 'doc' | 'project' | 'pageLink'>) => void }) {
   const editor = useBlockNoteEditor();
@@ -506,6 +515,21 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     editor.replaceBlocks([cur as never], [{ type: 'drawing', props: { src: `drawings/${slug}.excalidraw`, title: 'Diagram' } } as never]);
     touched.current = true; changed();
   };
+  // Images: the image becomes the locked canvas of a drawing; annotations (shapes, labels, arrows) go on top and are
+  // exported as PNG + text for agents (rule:image-annotations). The markdown link changes to the drawing; the asset stays.
+  const imageToDrawing = async (cur: AnyBlock) => {
+    const url = (cur.props as { url?: string; caption?: string }).url; if (!url) { setLintMsg('the image has no file yet'); return; }
+    const slug = newDrawingSlug();
+    setLintMsg('preparing the annotation canvas…');
+    const ok = await sceneFromImage(product, project, slug, url).catch(() => false);
+    if (!ok) { setLintMsg('could not create the annotation drawing'); return; }
+    setLintMsg(null);
+    const src = `drawings/${slug}.excalidraw`;
+    editor.replaceBlocks([cur as never], [{ type: 'drawing', props: { src, title: (cur.props as { caption?: string }).caption || 'Annotated image' } } as never]);
+    touched.current = true; changed();
+    setTimeout(() => window.dispatchEvent(new CustomEvent('wf:drawing-edit', { detail: src })), 300);
+  };
+  if (typeof window !== 'undefined') (window as unknown as { __wfAnnotate: (id: string) => void }).__wfAnnotate = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock | undefined; if (b) imageToDrawing(b); };
   if (typeof window !== 'undefined') (window as unknown as { __wfCodeToDrawing: (id: string) => void }).__wfCodeToDrawing = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock | undefined; if (b) codeToDrawing(b); }; // dev inspection
   const collectionItems = (['goal', 'task'] as const).map(kind => ({
     title: `${kind === 'goal' ? 'Goals' : 'Tasks'} table`, group: 'Waterfall', subtext: `a table of ${kind}s with status, ${kind === 'goal' ? 'target' : 'due date'}, progress and owner`,
@@ -530,7 +554,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       }}>
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false}>
-        <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
+        <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><AnnotateItem annotate={imageToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
         <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /><AskAgentButton onRequest={r => setAskReq({ ...r, doc: slug, project, pageLink: `${location.origin}/${product}/${project}/d/${slug}`, refs: [...new Set([...r.refs, `module:${slug}`])] })} /></FormattingToolbar>} />
         <SuggestionMenuController triggerCharacter="/" getItems={async q => filterSuggestionItems([...getDefaultReactSlashMenuItems(editor), ...nodeItems, ...collectionItems, ...drawingItems], q)} />
         <SuggestionMenuController triggerCharacter="@" minQueryLength={1} getItems={async q => mentionItems(q)} />

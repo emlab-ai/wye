@@ -1119,6 +1119,33 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     description, event and tool-call counts and whether it has finished (the parent's tool_result arrived).
   source: packages/web/src/lib/agent-host.ts#onClaudeLine; packages/web/src/components/Console.tsx#Subagent
   status: shipped
+- id: test:annotations-web
+  file: packages/web/src/lib/annotations.test.ts
+  description: describeScene — image and size, labelled regions with zone and percent position, arrows by binding or end points, free labels, deleted elements skipped, pixel positions without an image
+  count: 5
+- id: rule:drawings
+  statement: >
+    A drawing is an Excalidraw scene stored beside the document (docs/drawings/<slug>.excalidraw) with an SVG export
+    next to it; the markdown keeps a plain image link ![Title](drawings/<slug>.excalidraw), so GitHub shows nothing
+    broken and the app shows the SVG and opens the full-screen editor on click. A code block (ASCII diagram) turns
+    into a drawing from its drag-handle menu.
+  source: packages/web/src/components/DrawingBlock.tsx; packages/web/src/app/api/[product]/[project]/drawing/[file]/route.ts; packages/web/src/lib/import.ts
+  status: shipped
+- id: rule:image-annotations
+  statement: >
+    "Annotate image" on an image block (drag-handle menu) turns the image into a drawing whose canvas is the image:
+    a locked Excalidraw image element at 0,0 (the file embedded in the scene, its asset path in customData), and the
+    person draws shapes, labels and arrows on top. The block's link changes to the drawing; the asset stays in
+    docs/assets. Every save exports, beside the scene, the SVG the page shows, a flattened PNG
+    (drawings/<slug>.png) and the annotations as text (drawings/<slug>.md): the image and its size, each labelled
+    region with its zone and position in percent of the image, each arrow by what it connects (by binding, else by
+    end points and the nearest labelled region), free labels with their position, freehand marks counted. The
+    description is regenerated on every save and never hand-edited. wf resolve on a block, section or document that
+    embeds a drawing appends the description and the PNG path, so an agent reads the annotations and can look at the
+    picture.
+  source: packages/web/src/lib/annotations.ts; packages/web/src/components/DrawingBlock.tsx#sceneFromImage; packages/web/src/components/DocEditor.tsx#AnnotateItem; packages/web/src/lib/resolve.ts; bin/wf.js#resolve
+  status: proposed
+  verified-by: [test:annotations-web]
 - id: rule:agent-questions
   statement: >
     An agent's question (Claude Code's AskUserQuestion, which arrives as a permission request over the stdio

@@ -75,6 +75,8 @@ async function resolve(link) {
   else if (j.section) console.log(`\nsection "${j.section.heading}" from line ${j.section.line}:\n${j.section.text}`);
   else if (j.note) console.log(`\n${j.note}`);
   else console.log(`\ndocument (${j.length} chars). Read it: wf doc ${j.product}/${j.project}/${j.doc}`);
+  // drawings in the text: their annotations as words, and the flattened PNG to look at
+  for (const d of j.drawings || []) console.log(`\n${d.src}:\n${d.description || '(no annotations yet)'}${d.png ? `\nrendered with annotations: ${d.png} (look at it with the Read tool)` : ''}`);
 }
 
 const commands = {
