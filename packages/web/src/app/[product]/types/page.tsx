@@ -15,7 +15,7 @@ export default async function TypesPage({ params }: { params: Promise<{ product:
     const n = instancesOf(scope.graph, t.slug).length; const r = t.file ? docRoute(t.file) : null;
     return (
       <li key={t.id}>
-        <div className="klist-head"><Link className="tag k-type" href={`/${product}/types/${t.slug}`}><i />{t.slug}</Link>{t.extends && <span className="muted">extends <SmartTag id={t.extends} label={t.extends.slice(5)} /></span>}<span className="muted">{n} instance{n === 1 ? '' : 's'} · {t.props.filter(p => p.from === t.id).length} own propert{t.props.filter(p => p.from === t.id).length === 1 ? 'y' : 'ies'}</span>{r && <Link className="klist-doc" href={`/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(t.id)}`}>{r.project} / {r.doc}</Link>}</div>
+        <div className="klist-head"><SmartTag id={t.id} label={t.slug} /><Link className="klist-page" href={`/${product}/types/${t.slug}`} title="Open the type page">↗</Link>{t.extends && <span className="muted">extends <SmartTag id={t.extends} label={t.extends.slice(5)} /></span>}<span className="muted">{n} instance{n === 1 ? '' : 's'} · {t.props.filter(p => p.from === t.id).length} own propert{t.props.filter(p => p.from === t.id).length === 1 ? 'y' : 'ies'}</span>{r && <Link className="klist-doc" href={`/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(t.id)}`}>{r.project} / {r.doc}</Link>}</div>
         {t.purpose && <div className="klist-title">{t.purpose}</div>}
       </li>
     );

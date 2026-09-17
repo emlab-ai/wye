@@ -83,7 +83,8 @@ export function relations(idx: GraphIndex, id: string): { out: [string, string[]
   };
   // a document's or heading's phrase links live on its blocks (has → block → related-to); read them as the node's own,
   // and keep the blocks themselves out of the list
-  const own = (idx.out.get(id) ?? []).filter(e => !e.to.startsWith('block:'));
+  // prop: nodes are the type's properties table, not relations
+  const own = (idx.out.get(id) ?? []).filter(e => !e.to.startsWith('block:') && !e.to.startsWith('prop:'));
   const viaBlocks: GraphEdge[] = [];
   const walk = (from: string, depth: number) => { for (const e of idx.out.get(from) ?? []) { if (e.verb !== 'has' || !e.to.startsWith('block:')) continue; for (const b of idx.out.get(e.to) ?? []) if (b.verb !== 'has') viaBlocks.push({ ...b, from: id }); if (depth > 0) walk(e.to, depth - 1); } };
   walk(id, 4);

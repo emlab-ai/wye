@@ -15,11 +15,12 @@ import { ProgressBar } from './Progress';
 import { TrackEditor } from './TrackEditor';
 import { Produced } from './Produced';
 import { DocPeek } from './DocPeek';
+import { TypeView } from './TypeView';
 import type { GraphNode, TypeDef } from '@/lib/graph';
 import type { NodeProp } from '@/lib/types';
 import type { IndexEntry } from '@/lib/doc';
 
-type Details = { node: GraphNode; relations: { out: [string, string[]][]; inc: [string, string[]][] }; graph: { nodes: LiteNode[]; edges: GraphEdge[] }; type?: TypeDef | null; props?: NodeProp[]; inverses?: Record<string, string> };
+type Details = { node: GraphNode; relations: { out: [string, string[]][]; inc: [string, string[]][] }; graph: { nodes: LiteNode[]; edges: GraphEdge[] }; type?: TypeDef | null; props?: NodeProp[]; inverses?: Record<string, string>; self?: TypeDef | null; instances?: { id: string; title: string; status: string }[] };
 
 // How an edge reads from the open node's side.
 const OUT: Record<string, string> = { refines: 'Refines', 'satisfied-by': 'Satisfied by', 'verified-by': 'Verified by', 'depends-on': 'Depends on', 'part-of': 'Part of', 'related-to': 'Related to', 'governed-by': 'Governed by', 'gated-by': 'Gated by', has: 'Has', refs: 'References', contradicts: 'Contradicts', resolves: 'Resolves', 'applies-to': 'Applies to', 'has-action': 'Actions', navigates: 'Navigates to', reads: 'Reads', writes: 'Writes', produced: 'Produced' };
@@ -100,7 +101,8 @@ function NodeView({ id }: { id: string }) {
         <Link href={`/${product}/graph?focus=${encodeURIComponent(id)}&preset=Mechanics`}>Show in graph</Link>
         <button className="linkish" onClick={() => requestSend({ refs: [id], text: d ? nodeText(d.node.body) : entry?.title })}>Send to agent</button>
       </div>
-      {d && (entry?.kind === 'goal' || entry?.kind === 'task')
+      {d && d.self && <TypeView type={d.self} instances={d.instances ?? []} index={index} product={product} onSaved={() => setTick(t => t + 1)} />}
+      {d && d.self ? null : d && (entry?.kind === 'goal' || entry?.kind === 'task')
         ? <><TrackEditor key={entry.id} entry={entry} index={index} text={nodeText(d.node.body)} form={d.node.form} onSaved={() => setTick(t => t + 1)} />{entry.sessions && entry.sessions.length > 0 && <Produced sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}<Tracking entry={entry} index={index} inc={d.relations.inc} /></>
         : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
       {d && d.type && !d.type.open && d.props && <Properties type={d.type} props={d.props} inc={d.relations.inc} inverses={d.inverses ?? {}} product={product} />}

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { loadScope } from '@/lib/scope';
 import { relations, neighborhood } from '@/lib/graph';
-import { typeOf, nodeProps } from '@/lib/types';
+import { typeOf, nodeProps, instancesOf } from '@/lib/types';
 import { editNode, type NodePatch } from '@/lib/node-edit';
 import { recordArtifact } from '@/lib/artifacts';
 
@@ -15,7 +15,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ product:
   const nodes = [...ids].map(i => scope.idx.byId.get(i)).filter(Boolean).map(n => ({ id: n!.id, kind: n!.kind, title: n!.title, status: n!.status, defined: n!.defined }));
   const edges = scope.graph.edges.filter(e => !e.generated && ids.has(e.from) && ids.has(e.to));
   const type = typeOf(scope.graph, id);
-  return NextResponse.json({ node, relations: relations(scope.idx, id), graph: { nodes, edges }, type: type ?? null, props: type ? nodeProps(scope.graph, node) : [], inverses: scope.graph.inverses ?? {} });
+  // a type: node also carries its own definition and every instance (the kind and its subtypes)
+  const self = id.startsWith('type:') ? (scope.graph.types ?? []).find(t => t.id === id) ?? null : null;
+  const instances = self ? instancesOf(scope.graph, self.slug).map(n => ({ id: n.id, title: n.title, status: n.status })) : undefined;
+  return NextResponse.json({ node, relations: relations(scope.idx, id), graph: { nodes, edges }, type: type ?? null, props: type ? nodeProps(scope.graph, node) : [], inverses: scope.graph.inverses ?? {}, self, instances });
 }
 
 // PUT { status?, text?, props?: { key: value | null } } → edits the prose line that defines the node in place, then
