@@ -18,7 +18,8 @@ export default async function TypePage({ params }: { params: Promise<{ product: 
   const instances = instancesOf(scope.graph, slug);
   const subtypes = subtypesOf(scope.graph, slug);
   const declared = slug === 'node' ? t.props : t.props.filter(p => !isImplicit(p)), implicit = slug === 'node' ? [] : t.props.filter(isImplicit);
-  const cols = declared.filter(p => !['title', 'status', 'text'].includes(p.name) || p.from === t.id);
+  // columns: scalar and ref properties; long text (type text) reads better on the node than in a cell
+  const cols = declared.filter(p => (!['title', 'status', 'text'].includes(p.name) || p.from === t.id) && p.type !== 'text');
   // where a new instance is written: the type's home document, else the document that declares the type
   const homeFile = t.home ? scope.graph.modules.find(m => m.id === t.home || m.file.endsWith('/' + t.home.replace(/^module:/, '') + '.md'))?.file ?? '' : (isBaseType(t) ? '' : t.file);
   const homeRoute = homeFile ? docRoute(homeFile) : null;
