@@ -13,12 +13,14 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [showThinking, setShowThinking] = useState(false);
+  const [queue, setQueue] = useState<{ pending: { id: string; text: string; addedAt: string }[]; batch: 'one' | 'all' }>({ pending: [], batch: 'one' });
   const bottom = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const id = session.id;
   useEffect(() => {
     const es = new EventSource(`/api/${product}/sessions/${id}/stream`);
-    es.addEventListener('snapshot', e => { const j = JSON.parse((e as MessageEvent).data); setEvents(j.transcript); setLive(j.live); });
+    es.addEventListener('snapshot', e => { const j = JSON.parse((e as MessageEvent).data); setEvents(j.transcript); setLive(j.live); if (j.queue) setQueue(j.queue); });
+    es.addEventListener('queue', e => setQueue(JSON.parse((e as MessageEvent).data)));
     es.addEventListener('event', e => { const ev = JSON.parse((e as MessageEvent).data) as ChatEvent; setEvents(evs => [...evs, ev]); if (ev.kind === 'exit') { setLive(false); onStatus(ev.code === 0 ? 'done' : 'failed'); } if (ev.kind === 'init') setLive(true); });
     es.addEventListener('ping', e => { const j = JSON.parse((e as MessageEvent).data); setLive(j.live); });
     es.onerror = () => { /* the browser reconnects */ };
@@ -29,7 +31,7 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
     const t = text.trim(); if (!t) return;
     setBusy(true); setText('');
     const r = await fetch(`/api/${product}/sessions/${id}/message`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: t }) });
-    setBusy(false); if (!r.ok) setEvents(evs => [...evs, { t: new Date().toISOString(), kind: 'stderr', text: 'could not send the message' }]);
+    setBusy(false); if (!r.ok) setEvents(evs => [...evs, { t: new Date().toISOString(), kind: 'stderr', text: 'could not send the message' }]); else setLive(true);
   };
   const control = (body: object) => fetch(`/api/${product}/sessions/${id}/control`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
   const answered = new Set(events.filter(e => e.kind === 'note' && e.requestId).map(e => e.requestId));
@@ -44,12 +46,21 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
           {live ? <button className="mini" onClick={() => control({ action: 'stop' })}>Stop</button> : <button className="mini" onClick={() => control({ action: 'resume' }).then(() => setLive(true))}>Resume</button>}
         </span>
       </div>
+      {queue.pending.length > 0 && (
+        <div className="console-queue">
+          <div className="console-queue-head"><b>Queue</b> <span className="muted">{queue.pending.length} waiting · sent {queue.batch === 'all' ? 'all at once' : 'one at a time'} when the agent is idle</span>
+            <span className="seg small"><button className={queue.batch === 'one' ? 'on' : ''} onClick={() => control({ action: 'batch', batch: 'one' })}>one</button><button className={queue.batch === 'all' ? 'on' : ''} onClick={() => control({ action: 'batch', batch: 'all' })}>batch</button></span></div>
+          <ol>{queue.pending.map(q => <li key={q.id}><span>{q.text.split('\n').find(l => l.trim())?.slice(0, 120)}</span><button className="peek-chip-x" title="Remove from the queue" onClick={() => control({ action: 'unqueue', itemId: q.id })}>×</button></li>)}</ol>
+        </div>
+      )}
       <div className="console-log" onScroll={e => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40; }}>
-        {events.map((e, i) => <Event key={i} e={e} answered={answered} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />)}
+        {groupSubagents(events).map((g, i) => g.parent
+          ? <Subagent key={'s' + i} events={g.events} task={events.find(e => e.kind === 'tool_use' && e.toolUseId === g.parent)} finished={events.some(e => e.kind === 'tool_result' && e.toolUseId === g.parent)} answered={answered} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />
+          : <Event key={i} e={g.events[0]} answered={answered} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />)}
         <div ref={bottom} />
       </div>
       <form className="console-input" onSubmit={e => { e.preventDefault(); send(); }}>
-        <textarea value={text} rows={2} placeholder={live ? 'Reply to the agent… (⌘↵ to send)' : 'Type to resume the agent…'} onChange={e => setText(e.target.value)} onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); send(); } }} />
+        <textarea value={text} rows={2} placeholder={live ? (turnOpen ? 'Queue the next message… (⌘↵)' : 'Reply to the agent… (⌘↵ to send)') : 'Type to resume the agent…'} onChange={e => setText(e.target.value)} onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); send(); } }} />
         <button className="pri" type="submit" disabled={busy || !text.trim()}>Send</button>
       </form>
     </div>
@@ -77,4 +88,30 @@ function Event({ e, answered, showThinking, answer }: { e: ChatEvent; answered: 
     case 'exit': return <div className="ev ev-note">{time}<span className="muted">{e.text}</span></div>;
     default: return null;
   }
+}
+
+// Consecutive events from the same subagent form one group under the Task call that started it.
+function groupSubagents(events: ChatEvent[]): { parent?: string; events: ChatEvent[] }[] {
+  const out: { parent?: string; events: ChatEvent[] }[] = [];
+  for (const e of events) {
+    const last = out[out.length - 1];
+    if (e.parent && last?.parent === e.parent) last.events.push(e);
+    else out.push({ parent: e.parent, events: [e] });
+  }
+  return out;
+}
+function Subagent({ events, task, finished, answered, showThinking, answer }: { events: ChatEvent[]; task?: ChatEvent; finished: boolean; answered: Set<string | undefined>; showThinking: boolean; answer: (requestId: string, allow: boolean, input?: unknown) => void }) {
+  const [open, setOpen] = useState(true);
+  const input = task?.input as { description?: string; subagent_type?: string; prompt?: string } | undefined;
+  const tools = events.filter(e => e.kind === 'tool_use').length;
+  const done = finished;
+  return (
+    <div className="ev ev-sub">
+      <time>{events[0].t.slice(11, 19)}</time>
+      <div className="ev-sub-body">
+        <button className="ev-sub-head" onClick={() => setOpen(o => !o)}>{open ? '▾' : '▸'} <b>subagent</b> {input?.subagent_type ? <span className="muted">{input.subagent_type}</span> : null} <span>{input?.description ?? (input?.prompt ?? '').slice(0, 80)}</span> <span className="muted">· {events.length} events, {tools} tool calls{done ? '' : ' · working'}</span></button>
+        {open && <div className="ev-sub-events">{events.map((e, i) => <Event key={i} e={e} answered={answered} showThinking={showThinking} answer={answer} />)}</div>}
+      </div>
+    </div>
+  );
 }

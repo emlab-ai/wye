@@ -4,10 +4,11 @@
 import { mkdir, readdir, readFile, writeFile, rename } from 'node:fs/promises';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
+import { withFileLock } from './write';
 
-import { AGENTS, type ChatEvent, type Runner, type Session, type SessionSource, type SessionStatus } from './session-types';
+import { AGENTS, type ChatEvent, type QueueItem, type Runner, type Session, type SessionSource, type SessionStatus } from './session-types';
 export { AGENTS } from './session-types';
-export type { ChatEvent, Runner, Session, SessionSource, SessionStatus } from './session-types';
+export type { ChatEvent, QueueItem, Runner, Session, SessionSource, SessionStatus } from './session-types';
 
 const dir = (productDir: string) => path.join(productDir, '_sessions');
 const file = (productDir: string, id: string) => path.join(dir(productDir), `${id}.json`);
@@ -32,11 +33,17 @@ export async function createSession(productDir: string, product: string, input: 
 }
 export async function saveSession(productDir: string, s: Session): Promise<void> {
   await mkdir(dir(productDir), { recursive: true });
-  const f = file(productDir, s.id); const tmp = `${f}.tmp-${process.pid}`;
+  const f = file(productDir, s.id); const tmp = `${f}.tmp-${process.pid}-${randomBytes(3).toString('hex')}`;
   await writeFile(tmp, JSON.stringify(s, null, 2)); await rename(tmp, f);
 }
+// Every change to a session goes through here: read, change, write — under the file's lock, so the queue, the
+// transcript and status changes never race each other.
+async function mutate<T>(productDir: string, id: string, fn: (s: Session) => T | Promise<T>): Promise<T | null> {
+  if (!ID.test(id)) return null;
+  return withFileLock(file(productDir, id), async () => { const s = await getSession(productDir, id); if (!s) return null; const r = await fn(s); await saveSession(productDir, s); return r; });
+}
 export async function updateSession(productDir: string, id: string, patch: { status?: SessionStatus; line?: string; lines?: string[]; result?: string; runner?: string; agentSessionId?: string; cwd?: string; totalCostUsd?: number }): Promise<Session | null> {
-  const s = await getSession(productDir, id); if (!s) return null;
+  return mutate(productDir, id, s => {
   const now = new Date().toISOString();
   if (patch.runner) s.runner = patch.runner;
   if (patch.agentSessionId) s.agentSessionId = patch.agentSessionId;
@@ -50,8 +57,8 @@ export async function updateSession(productDir: string, id: string, patch: { sta
   for (const l of [...(patch.line ? [patch.line] : []), ...(patch.lines ?? [])]) s.log.push({ t: now, line: l });
   if (patch.result !== undefined) s.result = patch.result;
   s.updatedAt = now; s.log = s.log.slice(-2000);
-  await saveSession(productDir, s);
   return s;
+  });
 }
 
 // Claim the oldest queued session for an agent: first come, first served, one at a time per file lock.
@@ -70,12 +77,10 @@ export async function handoffSession(productDir: string, product: string, id: st
   const s = await getSession(productDir, id); if (!s) return null;
   const tail = s.log.slice(-40).map(l => `${l.t.slice(11, 19)} ${l.line}`).join('\n');
   const instruction = [`Continue session ${s.id} (${s.agent}${s.runner ? ' on ' + s.runner : ''}, ${s.status}).`, note.trim() ? `\nHandoff note: ${note.trim()}` : '', `\nOriginal instruction:\n${s.instruction}`, s.result ? `\nResult so far:\n${s.result}` : '', tail ? `\nLog tail:\n${tail}` : ''].filter(Boolean).join('\n');
-  const child = await createSession(productDir, product, { agent, instruction, refs: s.refs, source: s.source });
-  child.parent = s.id; await saveSession(productDir, child);
-  s.children = [...(s.children ?? []), child.id]; s.log.push({ t: new Date().toISOString(), line: `handed off to ${agent} as session ${child.id}` });
-  if (s.status === 'queued' || s.status === 'running') s.status = 'cancelled';
-  await saveSession(productDir, s);
-  return child;
+  const child = await createSession(productDir, product, { agent, instruction, refs: s.refs, source: s.source, cwd: s.cwd });
+  await mutate(productDir, child.id, c => { c.parent = s.id; });
+  await mutate(productDir, s.id, p => { p.children = [...(p.children ?? []), child.id]; p.log.push({ t: new Date().toISOString(), line: `handed off to ${agent} as session ${child.id}` }); if (p.status === 'queued' || p.status === 'running') p.status = 'cancelled'; });
+  return (await getSession(productDir, child.id)) ?? child;
 }
 
 // Runners: one JSON file, entries expire when not seen for 30 s.
@@ -93,7 +98,34 @@ export async function heartbeatRunner(productDir: string, r: Omit<Runner, 'seenA
 
 // Chat transcripts: appended in batches by the agent host, capped.
 export async function appendTranscript(productDir: string, id: string, events: ChatEvent[]): Promise<void> {
-  const s = await getSession(productDir, id); if (!s) return;
-  s.transcript = [...(s.transcript ?? []), ...events].slice(-3000); s.updatedAt = new Date().toISOString();
-  await saveSession(productDir, s);
+  await mutate(productDir, id, s => { s.transcript = [...(s.transcript ?? []), ...events].slice(-3000); s.updatedAt = new Date().toISOString(); });
 }
+
+// The persistent per-session queue. Items keep their sentAt so the history shows what went in when; unsent items
+// are the pending ones.
+const pending = (s: Session) => (s.queue ?? []).filter(q => !q.sentAt);
+export async function enqueue(productDir: string, id: string, item: Omit<QueueItem, 'id' | 'addedAt'>): Promise<{ item: QueueItem; position: number } | null> {
+  return mutate(productDir, id, s => {
+    const q: QueueItem = { id: randomBytes(4).toString('hex'), addedAt: new Date().toISOString(), ...item };
+    s.queue = [...(s.queue ?? []), q].slice(-200); s.updatedAt = q.addedAt;
+    return { item: q, position: pending(s).length };
+  });
+}
+// Take what should go to the agent next: one item, or every pending item as a batch; marks them sent.
+export async function takeFromQueue(productDir: string, id: string): Promise<QueueItem[]> {
+  return (await mutate(productDir, id, s => {
+    const items = pending(s); if (!items.length) return [];
+    const take = s.batch === 'all' ? items : items.slice(0, 1);
+    const now = new Date().toISOString();
+    for (const t of take) t.sentAt = now;
+    s.updatedAt = now;
+    return take;
+  })) ?? [];
+}
+export async function removeFromQueue(productDir: string, id: string, itemId: string): Promise<boolean> {
+  return (await mutate(productDir, id, s => { const before = s.queue?.length ?? 0; s.queue = (s.queue ?? []).filter(q => q.id !== itemId || q.sentAt); return (s.queue?.length ?? 0) !== before; })) ?? false;
+}
+export async function setBatch(productDir: string, id: string, batch: 'one' | 'all'): Promise<void> {
+  await mutate(productDir, id, s => { s.batch = batch; });
+}
+export const queueMessage = (items: QueueItem[]): string => items.map(q => [q.text.trim(), q.link ? `Link: ${q.link} (resolve it with \`wf resolve\`)` : '', q.refs?.length ? `Refs: ${q.refs.join(', ')}` : ''].filter(Boolean).join('\n')).join(items.length > 1 ? '\n\n---\n\n' : '');

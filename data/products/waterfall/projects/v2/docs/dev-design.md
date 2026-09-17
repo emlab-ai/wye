@@ -1025,6 +1025,23 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     orphan processes; agents die with the server, and the desktop app owns the server.
   source: packages/web/src/lib/agent-host.ts; packages/web/src/components/Console.tsx; packages/web/src/app/api/[product]/sessions/[id]/{stream,message,control}/route.ts
   status: shipped
+- id: rule:session-queue
+  statement: >
+    Every message to a chat session goes through the session's persistent queue (items with id, text, refs, link,
+    addedAt, sentAt in the session file). The host hands the next item to the agent as soon as it is idle — one item
+    per turn, or every pending item joined into one message when the session's batch mode is "all" — and a resumed
+    agent takes what waited. The console shows the pending items with a remove button and the one/batch toggle.
+    All session mutations (queue, transcript, status, log) run under the session file's lock with unique temp
+    names, because concurrent read-modify-write cycles corrupted a file once.
+  source: packages/web/src/lib/sessions.ts#enqueue; packages/web/src/lib/agent-host.ts#pump
+  status: shipped
+- id: rule:subagents-in-console
+  statement: >
+    Claude Code runs with --forward-subagent-text; events produced inside a subagent carry the parent tool use id
+    and the console nests them, collapsible, under the Task call that started them, with the subagent type,
+    description, event and tool-call counts and whether it has finished (the parent's tool_result arrived).
+  source: packages/web/src/lib/agent-host.ts#onClaudeLine; packages/web/src/components/Console.tsx#Subagent
+  status: shipped
 - id: decision:wf2.desktop-electron
   title: Waterfall ships as an Electron desktop app that owns the app server and the agent processes
   context: Running full conversations with Claude Code and Codex means owning long-lived local processes with file-system access; a browser tab cannot do that, and people want one thing to open.
