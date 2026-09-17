@@ -232,6 +232,13 @@ One node per test file. Requirements and rules point here with `requires-tests: 
 ### End-to-end (Playwright, real server on a temp copy of the fixture repo)
 
 ```yaml
+- id: ui-test:table-rows
+  file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    open a document with a type table; click a row's status select, a property cell edge, a property input and a
+    node block's header — the context column shows that node each time and the clicked control keeps focus; type a
+    row at 15 ms per key — one row, no split; press Enter in a row and type — a new row of the same kind; copy the
+    link of a row that was just typed — the link carries a slug (bug:when-i-select-a, 2026-09-17)
 - id: ui-test:edit-node-flow
   file: packages/web/e2e/edit-node.spec.ts
   scenario: open a project, open a node, edit a prose key and a status, save; assert the file on disk changed, the graph.changed event arrived, and the sidebar dot updated without a reload

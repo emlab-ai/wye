@@ -1067,7 +1067,21 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   source: packages/web/src/lib/serialize.ts#collectionMarker; packages/web/src/lib/import.ts#COLLECTION_OPEN; packages/web/src/components/DocEditor.tsx#TypeRow; packages/web/src/lib/props.ts#EXTRA_KEY
   status: shipped
   verified-by: [test:web-lib#import, test:web-lib#props]
-  related-to: [rule:goals-and-tasks, req:ontology.type-table]
+  related-to: [rule:goals-and-tasks, req:ontology.type-table, rule:table-rows]
+- id: rule:table-rows
+  statement: >
+    A row of any table (goals, tasks, a type's) is selected by a click anywhere in it — its status select, a property
+    cell, the grid background, not only its text: the click puts the editor cursor in the row without taking focus
+    from the control, so the context column shows the row's node the same way as for a node block (whose header
+    behaves alike). Settling a table never rewrites its children: a missing trailing empty row is inserted after the
+    last row, a slug is set on the row alone, stray empty rows are removed only when the cursor leaves the table, and
+    a paragraph Enter opens inside a table becomes a row of the table's kind — so typing at any speed stays in the
+    row. Copy link, Send to agent and the peek dot on a row that has text but no slug yet assign the slug first, so
+    a link never ends in `bug:`.
+  source: packages/web/src/components/DocEditor.tsx#selectBlockOnClick; packages/web/src/components/DocEditor.tsx#withSlug; packages/web/src/components/DocEditor.tsx#settleCollections
+  status: shipped
+  verified-by: [ui-test:table-rows]
+  related-to: [rule:goals-and-tasks, rule:type-tables]
 - id: rule:agent-sessions
   statement: >
     Any block can be sent to an agent: "Send to agent" sits in every block's drag-handle menu, on node block headers,

@@ -150,9 +150,11 @@ function QuestionNode({ p, set, contentRef, block }: { p: { kind: string; slug: 
 
 // A goal or task shown as a table row inside a goals/tasks collection: name (editable inline content), status, target,
 // progress, owner. Tracking fields live in the node's trailing property group.
-function RowNode({ p, set, contentRef, block }: { p: { kind: string; slug: string; status: string; extra: string; check: string; row: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock }) {
+function RowNode({ p, set, contentRef, block, editor }: { p: { kind: string; slug: string; status: string; extra: string; check: string; row: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; editor: EditorLike }) {
   const rowRef = useRef<HTMLDivElement>(null);
   const { index } = usePeek();
+  const idOf = (b: AnyBlock) => { const bp = b.props as unknown as { kind: string; slug: string }; return `${bp.kind}:${bp.slug}`; };
+  const peek = () => { const b = withSlug(editor, index, block); if ((b.props as unknown as { slug: string }).slug) window.dispatchEvent(new CustomEvent('wf:peek', { detail: idOf(b) })); };
   const id = `${p.kind}:${p.slug}`; const e = index[id];
   const empty = !p.slug && !rowText(block);
   const ex = parseExtra(p.extra);
@@ -162,13 +164,13 @@ function RowNode({ p, set, contentRef, block }: { p: { kind: string; slug: strin
   const progress = explicit ?? (done ? 100 : e?.progress);
   const setStatus = (st: string) => set(p.kind === 'task' ? { status: st, check: st === 'done' ? 'done' : 'todo' } : { status: st });
   return (
-    <div className={`nrow k-${p.kind} ${done ? 'done' : ''} ${empty ? 'empty' : ''}`} data-id={id} ref={rowRef}>
+    <div className={`nrow k-${p.kind} ${done ? 'done' : ''} ${empty ? 'empty' : ''}`} data-id={id} ref={rowRef} onClick={selectBlockOnClick(editor, block, rowRef.current?.querySelector('.nrow-text') ?? null)}>
       <div className="nrow-cell nrow-name">
         {p.kind === 'task' && <input type="checkbox" className="nblock-check" checked={done} onChange={ev => setStatus(ev.target.checked ? 'done' : 'todo')} title="done?" onMouseDown={ev => ev.stopPropagation()} />}
-        <button type="button" className="nrow-open" contentEditable={false} title={id} onMouseDown={ev => ev.stopPropagation()} onClick={() => window.dispatchEvent(new CustomEvent('wf:peek', { detail: id }))}><i style={{ background: `var(--k-${p.kind}, var(--k-other))` }} /></button>
+        <button type="button" className="nrow-open" contentEditable={false} title={id} onMouseDown={ev => ev.stopPropagation()} onClick={peek}><i style={{ background: `var(--k-${p.kind}, var(--k-other))` }} /></button>
         <div className="nrow-text" ref={contentRef} data-placeholder={`New ${p.kind}…`} />
-        <button type="button" className="nrow-send" contentEditable={false} title="Copy link" onMouseDown={ev => ev.stopPropagation()} onClick={() => copyBlockLink(block, rowRef.current)}>⧉</button>
-        <button type="button" className="nrow-send" contentEditable={false} title="Send to agent" onMouseDown={ev => ev.stopPropagation()} onClick={() => sendBlock(block, rowRef.current)}>⇢</button>
+        <button type="button" className="nrow-send" contentEditable={false} title="Copy link" onMouseDown={ev => ev.stopPropagation()} onClick={() => copyBlockLink(withSlug(editor, index, block), rowRef.current)}>⧉</button>
+        <button type="button" className="nrow-send" contentEditable={false} title="Send to agent" onMouseDown={ev => ev.stopPropagation()} onClick={() => sendBlock(withSlug(editor, index, block), rowRef.current)}>⇢</button>
       </div>
       <div className="nrow-cell" contentEditable={false} ref={stopEditorEvents}>
         <select className={`status-sel s-${p.status}`} value={p.status} onChange={ev => setStatus(ev.target.value)}>
@@ -191,19 +193,21 @@ function RowNode({ p, set, contentRef, block }: { p: { kind: string; slug: strin
 
 // A row of a type table (a product's own type): name, status, then one cell per property of the type; values live in
 // the node's trailing property group, so the line stays `- bug:slug Text #status (severity: high, …)`.
-function TypeRow({ p, set, contentRef, block, type }: { p: { kind: string; slug: string; status: string; extra: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; type: OwnType }) {
+function TypeRow({ p, set, contentRef, block, type, editor }: { p: { kind: string; slug: string; status: string; extra: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; type: OwnType; editor: EditorLike }) {
   const rowRef = useRef<HTMLDivElement>(null);
+  const { index } = usePeek();
   const id = `${p.kind}:${p.slug}`;
+  const peek = () => { const b = withSlug(editor, index, block); const bp = b.props as unknown as { kind: string; slug: string }; if (bp.slug) window.dispatchEvent(new CustomEvent('wf:peek', { detail: `${bp.kind}:${bp.slug}` })); };
   const empty = !p.slug && !rowText(block);
   const ex = parseExtra(p.extra);
   const done = DONE_STATUSES.has(p.status);
   return (
-    <div className={`nrow nrow-type k-${p.kind} ${done ? 'done' : ''} ${empty ? 'empty' : ''}`} data-id={id} ref={rowRef} style={{ gridTemplateColumns: typeGrid(type) }}>
+    <div className={`nrow nrow-type k-${p.kind} ${done ? 'done' : ''} ${empty ? 'empty' : ''}`} data-id={id} ref={rowRef} style={{ gridTemplateColumns: typeGrid(type) }} onClick={selectBlockOnClick(editor, block, rowRef.current?.querySelector('.nrow-text') ?? null)}>
       <div className="nrow-cell nrow-name">
-        <button type="button" className="nrow-open" contentEditable={false} title={id} onMouseDown={ev => ev.stopPropagation()} onClick={() => window.dispatchEvent(new CustomEvent('wf:peek', { detail: id }))}><i style={{ background: `var(--k-${p.kind}, var(--k-other))` }} /></button>
+        <button type="button" className="nrow-open" contentEditable={false} title={id} onMouseDown={ev => ev.stopPropagation()} onClick={peek}><i style={{ background: `var(--k-${p.kind}, var(--k-other))` }} /></button>
         <div className="nrow-text" ref={contentRef} data-placeholder={`New ${p.kind}…`} />
-        <button type="button" className="nrow-send" contentEditable={false} title="Copy link" onMouseDown={ev => ev.stopPropagation()} onClick={() => copyBlockLink(block, rowRef.current)}>⧉</button>
-        <button type="button" className="nrow-send" contentEditable={false} title="Send to agent" onMouseDown={ev => ev.stopPropagation()} onClick={() => sendBlock(block, rowRef.current)}>⇢</button>
+        <button type="button" className="nrow-send" contentEditable={false} title="Copy link" onMouseDown={ev => ev.stopPropagation()} onClick={() => copyBlockLink(withSlug(editor, index, block), rowRef.current)}>⧉</button>
+        <button type="button" className="nrow-send" contentEditable={false} title="Send to agent" onMouseDown={ev => ev.stopPropagation()} onClick={() => sendBlock(withSlug(editor, index, block), rowRef.current)}>⇢</button>
       </div>
       <div className="nrow-cell" contentEditable={false} ref={stopEditorEvents}>
         <select className={`status-sel s-${p.status}`} value={p.status} onChange={ev => set({ status: ev.target.value })}>
@@ -228,18 +232,42 @@ function TypeRow({ p, set, contentRef, block, type }: { p: { kind: string; slug:
 // name, status, then one column per property (comma-separated values such as ids get room)
 const typeGrid = (t: OwnType) => `minmax(0, 1fr) 100px${t.cols.map(c => c.type === 'bool' ? ' 40px' : c.ref ? ' minmax(90px, 150px)' : ' minmax(72px, 120px)').join('')}`;
 
+// Selecting a row or block by clicking anything in it but its text (a status select, a property cell, the grid
+// background) puts the editor cursor in that block without taking focus from the control, so the context column
+// shows the node — the same as clicking its text (bug:when-i-select-a).
+type EditorLike = { setTextCursorPosition: (id: string, at: 'start' | 'end') => void; getBlock: (id: string) => unknown; document: unknown; updateBlock: (b: unknown, u: unknown) => void; insertBlocks: (blocks: unknown[], ref: string, placement: 'before' | 'after') => unknown; removeBlocks: (ids: string[]) => unknown };
+function selectBlockOnClick(editor: EditorLike, block: AnyBlock, textEl: HTMLElement | null) {
+  return (e: React.MouseEvent) => {
+    if (textEl && textEl.contains(e.target as Node)) return; // clicking the text places the caret itself
+    try { editor.setTextCursorPosition(String((block as { id?: string }).id), 'end'); } catch { /* block gone */ }
+  };
+}
+// A row that has text but no slug yet (slugs are assigned when the cursor leaves the row) gets one now, so a link,
+// a send or a peek from the row never says `bug:` with nothing after the colon.
+function withSlug(editor: EditorLike, index: Record<string, unknown>, block: AnyBlock): AnyBlock {
+  const p = block.props as unknown as { slug?: string };
+  if (p.slug || !rowText(block)) return block;
+  const taken = new Set(Object.keys(index));
+  for (const b of editor.document as AnyBlock[]) for (const k of b.children ?? []) if (k.type === 'node') { const kp = k.props as unknown as { kind: string; slug: string }; if (kp.slug) taken.add(`${kp.kind}:${kp.slug}`); }
+  settleCollections(editor, taken, true);
+  return (editor.getBlock(String((block as { id?: string }).id)) as AnyBlock | undefined) ?? block;
+}
+
 // An empty row for a goals/tasks/type table: typing into it makes it a real item.
 const emptyRow = (kind: string) => ({ type: 'node', props: { kind, slug: '', status: kind === 'goal' ? 'proposed' : kind === 'task' ? 'open' : '', form: 'prose', textKey: 'text', body: '', extra: '', check: kind === 'task' ? 'todo' : '', list: 'bullet', row: kind }, content: [] as unknown[] });
 const rowText = (b: AnyBlock) => (Array.isArray(b.content) ? (b.content as { type: string; text?: string; props?: { id?: string } }[]).map(i => i.type === 'text' ? i.text ?? '' : i.type === 'tag' ? i.props?.id ?? '' : '').join('') : '').trim();
 
-// Every goals/tasks table ends with one empty row; a row that gained text gets its id, and a new empty row follows.
-// Returns true when blocks were changed.
-function settleCollections(editor: { document: unknown; updateBlock: (b: unknown, u: unknown) => void }, taken: Set<string>, assignSlugs: boolean): boolean {
+// Every goals/tasks/type table ends with one empty row; a row that gained text gets its id, and a new empty row
+// follows. Each change is a targeted insert, removal or prop update — never a rewrite of the children array, which
+// would move the cursor out of the row being typed into. Returns true when blocks were changed.
+function settleCollections(editor: EditorLike, taken: Set<string>, assignSlugs: boolean): boolean {
   let changed = false;
   for (const b of editor.document as AnyBlock[]) {
     if (b.type !== 'collection') continue;
     const kind = (b.props as { kind: string }).kind;
     const kids = [...(b.children ?? [])] as AnyBlock[];
+    // Enter in a row makes a paragraph: inside a table every child is a row, so it becomes one (its text kept)
+    for (const k of kids) if (k.type !== 'node' && Array.isArray(k.content)) { editor.updateBlock(k, { type: 'node', props: emptyRow(kind).props, content: k.content }); k.type = 'node'; k.props = { ...emptyRow(kind).props }; changed = true; }
     // ids for rows that have text but no slug yet
     for (const k of kids) {
       if (k.type !== 'node') continue;
@@ -249,23 +277,26 @@ function settleCollections(editor: { document: unknown; updateBlock: (b: unknown
         let base = slugify(text.split(/\s+/).slice(0, 4).join(' ')) || kind; let slug = base; let n = 2;
         while (taken.has(`${kind}:${slug}`)) slug = `${base}-${n++}`;
         taken.add(`${kind}:${slug}`);
-        k.props = { ...k.props, slug }; changed = true;
+        editor.updateBlock(k, { props: { ...k.props, slug } }); changed = true;
       }
     }
-    // exactly one empty row, at the end (empty rows elsewhere are dropped)
-    const filled = kids.filter(k => k.type !== 'node' || rowText(k) || (k.props as unknown as { slug: string }).slug === '' && k === kids[kids.length - 1]);
-    const lastEmpty = filled.length && filled[filled.length - 1].type === 'node' && !rowText(filled[filled.length - 1]);
-    const next = lastEmpty ? filled : [...filled, emptyRow(kind) as unknown as AnyBlock];
-    if (changed || next.length !== kids.length || next.some((k, i) => k !== kids[i])) { editor.updateBlock(b, { children: next }); changed = true; }
+    // exactly one empty row, at the end: a missing one is appended after the last row; empty rows elsewhere (an
+    // Enter that opened a row nobody typed into) go when the cursor leaves the table, not while typing
+    const isEmpty = (k: AnyBlock) => k.type === 'node' && !rowText(k) && !(k.props as unknown as { slug: string }).slug;
+    const stray = assignSlugs ? kids.filter((k, i) => isEmpty(k) && i < kids.length - 1) : [];
+    if (stray.length) { editor.removeBlocks(stray.map(k => String((k as { id?: string }).id))); changed = true; }
+    const last = kids[kids.length - 1];
+    if (!last) { editor.updateBlock(b, { children: [emptyRow(kind)] }); changed = true; }
+    else if (!isEmpty(last)) { editor.insertBlocks([emptyRow(kind)], String((last as { id?: string }).id), 'after'); changed = true; }
   }
   return changed;
 }
 
 // looks the row's type up in the product's own types; an unknown type still gets a row with name and status
-function TypeRowFor({ p, set, contentRef, block }: { p: { kind: string; slug: string; status: string; extra: string; row: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock }) {
+function TypeRowFor({ p, set, contentRef, block, editor }: { p: { kind: string; slug: string; status: string; extra: string; row: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; editor: EditorLike }) {
   const { ownTypes } = usePeek();
   const type = ownTypes.find(t => t.slug === p.row) ?? { slug: p.row, cols: [] };
-  return <TypeRow p={p} set={set} contentRef={contentRef} block={block} type={type} />;
+  return <TypeRow p={p} set={set} contentRef={contentRef} block={block} type={type} editor={editor} />;
 }
 
 // A goals or tasks table: the header row; the rows are the block's children (goal/task nodes in row mode).
@@ -305,12 +336,13 @@ const NodeBlock = createReactBlockSpec(
       // every other key of a yaml node is shown read-only under the text; the yaml toggle edits them
       const rows = p.form === 'yaml' ? parseBody(p.body).filter(r => r.key !== p.textKey && r.key !== 'status') : [];
       const set = (patch: Partial<typeof p>) => props.editor.updateBlock(props.block, { props: { ...p, ...patch } } as never);
-      if (p.row && p.row !== 'goal' && p.row !== 'task') return <TypeRowFor p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} />;
-      if (p.row) return <RowNode p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} />;
+      const ed = props.editor as unknown as EditorLike;
+      if (p.row && p.row !== 'goal' && p.row !== 'task') return <TypeRowFor p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} editor={ed} />;
+      if (p.row) return <RowNode p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} editor={ed} />;
       if (p.kind === 'question' && p.form === 'yaml') return <QuestionNode p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} />;
       return (
         <div className={`nblock k-${p.kind} ${p.check === 'done' || p.status === 'done' ? 'done' : ''}`} data-id={`${p.kind}:${p.slug}`}>
-          <div className="nblock-head" contentEditable={false} ref={stopEditorEvents}>
+          <div className="nblock-head" contentEditable={false} ref={stopEditorEvents} onClick={selectBlockOnClick(ed, props.block as unknown as AnyBlock, null)}>
             {(p.check || p.kind === 'task') && (
               <input type="checkbox" className="nblock-check" checked={p.check === 'done' || p.status === 'done'} onChange={e => set({ check: e.target.checked ? 'done' : 'todo', status: e.target.checked ? 'done' : 'open' })} title="done?" />
             )}
