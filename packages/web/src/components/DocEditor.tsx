@@ -478,12 +478,13 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const editor = useCreateBlockNote({ schema, uploadFile,
     // an image pasted while the cursor is in a node block (a bug, a task, a requirement) goes into that block's text
     // as an inline image, not as an image block after it — the screenshot is part of the bug
-    pasteHandler: ({ event, editor: ed }) => {
+    // (BlockNote cancels the browser's paste before calling this, so anything that is not ours must go to
+    // defaultPasteHandler — returning undefined kills text paste everywhere, task:new-286)
+    pasteHandler: ({ event, editor: ed, defaultPasteHandler }) => {
       const files = [...(event.clipboardData?.files ?? [])].filter(f => f.type.startsWith('image/'));
-      if (!files.length) return undefined;
+      if (!files.length) return defaultPasteHandler();
       const cur = ed.getTextCursorPosition().block as unknown as AnyBlock;
-      if (cur.type !== 'node') return undefined;
-      event.preventDefault();
+      if (cur.type !== 'node') return defaultPasteHandler();
       void insertInlineImages(files);
       return true;
     } });

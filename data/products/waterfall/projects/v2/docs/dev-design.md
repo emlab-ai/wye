@@ -1252,7 +1252,9 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     thumbnail. On import an image next to words, or on a line that continues a paragraph, is inline content of
     that paragraph; only an image that is a paragraph of its own is an image block. wf resolve on a node, block,
     section or document lists every image its text embeds with the file path, so an agent can look at a bug's
-    screenshot (fixes bug:new-396).
+    screenshot (fixes bug:new-396). The editor's pasteHandler only takes image files in a node block; every other
+    paste goes to BlockNote's defaultPasteHandler — BlockNote cancels the browser's paste before asking, so a
+    handler that returns undefined silences text paste in the whole document (task:new-286).
   source: packages/web/src/lib/import.ts#liftInlineImages; packages/web/src/lib/serialize.ts#inlineToMarkdown; packages/web/src/components/DocEditor.tsx#InlineImage; packages/web/src/components/IdLink.tsx; packages/web/src/lib/resolve.ts; bin/wf.js#resolve; lib/parse.js
   status: shipped
   verified-by: [test:web-lib#import, test:web-lib#serialize]
