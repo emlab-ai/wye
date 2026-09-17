@@ -342,7 +342,13 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const { open: openPeek, index, hrefFor, setEditing, setShowContext, ownKinds } = usePeek();
   // node blocks render inside the editor, so they ask for the peek panel through a window event
   useEffect(() => { const h = (e: Event) => openPeek((e as CustomEvent<string>).detail); window.addEventListener('wf:peek', h); return () => window.removeEventListener('wf:peek', h); }, [openPeek]);
-  const editor = useCreateBlockNote({ schema });
+  // pasted or dropped images go to the project's docs/assets folder; the block keeps the relative url the markdown uses
+  const editor = useCreateBlockNote({ schema, uploadFile: async (file: File) => {
+    const fd = new FormData(); fd.append('file', file, file.name || 'image.png');
+    const r = await fetch(`/api/${product}/${project}/asset`, { method: 'POST', body: fd });
+    if (!r.ok) throw new Error('upload failed');
+    return (await r.json()).url as string;
+  } });
   if (typeof window !== 'undefined') { const w = window as unknown as { __wf: unknown; __wfExport: () => string; __wfLink: (id: string) => string }; w.__wf = editor; w.__wfExport = () => blocksToMarkdown(editor.document as unknown as AnyBlock[]); w.__wfLink = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock; return `${location.origin}/${product}/${project}/d/${slug}#${blockAnchor(b)}`; }; } // dev inspection
   void index;
   const [ready, setReady] = useState(false);

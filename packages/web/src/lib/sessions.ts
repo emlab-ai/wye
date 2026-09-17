@@ -128,4 +128,15 @@ export async function removeFromQueue(productDir: string, id: string, itemId: st
 export async function setBatch(productDir: string, id: string, batch: 'one' | 'all'): Promise<void> {
   await mutate(productDir, id, s => { s.batch = batch; });
 }
+// Files attached to a session's messages live next to the session file.
+export const filesDir = (productDir: string, id: string) => path.join(dir(productDir), `${id}-files`);
+export async function saveAttachment(productDir: string, id: string, name: string, dataUrl: string): Promise<string | null> {
+  const m = dataUrl.match(/^data:([a-z]+\/[a-z0-9.+-]+);base64,(.+)$/i); if (!m) return null;
+  const ext = ({ 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' } as Record<string, string>)[m[1].toLowerCase()]; if (!ext) return null;
+  const safe = `${Date.now().toString(36)}-${randomBytes(2).toString('hex')}.${ext}`;
+  await mkdir(filesDir(productDir, id), { recursive: true });
+  await writeFile(path.join(filesDir(productDir, id), safe), Buffer.from(m[2], 'base64'));
+  void name;
+  return safe;
+}
 export const queueMessage = (items: QueueItem[]): string => items.map(q => [q.text.trim(), q.link ? `Link: ${q.link} (resolve it with \`wf resolve\`)` : '', q.refs?.length ? `Refs: ${q.refs.join(', ')}` : ''].filter(Boolean).join('\n')).join(items.length > 1 ? '\n\n---\n\n' : '');

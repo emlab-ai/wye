@@ -2,7 +2,9 @@
 // open, turns their streaming JSON into ChatEvents, persists them to the session and pushes them to subscribers.
 // Lives on globalThis so dev-server module reloads do not orphan the processes.
 import { spawn, type ChildProcess } from 'node:child_process';
-import { getSession, updateSession, appendTranscript, enqueue, takeFromQueue, queueMessage } from './sessions';
+import { getSession, updateSession, appendTranscript, enqueue, takeFromQueue, queueMessage, filesDir } from './sessions';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import type { ChatEvent, Session } from './session-types';
 import { loadScope } from './scope';
 import { resolveLink, renderResolved } from './resolve';
@@ -64,7 +66,7 @@ export async function startChat(productDir: string, product: string, id: string,
     if (first) codexTurn(l, cwd, l.codexThread ? first : `${system}\n\n---\n\n${first}`); else pump(l);
     return getSession(productDir, id);
   }
-  const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--permission-prompt-tool', 'stdio', '--replay-user-messages', '--forward-subagent-text', '--append-system-prompt', system, '--add-dir', REPO_ROOT];
+  const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--permission-prompt-tool', 'stdio', '--forward-subagent-text', '--append-system-prompt', system, '--add-dir', REPO_ROOT];
   if (opts.resume && s.agentSessionId) args.push('--resume', s.agentSessionId);
   const proc = spawn('claude', args, { cwd, env: { ...process.env, WF_URL: opts.wfUrl, WF_PRODUCT: product, WF_SESSION: id } });
   l.proc = proc;
@@ -74,14 +76,21 @@ export async function startChat(productDir: string, product: string, id: string,
   proc.stderr.on('data', d => { const t = String(d).trim(); if (t) emit(l, { kind: 'stderr', text: t.slice(0, 2000) }); });
   proc.on('close', code => { emit(l, { kind: 'exit', code: code ?? -1, text: `claude exited (${code})` }); l.proc = null; getSession(productDir, id).then(cur => { if (cur?.status === 'cancelled') return; return updateSession(productDir, id, { status: code === 0 ? 'done' : 'failed', line: `agent exited with ${code}` }); }).catch(() => {}); });
   proc.stdin.on('error', () => {});
-  if (first) writeUser(l, first); else setTimeout(() => pump(l), 500); // a resumed agent takes what waited in the queue
+  if (first) { emit(l, { kind: 'user', text: first }); writeUser(l, first); } else setTimeout(() => pump(l), 500); // a resumed agent takes what waited in the queue
   return getSession(productDir, id);
 }
 
-function writeUser(l: Live, text: string) {
+function writeUser(l: Live, text: string, images: { mediaType: string; data: string }[] = []) {
   if (!l.proc) return;
   l.turnBusy = true;
-  l.proc.stdin!.write(JSON.stringify({ type: 'user', message: { role: 'user', content: [{ type: 'text', text }] } }) + '\n');
+  const content: unknown[] = [{ type: 'text', text }, ...images.map(i => ({ type: 'image', source: { type: 'base64', media_type: i.mediaType, data: i.data } }))];
+  l.proc.stdin!.write(JSON.stringify({ type: 'user', message: { role: 'user', content } }) + '\n');
+}
+const MIME: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' };
+async function loadImages(productDir: string, id: string, names: string[]): Promise<{ name: string; path: string; mediaType: string; data: string }[]> {
+  const out = [];
+  for (const n of names) { try { const p = path.join(filesDir(productDir, id), n); out.push({ name: n, path: p, mediaType: MIME[n.split('.').pop()!] ?? 'image/png', data: (await readFile(p)).toString('base64') }); } catch { /* gone */ } }
+  return out;
 }
 
 function onClaudeLine(l: Live, line: string) {
@@ -96,7 +105,6 @@ function onClaudeLine(l: Live, line: string) {
   if (type === 'user') {
     const content = (j.message as { content?: unknown[] })?.content ?? [];
     for (const c of content as Record<string, unknown>[]) {
-      if (c.type === 'text' && j.isReplay) emit(l, { kind: 'user', text: String(c.text) });
       if (c.type === 'tool_result') { const out = typeof c.content === 'string' ? c.content : Array.isArray(c.content) ? (c.content as { text?: string }[]).map(x => x.text ?? '').join('\n') : JSON.stringify(c.content); emit(l, { kind: 'tool_result', toolUseId: String(c.tool_use_id), output: String(out).slice(0, 8000), isError: !!c.is_error, parent }); }
     }
     return;
@@ -121,7 +129,7 @@ function onClaudeLine(l: Live, line: string) {
 
 // Every message goes through the persistent queue; the pump hands the next item (or the whole batch) to the agent
 // as soon as it is idle. Items wait across restarts: a resumed agent takes them.
-export async function sendMessage(productDir: string, id: string, item: { text: string; refs?: string[]; link?: string }): Promise<{ position: number; live: boolean }> {
+export async function sendMessage(productDir: string, id: string, item: { text: string; refs?: string[]; link?: string; images?: string[] }): Promise<{ position: number; live: boolean }> {
   const r = await enqueue(productDir, id, item);
   await notifyQueue(productDir, id);
   const l = live().get(id);
@@ -138,8 +146,11 @@ export function pump(l: Live) {
     if (!items.length) return;
     notifyQueue(l.productDir, l.id).catch(() => {});
     const text = queueMessage(items);
-    emit(l, { kind: 'user', text: items.length > 1 ? `(batch of ${items.length})\n\n${text}` : text });
-    if (l.agent === 'codex') codexTurn(l, l.cwd, text, true); else writeUser(l, text);
+    const names = items.flatMap(i => i.images ?? []);
+    loadImages(l.productDir, l.id, names).then(imgs => {
+      emit(l, { kind: 'user', text: items.length > 1 ? `(batch of ${items.length})\n\n${text}` : text, images: imgs.map(i => `/api/${path.basename(l.productDir)}/sessions/${l.id}/file/${i.name}`) });
+      if (l.agent === 'codex') codexTurn(l, l.cwd, text, true, imgs.map(i => i.path)); else writeUser(l, text, imgs);
+    });
   }).catch(() => { l.pumping = false; });
 }
 export function pumpSession(id: string) { const l = live().get(id); if (l) pump(l); }
@@ -158,9 +169,10 @@ export function stopChat(id: string): boolean {
 }
 
 // Codex: one `codex exec --json` process per turn; later turns resume the thread.
-function codexTurn(l: Live, cwd: string, text: string, fromQueue = false) {
+function codexTurn(l: Live, cwd: string, text: string, fromQueue = false, imagePaths: string[] = []) {
   if (!fromQueue) emit(l, { kind: 'user', text });
-  const args = l.codexThread ? ['exec', 'resume', l.codexThread, '--json', text] : ['exec', '--json', '--sandbox', 'workspace-write', text];
+  const imgArgs = imagePaths.flatMap(p => ['--image', p]);
+  const args = l.codexThread ? ['exec', 'resume', l.codexThread, '--json', ...imgArgs, text] : ['exec', '--json', '--sandbox', 'workspace-write', ...imgArgs, text];
   const proc = spawn('codex', args, { cwd, env: { ...process.env, WF_SESSION: l.id, WF_PRODUCT: l.productDir.split('/').pop() } });
   l.proc = proc; l.turnBusy = true;
   let buf = '';

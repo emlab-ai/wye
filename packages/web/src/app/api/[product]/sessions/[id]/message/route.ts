@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getProduct } from '@/lib/products';
-import { getSession } from '@/lib/sessions';
+import { getSession, saveAttachment } from '@/lib/sessions';
 import { sendMessage, startChat, isLive } from '@/lib/agent-host';
 
 // POST { text, refs?, link? } → into the session's persistent queue; the agent takes it when idle (one at a time or
@@ -9,9 +9,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const { product, id } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const s = await getSession(p.dir, id); if (!s) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const { text, refs, link } = (await req.json()) as { text?: string; refs?: string[]; link?: string };
-  if (!text?.trim()) return NextResponse.json({ error: 'invalid', message: 'text required' }, { status: 422 });
-  const r = await sendMessage(p.dir, id, { text: text.trim(), refs, link });
+  const { text, refs, link, images } = (await req.json()) as { text?: string; refs?: string[]; link?: string; images?: { name?: string; dataUrl: string }[] };
+  if (!text?.trim() && !images?.length) return NextResponse.json({ error: 'invalid', message: 'text or an image required' }, { status: 422 });
+  const names: string[] = [];
+  for (const im of (images ?? []).slice(0, 8)) { const n = await saveAttachment(p.dir, id, im.name ?? 'image', im.dataUrl); if (n) names.push(n); }
+  const r = await sendMessage(p.dir, id, { text: (text ?? '').trim() || (names.length ? '(image)' : ''), refs, link, images: names });
   if (!isLive(id) && s.status !== 'cancelled') await startChat(p.dir, product, id, { wfUrl: new URL(req.url).origin, resume: !!s.agentSessionId });
   return NextResponse.json({ ok: true, position: r.position, live: isLive(id) });
 }

@@ -12,6 +12,7 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
   const [live, setLive] = useState(false);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [images, setImages] = useState<{ name: string; dataUrl: string }[]>([]);
   const [showThinking, setShowThinking] = useState(false);
   const [queue, setQueue] = useState<{ pending: { id: string; text: string; addedAt: string }[]; batch: 'one' | 'all' }>({ pending: [], batch: 'one' });
   const bottom = useRef<HTMLDivElement>(null);
@@ -27,10 +28,15 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
     return () => es.close();
   }, [product, id, onStatus]);
   useEffect(() => { if (stick.current) bottom.current?.scrollIntoView({ block: 'end' }); }, [events]);
+  // images from the clipboard (or dropped files) ride along with the message, the way Claude Code takes them
+  const addFiles = (files: FileList | File[]) => {
+    for (const f of Array.from(files)) { if (!f.type.startsWith('image/')) continue; const rd = new FileReader(); rd.onload = () => setImages(im => [...im, { name: f.name || 'pasted.png', dataUrl: String(rd.result) }].slice(0, 8)); rd.readAsDataURL(f); }
+  };
+  const onPaste = (e: React.ClipboardEvent) => { const files = Array.from(e.clipboardData.files).filter(f => f.type.startsWith('image/')); if (files.length) { e.preventDefault(); addFiles(files); } };
   const send = async () => {
-    const t = text.trim(); if (!t) return;
-    setBusy(true); setText('');
-    const r = await fetch(`/api/${product}/sessions/${id}/message`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: t }) });
+    const t = text.trim(); if (!t && !images.length) return;
+    setBusy(true); setText(''); const imgs = images; setImages([]);
+    const r = await fetch(`/api/${product}/sessions/${id}/message`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: t, images: imgs }) });
     setBusy(false); if (!r.ok) setEvents(evs => [...evs, { t: new Date().toISOString(), kind: 'stderr', text: 'could not send the message' }]); else setLive(true);
   };
   const control = (body: object) => fetch(`/api/${product}/sessions/${id}/control`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -59,9 +65,12 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
           : <Event key={i} e={g.events[0]} answered={answered} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />)}
         <div ref={bottom} />
       </div>
-      <form className="console-input" onSubmit={e => { e.preventDefault(); send(); }}>
-        <textarea value={text} rows={2} placeholder={live ? (turnOpen ? 'Queue the next message… (⌘↵)' : 'Reply to the agent… (⌘↵ to send)') : 'Type to resume the agent…'} onChange={e => setText(e.target.value)} onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); send(); } }} />
-        <button className="pri" type="submit" disabled={busy || !text.trim()}>Send</button>
+      <form className="console-input" onSubmit={e => { e.preventDefault(); send(); }} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); addFiles(e.dataTransfer.files); }}>
+        {images.length > 0 && <div className="console-attach">{images.map((im, i) => <span key={i} className="console-thumb"><img src={im.dataUrl} alt={im.name} /><button type="button" onClick={() => setImages(x => x.filter((_, k) => k !== i))} title="Remove">×</button></span>)}</div>}
+        <div className="console-row">
+          <textarea value={text} rows={2} placeholder={live ? (turnOpen ? 'Queue the next message… (⌘↵; paste images too)' : 'Reply to the agent… (⌘↵ to send; paste images too)') : 'Type to resume the agent…'} onChange={e => setText(e.target.value)} onPaste={onPaste} onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); send(); } }} />
+          <button className="pri" type="submit" disabled={busy || (!text.trim() && !images.length)}>Send</button>
+        </div>
       </form>
     </div>
   );
@@ -71,7 +80,7 @@ function Event({ e, answered, showThinking, answer }: { e: ChatEvent; answered: 
   const [open, setOpen] = useState(false);
   const time = <time>{e.t.slice(11, 19)}</time>;
   switch (e.kind) {
-    case 'user': return <div className="ev ev-user">{time}<div className="ev-body"><ReactMarkdown remarkPlugins={[remarkGfm]}>{e.text ?? ''}</ReactMarkdown></div></div>;
+    case 'user': return <div className="ev ev-user">{time}<div className="ev-body"><ReactMarkdown remarkPlugins={[remarkGfm]}>{e.text ?? ''}</ReactMarkdown>{e.images && e.images.length > 0 && <div className="ev-images">{e.images.map(u => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="attachment" /></a>)}</div>}</div></div>;
     case 'assistant': return <div className="ev ev-assistant">{time}<div className="ev-body"><ReactMarkdown remarkPlugins={[remarkGfm]}>{e.text ?? ''}</ReactMarkdown></div></div>;
     case 'thinking': return showThinking ? <div className="ev ev-thinking">{time}<div className="ev-body">{e.text}</div></div> : null;
     case 'tool_use': {
