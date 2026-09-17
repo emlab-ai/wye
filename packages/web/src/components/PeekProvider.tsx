@@ -15,6 +15,7 @@ interface Ctx {
   open: (id: string) => void; back: () => void; go: (i: number) => void; togglePin: (i: number) => void; remove: (i: number) => void; close: () => void;
   hrefFor: (id: string) => string | null;
   editing: EditingContext | null; setEditing: (e: EditingContext | null) => void; showContext: boolean; setShowContext: (v: boolean) => void;
+  panelOpen: boolean; setPanelOpen: (v: boolean) => void;
 }
 const PeekCtx = createContext<Ctx | null>(null);
 
@@ -24,15 +25,19 @@ export function PeekProvider({ product, index, children }: { product: string; in
   const { stack, cursor } = nav;
   const [editing, setEditing] = useState<EditingContext | null>(null);
   const [showContext, setShowContext] = useState(false);
+  // the right column can be hidden altogether; opening a node brings it back. Remembered per browser.
+  const [panelOpen, setPanelOpenState] = useState(true);
+  useEffect(() => { try { setPanelOpenState(localStorage.getItem('wf-panel') !== '0'); } catch { /* ignore */ } }, []);
+  const setPanelOpen = useCallback((v: boolean) => { setPanelOpenState(v); try { localStorage.setItem('wf-panel', v ? '1' : '0'); } catch { /* ignore */ } }, []);
   const openId = cursor >= 0 ? stack[cursor]?.id ?? null : null;
   // Opening pushes on top of the current position; unpinned entries above it are dropped, pinned ones stay.
-  const open = useCallback((id: string) => setNav(n => {
+  const open = useCallback((id: string) => { if (id) setPanelOpen(true); setNav(n => {
     if (!id) return { ...n, cursor: -1 };
     const kept = n.stack.filter((e, i) => i <= n.cursor || e.pinned);
     const existing = kept.findIndex(e => e.id === id);
     if (existing >= 0) return { stack: kept, cursor: existing };
     return { stack: [...kept, { id, pinned: false }], cursor: kept.length };
-  }), []);
+  }); }, [setPanelOpen]);
   const back = useCallback(() => setNav(n => ({ ...n, cursor: Math.max(-1, n.cursor - 1) })), []);
   const go = useCallback((i: number) => setNav(n => ({ ...n, cursor: Math.min(i, n.stack.length - 1) })), []);
   const togglePin = useCallback((i: number) => setNav(n => ({ ...n, stack: n.stack.map((e, k) => k === i ? { ...e, pinned: !e.pinned } : e) })), []);
@@ -41,6 +46,6 @@ export function PeekProvider({ product, index, children }: { product: string; in
   const close = useCallback(() => setNav(n => showContext ? { ...n, cursor: -1 } : { stack: n.stack.filter(e => e.pinned), cursor: -1 }), [showContext]);
   const hrefFor = useCallback((id: string) => { const e = index[id]; const r = e?.file ? docRoute(e.file) : null; return r ? `/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(id)}` : null; }, [index, product]);
   useEffect(() => { const h = (e: KeyboardEvent) => { if (e.key === 'Escape') back(); }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [back]);
-  return <PeekCtx.Provider value={{ product, index, openId, stack, cursor, open, back, go, togglePin, remove, close, hrefFor, editing, setEditing, showContext, setShowContext }}>{children}</PeekCtx.Provider>;
+  return <PeekCtx.Provider value={{ product, index, openId, stack, cursor, open, back, go, togglePin, remove, close, hrefFor, editing, setEditing, showContext, setShowContext, panelOpen, setPanelOpen }}>{children}</PeekCtx.Provider>;
 }
 export function usePeek(): Ctx { const c = useContext(PeekCtx); if (!c) throw new Error('PeekProvider missing'); return c; }

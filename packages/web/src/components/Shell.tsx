@@ -9,20 +9,20 @@ import { SendToAgentHost } from './SendToAgent';
 // column, separated from the content by a draggable splitter. The rail starts hidden on document and session
 // pages (working views) and open elsewhere; the choice and the splitter position are remembered per browser.
 const MIN_PANEL = 320, MIN_CONTENT = 360;
-const LayoutCtx = createContext<{ rail: boolean; toggleRail: () => void }>({ rail: true, toggleRail: () => {} });
+const LayoutCtx = createContext<{ rail: boolean; toggleRail: () => void; panel: boolean; togglePanel: () => void }>({ rail: true, toggleRail: () => {}, panel: true, togglePanel: () => {} });
 export const useLayout = () => useContext(LayoutCtx);
 export function Shell({ children }: { children: ReactNode }) {
-  const { openId, showContext, stack } = usePeek();
+  const { openId, showContext, stack, panelOpen, setPanelOpen } = usePeek();
   const path = usePathname();
   const working = /\/d\/[^/]+|\/sessions/.test(path);
   const [railOpen, setRailOpen] = useState<boolean | null>(null);
   const [panelW, setPanelW] = useState<number>(560);
-  const split = !!(openId || showContext || stack.length);
+  const split = panelOpen && !!(openId || showContext || stack.length);
   const frame = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   useEffect(() => { try { const v = localStorage.getItem('wf-rail'); setRailOpen(v === null ? !working : v === '1'); const w = Number(localStorage.getItem('wf-panel-w')); if (w) setPanelW(w); } catch { setRailOpen(!working); } }, [working]);
   const toggleRail = useCallback(() => setRailOpen(o => { const n = !o; try { localStorage.setItem('wf-rail', n ? '1' : '0'); } catch { /* ignore */ } return n; }), []);
-  useEffect(() => { const h = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key === '\\') { e.preventDefault(); toggleRail(); } }; const t = () => toggleRail(); window.addEventListener('keydown', h); window.addEventListener('wf:rail', t); return () => { window.removeEventListener('keydown', h); window.removeEventListener('wf:rail', t); }; }, [toggleRail]);
+  useEffect(() => { const h = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key === '\\') { e.preventDefault(); toggleRail(); } if ((e.metaKey || e.ctrlKey) && e.key === '.') { e.preventDefault(); setPanelOpen(!panelOpen); } }; const t = () => toggleRail(); window.addEventListener('keydown', h); window.addEventListener('wf:rail', t); return () => { window.removeEventListener('keydown', h); window.removeEventListener('wf:rail', t); }; }, [toggleRail, panelOpen, setPanelOpen]);
   // the panel may take everything but the rail and a minimum of content
   const clamp = useCallback((w: number) => { const total = frame.current?.getBoundingClientRect().width ?? window.innerWidth; const railPx = document.querySelector('.rail')?.getBoundingClientRect().width ?? 0; return Math.max(MIN_PANEL, Math.min(w, total - railPx - MIN_CONTENT)); }, []);
   useEffect(() => { const fit = () => setPanelW(w => clamp(w)); fit(); window.addEventListener('resize', fit); return () => window.removeEventListener('resize', fit); }, [clamp, railOpen, split]);
@@ -35,9 +35,9 @@ export function Shell({ children }: { children: ReactNode }) {
   const rail = railOpen ?? !working;
   return (
     <div ref={frame} className={`shell ${split ? 'split' : ''} ${rail ? '' : 'rail-hidden'}`} style={split ? ({ '--panel-w': `${panelW}px` } as React.CSSProperties) : undefined}>
-      <LayoutCtx.Provider value={{ rail, toggleRail }}>{children}</LayoutCtx.Provider>
+      <LayoutCtx.Provider value={{ rail, toggleRail, panel: panelOpen, togglePanel: () => setPanelOpen(!panelOpen) }}>{children}</LayoutCtx.Provider>
       {split && <div className="splitter" onMouseDown={onDown} role="separator" aria-orientation="vertical" title="Drag to resize" />}
-      <PeekPanel />
+      {split && <PeekPanel />}
       <SendToAgentHost />
     </div>
   );

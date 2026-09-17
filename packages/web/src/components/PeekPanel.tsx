@@ -23,7 +23,7 @@ const OUT: Record<string, string> = { refines: 'Refines', 'satisfied-by': 'Satis
 const INC: Record<string, string> = { refines: 'Refined by', 'satisfied-by': 'Satisfies', 'verified-by': 'Verifies', 'depends-on': 'Needed by', 'part-of': 'Contains', 'related-to': 'Related from', 'governed-by': 'Governs', 'gated-by': 'Gates', has: 'Belongs to', refs: 'Referenced by', contradicts: 'Contradicted by', resolves: 'Resolved by', 'applies-to': 'Applied by', 'has-action': 'Action of', navigates: 'Reached from', reads: 'Read by', writes: 'Written by' };
 
 export function PeekPanel() {
-  const { product, index, openId, stack, cursor, open, back, go, togglePin, remove, close, hrefFor, showContext, editing } = usePeek();
+  const { product, index, openId, stack, cursor, open, back, go, togglePin, remove, close, hrefFor, showContext, editing, setPanelOpen } = usePeek();
   const [d, setD] = useState<Details | null>(null);
   const [view, setView] = useState<'list' | 'graph'>('list');
   const [depth, setDepth] = useState<1 | 2>(1);
@@ -52,7 +52,7 @@ export function PeekPanel() {
           );
         })}
       </div>
-      {!showContext && <button className="peek-bar-close" onClick={close} title="Close the column">×</button>}
+      <button className="peek-bar-close" onClick={() => { if (showContext) setPanelOpen(false); else close(); }} title="Hide the panel (⌘.)">×</button>
     </div>
   );
   if (!openId) return (

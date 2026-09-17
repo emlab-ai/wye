@@ -12,7 +12,7 @@ const ago = (iso: string) => { const m = (Date.now() - Date.parse(iso)) / 60000;
 // The bar above the content, Notion style: sidebar control, breadcrumbs (product › parents › document), last edit,
 // copy link and send to agent.
 export function TopBar({ product, docs }: { product: { slug: string; title: string; icon: string }; docs: Record<string, DocMeta> }) {
-  const path = usePathname(); const { rail, toggleRail } = useLayout();
+  const path = usePathname(); const { rail, toggleRail, panel, togglePanel } = useLayout();
   const parts = path.split('/').filter(Boolean); // [product, ...]
   const crumbs: { href: string; label: string; icon?: string }[] = [{ href: `/${product.slug}`, label: product.title, icon: product.icon || '◆' }];
   let doc: DocMeta | undefined; let edited = '';
@@ -38,6 +38,7 @@ export function TopBar({ product, docs }: { product: { slug: string; title: stri
         {edited && <span className="muted topbar-edited">Edited {edited}</span>}
         {doc && <button className="topbar-btn" onClick={() => requestSend({ refs: [`module:${doc!.slug}`], source: { project: doc!.project, doc: doc!.slug, link } })} title="Send this document to an agent">⇢ agent</button>}
         <button className="topbar-btn" onClick={copy} title="Copy link">⧉</button>
+        <button className={`topbar-btn ${panel ? 'on' : ''}`} onClick={togglePanel} title={`${panel ? 'Hide' : 'Show'} the context panel (⌘.)`} aria-label="Toggle context panel">◫</button>
       </span>
     </header>
   );
