@@ -90,7 +90,7 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
 function Event({ e, answered, answers, showThinking, answer }: { e: ChatEvent; answered: Set<string | undefined>; answers: Map<string | undefined, unknown | 'denied'>; showThinking: boolean; answer: (requestId: string, allow: boolean, input?: unknown) => void }) {
   void answered;
   const [open, setOpen] = useState(false);
-  const time = <time>{e.t.slice(11, 19)}</time>;
+  const time = <time dateTime={e.t} title={e.t}>{e.t.slice(11, 19)}</time>; // hidden until the row is hovered
   switch (e.kind) {
     case 'user': return <div className="ev ev-user">{time}<div className="ev-body"><ReactMarkdown remarkPlugins={[remarkGfm]}>{e.text ?? ''}</ReactMarkdown>{e.images && e.images.length > 0 && <div className="ev-images">{e.images.map(u => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="attachment" /></a>)}</div>}</div></div>;
     case 'assistant': return <div className="ev ev-assistant">{time}<div className="ev-body"><ReactMarkdown remarkPlugins={[remarkGfm]}>{e.text ?? ''}</ReactMarkdown></div></div>;
@@ -157,7 +157,7 @@ function Activity({ events, live, answered, answers, showThinking, answer }: { e
   if (calls.length <= 1 && !open && events.length <= 2 && !live) return <>{events.map((e, i) => <Event key={i} e={e} answered={answered} answers={answers} showThinking={showThinking} answer={answer} />)}</>;
   return (
     <div className={`ev ev-act ${open ? 'open' : ''}`}>
-      <time>{events[0].t.slice(11, 19)}</time>
+      <time dateTime={events[0].t} title={events[0].t}>{events[0].t.slice(11, 19)}</time>
       <div className="ev-act-body">
         <button className="ev-act-head" onClick={() => setOpen(o => !o)} title={open ? 'Collapse' : 'Show every step'}>
           <span className="ev-act-tri">{open ? '▾' : '▸'}</span>
@@ -178,7 +178,7 @@ function Subagent({ events, task, finished, answered, answers, showThinking, ans
   const done = finished;
   return (
     <div className="ev ev-sub">
-      <time>{events[0].t.slice(11, 19)}</time>
+      <time dateTime={events[0].t} title={events[0].t}>{events[0].t.slice(11, 19)}</time>
       <div className="ev-sub-body">
         <button className="ev-sub-head" onClick={() => setOpen(o => !o)}>{open ? '▾' : '▸'} <b>subagent</b> {input?.subagent_type ? <span className="muted">{input.subagent_type}</span> : null} <span>{input?.description ?? (input?.prompt ?? '').slice(0, 80)}</span> <span className="muted">· {events.length} events, {tools} tool calls{done ? '' : ' · working'}</span></button>
         {open && <div className="ev-sub-events">{events.map((e, i) => <Event key={i} e={e} answered={answered} answers={answers} showThinking={showThinking} answer={answer} />)}</div>}

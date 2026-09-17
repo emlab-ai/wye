@@ -43,6 +43,8 @@ React components (`component:` cards). `side` says whether it renders on the ser
   side: client
   purpose: >
     The live conversation with an agent: every event of the transcript, streamed over SSE, plus a message box.
+    Rows are full width, without a time column (task:new-954): an event's time appears at the row's right edge
+    only while it is hovered (`.ev time`, globals.css).
   part-of: module:app-agents
 - id: component:ask-questions
   file: packages/web/src/components/AskQuestions.tsx
