@@ -48,7 +48,8 @@ Screens this module adds (the others are described in the dev design and linked 
   route: /<product>/knowledge and /knowledge/<kind>
   component: app/[product]/knowledge/page.tsx; app/[product]/knowledge/[kind]/page.tsx
   purpose: >
-    Everything the graph knows, by kind; a kind page lists title, status, where defined and relations.
+    Everything the graph knows, by kind; a kind page is component:instance-table over that kind — a declared type
+    gets a column per property, a bare kind its relations — with search, status, group by and sort in the URL.
   part-of: module:app-knowledge
 - id: page:web/questions
   route: /<product>/questions
@@ -129,6 +130,22 @@ React components (`component:` cards). `side` says whether it renders on the ser
   purpose: >
     Rows of the Types page: the whole row opens the type in the context column; the ↗ and the parent tag are their own links.
   part-of: module:app-knowledge
+- id: component:instance-table
+  file: packages/web/src/components/InstanceTable.tsx
+  side: client
+  purpose: >
+    Every instance of one type (or every node of one kind) as a filterable table: search, status chips with counts,
+    one filter per enum / ref / bool property, group by, sort by column, a column per declared property; the filters
+    live in the URL so a filtered list is a link. Rendered by the type page, the kind page and the view block.
+  part-of: module:app-knowledge
+- id: component:view-block
+  file: packages/web/src/components/ViewBlock.tsx
+  side: client
+  purpose: >
+    The `view` block of the editor: a live, read-only component:instance-table of one type inside a document. Its
+    header picks the type; the rows come from op:api.view (refetched on every graph change); the filters are the
+    block's `query` prop and are written back to its `<!-- view:<slug> key=value -->` line (rule:view-block).
+  part-of: module:app-knowledge
 - id: component:type-view
   file: packages/web/src/components/TypeView.tsx
   side: client
@@ -165,6 +182,16 @@ Modules under packages/web/src/lib (`lib:` cards): pure logic and server-only IO
   side: shared
   purpose: >
     Ontology helpers over graph.json: a node's type (its kind prefix), the extends chain, instances of a type and the properties a node has — declared on its type or inherited — with the values it fills in.
+  part-of: module:app-knowledge
+- id: lib:instance-table
+  file: packages/web/src/lib/instance-table.ts
+  side: shared
+  purpose: >
+    Every instance of one type (or every node of one kind) as table rows with a column per declared property, and
+    the pure filter / group / sort a person applies (search over id, title and values; status; one value per column,
+    a list cell matching any item; group by document, status or a column; sort by a column, `-col` descending).
+    The state round-trips to a URL query (parseFilters / filtersToQuery) and to a view line's key=value pairs
+    (parseViewQuery / viewQuery). Tested by test:web-lib#instance-table.
   part-of: module:app-knowledge
 - id: lib:track
   file: packages/web/src/lib/track.ts
@@ -211,6 +238,14 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   gate: none (local app)
   source: packages/web/src/app/api
   part-of: module:app-knowledge
+- id: op:api.view
+  args: GET /api/<product>/view/<slug>
+  does: >
+    A type's (or kind's) instances as component:instance-table rows — columns, rows with their property values
+    (relations for a bare kind), status counts — for the view block; filters are applied in the browser.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/view/[slug]/route.ts
+  part-of: module:app-knowledge
 - id: op:api.context
   args: POST /api/<product>/context
   does: >
@@ -226,3 +261,113 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   source: packages/web/src/app/api
   part-of: module:app-knowledge
 ```
+
+## Plan: all instances of a type, with filters (task:new-453)
+
+Today a type's instances are a plain table on `/types/<slug>` (page:web/types) and a kind's nodes a plain list on
+`/knowledge/<kind>` (page:web/knowledge); only Goals and Tasks (component:track-list) have search, status chips and
+group by. task:new-453 asks for one place to see *all* cards of a type — pages, managers, tasks — and narrow them.
+The plan: one client component, component:instance-table, that both pages render, then the same table as a block
+inside a document (a Notion "linked database": a live view, nothing stored).
+
+```yaml
+- id: req:wf2.instances.filter
+  title: A type's or kind's instances are one filterable table
+  when: >
+    a person opens /<product>/types/<slug> or /<product>/knowledge/<kind> (from Types, Knowledge, a type: tag or a link)
+  then: >
+    the instances show as one table with a toolbar: search over id, title and every property value; status chips
+    with counts; one filter per enum, ref or bool property the type declares (a chip row for enums and bools, a
+    select of instances for a ref); group by document, status or any enum / ref property; sort by any column;
+    a column per declared property and one for the document. The toolbar state is in the URL
+    (?q=&status=&group=&sort=&<prop>=) so a filtered list can be pasted as a link. A row opens the node in the
+    context column; ↗ opens its definition.
+  unless: >
+    the kind has no declared type (e.g. lib, op) or the type declares no properties — then the toolbar has search,
+    status and document only, and the table shows the node's relations as the last column (what the kind page shows today)
+  status: shipped
+  satisfied-by: [component:instance-table, page:web/types, page:web/knowledge]
+  verified-by: [test:web-lib#instance-table, ui-test:instance-table]
+  part-of: req:ontology.type-page
+- id: req:wf2.instances.view-block
+  title: A document holds a live view of a type's instances
+  when: >
+    a person types "/view" in a document (slash menu item "Instances view", group Waterfall) and picks a type in the
+    block's header, or sets filters on the table inside it
+  then: >
+    the block shows component:instance-table for that type, live from the graph, read-only; the markdown is one
+    HTML-comment line `<!-- view:<slug> status=open group=owner -->` (the toolbar state as key=value), invisible to
+    other markdown readers and not a node; a row opens the node in the context column
+  unless: >
+    the type is no longer declared — the block keeps its line and says "type:<slug> is not declared"
+  status: shipped
+  satisfied-by: [component:instance-table, component:view-block, rule:view-block]
+  verified-by: [test:web-lib#import, ui-test:instance-table]
+  related-to: [rule:type-tables, decision:wf2.one-table-block]
+- id: decision:wf2.one-instance-table
+  title: One instance table for the type page, the kind page and the view block
+  context: >
+    Three places list "all nodes of one type": the kind page (relations, no properties, no filters), the type page
+    (properties, no filters) and TrackList (filters, goals and tasks only). task:new-453 asks for filters on any type.
+  choice: >
+    One client component (component:instance-table) with rows computed on the server (lib:instances — pure: rows of
+    a type with their effective properties, filter / group / sort, tested with vitest) and rendered by the type page,
+    the kind page and a read-only `view` block in the editor. The kind page keeps its relations column for kinds
+    without a declared type. Goals and Tasks keep component:track-list (nesting, progress) — the instance table does
+    not replace it. Filters live in the URL, not in saved views.
+  alternatives: >
+    Filters on the type page only — the kind page stays a second, poorer list of the same nodes; a query language
+    in the block (`where status = open`) — more to learn than a toolbar, can come later on top of key=value; saved
+    named views — a store for something the URL already carries.
+  consequences: >
+    page:web/types and page:web/knowledge say they render component:instance-table; a `view` block spec next to
+    the collection block in DocEditor; rule:type-tables stays (a table *creates* rows, a view *shows* them).
+  status: proposed
+  date: 2026-09-17
+  related-to: [decision:wf2.one-table-block, rule:type-tables, rule:goals-and-tasks]
+  session: 53f99bfd98
+- id: question:wf2.view-block-now
+  q: >
+    Is the view block (req:wf2.instances.view-block) part of this change, or is the filterable page with a
+    shareable URL enough for now and the block a follow-up?
+  context: >
+    The page (task:instance-table) is the smaller half; the block (task:instance-view-block) adds an editor block
+    spec, import/serialize of the `<!-- view:… -->` line and live refresh inside the editor. Both can ship in one
+    session; the block roughly doubles the work.
+  status: resolved
+  related-to: [req:wf2.instances.view-block, task:new-453]
+- id: decision:wf2.view-block-now
+  title: The view block ships with the filterable page, in one change
+  context: >
+    question:wf2.view-block-now asked whether the block is part of task:new-453 or a follow-up.
+  choice: >
+    Both — the person answered Proceed on the plan without narrowing it, so the page and the view block were built
+    together (task:instance-table, task:instance-view-block).
+  alternatives: >
+    Page only, block later.
+  consequences: >
+    req:wf2.instances.view-block is shipped with req:wf2.instances.filter; rule:view-block holds the syntax.
+  status: proposed
+  date: 2026-09-17
+  resolves: question:wf2.view-block-now
+  session: 53f99bfd98
+- id: rule:view-block
+  statement: >
+    A document may hold a view of a type's instances: one line `<!-- view:<slug> key=value … -->` (an HTML comment,
+    so other readers ignore it; not a node). The editor shows it as a `view` block — the type picker in its header,
+    component:instance-table under it, rows fetched from op:api.view and refetched on every graph change — and
+    writes the toolbar state back to the line as key=value pairs (q, status, group, sort, one key per column; a
+    value with spaces in double quotes); an empty query leaves the line as `<!-- view:<slug> -->`. Changing the
+    type clears the query. A type the product does not declare still lists its kind's nodes (with relations) and
+    the header says so. "Instances view" in the slash menu (group Waterfall) inserts one.
+  source: packages/web/src/lib/import.ts#VIEW_LINE; packages/web/src/lib/serialize.ts; packages/web/src/components/ViewBlock.tsx; packages/web/src/lib/instance-table.ts#parseViewQuery
+  status: shipped
+  verified-by: [test:web-lib#import, test:web-lib#instance-table, ui-test:instance-table]
+  related-to: [rule:type-tables, req:wf2.instances.view-block]
+```
+
+Work, in order:
+
+- [x] task:instance-table lib:instance-table (rows, filter, group, sort — vitest) and component:instance-table; the type page and the kind page render it with the toolbar and URL state; part of req:wf2.instances.filter, part of task:new-453. (session: 53f99bfd98)
+- [x] task:instance-view-block The `view` block in DocEditor: slash item "Instances view", `<!-- view:<slug> key=value -->` in import.ts / serialize.ts, type picker in the header, component:instance-table inside, read-only; part of req:wf2.instances.view-block, part of task:new-453. (session: 53f99bfd98)
+- [x] task:instance-table-ui-test ui-test:instance-table — open /types/bug, filter by status and an enum property, group by, copy the URL and reopen it; a view block in a document shows the same rows; part of req:wf2.instances.filter. (run by hand with playwright-core, 2026-09-17; in CI when task:ui-tests-in-ci lands)

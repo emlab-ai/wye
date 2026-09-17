@@ -508,7 +508,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - action:add-type:         + add type under the product's own types: name (→ slug), extends (any type, node by default), purpose, destination document; writes the type: card and opens the new type in the context column where its properties are added -(calls)-> op:types.create
   display-rules:
     - the index lists the product's own types first (name, extends, instance and own-property counts, purpose, where declared), then the base types
-    - a type page: crumbs along the extends chain; properties (own and inherited, the root type's folded into one line); subtypes; every instance as a table with a column per property (req:ontology.type-page)
+    - a type page: crumbs along the extends chain; properties (own and inherited, the root type's folded into one line); subtypes; every instance as component:instance-table — a column per property, search, status chips, a filter per enum / ref / bool property, group by, sort, all in the URL (req:ontology.type-page, req:wf2.instances.filter)
 ```
 
 ### page:web/sessions

@@ -457,3 +457,16 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .session-know { align-items: center; } .session-know > small { margin-right: 2px; }
 .console-usage { white-space: nowrap; }
 .palette-to { display: flex; align-items: center; gap: 6px; font-size: 12px; min-width: 0; } .palette-to select { max-width: 320px; text-overflow: ellipsis; } .palette-note { flex: 1; font-size: 12px; }
+
+/* component:instance-table — a type's instances with filters (type page, kind page, view block) */
+.itable-tools { margin: 12px 0 10px; } .itable-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; } .itable-row input { flex: 1 1 220px; max-width: 420px; }
+.itable-select { width: auto; max-width: 320px; flex: none; padding: 3px 8px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface); color: var(--ink-2); font: 500 11px var(--font-m); }
+.itable .ttable { overflow-x: auto; } .itable-grid { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+.itable-grid th, .itable-grid td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--line); max-width: 420px; }
+.itable-grid th { font: 600 11px var(--font-m); text-transform: uppercase; color: var(--muted); background: var(--sunk); white-space: nowrap; } .itable-grid th.sortable { cursor: pointer; } .itable-grid th.sortable:hover { color: var(--ink); }
+.itable-grid tbody tr { cursor: pointer; } .itable-grid tbody tr:hover td { background: var(--sunk); } .itable-grid tbody tr.on td { background: var(--sunk); } .itable-grid tbody tr.on td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.itable-grid th:first-child { width: 40%; min-width: 280px; } .itable-grid td:first-child { min-width: 280px; } .itable-id .tag { max-width: none; } .itable-grid td:not(:first-child) { min-width: 72px; } .itable-id { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; } .itable-id .klist-doc { margin-left: 0; } .itable-title { color: var(--ink-2); font-size: 12px; margin-top: 3px; max-width: 360px; line-height: 1.35; }
+.itable-grid td.empty { color: var(--muted); } .itable-doc { font: 11px var(--font-m); white-space: nowrap; } .itable-doc a { color: var(--muted); text-decoration: none; } .itable-rels { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.itable-group td { background: var(--sunk); font: 600 12px var(--font-m); color: var(--ink-2); cursor: pointer; } .itable-group .tchev { margin-right: 6px; color: var(--muted); }
+.itable.ro .itable-tools { margin-top: 0; }
+.view-block { margin: 6px 0; width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px 10px; background: var(--surface); } .view-head { display: flex; align-items: center; gap: 8px; } .view-block .itable-tools { margin: 8px 0; } .view-block .ttable { border-radius: 8px; }

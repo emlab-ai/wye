@@ -1,25 +1,26 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { loadScope } from '@/lib/scope';
-import { typeBySlug, instancesOf, subtypesOf, nodeProps, isBaseType, isImplicit } from '@/lib/types';
-import { docRoute, assetBase } from '@/lib/doc';
-import { SmartTag } from '@/components/SmartTag';
-import { StatusPill } from '@/components/Pills';
-import { Linkified } from '@/components/IdLink';
+import { typeBySlug, instancesOf, subtypesOf, isBaseType, isImplicit } from '@/lib/types';
+import { instanceTable, parseFilters } from '@/lib/instance-table';
+import { InstanceTable } from '@/components/InstanceTable';
+import { docRoute } from '@/lib/doc';
 import { AddInstance } from '@/components/AddInstance';
 
 // A type's page: its properties (own and inherited), its subtypes, and every instance as a table with one column per
 // property — the database view, derived from the documents, never stored.
-export default async function TypePage({ params }: { params: Promise<{ product: string; slug: string }> }) {
+export default async function TypePage({ params, searchParams }: { params: Promise<{ product: string; slug: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { product, slug } = await params;
+  const query = await searchParams;
   const scope = await loadScope(product); if (!scope) notFound();
   const t = typeBySlug(scope.graph, slug); if (!t) notFound();
   const r = t.file && !isBaseType(t) ? docRoute(t.file) : null;
   const instances = instancesOf(scope.graph, slug);
   const subtypes = subtypesOf(scope.graph, slug);
   const declared = slug === 'node' ? t.props : t.props.filter(p => !isImplicit(p)), implicit = slug === 'node' ? [] : t.props.filter(isImplicit);
-  // columns: scalar and ref properties; long text (type text) reads better on the node than in a cell
-  const cols = declared.filter(p => (!['title', 'status', 'text'].includes(p.name) || p.from === t.id) && p.type !== 'text');
+  // the instances as a filterable table (component:instance-table); the toolbar state comes from the URL
+  const table = instanceTable(scope.graph, slug);
+  const filters = parseFilters(query, table.columns.map(c => c.name));
   // where a new instance is written: the type's home document, else the document that declares the type
   const homeFile = t.home ? scope.graph.modules.find(m => m.id === t.home || m.file.endsWith('/' + t.home.replace(/^module:/, '') + '.md'))?.file ?? '' : (isBaseType(t) ? '' : t.file);
   const homeRoute = homeFile ? docRoute(homeFile) : null;
@@ -52,18 +53,7 @@ export default async function TypePage({ params }: { params: Promise<{ product: 
 
       <section className="kind-section">
         <h2>Instances <span className="muted">{instances.length}</span></h2>
-        {instances.length > 0 && <div className="ttable"><table className="type-instances">
-          <thead><tr><th>id</th>{cols.map(p => <th key={p.name}>{p.name}</th>)}</tr></thead>
-          <tbody>{instances.map(n => {
-            const vals = new Map(nodeProps(scope.graph, n).map(p => [p.name, p.value]));
-            const where = docRoute(n.file);
-            return (
-              <tr key={n.id}>
-                <td><SmartTag id={n.id} /><StatusPill status={n.status} />{where && <Link className="klist-doc" href={`/${product}/${where.project}/d/${where.doc}#n-${encodeURIComponent(n.id)}`} title={`${where.project} / ${where.doc}`}>↗</Link>}</td>
-                {cols.map(p => <td key={p.name} className={vals.get(p.name) ? '' : 'empty'}>{vals.get(p.name) ? <Linkified text={vals.get(p.name)!.replace(/^\[|\]$/g, '')} base={assetBase(n.file)} /> : <span className="muted">—</span>}</td>)}
-              </tr>);
-          })}</tbody>
-        </table></div>}
+        {instances.length > 0 && <InstanceTable product={product} table={table} initial={filters} urlState />}
         {homeFile ? <AddInstance product={product} slug={slug} required={t.props.filter(p => p.required && !['title', 'status', 'text'].includes(p.name)).map(p => p.name)} home={homeRoute ? `${homeRoute.project} / ${homeRoute.doc}` : homeFile} />
           : <p className="muted">{instances.length ? '' : 'No instances yet. '}Instances of base types are written in the documents.</p>}
       </section>

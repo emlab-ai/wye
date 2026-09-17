@@ -145,6 +145,17 @@ describe('expand', () => {
     expect(blocks[1].children?.[0].props).toMatchObject({ kind: 'bug', slug: 'login', status: 'open', extra: 'severity: high, foundIn: 1.2', row: 'bug', list: 'bullet' });
     expect(blocksToMarkdown(blocks)).toBe(src);
   });
+  it('turns a <!-- view:bug status=open --> line into a view block with the type and its filters, and writes it back', () => {
+    const src = 'Intro.\n\n<!-- view:bug status=open group=owner -->\n\nAfter.\n';
+    const p = prepare(src);
+    expect(p.md).toContain('%%VIEW:0%%');
+    expect(p.views).toEqual([{ slug: 'bug', query: 'status=open group=owner' }]);
+    const blocks = expand(p.md.split(/\n\n+/).map(x => ({ type: 'paragraph', content: [t(x.trim())] })), p.yaml, p.drawings, p.images, p.views);
+    expect(blocks.map(b => b.type)).toEqual(['paragraph', 'view', 'paragraph']);
+    expect(blocks[1].props).toEqual({ slug: 'bug', query: 'status=open group=owner' });
+    expect(blocksToMarkdown(blocks)).toBe(src);
+    expect(blocksToMarkdown([{ type: 'view', props: { slug: 'page', query: '' } }])).toBe('<!-- view:page -->\n');
+  });
   it('an image inside a node line is inline content of the node, and writes back into the line', () => {
     const src = 'bug:login Login fails ![shot](assets/a.png) on Safari #open\n\n![Standalone](assets/b.png)\n\n- task:t1 Do it\n  ![proof](assets/c.png)\n';
     const p = prepare(src);

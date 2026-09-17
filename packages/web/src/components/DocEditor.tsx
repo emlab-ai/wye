@@ -14,6 +14,7 @@ import { setBodyField } from '@/lib/yaml-form';
 import { Linkified } from './IdLink';
 import { SmartTag } from './SmartTag';
 import { DrawingBlock, newDrawingSlug, sceneFromText, sceneFromImage } from './DrawingBlock';
+import { ViewBlock } from './ViewBlock';
 import { usePeek, type OwnType } from './PeekProvider';
 import { ID_RE } from '@/lib/ids';
 import { parseExtra, withExtra, GOAL_STATUSES, TASK_STATUSES, STATUSES } from '@/lib/props';
@@ -393,7 +394,7 @@ const NodeBlock = createReactBlockSpec(
   },
 );
 
-const schema = BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, node: NodeBlock(), drawing: DrawingBlock(), collection: CollectionBlock() }, inlineContentSpecs: { ...defaultInlineContentSpecs, tag: Tag, img: InlineImage } });
+const schema = BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, node: NodeBlock(), drawing: DrawingBlock(), collection: CollectionBlock(), view: ViewBlock() }, inlineContentSpecs: { ...defaultInlineContentSpecs, tag: Tag, img: InlineImage } });
 
 // Drag-handle menu entry on code blocks: turn an ASCII diagram into an editable drawing.
 function ToDrawingItem({ convert }: { convert: (b: AnyBlock) => void }) {
@@ -548,9 +549,9 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const load = (md: string) => {
     loading.current = true;
     try {
-      const { md: prepared, yaml, drawings, images } = prepare(md);
+      const { md: prepared, yaml, drawings, images, views } = prepare(md);
       const parsed = editor.tryParseMarkdownToBlocks(prepared) as unknown as AnyBlock[];
-      const blocks = expand(parsed, yaml, drawings, images);
+      const blocks = expand(parsed, yaml, drawings, images, views);
       editor.replaceBlocks(editor.document, blocks as never);
       settle();
       lastExported.current = blocksToMarkdown(editor.document as unknown as AnyBlock[]);
@@ -677,6 +678,9 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const collectionItems = [{
     title: 'Data table', group: 'Waterfall', subtext: `a table of goals, tasks${ownTypes.length ? ', ' + ownTypes.map(t => t.slug + 's').join(', ') : ''} — pick the type in its header; rows are nodes`,
     onItemClick: () => insertCollection('task'),
+  }, {
+    title: 'Instances view', group: 'Waterfall', subtext: 'a live, filterable list of every node of one type — pages, tasks, ' + (ownTypes[0]?.slug ?? 'decisions') + 's… — nothing is stored but the filters',
+    onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'view', props: { slug: ownTypes[0]?.slug ?? 'task', query: '' } } as never); touched.current = true; changed(); },
   }];
   const drawingItems = [
     { title: 'Drawing', group: 'Waterfall', subtext: 'an Excalidraw sketch saved next to the document', onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'drawing', props: { src: `drawings/${newDrawingSlug()}.excalidraw`, title: 'Drawing' } } as never); touched.current = true; changed(); } },

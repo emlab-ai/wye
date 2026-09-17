@@ -198,6 +198,7 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     - presets: Requirements, Mechanics, Drift, focus override, Everything
     - layout: every node positioned, children right of the focus, tree edges vs cross-links, forest without focus
     - doc: splitDocument (frontmatter, markdown/yaml segments, chunking on id lines), outline, documentTree (roots, main, byFile), linkedDocuments (excludes containment), nodeIndex, docSlug
+    - instance-table: columns per property kind, rows with values and document, relations for a bare kind; parseFilters / filtersToQuery; search, status, property and list-cell filters; group by column / status / doc; sort asc / desc; parseViewQuery / viewQuery (quoted values)
     - remark-tags: ids in text and inline code become tag links, trailing punctuation stays text, test #method kept in label, existing links untouched
     - write: replaceSegment (exact span, conflict, bad index), replaceChunk (list re-indent), appendChunk, insertYamlAfterSegment, patchFrontmatter
     - yaml-form: bodyToFields classification and flattening, fieldsToBody round trip, empty fields dropped, long prose wrapped
@@ -267,6 +268,17 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     region with one goal line and the picker is locked (bug:no-need-to-add); click a bug row's status cell — the
     context column shows the bug's editable card; change its text and its priority — the defining line in the
     document carries both (bug:properties-need-to-be)
+- id: ui-test:instance-table
+  file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    open /types/bug — every bug in one table with status chips; click a status chip and type in the search — the
+    rows narrow and the URL carries ?q=&status=; open that URL — the same rows and the search box prefilled; group
+    by document — one bucket per document; click a row — the node opens in the context column. Open
+    /knowledge/page — a column per page property and a select for the ref column; /knowledge/task?status=open&group=doc
+    — 22 of 53 in 5 buckets. In a document with `<!-- view:task status=open group=doc -->` and `<!-- view:bug -->`
+    — two view blocks with those rows and filters; click a chip in the bug view — the line on disk becomes
+    `<!-- view:bug status=done -->`; switch the header picker — the line names the new type with no query
+    (2026-09-17, session 53f99bfd98)
 - id: ui-test:edit-node-flow
   file: packages/web/e2e/edit-node.spec.ts
   scenario: open a project, open a node, edit a prose key and a status, save; assert the file on disk changed, the graph.changed event arrived, and the sidebar dot updated without a reload

@@ -117,6 +117,7 @@ export function blocksToMarkdown(blocks: AnyBlock[]): string {
         push(`<!-- /${ck} -->`); blank(); break;
       }
       case 'drawing': { const dp = b.props as { src?: string; title?: string }; blank(); push(`![${dp.title ?? ''}](${dp.src ?? ''})`); blank(); break; }
+      case 'view': { const vp = b.props as { slug?: string; query?: string }; blank(); push(`<!-- view:${vp.slug ?? ''}${vp.query?.trim() ? ' ' + vp.query.trim() : ''} -->`); blank(); break; }
       case 'image': case 'video': case 'audio': case 'file': { const fp = b.props as { url?: string; caption?: string; name?: string }; if (fp.url) { blank(); push(`![${fp.caption || fp.name || ''}](${fp.url})`); blank(); } break; }
       default: { const t = inlineToMarkdown(b.content as Inline[]); if (t.trim()) { blank(); push(t); blank(); } }
     }
