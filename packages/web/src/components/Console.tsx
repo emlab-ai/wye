@@ -62,9 +62,11 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
         </div>
       )}
       <div className="console-log" onScroll={e => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40; }}>
-        {groupSubagents(events).map((g, i) => g.parent
+        {foldActivity(groupSubagents(events)).map((g, i) => g.parent
           ? <Subagent key={'s' + i} events={g.events} task={events.find(e => e.kind === 'tool_use' && e.toolUseId === g.parent)} finished={events.some(e => e.kind === 'tool_result' && e.toolUseId === g.parent)} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />
-          : <Event key={i} e={g.events[0]} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />)}
+          : g.activity
+            ? <Activity key={'a' + i} events={g.events} live={live && i === foldActivity(groupSubagents(events)).length - 1} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />
+            : <Event key={i} e={g.events[0]} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />)}
         <div ref={bottom} />
       </div>
       <form className="console-input" onSubmit={e => { e.preventDefault(); send(); }} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); addFiles(e.dataTransfer.files); }}>
@@ -118,6 +120,46 @@ function groupSubagents(events: ChatEvent[]): { parent?: string; events: ChatEve
     else out.push({ parent: e.parent, events: [e] });
   }
   return out;
+}
+// Runs of tool calls, results and thinking between two messages are one collapsed "activity" row: the count and
+// the latest step; open it to read every call. Questions, permissions, messages and turn ends stay in the flow.
+const NOISE = new Set(['tool_use', 'tool_result', 'thinking', 'stderr']);
+function foldActivity(groups: { parent?: string; events: ChatEvent[] }[]): { parent?: string; activity?: boolean; events: ChatEvent[] }[] {
+  const out: { parent?: string; activity?: boolean; events: ChatEvent[] }[] = [];
+  for (const g of groups) {
+    const e = g.events[0];
+    const noise = !g.parent && g.events.length === 1 && NOISE.has(e.kind) && !(e.kind === 'tool_use' && e.name === 'AskUserQuestion');
+    const last = out[out.length - 1];
+    if (noise && last?.activity) last.events.push(e);
+    else if (noise) out.push({ activity: true, events: [e] });
+    else out.push(g);
+  }
+  return out;
+}
+function Activity({ events, live, answered, answers, showThinking, answer }: { events: ChatEvent[]; live: boolean; answered: Set<string | undefined>; answers: Map<string | undefined, unknown | 'denied'>; showThinking: boolean; answer: (requestId: string, allow: boolean, input?: unknown) => void }) {
+  const [open, setOpen] = useState(false);
+  const calls = events.filter(e => e.kind === 'tool_use');
+  const errors = events.filter(e => e.kind === 'tool_result' && e.isError).length;
+  const lastCall = calls[calls.length - 1];
+  const input = lastCall?.input as Record<string, unknown> | undefined;
+  const step = lastCall ? `${lastCall.name} ${String(input?.command ?? input?.file_path ?? input?.pattern ?? input?.description ?? input?.query ?? '').split('\n')[0]}` : events[events.length - 1].kind;
+  const span = (new Date(events[events.length - 1].t).getTime() - new Date(events[0].t).getTime()) / 1000;
+  if (calls.length <= 1 && !open && events.length <= 2 && !live) return <>{events.map((e, i) => <Event key={i} e={e} answered={answered} answers={answers} showThinking={showThinking} answer={answer} />)}</>;
+  return (
+    <div className={`ev ev-act ${open ? 'open' : ''}`}>
+      <time>{events[0].t.slice(11, 19)}</time>
+      <div className="ev-act-body">
+        <button className="ev-act-head" onClick={() => setOpen(o => !o)} title={open ? 'Collapse' : 'Show every step'}>
+          <span className="ev-act-tri">{open ? '▾' : '▸'}</span>
+          <b>{calls.length} step{calls.length === 1 ? '' : 's'}</b>
+          {span >= 1 && <span className="muted">· {span < 90 ? `${Math.round(span)} s` : `${Math.round(span / 60)} min`}</span>}
+          {errors > 0 && <span className="ev-act-err">· {errors} error{errors === 1 ? '' : 's'}</span>}
+          {!open && <span className="ev-act-step">{live ? <i className="live-dot" /> : null}{step.slice(0, 140)}</span>}
+        </button>
+        {open && <div className="ev-act-events">{events.map((e, i) => <Event key={i} e={e} answered={answered} answers={answers} showThinking={showThinking} answer={answer} />)}</div>}
+      </div>
+    </div>
+  );
 }
 function Subagent({ events, task, finished, answered, answers, showThinking, answer }: { events: ChatEvent[]; task?: ChatEvent; finished: boolean; answered: Set<string | undefined>; answers: Map<string | undefined, unknown | 'denied'>; showThinking: boolean; answer: (requestId: string, allow: boolean, input?: unknown) => void }) {
   const [open, setOpen] = useState(true);
