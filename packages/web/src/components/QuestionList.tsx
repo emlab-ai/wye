@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import { StatusPill } from './Pills';
-import { requestSend } from './SendToAgent';
+import { requestSend } from './CommandBox';
 
 export type QuestionRow = { key: string; source: 'doc' | 'inbox'; id?: string; title: string; text?: string; status: string; where: string; href?: string; when: string; refs: string[]; node?: string; open?: boolean };
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');

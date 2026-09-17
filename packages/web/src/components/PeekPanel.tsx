@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { PeekGraph, type LiteNode } from './PeekGraph';
 import { ContextPanel } from './ContextPanel';
 import { SessionView } from './SessionView';
-import { requestSend } from './SendToAgent';
+import { requestSend } from './CommandBox';
 import type { GraphEdge } from '@/lib/graph';
 import Link from 'next/link';
 import { usePeek } from './PeekProvider';

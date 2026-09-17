@@ -252,7 +252,10 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     version; the page version is verified by session 0e07e8fd53). Images: paste a png into the box — a thumbnail
     with × appears under the text and the run button is enabled even without text; Enter posts `images` (name +
     data URL) with the request; the session lists the saved file, the first user event in the console shows it and
-    the agent sees it (2026-09-17, session 6ca1fd641c: the agent described the pasted screenshot without a tool)
+    the agent sees it (2026-09-17, session 6ca1fd641c: the agent described the pasted screenshot without a tool).
+    One box: "Send to agent" on a block (a `wf:send` event) opens the same box with "Work on <ids>." and the block
+    text prefilled and the live conversation preselected (button "Send ↵"); switching "to" to New conversation
+    shows the agent, plan-first and folder ("Plan & build ↵"); Escape closes (2026-09-17, session 6ca1fd641c)
 - id: ui-test:table-rows
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >

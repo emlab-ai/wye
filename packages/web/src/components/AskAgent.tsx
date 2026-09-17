@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { usePeek } from './PeekProvider';
-import { requestSend } from './SendToAgent';
+import { requestSend } from './CommandBox';
 import { AGENTS, type Session } from '@/lib/session-types';
 
 export type AskRequest = { selection: string; blockText: string; blockLink: string; pageLink: string; refs: string[]; doc: string; project: string; x: number; y: number };

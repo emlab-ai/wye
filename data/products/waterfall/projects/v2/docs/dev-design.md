@@ -519,7 +519,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   component: packages/web/src/app/[product]/sessions/page.tsx; packages/web/src/components/SessionList.tsx; packages/web/src/components/SessionView.tsx; packages/web/src/components/Console.tsx; packages/web/src/components/AskQuestions.tsx
   actions:
     - action:new-conversation: + New conversation starts a chat session with the default agent
-    - action:command-palette:  ⌘P / Ctrl+P anywhere opens a command box in the middle of the screen; what is typed starts a chat session that plans first (rule:plan-first); the node under the cursor and the document travel along as refs; images pasted or dropped into the box (thumbnails, ×, up to 8) become the session's files and go with the first message (req:wf2.ui.palette-images); the session opens in the context column
+    - action:command-palette:  ⌘P / Ctrl+P anywhere opens the command box (component:command-box — the same one every "Send to agent" opens, decision:wf2.one-command-box) in the middle of the screen; the node under the cursor and the document travel along as refs; what is typed goes to the most recent live conversation, or starts a chat session that plans first (rule:plan-first), or is queued for a runner; images pasted or dropped into the box (thumbnails, ×, up to 8) become the session's files and go with the message (req:wf2.ui.palette-images); the conversation opens in the context column
     - action:open-session:     a row opens the session in the context column: status, agent, instruction, refs, then the console
     - action:send-message:     type (⌘↵) or paste images; sent now or queued while a turn runs (rule:session-queue)
     - action:answer-question:  choose options / type an answer on the agent's question card; Answer returns the choices to the agent, Skip lets it go on (rule:agent-questions)
@@ -1140,13 +1140,15 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
 - id: rule:agent-sessions
   statement: >
     Any block can be sent to an agent: "Send to agent" sits in every block's drag-handle menu, on node block headers,
-    on goal/task table rows and in the right column's node view. The dialog takes an agent (Claude Code, Codex, the
-    Waterfall clerk) and an instruction prefilled with the block text and the ids it defines or links; sending creates
+    on goal/task table rows and in the right column's node view. It opens the one command box (component:command-box,
+    the same ⌘P opens — decision:wf2.one-command-box) with the block text and the ids it defines or links prefilled;
+    the request goes to the most recent live conversation by default, or — with an agent (Claude Code, Codex, the
+    Waterfall clerk), a working folder and plan-first — starts a new one; sending creates
     a session (`data/products/<product>/_sessions/<id>.json`, status queued, gitignored) and opens it in the right
     column, which shows the instruction, refs, status and a log that is polled while the session is queued or
     running. The Sessions page lists sessions (active first). Runners update a session with PATCH { status, line,
     result }; none is connected yet.
-  source: packages/web/src/components/SendToAgent.tsx; packages/web/src/components/SessionView.tsx; packages/web/src/lib/sessions.ts; packages/web/src/app/api/[product]/sessions
+  source: packages/web/src/components/CommandBox.tsx; packages/web/src/components/SessionView.tsx; packages/web/src/lib/sessions.ts; packages/web/src/app/api/[product]/sessions
   status: shipped
 - id: rule:documents-tree
   statement: >
@@ -1296,6 +1298,32 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   date: 2026-09-17
   related-to: [decision:wf2.plan-first-is-a-prompt, rule:plan-first, rule:agent-questions]
   session: 0e07e8fd53
+- id: decision:wf2.one-command-box
+  title: "Send to agent" and ⌘P are one command box
+  context: >
+    Two dialogs start work for an agent: the command palette (⌘P: a request, plan-first, agent, folder, pasted
+    images, always a new conversation) and "Send to agent" (block menus, node views, question and review lists,
+    the top bar: a target — an active conversation, a new one or a runner — agent, folder, an instruction prefilled
+    with the block). They drifted: only the palette takes images and plans first; only the dialog can send into a
+    running conversation; Enter runs in one, ⌘↵ in the other.
+  choice: >
+    One component, CommandBox (the palette's look, in the middle of the screen), opened by ⌘P with the cursor's
+    context or by any "Send to agent" with the block's text, refs and source prefilled. It has the union of the
+    two: the request text (Enter runs, Shift+Enter a new line), the context tags, pasted or dropped images, a
+    "to" picker (active conversations, new conversation, queue for a runner) that defaults to the most recent
+    active conversation when one is live and to a new conversation otherwise, and for a new conversation the
+    agent, the working folder and the plan-first tick. requestSend() and ⌘P both open it; SendToAgentHost and
+    CommandPalette go away.
+  alternatives: >
+    Keep two dialogs and copy features across — they would drift again; make ⌘P open the Send dialog — its
+    form-style layout is heavy for a one-line request and has no plan-first or images.
+  consequences: >
+    component:command-box replaces the Send-to-agent dialog (SendToAgent.tsx) and action:command-palette's own box; the message
+    route already takes images; sending into an active conversation from ⌘P becomes possible; rule:agent-sessions
+    and req:wf2.ui.command-palette refer to the one box; ui-test:command-palette covers both entry points.
+  date: 2026-09-17
+  status: proposed
+  affects: [action:command-palette, component:command-box, rule:agent-sessions, req:wf2.ui.command-palette]
 - id: rule:plan-first
   statement: >
     A session started from the command palette carries `plan: true`, and its first message ends with a plan-first
@@ -1316,10 +1344,10 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     page once more — code and tests for what the page says, then statuses (tasks done, reqs shipped) and `wf
     session done`. The palette can switch the protocol off for a plain run. The flag is part of the prompt, not a
     session mode: the session, host and console are the ones every conversation uses.
-  source: packages/web/src/components/CommandPalette.tsx; packages/web/src/lib/agent-host.ts#PLAN_FIRST; packages/web/src/lib/sessions.ts#createSession; bin/wf.js#session
+  source: packages/web/src/components/CommandBox.tsx; packages/web/src/lib/agent-host.ts#PLAN_FIRST; packages/web/src/lib/sessions.ts#createSession; bin/wf.js#session
   status: proposed
   verified-by: [ui-test:command-palette]
-  related-to: [rule:agent-questions, rule:agent-host, component:send-to-agent, decision:wf2.plan-is-a-page, op:session.open]
+  related-to: [rule:agent-questions, rule:agent-host, component:command-box, decision:wf2.plan-is-a-page, op:session.open]
 - id: rule:agent-questions
   statement: >
     An agent's question (Claude Code's AskUserQuestion, which arrives as a permission request over the stdio

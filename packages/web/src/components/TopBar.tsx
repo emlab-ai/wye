@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLayout } from './Shell';
-import { requestSend } from './SendToAgent';
+import { requestSend } from './CommandBox';
 
 export type DocMeta = { slug: string; title: string; icon: string; project: string; parent?: string; mtime: string };
 const PAGES: Record<string, string> = { goals: 'Goals', tasks: 'Tasks', questions: 'Questions', knowledge: 'Knowledge', graph: 'Graph', inbox: 'Inbox', sessions: 'Sessions', new: 'New product' };

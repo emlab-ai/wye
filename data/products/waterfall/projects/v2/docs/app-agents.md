@@ -12,7 +12,7 @@ sources:
   - packages/web/src/components/SessionView.tsx
   - packages/web/src/components/SessionList.tsx
   - packages/web/src/components/Produced.tsx
-  - packages/web/src/components/SendToAgent.tsx
+  - packages/web/src/components/CommandBox.tsx
   - packages/web/src/lib/agent-host.ts
   - packages/web/src/lib/agent-prompt.ts
   - packages/web/src/lib/sessions.ts
@@ -71,11 +71,16 @@ React components (`component:` cards). `side` says whether it renders on the ser
   purpose: >
     Everything that came out of the sessions that worked on a task: the sessions themselves (with their logs), the documents they wrote, the nodes they changed, and the inbox items (questions, decisions, notes) they filed.
   part-of: module:app-agents
-- id: component:send-to-agent
-  file: packages/web/src/components/SendToAgent.tsx
+- id: component:command-box
+  file: packages/web/src/components/CommandBox.tsx
   side: client
   purpose: >
-    \"Send to agent\": a block, node or free text goes into an ACTIVE conversation (a running chat session, which always has a working folder), or starts a new one — a new conversation needs an agent and a folder. Anything in the UI opens the dialog by dispatching a `wf:send` window event with { text, refs, source }.
+    The one command box (decision:wf2.one-command-box): ⌘P / Ctrl+P opens it with what the person is looking at
+    (the document, the node under the cursor); every "Send to agent" opens it with the block's text, refs and
+    source prefilled (requestSend dispatches a `wf:send` window event). What is typed goes to an active
+    conversation — the "to" picker defaults to the most recent live one — or starts a new conversation (agent,
+    working folder, plan-first tick) or is queued for a runner; images pasted or dropped go along; Enter runs,
+    Shift+Enter breaks a line. Replaced SendToAgent.tsx and CommandPalette.tsx.
   part-of: module:app-agents
 ```
 

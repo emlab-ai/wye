@@ -139,8 +139,6 @@ code, pre { font-family: var(--font-m); }
 .track-state { font: 11px var(--font-m); color: var(--muted); margin: 6px 0 0; } .tracking.readonly .track-state { color: var(--warn); } .tracking-parent small { font: 600 10px var(--font-m); text-transform: uppercase; color: var(--muted); }
 .modal-back { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; padding: 16px; }
 .modal { background: var(--ground); border: 1px solid var(--line-2); border-radius: 12px; padding: 16px 18px; width: min(560px, 100%); box-shadow: 0 20px 60px rgba(0,0,0,.3); } .modal h3 { margin: 0 0 10px; font-size: 16px; }
-.send-field { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; } .send-field span { font: 600 10px var(--font-m); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); } .send-field select, .send-field textarea { font: inherit; padding: 7px 9px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: var(--ink); } .send-field textarea { resize: vertical; font-size: 13px; line-height: 1.45; }
-.send-refs { margin-bottom: 6px; } .send-field small { font-size: 11px; line-height: 1.4; } .send-field input { font: inherit; font-size: 13px; padding: 6px 9px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: var(--ink); } .send-src { font-size: 12px; margin: 4px 0 8px; }
 .nblock-send { background: none; border: 1px solid transparent; border-radius: 6px; padding: 1px 7px; font: 500 11px var(--font-m); color: var(--muted); cursor: pointer; } .nblock-send:hover { color: var(--ink); border-color: var(--line-2); }
 /* secondary controls of a block appear only while the block is hovered or focused */
 .nblock .hover-only { opacity: 0; transition: opacity .15s; } .nblock:hover .hover-only, .nblock:focus-within .hover-only { opacity: 1; }
@@ -458,3 +456,4 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .ev-know { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .ev-know .tags { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .session-know { align-items: center; } .session-know > small { margin-right: 2px; }
 .console-usage { white-space: nowrap; }
+.palette-to { display: flex; align-items: center; gap: 6px; font-size: 12px; min-width: 0; } .palette-to select { max-width: 320px; text-overflow: ellipsis; } .palette-note { flex: 1; font-size: 12px; }

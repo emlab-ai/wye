@@ -21,7 +21,7 @@ import { slugify } from '@/lib/templates';
 import { blockHash } from '@/lib/anchors';
 import { headingSlug, DONE_STATUSES } from '@/lib/doc';
 import { ProgressBar } from './Progress';
-import { requestSend } from './SendToAgent';
+import { requestSend } from './CommandBox';
 import { AskAgentBox, type AskRequest } from './AskAgent';
 
 

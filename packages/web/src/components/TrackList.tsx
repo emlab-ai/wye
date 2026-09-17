@@ -5,7 +5,7 @@ import { ProgressBar } from './Progress';
 import { StatusPill } from './Pills';
 import { docRoute } from '@/lib/doc';
 import { GOAL_STATUSES, TASK_STATUSES } from '@/lib/props';
-import { requestSend } from './SendToAgent';
+import { requestSend } from './CommandBox';
 
 export type TrackRow = { id: string; title: string; status: string; target?: string; owner?: string; progress?: number; parts?: { done: number; total: number }; parent?: string; file: string; doc?: string; children: TrackRow[] };
 

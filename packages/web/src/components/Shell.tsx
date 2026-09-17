@@ -3,8 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { usePathname } from 'next/navigation';
 import { usePeek } from './PeekProvider';
 import { PeekPanel } from './PeekPanel';
-import { SendToAgentHost } from './SendToAgent';
-import { CommandPalette } from './CommandPalette';
+import { CommandBox } from './CommandBox';
 
 // The app frame: a collapsible rail, the content, and — while a node, context or session is open — the right
 // column, separated from the content by a draggable splitter. The rail starts hidden on document and session
@@ -39,8 +38,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <LayoutCtx.Provider value={{ rail, toggleRail, panel: panelOpen, togglePanel: () => setPanelOpen(!panelOpen) }}>{children}</LayoutCtx.Provider>
       {split && <div className="splitter" onMouseDown={onDown} role="separator" aria-orientation="vertical" title="Drag to resize" />}
       {split && <PeekPanel />}
-      <SendToAgentHost />
-      <CommandPalette />
+      <CommandBox />
     </div>
   );
 }

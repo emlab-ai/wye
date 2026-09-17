@@ -1,0 +1,121 @@
+'use client';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { usePathname } from 'next/navigation';
+import { usePeek } from './PeekProvider';
+import { SmartTag } from './SmartTag';
+import { AGENTS, type Session } from '@/lib/session-types';
+import { AttachStrip, useImageAttachments } from './Attachments';
+
+// The one command box (decision:wf2.one-command-box): ⌘P / Ctrl+P opens it with what the person is looking at (the
+// document, the node under the cursor); every "Send to agent" opens it with the block's text, refs and source
+// prefilled (requestSend). What is typed goes to an ACTIVE conversation (a running chat session, the most recent
+// one by default) or starts a new one that plans first (rule:plan-first) — a new conversation needs an agent and a
+// working folder — or is queued for a runner. Images pasted or dropped into the box go along (req:wf2.ui.palette-images).
+export type SendRequest = { text?: string; refs?: string[]; source?: { project?: string; doc?: string; blockId?: string; link?: string } };
+export function requestSend(detail: SendRequest) { window.dispatchEvent(new CustomEvent('wf:send', { detail })); }
+type Live = Session & { live?: boolean };
+
+export function CommandBox() {
+  const { product, open, editing } = usePeek();
+  const path = usePathname();
+  const [req, setReq] = useState<SendRequest | null>(null); // null: closed
+  const [text, setText] = useState('');
+  const [sessions, setSessions] = useState<Live[]>([]);
+  const [target, setTarget] = useState<string>('new'); // session id | 'new' | 'runner'
+  const [agent, setAgent] = useState(AGENTS[0].id);
+  const [cwd, setCwd] = useState('');
+  const [defaults, setDefaults] = useState<{ cwd: string; waterfall: string }>({ cwd: '', waterfall: '' });
+  const [plan, setPlan] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const attach = useImageAttachments();
+  const box = useRef<HTMLTextAreaElement>(null);
+  // where the person is: the document page and the node under the cursor, so the agent starts from there
+  const m = path.match(/^\/[^/]+\/([^/]+)\/d\/([^/#?]+)/);
+  const here = (): SendRequest => ({ refs: [...new Set([...(editing?.nodeId ? [editing.nodeId] : []), ...(m ? [`module:${m[2]}`] : [])])], source: m ? { project: m[1], doc: m[2], link: `${location.origin}${path}${editing?.nodeId ? `#n-${encodeURIComponent(editing.nodeId)}` : ''}` } : {} });
+  const show = (d: SendRequest) => {
+    const ids = d.refs?.length ? d.refs.join(', ') : '';
+    setText(d.text ? `${ids ? `Work on ${ids}.\n\n` : ''}${d.text.trim()}` : '');
+    setReq(d); setMsg(null); attach.clear();
+  };
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p') { e.preventDefault(); if (req) setReq(null); else show(here()); }
+      else if (e.key === 'Escape' && req) setReq(null);
+    };
+    const send = (e: Event) => show((e as CustomEvent<SendRequest>).detail);
+    // capture phase: the shortcut works wherever the focus is, even inside controls that stop key events
+    window.addEventListener('keydown', key, true); window.addEventListener('wf:send', send);
+    return () => { window.removeEventListener('keydown', key, true); window.removeEventListener('wf:send', send); };
+  }); // no deps: `here` and `req` are read fresh on every event
+  useEffect(() => {
+    if (!req) return;
+    setTimeout(() => box.current?.focus(), 0);
+    (async () => {
+      try {
+        const j = await (await fetch(`/api/${product}/sessions`)).json();
+        const active = (j.sessions as Live[]).filter(s => s.mode === 'chat' && s.live).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+        setSessions(active); setDefaults(j.defaults ?? { cwd: '', waterfall: '' });
+        setTarget(active[0]?.id ?? 'new'); // the most recent live conversation, else a new one
+        let remembered = ''; try { remembered = localStorage.getItem(`wf-cwd-${product}`) ?? ''; } catch { /* ignore */ }
+        setCwd(c => c || remembered || j.defaults?.cwd || j.defaults?.waterfall || '');
+      } catch { setSessions([]); setTarget('new'); }
+    })();
+  }, [req, product]);
+  if (!req) return null;
+  const isNew = target === 'new' || target === 'runner';
+  const run = async () => {
+    const instruction = text.trim(); if ((!instruction && !attach.images.length) || busy) return;
+    if (target === 'new' && !cwd.trim()) { setMsg('a working folder is required — the code repository the agent works in'); return; }
+    setBusy(true); setMsg(null);
+    const refs = req.refs ?? [];
+    if (!isNew) {
+      const r = await fetch(`/api/${product}/sessions/${target}/message`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: instruction, refs, link: req.source?.link, images: attach.images }) });
+      const j = await r.json().catch(() => ({})); setBusy(false);
+      if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not send'); return; }
+      setReq(null); open(`session:${target}`); return;
+    }
+    const mode = target === 'runner' ? 'run' : 'chat';
+    const source = { ...(req.source ?? {}), ...(req.text ? { text: req.text.slice(0, 2000) } : {}) };
+    const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ agent, instruction, refs, source, mode, cwd: cwd.trim(), plan: mode === 'chat' && plan, images: attach.images }) });
+    const j = await r.json().catch(() => ({})); setBusy(false);
+    if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not start'); return; }
+    try { localStorage.setItem(`wf-cwd-${product}`, cwd.trim()); } catch { /* ignore */ }
+    setReq(null); open(`session:${j.id}`);
+  };
+  const label = (s: Live) => `${AGENTS.find(a => a.id === s.agent)?.label ?? s.agent} · ${s.instruction.split('\n').find(l => l.trim())?.slice(0, 50) ?? s.id}`;
+  const refs = req.refs ?? [];
+  return createPortal(
+    <div className="modal-back palette-back" onMouseDown={e => { if (e.target === e.currentTarget) setReq(null); }}>
+      <div className="modal palette" role="dialog" aria-label="Command" onDragOver={attach.onDragOver} onDrop={attach.onDrop}>
+        <textarea ref={box} className="palette-in" value={text} rows={text.split('\n').length > 3 ? 6 : 3} placeholder={isNew ? 'What should the agent do? — fix …, build …, change … (Enter to run, Shift+Enter for a new line; paste a screenshot too)' : 'Your next message to that conversation (Enter to send, Shift+Enter for a new line; paste a screenshot too)'} onChange={e => setText(e.target.value)} onPaste={attach.onPaste} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); run(); } }} disabled={busy} />
+        <AttachStrip images={attach.images} remove={attach.remove} />
+        {refs.length > 0 && <div className="palette-ctx"><span className="muted">with</span>{refs.map(id => <SmartTag key={id} id={id} />)}{req.source?.blockId && <span className="muted">· this block</span>}</div>}
+        <div className="palette-row">
+          <label className="palette-to"><span className="muted">to</span>
+            <select value={target} onChange={e => setTarget(e.target.value)} title="where the request goes">
+              {sessions.length > 0 && <optgroup label="active conversations">{sessions.map(s => <option key={s.id} value={s.id}>{label(s)}</option>)}</optgroup>}
+              <optgroup label="new"><option value="new">New conversation</option><option value="runner">Queue for a runner (wf agent listen)</option></optgroup>
+            </select>
+          </label>
+          {isNew && <select value={agent} onChange={e => setAgent(e.target.value)} title="agent">{AGENTS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}</select>}
+        </div>
+        {target === 'new' && (
+          <div className="palette-row">
+            <label className="palette-plan" title="The agent reads Waterfall, works out what the request touches, writes the plan on a page and asks you before building">
+              <input type="checkbox" checked={plan} onChange={e => setPlan(e.target.checked)} /> plan first — understand, propose, confirm, then build
+            </label>
+          </div>
+        )}
+        <div className="palette-row">
+          {target === 'new' && <input className="palette-cwd" value={cwd} placeholder={defaults.cwd || 'working folder: the code repository the agent works in'} onChange={e => setCwd(e.target.value)} spellCheck={false} title="working folder" />}
+          {!isNew && <span className="muted palette-note">goes into that conversation as your next message; the agent keeps its context and folder</span>}
+          {target === 'runner' && <span className="muted palette-note">queued until a runner for that agent picks it up</span>}
+          <button className="palette-go" onClick={run} disabled={(!text.trim() && !attach.images.length) || busy}>{busy ? 'Sending…' : !isNew ? 'Send ↵' : target === 'runner' ? 'Queue ↵' : plan ? 'Plan & build ↵' : 'Run ↵'}</button>
+        </div>
+        {msg && <p className="bad palette-msg">{msg}</p>}
+        <p className="muted palette-hint">⌘P opens this anywhere · Send to agent on any block opens it with the block · the conversation opens in the right column</p>
+      </div>
+    </div>, document.body);
+}

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import { agentLabel, when } from './SessionView';
-import { requestSend } from './SendToAgent';
+import { requestSend } from './CommandBox';
 import type { Session, Runner } from '@/lib/session-types';
 
 // All agent sessions of a product, active first; polls while any is active. A row opens the session in the right column.

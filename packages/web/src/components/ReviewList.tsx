@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import { StatusPill, KindPill } from './Pills';
-import { requestSend } from './SendToAgent';
+import { requestSend } from './CommandBox';
 import type { ReviewItem } from '@/lib/review';
 
 const LABEL: Record<string, string> = { question: 'Questions', decision: 'Decisions', req: 'Requirements', rule: 'Rules', goal: 'Goals', entity: 'Entities', task: 'Tasks' };
