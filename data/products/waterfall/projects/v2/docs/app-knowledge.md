@@ -1,7 +1,7 @@
 ---
 node: module:app-knowledge
 type: module
-title: App — knowledge views
+title: Knowledge views
 status: proposed
 owner: unassigned
 last-verified: 2026-09-17
@@ -80,6 +80,16 @@ React components (`component:` cards). `side` says whether it renders on the ser
   side: client
   purpose: >
     Asana-style editing of a goal or task in the right column: title text, status, target/due, owner, progress and the goal it is part of. Every change writes back to the node's defining line and rebuilds the graph.
+  part-of: module:app-knowledge
+- id: component:node-editor
+  file: packages/web/src/components/NodeEditor.tsx
+  side: client
+  purpose: >
+    Asana-style editing of any other node in the right column (bug:properties-need-to-be): its text, status and every
+    property — the ones its type declares (enum → select, bool → checkbox, ref → an id with that type's instances
+    suggested) and the keys the card already carries. Every change writes back to the defining line (prose) or the
+    yaml card (patchYamlCard: scalars in place, long or multi-line values as folded blocks, the text key by name) and
+    rebuilds the graph. Goals and tasks keep component:track-editor.
   part-of: module:app-knowledge
 - id: component:question-list
   file: packages/web/src/components/QuestionList.tsx

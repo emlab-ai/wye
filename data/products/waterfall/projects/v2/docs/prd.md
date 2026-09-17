@@ -509,6 +509,19 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   see: req:wf.view.sheet
   refines: req:wf2.ui
 
+- id: req:wf2.ui.edit-in-context
+  title: A node's text and properties are edited on its card in the context column
+  when: a node of any kind is open in the context column — from a table row, a block, a tag, or search
+  then: >
+    the card is editable like in Asana: the text, the status and every property of the node's type (and the keys its
+    card carries) are fields; a change saves to the node's defining line or yaml card as soon as the field is left
+    and the graph is rebuilt, so the document, the table and the type page show it without a reload
+  unless: the node is only referenced, never defined — then the card stays read-only
+  status: proposed
+  refines: req:wf2.ui.node-page
+  satisfied-by: [component:node-editor, component:track-editor, op:node.edit]
+  verified-by: [test:node-edit-web, ui-test:table-rows]
+  resolves: bug:properties-need-to-be
 - id: req:wf2.ui.node-page.save
   title: Editing happens in place and saves with a hash
   when: the user types in a prose section, a card field or a document property, or adds a card or a document from a template

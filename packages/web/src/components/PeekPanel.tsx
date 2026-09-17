@@ -8,6 +8,7 @@ import type { GraphEdge } from '@/lib/graph';
 import Link from 'next/link';
 import { usePeek } from './PeekProvider';
 import { NodeCard } from './NodeCard';
+import { NodeEditor } from './NodeEditor';
 import { SmartTag } from './SmartTag';
 import { StatusPill } from './Pills';
 import { KIND_ORDER } from '@/lib/knowledge';
@@ -104,8 +105,9 @@ function NodeView({ id }: { id: string }) {
       {d && d.self && <TypeView type={d.self} instances={d.instances ?? []} index={index} product={product} onSaved={() => setTick(t => t + 1)} />}
       {d && d.self ? null : d && (entry?.kind === 'goal' || entry?.kind === 'task')
         ? <><TrackEditor key={entry.id} entry={entry} index={index} text={nodeText(d.node.body)} form={d.node.form} onSaved={() => setTick(t => t + 1)} />{entry.sessions && entry.sessions.length > 0 && <Produced sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}<Tracking entry={entry} index={index} inc={d.relations.inc} /></>
+        : d && d.node.defined && d.type ? <NodeEditor key={id} id={id} body={d.node.body} form={d.node.form ?? 'yaml'} type={d.type} props={d.props ?? []} entry={entry} onSaved={() => setTick(t => t + 1)} />
         : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
-      {d && d.type && !d.type.open && d.props && <Properties type={d.type} props={d.props} inc={d.relations.inc} inverses={d.inverses ?? {}} product={product} />}
+      {d && d.type && d.props && d.relations.inc.some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={d.relations.inc} inverses={d.inverses ?? {}} product={product} />}
       {d && (
         <div className="peek-views">
           <h4>Connected <span className="muted">{[...d.relations.out, ...d.relations.inc].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0)}</span></h4>
@@ -158,7 +160,7 @@ function Properties({ type, props, inc, inverses, product }: { type: TypeDef; pr
   const ids = (v: string) => v.replace(/^\[|\]$/g, '').split(/,\s*/).map(x => x.trim()).filter(Boolean);
   return (
     <section className="props">
-      <h4>Properties <span className="muted"><Link href={`/${product}/types/${type.slug}`}>type:{type.slug}</Link></span></h4>
+      <h4>{shown.length ? 'Properties' : 'Linked from'} <span className="muted"><Link href={`/${product}/types/${type.slug}`}>type:{type.slug}</Link></span></h4>
       <dl className="strip">
         {shown.map(p => (
           <div key={p.name} className={p.value ? '' : 'empty'}>

@@ -905,6 +905,15 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
 ### Web app
 
 ```yaml
+- id: op:node.edit
+  args: product, node id; GET → the node, its relations, neighbourhood, type and properties; PUT { status?, text?, props?: { key: value | null } }
+  does: >
+    edits the node in place under the file lock and rebuilds the graph: a prose node's defining line (status tag,
+    text, trailing property group — lib/node-line) or a yaml card (patchYamlCard: status, the text key by name,
+    scalars in place, long or multi-line values as `key: >` blocks, null removes). A session header records the
+    node as the session's artifact. Used by the wf CLI (wf node set) and the context column's editors.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/node/[id]/route.ts; packages/web/src/lib/node-edit.ts
 - id: op:types.create
   args: product; body { slug, extends?, purpose?, doc?, project? } (POST /api/<product>/types)
   does: >

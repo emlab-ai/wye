@@ -232,6 +232,10 @@ One node per test file. Requirements and rules point here with `requires-tests: 
 ### End-to-end (Playwright, real server on a temp copy of the fixture repo)
 
 ```yaml
+- id: test:node-edit-web
+  file: packages/web/src/lib/node-edit.test.ts
+  cases: 5
+  covers: patchYamlCard — scalar keys in place or appended, null removes, folded blocks for long or multi-line values, the text key by name
 - id: ui-test:table-rows
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >
@@ -240,7 +244,9 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     row at 15 ms per key — one row, no split; press Enter in a row and type — a new row of the same kind; copy the
     link of a row that was just typed — the link carries a slug (bug:when-i-select-a, 2026-09-17); type "/data",
     insert the Data table, switch its header picker to Goals, type a row, leave — the markdown holds a <!-- goals -->
-    region with one goal line and the picker is locked (bug:no-need-to-add)
+    region with one goal line and the picker is locked (bug:no-need-to-add); click a bug row's status cell — the
+    context column shows the bug's editable card; change its text and its priority — the defining line in the
+    document carries both (bug:properties-need-to-be)
 - id: ui-test:edit-node-flow
   file: packages/web/e2e/edit-node.spec.ts
   scenario: open a project, open a node, edit a prose key and a status, save; assert the file on disk changed, the graph.changed event arrived, and the sidebar dot updated without a reload

@@ -16,7 +16,7 @@ import { SmartTag } from './SmartTag';
 import { DrawingBlock, newDrawingSlug, sceneFromText, sceneFromImage } from './DrawingBlock';
 import { usePeek, type OwnType } from './PeekProvider';
 import { ID_RE } from '@/lib/ids';
-import { parseExtra, withExtra, GOAL_STATUSES, TASK_STATUSES } from '@/lib/props';
+import { parseExtra, withExtra, GOAL_STATUSES, TASK_STATUSES, STATUSES } from '@/lib/props';
 import { slugify } from '@/lib/templates';
 import { blockHash } from '@/lib/anchors';
 import { headingSlug, DONE_STATUSES } from '@/lib/doc';
@@ -24,7 +24,6 @@ import { ProgressBar } from './Progress';
 import { requestSend } from './SendToAgent';
 import { AskAgentBox, type AskRequest } from './AskAgent';
 
-const STATUSES = ['', 'proposed', 'approved', 'unverified', 'api-only', 'shipped', 'deprecated', 'question', 'open', 'in-progress', 'blocked', 'done', 'non-goal', 'draft', 'active', 'complete', 'on-track', 'at-risk', 'off-track', 'paused', 'resolved', 'rejected'];
 
 // kind:slug as inline content: a clickable tag in the editor, plain id text when serialised.
 const Tag = createReactInlineContentSpec(
@@ -240,6 +239,8 @@ function selectBlockOnClick(editor: EditorLike, block: AnyBlock, textEl: HTMLEle
   return (e: React.MouseEvent) => {
     if (textEl && textEl.contains(e.target as Node)) return; // clicking the text places the caret itself
     try { editor.setTextCursorPosition(String((block as { id?: string }).id), 'end'); } catch { /* block gone */ }
+    // the cursor may already be in this block (no selection change fires): ask the editor to publish the context anyway
+    window.dispatchEvent(new CustomEvent('wf:publish'));
   };
 }
 // A row that has text but no slug yet (slugs are assigned when the cursor leaves the row) gets one now, so a link,
@@ -537,6 +538,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   };
   useEditorSelectionChange(publishContext, editor);
   useEditorChange(publishContext, editor);
+  useEffect(() => { const h = () => publishContext(); window.addEventListener('wf:publish', h); return () => window.removeEventListener('wf:publish', h); }); // eslint-disable-line react-hooks/exhaustive-deps
   // The context column is always there on a document page; it leaves with the editor.
   useEffect(() => { setShowContext(true); return () => { setEditing(null); setShowContext(false); }; }, [setEditing, setShowContext]);
 
