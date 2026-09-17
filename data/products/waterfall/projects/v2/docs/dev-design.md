@@ -1057,7 +1057,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
 - id: rule:type-tables
   statement: >
     A document may hold a table of any type the product declares: the lines between `<!-- table:<slug> -->` and
-    `<!-- /table:<slug> -->` are ordinary prose node lines of that kind (`- bug:login Login fails #open (priority:
+    `<!-- /table:<slug> -->` are ordinary prose node lines of that kind (`- bug:<slug> Login fails #open (priority:
     high, foundIn: 1.2)`) to the parser — so each row is an instance the type page and `wf` see — and an editable
     table in the editor with a column for status and one per declared property (own and inherited, the root type's
     left out): an enum property is a select, a bool a checkbox, a ref a text cell holding the id, anything else a
@@ -1159,6 +1159,21 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     into a drawing from its drag-handle menu.
   source: packages/web/src/components/DrawingBlock.tsx; packages/web/src/app/api/[product]/[project]/drawing/[file]/route.ts; packages/web/src/lib/import.ts
   status: shipped
+- id: rule:inline-images
+  statement: >
+    An image can be part of a node's text. Pasting an image while the cursor is in a node block (a bug, a task, a
+    requirement), or "Image in this block" from the slash menu, uploads it to docs/assets and inserts it inline at
+    the cursor as a thumbnail (click opens the file); an image pasted in ordinary prose stays an image block. The
+    markdown keeps `![alt](assets/x.png)` inside the node's line, so lib/parse.js carries it in the node's `text`
+    (the derived title drops it) and the type table row, the peek panel, node cards and the type page show the
+    thumbnail. On import an image next to words, or on a line that continues a paragraph, is inline content of
+    that paragraph; only an image that is a paragraph of its own is an image block. wf resolve on a node, block,
+    section or document lists every image its text embeds with the file path, so an agent can look at a bug's
+    screenshot (fixes bug:new-396).
+  source: packages/web/src/lib/import.ts#liftInlineImages; packages/web/src/lib/serialize.ts#inlineToMarkdown; packages/web/src/components/DocEditor.tsx#InlineImage; packages/web/src/components/IdLink.tsx; packages/web/src/lib/resolve.ts; bin/wf.js#resolve; lib/parse.js
+  status: shipped
+  verified-by: [test:web-lib#import, test:web-lib#serialize]
+  related-to: [rule:image-annotations, store:assets]
 - id: rule:image-annotations
   statement: >
     "Annotate image" on an image block (drag-handle menu) turns the image into a drawing whose canvas is the image:

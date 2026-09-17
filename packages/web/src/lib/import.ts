@@ -3,14 +3,14 @@
 // node blocks, turns id-first paragraphs into prose node blocks, and tags ids.
 import { ID_RE, cleanId } from './ids';
 import { splitDocument } from './doc';
-import { tagifyBlocks, unwrapParagraphs, type Inline, type InlineText } from './mdflow';
+import { tagifyBlocks, unwrapParagraphs, type Inline, type InlineText, type InlineOther } from './mdflow';
 import { collectionKind, type AnyBlock, type NodeProps } from './serialize';
 import { EXTRA_GROUP } from './props';
 
 const TEXT_KEYS = ['title', 'statement', 'description', 'purpose', 'q', 'text', 'context', 'does', 'intent'];
 const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused|resolved|rejected)\b/;
 
-export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[] }
+export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[]; images: { alt: string; url: string }[] }
 
 // A drawing is referenced like an image whose file is an Excalidraw scene: ![Title](drawings/name.excalidraw)
 // A table region: ordinary node lines between <!-- goals --> and <!-- /goals --> (or tasks), or for any type
@@ -19,12 +19,28 @@ export const COLLECTION_OPEN = /^<!--\s*(goals|tasks|table:[a-z][a-z0-9-]*)\s*--
 export const COLLECTION_CLOSE = /^<!--\s*\/(goals|tasks|table:[a-z][a-z0-9-]*)\s*-->\s*$/;
 
 export const DRAWING_LINE = /^!\[([^\]]*)\]\((\S+\.excalidraw)\)\s*$/;
+// An image inside a paragraph's text — next to words, or on a line that continues a paragraph (a node's
+// screenshot under its line) — is inline content of that paragraph; only an image that is a paragraph of its own
+// is an image block. Lifted to %%IMG:n%% so the markdown parser cannot break the paragraph around it.
+const IMAGE_RE = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
+export function liftInlineImages(text: string, images: { alt: string; url: string }[]): string {
+  const lines = text.split('\n'); let fence = false;
+  return lines.map((l, i) => {
+    if (/^\s*(```|~~~)/.test(l)) { fence = !fence; return l; }
+    if (fence || !l.includes('![')) return l;
+    const alone = /^\s*!\[[^\]]*\]\([^)\s]+\)\s*$/.test(l);
+    const prevBlank = i === 0 || !lines[i - 1].trim(), nextBlank = i === lines.length - 1 || !lines[i + 1].trim();
+    if (alone && prevBlank && nextBlank) return l;
+    return l.replace(IMAGE_RE, (m, alt, url) => { if (url.endsWith('.excalidraw')) return m; images.push({ alt, url }); return `%%IMG:${images.length - 1}%%`; });
+  }).join('\n');
+}
 
 // Replace yaml blocks with %%YAML:n%% paragraphs and --- rules with %%DIVIDER%% paragraphs; unwrap prose.
 export function prepare(body: string): Prepared {
   const split = splitDocument(body); // the body has no frontmatter; only its segments matter
   const yaml: { id: string; body: string }[][] = [];
   const drawings: { title: string; src: string }[] = [];
+  const images: { alt: string; url: string }[] = [];
   const parts: string[] = [];
   const liftDrawings = (text: string) => text.split('\n').map(l => {
     const m = l.match(DRAWING_LINE); if (m) { drawings.push({ title: m[1], src: m[2] }); return `\n%%DRAWING:${drawings.length - 1}%%\n`; }
@@ -35,9 +51,9 @@ export function prepare(body: string): Prepared {
   for (const s of split.segments) {
     if (s.type === 'yaml') { yaml.push(s.chunks.map(c => ({ id: c.id ?? '', body: c.body }))); parts.push(`%%YAML:${yaml.length - 1}%%`); }
     else if (s.type === 'hr') parts.push('%%DIVIDER%%');
-    else parts.push(protectCode(escapeAngles(liftLinks(unwrapParagraphs(liftDrawings(s.text))))));
+    else parts.push(protectCode(escapeAngles(liftLinks(unwrapParagraphs(liftDrawings(liftInlineImages(s.text, images)))))));
   }
-  return { md: parts.join('\n\n'), yaml, drawings };
+  return { md: parts.join('\n\n'), yaml, drawings, images };
 }
 
 // Split markdown into alternating [text, code, text, code, …] regions: fenced blocks, indented (4-space) blocks
@@ -126,7 +142,7 @@ function topLevel(body: string): Map<string, string> {
 const text = (s: string): InlineText => ({ type: 'text', text: s, styles: {} });
 
 // Expand markers and id-first paragraphs into node/divider blocks, then tag ids everywhere.
-export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Prepared['drawings'] = []): AnyBlock[] {
+export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Prepared['drawings'] = [], images: Prepared['images'] = []): AnyBlock[] {
   const out: AnyBlock[] = [];
   let coll: AnyBlock | null = null; // the goals/tasks table being filled; blocks until %%/COLLECTION%% become its rows
   const push = (blk: AnyBlock) => { if (coll) coll.children!.push(blk); else out.push(blk); };
@@ -149,9 +165,39 @@ export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Pre
     }
     const pn = proseNode(b, yaml, drawings);
     if (pn) { if (coll) pn.props = { ...pn.props, row: (coll.props as { kind: string }).kind }; push(withLinks(pn)); continue; }
-    push(withLinks(b.children?.length ? { ...b, children: expand(b.children, yaml, drawings) } : b));
+    push(withLinks(b.children?.length ? { ...b, children: expand(b.children, yaml, drawings, images) } : b));
   }
-  return (tagifyBlocks(out as never[]) as AnyBlock[]).map(unescapeBlock);
+  return (tagifyBlocks(out as never[]) as AnyBlock[]).map(b => unescapeBlock(imagifyBlock(b, images)));
+}
+
+// %%IMG:n%% placeholders (liftInlineImages) become img inline items — {url, alt} — inside their text run.
+function imagifyInline(items: Inline[], images: Prepared['images']): Inline[] {
+  const out: Inline[] = [];
+  for (const it of items) {
+    if (it.type === 'text' && (it as InlineText).text.includes('%%IMG:')) {
+      const t = it as InlineText; const re = /%%IMG:(\d+)%%/g; let last = 0; let m: RegExpExecArray | null;
+      while ((m = re.exec(t.text))) {
+        const img = images[Number(m[1])];
+        if (m.index > last) out.push({ type: 'text', text: t.text.slice(last, m.index), styles: t.styles });
+        if (img) out.push({ type: 'img', props: { url: img.url, alt: img.alt } }); else out.push({ type: 'text', text: m[0], styles: t.styles });
+        last = m.index + m[0].length;
+      }
+      if (last < t.text.length) out.push({ type: 'text', text: t.text.slice(last), styles: t.styles });
+      continue;
+    }
+    if (it.type !== 'tag' && Array.isArray((it as InlineOther).content)) { out.push({ ...(it as InlineOther), content: imagifyInline((it as InlineOther).content as Inline[], images) }); continue; }
+    out.push(it);
+  }
+  return out;
+}
+function imagifyBlock(b: AnyBlock, images: Prepared['images']): AnyBlock {
+  if (!images.length) return b;
+  let nb = b;
+  if (Array.isArray(nb.content)) nb = { ...nb, content: imagifyInline(nb.content as Inline[], images) };
+  const tc = nb.content as { rows?: { cells: unknown[] }[] } | undefined;
+  if (tc && Array.isArray(tc.rows)) nb = { ...nb, content: { ...tc, rows: tc.rows.map(r => ({ ...r, cells: r.cells.map(c => Array.isArray(c) ? imagifyInline(c as Inline[], images) : (c && typeof c === 'object' && Array.isArray((c as { content?: unknown }).content)) ? { ...(c as object), content: imagifyInline((c as { content: Inline[] }).content, images) } : c) })) } };
+  if (nb.children?.length) nb = { ...nb, children: nb.children.map(c => imagifyBlock(c, images)) };
+  return nb;
 }
 
 // The escaped "<" from escapeAngles is decoded back so the editor shows the real character.

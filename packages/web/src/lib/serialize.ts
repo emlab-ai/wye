@@ -14,6 +14,7 @@ export function inlineToMarkdown(items: Inline[] | undefined): string {
   return items.map(it => {
     if (it.type === 'text') { const t = it as { text: string; styles: Record<string, unknown> }; return styled(t.text, t.styles); }
     if (it.type === 'tag') return (it as { props: { id: string } }).props.id;
+    if (it.type === 'img') { const im = (it as unknown as { props: { url: string; alt: string } }).props; return `![${im.alt ?? ''}](${im.url})`; }
     if (it.type === 'link') { const l = it as unknown as { href: string; content: Inline[] }; return `[${inlineToMarkdown(l.content)}](${l.href})`; }
     return '';
   }).join('');

@@ -10,7 +10,7 @@ import { relations } from './graph';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-export type Resolved = { product: string; project: string; doc: string; file: string; title: string; anchor: string; node?: { id: string; kind: string; title: string; status: string; body: string; line: number; relations: { out: [string, string[]][]; inc: [string, string[]][] } }; block?: { line: number; text: string } | null; drawings?: { src: string; description: string; png: string }[]; section?: { heading: string; line: number; text: string }; note?: string; frontmatter?: Record<string, string>; length?: number };
+export type Resolved = { product: string; project: string; doc: string; file: string; title: string; anchor: string; node?: { id: string; kind: string; title: string; status: string; body: string; line: number; relations: { out: [string, string[]][]; inc: [string, string[]][] } }; block?: { line: number; text: string } | null; drawings?: { src: string; description: string; png: string }[]; images?: { src: string; alt: string; path: string }[]; section?: { heading: string; line: number; text: string }; note?: string; frontmatter?: Record<string, string>; length?: number };
 
 export async function resolveLink(scope: Scope, link: string): Promise<Resolved | null> {
   const product = scope.product.slug;
@@ -41,8 +41,11 @@ export async function resolveLink(scope: Scope, link: string): Promise<Resolved 
   if (!anchor) { const sp = splitDocument(md); out.frontmatter = sp.frontmatter; out.length = body.length; }
   // drawings the resolved text embeds (![Title](drawings/x.excalidraw)): their annotations as text, and the flattened
   // PNG an agent can look at (rule:image-annotations)
-  const text = out.block?.text ?? out.section?.text ?? (anchor ? '' : body);
+  const text = out.node?.body ?? out.block?.text ?? out.section?.text ?? (anchor ? '' : body);
   const srcs = [...text.matchAll(/\]\((drawings\/[a-z0-9._-]+)\.excalidraw\)/g)].map(m => m[1]);
+  // images in the text (a bug's screenshot: ![shot](assets/x.png)): the file an agent can look at
+  const imgs = [...text.matchAll(/!\[([^\]]*)\]\(((?:assets|drawings)\/[A-Za-z0-9._-]+\.(?:png|jpe?g|gif|webp|svg))\)/g)];
+  if (imgs.length) out.images = [...new Map(imgs.map(m => [m[2], { src: m[2], alt: m[1], path: path.join(path.dirname(docNode.file), m[2]) }])).values()];
   if (srcs.length) {
     const docsDir = path.join(REPO_ROOT, path.dirname(docNode.file));
     out.drawings = [];
@@ -54,16 +57,17 @@ export async function resolveLink(scope: Scope, link: string): Promise<Resolved 
   }
   return out;
 }
-// The annotations of the drawings a resolved text embeds, as lines for a prompt.
+// The annotations of the drawings a resolved text embeds, and the images it embeds, as lines for a prompt.
 function drawingsText(j: Resolved): string {
-  if (!j.drawings?.length) return '';
-  return '\n' + j.drawings.map(d => `\n#### ${d.src}${d.description ? '\n' + d.description : '\n(no annotations yet)'}${d.png ? `\nrendered with annotations: ${d.png} (look at it with the Read tool)` : ''}`).join('');
+  const d = (j.drawings ?? []).map(d => `\n#### ${d.src}${d.description ? '\n' + d.description : '\n(no annotations yet)'}${d.png ? `\nrendered with annotations: ${d.png} (look at it with the Read tool)` : ''}`);
+  const i = (j.images ?? []).map(im => `\nimage${im.alt ? ` "${im.alt}"` : ''}: ${im.path} (look at it with the Read tool)`);
+  return d.length || i.length ? '\n' + [...d, ...i].join('') : '';
 }
 
 // A resolved link as prompt text.
 export function renderResolved(ref: string, j: Resolved): string {
   const head = `### ${ref}\n${j.title} — ${j.file}`;
-  if (j.node) { const r = j.node.relations; return `${head}\n${j.node.body}\n${r.out.map(([v, ids]) => `${v} → ${ids.join(', ')}`).join('\n')}${r.inc.length ? '\n' + r.inc.map(([v, ids]) => `← ${v}: ${ids.join(', ')}`).join('\n') : ''}`; }
+  if (j.node) { const r = j.node.relations; return `${head}\n${j.node.body}\n${r.out.map(([v, ids]) => `${v} → ${ids.join(', ')}`).join('\n')}${r.inc.length ? '\n' + r.inc.map(([v, ids]) => `← ${v}: ${ids.join(', ')}`).join('\n') : ''}${drawingsText(j)}`; }
   if (j.block) return `${head} (line ${j.block.line})\n${j.block.text}${drawingsText(j)}`;
   if (j.section) return `${head}\n${j.section.text.slice(0, 6000)}${drawingsText(j)}`;
   return `${head}\n(the whole document, ${j.length} chars — read it with wf doc ${j.product}/${j.project}/${j.doc})${drawingsText(j)}`;

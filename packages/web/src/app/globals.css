@@ -431,3 +431,4 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .add-type select { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); } .add-type label { display: inline-flex; align-items: center; gap: 4px; }
 .type-page td { max-width: 420px; } .type-page td:first-child { white-space: nowrap; }
 .nrow-type.done .nrow-text { color: var(--muted); } .nrow-type select.nrow-in { appearance: auto; cursor: pointer; } .nrow-head .muted { margin-left: 4px; font-weight: 400; }
+.inline-img { display: inline-block; max-height: 140px; max-width: min(100%, 320px); vertical-align: middle; border-radius: 6px; border: 1px solid var(--line); margin: 2px 4px; cursor: zoom-in; } .nrow-text .inline-img { max-height: 36px; }

@@ -11,6 +11,12 @@ describe('inlineToMarkdown', () => {
   });
 });
 
+describe('inline images', () => {
+  it('writes an img inline item as a markdown image', () => {
+    expect(inlineToMarkdown([{ type: 'text', text: 'Login fails ', styles: {} }, { type: 'img', props: { url: 'assets/a.png', alt: 'shot' } }, { type: 'text', text: ' on Safari', styles: {} }])).toBe('Login fails ![shot](assets/a.png) on Safari');
+  });
+});
+
 describe('nodeToMarkdown', () => {
   it('writes a prose node with status and extra', () => {
     expect(nodeToMarkdown({ kind: 'req', slug: 'sale.close', status: 'proposed', form: 'prose', textKey: 'text', body: '', extra: 'owner: alex' }, 'When a sale closes, entity:order is Closed.')).toEqual(['req:sale.close When a sale closes, entity:order is Closed. #proposed (owner: alex)']);

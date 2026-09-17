@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { loadScope } from '@/lib/scope';
 import { typeBySlug, instancesOf, subtypesOf, nodeProps, isBaseType, isImplicit } from '@/lib/types';
-import { docRoute } from '@/lib/doc';
+import { docRoute, assetBase } from '@/lib/doc';
 import { SmartTag } from '@/components/SmartTag';
 import { StatusPill } from '@/components/Pills';
 import { Linkified } from '@/components/IdLink';
@@ -60,7 +60,7 @@ export default async function TypePage({ params }: { params: Promise<{ product: 
             return (
               <tr key={n.id}>
                 <td><SmartTag id={n.id} /><StatusPill status={n.status} />{where && <Link className="klist-doc" href={`/${product}/${where.project}/d/${where.doc}#n-${encodeURIComponent(n.id)}`} title={`${where.project} / ${where.doc}`}>↗</Link>}</td>
-                {cols.map(p => <td key={p.name} className={vals.get(p.name) ? '' : 'empty'}>{vals.get(p.name) ? <Linkified text={vals.get(p.name)!.replace(/^\[|\]$/g, '')} /> : <span className="muted">—</span>}</td>)}
+                {cols.map(p => <td key={p.name} className={vals.get(p.name) ? '' : 'empty'}>{vals.get(p.name) ? <Linkified text={vals.get(p.name)!.replace(/^\[|\]$/g, '')} base={assetBase(n.file)} /> : <span className="muted">—</span>}</td>)}
               </tr>);
           })}</tbody>
         </table></div>}

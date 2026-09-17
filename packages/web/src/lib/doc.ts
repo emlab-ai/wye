@@ -160,6 +160,11 @@ export function nodeIndex(g: GraphData): Record<string, IndexEntry> {
 }
 
 // Where a graph file lives in the product layout: projects/<project>/docs/<doc>.md → { project, doc }.
+// where a document's relative asset links (assets/x.png) resolve: the document's URL folder, /<product>/<project>/d/
+export function assetBase(file: string): string {
+  const m = file.match(/data\/products\/([^/]+)\/projects\/([^/]+)\/docs\//);
+  return m ? `/${m[1]}/${m[2]}/d/` : '';
+}
 export function docRoute(file: string): { project: string; doc: string } | null {
   const m = file.match(/\/projects\/([^/]+)\/docs\/([^/]+)\.md$/);
   return m ? { project: m[1], doc: m[2] } : null;

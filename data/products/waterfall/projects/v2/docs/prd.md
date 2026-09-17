@@ -589,6 +589,18 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
 #### Images for agents (2026-09-17)
 
 ```yaml
+- id: req:wf2.ui.image-in-block
+  title: A screenshot is part of the bug it belongs to
+  when: a person pastes an image (or picks "Image in this block") while writing a bug, task or any node block
+  then: >
+    the image appears inside that block's text as a thumbnail and travels with the node: its table row, its card in
+    the context column and the type page show it, and an agent that resolves the node gets the file path to look at
+  unless: the cursor is in ordinary prose — then the image is a block of its own as before
+  status: proposed
+  refines: req:wf2.ui
+  satisfied-by: [rule:inline-images]
+  verified-by: [test:web-lib#import]
+  resolves: bug:new-396
 - id: req:wf2.ui.annotate-images
   title: A person annotates an image and an agent understands the annotation
   when: a person chooses Annotate image on an image in a document, draws boxes, labels and arrows over it and saves

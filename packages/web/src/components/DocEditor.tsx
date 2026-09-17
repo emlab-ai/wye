@@ -32,6 +32,16 @@ const Tag = createReactInlineContentSpec(
   { render: props => <SmartTag id={props.inlineContent.props.id} />, toExternalHTML: props => <span>{props.inlineContent.props.id}</span> },
 );
 
+// An image inside a block's text (a bug's screenshot next to its words): the markdown keeps ![alt](assets/x.png) in
+// the line, so the parser's node text carries it and agents find the file. A thumbnail here; click opens the file.
+const InlineImage = createReactInlineContentSpec(
+  { type: 'img', propSchema: { url: { default: '' }, alt: { default: '' } }, content: 'none' },
+  {
+    render: props => <img className="inline-img" src={props.inlineContent.props.url} alt={props.inlineContent.props.alt} title={props.inlineContent.props.alt || props.inlineContent.props.url} onClick={() => window.open(props.inlineContent.props.url, '_blank')} />,
+    toExternalHTML: props => <img src={props.inlineContent.props.url} alt={props.inlineContent.props.alt} />,
+  },
+);
+
 // A yaml flow list "[a, b]" renders as its items; anything else as linkified text.
 function PropValue({ value }: { value: string }) {
   const m = value.match(/^\[(.*)\]$/s);
@@ -333,7 +343,7 @@ const NodeBlock = createReactBlockSpec(
   },
 );
 
-const schema = BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, node: NodeBlock(), drawing: DrawingBlock(), collection: CollectionBlock() }, inlineContentSpecs: { ...defaultInlineContentSpecs, tag: Tag } });
+const schema = BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, node: NodeBlock(), drawing: DrawingBlock(), collection: CollectionBlock() }, inlineContentSpecs: { ...defaultInlineContentSpecs, tag: Tag, img: InlineImage } });
 
 // Drag-handle menu entry on code blocks: turn an ASCII diagram into an editable drawing.
 function ToDrawingItem({ convert }: { convert: (b: AnyBlock) => void }) {
@@ -409,12 +419,34 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   // node blocks render inside the editor, so they ask for the peek panel through a window event
   useEffect(() => { const h = (e: Event) => openPeek((e as CustomEvent<string>).detail); window.addEventListener('wf:peek', h); return () => window.removeEventListener('wf:peek', h); }, [openPeek]);
   // pasted or dropped images go to the project's docs/assets folder; the block keeps the relative url the markdown uses
-  const editor = useCreateBlockNote({ schema, uploadFile: async (file: File) => {
+  const uploadFile = async (file: File) => {
     const fd = new FormData(); fd.append('file', file, file.name || 'image.png');
     const r = await fetch(`/api/${product}/${project}/asset`, { method: 'POST', body: fd });
     if (!r.ok) throw new Error('upload failed');
     return (await r.json()).url as string;
-  } });
+  };
+  const editor = useCreateBlockNote({ schema, uploadFile,
+    // an image pasted while the cursor is in a node block (a bug, a task, a requirement) goes into that block's text
+    // as an inline image, not as an image block after it — the screenshot is part of the bug
+    pasteHandler: ({ event, editor: ed }) => {
+      const files = [...(event.clipboardData?.files ?? [])].filter(f => f.type.startsWith('image/'));
+      if (!files.length) return undefined;
+      const cur = ed.getTextCursorPosition().block as unknown as AnyBlock;
+      if (cur.type !== 'node') return undefined;
+      event.preventDefault();
+      void insertInlineImages(files);
+      return true;
+    } });
+  const insertInlineImages = async (files: File[]) => {
+    for (const f of files) {
+      try {
+        const url = await uploadFile(f);
+        editor.insertInlineContent([{ type: 'img', props: { url, alt: (f.name || 'image').replace(/\.[a-z0-9]+$/i, '') } }, ' '] as never);
+        touched.current = true; changed();
+      } catch { setLintMsg('could not upload the image'); }
+    }
+  };
+  const imageInput = useRef<HTMLInputElement>(null);
   if (typeof window !== 'undefined') { const w = window as unknown as { __wf: unknown; __wfExport: () => string; __wfLink: (id: string) => string }; w.__wf = editor; w.__wfExport = () => blocksToMarkdown(editor.document as unknown as AnyBlock[]); w.__wfLink = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock; return `${location.origin}/${product}/${project}/d/${slug}#${blockAnchor(b)}`; }; } // dev inspection
   void index;
   const [ready, setReady] = useState(false);
@@ -464,9 +496,9 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const load = (md: string) => {
     loading.current = true;
     try {
-      const { md: prepared, yaml, drawings } = prepare(md);
+      const { md: prepared, yaml, drawings, images } = prepare(md);
       const parsed = editor.tryParseMarkdownToBlocks(prepared) as unknown as AnyBlock[];
-      const blocks = expand(parsed, yaml, drawings);
+      const blocks = expand(parsed, yaml, drawings, images);
       editor.replaceBlocks(editor.document, blocks as never);
       settle();
       lastExported.current = blocksToMarkdown(editor.document as unknown as AnyBlock[]);
@@ -621,9 +653,15 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false}>
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><AnnotateItem annotate={imageToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
         <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /><AskAgentButton onRequest={r => setAskReq({ ...r, doc: slug, project, pageLink: `${location.origin}/${product}/${project}/d/${slug}`, refs: [...new Set([...r.refs, `module:${slug}`])] })} /></FormattingToolbar>} />
-        <SuggestionMenuController triggerCharacter="/" getItems={async q => filterSuggestionItems([...getDefaultReactSlashMenuItems(editor), ...nodeItems, ...collectionItems, ...drawingItems], q)} />
+        <SuggestionMenuController triggerCharacter="/" getItems={async q => {
+          // "Image in this block": a file picked from disk goes into the current node block's text (paste does the same)
+          let inNode = false; try { inNode = (editor.getTextCursorPosition().block as unknown as AnyBlock).type === 'node'; } catch { /* no cursor */ }
+          const imageItems = inNode ? [{ title: 'Image in this block', group: 'Waterfall', subtext: 'a screenshot inside this bug / task / requirement, as part of its text', onItemClick: () => imageInput.current?.click() }] : [];
+          return filterSuggestionItems([...getDefaultReactSlashMenuItems(editor), ...imageItems, ...nodeItems, ...collectionItems, ...drawingItems], q);
+        }} />
         <SuggestionMenuController triggerCharacter="@" minQueryLength={1} getItems={async q => mentionItems(q)} />
       </BlockNoteView>
+      <input ref={imageInput} type="file" accept="image/*" multiple hidden onChange={e => { const fs = [...(e.target.files ?? [])]; e.target.value = ''; if (fs.length) void insertInlineImages(fs); }} />
       {linkReq && <LinkNodePicker req={linkReq} onClose={() => setLinkReq(null)} apply={applyLink} createDoc={createDoc} />}
       {askReq && <AskAgentBox req={askReq} onClose={() => setAskReq(null)} />}
     </div>

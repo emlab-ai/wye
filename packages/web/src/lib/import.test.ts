@@ -145,6 +145,23 @@ describe('expand', () => {
     expect(blocks[1].children?.[0].props).toMatchObject({ kind: 'bug', slug: 'login', status: 'open', extra: 'severity: high, foundIn: 1.2', row: 'bug', list: 'bullet' });
     expect(blocksToMarkdown(blocks)).toBe(src);
   });
+  it('an image inside a node line is inline content of the node, and writes back into the line', () => {
+    const src = 'bug:login Login fails ![shot](assets/a.png) on Safari #open\n\n![Standalone](assets/b.png)\n\n- task:t1 Do it\n  ![proof](assets/c.png)\n';
+    const p = prepare(src);
+    expect(p.images).toEqual([{ alt: 'shot', url: 'assets/a.png' }, { alt: 'proof', url: 'assets/c.png' }]);
+    expect(p.md).toContain('![Standalone](assets/b.png)'); // a paragraph of its own stays an image block
+    const parsed: { type: string; content?: { type: string; text: string; styles: object }[]; props?: Record<string, unknown> }[] = [];
+    for (const para of p.md.split(/\n\n+/).map(x => x.trim()).filter(Boolean)) {
+      if (para.startsWith('- ')) parsed.push({ type: 'bulletListItem', content: [t(para.replace(/^- /, ''))] });
+      else if (para.startsWith('![')) parsed.push({ type: 'image', props: { url: 'assets/b.png', caption: 'Standalone' } });
+      else parsed.push({ type: 'paragraph', content: [t(para)] });
+    }
+    const blocks = expand(parsed, p.yaml, p.drawings, p.images);
+    expect(blocks.map(b => b.type)).toEqual(['node', 'image', 'node']);
+    expect(blocks[0].content).toEqual([t('Login fails '), { type: 'img', props: { url: 'assets/a.png', alt: 'shot' } }, t(' on Safari')]);
+    expect(blocks[2].content).toEqual([t('Do it '), { type: 'img', props: { url: 'assets/c.png', alt: 'proof' } }]);
+    expect(blocksToMarkdown(blocks)).toBe('bug:login Login fails ![shot](assets/a.png) on Safari #open\n\n![Standalone](assets/b.png)\n\n- task:t1 Do it ![proof](assets/c.png)\n');
+  });
   it('round-trips through the serializer', () => {
     const src = 'req:sale.close When done, entity:order is Closed. #proposed (owner: alex)\n\n---\n\n```yaml\n- id: rule:x\n  statement: S\n  source: f.ts\n```\n';
     const p = prepare(src);

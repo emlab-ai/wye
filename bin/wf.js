@@ -77,6 +77,8 @@ async function resolve(link) {
   else console.log(`\ndocument (${j.length} chars). Read it: wf doc ${j.product}/${j.project}/${j.doc}`);
   // drawings in the text: their annotations as words, and the flattened PNG to look at
   for (const d of j.drawings || []) console.log(`\n${d.src}:\n${d.description || '(no annotations yet)'}${d.png ? `\nrendered with annotations: ${d.png} (look at it with the Read tool)` : ''}`);
+  // images in the text (a bug's screenshot): the file to look at
+  for (const im of j.images || []) console.log(`\nimage${im.alt ? ` "${im.alt}"` : ''}: ${im.path} (look at it with the Read tool)`);
 }
 
 const commands = {

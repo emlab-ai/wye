@@ -1,5 +1,5 @@
 import { parseBody } from '@/lib/graph';
-import type { IndexEntry } from '@/lib/doc';
+import { assetBase, type IndexEntry } from '@/lib/doc';
 import { Linkified } from './IdLink';
 import { KindPill, StatusPill, StubPill } from './Pills';
 
@@ -8,9 +8,9 @@ const PARAGRAPH = new Set(['text', 'statement', 'description', 'purpose', 'conte
 const HIDE = new Set(['title', 'status']);
 
 // A yaml flow list "[a, b, c]" renders as its items; anything else as linkified text.
-function PropValue({ value }: { value: string }) {
+function PropValue({ value, base }: { value: string; base?: string }) {
   const m = value.match(/^\[(.*)\]$/s);
-  if (!m) return <Linkified text={value} />;
+  if (!m) return <Linkified text={value} base={base} />;
   const items = m[1].split(/,\s*(?![^()]*\))/).map(x => x.trim()).filter(Boolean);
   if (!items.length) return <span className="muted">none</span>;
   return <span className="list">{items.map((it, i) => <span key={i} className="item"><Linkified text={it} /></span>)}</span>;
@@ -27,13 +27,14 @@ export function NodeCard({ id, body, entry, showYaml = false }: { id: string; bo
   const sentence = ['when', 'then', 'unless'].filter(k => get(k)).map(k => `${SENTENCE[k]} ${get(k)}`).join(', ');
   const paras = rows.filter(r => PARAGRAPH.has(r.key));
   const props = rows.filter(r => !PARAGRAPH.has(r.key) && !HIDE.has(r.key) && !(r.key in SENTENCE));
+  const base = entry?.file ? assetBase(entry.file) : '';
   return (
     <article className="card" id={`n-${id}`}>
       <header><KindPill kind={kind} /><StatusPill status={status} />{entry && <StubPill defined={entry.defined} />}<code className="cid">{id}</code></header>
       {!paras.some(r => r.value.startsWith(title.replace(/\s*[(:—-]*\s*$/, ''))) && <h4>{title}</h4>}
-      {sentence && <p className="sentence"><Linkified text={sentence + (/[.!?]$/.test(sentence) ? '' : '.')} /></p>}
-      {paras.map(r => <p key={r.key} className="para"><span className="pk">{r.key}</span> <Linkified text={r.value} /></p>)}
-      {props.length > 0 && <dl className="strip">{props.map(r => <div key={r.key}><dt>{r.key}</dt><dd><PropValue value={r.value} /></dd></div>)}</dl>}
+      {sentence && <p className="sentence"><Linkified text={sentence + (/[.!?]$/.test(sentence) ? '' : '.')} base={base} /></p>}
+      {paras.map(r => <p key={r.key} className="para"><span className="pk">{r.key}</span> <Linkified text={r.value} base={base} /></p>)}
+      {props.length > 0 && <dl className="strip">{props.map(r => <div key={r.key}><dt>{r.key}</dt><dd><PropValue value={r.value} base={base} /></dd></div>)}</dl>}
       {showYaml ? <pre className="yaml">{body}</pre> : <details className="yaml"><summary>yaml</summary><pre>{body}</pre></details>}
     </article>
   );
