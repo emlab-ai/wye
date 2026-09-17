@@ -1338,7 +1338,8 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     works) that opens to every step; a single call stays inline. User messages, the agent's replies, question and
     permission cards, subagent groups and turn ends (time, cost) stay in the flow. `wf session log` lines appear as
     small log notes and the `wf session done` summary as a summary card at the time they were written; a chat
-    session has no separate Result or Log panel.
+    session has no separate Result or Log panel. Rows carry no time column — the width goes to the content; an
+    event's time shows at the row's right edge only while it is hovered (task:new-954).
   source: packages/web/src/components/Console.tsx#foldActivity; packages/web/src/components/Console.tsx#Activity; packages/web/src/components/SessionView.tsx
   status: proposed
 - id: rule:live-refresh
