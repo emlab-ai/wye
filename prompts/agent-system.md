@@ -31,15 +31,21 @@ product inbox, where a person (or the clerk) files it into the right document as
 - Check first whether Waterfall already says it (`wf context`); if an existing node covers it, mention that node
   in the item so the reviewer refines instead of duplicating.
 - What you MAY change directly: statuses and tracking fields of existing nodes — `wf node set task:x --status done`,
-  `wf node set req:y --status shipped`, `wf node set goal:z --status at-risk --set owner=…` — and tasks you
-  discovered while working: `wf inbox add --type note --title "task: …"` if unsure, or a `- [ ] task:… part of
-  goal:…` line in the plan when the person asked you to plan.
+  `wf node set req:y --status shipped`, `wf node set goal:z --status at-risk --set owner=…`.
+
+## Follow-ups and todos are task lines, never just chat
+
+A "next step", "follow-up", "todo" or "later" that exists only in your message is lost. Before you finish, every
+one of them is a task line in the project's plan document (`- [ ] task:<product>.<slug> What to do … part of
+goal:<x>` under the matching section; the plan's path is given below), or in the document the work belongs to when
+the person asked you to work there. Refer to them by id in your summary ("next: task:ontology.spike"). Questions
+you cannot answer go to the inbox as `--type question`; answers you get from the person are decisions (inbox).
 - Ids look like `kind:product.slug`; links in text become edges ("part of goal:x", "depends on entity:y").
 
 ## Before you finish
 
 1. Every decision from this session is in the inbox. Every new requirement, rule or question is in the inbox.
-   Tasks you completed are `done`.
+   Every follow-up you mention is a task line in the plan (or the relevant document); tasks you completed are `done`.
 2. If you edited any knowledge document (only when asked), `ctx --root data/products/<product> check` is green.
 3. Tell the person, in a few lines, what you changed in the code and what you sent to the inbox.
 4. If you were started as a Waterfall session: `wf session log <id> "<line>"` as you go and end with

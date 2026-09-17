@@ -346,6 +346,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   useEffect(() => {
     hash.current = ifMatch;
     if (lastExported.current !== null && norm(lastExported.current) === norm(body)) return;
+    if (timer.current) return; // the person is mid-edit: their save goes out first, the next refresh brings the merge
     load(body);
     if (!ready) setReady(true);
     // a link to a block: find it by anchor and bring it into view

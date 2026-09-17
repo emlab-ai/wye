@@ -35,6 +35,7 @@ export function Rail({ products, product, projects, headings }: { products: { sl
         {item(`${base}/tasks`, 'Tasks', '☑')}
         {item(`${base}/knowledge`, 'Knowledge', '◈')}
         {item(`${base}/graph`, 'Graph', '⌬')}
+        {item(`${base}/questions`, 'Questions', '?')}
         {item(`${base}/inbox`, 'Inbox', '⇩')}
         {item(`${base}/sessions`, 'Sessions', '⚡')}
       </ul>

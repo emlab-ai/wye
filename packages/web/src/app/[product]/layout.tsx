@@ -4,6 +4,7 @@ import { Rail } from '@/components/Rail';
 import { PeekProvider } from '@/components/PeekProvider';
 import { Shell } from '@/components/Shell';
 import { TopBar, type DocMeta } from '@/components/TopBar';
+import { LiveRefresh } from '@/components/LiveRefresh';
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { listProducts } from '@/lib/products';
@@ -30,6 +31,7 @@ export default async function ProductLayout({ children, params }: { children: Re
     <PeekProvider product={scope.product.slug} index={scope.index}>
       <Shell>
         <Rail products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} headings={headings} />
+        <LiveRefresh product={scope.product.slug} />
         <main className="content"><TopBar product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} docs={docs} />{children}</main>
       </Shell>
     </PeekProvider>

@@ -1042,6 +1042,23 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     description, event and tool-call counts and whether it has finished (the parent's tool_result arrived).
   source: packages/web/src/lib/agent-host.ts#onClaudeLine; packages/web/src/components/Console.tsx#Subagent
   status: shipped
+- id: rule:live-refresh
+  statement: >
+    The app follows the product on disk: a recursive watcher on data/products/<product> (lib/watch.ts, on
+    globalThis) rebuilds the graph 400 ms after a document changes and pushes change events (doc, graph, inbox,
+    session) over /api/<product>/events; the LiveRefresh client refreshes the server-rendered parts (rail, lists,
+    panels) on graph, inbox and session changes, so documents, tasks, questions and inbox items written by agents
+    or editors appear without a reload. A document being edited in the browser is not reloaded while a save is
+    pending.
+  source: packages/web/src/lib/watch.ts; packages/web/src/app/api/[product]/events/route.ts; packages/web/src/components/LiveRefresh.tsx
+  status: shipped
+- id: rule:questions-view
+  statement: >
+    The Questions page lists every open question about the product: question nodes (kind question or status
+    question) from the documents and question items waiting in the inbox, newest first, with refs, where they
+    come from, a send-to-agent action, and open/all filters.
+  source: packages/web/src/app/[product]/questions/page.tsx; packages/web/src/components/QuestionList.tsx
+  status: shipped
 - id: decision:wf2.desktop-electron
   title: Waterfall ships as an Electron desktop app that owns the app server and the agent processes
   context: Running full conversations with Claude Code and Codex means owning long-lived local processes with file-system access; a browser tab cannot do that, and people want one thing to open.
