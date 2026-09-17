@@ -268,6 +268,10 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .nblock-extra:hover { border-color: var(--line); } .nblock-extra:focus { border-color: var(--accent); outline: none; color: var(--ink); }
 .nblock-text { font-size: 15px; line-height: 1.5; }
 .nblock-yaml { width: 100%; margin-top: 8px; font: 12px/1.5 var(--font-m); background: var(--sunk); color: var(--ink); border: 1px solid var(--line-2); border-radius: 8px; padding: 8px; }
+.askbox { position: fixed; z-index: 60; width: 400px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.25); padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.askbox-ctx { display: flex; align-items: center; gap: 6px; font-size: 12px; } .askbox-ctx select { flex: 1; font: 12px var(--font-m); background: var(--ground); color: var(--ink); border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 6px; }
+.askbox textarea { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--ground); color: var(--ink); resize: vertical; }
+.askbox-foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 11px; } .askbox-foot .muted { flex: 1; min-width: 160px; }
 .linknode { position: fixed; z-index: 1000; width: 340px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.2); padding: 6px; z-index: 50; }
 .linknode input { width: 100%; padding: 6px 8px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--ground); color: var(--ink); font: 13px var(--font-b); }
 .linknode ul { list-style: none; margin: 4px 0 0; padding: 0; max-height: 240px; overflow-y: auto; }

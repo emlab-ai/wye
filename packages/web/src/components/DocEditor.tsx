@@ -21,6 +21,7 @@ import { blockHash } from '@/lib/anchors';
 import { headingSlug } from '@/lib/doc';
 import { ProgressBar } from './Progress';
 import { requestSend } from './SendToAgent';
+import { AskAgentBox, type AskRequest } from './AskAgent';
 
 const STATUSES = ['', 'proposed', 'approved', 'unverified', 'api-only', 'shipped', 'deprecated', 'question', 'open', 'in-progress', 'blocked', 'done', 'non-goal', 'draft', 'active', 'complete', 'on-track', 'at-risk', 'off-track', 'paused'];
 
@@ -241,6 +242,23 @@ function ToDrawingItem({ convert }: { convert: (b: AnyBlock) => void }) {
   return <Components.Generic.Menu.Item className="bn-menu-item" onClick={() => convert(block as unknown as AnyBlock)}>Turn into drawing</Components.Generic.Menu.Item>;
 }
 
+// "Ask": a command to an agent about the selected text, with the block and the page attached.
+function AskAgentButton({ onRequest }: { onRequest: (r: Omit<AskRequest, 'doc' | 'project' | 'pageLink'>) => void }) {
+  const editor = useBlockNoteEditor();
+  const Components = useComponentsContext()!;
+  return (
+    <Components.FormattingToolbar.Button className="bn-button" label="Ask an agent" mainTooltip="Send the selection with a command to a session (⇢)" onClick={() => {
+      const sel = window.getSelection(); const rect = sel && sel.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : { left: 200, bottom: 200 };
+      let block: AnyBlock | undefined; try { block = editor.getTextCursorPosition().block as unknown as AnyBlock; } catch { block = undefined; }
+      const items = block && Array.isArray(block.content) ? block.content as { type: string; text?: string; props?: { id?: string }; href?: string; content?: { text?: string }[] }[] : [];
+      const blockText = items.map(i => i.type === 'text' ? i.text ?? '' : i.type === 'link' ? (i.content ?? []).map(c => c.text ?? '').join('') : i.type === 'tag' ? i.props?.id ?? '' : '').join('');
+      const refs = items.flatMap(i => i.type === 'tag' && i.props?.id ? [i.props.id] : i.type === 'link' && i.href && /^[a-z-]+:/.test(i.href) ? [i.href] : []);
+      if (block?.type === 'node') { const np = block.props as unknown as { kind: string; slug: string }; refs.unshift(`${np.kind}:${np.slug}`); }
+      onRequest({ selection: editor.getSelectedText(), blockText, blockLink: block ? blockLink(block, editor.domElement as HTMLElement | null) : '', refs, x: rect.left, y: rect.bottom + 8 });
+    }}>⇢ ask</Components.FormattingToolbar.Button>
+  );
+}
+
 // "Link to node": link the selected text to any node, searched by id or title. The selection range is captured
 // when the picker opens (typing in the picker collapses the editor selection) and restored when the link is applied.
 type LinkRequest = { from: number; to: number; text: string; x: number; y: number };
@@ -287,6 +305,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const [lintMsg, setLintMsg] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [linkReq, setLinkReq] = useState<LinkRequest | null>(null);
+  const [askReq, setAskReq] = useState<AskRequest | null>(null);
   const hash = useRef(ifMatch);
   const lastExported = useRef<string | null>(null);
   const loading = useRef(false);
@@ -460,11 +479,12 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false}>
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
-        <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /></FormattingToolbar>} />
+        <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /><AskAgentButton onRequest={r => setAskReq({ ...r, doc: slug, project, pageLink: `${location.origin}/${product}/${project}/d/${slug}`, refs: [...new Set([...r.refs, `module:${slug}`])] })} /></FormattingToolbar>} />
         <SuggestionMenuController triggerCharacter="/" getItems={async q => filterSuggestionItems([...getDefaultReactSlashMenuItems(editor), ...nodeItems, ...collectionItems, ...drawingItems], q)} />
         <SuggestionMenuController triggerCharacter="@" minQueryLength={1} getItems={async q => mentionItems(q)} />
       </BlockNoteView>
       {linkReq && <LinkNodePicker req={linkReq} onClose={() => setLinkReq(null)} apply={applyLink} createDoc={createDoc} />}
+      {askReq && <AskAgentBox req={askReq} onClose={() => setAskReq(null)} />}
     </div>
   );
 }
