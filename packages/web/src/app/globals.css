@@ -268,8 +268,11 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 
 /* ===== AFFiNE-like shell ===== */
 .shell { grid-template-columns: 260px 1fr; position: relative; } .shell.split { grid-template-columns: 260px minmax(0, 1fr) 6px var(--panel-w, 560px); }
-.shell.rail-hidden { grid-template-columns: 0 1fr; } .shell.rail-hidden.split { grid-template-columns: 0 minmax(0, 1fr) 6px var(--panel-w, 560px); } .shell.rail-hidden .rail { display: none; }
-.rail-toggle { position: fixed; left: 8px; bottom: 10px; z-index: 40; width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); cursor: pointer; font-size: 12px; opacity: .6; } .rail-toggle:hover { opacity: 1; color: var(--ink); }
+/* the hidden rail stays a grid item at zero width; removing it from the grid would shift the other columns */
+.shell.rail-hidden { grid-template-columns: 0 1fr; } .shell.rail-hidden.split { grid-template-columns: 0 minmax(0, 1fr) 6px var(--panel-w, 560px); } .shell.rail-hidden .rail { width: 0; min-width: 0; overflow: hidden; visibility: hidden; border: 0; padding: 0; }
+.rail-toggle { position: fixed; left: 10px; top: 10px; z-index: 40; width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); cursor: pointer; font-size: 15px; line-height: 1; opacity: .7; } .rail-toggle:hover { opacity: 1; color: var(--ink); background: var(--sunk); }
+.rail-close { margin-left: auto; width: 26px; height: 26px; border-radius: 6px; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; opacity: 0; transition: opacity .15s; } .rail:hover .rail-close { opacity: 1; } .rail-close:hover { background: var(--sunk); color: var(--ink); }
+
 .splitter { cursor: col-resize; background: transparent; position: relative; } .splitter::after { content: ''; position: absolute; top: 0; bottom: 0; left: 2px; width: 2px; background: var(--line); transition: background .15s; } .splitter:hover::after, body.resizing .splitter::after { background: var(--accent); } body.resizing { cursor: col-resize; user-select: none; } body.resizing iframe, body.resizing .peek { pointer-events: none; }
 .rail { background: var(--ground); border-right: 1px solid var(--line); }
 .rail-head { padding: 16px 14px 8px; border-bottom: 0; }
