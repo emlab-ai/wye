@@ -4,11 +4,14 @@
 import { watch, type FSWatcher } from 'node:fs';
 import path from 'node:path';
 import { rebuild } from './write';
+import { creditDocumentChange } from './artifacts';
 
 type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'other'; file: string }) => void;
-type State = { watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string> };
+// bump when the watcher callback changes: dev reloads keep globalThis, so an old watcher would keep running old code
+const VERSION = 2;
+type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>> };
 const g = globalThis as unknown as { __wfWatch?: State };
-const st = () => (g.__wfWatch ??= { watchers: new Map(), subs: new Map(), rebuildTimer: new Map(), rebuilding: new Set() });
+const st = (): State => (g.__wfWatch ??= { watchers: new Map(), subs: new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map() });
 
 function classify(rel: string): 'doc' | 'inbox' | 'session' | 'graph' | 'other' {
   if (rel.startsWith('_build/')) return 'graph';
@@ -20,6 +23,11 @@ function classify(rel: string): 'doc' | 'inbox' | 'session' | 'graph' | 'other' 
 
 export function ensureWatch(productDir: string) {
   const s = st();
+  if (s.version !== VERSION) { // fresh state for the new code, keeping the SSE subscribers
+    for (const w of s.watchers.values()) { try { w.close(); } catch { /* closed */ } }
+    g.__wfWatch = { version: VERSION, watchers: new Map(), subs: s.subs ?? new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map() };
+    return ensureWatch(productDir);
+  }
   if (s.watchers.has(productDir)) return;
   try {
     const w = watch(productDir, { recursive: true }, (_ev, file) => {
@@ -29,9 +37,14 @@ export function ensureWatch(productDir: string) {
       const kind = classify(rel);
       if (kind === 'other') return;
       if (kind === 'doc') {
-        // one rebuild per burst of writes; the graph change then notifies everyone
+        // one rebuild per burst of writes; the graph change then notifies everyone; running sessions get the credit
+        if (!s.changedDocs.has(productDir)) s.changedDocs.set(productDir, new Set()); s.changedDocs.get(productDir)!.add(rel);
         const t = s.rebuildTimer.get(productDir); if (t) clearTimeout(t);
-        s.rebuildTimer.set(productDir, setTimeout(async () => { s.rebuildTimer.delete(productDir); if (s.rebuilding.has(productDir)) return; s.rebuilding.add(productDir); try { await rebuild(productDir); } finally { s.rebuilding.delete(productDir); } }, 400));
+        s.rebuildTimer.set(productDir, setTimeout(async () => {
+          s.rebuildTimer.delete(productDir); if (s.rebuilding.has(productDir)) return; s.rebuilding.add(productDir);
+          const docs = [...(s.changedDocs.get(productDir) ?? [])]; s.changedDocs.get(productDir)?.clear();
+          try { await rebuild(productDir); for (const d of docs) await creditDocumentChange(productDir, path.basename(productDir), d).catch(() => {}); } finally { s.rebuilding.delete(productDir); }
+        }, 400));
       }
       for (const fn of s.subs.get(productDir) ?? []) { try { fn({ kind, file: rel }); } catch { /* gone */ } }
     });

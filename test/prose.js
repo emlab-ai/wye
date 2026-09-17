@@ -66,3 +66,17 @@ const t2 = g.node('task:wire-order'); assert(t2 && t2.status === 'done', 'checke
 assert((g.out.get('module:pos') || []).some(e => e.verb === 'part-of' && e.to === 'module:root'), 'frontmatter part-of is an edge');
 const y = g.node('req:sale'); assert(y && y.defined && y.title === 'Sales', 'yaml nodes still parse');
 console.log('ok — prose nodes: ' + g.stats().nodes + ' nodes');
+
+// an html comment right after a prose node line ends the node's text (goals/tasks tables close with <!-- /tasks -->)
+{
+  const fs = require('fs'), os = require('os'), path = require('path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wf-prose-'));
+  fs.writeFileSync(path.join(dir, 'a.md'), '---\nnode: module:a\ntitle: A\n---\n\n<!-- tasks -->\n- [x] task:t1 Do it (session: abc, produced: module:b)\n<!-- /tasks -->\n');
+  const { parseFiles } = require('../lib/parse');
+  const g = parseFiles([path.join(dir, 'a.md')], dir);
+  const t = g.nodes.find(n => n.id === 'task:t1');
+  assert(t && /^text: Do it$/m.test(t.body), 'comment must not join the task text: ' + (t && t.body));
+  assert(/^session: abc$/m.test(t.body) && /^produced: module:b$/m.test(t.body), 'trailing props parsed: ' + t.body);
+  assert(g.edges.some(e => e.from === 'task:t1' && e.to === 'module:b' && e.verb === 'produced'), 'produced edge');
+  console.log('ok prose: html comment ends a prose node');
+}

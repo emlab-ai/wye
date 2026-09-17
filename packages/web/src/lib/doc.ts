@@ -7,7 +7,7 @@ export type Segment =
   | { type: 'yaml'; raw: string; chunks: Chunk[]; start: number; end: number };
 export interface SplitDoc { frontmatter: Record<string, string>; segments: Segment[] }
 export interface DocNode { module: GraphNode; file: string; slug: string; title: string; children: DocNode[] }
-export type IndexEntry = { id: string; kind: string; title: string; status: string; defined: boolean; file: string; owner?: string; target?: string; progress?: number; parts?: { done: number; total: number }; parent?: string };
+export type IndexEntry = { id: string; kind: string; title: string; status: string; defined: boolean; file: string; owner?: string; target?: string; progress?: number; parts?: { done: number; total: number }; parent?: string; sessions?: string[] };
 
 export const DONE_STATUSES = new Set(['done', 'shipped', 'complete']);
 
@@ -143,6 +143,7 @@ export function nodeIndex(g: GraphData): Record<string, IndexEntry> {
     if (n.kind === 'goal' || n.kind === 'task') {
       const owner = field(n.body, 'owner'); const target = field(n.body, 'target') ?? field(n.body, 'due'); const progress = Number(field(n.body, 'progress'));
       if (owner) e.owner = owner; if (target) e.target = target; if (!Number.isNaN(progress) && field(n.body, 'progress')) e.progress = Math.max(0, Math.min(100, progress));
+      const sess = field(n.body, 'session'); if (sess) e.sessions = sess.split(/[\s,]+/).filter(Boolean);
     }
     out[n.id] = e;
   }

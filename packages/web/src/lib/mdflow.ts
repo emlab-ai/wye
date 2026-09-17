@@ -6,14 +6,14 @@ export function unwrapParagraphs(md: string): string {
   const out: string[] = [];
   let fence = false; let inItem = false; // inItem: the previous output line is a list item (or its joined continuation)
   const isListItem = (l: string) => /^\s*([-*+]|\d+[.)])\s/.test(l);
-  const isBlockStart = (l: string) => /^(\s*([-*+]|\d+[.)])\s|\s*[|#>]|\s{4,}|```|~~~|\s*$)/.test(l) || /^---\s*$/.test(l);
+  const isBlockStart = (l: string) => /^(\s*([-*+]|\d+[.)])\s|\s*[|#>]|\s{4,}|```|~~~|\s*$|\s*<!--)/.test(l) || /^---\s*$/.test(l);
   for (const line of md.split('\n')) {
     if (/^\s*(```|~~~)/.test(line)) { fence = !fence; out.push(line); inItem = false; continue; }
     if (fence) { out.push(line); continue; }
     const prev = out[out.length - 1];
     const hardBreak = prev !== undefined && /( {2}|\\)$/.test(prev);
     // a wrapped list item: an indented, non-blank line that is not itself a list item, heading, table or fence
-    const lazy = inItem && /^\s+\S/.test(line) && !isListItem(line) && !/^\s*[|#>]/.test(line) && !hardBreak;
+    const lazy = inItem && /^\s+\S/.test(line) && !isListItem(line) && !/^\s*[|#>]/.test(line) && !/^\s*<!--/.test(line) && !hardBreak;
     const canJoin = prev !== undefined && prev.trim() !== '' && !isBlockStart(prev) && !isBlockStart(line) && !hardBreak;
     if (lazy || canJoin) { out[out.length - 1] = prev.replace(/\s+$/, '') + ' ' + line.trim(); continue; }
     out.push(line);

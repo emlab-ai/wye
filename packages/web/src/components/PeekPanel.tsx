@@ -13,14 +13,15 @@ import { StatusPill } from './Pills';
 import { KIND_ORDER } from '@/lib/knowledge';
 import { ProgressBar } from './Progress';
 import { TrackEditor } from './TrackEditor';
+import { Produced } from './Produced';
 import type { GraphNode } from '@/lib/graph';
 import type { IndexEntry } from '@/lib/doc';
 
 type Details = { node: GraphNode; relations: { out: [string, string[]][]; inc: [string, string[]][] }; graph: { nodes: LiteNode[]; edges: GraphEdge[] } };
 
 // How an edge reads from the open node's side.
-const OUT: Record<string, string> = { refines: 'Refines', 'satisfied-by': 'Satisfied by', 'verified-by': 'Verified by', 'depends-on': 'Depends on', 'part-of': 'Part of', 'related-to': 'Related to', 'governed-by': 'Governed by', 'gated-by': 'Gated by', has: 'Has', refs: 'References', contradicts: 'Contradicts', resolves: 'Resolves', 'applies-to': 'Applies to', 'has-action': 'Actions', navigates: 'Navigates to', reads: 'Reads', writes: 'Writes' };
-const INC: Record<string, string> = { refines: 'Refined by', 'satisfied-by': 'Satisfies', 'verified-by': 'Verifies', 'depends-on': 'Needed by', 'part-of': 'Contains', 'related-to': 'Related from', 'governed-by': 'Governs', 'gated-by': 'Gates', has: 'Belongs to', refs: 'Referenced by', contradicts: 'Contradicted by', resolves: 'Resolved by', 'applies-to': 'Applied by', 'has-action': 'Action of', navigates: 'Reached from', reads: 'Read by', writes: 'Written by' };
+const OUT: Record<string, string> = { refines: 'Refines', 'satisfied-by': 'Satisfied by', 'verified-by': 'Verified by', 'depends-on': 'Depends on', 'part-of': 'Part of', 'related-to': 'Related to', 'governed-by': 'Governed by', 'gated-by': 'Gated by', has: 'Has', refs: 'References', contradicts: 'Contradicts', resolves: 'Resolves', 'applies-to': 'Applies to', 'has-action': 'Actions', navigates: 'Navigates to', reads: 'Reads', writes: 'Writes', produced: 'Produced' };
+const INC: Record<string, string> = { refines: 'Refined by', 'satisfied-by': 'Satisfies', 'verified-by': 'Verifies', 'depends-on': 'Needed by', 'part-of': 'Contains', 'related-to': 'Related from', 'governed-by': 'Governs', 'gated-by': 'Gates', has: 'Belongs to', refs: 'Referenced by', contradicts: 'Contradicted by', resolves: 'Resolved by', 'applies-to': 'Applied by', 'has-action': 'Action of', navigates: 'Reached from', reads: 'Read by', writes: 'Written by', produced: 'Produced by' };
 
 export function PeekPanel() {
   const { product, index, openId, stack, cursor, open, back, go, togglePin, remove, close, hrefFor, showContext, editing, setPanelOpen } = usePeek();
@@ -80,7 +81,7 @@ export function PeekPanel() {
         <button className="linkish" onClick={() => requestSend({ refs: [openId], text: d ? nodeText(d.node.body) : entry?.title })}>Send to agent</button>
       </div>
       {d && (entry?.kind === 'goal' || entry?.kind === 'task')
-        ? <><TrackEditor key={entry.id} entry={entry} index={index} text={nodeText(d.node.body)} form={d.node.form} onSaved={() => setTick(t => t + 1)} /><Tracking entry={entry} index={index} inc={d.relations.inc} /></>
+        ? <><TrackEditor key={entry.id} entry={entry} index={index} text={nodeText(d.node.body)} form={d.node.form} onSaved={() => setTick(t => t + 1)} />{entry.sessions && entry.sessions.length > 0 && <Produced sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}<Tracking entry={entry} index={index} inc={d.relations.inc} /></>
         : d ? <NodeCard id={openId} body={d.node.body} entry={entry} /> : <p className="muted">Loading {openId}…</p>}
       {d && (
         <div className="peek-views">

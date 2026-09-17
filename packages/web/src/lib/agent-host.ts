@@ -184,3 +184,15 @@ function onCodexLine(l: Live, line: string) {
   if (type === 'turn.completed') { const u = j.usage as Record<string, number> | undefined; if (u) emit(l, { kind: 'note', text: `turn done · ${u.input_tokens ?? 0} in / ${u.output_tokens ?? 0} out tokens` }); return; }
   if (type === 'error' || type === 'turn.failed') emit(l, { kind: 'stderr', text: JSON.stringify(j.error ?? j).slice(0, 1000) });
 }
+
+// After a server restart, chat sessions the old process hosted are no longer running: close them once.
+const reconciled = new Set<string>();
+export async function reconcileStale(productDir: string): Promise<void> {
+  if (reconciled.has(productDir)) return; reconciled.add(productDir);
+  const { listSessions } = await import('./sessions');
+  for (const s of await listSessions(productDir)) {
+    if (s.status === 'running' && s.mode === 'chat' && s.runner?.startsWith('app@') && s.runner !== `app@${process.pid}` && !isLive(s.id)) {
+      await updateSession(productDir, s.id, { status: 'done', line: 'the app restarted; resume to continue with the same context' }).catch(() => {});
+    }
+  }
+}

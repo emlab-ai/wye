@@ -1059,6 +1059,19 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     come from, a send-to-agent action, and open/all filters.
   source: packages/web/src/app/[product]/questions/page.tsx; packages/web/src/components/QuestionList.tsx
   status: shipped
+- id: rule:task-artifacts
+  statement: >
+    A session's output is traceable from the task it worked on. While a session runs, the app records what it
+    produced: documents written on disk (credited by the watcher to every running session of the product, except
+    the app's own task-link writes), nodes it changed through the node API (the wf CLI sends its session id in
+    x-wf-session), and inbox items it filed (they carry the session id). Tasks among the session's refs get
+    `(session: <ids>, produced: module:…)` in their property group — `produced` is an edge — and marking a task
+    done with wf node set adds the session too. The task's panel shows a Produced section: the sessions (with
+    status and result), the documents, the nodes changed and the inbox items (questions, decisions) with their
+    review status. An html comment ends a prose node's text, so tables' closing markers never leak into a task.
+  source: packages/web/src/lib/artifacts.ts; packages/web/src/components/Produced.tsx; lib/parse.js
+  status: shipped
+  verified-by: [test:prose]
 - id: decision:wf2.desktop-electron
   title: Waterfall ships as an Electron desktop app that owns the app server and the agent processes
   context: Running full conversations with Claude Code and Codex means owning long-lived local processes with file-system access; a browser tab cannot do that, and people want one thing to open.

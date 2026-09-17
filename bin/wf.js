@@ -39,7 +39,8 @@ const die = (m, code = 1) => { console.error(m); process.exit(code); };
 const product = () => flags.product || process.env.WF_PRODUCT || die('--product <slug> (or WF_PRODUCT) is required');
 
 async function api(method, p, body) {
-  const r = await fetch(WF_URL + p, { method, headers: body ? { 'content-type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+  const headers = { ...(body ? { 'content-type': 'application/json' } : {}), ...(process.env.WF_SESSION ? { 'x-wf-session': process.env.WF_SESSION } : {}) };
+  const r = await fetch(WF_URL + p, { method, headers, body: body ? JSON.stringify(body) : undefined });
   if (r.status === 204) return null;
   const text = await r.text(); let j; try { j = JSON.parse(text); } catch { j = { raw: text }; }
   if (!r.ok) throw new Error(`${method} ${p} → ${r.status}: ${j.message || j.error || text.slice(0, 200)}`);

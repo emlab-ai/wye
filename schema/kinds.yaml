@@ -44,6 +44,7 @@ verbs:
   edge-to:      module → module   (boundary; described only at the border)
   part-of:      module → module   (a document declares its parent document; the inverse of has, used for the document tree)
   related-to:   any → any         (a link on a phrase or a bare id inside a prose node whose preceding words name no verb)
+  produced:     task → module     (documents a session produced while working on the task; written by the app as `(session: id, produced: module:x)`)
   see:          req → req          (alias, no duplication)
   mentions:     generated — any node whose text names another node or a field; weak edge, hidden by default in the viewer
 

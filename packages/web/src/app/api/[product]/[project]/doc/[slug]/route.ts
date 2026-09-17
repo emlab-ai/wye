@@ -4,6 +4,7 @@ import { loadScope, treeFor } from '@/lib/scope';
 import { loadMarkdown } from '@/lib/load';
 import { REPO_ROOT } from '@/lib/products';
 import { docRoute, splitDocument } from '@/lib/doc';
+import { recordArtifact } from '@/lib/artifacts';
 import { appendChunk, bodyOf, hashOf, insertYamlAfterSegment, lint, patchFrontmatter, rebuild, replaceBody, replaceChunk, replaceSegment, writeAtomic, type WriteResult } from '@/lib/write';
 
 type Op =
@@ -31,6 +32,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
   const { product, project, slug } = await params;
   const hit = await locate(product, project, slug); if (!hit) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const body = (await req.json()) as Op;
+  const session = req.headers.get('x-wf-session'); if (session) recordArtifact(hit.scope.product.dir, session, { doc: hit.d.module.id }).catch(() => {});
   const md = await loadMarkdown(REPO_ROOT, hit.d.file);
   let r: WriteResult;
   switch (body.op) {

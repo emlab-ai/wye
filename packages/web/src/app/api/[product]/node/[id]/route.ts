@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
 import { loadScope } from '@/lib/scope';
 import { relations, neighborhood } from '@/lib/graph';
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-import { REPO_ROOT } from '@/lib/products';
-import { patchNodeLine } from '@/lib/node-line';
-import { rebuild, writeAtomic, withFileLock } from '@/lib/write';
+import { editNode, type NodePatch } from '@/lib/node-edit';
+import { recordArtifact } from '@/lib/artifacts';
 
 export async function GET(req: Request, { params }: { params: Promise<{ product: string; id: string }> }) {
   const { product, id: raw } = await params; const id = decodeURIComponent(raw);
@@ -20,24 +17,17 @@ export async function GET(req: Request, { params }: { params: Promise<{ product:
 }
 
 // PUT { status?, text?, props?: { key: value | null } } → edits the prose line that defines the node in place, then
-// rebuilds the product graph. Yaml-form nodes are not editable this way (edit them in their document).
+// rebuilds the product graph. A session (header x-wf-session, set by the wf CLI from WF_SESSION) is recorded on
+// tasks it completes and gets the node in its artifacts.
 export async function PUT(req: Request, { params }: { params: Promise<{ product: string; id: string }> }) {
   const { product, id: raw } = await params; const id = decodeURIComponent(raw);
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const node = scope.idx.byId.get(id); if (!node || !node.defined) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  if (node.form !== 'prose') return NextResponse.json({ error: 'invalid', message: 'only prose-form nodes can be edited here' }, { status: 422 });
-  const patch = (await req.json()) as { status?: string; text?: string; props?: Record<string, string | null> };
-  const abs = path.join(REPO_ROOT, node.file);
-  return withFileLock(abs, async () => {
-    const lines = (await readFile(abs, 'utf8')).split('\n');
-    // the graph's line number is 1-based; guard against drift by checking the id is on that line, else search
-    let i = node.line - 1;
-    const defines = (l: string) => new RegExp('^(\\s*(?:[-*+]|\\d+[.)])\\s+(?:\\[[ xX]\\]\\s+)?|\\|\\s*)?' + id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=\\s)').test(l);
-    if (!lines[i] || !defines(lines[i])) i = lines.findIndex(defines);
-    if (i < 0) return NextResponse.json({ error: 'not_found', message: 'defining line not found' }, { status: 404 });
-    const next = patchNodeLine(lines[i], patch);
-    if (next === null) return NextResponse.json({ error: 'invalid', message: 'the defining line is not a prose node line' }, { status: 422 });
-    if (next !== lines[i]) { lines[i] = next; await writeAtomic(abs, lines.join('\n')); await rebuild(scope.product.dir); }
-    return NextResponse.json({ ok: true, line: next, file: node.file });
-  });
+  const patch = (await req.json()) as NodePatch;
+  const session = req.headers.get('x-wf-session') ?? undefined;
+  if (session && id.startsWith('task:') && patch.status === 'done') patch.props = { ...(patch.props ?? {}), session: addToken((scope.idx.byId.get(id)?.body.match(/^session:\s*(.+)$/m)?.[1] ?? ''), session) };
+  const r = await editNode(scope, id, patch);
+  if (!r.ok) return NextResponse.json({ error: r.error, message: r.message }, { status: r.error === 'not_found' ? 404 : 422 });
+  if (session) recordArtifact(scope.product.dir, session, { node: id }).catch(() => {});
+  return NextResponse.json({ ok: true, line: r.line, file: r.file });
 }
+const addToken = (cur: string, t: string) => [...new Set([...cur.split(/\s+/).filter(Boolean), t])].join(' ');
