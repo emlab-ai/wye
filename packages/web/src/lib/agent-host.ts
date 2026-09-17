@@ -7,6 +7,7 @@ import type { ChatEvent, Session } from './session-types';
 import { loadScope } from './scope';
 import { resolveLink, renderResolved } from './resolve';
 import { REPO_ROOT } from './products';
+import { agentSystemPrompt } from './agent-prompt';
 
 type Live = { id: string; productDir: string; agent: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; queue: string[]; codexThread?: string };
 const g = globalThis as unknown as { __wfAgentHost?: Map<string, Live> };
@@ -50,13 +51,19 @@ export async function startChat(productDir: string, product: string, id: string,
   const l: Live = { id, productDir, agent: s.agent, proc: null, subs: new Set(), pending: [], flush: null, agentSessionId: s.agentSessionId, turnBusy: false, queue: [] };
   live().set(id, l);
   const first = opts.firstMessage ?? (opts.resume ? undefined : await buildPrompt(product, s, opts.wfUrl));
+  const system = await agentSystemPrompt(product, productDir, opts.wfUrl);
   await updateSession(productDir, id, { status: 'running', runner: `app@${process.pid}`, line: opts.resume ? 'resumed' : 'started in the app', cwd });
-  if (s.agent === 'codex') { emit(l, { kind: 'note', text: `codex in ${cwd}` }); if (first) codexTurn(l, cwd, first); return getSession(productDir, id); }
-  const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--permission-prompt-tool', 'stdio', '--replay-user-messages'];
+  if (s.agent === 'codex') {
+    // codex exec has no system-prompt flag: the contract opens the first turn
+    emit(l, { kind: 'note', text: `codex in ${cwd}` });
+    if (first) codexTurn(l, cwd, l.codexThread ? first : `${system}\n\n---\n\n${first}`);
+    return getSession(productDir, id);
+  }
+  const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--permission-prompt-tool', 'stdio', '--replay-user-messages', '--append-system-prompt', system, '--add-dir', REPO_ROOT];
   if (opts.resume && s.agentSessionId) args.push('--resume', s.agentSessionId);
-  const proc = spawn('claude', args, { cwd, env: { ...process.env, WF_URL: opts.wfUrl, WF_PRODUCT: product } });
+  const proc = spawn('claude', args, { cwd, env: { ...process.env, WF_URL: opts.wfUrl, WF_PRODUCT: product, WF_SESSION: id } });
   l.proc = proc;
-  emit(l, { kind: 'note', text: `claude ${opts.resume ? 'resumed' : 'started'} in ${cwd}` });
+  emit(l, { kind: 'note', text: `claude ${opts.resume ? 'resumed' : 'started'} in ${cwd} · Waterfall contract applied as system prompt` });
   let buf = '';
   proc.stdout.on('data', d => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) onClaudeLine(l, line); } });
   proc.stderr.on('data', d => { const t = String(d).trim(); if (t) emit(l, { kind: 'stderr', text: t.slice(0, 2000) }); });
@@ -131,7 +138,7 @@ export function stopChat(id: string): boolean {
 function codexTurn(l: Live, cwd: string, text: string) {
   emit(l, { kind: 'user', text });
   const args = l.codexThread ? ['exec', 'resume', l.codexThread, '--json', text] : ['exec', '--json', '--sandbox', 'workspace-write', text];
-  const proc = spawn('codex', args, { cwd, env: { ...process.env } });
+  const proc = spawn('codex', args, { cwd, env: { ...process.env, WF_SESSION: l.id, WF_PRODUCT: l.productDir.split('/').pop() } });
   l.proc = proc; l.turnBusy = true;
   let buf = '';
   proc.stdout.on('data', d => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) onCodexLine(l, line); } });

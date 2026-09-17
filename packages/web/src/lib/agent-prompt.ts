@@ -1,0 +1,14 @@
+// The system prompt every agent started by Waterfall receives: the shared contract (prompts/agent-system.md) plus
+// the product's own instructions (data/products/<product>/_agent.md) when present.
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { REPO_ROOT } from './products';
+
+export async function agentSystemPrompt(product: string, productDir: string, wfUrl: string): Promise<string> {
+  let base = '';
+  try { base = await readFile(path.join(REPO_ROOT, 'prompts/agent-system.md'), 'utf8'); } catch { base = '# Waterfall contract\nWaterfall is the source of truth for product knowledge. Read it before acting (`wf context`, `wf resolve`) and record every decision, requirement, rule and task back into it.'; }
+  let own = '';
+  try { own = await readFile(path.join(productDir, '_agent.md'), 'utf8'); } catch { /* none */ }
+  const env = `\n\n## This product\n- product: \`${product}\` (WF_PRODUCT=${product}); Waterfall repo: ${REPO_ROOT}; app: ${wfUrl}\n- documents: ${REPO_ROOT}/data/products/${product}/projects/<project>/docs/*.md; graph check: \`ctx --root data/products/${product} check\` (run from ${REPO_ROOT})\n- the \`wf\` CLI is on PATH (WF_URL=${wfUrl})`;
+  return base.trim() + env + (own.trim() ? `\n\n## Product instructions\n${own.trim()}` : '') + '\n';
+}

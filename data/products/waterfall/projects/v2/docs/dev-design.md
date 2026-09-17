@@ -1033,6 +1033,44 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   consequences: Electron adds ~250 MB of binary per platform; packaging and auto-update are not set up yet.
   status: approved
   date: 2026-09-17
+- id: rule:agent-contract
+  statement: >
+    Every agent Waterfall starts receives the Waterfall contract as its system prompt (prompts/agent-system.md, plus
+    data/products/<product>/_agent.md, served at /api/<product>/agent-prompt): read Waterfall before acting (wf
+    context / resolve / doc, ctx packet), cite node ids, and record knowledge — every decision made by the person
+    or the agent above all, plus new requirements, rules and questions — in the product inbox with `wf inbox add`,
+    never directly into the documents. Statuses of existing nodes may be set directly. Claude Code gets it via
+    --append-system-prompt (+ --add-dir for the Waterfall repo); Codex gets it on top of the first turn; runners
+    fetch it from the API.
+  source: prompts/agent-system.md; packages/web/src/lib/agent-prompt.ts; packages/web/src/lib/agent-host.ts; bin/wf.js
+  status: shipped
+- id: rule:inbox-review
+  statement: >
+    The inbox holds knowledge candidates: typed items (decision, requirement, rule, question, note) with fields
+    (context/choice/alternatives/consequences, when/then, statement/source, q), refs, the session that produced
+    them, and a status (new, filed, dismissed), as markdown files under data/products/<product>/inbox/. Nothing
+    enters a document without review: the Inbox page suggests a home (the document where the closest existing
+    knowledge lives, by local semantic search; the kind's home document breaks ties) and an id, shows the closest
+    nodes so duplicates get refined instead of added, and "File as node" appends a yaml node to the chosen document
+    and rebuilds the graph; "Dismiss" keeps the item for the record. Automatic filing by the clerk is a later step.
+  source: packages/web/src/lib/inbox.ts; packages/web/src/components/InboxList.tsx; packages/web/src/app/api/[product]/inbox
+  status: shipped
+- id: decision:wf2.inbox-before-documents
+  title: Agents record knowledge in an inbox that is reviewed before it enters the documents
+  context: Letting agents write decisions and requirements straight into the PRD or tech design produced edits nobody had checked, in places nobody had chosen.
+  choice: Agents (and people) drop typed items into the product inbox; a reviewer — a person now, the clerk later — files each item into the right document as a node or dismisses it. Only statuses of existing nodes are changed directly by agents.
+  alternatives: [direct edits with a git-style review — heavier and the graph would carry unreviewed nodes meanwhile, a decisions-only log document — loses the review step and the placement question]
+  consequences: Knowledge documents stay curated; the inbox needs regular review or it piles up, which is what the automatic clerk is for.
+  status: approved
+  date: 2026-09-17
+- id: rule:app-navigation
+  statement: >
+    The app frame has a collapsible rail (hidden by default on document and session pages, shown elsewhere; toggle
+    button bottom-left or ⌘\; remembered per browser) and, when the right column is open, a draggable splitter
+    between content and column (width remembered; the column keeps at least 320 px and the content at least 360 px,
+    re-clamped on resize and rail toggle).
+  source: packages/web/src/components/Shell.tsx
+  status: shipped
 - id: decision:wf2.agents-via-cli
   title: Agents integrate through a CLI over the web app's HTTP API, not through an MCP server or direct file access
   context: Claude Code and Codex both run shell commands well; sessions, links and knowledge must reach any agent the same way, and writes must go through the app so the graph rebuilds and locks hold.

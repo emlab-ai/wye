@@ -8,6 +8,10 @@
 //   wf node <id> [--product p]           a node with its relations
 //   wf node set <id> --product p [--status s] [--text t] [--set key=value ...] [--unset key ...]
 //   wf context "<text>" --product p      knowledge closest to a text (local semantic search)
+//   wf inbox add --product p --type decision|requirement|rule|question|note --title "…" [--context …] [--choice …]
+//        [--alternatives …] [--consequences …] [--when …] [--then …] [--statement …] [--q …] [--ref id ...] [--session id]
+//        (or the body on stdin)          record knowledge for review; a person (or the clerk) files it into a document
+//   wf inbox list --product p [--all]    what is waiting for review
 //   wf session list --product p [--all]  sessions (active first); runners online
 //   wf session show <id> --product p     one session with its log (--full for everything)
 //   wf session create --product p --agent a "<instruction>" [--ref id ...] [--link url]
@@ -41,7 +45,16 @@ async function api(method, p, body) {
   if (!r.ok) throw new Error(`${method} ${p} → ${r.status}: ${j.message || j.error || text.slice(0, 200)}`);
   return j;
 }
-const readStdin = () => new Promise(res => { let s = ''; process.stdin.setEncoding('utf8'); process.stdin.on('data', d => { s += d; }); process.stdin.on('end', () => res(s)); });
+// stdin as text: nothing when it is a terminal, and never wait forever when nothing is piped (agents run in shells
+// whose stdin is open but silent) — the first byte must arrive within a second.
+const readStdin = () => new Promise(res => {
+  if (process.stdin.isTTY) return res('');
+  let s = ''; let started = false;
+  const timer = setTimeout(() => { if (!started) { process.stdin.pause(); res(''); } }, 1000);
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', d => { started = true; clearTimeout(timer); s += d; });
+  process.stdin.on('end', () => { clearTimeout(timer); res(s); });
+});
 const out = o => console.log(flags.json ? JSON.stringify(o, null, 2) : typeof o === 'string' ? o : JSON.stringify(o, null, 2));
 
 // product/project/doc → parts; a full URL works too
@@ -96,6 +109,19 @@ const commands = {
     const text = pos[1] || (await readStdin()); const j = await api('POST', `/api/${product()}/context`, { text, limit: Number(flags.limit || 10) });
     if (flags.json) return out(j);
     for (const h of j.hits) console.log(`${Math.round(h.score * 100).toString().padStart(3)}%  ${h.id}  ${h.snippet.slice(0, 100)}`);
+  },
+  async inbox() {
+    const p = product();
+    if (pos[1] === 'add') {
+      const fields = {}; for (const k of ['context', 'choice', 'alternatives', 'consequences', 'when', 'then', 'unless', 'statement', 'source', 'q']) if (flags[k]) fields[k] = String(flags[k]);
+      const text = pos[2] || (process.stdin.isTTY ? '' : await readStdin());
+      if (!flags.title && !text && !Object.keys(fields).length) die('wf inbox add --type t --title "…" [fields] (or body on stdin)');
+      const j = await api('POST', `/api/${p}/inbox`, { type: flags.type || 'note', title: flags.title || '', text, from: flags.from || (process.env.WF_SESSION ? `agent session ${process.env.WF_SESSION}` : 'agent'), refs: list(flags.ref), session: flags.session || process.env.WF_SESSION, fields });
+      return out(flags.json ? j : `inbox: ${j.name} (waiting for review at ${WF_URL}/${p}/inbox)`);
+    }
+    const j = await api('GET', `/api/${p}/inbox`); if (flags.json) return out(j);
+    for (const i of j.items.filter(i => flags.all || i.status === 'new')) console.log(`${i.status.padEnd(9)} ${i.type.padEnd(11)} ${i.added.slice(0, 16)}  ${i.title}${i.node ? '  → ' + i.node : ''}`);
+    return;
   },
   async session() {
     const sub = pos[1]; const p = product();
@@ -155,8 +181,13 @@ const commands = {
       const log = lines => api('PATCH', `/api/${p}/sessions/${s.id}`, { lines }).catch(() => {});
       let prompt;
       try { prompt = await buildPrompt(p, s); } catch (e) { await api('PATCH', `/api/${p}/sessions/${s.id}`, { status: 'failed', line: `could not build the prompt: ${e.message}` }); busy = null; continue; }
-      await log([`runner ${name} starting: ${cmd}`]);
-      const code = await runCommand(cmd, prompt, log, flags.cwd || process.cwd(), p);
+      // the Waterfall contract: claude takes it as an appended system prompt, other agents get it on top of the prompt
+      let system = ''; try { system = await (await fetch(`${WF_URL}/api/${p}/agent-prompt`)).text(); } catch { /* no contract available */ }
+      let fullCmd = cmd; let fullPrompt = prompt;
+      if (system && agent === 'claude-code') { const f = path.join(os.tmpdir(), `wf-system-${s.id}.md`); fs.writeFileSync(f, system); fullCmd = `${cmd} --append-system-prompt-file "${f}" --add-dir "${flags['waterfall-root'] || process.env.WF_ROOT || process.cwd()}"`; }
+      else if (system) fullPrompt = `${system}\n\n---\n\n${prompt}`;
+      await log([`runner ${name} starting: ${fullCmd}`]);
+      const code = await runCommand(fullCmd, fullPrompt, log, flags.cwd || process.cwd(), p, s.id);
       await api('PATCH', `/api/${p}/sessions/${s.id}`, { status: code === 0 ? 'done' : 'failed', line: `exit code ${code}` }).catch(() => {});
       console.log(`■ session ${s.id} ${code === 0 ? 'done' : 'failed (' + code + ')'}`);
       busy = null; await beat();
@@ -191,9 +222,9 @@ function renderResolved(ref, j) {
   return `${head}\n(the whole document, ${j.length} chars — read it with wf doc ${j.product}/${j.project}/${j.doc})`;
 }
 // Run the agent command with the prompt on stdin; every stdout/stderr line goes to the session log (batched).
-function runCommand(cmd, prompt, log, cwd, productEnv) {
+function runCommand(cmd, prompt, log, cwd, productEnv, sessionId) {
   return new Promise(resolve => {
-    const child = spawn(cmd, { shell: true, cwd, env: { ...process.env, WF_URL, WF_PRODUCT: productEnv } });
+    const child = spawn(cmd, { shell: true, cwd, env: { ...process.env, WF_URL, WF_PRODUCT: productEnv, WF_SESSION: sessionId } });
     let buf = []; let timer = null;
     const flush = () => { if (buf.length) { const b = buf; buf = []; log(b); } timer = null; };
     const onData = d => { for (const line of String(d).split('\n')) { if (!line.trim()) continue; process.stdout.write('  ' + line + '\n'); buf.push(line.slice(0, 2000)); } if (!timer) timer = setTimeout(flush, 800); };

@@ -5,6 +5,12 @@ description: How an agent works with Waterfall through the wf CLI — resolve a 
 
 # Working in Waterfall
 
+The full contract is `prompts/agent-system.md` in the Waterfall repo (also served at `$WF_URL/api/<product>/agent-prompt`).
+The short version: read Waterfall before you act, and **record every decision — the person's or yours — in the
+product inbox before moving on** (`wf inbox add --type decision --title … --choice …`), plus every new
+requirement, rule and question. Knowledge documents are maintained through review: agents do not add nodes to them
+directly, only the reviewer files inbox items. Statuses of existing nodes may be set directly (`wf node set`).
+
 Waterfall keeps a product's knowledge (goals, requirements, rules, decisions, entities, tasks) as markdown documents
 with a graph on top, and a web app that people and agents share. `wf` is the CLI; it talks to the running web app
 (`WF_URL`, default http://localhost:3456). `WF_PRODUCT` names the product when a link does not.
@@ -24,15 +30,14 @@ A link like `…/yessensei/offline/d/prd#n-goal%3Aoffline.g2` points at a node; 
 
 ## Write back
 
-- Small changes to a goal, task or any prose node: `wf node set <id> --status done --set owner=alex --set due=2026-10 --text "new text"`
+- New knowledge → the inbox, for review: `wf inbox add --type decision|requirement|rule|question|note --title "…"
+  [--context … --choice … --alternatives … --consequences …] [--when … --then …] [--statement … --source …] [--q …]
+  --ref <ids>`. `wf inbox list` shows what waits.
+- Statuses and tracking fields of existing nodes: `wf node set <id> --status done --set owner=alex --set due=2026-10`
   (edits the defining line in place; `--unset key` removes a property; the graph rebuilds).
-- Larger edits: change the markdown file under `data/products/<product>/projects/<project>/docs/` directly, or
-  `wf doc write <product/project/doc> --file new.md` for a whole body. Keep node ids stable; a line that starts with
-  an id defines that node (`req:x …`, `- [ ] task:y …`, `goal:z … #on-track (target: 2026-10)`).
-- New knowledge goes where its kind lives: goals/requirements/questions in the PRD, entities/rules/decisions in the
-  tech design, tests in the test design, tasks in the plan. Link with ids in the text ("part of goal:x",
-  "depends on entity:y").
-- Run `ctx --root data/products/<product> check` before finishing: 0 errors.
+- Editing the documents themselves (`wf doc write`, or the markdown under `data/products/<product>/projects/<project>/docs/`)
+  only when the person asks for it; keep node ids stable; a line that starts with an id defines that node; run
+  `ctx --root data/products/<product> check` afterwards: 0 errors.
 
 ## Sessions (when you were started by a runner, or asked to work on one)
 

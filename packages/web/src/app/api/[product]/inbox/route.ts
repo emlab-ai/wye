@@ -1,19 +1,18 @@
 import { NextResponse } from 'next/server';
-import { mkdir } from 'node:fs/promises';
-import path from 'node:path';
 import { getProduct } from '@/lib/products';
-import { slugify } from '@/lib/templates';
-import { writeAtomic } from '@/lib/write';
+import { addInboxItem, listInboxItems } from '@/lib/inbox';
 
-// Add a note to the inbox: POST { title?, text, from? } → writes inbox/<timestamp>-<slug>.md
+// GET → the inbox items. POST { type?, title?, text?, from?, refs?, session?, fields? } → adds one (agents: wf inbox add).
+export async function GET(_req: Request, { params }: { params: Promise<{ product: string }> }) {
+  const { product } = await params;
+  const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  return NextResponse.json({ items: await listInboxItems(p.dir) }, { headers: { 'cache-control': 'no-store' } });
+}
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const body = (await req.json()) as { title?: string; text?: string; from?: string };
-  const text = (body.text ?? '').trim(); if (!text) return NextResponse.json({ error: 'invalid', message: 'text required' }, { status: 422 });
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const name = `${stamp}-${slugify(body.title || text.slice(0, 40))}.md`;
-  const dir = path.join(p.dir, 'inbox'); await mkdir(dir, { recursive: true });
-  await writeAtomic(path.join(dir, name), `---\ntitle: ${body.title ?? ''}\nfrom: ${body.from ?? 'ui'}\nadded: ${new Date().toISOString()}\n---\n\n${text}\n`);
-  return NextResponse.json({ ok: true, name });
+  const body = (await req.json()) as { type?: string; title?: string; text?: string; from?: string; refs?: string[]; session?: string; fields?: Record<string, string> };
+  if (!(body.title ?? '').trim() && !(body.text ?? '').trim() && !Object.values(body.fields ?? {}).some(v => v?.trim())) return NextResponse.json({ error: 'invalid', message: 'a title, text or fields are required' }, { status: 422 });
+  const name = await addInboxItem(p.dir, body);
+  return NextResponse.json({ ok: true, name }, { status: 201 });
 }
