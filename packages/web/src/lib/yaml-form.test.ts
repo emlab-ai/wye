@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { bodyToFields, fieldsToBody } from './yaml-form';
+import { bodyToFields, fieldsToBody, setBodyField } from './yaml-form';
 
 const body = `id: req:m.a
 title: A
@@ -47,5 +47,14 @@ fields:
     const out = fieldsToBody('rule:x', [{ key: 'statement', value: 'w '.repeat(70).trim(), kind: 'prose' }, { key: 'source', value: '', kind: 'text' }]);
     expect(out.startsWith('id: rule:x\nstatement: >\n  ')).toBe(true);
     expect(out).not.toContain('source');
+  });
+});
+
+describe('setBodyField', () => {
+  it('adds, replaces and removes a prose field without touching the others', () => {
+    const body = 'id: question:x\ntitle: T\nq: Why?\nstatus: open\nrelated-to: [goal:a]';
+    expect(setBodyField(body, 'answer', 'Because.')).toBe('id: question:x\ntitle: T\nq: Why?\nanswer: Because.\nstatus: open\nrelated-to: [goal:a]');
+    expect(setBodyField(body, 'q', 'Why not?')).toBe('id: question:x\ntitle: T\nq: Why not?\nstatus: open\nrelated-to: [goal:a]');
+    expect(setBodyField(setBodyField(body, 'answer', 'x'), 'answer', '')).toBe(body);
   });
 });

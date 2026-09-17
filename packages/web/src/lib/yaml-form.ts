@@ -56,3 +56,13 @@ function wrap(text: string, width: number): string[] {
   if (cur) lines.push(cur);
   return lines;
 }
+
+// Set (or remove) one prose field of a chunk body, keeping every other field as written.
+export function setBodyField(body: string, key: string, value: string): string {
+  const { id, fields } = bodyToFields(body);
+  const i = fields.findIndex(f => f.key === key);
+  if (!value.trim()) { if (i >= 0) fields.splice(i, 1); }
+  else if (i >= 0) fields[i] = { ...fields[i], value, kind: fields[i].kind === 'list' || fields[i].kind === 'nested' ? fields[i].kind : 'prose' };
+  else { const at = fields.findIndex(f => f.key === 'status'); const f = { key, value, kind: 'prose' as const }; if (at >= 0) fields.splice(at, 0, f); else fields.push(f); }
+  return fieldsToBody(id, fields);
+}

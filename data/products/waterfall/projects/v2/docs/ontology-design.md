@@ -61,7 +61,7 @@ Five words, all of them nodes:
 
 | Term | What it is | Id form | Example |
 |---|---|---|---|
-| **node** | anything with an id: a card, a prose line, a document, a block, a type, a property | `kind:slug` (kind = type slug) | `req:wf2.ui.node-page`, `person:ana` |
+| **node** | anything with an id: a card, a prose line, a document, a block, a type, a property | `kind:slug` (kind = type slug) | req:wf2.ui.node-page, `person:ana` |
 | **type** | a kind. Declares which properties instances have and which type it extends | `type:<slug>` | `type:person`, `type:employee` |
 | **property** | a named, typed slot on a type; instances fill it | `prop:<type>.<name>` (generated, like `field:` today) | `prop:team.members` |
 | **link** | a property whose value type is a node type (one or many); the property name is the verb | edge `from -(name)-> to` | `team:platform -(members)-> person:ana` |
@@ -170,8 +170,7 @@ Cost: a graph of 3 344 lines becomes roughly 1 500 more nodes. The parser is lin
 
 ### Checks (`ctx check`)
 
-Errors: unknown type in an id prefix; `extends` cycle; unknown parent; widening override; `ref`/`list of` value that is not a node of the declared type (transitively); duplicate `type:` id.
-Warnings: required property missing; undeclared property on an instance; property whose value does not parse as its type; inverse name that clashes with a declared property on the target type.
+Errors: unknown type in an id prefix; `extends` cycle; unknown parent; widening override; `ref`/`list of` value that is not a node of the declared type (transitively); duplicate `type:` id. Warnings: required property missing; undeclared property on an instance; property whose value does not parse as its type; inverse name that clashes with a declared property on the target type.
 
 ### Phases
 
@@ -267,9 +266,11 @@ Open questions, as question blocks (answer each with a decision block, then reso
 - id: question:ontology.q1
   title: Ontology Q1: one type per instance, and what does team1:team mean?
   q: >
-    module:ontology writes instances as team1:team (slug first). Is that a wish for slug-first ids or shorthand for team:team1? And when an instance needs two types (a person who is also a supplier), is extends enough or do we need Tana-style multiple tags on one node?
+    module:ontology writes instances as team1:team (slug first). Is that a wish for slug-first ids or shorthand
+    for team:team1? And when an instance needs two types (a person who is also a supplier), is extends enough or
+    do we need Tana-style multiple tags on one node?
   status: open
-  related-to: [module:ontology,module:ontology-design]
+  related-to: [module:ontology, module:ontology-design]
   session: 7cbfbe5976
 - id: question:ontology.q2
   title: Ontology Q2: are types product-local or shared across products?
