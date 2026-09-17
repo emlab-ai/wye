@@ -406,3 +406,4 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .prop-edit tr.inherited td { color: var(--muted); } .prop-edit .x { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 14px; } .prop-edit .x:hover { color: var(--bad); }
 .prop-edit-bar { display: flex; align-items: center; gap: 10px; margin: 6px 0 0; font-size: 12px; } .prop-edit-bar .save { font: inherit; padding: 3px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--accent); color: #fff; cursor: pointer; } .prop-edit-bar .bad { color: var(--bad); }
 .props .small { font-size: 11px; margin: 8px 0 0; }
+.klist-click li { cursor: pointer; border-radius: 8px; padding: 10px 8px; margin: 0 -8px; } .klist-click li:hover { background: var(--sunk); } .klist-click li:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
