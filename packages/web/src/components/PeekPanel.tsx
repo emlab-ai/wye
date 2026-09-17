@@ -14,6 +14,7 @@ import { KIND_ORDER } from '@/lib/knowledge';
 import { ProgressBar } from './Progress';
 import { TrackEditor } from './TrackEditor';
 import { Produced } from './Produced';
+import { DocPeek } from './DocPeek';
 import type { GraphNode } from '@/lib/graph';
 import type { IndexEntry } from '@/lib/doc';
 
@@ -72,6 +73,18 @@ export function PeekPanel() {
   );
   const entry = index[openId];
   const def = hrefFor(openId);
+  if (entry?.kind === 'module' && def) return (
+    <aside className="peek" role="dialog" aria-label={openId}>
+      {chips}
+      <div className="peek-bar">
+        <Link href={def.replace(/#.*$/, '')} className="pri-link">Open document →</Link>
+        <Link href={`/${product}/graph?focus=${encodeURIComponent(openId)}&preset=Mechanics`}>Show in graph</Link>
+        <button className="linkish" onClick={() => requestSend({ refs: [openId], text: entry.title })}>Send to agent</button>
+      </div>
+      <DocPeek id={openId} href={def.replace(/#.*$/, '')} />
+      {d && <><div className="peek-views"><h4>Connected <span className="muted">{d.graph.nodes.length - 1}</span></h4></div><Relations out={d.relations.out} inc={d.relations.inc} index={index} /></>}
+    </aside>
+  );
   return (
     <aside className="peek" role="dialog" aria-label={openId}>
       {chips}
@@ -104,7 +117,8 @@ const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/
 
 // Every node connected to the open one, grouped by how it is connected, each row with its title and status.
 function Relations({ out, inc, index }: { out: [string, string[]][]; inc: [string, string[]][]; index: Record<string, IndexEntry> }) {
-  const groups = [...out.map(([v, ids]) => ({ key: 'o' + v, label: OUT[v] ?? `${v} →`, ids })), ...inc.map(([v, ids]) => ({ key: 'i' + v, label: INC[v] ?? `← ${v}`, ids }))];
+  // generated 'mentions' edges (a node's text naming a field) are noise next to real relations
+  const groups = [...out.filter(([v]) => v !== 'mentions').map(([v, ids]) => ({ key: 'o' + v, label: OUT[v] ?? `${v} →`, ids })), ...inc.filter(([v]) => v !== 'mentions').map(([v, ids]) => ({ key: 'i' + v, label: INC[v] ?? `← ${v}`, ids }))];
   const total = groups.reduce((n, g) => n + g.ids.length, 0);
   const rank = (id: string) => { const k = KIND_ORDER.indexOf(id.split(':')[0]); return k < 0 ? 99 : k; };
   if (!total) return <p className="muted rels-empty">Nothing links to or from this node yet.</p>;
