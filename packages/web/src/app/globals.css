@@ -455,3 +455,5 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .palette-plan { display: flex; align-items: center; gap: 6px; flex: 1; font-size: 12px; color: var(--ink-2); cursor: pointer; }
 .palette-go { font: 600 12px var(--font-m); padding: 6px 12px; border: 1px solid var(--line); border-radius: 7px; background: var(--accent); color: #fff; cursor: pointer; } .palette-go:disabled { opacity: .5; cursor: default; }
 .palette-msg { margin: 6px 4px 0; font-size: 12px; } .palette-hint { margin: 8px 4px 0; font-size: 11px; }
+.ev-know { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .ev-know .tags { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.session-know { align-items: center; } .session-know > small { margin-right: 2px; }

@@ -663,6 +663,21 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   refines: req:wf2.ui.live
   satisfied-by: [action:command-palette, rule:plan-first, op:session.open]
   verified-by: [ui-test:command-palette]
+- id: req:wf2.sessions.knowledge-changes
+  title: The session shows which part of the knowledge base it changed
+  when: >
+    an agent in a chat session finishes a turn (or the session ends) after writing documents or nodes of the
+    product — through wf doc write / wf node set, or by editing the markdown on disk
+  then: >
+    the turn-done row in the console lists what changed in that turn as tags (documents by module, nodes by id,
+    each opening in the context column), and the session header keeps a "Knowledge" strip with everything the
+    session changed so far, updated live — the same artifacts the task's Produced section shows
+    (rule:task-artifacts)
+  unless: >
+    the turn changed no document or node — then the row reads as before (time, cost)
+  status: shipped
+  refines: req:wf2.ui.live
+  satisfied-by: [action:see-knowledge, component:console, lib:artifacts]
 - id: req:wf2.sessions.questions
   title: The agent's questions reach the person and the answer reaches the agent
   when: an agent in a chat session asks the person a question (Claude Code's AskUserQuestion)

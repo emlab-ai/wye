@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import type { Session } from '@/lib/session-types';
@@ -23,6 +23,9 @@ export function SessionView({ id }: { id: string }) {
     load();
     return () => { live = false; if (timer) clearTimeout(timer); };
   }, [product, id]);
+  // what the session changed in the knowledge base so far: its artifacts, plus every `knowledge` event as it arrives
+  const [known, setKnown] = useState<string[]>([]);
+  const onKnowledge = useCallback((ids: string[]) => setKnown(k => [...new Set([...k, ...ids])]), []);
   const [handoff, setHandoff] = useState<{ agent: string; note: string } | null>(null);
   const doHandoff = async () => {
     if (!handoff) return;
@@ -33,6 +36,7 @@ export function SessionView({ id }: { id: string }) {
   if (s === undefined) return <p className="muted">Loading session…</p>;
   if (!s) return <p className="notice">Session {id} not found.</p>;
   const active = s.status === 'queued' || s.status === 'running';
+  const knowledge = [...new Set([...(s.artifacts?.docs ?? []), ...(s.artifacts?.nodes ?? []), ...known])];
   return (
     <div className="session">
       <div className="session-head">
@@ -54,9 +58,10 @@ export function SessionView({ id }: { id: string }) {
         </div>
       )}
       {s.refs.length > 0 && <div className="tags session-refs">{s.refs.map(r => <SmartTag key={r} id={r} />)}</div>}
+      {knowledge.length > 0 && <div className="tags session-know" title="documents and nodes this session changed"><small className="muted">knowledge</small>{knowledge.map(r => <SmartTag key={r} id={r} />)}</div>}
       {s.mode === 'chat' ? <details className="session-instr-fold"><summary className="muted">instruction</summary><pre className="session-instruction">{s.instruction}</pre></details> : <pre className="session-instruction">{s.instruction}</pre>}
       {s.source?.doc && <p className="muted session-src">from {s.source.project ? `${s.source.project} / ` : ''}{s.source.doc}</p>}
-      {s.mode === 'chat' && <Console session={s} onStatus={st => setS(x => x ? { ...x, status: st as Session['status'] } : x)} />}
+      {s.mode === 'chat' && <Console session={s} onStatus={st => setS(x => x ? { ...x, status: st as Session['status'] } : x)} onKnowledge={onKnowledge} />}
       {s.mode !== 'chat' && <><h5>Log {active && <span className="live-dot" title="following" />}</h5>
       <pre className="session-log">{s.log.map((l, i) => <span key={i}><time>{new Date(l.t).toLocaleTimeString()}</time> {l.line}{'\n'}</span>)}{s.status === 'queued' && <span className="muted">waiting for an agent runner to pick this up…{'\n'}</span>}</pre></>}
       {s.result && s.mode !== 'chat' && <><h5>Result</h5><pre className="session-result">{s.result}</pre></>}

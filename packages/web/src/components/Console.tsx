@@ -7,9 +7,10 @@ import { usePeek } from './PeekProvider';
 import { useRouter } from 'next/navigation';
 import type { ChatEvent, Session } from '@/lib/session-types';
 import { AttachStrip, useImageAttachments } from './Attachments';
+import { SmartTag } from './SmartTag';
 
 // The live conversation with an agent: every event of the transcript, streamed over SSE, plus a message box.
-export function Console({ session, onStatus }: { session: Session; onStatus: (s: string) => void }) {
+export function Console({ session, onStatus, onKnowledge }: { session: Session; onStatus: (s: string) => void; onKnowledge?: (ids: string[]) => void }) {
   const { product } = usePeek();
   const [events, setEvents] = useState<ChatEvent[]>(session.transcript ?? []);
   const [live, setLive] = useState(false);
@@ -34,11 +35,11 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
     const es = new EventSource(`/api/${product}/sessions/${id}/stream`);
     es.addEventListener('snapshot', e => { const j = JSON.parse((e as MessageEvent).data); setEvents(j.transcript); setLive(j.live); if (j.queue) setQueue(j.queue); });
     es.addEventListener('queue', e => setQueue(JSON.parse((e as MessageEvent).data)));
-    es.addEventListener('event', e => { const ev = JSON.parse((e as MessageEvent).data) as ChatEvent; setEvents(evs => [...evs, ev]); if (ev.kind === 'open' && ev.text) router.push(ev.text); if (ev.kind === 'exit') { setLive(false); onStatus(ev.code === 0 ? 'done' : 'failed'); } if (ev.kind === 'init') setLive(true); });
+    es.addEventListener('event', e => { const ev = JSON.parse((e as MessageEvent).data) as ChatEvent; setEvents(evs => [...evs, ev]); if (ev.kind === 'open' && ev.text) router.push(ev.text); if (ev.kind === 'exit') { setLive(false); onStatus(ev.code === 0 ? 'done' : 'failed'); } if (ev.kind === 'init') setLive(true); if (ev.kind === 'knowledge' && ev.refs?.length) onKnowledge?.(ev.refs); });
     es.addEventListener('ping', e => { const j = JSON.parse((e as MessageEvent).data); setLive(j.live); });
     es.onerror = () => { /* the browser reconnects */ };
     return () => es.close();
-  }, [product, id, onStatus, router]);
+  }, [product, id, onStatus, onKnowledge, router]);
   useEffect(() => { if (stick.current) bottom.current?.scrollIntoView({ block: 'end' }); }, [events]);
   // images from the clipboard (or dropped files) ride along with the message (useImageAttachments)
   const send = async () => {
@@ -113,6 +114,7 @@ function Event({ e, answered, answers, showThinking, answer }: { e: ChatEvent; a
     case 'init': return <div className="ev ev-note">{time}<span className="muted">{e.text}{e.cwd ? ` · ${e.cwd}` : ''}</span></div>;
     case 'note': return e.requestId ? null : <div className="ev ev-note">{time}<span className="muted">{e.text}</span></div>;
     case 'log': return <div className="ev ev-note ev-log">{time}<span className="muted"><i>log</i> {e.text}</span></div>;
+    case 'knowledge': return <div className="ev ev-note ev-know">{time}<span className="muted"><i>knowledge</i></span><span className="tags">{(e.refs ?? []).map(r => <SmartTag key={r} id={r} />)}</span></div>;
     case 'open': return <div className="ev ev-note ev-log">{time}<span className="muted"><i>opened</i> <a href={e.text}>{e.text}</a></span></div>;
     case 'summary': return <div className="ev ev-summary">{time}<div className="ev-body"><span className="ev-summary-tag">session summary</span><ReactMarkdown remarkPlugins={[remarkGfm]}>{e.text ?? ''}</ReactMarkdown></div></div>;
     case 'stderr': return <div className="ev ev-stderr">{time}<pre className="ev-pre">{e.text}</pre></div>;

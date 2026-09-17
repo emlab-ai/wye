@@ -525,6 +525,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - action:answer-question:  choose options / type an answer on the agent's question card; Answer returns the choices to the agent, Skip lets it go on (rule:agent-questions)
     - action:allow-deny:       Allow or Deny any other permission request; the card shows the tool and what it wants
     - action:expand-activity:  open a folded "n steps" row to read every tool call and result
+    - action:see-knowledge:    after each turn a "knowledge" row lists the documents and nodes the turn changed as tags (the session's artifacts not shown yet, lib:artifacts), and the header keeps a live "knowledge" strip of everything the session changed (req:wf2.sessions.knowledge-changes)
     - action:stop-resume:      Stop the agent; Resume restarts it on the same conversation (rule:agent-host)
     - action:hand-off:         continue the work under another agent (rule:agent-sessions)
   display-rules:
@@ -1337,7 +1338,9 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     fold into one collapsed activity row (n steps · duration · errors · the latest step, a live dot while the agent
     works) that opens to every step; a single call stays inline. User messages, the agent's replies, question and
     permission cards, subagent groups and turn ends (time, cost) stay in the flow. `wf session log` lines appear as
-    small log notes and the `wf session done` summary as a summary card at the time they were written; a chat
+    small log notes and the `wf session done` summary as a summary card at the time they were written; after a
+    turn (~1 s later, once the watcher has credited the writes) a `knowledge` row names the documents and nodes
+    the session changed since the last such row (agent-host#reportKnowledge, the session's artifacts); a chat
     session has no separate Result or Log panel. Rows carry no time column — the width goes to the content; an
     event's time shows at the row's right edge only while it is hovered (task:new-954).
   source: packages/web/src/components/Console.tsx#foldActivity; packages/web/src/components/Console.tsx#Activity; packages/web/src/components/SessionView.tsx

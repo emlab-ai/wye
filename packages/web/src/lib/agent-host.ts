@@ -11,7 +11,7 @@ import { resolveLink, renderResolved } from './resolve';
 import { REPO_ROOT } from './products';
 import { agentSystemPrompt } from './agent-prompt';
 
-type Live = { id: string; productDir: string; agent: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string };
+type Live = { id: string; productDir: string; agent: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string; known: Set<string> };
 const g = globalThis as unknown as { __wfAgentHost?: Map<string, Live> };
 const live = () => (g.__wfAgentHost ??= new Map<string, Live>());
 
@@ -78,7 +78,7 @@ export async function startChat(productDir: string, product: string, id: string,
   const s = await getSession(productDir, id); if (!s) return null;
   if (live().get(id)?.proc) return s;
   const cwd = s.cwd || REPO_ROOT;
-  const l: Live = { id, productDir, agent: s.agent, cwd, proc: null, subs: new Set(), pending: [], flush: null, agentSessionId: s.agentSessionId, turnBusy: false, pumping: false, codexThread: s.agent === 'codex' ? s.agentSessionId : undefined };
+  const l: Live = { id, productDir, agent: s.agent, cwd, proc: null, subs: new Set(), pending: [], flush: null, agentSessionId: s.agentSessionId, turnBusy: false, pumping: false, codexThread: s.agent === 'codex' ? s.agentSessionId : undefined, known: new Set([...(s.artifacts?.docs ?? []), ...(s.artifacts?.nodes ?? [])]) };
   live().set(id, l);
   const first = opts.firstMessage ?? (opts.resume ? undefined : await buildPrompt(product, s, opts.wfUrl, productDir));
   // the request's images go with the first message the way pump sends a queued message's ones
@@ -100,7 +100,7 @@ export async function startChat(productDir: string, product: string, id: string,
   let buf = '';
   proc.stdout.on('data', d => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) onClaudeLine(l, line); } });
   proc.stderr.on('data', d => { const t = String(d).trim(); if (t) emit(l, { kind: 'stderr', text: t.slice(0, 2000) }); });
-  proc.on('close', code => { emit(l, { kind: 'exit', code: code ?? -1, text: `claude exited (${code})` }); l.proc = null; getSession(productDir, id).then(cur => { if (cur?.status === 'cancelled') return; return updateSession(productDir, id, { status: code === 0 ? 'done' : 'failed', line: `agent exited with ${code}` }); }).catch(() => {}); });
+  proc.on('close', code => { reportKnowledge(l, 0); emit(l, { kind: 'exit', code: code ?? -1, text: `claude exited (${code})` }); l.proc = null; getSession(productDir, id).then(cur => { if (cur?.status === 'cancelled') return; return updateSession(productDir, id, { status: code === 0 ? 'done' : 'failed', line: `agent exited with ${code}` }); }).catch(() => {}); });
   proc.stdin.on('error', () => {});
   if (first) { emit(l, { kind: 'user', text: first, images: shown }); writeUser(l, first, imgs); } else setTimeout(() => pump(l), 500); // a resumed agent takes what waited in the queue
   return getSession(productDir, id);
@@ -144,7 +144,7 @@ function onClaudeLine(l: Live, line: string) {
     }
     return;
   }
-  if (type === 'result') { l.turnBusy = false; emit(l, { kind: 'result', text: typeof j.result === 'string' ? j.result : '', costUsd: j.total_cost_usd as number, durationMs: j.duration_ms as number, isError: j.is_error as boolean }); if (typeof j.total_cost_usd === 'number') updateSession(l.productDir, l.id, { totalCostUsd: j.total_cost_usd }).catch(() => {}); pump(l); return; }
+  if (type === 'result') { l.turnBusy = false; emit(l, { kind: 'result', text: typeof j.result === 'string' ? j.result : '', costUsd: j.total_cost_usd as number, durationMs: j.duration_ms as number, isError: j.is_error as boolean }); if (typeof j.total_cost_usd === 'number') updateSession(l.productDir, l.id, { totalCostUsd: j.total_cost_usd }).catch(() => {}); reportKnowledge(l); pump(l); return; }
   if (type === 'control_request') {
     const req = j.request as Record<string, unknown>;
     emit(l, { kind: 'permission', requestId: String(j.request_id), name: String(req.tool_name ?? req.subtype ?? 'tool'), input: req.input, text: String(req.description ?? req.subtype ?? '') });
@@ -179,6 +179,20 @@ export function pump(l: Live) {
     });
   }).catch(() => { l.pumping = false; });
 }
+// After a turn, what the knowledge base got from it: the session's artifacts (documents credited by the disk
+// watcher, nodes changed through the API — lib/artifacts) that were not reported yet, as one `knowledge` event.
+// The watcher credits a write ~0.5 s after it lands, so the check waits a moment; a late credit shows up after the
+// next turn.
+function reportKnowledge(l: Live, delay = 1200) {
+  setTimeout(() => {
+    getSession(l.productDir, l.id).then(s => {
+      const fresh = [...(s?.artifacts?.docs ?? []), ...(s?.artifacts?.nodes ?? [])].filter(x => !l.known.has(x));
+      if (!fresh.length) return;
+      for (const x of fresh) l.known.add(x);
+      emit(l, { kind: 'knowledge', refs: fresh, text: `knowledge: ${fresh.join(', ')}` });
+    }).catch(() => {});
+  }, delay);
+}
 export function pumpSession(id: string) { const l = live().get(id); if (l) pump(l); }
 export function answerPermission(id: string, requestId: string, allow: boolean, input?: unknown): boolean {
   const l = live().get(id); if (!l?.proc) return false;
@@ -204,7 +218,7 @@ function codexTurn(l: Live, cwd: string, text: string, fromQueue = false, imageP
   let buf = '';
   proc.stdout.on('data', d => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) onCodexLine(l, line); } });
   proc.stderr.on('data', d => { const t = String(d).trim(); if (t && !/^warning:/i.test(t)) emit(l, { kind: 'stderr', text: t.slice(0, 2000) }); });
-  proc.on('close', code => { l.proc = null; l.turnBusy = false; emit(l, { kind: 'result', text: '', code: code ?? -1, isError: code !== 0 }); if (code !== 0) updateSession(l.productDir, l.id, { line: `codex turn exited with ${code}` }).catch(() => {}); pump(l); });
+  proc.on('close', code => { l.proc = null; l.turnBusy = false; emit(l, { kind: 'result', text: '', code: code ?? -1, isError: code !== 0 }); if (code !== 0) updateSession(l.productDir, l.id, { line: `codex turn exited with ${code}` }).catch(() => {}); reportKnowledge(l); pump(l); });
 }
 function onCodexLine(l: Live, line: string) {
   let j: Record<string, unknown>; try { j = JSON.parse(line); } catch { emit(l, { kind: 'stderr', text: line.slice(0, 500) }); return; }
