@@ -3,6 +3,9 @@ import type { ReactNode } from 'react';
 import { Rail } from '@/components/Rail';
 import { PeekProvider } from '@/components/PeekProvider';
 import { Shell } from '@/components/Shell';
+import { TopBar, type DocMeta } from '@/components/TopBar';
+import { stat } from 'node:fs/promises';
+import path from 'node:path';
 import { listProducts } from '@/lib/products';
 import { loadScope, treeFor } from '@/lib/scope';
 import { loadMarkdown } from '@/lib/load';
@@ -19,11 +22,15 @@ export default async function ProductLayout({ children, params }: { children: Re
   const toItem = (d: DocNode): TreeItem => ({ slug: d.slug, title: d.title, icon: icons.get(d.file) || defaultIcon(d.slug), project: docRoute(d.file)?.project ?? '', children: d.children.map(toItem) });
   const projects = scope.projects.map(p => { const t = treeFor(scope, p.slug); return { slug: p.slug, title: p.meta.title, icon: p.meta.icon || (p.meta.kind === 'goal' ? '🎯' : '📁'), kind: p.meta.kind, status: p.meta.status, main: t.main?.slug ?? '', roots: t.roots.map(toItem), docs: [...t.byFile.values()].filter(d => d.file.includes(`/projects/${p.slug}/docs/`)).map(d => ({ slug: d.slug, title: d.title })) }; });
   const headings = scope.graph.modules.flatMap(m => (outlines.get(m.file) ?? []).map(h => ({ doc: m.file, slug: h.slug, text: h.text })));
+  // every document with its parent and last edit, for the top bar's breadcrumbs
+  const docs: Record<string, DocMeta> = {};
+  const walk = async (d: DocNode, parent?: string) => { const r = docRoute(d.file); let mtime = ''; try { mtime = (await stat(path.join(REPO_ROOT, d.file))).mtime.toISOString(); } catch { /* gone */ } docs[d.slug] = { slug: d.slug, title: d.title, icon: icons.get(d.file) || defaultIcon(d.slug), project: r?.project ?? '', parent, mtime }; for (const c of d.children) await walk(c, d.slug); };
+  for (const p of scope.projects) for (const r of treeFor(scope, p.slug).roots) await walk(r);
   return (
     <PeekProvider product={scope.product.slug} index={scope.index}>
       <Shell>
         <Rail products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} headings={headings} />
-        <main className="content">{children}</main>
+        <main className="content"><TopBar product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} docs={docs} />{children}</main>
       </Shell>
     </PeekProvider>
   );

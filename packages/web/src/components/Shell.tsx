@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { usePeek } from './PeekProvider';
 import { PeekPanel } from './PeekPanel';
@@ -9,6 +9,8 @@ import { SendToAgentHost } from './SendToAgent';
 // column, separated from the content by a draggable splitter. The rail starts hidden on document and session
 // pages (working views) and open elsewhere; the choice and the splitter position are remembered per browser.
 const MIN_PANEL = 320, MIN_CONTENT = 360;
+const LayoutCtx = createContext<{ rail: boolean; toggleRail: () => void }>({ rail: true, toggleRail: () => {} });
+export const useLayout = () => useContext(LayoutCtx);
 export function Shell({ children }: { children: ReactNode }) {
   const { openId, showContext, stack } = usePeek();
   const path = usePathname();
@@ -33,9 +35,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const rail = railOpen ?? !working;
   return (
     <div ref={frame} className={`shell ${split ? 'split' : ''} ${rail ? '' : 'rail-hidden'}`} style={split ? ({ '--panel-w': `${panelW}px` } as React.CSSProperties) : undefined}>
-      {/* Notion-style: the close control sits in the rail header (rendered by the rail), the open control at the top-left of the content */}
-      {!rail && <button className="rail-toggle" onClick={toggleRail} title="Open the sidebar (⌘\\)" aria-label="Open sidebar">»</button>}
-      {children}
+      <LayoutCtx.Provider value={{ rail, toggleRail }}>{children}</LayoutCtx.Provider>
       {split && <div className="splitter" onMouseDown={onDown} role="separator" aria-orientation="vertical" title="Drag to resize" />}
       <PeekPanel />
       <SendToAgentHost />
