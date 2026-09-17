@@ -1099,7 +1099,10 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     other permission requests as Allow/Deny cards (rule:agent-questions), offers Stop, and Resume (which restarts
     Claude Code with --resume and its own session id). Sending a message while a turn runs queues it. The host
     lives on globalThis so dev reloads do not orphan processes; agents die with the server, and the desktop app owns
-    the server.
+    the server. The host does not ask Claude to replay user messages (no --replay-user-messages) and the transcript
+    drops a user event that repeats the previous one before the turn ended (dedupeUserEvents), because a turn has
+    exactly one user message. A running agent process keeps the arguments and the stdout handler it was spawned
+    with: a host code change reaches a session only when its process restarts (Stop / Resume).
   source: packages/web/src/lib/agent-host.ts; packages/web/src/components/Console.tsx; packages/web/src/app/api/[product]/sessions/[id]/{stream,message,control}/route.ts
   status: shipped
 - id: rule:session-queue

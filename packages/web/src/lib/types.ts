@@ -23,3 +23,11 @@ export function nodeProps(g: GraphData, n: GraphNode): NodeProp[] {
 }
 // what an incoming edge with this verb is called from the target's side ('' when the verb has no declared inverse)
 export function inverseLabel(g: GraphData, verb: string): string { return g.inverses?.[verb] ?? ''; }
+// where a product's own types are declared: its `ontology.md` by convention, else the document that declares most of
+// them ('' when the product has no types of its own yet)
+export function ontologyDoc(g: GraphData): string {
+  const named = g.modules.find(m => m.file.endsWith('/ontology.md')); if (named) return named.file;
+  const count = new Map<string, number>();
+  for (const t of g.types ?? []) if (!isBaseType(t)) count.set(t.file, (count.get(t.file) ?? 0) + 1);
+  return [...count.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
+}

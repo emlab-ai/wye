@@ -5,6 +5,7 @@ import { mkdir, readdir, readFile, writeFile, rename } from 'node:fs/promises';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { withFileLock } from './write';
+import { dedupeUserEvents } from './transcript';
 
 import { AGENTS, type ChatEvent, type QueueItem, type Runner, type Session, type SessionSource, type SessionStatus } from './session-types';
 export { AGENTS } from './session-types';
@@ -98,7 +99,7 @@ export async function heartbeatRunner(productDir: string, r: Omit<Runner, 'seenA
 
 // Chat transcripts: appended in batches by the agent host, capped.
 export async function appendTranscript(productDir: string, id: string, events: ChatEvent[]): Promise<void> {
-  await mutate(productDir, id, s => { s.transcript = [...(s.transcript ?? []), ...events].slice(-3000); s.updatedAt = new Date().toISOString(); });
+  await mutate(productDir, id, s => { const cur = s.transcript ?? []; s.transcript = [...cur, ...dedupeUserEvents(cur.slice(-50), events)].slice(-3000); s.updatedAt = new Date().toISOString(); });
 }
 
 // The persistent per-session queue. Items keep their sentAt so the history shows what went in when; unsent items

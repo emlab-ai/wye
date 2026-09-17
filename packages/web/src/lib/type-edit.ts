@@ -1,4 +1,5 @@
 // Edit a type: card in its document text: its own props block (name, value type, required, inverse) and scalar keys.
+import { appendCard } from './instances';
 export type OwnProp = { name: string; type: string; required: boolean; inverse: string };
 
 // `<type>[?] [-(inverse)-> name]` — the grammar lib/parse.js parsePropSpec reads
@@ -29,4 +30,23 @@ export function setTypeProps(md: string, typeId: string, props: OwnProp[] | null
     else if (block.length) lines.splice(end, 0, `${indent}props:`, ...block);
   }
   return { md: lines.join('\n') };
+}
+
+// A new `type:` card: extends and purpose; properties come later through setTypeProps.
+export function newTypeCard(id: string, extendsId: string, purpose: string): string {
+  const lines = [`- id: ${id}`, `  extends: ${extendsId}`];
+  const p = purpose.trim();
+  if (p) lines.push(`  purpose: ${/[:#]|^[-'"[{&*!|>%@`]/.test(p) ? JSON.stringify(p) : p}`);
+  return lines.join('\n');
+}
+// Appended to the yaml fence that declares the document's last type card — types stay together — else to the
+// last fence, else as a new fence at the end (appendCard).
+export function appendTypeCard(md: string, card: string): string {
+  const fences = [...md.matchAll(/^```ya?ml\n[\s\S]*?^```/gm)].filter(f => /^\s*-\s*id:\s*type:/m.test(f[0]));
+  const last = fences[fences.length - 1];
+  if (last && last.index !== undefined) {
+    const end = last.index + last[0].length - 3;
+    return md.slice(0, end) + card + '\n' + md.slice(end);
+  }
+  return appendCard(md, card);
 }
