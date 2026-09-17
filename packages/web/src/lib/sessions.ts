@@ -5,9 +5,9 @@ import { mkdir, readdir, readFile, writeFile, rename } from 'node:fs/promises';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 
-import { AGENTS, type Runner, type Session, type SessionSource, type SessionStatus } from './session-types';
+import { AGENTS, type ChatEvent, type Runner, type Session, type SessionSource, type SessionStatus } from './session-types';
 export { AGENTS } from './session-types';
-export type { Runner, Session, SessionSource, SessionStatus } from './session-types';
+export type { ChatEvent, Runner, Session, SessionSource, SessionStatus } from './session-types';
 
 const dir = (productDir: string) => path.join(productDir, '_sessions');
 const file = (productDir: string, id: string) => path.join(dir(productDir), `${id}.json`);
@@ -24,9 +24,9 @@ export async function getSession(productDir: string, id: string): Promise<Sessio
   if (!ID.test(id)) return null;
   try { return JSON.parse(await readFile(file(productDir, id), 'utf8')); } catch { return null; }
 }
-export async function createSession(productDir: string, product: string, input: { agent: string; instruction: string; refs?: string[]; source?: SessionSource }): Promise<Session> {
+export async function createSession(productDir: string, product: string, input: { agent: string; instruction: string; refs?: string[]; source?: SessionSource; mode?: 'run' | 'chat'; cwd?: string }): Promise<Session> {
   const now = new Date().toISOString();
-  const s: Session = { id: randomBytes(5).toString('hex'), product, agent: input.agent, status: 'queued', createdAt: now, updatedAt: now, instruction: input.instruction, refs: [...new Set(input.refs ?? [])], source: input.source ?? {}, log: [{ t: now, line: `queued for ${input.agent}` }] };
+  const s: Session = { id: randomBytes(5).toString('hex'), product, agent: input.agent, mode: input.mode ?? 'run', cwd: input.cwd, status: 'queued', createdAt: now, updatedAt: now, instruction: input.instruction, refs: [...new Set(input.refs ?? [])], source: input.source ?? {}, log: [{ t: now, line: input.mode === 'chat' ? 'chat session created' : `queued for ${input.agent}` }] };
   await saveSession(productDir, s);
   return s;
 }
@@ -35,10 +35,13 @@ export async function saveSession(productDir: string, s: Session): Promise<void>
   const f = file(productDir, s.id); const tmp = `${f}.tmp-${process.pid}`;
   await writeFile(tmp, JSON.stringify(s, null, 2)); await rename(tmp, f);
 }
-export async function updateSession(productDir: string, id: string, patch: { status?: SessionStatus; line?: string; lines?: string[]; result?: string; runner?: string }): Promise<Session | null> {
+export async function updateSession(productDir: string, id: string, patch: { status?: SessionStatus; line?: string; lines?: string[]; result?: string; runner?: string; agentSessionId?: string; cwd?: string; totalCostUsd?: number }): Promise<Session | null> {
   const s = await getSession(productDir, id); if (!s) return null;
   const now = new Date().toISOString();
   if (patch.runner) s.runner = patch.runner;
+  if (patch.agentSessionId) s.agentSessionId = patch.agentSessionId;
+  if (patch.cwd) s.cwd = patch.cwd;
+  if (patch.totalCostUsd !== undefined) s.totalCostUsd = patch.totalCostUsd;
   if (patch.status && patch.status !== s.status) {
     s.status = patch.status; s.log.push({ t: now, line: `status → ${patch.status}${patch.runner ? ` (${patch.runner})` : ''}` });
     if (patch.status === 'running') s.startedAt = now;
@@ -53,7 +56,7 @@ export async function updateSession(productDir: string, id: string, patch: { sta
 
 // Claim the oldest queued session for an agent: first come, first served, one at a time per file lock.
 export async function claimSession(productDir: string, agent: string, runner: string): Promise<Session | null> {
-  const queued = (await listSessions(productDir)).filter(s => s.status === 'queued' && s.agent === agent).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const queued = (await listSessions(productDir)).filter(s => s.status === 'queued' && s.agent === agent && (s.mode ?? 'run') === 'run').sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   for (const s of queued) {
     const fresh = await getSession(productDir, s.id); if (!fresh || fresh.status !== 'queued') continue;
     return updateSession(productDir, s.id, { status: 'running', runner });
@@ -86,4 +89,11 @@ export async function heartbeatRunner(productDir: string, r: Omit<Runner, 'seenA
   if (!gone) all.push({ ...r, seenAt: new Date().toISOString() });
   const f = runnersFile(productDir); const tmp = `${f}.tmp-${process.pid}`; await writeFile(tmp, JSON.stringify(all, null, 2)); await rename(tmp, f);
   return all;
+}
+
+// Chat transcripts: appended in batches by the agent host, capped.
+export async function appendTranscript(productDir: string, id: string, events: ChatEvent[]): Promise<void> {
+  const s = await getSession(productDir, id); if (!s) return;
+  s.transcript = [...(s.transcript ?? []), ...events].slice(-3000); s.updatedAt = new Date().toISOString();
+  await saveSession(productDir, s);
 }

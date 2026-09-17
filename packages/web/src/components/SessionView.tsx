@@ -4,6 +4,7 @@ import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import type { Session } from '@/lib/session-types';
 import { AGENTS } from '@/lib/session-types';
+import { Console } from './Console';
 
 export const agentLabel = (id: string) => AGENTS.find(a => a.id === id)?.label ?? id;
 export const when = (iso: string) => { const d = new Date(iso); const m = (Date.now() - d.getTime()) / 60000; return m < 1 ? 'just now' : m < 60 ? `${Math.round(m)} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : d.toLocaleDateString(); };
@@ -17,7 +18,7 @@ export function SessionView({ id }: { id: string }) {
     const load = async () => {
       const r = await fetch(`/api/${product}/sessions/${id}`); const j = r.ok ? await r.json() : null;
       if (!live) return; setS(j);
-      if (j && (j.status === 'queued' || j.status === 'running')) timer = setTimeout(load, 2500);
+      if (j && j.mode !== 'chat' && (j.status === 'queued' || j.status === 'running')) timer = setTimeout(load, 2500);
     };
     load();
     return () => { live = false; if (timer) clearTimeout(timer); };
@@ -36,7 +37,7 @@ export function SessionView({ id }: { id: string }) {
     <div className="session">
       <div className="session-head">
         <span className={`pill s ${s.status} session-status`}>{s.status}</span>
-        <strong>{agentLabel(s.agent)}</strong>
+        <strong>{agentLabel(s.agent)}</strong>{s.mode === 'chat' && <span className="pill">chat</span>}
         <span className="muted">{when(s.createdAt)}</span>
         <span className="session-acts">
           <button className="mini" onClick={() => setHandoff(h => h ? null : { agent: AGENTS.find(a => a.id !== s.agent)?.id ?? s.agent, note: '' })} title="Continue this work under another agent">Hand off…</button>
@@ -53,10 +54,11 @@ export function SessionView({ id }: { id: string }) {
         </div>
       )}
       {s.refs.length > 0 && <div className="tags session-refs">{s.refs.map(r => <SmartTag key={r} id={r} />)}</div>}
-      <pre className="session-instruction">{s.instruction}</pre>
+      {s.mode === 'chat' ? <details className="session-instr-fold"><summary className="muted">instruction</summary><pre className="session-instruction">{s.instruction}</pre></details> : <pre className="session-instruction">{s.instruction}</pre>}
       {s.source?.doc && <p className="muted session-src">from {s.source.project ? `${s.source.project} / ` : ''}{s.source.doc}</p>}
-      <h5>Log {active && <span className="live-dot" title="following" />}</h5>
-      <pre className="session-log">{s.log.map((l, i) => <span key={i}><time>{new Date(l.t).toLocaleTimeString()}</time> {l.line}{'\n'}</span>)}{s.status === 'queued' && <span className="muted">waiting for an agent runner to pick this up…{'\n'}</span>}</pre>
+      {s.mode === 'chat' && <Console session={s} onStatus={st => setS(x => x ? { ...x, status: st as Session['status'] } : x)} />}
+      {s.mode !== 'chat' && <><h5>Log {active && <span className="live-dot" title="following" />}</h5>
+      <pre className="session-log">{s.log.map((l, i) => <span key={i}><time>{new Date(l.t).toLocaleTimeString()}</time> {l.line}{'\n'}</span>)}{s.status === 'queued' && <span className="muted">waiting for an agent runner to pick this up…{'\n'}</span>}</pre></>}
       {s.result && <><h5>Result</h5><pre className="session-result">{s.result}</pre></>}
     </div>
   );

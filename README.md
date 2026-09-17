@@ -85,3 +85,16 @@ test/smoke.js         parses the pilot and asserts the graph shape
 - `field:` nodes and `mentions` edges are generated: a field name found in another node's text becomes a link, so "where is `receivedQuantity` used?" is one query. Ambiguous field names (same name on several entities) only link when the mentioning node also references the owning entity.
 - Requirement status is honest by construction: `shipped` needs a `verified-by`; `ctx check --strict` enforces it.
 - The viewer needs no server: `data.js` carries the graph and the markdown; d3 and marked come from cdnjs.
+
+## Desktop app
+
+`npm run desktop` opens Waterfall in its own window (Electron). The app starts the web server if none is running
+on port 3456 and quits it on exit. Agents started from the app (Send to agent → "Conversation in the app") run as
+child processes of that server: Claude Code over its streaming JSON protocol, Codex through `codex exec --json`.
+The right column shows the conversation live; you reply from there. `npm run desktop:prod` builds the web app first
+and serves the production build.
+
+If Electron's binary is missing after `npm install` (npm's allow-scripts skips its postinstall), run
+`cd node_modules/electron && node install.js`, or unpack the cached zip with `ditto -x -k <zip> dist` and write
+`Electron.app/Contents/MacOS/Electron` into `node_modules/electron/path.txt`.
+

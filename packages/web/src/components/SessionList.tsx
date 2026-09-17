@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import { agentLabel, when } from './SessionView';
+import { requestSend } from './SendToAgent';
 import type { Session, Runner } from '@/lib/session-types';
 
 // All agent sessions of a product, active first; polls while any is active. A row opens the session in the right column.
@@ -25,7 +26,7 @@ export function SessionList({ product, initial, initialRunners }: { product: str
   return (
     <div className="sessions">
       <div className="runners">
-        <h4>Runners <span className="muted">{runners.length} online · {working} working</span></h4>
+        <h4>Runners <span className="muted">{runners.length} online · {working} working</span><button className="mini" style={{ marginLeft: 'auto' }} onClick={() => requestSend({})}>+ New conversation</button></h4>
         {runners.length
           ? <ul>{runners.map(r => <li key={r.name}><span className={`rdot ${r.busy ? 'busy' : ''}`} /><strong>{r.name}</strong><span className="muted">{agentLabel(r.agent)} · {r.host}{r.cwd ? ' · ' + r.cwd.replace(/^\/Users\/[^/]+/, '~') : ''}</span>{r.busy ? <button className="linkish" onClick={() => open(`session:${r.busy}`)}>on session {r.busy.slice(0, 6)}</button> : <span className="muted">idle</span>}</li>)}</ul>
           : <p className="muted">No runner is connected. Start one next to the code it should work on:<br /><code>wf agent listen --product {product} --agent claude-code</code> (or <code>--agent codex</code>). It picks up queued sessions for that agent and streams its output here.</p>}
@@ -41,7 +42,7 @@ export function SessionList({ product, initial, initialRunners }: { product: str
             <span className={`pill s ${s.status}`}>{s.status}</span>
             <div className="session-row-main">
               <div className="session-row-title">{s.instruction.split('\n').find(l => l.trim()) ?? '(no instruction)'}</div>
-              <div className="session-row-sub"><span>{agentLabel(s.agent)}</span><span>·</span><span>{when(s.createdAt)}</span>{s.source?.doc && <><span>·</span><span>{s.source.project ? `${s.source.project} / ` : ''}{s.source.doc}</span></>}{s.refs.length > 0 && <span className="tags">{s.refs.slice(0, 4).map(r => <SmartTag key={r} id={r} />)}{s.refs.length > 4 && <span className="muted">+{s.refs.length - 4}</span>}</span>}</div>
+              <div className="session-row-sub"><span>{agentLabel(s.agent)}{s.mode === 'chat' ? ' · chat' : ''}</span><span>·</span><span>{when(s.createdAt)}</span>{s.source?.doc && <><span>·</span><span>{s.source.project ? `${s.source.project} / ` : ''}{s.source.doc}</span></>}{s.refs.length > 0 && <span className="tags">{s.refs.slice(0, 4).map(r => <SmartTag key={r} id={r} />)}{s.refs.length > 4 && <span className="muted">+{s.refs.length - 4}</span>}</span>}</div>
             </div>
             <code className="session-id">{s.id}</code>
           </li>

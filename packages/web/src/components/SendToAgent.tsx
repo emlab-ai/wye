@@ -17,6 +17,9 @@ export function SendToAgentHost() {
   const [instruction, setInstruction] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [mode, setMode] = useState<'chat' | 'run'>('chat');
+  const [cwd, setCwd] = useState('');
+  useEffect(() => { try { setCwd(localStorage.getItem(`wf-cwd-${product}`) ?? ''); } catch { /* ignore */ } }, [product]);
   useEffect(() => {
     const h = (e: Event) => {
       const d = (e as CustomEvent<SendRequest>).detail;
@@ -30,9 +33,10 @@ export function SendToAgentHost() {
   if (!req) return null;
   const send = async () => {
     setBusy(true); setMsg(null);
-    const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ agent, instruction, refs: req.refs ?? [], source: { ...(req.source ?? {}), text: req.text?.slice(0, 2000) } }) });
+    const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ agent, instruction, refs: req.refs ?? [], source: { ...(req.source ?? {}), text: req.text?.slice(0, 2000) }, mode, cwd }) });
     const j = await r.json(); setBusy(false);
     if (!r.ok) { setMsg(j.message ?? j.error); return; }
+    try { localStorage.setItem(`wf-cwd-${product}`, cwd); } catch { /* ignore */ }
     setReq(null); open(`session:${j.id}`);
   };
   return createPortal(
@@ -43,6 +47,11 @@ export function SendToAgentHost() {
         <label className="send-field"><span>agent</span>
           <select value={agent} onChange={e => setAgent(e.target.value)}>{AGENTS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}</select>
         </label>
+        <div className="send-mode seg">
+          <button type="button" className={mode === 'chat' ? 'on' : ''} onClick={() => setMode('chat')} title="The app runs the agent and you talk to it here">Conversation in the app</button>
+          <button type="button" className={mode === 'run' ? 'on' : ''} onClick={() => setMode('run')} title="A runner started with wf agent listen picks it up">Queue for a runner</button>
+        </div>
+        {mode === 'chat' && <label className="send-field"><span>working directory</span><input value={cwd} placeholder="the code repository the agent should work in (default: the Waterfall repo)" onChange={e => setCwd(e.target.value)} spellCheck={false} /></label>}
         <label className="send-field"><span>instruction</span>
           <textarea autoFocus rows={7} value={instruction} onChange={e => setInstruction(e.target.value)} placeholder="What should the agent do with this?" onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') send(); }} />
         </label>

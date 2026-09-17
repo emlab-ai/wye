@@ -1,0 +1,14 @@
+{
+  "name": "@waterfall/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Waterfall desktop: the web app in a window, with Claude Code and Codex as child processes the app controls.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "WF_DEV=1 electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}

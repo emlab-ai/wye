@@ -1012,6 +1012,27 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     take`). The Sessions page shows runners online, how many are working, and every session's live log.
   source: bin/wf.js; packages/web/src/lib/sessions.ts; skills/waterfall-agent/SKILL.md; skills/wf-restore/SKILL.md
   status: shipped
+- id: rule:agent-host
+  statement: >
+    Chat sessions are hosted by the app: the server spawns the agent as a child process (Claude Code with
+    `-p --input-format stream-json --output-format stream-json --permission-prompt-tool stdio`, Codex with
+    `codex exec --json`, one process per turn resumed by thread id), keeps the conversation open, normalises the
+    agent's events into ChatEvents (user, assistant, thinking, tool_use, tool_result, result, permission, stderr,
+    exit), persists them to the session transcript and streams them to the UI over server-sent events. The console
+    in the right column shows the transcript live, folds tool calls with their inputs and results, offers
+    Allow/Deny on permission requests, Stop, and Resume (which restarts Claude Code with --resume and its own
+    session id). Sending a message while a turn runs queues it. The host lives on globalThis so dev reloads do not
+    orphan processes; agents die with the server, and the desktop app owns the server.
+  source: packages/web/src/lib/agent-host.ts; packages/web/src/components/Console.tsx; packages/web/src/app/api/[product]/sessions/[id]/{stream,message,control}/route.ts
+  status: shipped
+- id: decision:wf2.desktop-electron
+  title: Waterfall ships as an Electron desktop app that owns the app server and the agent processes
+  context: Running full conversations with Claude Code and Codex means owning long-lived local processes with file-system access; a browser tab cannot do that, and people want one thing to open.
+  choice: packages/desktop — an Electron shell that starts (or attaches to) the Next.js server on port 3456, opens the window on it, keeps a tray item, and kills the server and every agent on quit. The web app stays usable in a browser against the same server.
+  alternatives: [Tauri — smaller binary but a Rust toolchain and no Node in the main process, a plain browser tab plus a background daemon — two things to start and no window]
+  consequences: Electron adds ~250 MB of binary per platform; packaging and auto-update are not set up yet.
+  status: approved
+  date: 2026-09-17
 - id: decision:wf2.agents-via-cli
   title: Agents integrate through a CLI over the web app's HTTP API, not through an MCP server or direct file access
   context: Claude Code and Codex both run shell commands well; sessions, links and knowledge must reach any agent the same way, and writes must go through the app so the graph rebuilds and locks hold.
