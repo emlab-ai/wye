@@ -21,7 +21,7 @@ The decisions this draft makes on its own are blocks in §Decisions and open que
 
 ##
 
-![image.png](assets/2026-09-17-image-72d4e7.png)
+![Annotated image](drawings/drawing-mu5xzn4d.excalidraw)
 
 ## The idea in one paragraph
 
@@ -183,6 +183,7 @@ Each phase is a plan task, ships alone and leaves the documents readable by the 
 - [x] task:ontology.types Type nodes and inheritance: `type:` cards with `extends` and `props`, two-pass parse with an open kind list, base ontology document replacing schema/kinds.yaml, inherited-property validation in ctx check, type page listing instances. Part of module:ontology-design; depends on req:wf.graph. (session: 94ac3cf3e0)
 - [x] task:ontology.inverses Named inverses and collections: the inverse declaration on properties, generated reverse edges, inverse names in the peek panel and node page, base verbs declared with inverses, cardinality inferred. Part of module:ontology-design; depends on task:ontology.types. (session: 94ac3cf3e0)
 - [x] task:ontology.blocks Every block a node: `block:` ids from anchor hashes, document→heading→block `has` tree, phrase links owned by the block, hidden by default in rail/search/site. Part of module:ontology-design; depends on task:ontology.inverses and rule:block-links. (session: 94ac3cf3e0)
+- [x] task:ontology.add-type Add a type from the Types index: "+ add type" (name, extends, purpose, destination document) writes the `type:` card to the ontology document and opens the new type in the context column for its properties. Implements req:ontology.add-type; part of module:ontology-design; depends on task:ontology.types. (session: 8aa3926e18)
 - [ ] task:ontology.kinds-yaml-generated Generate `schema/kinds.yaml` (kinds, verbs, statuses) from `schema/base-ontology.md` so the two cannot drift; today kinds.yaml is a hand-kept summary with a header pointing at the ontology. Part of module:ontology-design; depends on decision:ontology.base-ontology-referenced.
 - [ ] task:ontology.unique Cardinality on the inverse side: a `unique` modifier on a `list of` property makes the target's inverse a single ref instead of a collection; today every inverse renders as a list. Part of module:ontology-design; depends on task:ontology.inverses.
 - [ ] task:ontology.ref-slot-picker The editor's link picker filters targets by the property's declared type: a `ref employee` slot only offers employees and their subtypes; the block menu already offers the product's own types. Part of module:ontology-design; depends on task:ontology.types.
@@ -199,6 +200,7 @@ What shipped, as requirements the tests verify and rules the code enforces. Stat
 | test:blocks | test/blocks.js | 22 |
 | test:types-web | packages/web/src/lib/types.test.ts | 5 |
 | test:instances-web | packages/web/src/lib/instances.test.ts | 3 |
+| test:type-edit-web | packages/web/src/lib/type-edit.test.ts | 8 |
 
 ```yaml
 - id: req:ontology.types
@@ -242,6 +244,17 @@ What shipped, as requirements the tests verify and rules the code enforces. Stat
   status: proposed
   satisfied-by: [page:web/types, op:types.add]
   verified-by: [test:types-web, test:instances-web]
+- id: req:ontology.add-type
+  title: A person adds a type from the Types index
+  when: a person presses "+ add type" on /<product>/types and gives a name, a parent type and a purpose
+  then: >
+    a `type:<slug>` card with `extends` and `purpose` is written to the product's ontology document (or the document
+    they chose), the graph is rebuilt, the type appears under the product's own types and opens in the context column
+    with its (empty) property table, where properties are added and saved to the same card
+  unless: the slug already names a type (base types included) — the form says so and does not write
+  status: proposed
+  satisfied-by: [page:web/types, op:types.create]
+  verified-by: [test:type-edit-web]
 - id: req:ontology.blocks
   title: Every block of a document is a node
   when: a document is parsed
@@ -445,6 +458,26 @@ Decisions made while implementing (2026-09-17, session 94ac3cf3e0), proposed; th
   date: 2026-09-17
   related-to: [module:ontology-design, req:ontology.check]
   session: 94ac3cf3e0
+- id: decision:ontology.new-type-home
+  title: "Ontology: a type added from the UI goes to the product's ontology.md, kept next to its other types"
+  context: >
+    The Types index was a read-only list; adding a type meant writing a card by hand in some document. The UI needs a
+    default place to write the card, and a product may not have an ontology document yet.
+  choice: >
+    By default the card goes to the product's `ontology.md` (the convention base-ontology.md already names), else the
+    document that declares most of its types, else a new `ontology.md` created in the product's first project from
+    the blank template. Inside the document it is appended to the fence that declares the last type, so types stay
+    together; a fence holding a bare document card never takes a list item. The form still lets the person pick any
+    product document. Properties are not part of the form: the new type opens in the context column and its
+    property editor writes them (op:types.add PUT).
+  alternatives: >
+    Ask for a document every time — friction for the common case; a per-product setting naming the ontology
+    document — nothing else needs it yet; properties in the create form — duplicates the editor that already exists.
+  consequences: op:types.create, action:add-type; req:ontology.add-type
+  status: proposed
+  date: 2026-09-17
+  related-to: [module:ontology-design, decision:ontology.types-product-local, decision:ontology.types-are-cards]
+  session: 8aa3926e18
 - id: decision:ontology.base-ontology-referenced
   title: >
     Ontology: the base ontology is one file in the repo (schema/base-ontology.md), read for every product;

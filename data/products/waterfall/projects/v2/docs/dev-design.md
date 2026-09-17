@@ -500,11 +500,12 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
 ```yaml
 - id: page:web/types
   route: /<product>/types and /<product>/types/<slug>
-  component: packages/web/src/app/[product]/types/page.tsx; packages/web/src/app/[product]/types/[slug]/page.tsx; packages/web/src/components/TypeRows.tsx; packages/web/src/components/AddInstance.tsx
+  component: packages/web/src/app/[product]/types/page.tsx; packages/web/src/app/[product]/types/[slug]/page.tsx; packages/web/src/components/TypeRows.tsx; packages/web/src/components/AddInstance.tsx; packages/web/src/components/AddType.tsx
   reads: [op:graph.get]
   actions:
     - action:open-type:        click anywhere on a type's row → the type in the context column (page:web/context-column); ↗ opens its page
     - action:add-instance:     + add <type> writes a <type>:<slug> card with the type's required properties into the type's home document -(calls)-> op:types.add
+    - action:add-type:         + add type under the product's own types: name (→ slug), extends (any type, node by default), purpose, destination document; writes the type: card and opens the new type in the context column where its properties are added -(calls)-> op:types.create
   display-rules:
     - the index lists the product's own types first (name, extends, instance and own-property counts, purpose, where declared), then the base types
     - a type page: crumbs along the extends chain; properties (own and inherited, the root type's folded into one line); subtypes; every instance as a table with a column per property (req:ontology.type-page)
@@ -904,6 +905,16 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
 ### Web app
 
 ```yaml
+- id: op:types.create
+  args: product; body { slug, extends?, purpose?, doc?, project? } (POST /api/<product>/types)
+  does: >
+    appends a `type:<slug>` card (extends, purpose) to the product's ontology document — `doc` when given, else
+    `ontology.md`, else the document that declares most of its types, else a new `ontology.md` in `project` (the first
+    project when none) — into the fence that declares the document's last type, and rebuilds the graph. 409 when
+    the slug is a type already (base types included), 422 for a slug that is not lowercase-dashes or an unknown
+    parent. Properties come after, through the PUT of op:types.add (decision:ontology.new-type-home)
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/types/route.ts; packages/web/src/lib/type-edit.ts; packages/web/src/lib/types.ts
 - id: op:types.add
   args: product, type slug; body { slug, title? } (POST /api/<product>/types/<slug>); PUT { props, scalars } edits the type card
   does: >

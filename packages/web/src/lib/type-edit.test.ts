@@ -51,7 +51,7 @@ describe('new type', () => {
   it('card has the id, extends and purpose', () => {
     expect(newTypeCard('type:tag', 'type:node', 'a label on a node')).toBe('- id: type:tag\n  extends: type:node\n  purpose: a label on a node');
     expect(newTypeCard('type:tag', 'type:node', '')).toBe('- id: type:tag\n  extends: type:node');
-    expect(newTypeCard('type:tag', 'type:node', 'a: b')).toBe('- id: type:tag\n  extends: type:node\n  purpose: "a: b"');
+    expect(newTypeCard('type:tag', 'type:node', 'a: b')).toBe('- id: type:tag\n  extends: type:node\n  purpose: >\n    a: b');
   });
   it('goes into the fence that declares the last type, not the last fence', () => {
     const doc = md + '\n```yaml\n- id: team:a\n  name: A\n```\n';
@@ -60,5 +60,6 @@ describe('new type', () => {
   it('falls back to the last fence, or a new one, when no type is declared', () => {
     expect(appendTypeCard('# Doc\n\n```yaml\n- id: team:a\n```\n', '- id: type:tag')).toBe('# Doc\n\n```yaml\n- id: team:a\n- id: type:tag\n```\n');
     expect(appendTypeCard('# Doc\n\nText.\n', '- id: type:tag')).toBe('# Doc\n\nText.\n\n```yaml\n- id: type:tag\n```\n');
+    expect(appendTypeCard('# Doc\n\n```yaml\nid: module:doc\npurpose: x\n```\n', '- id: type:tag')).toBe('# Doc\n\n```yaml\nid: module:doc\npurpose: x\n```\n\n```yaml\n- id: type:tag\n```\n');
   });
 });
