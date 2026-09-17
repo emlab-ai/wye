@@ -238,7 +238,9 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     open a document with a type table; click a row's status select, a property cell edge, a property input and a
     node block's header — the context column shows that node each time and the clicked control keeps focus; type a
     row at 15 ms per key — one row, no split; press Enter in a row and type — a new row of the same kind; copy the
-    link of a row that was just typed — the link carries a slug (bug:when-i-select-a, 2026-09-17)
+    link of a row that was just typed — the link carries a slug (bug:when-i-select-a, 2026-09-17); type "/data",
+    insert the Data table, switch its header picker to Goals, type a row, leave — the markdown holds a <!-- goals -->
+    region with one goal line and the picker is locked (bug:no-need-to-add)
 - id: ui-test:edit-node-flow
   file: packages/web/e2e/edit-node.spec.ts
   scenario: open a project, open a node, edit a prose key and a status, save; assert the file on disk changed, the graph.changed event arrived, and the sidebar dot updated without a reload

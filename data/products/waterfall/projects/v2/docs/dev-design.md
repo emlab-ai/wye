@@ -1062,12 +1062,32 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     table in the editor with a column for status and one per declared property (own and inherited, the root type's
     left out): an enum property is a select, a bool a checkbox, a ref a text cell holding the id, anything else a
     text cell. Values live in the line's trailing property group, whose keys may be camelCase like the type's
-    (lib/parse.js grammar). The slash menu offers "<Type>s table" for every own type next to the Goals and Tasks
-    tables; a table of a type the product no longer declares keeps its rows with name and status only.
+    (lib/parse.js grammar). One "Data table" block in the slash menu serves goals, tasks and every own type: its
+    header has the type picker (decision:wf2.one-table-block); a table of a type the product no longer declares
+    keeps its rows with name and status only.
   source: packages/web/src/lib/serialize.ts#collectionMarker; packages/web/src/lib/import.ts#COLLECTION_OPEN; packages/web/src/components/DocEditor.tsx#TypeRow; packages/web/src/lib/props.ts#EXTRA_KEY
   status: shipped
   verified-by: [test:web-lib#import, test:web-lib#props]
   related-to: [rule:goals-and-tasks, req:ontology.type-table, rule:table-rows]
+- id: decision:wf2.one-table-block
+  title: One Data table block with a type picker in its header, not one slash item per type
+  context: >
+    Every own type got its own "<Type>s table" slash item next to Goals table and Tasks table; with ten types the
+    menu filled with tables (bug:no-need-to-add).
+  choice: >
+    A single "Data table" item inserts a table of tasks; its header holds a select with goals, tasks and every type
+    the product declares, and picking one re-kinds the (still empty) rows. Once a row has text the picker locks —
+    the rows have ids of that kind, and changing the kind would change ids other nodes may link. Goals and tasks
+    keep their columns (status, target/due, progress, owner); a type table shows the type's properties. The markdown
+    is unchanged: <!-- goals -->, <!-- tasks -->, <!-- table:<slug> -->.
+  alternatives: >
+    Keep one item per type — the menu grows with the ontology; a kind property edited as text — no discovery of what
+    types exist; let the type change with rows present — silent id changes.
+  consequences: the Tasks page and rule:type-tables say "Data table"; ui-test:table-rows covers the picker
+  status: proposed
+  date: 2026-09-17
+  related-to: [rule:type-tables, rule:goals-and-tasks, bug:no-need-to-add]
+  session: 8aa3926e18
 - id: rule:table-rows
   statement: >
     A row of any table (goals, tasks, a type's) is selected by a click anywhere in it — its status select, a property

@@ -299,7 +299,9 @@ function TypeRowFor({ p, set, contentRef, block, editor }: { p: { kind: string; 
   return <TypeRow p={p} set={set} contentRef={contentRef} block={block} type={type} editor={editor} />;
 }
 
-// A goals or tasks table: the header row; the rows are the block's children (goal/task nodes in row mode).
+// A table: one block for goals, tasks and every type the product declares; the header's type picker sets the kind
+// of its rows (decision:wf2.one-table-block). The rows are the block's children (nodes in row mode). The type can
+// change while no row has text — after that the rows have ids of that kind.
 const CollectionBlock = createReactBlockSpec(
   { type: 'collection', propSchema: { kind: { default: 'goal' } }, content: 'none' },
   {
@@ -307,10 +309,25 @@ const CollectionBlock = createReactBlockSpec(
       const kind = (props.block.props as { kind: string }).kind;
       const { ownTypes } = usePeek();
       const type = kind === 'goal' || kind === 'task' ? undefined : ownTypes.find(t => t.slug === kind);
+      // the header re-renders on every editor change: whether the type can still change depends on the rows' text
+      const [, tick] = useState(0); useEditorChange(() => tick(t => t + 1), props.editor);
+      const kids = ((props.editor.getBlock(props.block.id) as unknown as AnyBlock | undefined)?.children ?? []) as AnyBlock[];
+      const locked = kids.some(k => k.type === 'node' && rowText(k));
+      const options = ['goal', 'task', ...ownTypes.map(t => t.slug)]; if (!options.includes(kind)) options.push(kind);
+      const setKind = (k: string) => {
+        if (k === kind || locked) return;
+        for (const c of kids) if (c.type === 'node') props.editor.updateBlock(c as never, { props: { ...emptyRow(k).props, slug: '' } } as never);
+        props.editor.updateBlock(props.block, { props: { kind: k } } as never);
+      };
+      const picker = (
+        <select className="collection-kind" value={kind} disabled={locked} title={locked ? 'rows already have ids of this type; start another table for another type' : 'the type of this table'} onChange={e => setKind(e.target.value)} onMouseDown={e => e.stopPropagation()}>
+          {options.map(o => <option key={o} value={o}>{o === 'goal' ? 'Goals' : o === 'task' ? 'Tasks' : `${o[0].toUpperCase()}${o.slice(1)}s`}</option>)}
+        </select>
+      );
       if (kind !== 'goal' && kind !== 'task') return (
         <div className={`collection c-type c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
           <div className="nrow nrow-head nrow-type" style={{ gridTemplateColumns: typeGrid(type ?? { slug: kind, cols: [] }) }}>
-            <div className="nrow-cell nrow-name">{kind}s{!type && <span className="muted" title="the product declares no such type; rows are still written">?</span>}</div><div className="nrow-cell">Status</div>
+            <div className="nrow-cell nrow-name">{picker}{!type && <span className="muted" title="the product declares no such type; rows are still written">?</span>}</div><div className="nrow-cell">Status</div>
             {(type?.cols ?? []).map(c => <div key={c.name} className="nrow-cell" title={c.ref ? `${c.type}` : c.type}>{c.name}</div>)}
           </div>
         </div>
@@ -318,7 +335,7 @@ const CollectionBlock = createReactBlockSpec(
       return (
         <div className={`collection c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
           <div className="nrow nrow-head">
-            <div className="nrow-cell nrow-name">{kind === 'goal' ? 'Goals' : 'Tasks'}</div><div className="nrow-cell">Status</div><div className="nrow-cell">{kind === 'goal' ? 'Target' : 'Due'}</div><div className="nrow-cell nrow-progress">Progress</div><div className="nrow-cell">Owner</div>
+            <div className="nrow-cell nrow-name">{picker}</div><div className="nrow-cell">Status</div><div className="nrow-cell">{kind === 'goal' ? 'Target' : 'Due'}</div><div className="nrow-cell nrow-progress">Progress</div><div className="nrow-cell">Owner</div>
           </div>
         </div>
       );
@@ -653,17 +670,11 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   if (typeof window !== 'undefined') (window as unknown as { __wfAnnotate: (id: string) => void }).__wfAnnotate = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock | undefined; if (b) imageToDrawing(b); };
   if (typeof window !== 'undefined') (window as unknown as { __wfCodeToDrawing: (id: string) => void }).__wfCodeToDrawing = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock | undefined; if (b) codeToDrawing(b); }; // dev inspection
   const insertCollection = (kind: string) => { insertOrUpdateBlockForSlashMenu(editor, { type: 'collection', props: { kind }, children: [emptyRow(kind)] } as never); setTimeout(() => settle(), 0); touched.current = true; changed(); };
-  const collectionItems = [
-    ...(['goal', 'task'] as const).map(kind => ({
-      title: `${kind === 'goal' ? 'Goals' : 'Tasks'} table`, group: 'Waterfall', subtext: `a table of ${kind}s with status, ${kind === 'goal' ? 'target' : 'due date'}, progress and owner`,
-      onItemClick: () => insertCollection(kind),
-    })),
-    // one table per type the product declares: its rows are instances, its columns the type's properties
-    ...ownTypes.map(t => ({
-      title: `${t.slug[0].toUpperCase()}${t.slug.slice(1)}s table`, group: 'Waterfall', subtext: `a table of ${t.slug}s${t.cols.length ? ` with ${t.cols.map(c => c.name).join(', ')}` : ''}`,
-      onItemClick: () => insertCollection(t.slug),
-    })),
-  ];
+  // one Table block: goals, tasks or any of the product's types — the type is picked in the table's header
+  const collectionItems = [{
+    title: 'Data table', group: 'Waterfall', subtext: `a table of goals, tasks${ownTypes.length ? ', ' + ownTypes.map(t => t.slug + 's').join(', ') : ''} — pick the type in its header; rows are nodes`,
+    onItemClick: () => insertCollection('task'),
+  }];
   const drawingItems = [
     { title: 'Drawing', group: 'Waterfall', subtext: 'an Excalidraw sketch saved next to the document', onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'drawing', props: { src: `drawings/${newDrawingSlug()}.excalidraw`, title: 'Drawing' } } as never); touched.current = true; changed(); } },
     { title: 'Code block → drawing', group: 'Waterfall', subtext: 'turn this ASCII diagram into an editable drawing', onItemClick: () => codeToDrawing(editor.getTextCursorPosition().block as unknown as AnyBlock) },

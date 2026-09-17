@@ -10,7 +10,7 @@ export default async function Page({ params }: { params: Promise<{ product: stri
   const rows = trackRows(scope.index, 'task');
   return (
     <div className="page page-wide">
-      <header className="doc-head"><h1 className="prop-in h1" style={{ margin: 0 }}>Tasks</h1><p className="sub">tasks defined anywhere in {scope.product.meta.title}. Add one with a "Tasks table" block in any document, or write a task: line.</p></header>
+      <header className="doc-head"><h1 className="prop-in h1" style={{ margin: 0 }}>Tasks</h1><p className="sub">tasks defined anywhere in {scope.product.meta.title}. Add one with a Table block (type: tasks) in any document, or write a task: line.</p></header>
       <TrackList product={product} kind="task" rows={rows} />
     </div>
   );
