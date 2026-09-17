@@ -5,7 +5,7 @@ import { docRoute } from '@/lib/doc';
 
 // What the editor is working on right now: the current block's text, the ids it already links, and a function that
 // inserts a tag at the cursor. The panel's Context mode searches the product's knowledge for it.
-export type EditingContext = { docSlug: string; blockId: string; text: string; linked: string[]; insert: (id: string) => void };
+export type EditingContext = { docSlug: string; blockId: string; text: string; linked: string[]; nodeId?: string; insert: (id: string) => void };
 // The right column is a navigation stack: the root is Context (on document pages) and every opened node is pushed
 // on top. `back` pops; `go(i)` jumps to an entry, dropping what is above it — except pinned entries, which are kept.
 export type StackEntry = { id: string; pinned: boolean };

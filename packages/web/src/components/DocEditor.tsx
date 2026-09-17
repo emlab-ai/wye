@@ -110,11 +110,11 @@ function QuestionNode({ p, set, contentRef, block }: { p: { kind: string; slug: 
   return (
     <div className={`nblock k-question qnode s-${status}`} data-id={id} ref={hostRef}>
       <div className="qnode-head" contentEditable={false} ref={stopEditorEvents}>
-        <span className="qnode-mark">Q</span>
-        <select className={`status-sel s-${status}`} value={status} onChange={e => set({ status: e.target.value })} title="status">{['open', 'resolved', 'rejected'].map(st => <option key={st} value={st}>{st}</option>)}</select>
-        <span className="qnode-acts">
-          <button type="button" className="nblock-send" title="Copy a link to this question" onClick={() => copyBlockLink(block, hostRef.current)}>⧉ link</button>
-          <button type="button" className="nblock-send" title="Send this question to an agent" onClick={() => sendBlock(block, hostRef.current)}>⇢ agent</button>
+        <button type="button" className="qnode-mark" title="Open this question in the panel" onClick={() => window.dispatchEvent(new CustomEvent('wf:peek', { detail: id }))}>Q</button>
+        <select className={`status-sel s-${status} ${status === 'open' ? 'hover-only' : ''}`} value={status} onChange={e => set({ status: e.target.value })} title="status">{['open', 'resolved', 'rejected'].map(st => <option key={st} value={st}>{st}</option>)}</select>
+        <span className="qnode-acts hover-only">
+          <button type="button" className="nblock-send" title="Copy a link to this question" onClick={() => copyBlockLink(block, hostRef.current)}>⧉</button>
+          <button type="button" className="nblock-send" title="Send this question to an agent" onClick={() => sendBlock(block, hostRef.current)}>⇢</button>
           <button type="button" className="nblock-send" onClick={() => setDetails(d => !d)} title="id, links and the rest">{details ? 'hide details' : 'details'}</button>
         </span>
       </div>
@@ -247,14 +247,16 @@ const NodeBlock = createReactBlockSpec(
             {(p.check || p.kind === 'task') && (
               <input type="checkbox" className="nblock-check" checked={p.check === 'done' || p.status === 'done'} onChange={e => set({ check: e.target.checked ? 'done' : 'todo', status: e.target.checked ? 'done' : 'open' })} title="done?" />
             )}
-            <button type="button" className="pill k nblock-peek" style={{ background: `var(--k-${p.kind}, var(--k-other))` }} title="Show everything connected to this node"
+            <button type="button" className="pill k nblock-peek" style={{ background: `var(--k-${p.kind}, var(--k-other))` }} title="Open this node in the panel"
                     onClick={() => window.dispatchEvent(new CustomEvent('wf:peek', { detail: `${p.kind}:${p.slug}` }))}>{p.kind}</button>
             <input className="nblock-slug" value={p.slug} spellCheck={false} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />
-            <select className="status-sel" value={p.status} onChange={e => set({ status: e.target.value })}>{STATUSES.map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
-            {p.form === 'yaml' && <button className="mini" onClick={() => setShowYaml(v => !v)}>{showYaml ? 'hide yaml' : 'yaml'}</button>}
-            {p.form === 'prose' && <input className="nblock-extra" value={p.extra} placeholder="key: value, key: value" onChange={e => set({ extra: e.target.value })} />}
-            <button type="button" className="nblock-send" title="Copy a link to this node" onClick={e => copyBlockLink(props.block as unknown as AnyBlock, e.currentTarget)}>⧉ link</button>
-            <button type="button" className="nblock-send" title="Send this node to an agent" onClick={e => sendBlock(props.block as unknown as AnyBlock, e.currentTarget)}>⇢ agent</button>
+            <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{STATUSES.map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
+            {p.form === 'prose' && <input className={`nblock-extra ${p.extra ? '' : 'hover-only'}`} value={p.extra} placeholder="key: value" onChange={e => set({ extra: e.target.value })} />}
+            <span className="nblock-tools hover-only">
+              {p.form === 'yaml' && <button type="button" className="nblock-send" onClick={() => setShowYaml(v => !v)}>{showYaml ? 'hide yaml' : 'yaml'}</button>}
+              <button type="button" className="nblock-send" title="Copy a link to this node" onClick={e => copyBlockLink(props.block as unknown as AnyBlock, e.currentTarget)}>⧉</button>
+              <button type="button" className="nblock-send" title="Send this node to an agent" onClick={e => sendBlock(props.block as unknown as AnyBlock, e.currentTarget)}>⇢</button>
+            </span>
           </div>
           <div className="nblock-text" ref={props.contentRef} />
           {rows.length > 0 && !showYaml && (
@@ -371,7 +373,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     const linked = items.flatMap(i => i.type === 'tag' && i.props?.id ? [i.props.id] : i.type === 'link' && i.href && /^[a-z-]+:/.test(i.href) ? [i.href] : []);
     const np = block.type === 'node' ? block.props as unknown as { kind: string; slug: string } : null;
     if (np) linked.push(`${np.kind}:${np.slug}`);
-    setEditing({ docSlug: slug, blockId: String((block as { id?: string }).id ?? ''), text, linked, insert: (id: string) => {
+    setEditing({ docSlug: slug, blockId: String((block as { id?: string }).id ?? ''), text, linked, nodeId: np && np.slug ? `${np.kind}:${np.slug}` : undefined, insert: (id: string) => {
       editor.focus();
       // a tag glued to the previous word would change it; pad with a space unless the cursor already follows one
       const st = (editor as unknown as { _tiptapEditor: { state: { selection: { from: number }; doc: { textBetween: (a: number, b: number) => string } } } })._tiptapEditor.state;

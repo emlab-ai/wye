@@ -25,23 +25,13 @@ const OUT: Record<string, string> = { refines: 'Refines', 'satisfied-by': 'Satis
 const INC: Record<string, string> = { refines: 'Refined by', 'satisfied-by': 'Satisfies', 'verified-by': 'Verifies', 'depends-on': 'Needed by', 'part-of': 'Contains', 'related-to': 'Related from', 'governed-by': 'Governs', 'gated-by': 'Gates', has: 'Belongs to', refs: 'Referenced by', contradicts: 'Contradicted by', resolves: 'Resolved by', 'applies-to': 'Applied by', 'has-action': 'Action of', navigates: 'Reached from', reads: 'Read by', writes: 'Written by', produced: 'Produced by' };
 
 export function PeekPanel() {
-  const { product, index, openId, stack, cursor, open, back, go, togglePin, remove, close, hrefFor, showContext, editing, setPanelOpen } = usePeek();
-  const [d, setD] = useState<Details | null>(null);
-  const [view, setView] = useState<'list' | 'graph'>('list');
-  const [depth, setDepth] = useState<1 | 2>(1);
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (!openId) { setD(null); return; }
-    let live = true;
-    fetch(`/api/${product}/node/${encodeURIComponent(openId)}?depth=${depth}`).then(r => r.ok ? r.json() : null).then(j => { if (live) setD(j); });
-    return () => { live = false; };
-  }, [openId, product, depth, tick]);
+  const { product, index, openId, stack, cursor, go, back, togglePin, remove, close, showContext, editing, setPanelOpen } = usePeek();
   if (!openId && !showContext && !stack.length) return null;
   const chips = (
     <div className="peek-nav">
       <button className="peek-back" onClick={back} disabled={cursor < 0} title="Back (Esc)">←</button>
       <div className="peek-chips">
-        {showContext && <button className={`chip ${cursor < 0 ? 'on' : ''}`} onClick={() => go(-1)} title="Context for the block you are editing">◈ Context</button>}
+        {showContext && <button className={`chip ${cursor < 0 ? 'on' : ''}`} onClick={() => go(-1)} title="Follows the block you are editing">◈ Context</button>}
         {stack.map((e, i) => {
           const en = index[e.id]; const kind = e.id.split(':')[0];
           const label = kind === 'session' ? `session ${e.id.slice(8, 14)}` : e.id.replace(/^req:/, '');
@@ -57,11 +47,13 @@ export function PeekPanel() {
       <button className="peek-bar-close" onClick={() => { if (showContext) setPanelOpen(false); else close(); }} title="Hide the panel (⌘.)">×</button>
     </div>
   );
+  // Context root: the node the cursor is in (its details first), then knowledge related to what is being written
   if (!openId) return (
     <aside className="peek" role="complementary" aria-label="Context">
       {chips}
-      <div className="peek-bar"><strong>Context</strong><span className="muted">{editing ? 'for the block you are editing' : 'put the cursor in the text'}</span></div>
-      <ContextPanel />
+      {editing?.nodeId
+        ? <><NodeView id={editing.nodeId} /><div className="peek-bar peek-sub"><strong>Related</strong><span className="muted">knowledge close to what you are writing</span></div><ContextPanel /></>
+        : <><div className="peek-bar"><strong>Context</strong><span className="muted">{editing ? 'for the block you are editing' : 'put the cursor in the text'}</span></div><ContextPanel /></>}
     </aside>
   );
   if (openId.startsWith('session:')) return (
@@ -71,34 +63,47 @@ export function PeekPanel() {
       <SessionView id={openId.slice('session:'.length)} />
     </aside>
   );
-  const entry = index[openId];
-  const def = hrefFor(openId);
+  return <aside className="peek" role="dialog" aria-label={openId}>{chips}<NodeView id={openId} /></aside>;
+}
+
+// One node in the column: card or editor, what it produced, and what it is connected to (list or graph).
+function NodeView({ id }: { id: string }) {
+  const { product, index, open, go, hrefFor } = usePeek();
+  const [d, setD] = useState<Details | null>(null);
+  const [view, setView] = useState<'list' | 'graph'>('list');
+  const [depth, setDepth] = useState<1 | 2>(1);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    let live = true; setD(null);
+    fetch(`/api/${product}/node/${encodeURIComponent(id)}?depth=${depth}`).then(r => r.ok ? r.json() : null).then(j => { if (live) setD(j); });
+    return () => { live = false; };
+  }, [id, product, depth, tick]);
+  const entry = index[id];
+  const def = hrefFor(id);
   if (entry?.kind === 'module' && def) return (
-    <aside className="peek" role="dialog" aria-label={openId}>
-      {chips}
+    <>
       <div className="peek-bar">
         <Link href={def.replace(/#.*$/, '')} className="pri-link">Open document →</Link>
-        <Link href={`/${product}/graph?focus=${encodeURIComponent(openId)}&preset=Mechanics`}>Show in graph</Link>
-        <button className="linkish" onClick={() => requestSend({ refs: [openId], text: entry.title })}>Send to agent</button>
+        <Link href={`/${product}/graph?focus=${encodeURIComponent(id)}&preset=Mechanics`}>Show in graph</Link>
+        <button className="linkish" onClick={() => requestSend({ refs: [id], text: entry.title })}>Send to agent</button>
       </div>
-      <DocPeek id={openId} href={def.replace(/#.*$/, '')} />
-      {d && <><div className="peek-views"><h4>Connected <span className="muted">{d.graph.nodes.length - 1}</span></h4></div><Relations out={d.relations.out} inc={d.relations.inc} index={index} /></>}
-    </aside>
+      <DocPeek id={id} href={def.replace(/#.*$/, '')} />
+      {d && <><div className="peek-views"><h4>Connected <span className="muted">{[...d.relations.out, ...d.relations.inc].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0)}</span></h4></div><Relations out={d.relations.out} inc={d.relations.inc} index={index} /></>}
+    </>
   );
   return (
-    <aside className="peek" role="dialog" aria-label={openId}>
-      {chips}
+    <>
       <div className="peek-bar">
         {def ? <Link href={def} onClick={() => go(-1)}>Go to definition</Link> : <span className="muted">{entry?.defined ? '…' : 'referenced only, no definition'}</span>}
-        <Link href={`/${product}/graph?focus=${encodeURIComponent(openId)}&preset=Mechanics`}>Show in graph</Link>
-        <button className="linkish" onClick={() => requestSend({ refs: [openId], text: d ? nodeText(d.node.body) : entry?.title })}>Send to agent</button>
+        <Link href={`/${product}/graph?focus=${encodeURIComponent(id)}&preset=Mechanics`}>Show in graph</Link>
+        <button className="linkish" onClick={() => requestSend({ refs: [id], text: d ? nodeText(d.node.body) : entry?.title })}>Send to agent</button>
       </div>
       {d && (entry?.kind === 'goal' || entry?.kind === 'task')
         ? <><TrackEditor key={entry.id} entry={entry} index={index} text={nodeText(d.node.body)} form={d.node.form} onSaved={() => setTick(t => t + 1)} />{entry.sessions && entry.sessions.length > 0 && <Produced sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}<Tracking entry={entry} index={index} inc={d.relations.inc} /></>
-        : d ? <NodeCard id={openId} body={d.node.body} entry={entry} /> : <p className="muted">Loading {openId}…</p>}
+        : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
       {d && (
         <div className="peek-views">
-          <h4>Connected <span className="muted">{d.graph.nodes.length - 1}</span></h4>
+          <h4>Connected <span className="muted">{[...d.relations.out, ...d.relations.inc].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0)}</span></h4>
           <div className="seg" role="tablist">
             <button role="tab" aria-selected={view === 'list'} className={view === 'list' ? 'on' : ''} onClick={() => setView('list')}>List</button>
             <button role="tab" aria-selected={view === 'graph'} className={view === 'graph' ? 'on' : ''} onClick={() => setView('graph')}>Graph</button>
@@ -107,8 +112,8 @@ export function PeekPanel() {
         </div>
       )}
       {d && view === 'list' && <Relations out={d.relations.out} inc={d.relations.inc} index={index} />}
-      {d && view === 'graph' && openId && (d.graph.nodes.length > 1 ? <PeekGraph focus={openId} nodes={d.graph.nodes} edges={d.graph.edges} onPick={open} /> : <p className="muted rels-empty">Nothing links to or from this node yet.</p>)}
-    </aside>
+      {d && view === 'graph' && (d.graph.nodes.length > 1 ? <PeekGraph focus={id} nodes={d.graph.nodes} edges={d.graph.edges} onPick={open} /> : <p className="muted rels-empty">Nothing links to or from this node yet.</p>)}
+    </>
   );
 }
 
