@@ -158,7 +158,7 @@ export function answerPermission(id: string, requestId: string, allow: boolean, 
   const l = live().get(id); if (!l?.proc) return false;
   const response = allow ? { behavior: 'allow', updatedInput: input ?? {} } : { behavior: 'deny', message: 'denied by the user in Waterfall' };
   l.proc.stdin!.write(JSON.stringify({ type: 'control_response', response: { subtype: 'success', request_id: requestId, response } }) + '\n');
-  emit(l, { kind: 'note', text: `${allow ? 'allowed' : 'denied'} ${requestId}`, requestId, answered: allow ? 'allow' : 'deny' });
+  emit(l, { kind: 'note', text: `${allow ? 'allowed' : 'denied'} ${requestId}`, requestId, answered: allow ? 'allow' : 'deny', input: allow ? input : undefined });
   return true;
 }
 export function stopChat(id: string): boolean {
