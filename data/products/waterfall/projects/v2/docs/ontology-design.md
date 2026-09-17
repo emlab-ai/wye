@@ -17,7 +17,7 @@ sources:
 
 Research and a proposal for the idea in module:ontology: every block in every document is a graph node; every node has a type, properties, links and content; types inherit from types; a typed collection on one side is a back link on the other side, automatically. This document says what that means for Waterfall, what other systems do, what to keep from the current graph and what to change, in three phases that each ship on their own.
 
-Nothing here is decided. The decisions this draft makes on its own are in the inbox for review (see §Decisions and open questions); the graph keeps working exactly as it does until phase 1 lands.
+The decisions this draft makes on its own are blocks in §Decisions and open questions, proposed until a person approves them. All three phases shipped on 2026-09-17 (commits 085892a parser, 7f42579 web and CLI, c513c75 blocks); §Implemented below says what the code does and which rules it enforces, and the worked example lives in module:ontology. The four questions stay open: the implementation follows the design's assumptions and each assumption is a proposed decision that resolves its question.
 
 ## The idea in one paragraph
 
@@ -176,10 +176,118 @@ Errors: unknown type in an id prefix; `extends` cycle; unknown parent; widening 
 
 Each phase is a plan task, ships alone and leaves the documents readable by the previous parser (the markdown never changes shape; only what the parser makes of it grows).
 
-- [ ] task:ontology.types Type nodes and inheritance: `type:` cards with `extends` and `props`, two-pass parse with an open kind list, base ontology document replacing schema/kinds.yaml, inherited-property validation in ctx check, type page listing instances. Part of module:ontology-design; depends on req:wf.graph.
-- [ ] task:ontology.inverses Named inverses and collections: the inverse declaration on properties, generated reverse edges, inverse names in the peek panel and node page, base verbs declared with inverses, cardinality inferred. Part of module:ontology-design; depends on task:ontology.types.
-- [ ] task:ontology.blocks Every block a node: `block:` ids from anchor hashes, document→heading→block `has` tree, phrase links owned by the block, hidden by default in rail/search/site. Part of module:ontology-design; depends on task:ontology.inverses and rule:block-links.
-- [ ] task:ontology.spike Throwaway spike before task:ontology.types: parse the person/employee/manager/team example from module:ontology with a two-pass parser in a branch of lib/parse.js and print the effective properties and inverses; the output is a yes/no on the two-pass approach, not code to keep. Part of module:ontology-design.
+- [x] task:ontology.types Type nodes and inheritance: `type:` cards with `extends` and `props`, two-pass parse with an open kind list, base ontology document replacing schema/kinds.yaml, inherited-property validation in ctx check, type page listing instances. Part of module:ontology-design; depends on req:wf.graph. (session: 94ac3cf3e0)
+- [x] task:ontology.inverses Named inverses and collections: the inverse declaration on properties, generated reverse edges, inverse names in the peek panel and node page, base verbs declared with inverses, cardinality inferred. Part of module:ontology-design; depends on task:ontology.types. (session: 94ac3cf3e0)
+- [x] task:ontology.blocks Every block a node: `block:` ids from anchor hashes, document→heading→block `has` tree, phrase links owned by the block, hidden by default in rail/search/site. Part of module:ontology-design; depends on task:ontology.inverses and rule:block-links. (session: 94ac3cf3e0)
+- [ ] task:ontology.kinds-yaml-generated Generate `schema/kinds.yaml` (kinds, verbs, statuses) from `schema/base-ontology.md` so the two cannot drift; today kinds.yaml is a hand-kept summary with a header pointing at the ontology. Part of module:ontology-design; depends on decision:ontology.base-ontology-referenced.
+- [ ] task:ontology.unique Cardinality on the inverse side: a `unique` modifier on a `list of` property makes the target's inverse a single ref instead of a collection; today every inverse renders as a list. Part of module:ontology-design; depends on task:ontology.inverses.
+- [ ] task:ontology.ref-slot-picker The editor's link picker filters targets by the property's declared type: a `ref employee` slot only offers employees and their subtypes; the block menu already offers the product's own types. Part of module:ontology-design; depends on task:ontology.types.
+- [ ] task:ontology.block-peek Open a block node from its `#b-<hash>` anchor in the peek panel (its links, its heading, a place for per-block properties such as a status or a comment). Part of module:ontology-design; depends on task:ontology.blocks.
+- [x] task:ontology.spike Throwaway spike before task:ontology.types: parse the person/employee/manager/team example from module:ontology with a two-pass parser in a branch of lib/parse.js and print the effective properties and inverses; the output is a yes/no on the two-pass approach, not code to keep. Part of module:ontology-design. (result: yes: two-pass works (types then instances); effective props by extends chain, generated inverses, transitive is-a, session: 94ac3cf3e0)
+
+### Implemented
+
+What shipped, as requirements the tests verify and rules the code enforces. Statuses are proposed so the reviewer files them.
+
+| test | file | cases |
+|---|---|---|
+| test:ontology | test/ontology.js | 30 |
+| test:blocks | test/blocks.js | 22 |
+| test:types-web | packages/web/src/lib/types.test.ts | 5 |
+| test:instances-web | packages/web/src/lib/instances.test.ts | 3 |
+
+```yaml
+- id: req:ontology.types
+  title: A product declares its own types and the kind list is open
+  when: a document holds a `type:<slug>` card (optionally `extends`, `props`, `open`, `home`, `purpose`)
+  then: >
+    `<slug>:<x>` is an id everywhere (cards, prose nodes, tags, links), the type inherits its parent's properties
+    parent first, a ref/list-of property becomes an edge named by the property, every declared property is a
+    prop:<type>.<name> node the type has, and graph.json carries kinds, types, inverses and problems
+  status: proposed
+  satisfied-by: [rule:ontology.open-kinds, rule:ontology.narrow-only]
+  verified-by: [test:ontology]
+  refines: req:wf.graph
+- id: req:ontology.inverses
+  title: Every link has a name on both ends
+  when: a property declares `-(inverse)-> name` (the base ontology does for every base verb)
+  then: >
+    the parser emits the reverse edge marked generated; the CLI lists it under the inverse name and hides the
+    incoming duplicate; the web labels incoming relations by the inverse name and shows a typed node's inverses
+    under its properties
+  status: proposed
+  satisfied-by: [rule:ontology.inverse-generated]
+  verified-by: [test:ontology]
+- id: req:ontology.check
+  title: ctx check validates the ontology and its instances
+  when: ctx check runs
+  then: >
+    an extends cycle, unknown parent, widening override, duplicate type id or a ref to a node of the wrong type is
+    an error; a missing required property, an undeclared property on a closed type or a value that does not parse
+    as its type is a warning
+  status: proposed
+  satisfied-by: [rule:ontology.narrow-only, rule:ontology.open-types]
+  verified-by: [test:ontology]
+- id: req:ontology.type-page
+  title: A type opens as a page with its properties and an instance table
+  when: a person opens /<product>/types/<slug> (from the Types index, the peek panel of a type: node, or Knowledge)
+  then: >
+    the page shows the type's properties (own and inherited, the root type's folded into one line), its subtypes
+    and every instance as a table with a column per property; "+ add" writes a new instance card into the type's
+    home document and rebuilds the graph
+  status: proposed
+  satisfied-by: [page:types, page:type, op:types.add]
+  verified-by: [test:types-web, test:instances-web]
+- id: req:ontology.blocks
+  title: Every block of a document is a node
+  when: a document is parsed
+  then: >
+    each anonymous paragraph, heading, list item, table and fence is a block:<doc>.<hash> node with the web's
+    anchor hash; the document has its headings, a heading has its blocks, a list item has its nested items; a prose
+    node or yaml card is its own block; a phrase link in plain prose is the block's edge
+  unless: the block is an html comment or a horizontal rule
+  status: proposed
+  satisfied-by: [rule:ontology.block-id, rule:ontology.hidden-kinds]
+  verified-by: [test:blocks]
+  depends-on: rule:block-links
+- id: rule:ontology.open-kinds
+  statement: >
+    The id regex is built per parse from the base kinds plus the slugs of every type: card in the base ontology and
+    the product's documents; the web rebuilds its regex from graph.kinds on the server and in the client provider.
+  source: lib/parse.js:188; packages/web/src/lib/ids.ts:8
+  status: proposed
+- id: rule:ontology.narrow-only
+  statement: >
+    A child type may only narrow an inherited property — make it required or narrow its ref type to a subtype —
+    never widen it; widening, an extends cycle and an unknown parent are ctx check errors.
+  source: lib/parse.js:168
+  status: proposed
+- id: rule:ontology.open-types
+  statement: >
+    A type is closed unless it says `open: true`: instances of a closed type get an "undeclared property" warning
+    for keys the type does not declare; all base types are open, so existing documents get no new warnings.
+  source: lib/graph.js:157; schema/base-ontology.md
+  status: proposed
+- id: rule:ontology.inverse-generated
+  statement: >
+    Inverse edges are generated by the parser (generated: true) and never written to markdown; the CLI graph keeps
+    them in out only, the web index drops them and reads inverses from graph.inverses.
+  source: lib/parse.js:468; lib/graph.js:14; packages/web/src/lib/graph.ts:24
+  status: proposed
+- id: rule:ontology.block-id
+  statement: >
+    A block node's id is block:<document slug>.<hash> where hash is the FNV-1a anchor hash of the decoration-free
+    text — identical to the #b-<hash> anchor the web already gives the block.
+  source: lib/parse.js:67; packages/web/src/lib/anchors.ts
+  status: proposed
+- id: rule:ontology.hidden-kinds
+  statement: >
+    field, prop and block nodes exist for addressing, links and properties; they are hidden from the rail, the
+    knowledge pages, search (unless the query names block:), the review queue, the semantic index, the node index
+    sent to the browser and the published site (ctx site --blocks keeps them).
+  source: packages/web/src/lib/graph.ts:14; lib/graph.js; bin/ctx.js
+  status: proposed
+```
 
 ### Not in scope
 
@@ -258,6 +366,96 @@ Decisions this draft makes, as decision blocks (proposed until a person approves
   date: 2026-09-17
   related-to: [module:ontology-design,rule:block-links,module:ontology]
   session: 7cbfbe5976
+```
+
+Decisions made while implementing (2026-09-17, session 94ac3cf3e0), proposed; the ones that answer an open question say so with `resolves`, and the question stays open until a person approves the decision and resolves it:
+
+```yaml
+- id: decision:ontology.types-product-local
+  title: Ontology: types are product-local; only the base ontology is shared
+  context: >
+    question:ontology.q2 asks whether a type such as person can be shared across products. The parser reads the base
+    ontology plus one product's documents; nothing crosses products today.
+  choice: >
+    Types are scoped to the product that declares them. The base ontology (schema/base-ontology.md) is the only
+    shared part; a product that needs the same type as another declares it again (or a later change adds a shared
+    ontology folder the parser reads for every product).
+  alternatives: >
+    A global ontology folder read for every product — one more place to look and a change there affects every
+    product's check; copying types between products by hand — what the choice allows, without a mechanism.
+  consequences: The Types page shows "<product>'s types" and "Base types"; duplicate type ids are errors within a product only.
+  status: proposed
+  date: 2026-09-17
+  resolves: [question:ontology.q2]
+  related-to: [module:ontology-design]
+  session: 94ac3cf3e0
+- id: decision:ontology.blocks-all-documents
+  title: Ontology: block nodes for every document, hidden by default — no opt-in
+  context: >
+    question:ontology.q3 asks whether block nodes are created for every document or only when a document opts in.
+    Waterfall's eight documents produce about 220 anonymous blocks (most content is cards and prose nodes).
+  choice: >
+    Every document gets block nodes; they are hidden everywhere by default (rule:ontology.hidden-kinds) and dropped
+    from the published site. No frontmatter switch.
+  alternatives: >
+    `blocks: nodes` opt-in per document — two behaviours for the same markdown, and links from a block in an
+    opted-out document would have no owner.
+  consequences: graph.json grows (922 nodes for waterfall, from 689); nothing visible changes until a block is addressed.
+  status: proposed
+  date: 2026-09-17
+  resolves: [question:ontology.q3]
+  related-to: [module:ontology-design, task:ontology.blocks]
+  session: 94ac3cf3e0
+- id: decision:ontology.block-owned-links
+  title: Ontology: a phrase link in plain prose is the block's edge; the document reads it through has
+  context: >
+    question:ontology.q4 asks who owns a link on a phrase without a verb. Before phase 3 it was a related-to edge
+    from the document.
+  choice: >
+    The edge is from the block (related-to). The document reaches it through has → block, and the web's relations()
+    folds a document's block links into its own so the Connected list is unchanged. related-to stays symmetric;
+    mentions has mentioned-by.
+  alternatives: >
+    Keep the edge on the document and add one on the block — the same fact twice; keep it on the document only —
+    the block owns nothing, which defeats every-block-a-node.
+  consequences: ctx get module:x no longer lists phrase links directly; ctx neighbors and packet still reach them.
+  status: proposed
+  date: 2026-09-17
+  resolves: [question:ontology.q4]
+  related-to: [module:ontology-design, rule:block-links]
+  session: 94ac3cf3e0
+- id: decision:ontology.open-types
+  title: Ontology: a type is closed unless it says open: true; all base types are open
+  context: >
+    The design wants undeclared-property warnings (open world with a nudge), but base kinds carry many ad-hoc keys
+    and would drown ctx check in warnings.
+  choice: >
+    A type card may say `open: true`; instances of an open type never get undeclared-property warnings. Every base
+    type is open; a product's own types are closed by default. `open` does not inherit.
+  alternatives: >
+    Warn for every type — hundreds of warnings on day one; never warn — a product cannot learn its schema from its
+    instances.
+  consequences: rule:ontology.open-types; the Types page says "open" on such types.
+  status: proposed
+  date: 2026-09-17
+  related-to: [module:ontology-design, req:ontology.check]
+  session: 94ac3cf3e0
+- id: decision:ontology.base-ontology-referenced
+  title: Ontology: the base ontology is one file in the repo (schema/base-ontology.md), read for every product; kinds.yaml stays hand-kept for now
+  context: >
+    The design allowed copying base-ontology.md into each product or referencing it, and said kinds.yaml is
+    generated during the transition.
+  choice: >
+    Referenced: lib/parse.js reads schema/base-ontology.md first for every parse. kinds.yaml is not generated yet;
+    it carries a header naming base-ontology.md as the source of the kinds and verbs (task:ontology.kinds-yaml-generated).
+  alternatives: >
+    A copy per product — drifts the moment the base changes; generating kinds.yaml now — its prose (statuses,
+    conventions, prose-nodes) has no home in type cards yet.
+  consequences: Base types show on every product's Types page as "Base types"; a product cannot change them.
+  status: proposed
+  date: 2026-09-17
+  related-to: [module:ontology-design, decision:ontology.types-are-cards]
+  session: 94ac3cf3e0
 ```
 
 Open questions, as question blocks (answer each with a decision block, then resolve it):
