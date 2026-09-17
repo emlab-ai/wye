@@ -519,7 +519,7 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   unless: the node is only referenced, never defined — then the card stays read-only
   status: proposed
   refines: req:wf2.ui.node-page
-  satisfied-by: [component:node-editor, component:track-editor, op:node.edit]
+  satisfied-by: [component:node-editor, rule:node-page-layout, op:node.edit]
   verified-by: [test:node-edit-web, ui-test:table-rows]
   resolves: bug:properties-need-to-be
 - id: req:wf2.ui.node-page.save

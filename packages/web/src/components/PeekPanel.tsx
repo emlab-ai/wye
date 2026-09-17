@@ -13,7 +13,6 @@ import { SmartTag } from './SmartTag';
 import { StatusPill } from './Pills';
 import { KIND_ORDER } from '@/lib/knowledge';
 import { ProgressBar } from './Progress';
-import { TrackEditor } from './TrackEditor';
 import { Produced } from './Produced';
 import { DocPeek } from './DocPeek';
 import { TypeView } from './TypeView';
@@ -103,9 +102,9 @@ function NodeView({ id }: { id: string }) {
         <button className="linkish" onClick={() => requestSend({ refs: [id], text: d ? nodeText(d.node.body) : entry?.title })}>Send to agent</button>
       </div>
       {d && d.self && <TypeView type={d.self} instances={d.instances ?? []} index={index} product={product} onSaved={() => setTick(t => t + 1)} />}
-      {d && d.self ? null : d && (entry?.kind === 'goal' || entry?.kind === 'task')
-        ? <><TrackEditor key={entry.id} entry={entry} index={index} text={nodeText(d.node.body)} form={d.node.form} onSaved={() => setTick(t => t + 1)} />{entry.sessions && entry.sessions.length > 0 && <Produced sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}<Tracking entry={entry} index={index} inc={d.relations.inc} /></>
-        : d && d.node.defined && d.type ? <NodeEditor key={id} id={id} body={d.node.body} form={d.node.form ?? 'yaml'} type={d.type} props={d.props ?? []} entry={entry} onSaved={() => setTick(t => t + 1)} />
+      {d && d.self ? null : d && d.node.defined && d.type
+        ? <><NodeEditor key={id} id={id} body={d.node.body} form={d.node.form ?? 'yaml'} type={d.type} props={d.props ?? []} entry={entry} onSaved={() => setTick(t => t + 1)} />
+          {entry && (entry.kind === 'goal' || entry.kind === 'task') && <>{entry.sessions && entry.sessions.length > 0 && <Produced sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}<Tracking entry={entry} index={index} inc={d.relations.inc} /></>}</>
         : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
       {d && d.type && d.props && d.relations.inc.some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={d.relations.inc} inverses={d.inverses ?? {}} product={product} />}
       {d && (

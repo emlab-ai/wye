@@ -8,7 +8,7 @@ last-verified: 2026-09-17
 part-of: module:app
 sources:
   - packages/web/src/components/TrackList.tsx
-  - packages/web/src/components/TrackEditor.tsx
+  - packages/web/src/components/NodeEditor.tsx
   - packages/web/src/components/QuestionList.tsx
   - packages/web/src/components/InboxList.tsx
   - packages/web/src/components/InboxNote.tsx
@@ -75,21 +75,17 @@ React components (`component:` cards). `side` says whether it renders on the ser
   purpose: >
     Goals or tasks as a tracking list: search, status filter, nested sub-items; a row opens the item in the right column.
   part-of: module:app-knowledge
-- id: component:track-editor
-  file: packages/web/src/components/TrackEditor.tsx
-  side: client
-  purpose: >
-    Asana-style editing of a goal or task in the right column: title text, status, target/due, owner, progress and the goal it is part of. Every change writes back to the node's defining line and rebuilds the graph.
-  part-of: module:app-knowledge
 - id: component:node-editor
   file: packages/web/src/components/NodeEditor.tsx
   side: client
   purpose: >
-    Asana-style editing of any other node in the right column (bug:properties-need-to-be): its text, status and every
-    property — the ones its type declares (enum → select, bool → checkbox, ref → an id with that type's instances
-    suggested) and the keys the card already carries. Every change writes back to the defining line (prose) or the
-    yaml card (patchYamlCard: scalars in place, long or multi-line values as folded blocks, the text key by name) and
-    rebuilds the graph. Goals and tasks keep component:track-editor.
+    A node's page in the right column, laid out like a Notion task (task:new-826, bug:properties-need-to-be): the
+    title first, then every property as a label/value row — status, the text, the ones its type declares (enum →
+    select, bool → checkbox, ref → a select of that type's instances or ids with tags), the keys the card carries,
+    and for goals and tasks their tracking fields (due/target, owner, progress, part-of goal — the former
+    TrackEditor, folded in here); empty optional ones under "n more properties". Images in a prose node's text show
+    under the title and stay in the line. Every change writes back to the defining line (prose) or the yaml card
+    (patchYamlCard) and rebuilds the graph.
   part-of: module:app-knowledge
 - id: component:question-list
   file: packages/web/src/components/QuestionList.tsx

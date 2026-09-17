@@ -1097,6 +1097,20 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   date: 2026-09-17
   related-to: [rule:type-tables, rule:goals-and-tasks, bug:no-need-to-add]
   session: 8aa3926e18
+- id: rule:node-page-layout
+  statement: >
+    The context column shows a node as a page, not a form: the kind and id small on top, the title large and
+    editable (a yaml card's title key, else its text — a prose node is its text), then the properties as rows of
+    label and value in one column: status first, then the text key when the title is separate, the tracking fields
+    of a goal or task, the type's declared properties (own, then inherited, each marked), the root type's link
+    properties the node fills in (related-to, depends-on…), and keys the card carries beyond its type. Empty
+    optional properties fold under "n more properties"; required empty ones are marked. A value edits in place
+    and saves when the field is left (Enter in the title saves it). Relations, sessions and the graph views follow
+    below as before (task:new-826).
+  source: packages/web/src/components/NodeEditor.tsx; packages/web/src/app/globals.css#ne-props
+  status: shipped
+  verified-by: [ui-test:table-rows]
+  related-to: [component:node-editor, req:wf2.ui.edit-in-context]
 - id: rule:table-rows
   statement: >
     A row of any table (goals, tasks, a type's) is selected by a click anywhere in it — its status select, a property
