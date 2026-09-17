@@ -1,0 +1,224 @@
+# Base ontology
+
+The types every product starts with. Each base kind of the graph is a `type:` card here; a product adds its own
+types in any of its documents (by convention `ontology.md`) with the same card form. `lib/parse.js` reads this file
+first (pass 1), then the product's documents, so the set of kinds is open: an instance of `type:team` is `team:<slug>`.
+
+A property line is `name: <value type>[?] [-(inverse)-> <name>]`. Value types: `string`, `text`, `number`, `date`,
+`month`, `bool`, `enum [a, b]`, `ref <type>`, `list of <type>` (or `list of string`). A trailing `?` marks the
+property optional; without it `ctx check` warns when an instance lacks it. `ref`/`list of` properties are edges
+named by the property; `-(inverse)-> name` is the name of the generated back link on the target. `open: true` on a
+type means instances may carry properties the type does not declare without a warning (all base types are open;
+`schema/kinds.yaml` still lists their required and recommended keys in prose).
+
+```yaml
+- id: type:node
+  purpose: the root type; every node has these
+  open: true
+  props:
+    title: string?
+    status: string?
+    owner: string?
+    text: text?
+    related-to: list of node? -(inverse)-> related-to
+    mentions: list of node? -(inverse)-> mentioned-by
+    part-of: list of node? -(inverse)-> has
+    depends-on: list of node? -(inverse)-> depended-on-by
+    contradicts: list of node? -(inverse)-> contradicts
+    see: list of node? -(inverse)-> seen-from
+    resolves: list of node? -(inverse)-> resolved-by
+    produced: list of node? -(inverse)-> produced-by
+- id: type:product
+  extends: type:node
+  purpose: a thing being built; groups projects
+  open: true
+  props:
+    description: text?
+    projects: list of string?
+- id: type:module
+  extends: type:node
+  purpose: a bounded area of the product; one document per module
+  open: true
+  props:
+    purpose: text?
+    submodules: list of module? -(inverse)-> part-of
+    gated-by: list of gate? -(inverse)-> gates
+- id: type:req
+  extends: type:node
+  purpose: a behaviour — when <trigger>, <actor> <outcome> [unless <exception>]
+  open: true
+  props:
+    when: text?
+    then: text?
+    unless: text?
+    note: text?
+    refines: list of req? -(inverse)-> refined-by
+    satisfied-by: list of node? -(inverse)-> satisfies
+    verified-by: list of node? -(inverse)-> verifies
+- id: type:rule
+  extends: type:node
+  purpose: an invariant, constraint, validation or policy — how a behaviour is guaranteed
+  open: true
+  props:
+    statement: text?
+    source: string?
+    note: text?
+    verified-by: list of node? -(inverse)-> verifies
+    governs: list of node? -(inverse)-> governed-by
+- id: type:entity
+  extends: type:node
+  purpose: a persisted thing
+  open: true
+  props:
+    description: text?
+    source: string?
+    fields: text?
+    governed-by: list of rule? -(inverse)-> governs
+    refs: list of entity? -(inverse)-> referenced-by
+    owns: list of state? -(inverse)-> owned-by
+    embedded-in: list of entity? -(inverse)-> embeds
+- id: type:value
+  extends: type:node
+  purpose: a value object or enum never persisted on its own
+  open: true
+  props:
+    source: string?
+    values: list of string?
+- id: type:state
+  extends: type:node
+  purpose: a state machine owned by an entity
+  open: true
+  props:
+    states: list of string?
+    transitions: text?
+    set-by: list of node? -(inverse)-> sets
+- id: type:op
+  extends: type:node
+  purpose: a query, mutation, endpoint or tool — the public API surface
+  open: true
+  props:
+    args: text?
+    does: text?
+    gate: string?
+    source: string?
+    gated-by: list of gate? -(inverse)-> gates
+    governed-by: list of rule? -(inverse)-> governs
+    reads: list of node? -(inverse)-> read-by
+    writes: list of node? -(inverse)-> written-by
+    calls: list of op? -(inverse)-> called-by
+- id: type:page
+  extends: type:node
+  purpose: a screen the user can navigate to
+  open: true
+  props:
+    route: string?
+    component: string?
+    actions: text?
+    gated-by: list of gate? -(inverse)-> gates
+    governed-by: list of rule? -(inverse)-> governs
+    reads: list of node? -(inverse)-> read-by
+- id: type:action
+  extends: type:node
+  purpose: something a user can do on a page
+  open: true
+  props:
+    does: text?
+    calls: list of op? -(inverse)-> called-by
+    navigates: list of page? -(inverse)-> reached-from
+    writes: list of node? -(inverse)-> written-by
+- id: type:gate
+  extends: type:node
+  purpose: a feature flag, permission policy or role check
+  open: true
+  props:
+    statement: text?
+    applies-to: list of node? -(inverse)-> gated-by
+- id: type:flag
+  extends: type:node
+  purpose: a runtime setting that changes behaviour
+  open: true
+  props:
+    scope: string?
+    source: string?
+- id: type:setting
+  extends: type:flag
+  purpose: alias of flag; the parser normalises setting: ids to flag:
+  open: true
+- id: type:test
+  extends: type:node
+  purpose: a verification, usually referenced as test:Class#Method
+  open: true
+  props:
+    file: string?
+    count: string?
+- id: type:ui-test
+  extends: type:test
+  purpose: an end-to-end spec
+  open: true
+- id: type:tool
+  extends: type:op
+  purpose: an MCP tool or CLI command an agent can call
+  open: true
+- id: type:drift
+  extends: type:node
+  purpose: a contradiction between two nodes
+  open: true
+- id: type:question
+  extends: type:node
+  purpose: something the knowledge leaves unspecified; open until a person resolves it with a decision
+  open: true
+  props:
+    q: text?
+    context: text?
+- id: type:decision
+  extends: type:node
+  purpose: an ADR — context, alternatives, choice, consequences; proposed until a person approves it
+  open: true
+  props:
+    date: date?
+    context: text?
+    choice: text?
+    alternatives: text?
+    consequences: text?
+    governs: list of node? -(inverse)-> governed-by
+- id: type:goal
+  extends: type:node
+  purpose: what the product or a project sets out to achieve
+  open: true
+  props:
+    target: string?
+    progress: number?
+- id: type:task
+  extends: type:node
+  purpose: a unit of work for a human or agent
+  open: true
+  props:
+    due: string?
+    session: string?
+- id: type:field
+  extends: type:node
+  purpose: generated by the parser from an entity's fields block; never hand-written
+  open: true
+  props:
+    name: string?
+    type: string?
+    typed-as: list of node? -(inverse)-> types
+- id: type:type
+  extends: type:node
+  purpose: a type — declares the properties its instances have and which type it extends
+  open: true
+  props:
+    purpose: text?
+    home: string?
+    open: bool?
+    extends: ref type? -(inverse)-> extended-by
+    props: text?
+- id: type:prop
+  extends: type:node
+  purpose: generated by the parser from a type's props block — one node per declared property
+  open: true
+- id: type:block
+  extends: type:node
+  purpose: an anonymous block of a document (paragraph, heading, list item, table, fence) — id block:<doc>.<anchor hash>
+  open: true
+```

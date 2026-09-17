@@ -52,7 +52,7 @@ assert(r && r.defined, 'prose req defined');
 assert.strictEqual(r.status, 'proposed', 'status from hashtag');
 assert(r.title.startsWith('When a sale is completed'), 'title is first sentence: ' + r.title);
 assert(/^text: When a sale/m.test(r.body) && /^owner: alex$/m.test(r.body), 'body has text and extra keys');
-const out = (g.out.get('req:sale.close') || []).map(e => e.verb + '>' + e.to).sort();
+const out = (g.out.get('req:sale.close') || []).filter(e => !e.generated).map(e => e.verb + '>' + e.to).sort();
 assert.deepStrictEqual(out, ['refines>req:sale', 'related-to>entity:kitchen-item', 'related-to>entity:order', 'satisfied-by>rule:close-on-complete', 'verified-by>test:sales'].sort(), 'edges: ' + out.join(', '));
 
 const v = g.node('req:sale.void'); assert(v && v.defined && v.status === 'shipped', 'list-item prose node with alias');
