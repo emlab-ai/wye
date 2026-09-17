@@ -249,7 +249,10 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     subject node, writes proposed blocks on its page (a new document only when none fits), runs `wf session open`
     — the main area navigates to that page while the session stays in the context column — and asks one "Plan"
     question (Proceed / Adjust / Cancel) before any code change (2026-09-17, session 3d2f42d484 for the chat-plan
-    version; the page version is verified by session 0e07e8fd53)
+    version; the page version is verified by session 0e07e8fd53). Images: paste a png into the box — a thumbnail
+    with × appears under the text and the run button is enabled even without text; Enter posts `images` (name +
+    data URL) with the request; the session lists the saved file, the first user event in the console shows it and
+    the agent sees it (2026-09-17, session 6ca1fd641c: the agent described the pasted screenshot without a tool)
 - id: ui-test:table-rows
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >

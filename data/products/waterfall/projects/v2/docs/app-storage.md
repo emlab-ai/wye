@@ -1,7 +1,7 @@
 ---
 node: module:app-storage
 type: module
-title: App — storage and serving
+title: Storage and serving
 status: proposed
 owner: unassigned
 last-verified: 2026-09-17
@@ -113,7 +113,10 @@ Where data lives (`store:` cards): path pattern, format, purpose. Markdown store
   path: data/products/<product>/_sessions/<id>-files/*
   format: binary
   purpose: >
-    Images attached to a session's messages.
+    Images attached to a session's messages — pasted into the composer (action:send-message) or into the
+    command box with the request (action:command-palette); the latter are listed on the session as `images`
+    and sent with its first message (image blocks for Claude, --image for Codex, a temp copy by path for a
+    runner). Served by /api/<product>/sessions/<id>/file/<name>.
   part-of: module:app-storage
 - id: store:inbox
   path: data/products/<product>/inbox/<timestamp>-<type>-<title>.md

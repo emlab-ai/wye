@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm';
 import { usePeek } from './PeekProvider';
 import { useRouter } from 'next/navigation';
 import type { ChatEvent, Session } from '@/lib/session-types';
+import { AttachStrip, useImageAttachments } from './Attachments';
 
 // The live conversation with an agent: every event of the transcript, streamed over SSE, plus a message box.
 export function Console({ session, onStatus }: { session: Session; onStatus: (s: string) => void }) {
@@ -14,7 +15,7 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
   const [live, setLive] = useState(false);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
-  const [images, setImages] = useState<{ name: string; dataUrl: string }[]>([]);
+  const attach = useImageAttachments(); const images = attach.images;
   const [showThinking, setShowThinking] = useState(false);
   const [queue, setQueue] = useState<{ pending: { id: string; text: string; addedAt: string }[]; batch: 'one' | 'all' }>({ pending: [], batch: 'one' });
   const bottom = useRef<HTMLDivElement>(null);
@@ -39,14 +40,10 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
     return () => es.close();
   }, [product, id, onStatus, router]);
   useEffect(() => { if (stick.current) bottom.current?.scrollIntoView({ block: 'end' }); }, [events]);
-  // images from the clipboard (or dropped files) ride along with the message, the way Claude Code takes them
-  const addFiles = (files: FileList | File[]) => {
-    for (const f of Array.from(files)) { if (!f.type.startsWith('image/')) continue; const rd = new FileReader(); rd.onload = () => setImages(im => [...im, { name: f.name || 'pasted.png', dataUrl: String(rd.result) }].slice(0, 8)); rd.readAsDataURL(f); }
-  };
-  const onPaste = (e: React.ClipboardEvent) => { const files = Array.from(e.clipboardData.files).filter(f => f.type.startsWith('image/')); if (files.length) { e.preventDefault(); addFiles(files); } };
+  // images from the clipboard (or dropped files) ride along with the message (useImageAttachments)
   const send = async () => {
     const t = text.trim(); if (!t && !images.length) return;
-    setBusy(true); setText(''); const imgs = images; setImages([]);
+    setBusy(true); setText(''); const imgs = attach.take();
     const r = await fetch(`/api/${product}/sessions/${id}/message`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: t, images: imgs }) });
     setBusy(false); if (!r.ok) setEvents(evs => [...evs, { t: new Date().toISOString(), kind: 'stderr', text: 'could not send the message' }]); else setLive(true);
   };
@@ -79,10 +76,10 @@ export function Console({ session, onStatus }: { session: Session; onStatus: (s:
             : <Event key={i} e={g.events[0]} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />)}
         <div ref={bottom} />
       </div>
-      <form className="console-input" onSubmit={e => { e.preventDefault(); send(); }} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); addFiles(e.dataTransfer.files); }}>
-        {images.length > 0 && <div className="console-attach">{images.map((im, i) => <span key={i} className="console-thumb"><img src={im.dataUrl} alt={im.name} /><button type="button" onClick={() => setImages(x => x.filter((_, k) => k !== i))} title="Remove">×</button></span>)}</div>}
+      <form className="console-input" onSubmit={e => { e.preventDefault(); send(); }} onDragOver={attach.onDragOver} onDrop={attach.onDrop}>
+        <AttachStrip images={images} remove={attach.remove} />
         <div className="console-row">
-          <textarea value={text} rows={2} placeholder={live ? (turnOpen ? 'Queue the next message… (⌘↵; paste images too)' : 'Reply to the agent… (⌘↵ to send; paste images too)') : 'Type to resume the agent…'} onChange={e => setText(e.target.value)} onPaste={onPaste} onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); send(); } }} />
+          <textarea value={text} rows={2} placeholder={live ? (turnOpen ? 'Queue the next message… (⌘↵; paste images too)' : 'Reply to the agent… (⌘↵ to send; paste images too)') : 'Type to resume the agent…'} onChange={e => setText(e.target.value)} onPaste={attach.onPaste} onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); send(); } }} />
           <button className="pri" type="submit" disabled={busy || (!text.trim() && !images.length)}>Send</button>
         </div>
       </form>

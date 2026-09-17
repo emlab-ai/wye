@@ -26,9 +26,14 @@ export async function getSession(productDir: string, id: string): Promise<Sessio
   if (!ID.test(id)) return null;
   try { return JSON.parse(await readFile(file(productDir, id), 'utf8')); } catch { return null; }
 }
-export async function createSession(productDir: string, product: string, input: { agent: string; instruction: string; refs?: string[]; source?: SessionSource; mode?: 'run' | 'chat'; cwd?: string; plan?: boolean }): Promise<Session> {
+// `images` (name + data URL, as pasted into the command box) become the session's files (store:session-files) and
+// are listed on the session by file name; they go to the agent with the first message.
+export async function createSession(productDir: string, product: string, input: { agent: string; instruction: string; refs?: string[]; source?: SessionSource; mode?: 'run' | 'chat'; cwd?: string; plan?: boolean; images?: { name?: string; dataUrl: string }[] }): Promise<Session> {
   const now = new Date().toISOString();
   const s: Session = { id: randomBytes(5).toString('hex'), product, agent: input.agent, mode: input.mode ?? 'run', cwd: input.cwd, ...(input.plan ? { plan: true } : {}), status: 'queued', createdAt: now, updatedAt: now, instruction: input.instruction, refs: [...new Set(input.refs ?? [])], source: input.source ?? {}, log: [{ t: now, line: input.mode === 'chat' ? 'chat session created' : `queued for ${input.agent}` }] };
+  const images: string[] = [];
+  for (const im of (input.images ?? []).slice(0, 8)) { const n = await saveAttachment(productDir, s.id, im.name ?? 'image', im.dataUrl); if (n) images.push(n); }
+  if (images.length) s.images = images;
   await saveSession(productDir, s);
   return s;
 }
@@ -140,4 +145,7 @@ export async function saveAttachment(productDir: string, id: string, name: strin
   void name;
   return safe;
 }
+// The lines under an instruction that point the agent at the request's images — a path per file, readable with
+// the Read tool wherever the agent runs on this machine.
+export const imageLines = (paths: string[]): string => paths.length ? `\nImages attached to the request (look at them with the Read tool):\n${paths.map(p => `- ${p}`).join('\n')}` : '';
 export const queueMessage = (items: QueueItem[]): string => items.map(q => [q.text.trim(), q.link ? `Link: ${q.link} (resolve it with \`wf resolve\`)` : '', q.refs?.length ? `Refs: ${q.refs.join(', ')}` : ''].filter(Boolean).join('\n')).join(items.length > 1 ? '\n\n---\n\n' : '');

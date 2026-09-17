@@ -224,7 +224,7 @@ const commands = {
 async function buildPrompt(p, s) {
   const parts = [];
   parts.push(`You are working on the product "${p}" in Waterfall (a knowledge base of requirements, rules, decisions, goals and tasks kept as markdown; a web app at ${WF_URL}). Session ${s.id}.`);
-  parts.push(`\n## Instruction\n${s.instruction}`);
+  parts.push(`\n## Instruction\n${s.instruction}${await fetchImages(p, s)}`);
   const ctx = [];
   const seen = new Set();
   for (const ref of [...(s.source && s.source.link ? [s.source.link] : []), ...s.refs]) {
@@ -235,6 +235,17 @@ async function buildPrompt(p, s) {
   if (s.parent) parts.push(`\nThis session continues session ${s.parent}; its log and result are in the instruction above. Pick up where it stopped.`);
   parts.push(`\n## How to work\n- The Waterfall CLI is \`wf\` (WF_URL=${WF_URL}, WF_PRODUCT=${p}). Read: \`wf resolve <link|id>\`, \`wf doc <product/project/doc>\`, \`wf node <id>\`, \`wf context "<text>"\`. Write: \`wf node set <id> --status s --set key=value\`, \`wf doc write <product/project/doc> --file f\` (whole body). \`ctx\` queries the graph offline (\`ctx --root data/products/${p} search …\`).\n- Documents are markdown under data/products/${p}/projects/<project>/docs/. Nodes are lines that start with an id (\`req:x …\`, \`- [ ] task:y …\`) or yaml blocks; keep ids stable.\n- Report progress with \`wf session log ${s.id} "<line>"\` and finish with \`wf session done ${s.id} "<result>"\` (or \`wf session fail\`). The runner marks the session done when you exit, so a final summary on stdout is enough.\n- If the work belongs to another agent, \`wf session handoff ${s.id} --agent <codex|claude-code> "<note>"\`.`);
   return parts.join('\n');
+}
+// The request's images (pasted into the command box) are the session's files in the app; a runner fetches them
+// into a temp folder so the agent can open them with its Read tool wherever it runs.
+async function fetchImages(p, s) {
+  const names = Array.isArray(s.images) ? s.images : []; if (!names.length) return '';
+  const dir = path.join(os.tmpdir(), `wf-${s.id}-files`); fs.mkdirSync(dir, { recursive: true });
+  const paths = [];
+  for (const n of names) {
+    try { const r = await fetch(`${WF_URL}/api/${p}/sessions/${s.id}/file/${encodeURIComponent(n)}`); if (!r.ok) continue; const f = path.join(dir, path.basename(n)); fs.writeFileSync(f, Buffer.from(await r.arrayBuffer())); paths.push(f); } catch { /* skip the image */ }
+  }
+  return paths.length ? `\nImages attached to the request (look at them with the Read tool):\n${paths.map(f => `- ${f}`).join('\n')}` : '';
 }
 function renderResolved(ref, j) {
   const head = `### ${ref}\n${j.title} — ${j.file}`;

@@ -519,7 +519,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   component: packages/web/src/app/[product]/sessions/page.tsx; packages/web/src/components/SessionList.tsx; packages/web/src/components/SessionView.tsx; packages/web/src/components/Console.tsx; packages/web/src/components/AskQuestions.tsx
   actions:
     - action:new-conversation: + New conversation starts a chat session with the default agent
-    - action:command-palette:  ⌘P / Ctrl+P anywhere opens a command box in the middle of the screen; what is typed starts a chat session that plans first (rule:plan-first); the node under the cursor and the document travel along as refs; the session opens in the context column
+    - action:command-palette:  ⌘P / Ctrl+P anywhere opens a command box in the middle of the screen; what is typed starts a chat session that plans first (rule:plan-first); the node under the cursor and the document travel along as refs; images pasted or dropped into the box (thumbnails, ×, up to 8) become the session's files and go with the first message (req:wf2.ui.palette-images); the session opens in the context column
     - action:open-session:     a row opens the session in the context column: status, agent, instruction, refs, then the console
     - action:send-message:     type (⌘↵) or paste images; sent now or queued while a turn runs (rule:session-queue)
     - action:answer-question:  choose options / type an answer on the agent's question card; Answer returns the choices to the agent, Skip lets it go on (rule:agent-questions)

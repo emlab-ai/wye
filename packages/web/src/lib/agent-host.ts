@@ -2,7 +2,7 @@
 // open, turns their streaming JSON into ChatEvents, persists them to the session and pushes them to subscribers.
 // Lives on globalThis so dev-server module reloads do not orphan the processes.
 import { spawn, type ChildProcess } from 'node:child_process';
-import { getSession, updateSession, appendTranscript, enqueue, takeFromQueue, queueMessage, filesDir } from './sessions';
+import { getSession, updateSession, appendTranscript, enqueue, takeFromQueue, queueMessage, imageLines, filesDir } from './sessions';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { ChatEvent, Session } from './session-types';
@@ -56,9 +56,11 @@ export function openInSession(id: string, path: string): boolean {
 }
 
 // The first message: the instruction plus every ref and the source link resolved to text, and how to talk back.
-export async function buildPrompt(product: string, s: Session, wfUrl: string): Promise<string> {
+// With `productDir` the request's images (store:session-files) are listed by absolute path under the instruction.
+export async function buildPrompt(product: string, s: Session, wfUrl: string, productDir?: string): Promise<string> {
   const scope = await loadScope(product);
-  const parts = [`You are working on the product "${product}" in Waterfall (requirements, rules, decisions, goals and tasks kept as markdown; the app at ${wfUrl} shows this conversation live). Session ${s.id}.`, `\n## Instruction\n${s.instruction}`];
+  const paths = productDir && s.images?.length ? s.images.map(n => path.join(filesDir(productDir, s.id), n)) : [];
+  const parts = [`You are working on the product "${product}" in Waterfall (requirements, rules, decisions, goals and tasks kept as markdown; the app at ${wfUrl} shows this conversation live). Session ${s.id}.`, `\n## Instruction\n${s.instruction}${imageLines(paths)}`];
   const ctx: string[] = []; const seen = new Set<string>();
   for (const ref of [...(s.source?.link ? [s.source.link] : []), ...s.refs]) {
     if (seen.has(ref) || !scope) continue; seen.add(ref);
@@ -78,13 +80,16 @@ export async function startChat(productDir: string, product: string, id: string,
   const cwd = s.cwd || REPO_ROOT;
   const l: Live = { id, productDir, agent: s.agent, cwd, proc: null, subs: new Set(), pending: [], flush: null, agentSessionId: s.agentSessionId, turnBusy: false, pumping: false, codexThread: s.agent === 'codex' ? s.agentSessionId : undefined };
   live().set(id, l);
-  const first = opts.firstMessage ?? (opts.resume ? undefined : await buildPrompt(product, s, opts.wfUrl));
+  const first = opts.firstMessage ?? (opts.resume ? undefined : await buildPrompt(product, s, opts.wfUrl, productDir));
+  // the request's images go with the first message the way pump sends a queued message's ones
+  const imgs = first && !opts.resume ? await loadImages(productDir, id, s.images ?? []) : [];
+  const shown = imgs.map(i => `/api/${product}/sessions/${id}/file/${i.name}`);
   const system = await agentSystemPrompt(product, productDir, opts.wfUrl);
   await updateSession(productDir, id, { status: 'running', runner: `app@${process.pid}`, line: opts.resume ? 'resumed' : 'started in the app', cwd });
   if (s.agent === 'codex') {
     // codex exec has no system-prompt flag: the contract opens the first turn
     emit(l, { kind: 'note', text: `codex in ${cwd}` });
-    if (first) codexTurn(l, cwd, l.codexThread ? first : `${system}\n\n---\n\n${first}`); else pump(l);
+    if (first) { emit(l, { kind: 'user', text: first, images: shown }); codexTurn(l, cwd, l.codexThread ? first : `${system}\n\n---\n\n${first}`, true, imgs.map(i => i.path)); } else pump(l);
     return getSession(productDir, id);
   }
   const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--permission-prompt-tool', 'stdio', '--forward-subagent-text', '--append-system-prompt', system, '--add-dir', REPO_ROOT];
@@ -97,7 +102,7 @@ export async function startChat(productDir: string, product: string, id: string,
   proc.stderr.on('data', d => { const t = String(d).trim(); if (t) emit(l, { kind: 'stderr', text: t.slice(0, 2000) }); });
   proc.on('close', code => { emit(l, { kind: 'exit', code: code ?? -1, text: `claude exited (${code})` }); l.proc = null; getSession(productDir, id).then(cur => { if (cur?.status === 'cancelled') return; return updateSession(productDir, id, { status: code === 0 ? 'done' : 'failed', line: `agent exited with ${code}` }); }).catch(() => {}); });
   proc.stdin.on('error', () => {});
-  if (first) { emit(l, { kind: 'user', text: first }); writeUser(l, first); } else setTimeout(() => pump(l), 500); // a resumed agent takes what waited in the queue
+  if (first) { emit(l, { kind: 'user', text: first, images: shown }); writeUser(l, first, imgs); } else setTimeout(() => pump(l), 500); // a resumed agent takes what waited in the queue
   return getSession(productDir, id);
 }
 

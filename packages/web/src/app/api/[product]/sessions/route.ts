@@ -5,7 +5,7 @@ import { startChat, isLive, reconcileStale } from '@/lib/agent-host';
 import { stat } from 'node:fs/promises';
 import { REPO_ROOT } from '@/lib/products';
 
-// GET → { sessions } ; POST { agent, instruction, refs?, source? } → the new session (status queued).
+// GET → { sessions } ; POST { agent, instruction, refs?, source?, images? } → the new session (status queued).
 export async function GET(_req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
@@ -16,11 +16,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ product
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const body = (await req.json()) as { agent?: string; instruction?: string; refs?: string[]; source?: Record<string, string>; mode?: 'run' | 'chat'; cwd?: string; plan?: boolean };
+  const body = (await req.json()) as { agent?: string; instruction?: string; refs?: string[]; source?: Record<string, string>; mode?: 'run' | 'chat'; cwd?: string; plan?: boolean; images?: { name?: string; dataUrl: string }[] };
   const agent = AGENTS.find(a => a.id === body.agent)?.id;
   const instruction = (body.instruction ?? '').trim();
   if (!agent) return NextResponse.json({ error: 'invalid', message: 'unknown agent' }, { status: 422 });
-  if (!instruction) return NextResponse.json({ error: 'invalid', message: 'instruction required' }, { status: 422 });
+  const images = Array.isArray(body.images) ? body.images.filter(i => i && typeof i.dataUrl === 'string').slice(0, 8) : [];
+  if (!instruction && !images.length) return NextResponse.json({ error: 'invalid', message: 'instruction required' }, { status: 422 });
   const mode = body.mode === 'chat' ? 'chat' : 'run';
   const cwd = body.cwd?.trim() || '';
   if (mode === 'chat') {
@@ -28,7 +29,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     if (!cwd) return NextResponse.json({ error: 'invalid', message: 'a working folder is required' }, { status: 422 });
     try { if (!(await stat(cwd)).isDirectory()) throw new Error(); } catch { return NextResponse.json({ error: 'invalid', message: `folder not found: ${cwd}` }, { status: 422 }); }
   }
-  const s = await createSession(p.dir, product, { agent, instruction, refs: (body.refs ?? []).filter(r => typeof r === 'string').slice(0, 50), source: body.source ?? {}, mode, cwd: cwd || undefined, plan: body.plan === true });
+  const s = await createSession(p.dir, product, { agent, instruction: instruction || '(image)', refs: (body.refs ?? []).filter(r => typeof r === 'string').slice(0, 50), source: body.source ?? {}, mode, cwd: cwd || undefined, plan: body.plan === true, images });
   if (mode === 'chat') { const started = await startChat(p.dir, product, s.id, { wfUrl: new URL(req.url).origin }); return NextResponse.json(started ?? s, { status: 201 }); }
   return NextResponse.json(s, { status: 201 });
 }
