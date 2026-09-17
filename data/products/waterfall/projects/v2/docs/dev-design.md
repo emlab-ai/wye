@@ -525,6 +525,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - action:answer-question:  choose options / type an answer on the agent's question card; Answer returns the choices to the agent, Skip lets it go on (rule:agent-questions)
     - action:allow-deny:       Allow or Deny any other permission request; the card shows the tool and what it wants
     - action:expand-activity:  open a folded "n steps" row to read every tool call and result
+    - action:see-usage:        the console bar shows the context size (the last call's prompt, as a share of the model's window) and the tokens the session spent so far (read, including cache, and written) — each turn's result event carries its usage (agent-host#claudeUsage; Codex: in/out only), the console adds them up (task:new-441)
     - action:see-knowledge:    after each turn a "knowledge" row lists the documents and nodes the turn changed as tags (the session's artifacts not shown yet, lib:artifacts), and the header keeps a live "knowledge" strip of everything the session changed (req:wf2.sessions.knowledge-changes)
     - action:stop-resume:      Stop the agent; Resume restarts it on the same conversation (rule:agent-host)
     - action:hand-off:         continue the work under another agent (rule:agent-sessions)

@@ -2,6 +2,7 @@
 // open, turns their streaming JSON into ChatEvents, persists them to the session and pushes them to subscribers.
 // Lives on globalThis so dev-server module reloads do not orphan the processes.
 import { spawn, type ChildProcess } from 'node:child_process';
+import type { TurnUsage } from './session-types';
 import { getSession, updateSession, appendTranscript, enqueue, takeFromQueue, queueMessage, imageLines, filesDir } from './sessions';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -11,7 +12,7 @@ import { resolveLink, renderResolved } from './resolve';
 import { REPO_ROOT } from './products';
 import { agentSystemPrompt } from './agent-prompt';
 
-type Live = { id: string; productDir: string; agent: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string; known: Set<string> };
+type Live = { id: string; productDir: string; agent: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string; known: Set<string>; model?: string; codexUsage?: TurnUsage };
 const g = globalThis as unknown as { __wfAgentHost?: Map<string, Live> };
 const live = () => (g.__wfAgentHost ??= new Map<string, Live>());
 
@@ -119,12 +120,25 @@ async function loadImages(productDir: string, id: string, names: string[]): Prom
   return out;
 }
 
+// The tokens of a claude turn from its result event: usage counts the turn (every API call of it, `iterations`);
+// the context is the last call's prompt; the window comes from modelUsage for the session's model.
+function claudeUsage(j: Record<string, unknown>, model?: string): TurnUsage | undefined {
+  const u = j.usage as Record<string, unknown> | undefined; if (!u) return undefined;
+  const n = (x: unknown) => (typeof x === 'number' ? x : 0);
+  const prompt = (c: Record<string, unknown>) => n(c.input_tokens) + n(c.cache_creation_input_tokens) + n(c.cache_read_input_tokens);
+  const its = Array.isArray(u.iterations) ? (u.iterations as Record<string, unknown>[]) : [];
+  const last = its.length ? its[its.length - 1] : u;
+  const mu = j.modelUsage as Record<string, { contextWindow?: number }> | undefined;
+  const window = mu ? (model && mu[model]?.contextWindow) || Math.max(0, ...Object.values(mu).map(m => m.contextWindow ?? 0)) || undefined : undefined;
+  return { in: prompt(u), out: n(u.output_tokens), context: prompt(last) + n(last.output_tokens), window };
+}
 function onClaudeLine(l: Live, line: string) {
   let j: Record<string, unknown>; try { j = JSON.parse(line); } catch { emit(l, { kind: 'stderr', text: line.slice(0, 500) }); return; }
   const type = j.type as string;
   // events produced inside a subagent (the Task tool) carry the parent tool use id; the console nests them under it
   const parent = typeof j.parent_tool_use_id === 'string' && j.parent_tool_use_id ? (j.parent_tool_use_id as string) : undefined;
   if (type === 'system') {
+    if (j.subtype === 'init' && typeof j.model === 'string') l.model = j.model;
     if (j.subtype === 'init' && !l.agentSessionId) { l.agentSessionId = j.session_id as string; updateSession(l.productDir, l.id, { agentSessionId: l.agentSessionId }).catch(() => {}); emit(l, { kind: 'init', model: j.model as string, cwd: j.cwd as string, text: `claude ${j.model ?? ''} · ${(j.tools as string[] | undefined)?.length ?? 0} tools` }); }
     return; // init repeats every turn; hooks and rate-limit events are noise for the console
   }
@@ -144,7 +158,7 @@ function onClaudeLine(l: Live, line: string) {
     }
     return;
   }
-  if (type === 'result') { l.turnBusy = false; emit(l, { kind: 'result', text: typeof j.result === 'string' ? j.result : '', costUsd: j.total_cost_usd as number, durationMs: j.duration_ms as number, isError: j.is_error as boolean }); if (typeof j.total_cost_usd === 'number') updateSession(l.productDir, l.id, { totalCostUsd: j.total_cost_usd }).catch(() => {}); reportKnowledge(l); pump(l); return; }
+  if (type === 'result') { l.turnBusy = false; emit(l, { kind: 'result', text: typeof j.result === 'string' ? j.result : '', costUsd: j.total_cost_usd as number, durationMs: j.duration_ms as number, isError: j.is_error as boolean, usage: claudeUsage(j, l.model) }); if (typeof j.total_cost_usd === 'number') updateSession(l.productDir, l.id, { totalCostUsd: j.total_cost_usd }).catch(() => {}); reportKnowledge(l); pump(l); return; }
   if (type === 'control_request') {
     const req = j.request as Record<string, unknown>;
     emit(l, { kind: 'permission', requestId: String(j.request_id), name: String(req.tool_name ?? req.subtype ?? 'tool'), input: req.input, text: String(req.description ?? req.subtype ?? '') });
@@ -218,7 +232,7 @@ function codexTurn(l: Live, cwd: string, text: string, fromQueue = false, imageP
   let buf = '';
   proc.stdout.on('data', d => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) onCodexLine(l, line); } });
   proc.stderr.on('data', d => { const t = String(d).trim(); if (t && !/^warning:/i.test(t)) emit(l, { kind: 'stderr', text: t.slice(0, 2000) }); });
-  proc.on('close', code => { l.proc = null; l.turnBusy = false; emit(l, { kind: 'result', text: '', code: code ?? -1, isError: code !== 0 }); if (code !== 0) updateSession(l.productDir, l.id, { line: `codex turn exited with ${code}` }).catch(() => {}); reportKnowledge(l); pump(l); });
+  proc.on('close', code => { l.proc = null; l.turnBusy = false; emit(l, { kind: 'result', text: '', code: code ?? -1, isError: code !== 0, usage: l.codexUsage }); l.codexUsage = undefined; if (code !== 0) updateSession(l.productDir, l.id, { line: `codex turn exited with ${code}` }).catch(() => {}); reportKnowledge(l); pump(l); });
 }
 function onCodexLine(l: Live, line: string) {
   let j: Record<string, unknown>; try { j = JSON.parse(line); } catch { emit(l, { kind: 'stderr', text: line.slice(0, 500) }); return; }
@@ -233,7 +247,7 @@ function onCodexLine(l: Live, line: string) {
     else if (type === 'item.completed' && k === 'file_change') emit(l, { kind: 'tool_use', name: 'Edit', input: it.changes, toolUseId: String(it.id) });
     return;
   }
-  if (type === 'turn.completed') { const u = j.usage as Record<string, number> | undefined; if (u) emit(l, { kind: 'note', text: `turn done · ${u.input_tokens ?? 0} in / ${u.output_tokens ?? 0} out tokens` }); return; }
+  if (type === 'turn.completed') { const u = j.usage as Record<string, number> | undefined; if (u) l.codexUsage = { in: u.input_tokens ?? 0, out: u.output_tokens ?? 0 }; return; } // codex sums the turn's calls, so no context size
   if (type === 'error' || type === 'turn.failed') emit(l, { kind: 'stderr', text: JSON.stringify(j.error ?? j).slice(0, 1000) });
 }
 

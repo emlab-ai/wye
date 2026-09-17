@@ -10,6 +10,7 @@ import { AttachStrip, useImageAttachments } from './Attachments';
 import { SmartTag } from './SmartTag';
 
 // The live conversation with an agent: every event of the transcript, streamed over SSE, plus a message box.
+const k = (n: number) => n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M` : n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
 export function Console({ session, onStatus, onKnowledge }: { session: Session; onStatus: (s: string) => void; onKnowledge?: (ids: string[]) => void }) {
   const { product } = usePeek();
   const [events, setEvents] = useState<ChatEvent[]>(session.transcript ?? []);
@@ -52,11 +53,14 @@ export function Console({ session, onStatus, onKnowledge }: { session: Session; 
   const answered = new Set(events.filter(e => e.kind === 'note' && e.requestId).map(e => e.requestId));
   const answers = new Map<string | undefined, unknown | 'denied'>(events.filter(e => e.kind === 'note' && e.requestId).map(e => [e.requestId, e.answered === 'deny' ? 'denied' : (e.input ?? {})]));
   const thinking = events.some(e => e.kind === 'thinking');
+  // tokens: spent = every turn's usage added up (the transcript replays earlier processes too); context = the last turn's
+  const usage = useMemo(() => { let inn = 0, out = 0, context: number | undefined, window: number | undefined; for (const e of events) { if (e.kind !== 'result' || !e.usage) continue; inn += e.usage.in; out += e.usage.out; if (e.usage.context !== undefined) context = e.usage.context; if (e.usage.window) window = e.usage.window; } return { in: inn, out, context, window }; }, [events]);
   const turnOpen = (() => { for (let i = events.length - 1; i >= 0; i--) { const k = events[i].kind; if (k === 'result' || k === 'exit') return false; if (k === 'user') return true; } return false; })();
   return (
     <div className="console">
       <div className="console-bar">
-        <span className={`rdot ${live ? (turnOpen ? 'busy' : '') : 'off'}`} /><span className="muted">{live ? (turnOpen ? 'working…' : 'idle, waiting for you') : 'agent not running'}</span>
+        <span className={`rdot ${live ? (turnOpen ? 'busy' : '') : 'off'}`} /><span className="muted">{live ? (turnOpen ? 'working…' : 'idle') : 'not running'}</span>
+        {(usage.context !== undefined || usage.in > 0) && <span className="muted console-usage" title={`context: the prompt of the last call${usage.window ? ` of a ${k(usage.window)} window` : ''} · spent: tokens read (fresh and cached) / written over the whole session`}>{usage.context !== undefined && <>context {k(usage.context)}{usage.window ? ` (${Math.round(usage.context / usage.window * 100)}% of ${k(usage.window)})` : ''} · </>}{k(usage.in)} in · {k(usage.out)} out</span>}
         {thinking && <label className="console-opt"><input type="checkbox" checked={showThinking} onChange={e => setShowThinking(e.target.checked)} /> thinking</label>}
         <span className="console-acts">
           {live ? <button className="mini" onClick={() => control({ action: 'stop' })}>Stop</button> : <button className="mini" onClick={() => control({ action: 'resume' }).then(() => setLive(true))}>Resume</button>}
