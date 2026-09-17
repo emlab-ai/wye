@@ -10,14 +10,14 @@ import path from 'node:path';
 export const DATA_ROOT = path.resolve(process.cwd(), process.env.WATERFALL_DATA ?? '../../data');
 export const REPO_ROOT = path.resolve(process.cwd(), '../..');
 
-export interface Meta { title: string; icon: string; description: string; kind: string; status: string }
+export interface Meta { title: string; icon: string; description: string; kind: string; status: string; repo?: string }
 export interface Product { slug: string; dir: string; graphPath: string; meta: Meta }
 export interface Project { slug: string; product: string; dir: string; docsDir: string; meta: Meta; docsRel: string }
 
 function parseMeta(md: string, fallbackTitle: string): Meta {
   const fm = md.match(/^---\n([\s\S]*?)\n---/);
   const get = (k: string) => (fm ? (fm[1].match(new RegExp('^' + k + ':\\s*(.*)$', 'm')) ?? [])[1] ?? '' : '').trim();
-  return { title: get('title') || fallbackTitle, icon: get('icon'), description: get('description'), kind: get('kind') || 'project', status: get('status') };
+  return { title: get('title') || fallbackTitle, icon: get('icon'), description: get('description'), kind: get('kind') || 'project', status: get('status'), repo: get('repo') || undefined };
 }
 async function readMeta(file: string, fallbackTitle: string): Promise<Meta> {
   try { return parseMeta(await readFile(file, 'utf8'), fallbackTitle); } catch { return parseMeta('', fallbackTitle); }

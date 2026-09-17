@@ -42,7 +42,7 @@ export function SessionList({ product, initial, initialRunners }: { product: str
             <span className={`pill s ${s.status}`}>{s.status}</span>
             <div className="session-row-main">
               <div className="session-row-title">{s.instruction.split('\n').find(l => l.trim()) ?? '(no instruction)'}</div>
-              <div className="session-row-sub"><span>{agentLabel(s.agent)}{s.mode === 'chat' ? ' · chat' : ''}</span><span>·</span><span>{when(s.createdAt)}</span>{s.source?.doc && <><span>·</span><span>{s.source.project ? `${s.source.project} / ` : ''}{s.source.doc}</span></>}{s.refs.length > 0 && <span className="tags">{s.refs.slice(0, 4).map(r => <SmartTag key={r} id={r} />)}{s.refs.length > 4 && <span className="muted">+{s.refs.length - 4}</span>}</span>}</div>
+              <div className="session-row-sub"><span>{agentLabel(s.agent)}{s.mode === 'chat' ? ' · chat' : ''}</span>{s.cwd && <><span>·</span><span>{s.cwd.replace(/^\/Users\/[^/]+/, '~')}</span></>}<span>·</span><span>{when(s.createdAt)}</span>{s.source?.doc && <><span>·</span><span>{s.source.project ? `${s.source.project} / ` : ''}{s.source.doc}</span></>}{s.refs.length > 0 && <span className="tags">{s.refs.slice(0, 4).map(r => <SmartTag key={r} id={r} />)}{s.refs.length > 4 && <span className="muted">+{s.refs.length - 4}</span>}</span>}</div>
             </div>
             <code className="session-id">{s.id}</code>
           </li>

@@ -44,7 +44,7 @@ export function SessionView({ id }: { id: string }) {
           {active && <button className="mini" onClick={() => patch({ status: 'cancelled' })}>Cancel</button>}
         </span>
       </div>
-      {s.runner && <p className="muted session-src">runner {s.runner}{s.startedAt ? ` · started ${when(s.startedAt)}` : ''}{s.finishedAt ? ` · finished ${when(s.finishedAt)}` : ''}</p>}
+      {(s.runner || s.cwd) && <p className="muted session-src">{s.cwd && <>folder <code>{s.cwd.replace(/^\/Users\/[^/]+/, '~')}</code>{s.runner ? ' · ' : ''}</>}{s.runner && <>runner {s.runner}</>}{s.startedAt ? ` · started ${when(s.startedAt)}` : ''}{s.finishedAt ? ` · finished ${when(s.finishedAt)}` : ''}</p>}
       {(s.parent || (s.children && s.children.length > 0)) && <p className="session-src">{s.parent && <>continues <button className="linkish" onClick={() => open(`session:${s.parent}`)}>session {s.parent.slice(0, 6)}</button></>}{s.children && s.children.length > 0 && <> handed off to {s.children.map(c => <button key={c} className="linkish" onClick={() => open(`session:${c}`)}>session {c.slice(0, 6)}</button>)}</>}</p>}
       {handoff && (
         <div className="handoff form">

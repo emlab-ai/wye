@@ -8,11 +8,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const { product, id } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const s = await getSession(p.dir, id); if (!s) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const { text } = (await req.json()) as { text?: string };
+  const { text, refs, link } = (await req.json()) as { text?: string; refs?: string[]; link?: string };
   if (!text?.trim()) return NextResponse.json({ error: 'invalid', message: 'text required' }, { status: 422 });
+  const full = [text.trim(), link ? `\nLink: ${link} (resolve it with \`wf resolve\`)` : '', refs?.length ? `Refs: ${refs.join(', ')}` : ''].filter(Boolean).join('\n');
   const wfUrl = new URL(req.url).origin;
-  if (!isLive(id)) await startChat(p.dir, product, id, { wfUrl, resume: !!s.agentSessionId, firstMessage: s.agentSessionId ? text : undefined });
-  else await sendMessage(id, text, s.cwd || REPO_ROOT);
-  if (isLive(id) && s.agentSessionId && !s.transcript?.length) { /* first turn already sent as the resume message */ }
+  if (!isLive(id)) await startChat(p.dir, product, id, { wfUrl, resume: !!s.agentSessionId, firstMessage: s.agentSessionId ? full : undefined });
+  else await sendMessage(id, full, s.cwd || REPO_ROOT);
   return NextResponse.json({ ok: true });
 }
