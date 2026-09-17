@@ -411,13 +411,20 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - action:search:          type to search document titles, headings, node ids and titles; a node hit opens its definition -(navigates)-> page:web/node
     - action:open-document:   tap a document in the tree -(navigates)-> page:web/node
     - action:open-heading:    tap an outline entry under the open document (scrolls to the ## heading)
-    - action:open-tasks:      fixed entry with open count -(navigates)-> page:web/tasks
-    - action:open-decisions:  fixed entry -(navigates)-> page:web/decisions
-    - action:open-contradictions: fixed entry with open count -(navigates)-> page:web/contradictions
+    - action:open-overview:   Overview — the product page (description, projects, knowledge counts)
+    - action:open-goals:      Goals -(navigates)-> page:web/goals
+    - action:open-tasks:      Tasks -(navigates)-> page:web/tasks
+    - action:open-knowledge:  Knowledge — every kind of node as a list -(navigates)-> page:web/knowledge
+    - action:open-types:      Types — the product's ontology -(navigates)-> page:web/types
+    - action:open-graph:      Graph -(navigates)-> page:web/graph
+    - action:open-questions:  Questions — open question blocks and inbox questions
+    - action:open-inbox:      Inbox — proposed blocks and raw notes awaiting review
+    - action:open-sessions:   Sessions — agent sessions and runners -(navigates)-> page:web/sessions
+    - action:new-document:    + next to Documents creates a document under a parent
   display-rules:
-    - the rail lists documents, not nodes: root documents → sub-documents (rule:document-tree); the open document shows its ## outline beneath it
-    - foot links: Graph, Drift (page:web/graph)
-    - counts refresh on task.changed and contradiction.changed events (rule:sse-refresh)
+    - menu order: Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inbox, Sessions; then the Documents tree (rule:documents-tree); the rail is collapsible (rule:app-navigation)
+    - the rail lists documents, not nodes: root documents → sub-documents; the open document shows its ## outline beneath it
+    - counts and lists refresh on graph, inbox and session change events (rule:live-refresh)
 ```
 
 ### page:web/node
@@ -464,6 +471,64 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - React Flow canvas; dagre tree layout over refines and has from the focus; other structural verbs drawn as curved cross-links; mentions hidden
     - an edit is shown only after the file changes and graph.changed arrives; until then the edge is dashed "pending"
     - status ring and hollow stubs as in the v0.1 viewer
+```
+
+### page:web/context-column
+
+```yaml
+- id: page:web/context-column
+  route: the right column on every route; opened by any tag, row or ⇢ action, hidden with ⌘.
+  component: packages/web/src/components/PeekPanel.tsx; packages/web/src/components/PeekProvider.tsx; packages/web/src/components/TypeView.tsx; packages/web/src/components/SessionView.tsx; packages/web/src/components/Console.tsx
+  reads: [op:graph.get, op:graph.neighbors]
+  actions:
+    - action:open-item:        a tag, a list row or a graph node pushes the item on the column's chip stack; ← goes back, 📍 pins a chip so it survives, × removes it
+    - action:go-to-definition: jump to the node's block in its document -(navigates)-> page:web/node
+    - action:show-in-graph:    open the graph focused on the node -(navigates)-> page:web/graph
+    - action:send-to-agent:    send the node (id, title, link) to an active session or a new one (rule:agent-sessions)
+    - action:open-type-page:   on a type: node -(navigates)-> page:web/types
+    - action:edit-type:        on a product type, edit its own properties (name, value type, required, inverse; + property) and purpose; Save to document rewrites the type card
+    - action:answer-question:  in a session console, answer the agent's question (rule:agent-questions)
+  display-rules:
+    - a node shows its card, then (typed nodes) Properties — effective properties with placeholders and the inverses read from the other side — then Connected as a list grouped by relation (incoming relations labelled by their inverse name) or as a graph 1–2 hops out
+    - a document shows a preview (title, status, intro, outline, Open document →) and Connected; a goal or task shows its tracking editor and what is part of it; a type shows its card, editable properties, instances and Connected; a session shows its console
+    - Context mode (no item open on a document page) follows the block being edited and shows the knowledge nearest to it (rule:context-panel)
+    - field, prop and block nodes never appear in Connected; a document's phrase links are read from its blocks (rule:ontology.hidden-kinds)
+```
+
+### page:web/types
+
+```yaml
+- id: page:web/types
+  route: /<product>/types and /<product>/types/<slug>
+  component: packages/web/src/app/[product]/types/page.tsx; packages/web/src/app/[product]/types/[slug]/page.tsx; packages/web/src/components/TypeRows.tsx; packages/web/src/components/AddInstance.tsx
+  reads: [op:graph.get]
+  actions:
+    - action:open-type:        click anywhere on a type's row → the type in the context column (page:web/context-column); ↗ opens its page
+    - action:add-instance:     + add <type> writes a <type>:<slug> card with the type's required properties into the type's home document -(calls)-> op:types.add
+  display-rules:
+    - the index lists the product's own types first (name, extends, instance and own-property counts, purpose, where declared), then the base types
+    - a type page: crumbs along the extends chain; properties (own and inherited, the root type's folded into one line); subtypes; every instance as a table with a column per property (req:ontology.type-page)
+```
+
+### page:web/sessions
+
+```yaml
+- id: page:web/sessions
+  route: /<product>/sessions; a session opens in the context column
+  component: packages/web/src/app/[product]/sessions/page.tsx; packages/web/src/components/SessionList.tsx; packages/web/src/components/SessionView.tsx; packages/web/src/components/Console.tsx; packages/web/src/components/AskQuestions.tsx
+  actions:
+    - action:new-conversation: + New conversation starts a chat session with the default agent
+    - action:open-session:     a row opens the session in the context column: status, agent, instruction, refs, then the console
+    - action:send-message:     type (⌘↵) or paste images; sent now or queued while a turn runs (rule:session-queue)
+    - action:answer-question:  choose options / type an answer on the agent's question card; Answer returns the choices to the agent, Skip lets it go on (rule:agent-questions)
+    - action:allow-deny:       Allow or Deny any other permission request; the card shows the tool and what it wants
+    - action:expand-activity:  open a folded "n steps" row to read every tool call and result
+    - action:stop-resume:      Stop the agent; Resume restarts it on the same conversation (rule:agent-host)
+    - action:hand-off:         continue the work under another agent (rule:agent-sessions)
+  display-rules:
+    - Runners online and working; Active / All filters; a row shows status, first line of the instruction, agent, mode, folder, age and refs
+    - the console is the conversation: user messages (with images), the agent's replies as markdown, questions and permission cards, folded activity rows, subagents nested under their Task, turn ends with time and cost, `wf session log` lines and the `wf session done` summary in place by time (rule:console-flow)
+    - a pending question is the agent waiting: nothing continues until Answer or Skip
 ```
 
 ### page:web/tasks
@@ -839,6 +904,17 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
 ### Web app
 
 ```yaml
+- id: op:types.add
+  args: product, type slug; body { slug, title? } (POST /api/<product>/types/<slug>); PUT { props, scalars } edits the type card
+  does: >
+    appends a `<type>:<slug>` card with the type's required properties as empty keys to the type's home document (its
+    `home:` module, else the document that declares it; base types have none) and rebuilds the graph; PUT rewrites the
+    card's props block and scalar keys (purpose, extends, open) in place under the file lock
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/types/[slug]/route.ts; packages/web/src/lib/instances.ts; packages/web/src/lib/type-edit.ts
+```
+
+```yaml
 - id: rule:document-tree
   statement: >
     A document is one markdown file in the project's graph folder. The tree comes from has edges between module
@@ -1019,10 +1095,11 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     `codex exec --json`, one process per turn resumed by thread id), keeps the conversation open, normalises the
     agent's events into ChatEvents (user, assistant, thinking, tool_use, tool_result, result, permission, stderr,
     exit), persists them to the session transcript and streams them to the UI over server-sent events. The console
-    in the right column shows the transcript live, folds tool calls with their inputs and results, offers
-    Allow/Deny on permission requests, Stop, and Resume (which restarts Claude Code with --resume and its own
-    session id). Sending a message while a turn runs queues it. The host lives on globalThis so dev reloads do not
-    orphan processes; agents die with the server, and the desktop app owns the server.
+    in the right column shows the transcript live (rule:console-flow), renders the agent's questions as forms and
+    other permission requests as Allow/Deny cards (rule:agent-questions), offers Stop, and Resume (which restarts
+    Claude Code with --resume and its own session id). Sending a message while a turn runs queues it. The host
+    lives on globalThis so dev reloads do not orphan processes; agents die with the server, and the desktop app owns
+    the server.
   source: packages/web/src/lib/agent-host.ts; packages/web/src/components/Console.tsx; packages/web/src/app/api/[product]/sessions/[id]/{stream,message,control}/route.ts
   status: shipped
 - id: rule:session-queue
@@ -1042,6 +1119,29 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     description, event and tool-call counts and whether it has finished (the parent's tool_result arrived).
   source: packages/web/src/lib/agent-host.ts#onClaudeLine; packages/web/src/components/Console.tsx#Subagent
   status: shipped
+- id: rule:agent-questions
+  statement: >
+    An agent's question (Claude Code's AskUserQuestion, which arrives as a permission request over the stdio
+    permission channel) is rendered as a question card, never as a permission dump: header, question, options as
+    choice buttons with descriptions (multi-select when asked, an "Other…" free-text row, text and number kinds).
+    Answer is enabled once every question has a value and returns the choices to the agent inside the tool input as
+    `answers: { "<question>": "<label>" }` (multi-select comma-separated) — the shape Claude Code reads; Skip denies
+    the request and the agent goes on without an answer. An answered card shows what was chosen; a permission
+    answered without answers reads "allowed without an answer". Every other permission request shows the tool and
+    what it wants to do (the command, the file) with the raw input folded away, and Allow/Deny. Nothing answers a
+    permission on the person's behalf.
+  source: packages/web/src/components/AskQuestions.tsx; packages/web/src/components/Console.tsx#Event; packages/web/src/lib/agent-host.ts#answerPermission
+  status: proposed
+- id: rule:console-flow
+  statement: >
+    The console is one conversation in time order. Runs of tool calls, results and thinking between two messages
+    fold into one collapsed activity row (n steps · duration · errors · the latest step, a live dot while the agent
+    works) that opens to every step; a single call stays inline. User messages, the agent's replies, question and
+    permission cards, subagent groups and turn ends (time, cost) stay in the flow. `wf session log` lines appear as
+    small log notes and the `wf session done` summary as a summary card at the time they were written; a chat
+    session has no separate Result or Log panel.
+  source: packages/web/src/components/Console.tsx#foldActivity; packages/web/src/components/Console.tsx#Activity; packages/web/src/components/SessionView.tsx
+  status: proposed
 - id: rule:live-refresh
   statement: >
     The app follows the product on disk: a recursive watcher on data/products/<product> (lib/watch.ts, on

@@ -586,6 +586,55 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   refines: req:wf2.ui
 ```
 
+#### Sessions console (2026-09-17)
+
+```yaml
+- id: req:wf2.sessions.questions
+  title: The agent's questions reach the person and the answer reaches the agent
+  when: an agent in a chat session asks the person a question (Claude Code's AskUserQuestion)
+  then: >
+    the console shows a question card with the options as choices (multi-select, Other…, text or number kinds), the
+    session visibly waits, and Answer returns exactly the chosen labels to the agent so its next step uses them
+  unless: the person chooses Skip, in which case the agent is told there was no answer
+  status: proposed
+  refines: req:wf2.ui
+  satisfied-by: [rule:agent-questions]
+- id: req:wf2.sessions.quiet-console
+  title: The console reads as a conversation, not a tool log
+  when: a turn makes several tool calls between two messages
+  then: >
+    they fold into one collapsed row that names how many steps, how long, how many errors and the latest step, and
+    opens on click; messages, questions, permission cards and turn ends are never folded
+  status: proposed
+  refines: req:wf2.ui
+  satisfied-by: [rule:console-flow]
+- id: req:wf2.sessions.summary-in-flow
+  title: A session's summary and progress notes are part of its conversation
+  when: an agent writes `wf session log` lines or ends with `wf session done <summary>`
+  then: the console shows them in the conversation at the time they were written; a chat session has no separate Result panel
+  status: proposed
+  refines: req:wf2.ui
+  satisfied-by: [rule:console-flow]
+- id: decision:wf2.agent-questions-are-forms
+  title: Agent questions are answered by the person in the console; permissions are never auto-answered
+  context: >
+    Claude Code's AskUserQuestion arrives over the stdio permission channel like any tool permission. The console
+    showed it as a JSON permission with Allow/Deny; Allow returned the input unchanged, so the agent read "the user
+    did not answer" while the console said "answered", and the agent went on with its own assumption.
+  choice: >
+    Render AskUserQuestion as a form and return the chosen labels in the tool input's `answers`; render other
+    permissions as a tool + intent card. The host never answers a permission on its own.
+  alternatives: >
+    Auto-allow AskUserQuestion with an empty answer (what happened, by accident); make the agent avoid questions in
+    sessions (loses the clarifications the contract wants); a separate questions inbox (the question belongs where
+    the conversation is).
+  consequences: rule:agent-questions; req:wf2.sessions.questions; the agent prompt can keep using AskUserQuestion.
+  status: proposed
+  date: 2026-09-17
+  related-to: [rule:agent-host, module:wf2-prd]
+  session: 94ac3cf3e0
+```
+
 ### R.10 CLI — ctx becomes a client
 
 ```yaml

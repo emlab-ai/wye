@@ -19,9 +19,13 @@ Research and a proposal for the idea in module:ontology: every block in every do
 
 The decisions this draft makes on its own are blocks in §Decisions and open questions, proposed until a person approves them. All three phases shipped on 2026-09-17 (commits 085892a parser, 7f42579 web and CLI, c513c75 blocks); §Implemented below says what the code does and which rules it enforces, and the worked example lives in module:ontology. The four questions stay open: the implementation follows the design's assumptions and each assumption is a proposed decision that resolves its question.
 
+##
+
+![image.png](assets/2026-09-17-image-72d4e7.png)
+
 ## The idea in one paragraph
 
-Waterfall today has a fixed vocabulary: fourteen kinds (`req`, `rule`, `entity`, `task`, …), a fixed set of verbs (`refines`, `satisfied-by`, `part-of`, …) and a parser that knows both by heart. That is right for the product-knowledge core, and wrong the moment a product wants to talk about its own things — people, teams, customers, suppliers, venues. The ontology model turns the fixed vocabulary into the *base* of an open one: kinds become **types**, types are **nodes** you can write in a document, a type can **extend** another type and inherit its properties, a property can hold a **reference** (one node) or a **collection** (many nodes) of a given type, and every reference has a named **inverse** the graph shows on the other side without anyone writing it. `person` is a type; `employee` extends `person`; `manager` extends `employee` and adds `team`; `team` has `members: collection of person` with inverse `memberOf`; `team:platform` and `person:ana` are instances, and Ana's page shows *memberOf: team:platform* although nobody typed it on her line.
+Waterfall today has a fixed vocabulary: fourteen kinds (`req`, `rule`, `entity`, `task`, …), a fixed set of verbs (`refines`, `satisfied-by`, `part-of`, …) and a parser that knows both by heart. That is right for the product-knowledge core, and wrong the moment a product wants to talk about its own things — people, teams, customers, suppliers, venues. The ontology model turns the fixed vocabulary into the *base* of an open one: kinds become **types**, types are **nodes** you can write in a document, a type can **extend** another type and inherit its properties, a property can hold a **reference** (one node) or a **collection** (many nodes) of a given type, and every reference has a named **inverse** the graph shows on the other side without anyone writing it. `person` is a type; `employee` extends `person`; `manager` extends `employee` and adds `team`; `team` has `members: collection of person` with inverse `memberOf`; team:platform and person:ana are instances, and Ana's page shows *memberOf: *team:platform although nobody typed it on her line.
 
 ## What other systems do
 
@@ -61,13 +65,13 @@ Five words, all of them nodes:
 
 | Term | What it is | Id form | Example |
 |---|---|---|---|
-| **node** | anything with an id: a card, a prose line, a document, a block, a type, a property | `kind:slug` (kind = type slug) | req:wf2.ui.node-page, `person:ana` |
-| **type** | a kind. Declares which properties instances have and which type it extends | `type:<slug>` | `type:person`, `type:employee` |
-| **property** | a named, typed slot on a type; instances fill it | `prop:<type>.<name>` (generated, like `field:` today) | `prop:team.members` |
+| **node** | anything with an id: a card, a prose line, a document, a block, a type, a property | `kind:slug` (kind = type slug) | req:wf2.ui.node-page, person:ana |
+| **type** | a kind. Declares which properties instances have and which type it extends | `type:<slug>` | type:person, type:employee |
+| **property** | a named, typed slot on a type; instances fill it | `prop:<type>.<name>` (generated, like `field:` today) | prop:team.members |
 | **link** | a property whose value type is a node type (one or many); the property name is the verb | edge `from -(name)-> to` | `team:platform -(members)-> person:ana` |
 | **inverse** | the name a link has when read from the target; declared once on the property | edge `to -(inverse)-> from`, generated | `person:ana -(memberOf)-> team:platform` |
 
-`type:node` is the root: every type extends it, directly or through a chain. Its properties are the ones every node has today: `title`, `status`, `owner`, `text`, and the generic links `related-to` (inverse `related-to`), `mentions` (inverse `mentioned-by`), `part-of` (inverse `has`).
+type:node is the root: every type extends it, directly or through a chain. Its properties are the ones every node has today: `title`, `status`, `owner`, `text`, and the generic links `related-to` (inverse `related-to`), `mentions` (inverse `mentioned-by`), `part-of` (inverse `has`).
 
 ### Types are nodes, written in a document
 
@@ -104,7 +108,7 @@ Property value types: `string`, `text` (multi-line prose), `number`, `date`, `mo
 
 ### Instances keep `kind:slug`
 
-An instance of `type:team` is `team:platform`, an instance of `type:person` is `person:ana`. The kind prefix *is* the type; the parser's `KINDS` list stops being a constant and becomes "the slugs of all `type:` nodes in the product plus the base ontology". `ID_RE` is built after the type pass, so a second parse pass is needed (types first, then everything else) — cheap, the graph is in memory anyway.
+An instance of type:team is team:platform, an instance of type:person is person:ana. The kind prefix *is* the type; the parser's `KINDS` list stops being a constant and becomes "the slugs of all `type:` nodes in the product plus the base ontology". `ID_RE` is built after the type pass, so a second parse pass is needed (types first, then everything else) — cheap, the graph is in memory anyway.
 
 An instance may fill properties the type does not declare (open world, as OWL and Tana allow). `ctx check` reports them as *undeclared property* warnings, never errors: a product learns its schema by writing instances first and lifting the common keys into the type later.
 
@@ -126,13 +130,13 @@ The prose form works unchanged: text after the id is `text`, `#tag` is status, t
 
 Resolution is at parse time, per instance:
 
-1. Walk `extends` up to `type:node`; a cycle or an unknown parent is an *error*.
+1. Walk `extends` up to type:node; a cycle or an unknown parent is an *error*.
 2. The instance's effective properties are the union of the chain's `props`, parent first (Tana's order), child declarations overriding the parent's for the same name.
 3. An override may only *narrow*: make optional required, or narrow `ref person` to `ref employee`. Widening is an error.
 4. `ctx check` validates each instance's body against its effective properties: required present, value parses as its type, `ref`/`list of` targets exist and have the right type (transitively: a `person` slot accepts an `employee`).
 5. Edges from instances also carry the property name as verb, so `manager: person:ana` is an edge `-(manager)->` — property names are verbs, which is what `EDGE_KEYS` already does by hand for the base kinds.
 
-Type membership is transitive: `person:ana` is-a person; `employee:ana` would be an employee *and* a person, so `list of person` accepts her. Which raises the one hard question in this design — see Q1 below: an instance has exactly one kind prefix, so an employee is written `employee:ana`, never both `person:ana` and `employee:ana`. Renaming a person to an employee is an id change, with all that implies for links. The alternative (a `type:` property on a `node:` id, Tana's multiple tags) is listed in the inbox as the rejected alternative.
+Type membership is transitive: person:ana is-a person; employee:ana would be an employee *and* a person, so `list of person` accepts her. Which raises the one hard question in this design — see Q1 below: an instance has exactly one kind prefix, so an employee is written employee:ana, never both person:ana and employee:ana. Renaming a person to an employee is an id change, with all that implies for links. The alternative (a `type:` property on a `node:` id, Tana's multiple tags) is listed in the inbox as the rejected alternative.
 
 ### Collections and inverses
 
@@ -146,7 +150,7 @@ Cardinality on the inverse side is inferred: a `ref` on N instances gives the ta
 
 ### Every block is a node
 
-Today a paragraph without an id is an anchored block (rule:block-links) that belongs to the document. The ontology says it is a node of `type:block`, the document `has` it, and its links are its own. Concretely:
+Today a paragraph without an id is an anchored block (rule:block-links) that belongs to the document. The ontology says it is a node of type:block, the document `has` it, and its links are its own. Concretely:
 
 - Every top-level block (paragraph, list item, heading, table, code fence) gets id `block:<doc>.<hash>` where hash is the existing anchor hash (`anchors.ts`); a block whose first token is an id keeps that id — a named node *is* its block.
 - The document node `has` its blocks in document order; a heading `has` the blocks under it; a list item `has` its nested items. So the document tree becomes a node tree, and "children" is a property with inverse `parent`.
@@ -163,9 +167,9 @@ Cost: a graph of 3 344 lines becomes roughly 1 500 more nodes. The parser is lin
 
 ### What the UI gains
 
-- **Type page** — `type:team` opens as a page: its properties (own and inherited, inherited greyed with the parent's name), then a table of instances with one column per property — the Notion database view, derived, not stored. Adding a row creates `team:<slug>` in the document the type names as its `home:` (default: the document the type is defined in).
+- **Type page** — type:team opens as a page: its properties (own and inherited, inherited greyed with the parent's name), then a table of instances with one column per property — the Notion database view, derived, not stored. Adding a row creates `team:<slug>` in the document the type names as its `home:` (default: the document the type is defined in).
 - **Properties panel** — the node page already renders body keys as fields; with a type it renders *all* effective properties, empty ones as placeholders with their value type, and the inverses under a divider.
-- **Smart tags** — any `type:slug` id is a tag with the type's icon; the link picker groups targets by type, and a `ref employee` slot only offers employees (and their subtypes).
+- **Smart tags** — any type:slug id is a tag with the type's icon; the link picker groups targets by type, and a `ref employee` slot only offers employees (and their subtypes).
 - **Send to agent / packet** — `ctx packet` includes the type chain for every node in the slice so an agent knows that a `manager` is an `employee` without being told.
 
 ### Checks (`ctx check`)
@@ -236,7 +240,7 @@ What shipped, as requirements the tests verify and rules the code enforces. Stat
     and every instance as a table with a column per property; "+ add" writes a new instance card into the type's
     home document and rebuilds the graph
   status: proposed
-  satisfied-by: [page:types, page:type, op:types.add]
+  satisfied-by: [page:web/types, op:types.add]
   verified-by: [test:types-web, test:instances-web]
 - id: req:ontology.blocks
   title: Every block of a document is a node
@@ -252,8 +256,9 @@ What shipped, as requirements the tests verify and rules the code enforces. Stat
   depends-on: rule:block-links
 - id: rule:ontology.open-kinds
   statement: >
-    The id regex is built per parse from the base kinds plus the slugs of every type: card in the base ontology and
-    the product's documents; the web rebuilds its regex from graph.kinds on the server and in the client provider.
+    The id regex is built per parse from the base kinds plus the slugs of every type: card in the base ontology
+    and the product's documents; the web rebuilds its regex from graph.kinds on the server and in the client
+    provider.
   source: lib/parse.js:188; packages/web/src/lib/ids.ts:8
   status: proposed
 - id: rule:ontology.narrow-only
@@ -441,7 +446,9 @@ Decisions made while implementing (2026-09-17, session 94ac3cf3e0), proposed; th
   related-to: [module:ontology-design, req:ontology.check]
   session: 94ac3cf3e0
 - id: decision:ontology.base-ontology-referenced
-  title: Ontology: the base ontology is one file in the repo (schema/base-ontology.md), read for every product; kinds.yaml stays hand-kept for now
+  title: >
+    Ontology: the base ontology is one file in the repo (schema/base-ontology.md), read for every product;
+    kinds.yaml stays hand-kept for now
   context: >
     The design allowed copying base-ontology.md into each product or referencing it, and said kinds.yaml is
     generated during the transition.
