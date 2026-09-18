@@ -422,19 +422,21 @@ const NodeBlock = createReactBlockSpec(
 function EditorCard({ p, set, contentRef, block, editor }: { p: CardP; set: (patch: Partial<CardP>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; editor: EditorLike }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const id = `${p.kind}:${p.slug}`;
-  // the blocks under the node fold to the first one (req:wf2.ui.card-preview, rule:card-fold): a style element
-  // zero-heights the rest by the block's id (they stay blocks, and in the file); the caret inside them unfolds
+  // the card shows none of the blocks under the node (req:wf2.ui.card-preview, rule:card-fold): a style element
+  // zero-heights them by the block's id (they stay blocks, and in the file) and the header's chip opens the details;
+  // the caret inside them (arrow keys) shows them while it is there
   const count = block.children?.length ?? 0;
   const [folded, setFolded] = useState(true);
   const bn = useBlockNoteEditor();
   useEditorSelectionChange(() => {
-    if (!folded || count < 2) return;
-    const group = hostRef.current?.closest('.bn-block')?.querySelector(':scope > .bn-block-group');
-    const anchor = typeof document !== 'undefined' ? document.getSelection()?.anchorNode : null;
-    if (group && anchor && group.contains(anchor)) setFolded(false);
+    if (!count) return;
+    // the editor's own selection, not the DOM's: a programmatic caret lands in the block before the DOM follows
+    let cur: string | undefined; try { cur = (bn.getTextCursorPosition().block as { id?: string }).id; } catch { cur = undefined; }
+    const under = (bs: AnyBlock[] | undefined): boolean => !!bs?.some(b => (b as { id?: string }).id === cur || under(b.children));
+    setFolded(!(cur && under(block.children)));
   }, bn);
-  const fold = count ? { count, folded, toggle: () => setFolded(f => !f) } : undefined;
-  const hide = folded && count > 1 ? <style>{`.bn-block-outer[data-id="${String((block as { id?: string }).id)}"] > .bn-block > .bn-block-group > .bn-block-outer:nth-child(n+2) { height: 0; min-height: 0; overflow: hidden; visibility: hidden; margin: 0; }`}</style> : null;
+  const fold = count ? { count, folded, open: () => { if (p.slug) emit('wf:select', hostRef.current, id); } } : undefined;
+  const hide = folded && count ? <style>{`.bn-block-outer[data-id="${String((block as { id?: string }).id)}"] > .bn-block > .bn-block-group > .bn-block-outer { height: 0; min-height: 0; overflow: hidden; visibility: hidden; margin: 0; }`}</style> : null;
   const host: CardHost = {
     text: cls => <div className={cls} ref={contentRef} />,
     // the pill selects like the rest of the card; the card's text places the caret and the onSelect below does the rest

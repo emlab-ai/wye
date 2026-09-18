@@ -401,8 +401,9 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     a scratch product whose spec nests content in every form — a paragraph node with an indented paragraph, a
     two-level list and an indented decision card; a task line with a nested question that has a paragraph of its
     own; a fence of two cards with blocks after it; an embed of the paragraph node. The page editor's tree has the
-    children at every level; the paragraph card's header reads ▸ 3 blocks, only the first child has a height,
-    the toggle unfolds them and arrow keys into a hidden child unfold too; with the caret in a plain paragraph
+    children at every level; the paragraph card's header reads ▸ 3 blocks and none of the children has a height,
+    the chip opens the node's details with the blocks still hidden, a caret placed inside a child shows them
+    (▾ 3 blocks) and a click back on the card's text folds them again; with the caret in a plain paragraph
     Related is a bar reading "show" and no /context request went out, "show" mounts the panel and runs one search;
     selecting the task shows its properties (no title field) and a Content editor whose first block is the task's
     text, then the question with its paragraph; typing in the first block edits the defining line with the content
@@ -410,10 +411,9 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     keeps its paragraph; /req makes a new node under the task (blank line, indented, in the graph as the task's child);
     a click on its card opens it as a chip with a Content editor of its own (its text, nothing under it);
     Enter and typing there lands two levels down in the file; ← returns to the task at the root, now 4 blocks, the child's card folded to ▸ 1 block; the page
-    editor reloaded the nesting task → req → paragraph; the embed shows one preview paragraph and ▸ 3 blocks,
-    unfolded all three with the card as its id and title (2026-09-18, session ffab751604:
-    /tmp/wfpw/node-content.mjs, 27 checks passed in Chrome; no page error; table-filter 25/25 and block-select
-    15/15 still pass)
+    editor reloaded the nesting task → req → paragraph; the embed shows no preview and ▸ 3 blocks, and its chip
+    opens the embedded node's details (2026-09-18, session a4dbc39398: /tmp/wfpw/node-content.mjs, 28 checks
+    passed in Chrome; no page error; table-filter 25/25 and block-select 15/15 still pass; 203 unit tests)
   status: passed
   verifies: [req:wf2.ui.node-content, req:wf2.ui.card-preview, req:wf2.ui.related-collapsed, req:ontology.content, rule:content-editor, rule:card-fold, rule:related-collapsed, rule:content-lines]
   last-run: 2026-09-18

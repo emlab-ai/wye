@@ -109,7 +109,7 @@ React components (`component:` cards). `side` says whether it renders on the ser
     The cards a typed block renders as — the plain node block, the question card, the decision card — as one
     set of components parameterised by a text slot and a host (peek, copy link, send, header click). The document
     editor puts the block's inline content in the slot; an embed (component:embed-block) puts a text area there.
-    One code path, so the two renderings cannot drift (decision:wf2.embed-renders-source-card). A card whose node has content folds it to the first block behind a count in its header (rule:card-fold).
+    One code path, so the two renderings cannot drift (decision:wf2.embed-renders-source-card). A card whose node has content shows none of it — a count chip in its header opens the details (rule:card-fold).
   part-of: module:app-documents
 ```
 
@@ -241,14 +241,15 @@ A card in the editor shows what the block is *for* and folds the rest. The quest
   part-of: module:app-documents
 - id: rule:card-fold
   statement: >
-    Every card's header carries `FoldToggle` when the node has content — "▸ n blocks" folded, "▾ n blocks" open.
-    In the editor (`EditorCard`) the count is the block's children; folded, a style element zero-heights the
-    children beyond the first by the block's id (`.bn-block-outer[data-id] > .bn-block > .bn-block-group >
-    .bn-block-outer:nth-child(n+2)`), so they stay blocks and in the file; the caret entering a child (selection
-    change with the anchor inside the group) unfolds; the state is the card's, folded by default. An embedded
-    card gets the node's content from op:node.edit's GET (`content`) and shows it as text under the card
-    (`ContentPreview`): the first block folded, all of them unfolded, a yaml card as its id and title.
-  source: packages/web/src/components/NodeCards.tsx:31 (FoldToggle), packages/web/src/components/NodeCards.tsx:177 (ContentPreview); packages/web/src/components/DocEditor.tsx:426 (EditorCard); packages/web/src/components/EmbedBlock.tsx
+    Every card's header carries `FoldToggle` when the node has content — a chip "▸ n blocks" whose click opens the
+    node's details (`host.fold.open`: wf:select in the editor, the peek's select for an embed); no content shows
+    in the card. In the editor (`EditorCard`) the count is the block's children; a style element zero-heights all
+    of them by the block's id (`.bn-block-outer[data-id] > .bn-block > .bn-block-group > .bn-block-outer`), so
+    they stay blocks and in the file, and the arrow keys skip them; the editor's own selection (not the DOM's —
+    a programmatic caret lands before the DOM follows) inside one of them shows them ("▾ n blocks") and leaving
+    folds again. An embedded card gets the node's content from op:node.edit's GET (`content`) only to count its
+    blocks (`contentBlocks`); there is no preview under the card.
+  source: packages/web/src/components/NodeCards.tsx:31 (FoldToggle); packages/web/src/components/DocEditor.tsx:426 (EditorCard); packages/web/src/components/EmbedBlock.tsx
   status: shipped
 - id: rule:card-essence
   statement: >

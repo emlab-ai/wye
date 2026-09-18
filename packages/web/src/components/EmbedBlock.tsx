@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { createReactBlockSpec } from '@blocknote/react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
-import { NodeCard, ContentPreview, contentBlocks, type CardP, type CardHost } from './NodeCards';
+import { NodeCard, contentBlocks, type CardP, type CardHost } from './NodeCards';
 import { EditorScope } from './EditorScope';
 import { cardFromNode, cardText, cardPatchToNodePatch, type ApiNode } from '@/lib/embed';
 import { setBodyField } from '@/lib/yaml-form';
@@ -22,9 +22,8 @@ export function EmbeddedCard({ id, badge, className, inEditor }: { id: string; b
   const scope = useContext(EditorScope);
   const select = scope ? open : selectRoot;
   const [p, setP] = useState<CardP | null>(null);
-  // the node's content (req:wf2.ui.card-preview): shown as text under the card, the first block folded
+  // the node's content (req:wf2.ui.card-preview): only its block count shows, as the chip that opens the node
   const [content, setContent] = useState('');
-  const [folded, setFolded] = useState(true);
   // the text slot keeps its own draft: the body's parsed value is trimmed, which would eat a space just typed
   const [text, setText] = useState('');
   const [missing, setMissing] = useState(false);
@@ -86,8 +85,7 @@ export function EmbeddedCard({ id, badge, className, inEditor }: { id: string; b
     copyLink: async () => { const url = `${location.origin}${hrefFor(id) ?? ''}`; try { await navigator.clipboard.writeText(url); } catch { /* clipboard unavailable */ } },
     send: () => requestSend({ text, refs: [id], source: { link: `${location.origin}${hrefFor(id) ?? ''}` } }),
     hostRef, slugReadOnly: true, extraClass: 'embedded',
-    fold: content ? { count: contentBlocks(content).length, folded, toggle: () => setFolded(f => !f) } : undefined,
-    preview: content ? <ContentPreview content={content} folded={folded} /> : undefined,
+    fold: content ? { count: contentBlocks(content).length, folded: true, open: () => select(id) } : undefined,
   };
   return (
     <div className={`embed ${className ?? ''} ${state}`} contentEditable={false} ref={inEditor ? stop : undefined} onClick={inEditor ? e => { if (!(e.target as Element).closest('a')) select(id); } : undefined}>

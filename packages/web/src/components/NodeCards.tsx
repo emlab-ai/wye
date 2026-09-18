@@ -21,16 +21,16 @@ export type CardHost = {
   hostRef?: RefObject<HTMLDivElement | null>;
   slugReadOnly?: boolean;                      // an embed never renames the node (its line would dangle)
   extraClass?: string;
-  // the node's content, folded (req:wf2.ui.card-preview): the count and the toggle in the header; `preview` is what a
-  // host without the blocks as DOM (an embed) shows under the text — the first block, or all of them when unfolded
-  fold?: { count: number; folded: boolean; toggle: () => void };
-  preview?: ReactNode;
+  // the node's content stays out of the card (req:wf2.ui.card-preview): the header carries the count as a chip
+  // that opens the details; `folded` is false only while the editor's caret is inside the blocks
+  fold?: { count: number; folded: boolean; open: () => void };
 };
 
-// The fold toggle in a card's header: how many blocks the node has under it and whether they show (rule:card-fold).
+// The chip in a card's header: how many blocks the node has under it; a click opens the node's details, where the
+// content is (rule:card-fold).
 function FoldToggle({ host }: { host: CardHost }) {
   const f = host.fold; if (!f || !f.count) return null;
-  return <button type="button" className={`nblock-fold ${f.folded ? 'folded' : ''}`} title={f.folded ? 'Show the blocks under this node' : 'Fold them: only the first block stays'} onClick={e => { e.stopPropagation(); f.toggle(); }}>{f.folded ? '▸' : '▾'} {f.count} block{f.count === 1 ? '' : 's'}</button>;
+  return <button type="button" className={`nblock-fold ${f.folded ? 'folded' : ''}`} title="Open the node: its content is in the details" onClick={e => { e.stopPropagation(); f.open(); }}>{f.folded ? '▸' : '▾'} {f.count} block{f.count === 1 ? '' : 's'}</button>;
 }
 
 // A yaml flow list "[a, b]" renders as its items; anything else as linkified text.
@@ -85,7 +85,6 @@ export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<Car
       {host.text('nblock-text')}
       {rows.length > 0 && !showYaml && <PropRows rows={rows} stop={host.stop} />}
       {showYaml && p.form === 'yaml' && <textarea className="nblock-yaml" contentEditable={false} value={p.body} rows={Math.min(24, p.body.split('\n').length + 1)} onChange={e => set({ body: e.target.value })} />}
-      {host.preview}
     </div>
   );
 }
@@ -127,7 +126,6 @@ export function QuestionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
           <textarea className="nblock-yaml" value={p.body} rows={Math.min(20, p.body.split('\n').length + 1)} onChange={e => set({ body: e.target.value })} />
         </div>
       )}
-      {host.preview}
     </div>
   );
 }
@@ -167,24 +165,10 @@ export function DecisionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
           <textarea className="nblock-yaml" value={p.body} rows={Math.min(20, p.body.split('\n').length + 1)} onChange={e => set({ body: e.target.value })} />
         </div>
       )}
-      {host.preview}
     </div>
   );
 }
 
-// An embed's content preview (req:wf2.ui.card-preview): the blocks of the node's content as text — the first one
-// folded, all of them unfolded — each block a paragraph with its ids linked; the editing happens on the node.
-export function ContentPreview({ content, folded }: { content: string; folded: boolean }) {
-  const blocks = contentBlocks(content);
-  if (!blocks.length) return null;
-  return <div className="nblock-preview" contentEditable={false}>{(folded ? blocks.slice(0, 1) : blocks).map((b, i) => {
-    // a yaml card reads as its id and title; a code fence as code; a list item without its marker
-    const fence = b.match(/^\s*(```|~~~)([^\n]*)\n?([\s\S]*?)\n?\s*(```|~~~)\s*$/);
-    if (fence && /^ya?ml/.test(fence[2])) { const id = fence[3].match(/^\s*-?\s*id:\s*(\S+)/m)?.[1] ?? ''; const title = fence[3].match(/^\s+(?:title|statement|text|q|description|purpose):\s*(.+)$/m)?.[1] ?? ''; return <p key={i}><Linkified text={`${id} ${title}`.trim()} /></p>; }
-    if (fence) return <p key={i} className="code">{fence[3]}</p>;
-    return <p key={i}><Linkified text={b.replace(/^\s*([-*+]|\d+[.)])\s+(\[[ xX]\]\s+)?/, '')} /></p>;
-  })}</div>;
-}
 // A content markdown split into its blocks: blank-line separated, a fence whole, each list item its own block.
 export function contentBlocks(content: string): string[] {
   const out: string[] = []; let cur: string[] = []; let fence = false;

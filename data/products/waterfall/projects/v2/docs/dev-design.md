@@ -622,16 +622,18 @@ A node's details: properties, content, and what a card shows of it.
   verified-by: [ui-test:node-content]
   related-to: [page:web/context-column, component:node-editor]
 - id: req:wf2.ui.card-preview
-  title: A card of a node with content shows its first block and folds the rest
+  title: A card of a node with content shows only its own first block; the content is in the details
   when: >
     a node whose content is not empty renders as a card — on its document page, as an embed on another page, as
     an expanded Connected row in the column, or inside its parent's content editor
   then: >
-    the card shows its head (kind, id, status), its text and properties as today, then the first block of its
-    content and, in place of the rest, a fold toggle with the count ("▸ 3 more blocks"); the toggle unfolds the
-    content in place; a click on the card opens the node's details (rule:block-select), where the whole content
-    is editable
-  unless: the content is one block — it is shown whole and there is no toggle
+    the card shows its head (kind, id, status), its text — the node's first block (decision:wf2.text-is-first-block)
+    — and its properties, and none of the blocks under it; the header carries a chip with the count ("▸ 3 blocks")
+    and a click on the chip, like a click on the card (rule:block-select), opens the node's details, where the
+    whole content is shown and edited
+  unless: >
+    the editor's caret is inside one of the node's blocks on the page (a drag, a programmatic selection): they show
+    while it is there, so nothing is typed blind, and fold again when it leaves
   status: shipped
   refines: req:wf2.ui.connected-cards
   depends-on: req:ontology.content
