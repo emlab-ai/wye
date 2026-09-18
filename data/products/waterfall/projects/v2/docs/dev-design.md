@@ -497,7 +497,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - a node shows its card, then (typed nodes) Properties — effective properties with placeholders and the inverses read from the other side — then Connected as a list grouped by relation (incoming relations labelled by their inverse name) or as a graph 1–2 hops out
     - a Connected or tracking row expands in place into the node's embedded card; a group heading expands or collapses all of its rows (rule:connected-cards)
     - in a document, a click anywhere on a typed block — card, table row or embed, its text included — selects it: the column comes to its Context root and shows that node (rule:block-select)
-    - a defined node's details are its properties, then Content — the blocks under it in the document's editor scoped to the node (rule:content-editor); a child's card there opens the child one level deeper, ← comes back (decision:ontology.depth-by-navigation)
+    - a defined node's details are its kind and id, its properties, then Content — one editor scoped to the node whose first block is the node's text and whose other blocks are the blocks under it in the document (rule:content-editor, decision:wf2.text-is-first-block); a child's card there opens the child one level deeper, ← comes back (decision:ontology.depth-by-navigation)
     - Related (the knowledge nearest to the block) is a bar with a show / hide button, closed by default and remembered per browser; no search runs while closed (rule:related-collapsed)
     - a document shows a preview (title, status, intro, outline, Open document →) and Connected; a goal or task shows its tracking editor and what is part of it; a type shows its card, editable properties, instances and Connected; a session shows its console
     - Context mode (no item open on a document page) follows the block being edited and shows the knowledge nearest to it (rule:context-panel)
@@ -655,9 +655,10 @@ A node's details: properties, content, and what a card shows of it.
   related-to: [rule:context-panel]
 - id: rule:content-editor
   statement: >
-    `DocEditor` takes a `scope` — a node id. Scoped, it loads the node's content markdown (given by `NodeContent`
-    from op:node.content with the document's hash) through the same import as a page and saves with PUT
-    …/node/<id>/content under that hash; it publishes no editing context and never clears the selected node, so
+    `DocEditor` takes a `scope` — a node id. Scoped, it loads the node's text as its first block and the content
+    markdown under it (given by `NodeContent` from op:node.content with the document's hash) through the same
+    import as a page, and saves with PUT …/node/<id>/content under that hash — the first block's inline text as
+    `text`, the rest as `content` (decision:wf2.text-is-first-block); it publishes no editing context and never clears the selected node, so
     the column keeps showing the node whose content it edits; the half-wipe guard and the dev handles are the
     page's only. A block asks its own editor through a DOM event (`emit`: wf:select, wf:peek) that bubbles to the
     editor's container — two editors on one page never hear each other — and in a scoped editor a select opens
@@ -1103,9 +1104,10 @@ A node's details: properties, content, and what a card shows of it.
   gate: none (local app)
   source: packages/web/src/app/api/[product]/node/[id]/route.ts; packages/web/src/lib/node-edit.ts
 - id: op:node.content
-  args: product, node id; GET → { content, children, bodyHash, project, doc }; PUT { content, ifMatch? } → { ok, bodyHash, lintOk, lintErrors }
+  args: product, node id; GET → { text, content, children, bodyHash, project, doc }; PUT { text?, content, ifMatch? } → { ok, bodyHash, lintOk, lintErrors }
   does: >
-    reads and replaces a node's content — the blocks indented under its defining line (req:ontology.content) — as
+    reads and replaces a node's text (a card's title when it has one, else its text key; a prose line's text —
+    `nodeText`, written back by `patchProseNode` / `patchYamlCard` with `textPatch`) and its content — the blocks indented under its defining line (req:ontology.content) — as
     markdown of its own: `readContent` de-indents the run after a prose line's continuation text or after a card's
     closing fence; `writeContent` re-indents it two spaces deeper than the line, a blank line before it unless it
     starts with a list item and after it when a block follows, and splits a yaml fence so a card that was not last

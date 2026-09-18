@@ -156,7 +156,7 @@ function Related({ open, setOpen, sub }: { open: boolean; setOpen: (v: boolean) 
 // hash, refetched on every graph change (the editor ignores a refetch while a save of its own is pending).
 function NodeContent({ id }: { id: string }) {
   const { product } = usePeek();
-  const [c, setC] = useState<{ content: string; bodyHash: string; project: string; doc: string; children: string[] } | null | 'none'>(null);
+  const [c, setC] = useState<{ text: string; content: string; bodyHash: string; project: string; doc: string; children: string[] } | null | 'none'>(null);
   const [version, setVersion] = useState(0);
   useEffect(() => {
     const h = (e: Event) => { if ((e as CustomEvent<{ kinds: string[] }>).detail.kinds.includes('graph')) setVersion(v => v + 1); };
@@ -168,10 +168,12 @@ function NodeContent({ id }: { id: string }) {
     return () => { live = false; };
   }, [id, product, version]);
   if (c === 'none' || !c) return null;
+  // the node's text is the first block, its content follows (decision:wf2.text-is-first-block)
+  const body = c.text.trim() ? c.text.trim() + (c.content.trim() ? '\n\n' + c.content : '\n') : c.content;
   return (
     <section className="content">
-      <h4>Content <span className="muted">{c.children.length ? `${c.children.length} block${c.children.length === 1 ? '' : 's'} under this node` : 'blocks under this node — type, or / for a block'}</span></h4>
-      <div className="content-editor"><DocEditor key={id} product={product} project={c.project} slug={c.doc} body={c.content} ifMatch={c.bodyHash} scope={id} /></div>
+      <h4>Content <span className="muted">{c.children.length ? `the text, then ${c.children.length} block${c.children.length === 1 ? '' : 's'}` : 'the text; Enter, then type or / for a block under it'}</span></h4>
+      <div className="content-editor"><DocEditor key={id} product={product} project={c.project} slug={c.doc} body={body} ifMatch={c.bodyHash} scope={id} /></div>
     </section>
   );
 }

@@ -8,7 +8,8 @@ import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
 import { expand, importMarkdown } from '@/lib/import';
 import { EditorScope } from './EditorScope';
-import { blocksToMarkdown, type AnyBlock } from '@/lib/serialize';
+import { blocksToMarkdown, inlineToMarkdown, type AnyBlock } from '@/lib/serialize';
+import type { Inline } from '@/lib/mdflow';
 import { CARD_KINDS } from '@/lib/kinds';
 import { NodeCard, type CardP, type CardHost } from './NodeCards';
 import { SmartTag } from './SmartTag';
@@ -653,8 +654,10 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
 
   async function save(md: string) {
     setState('saving');
+    // scoped: the first block is the node's text, the rest its content (decision:wf2.text-is-first-block)
+    const split = () => { const blocks = editor.document as unknown as AnyBlock[]; const first = blocks[0]; const text = first && Array.isArray(first.content) ? inlineToMarkdown(first.content as Inline[]) : ''; return { text, content: blocksToMarkdown(blocks.slice(1)) }; };
     const r = scoped
-      ? await fetch(`/api/${product}/node/${encodeURIComponent(scope)}/content`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: md, ifMatch: hash.current }) })
+      ? await fetch(`/api/${product}/node/${encodeURIComponent(scope)}/content`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...split(), ifMatch: hash.current }) })
       : await fetch(`/api/${product}/${project}/doc/${slug}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'replace-body', ifMatch: hash.current, body: md }) });
     const j = await r.json();
     if (!r.ok) { setState(j.error === 'conflict' ? 'conflict' : 'error'); return; }

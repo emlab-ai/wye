@@ -23,8 +23,9 @@ const TRACK: Record<string, { name: string; type: string }[]> = {
 type Field = { name: string; type: string; ref: string | null; many: boolean; enum: string[] | null; required: boolean; from: string; value: string };
 const glyph = (f: Field) => f.name === 'status' ? '◔' : f.type === 'progress' ? '◐' : f.ref ? '↗' : f.type === 'text' ? '≡' : f.type === 'date' || f.type === 'month' ? '▦' : f.type === 'bool' ? '☑' : f.enum ? '◇' : f.type === 'number' ? '#' : '⋯';
 
-// A node's page in the right column, laid out like a Notion task (task:new-826): the title first, then every
-// property as a label/value row — status, the text, the properties its type declares (enum → select, bool →
+// A node's page in the right column, laid out like a Notion task (task:new-826): the kind and id, then every
+// property as a label/value row — the text itself is the first block of the Content editor under the properties
+// (decision:wf2.text-is-first-block) — — status, the text, the properties its type declares (enum → select, bool →
 // checkbox, ref → an id with that type's instances suggested), the keys the card carries, and for goals and tasks
 // their tracking fields; empty optional ones fold under "n more properties". Every change saves to the defining
 // line or the yaml card and rebuilds the graph (op:node.edit).
@@ -43,11 +44,6 @@ export function NodeEditor({ id, body, form, type, props, entry, onSaved }: { id
   const carried: Field[] = rows.filter(r => !HIDDEN.has(r.key) && r.key !== titleKey && r.key !== textKey && !declared.some(p => p.name === r.key) && !track.some(t => t.name === r.key)).map(r => ({ name: r.key, type: r.prose || r.value.includes('\n') ? 'text' : 'string', ref: null, many: false, enum: null, required: false, from: '', value: r.value }));
   const textField: Field[] = titleKey !== textKey ? [{ name: textKey, type: 'text', ref: null, many: false, enum: null, required: false, from: 'type:node', value: get(textKey) }] : [];
   const fields = [...textField, ...track, ...declared, ...carried];
-  // images in a prose node's text stay in the line but not in the title field; they are put back where they were
-  const IMG = /!\[[^\]]*\]\([^)\s]+\)/g;
-  const images = get(titleKey).match(IMG) ?? [], imagesFirst = /^\s*!\[/.test(get(titleKey));
-  const bare = (t: string) => t.replace(IMG, '').replace(/\s{2,}/g, ' ').trim();
-  const [title, setTitle] = useState(bare(get(titleKey)));
   const [vals, setVals] = useState<Record<string, string>>(() => Object.fromEntries(fields.map(f => [f.name, f.value])));
   const [more, setMore] = useState(false);
   const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -55,7 +51,6 @@ export function NodeEditor({ id, body, form, type, props, entry, onSaved }: { id
   // a refresh after our own save must not clobber what is being typed elsewhere: sync only the fields that changed
   const prev = useRef(body);
   useEffect(() => { if (body === prev.current) return; const was = parseBody(prev.current), now = parseBody(body); const v = (rs: typeof was, k: string) => rs.find(r => r.key === k)?.value ?? '';
-    if (v(was, titleKey) !== v(now, titleKey)) setTitle(bare(v(now, titleKey)));
     setVals(cur => { const next = { ...cur }; for (const f of fields) if (v(was, f.name) !== v(now, f.name)) next[f.name] = v(now, f.name); return next; });
     prev.current = body; }, [body]); // eslint-disable-line react-hooks/exhaustive-deps
   const save = async (patch: { status?: string; text?: string; props?: Record<string, string | null> }) => {
@@ -67,12 +62,6 @@ export function NodeEditor({ id, body, form, type, props, entry, onSaved }: { id
   };
   const setVal = (name: string, v: string) => setVals(c => ({ ...c, [name]: v }));
   const commit = (f: Field) => { const v = (vals[f.name] ?? '').trim(); if (v !== f.value.trim()) save({ props: { [f.name]: v || null } }); };
-  const saveTitle = () => {
-    if (!title.trim() || title.trim() === bare(get(titleKey))) return;
-    const t = title.trim().replace(/\s*\n\s*/g, prose ? ' ' : '\n');
-    const full = images.length ? (imagesFirst ? [...images, t] : [t, ...images]).join(' ') : t;
-    if (titleKey === 'title') save({ props: { title: full } }); else save({ text: full });
-  };
   // instances of a ref's type to suggest; `ref node` means anything, too many to list — the tags still show
   const suggest = (f: Field) => f.ref && f.ref !== 'node' ? Object.values(index).filter(e => e.defined && e.kind === f.ref && e.id !== id).sort((a, b) => a.id.localeCompare(b.id)) : [];
   const statuses = kind === 'goal' ? ['', ...GOAL_STATUSES] : kind === 'task' ? ['', ...TASK_STATUSES] : STATUSES;
@@ -113,8 +102,6 @@ export function NodeEditor({ id, body, form, type, props, entry, onSaved }: { id
   return (
     <section className="ne" id={`n-${id}`}>
       <div className="ne-kind"><KindPill kind={kind} /><code className="cid">{id}</code></div>
-      <textarea className="ne-title" value={title} rows={Math.min(6, Math.max(1, Math.ceil(title.length / 34)))} placeholder={`${titleKey}…`} onChange={e => setTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); (e.target as HTMLTextAreaElement).blur(); } }} onBlur={saveTitle} />
-      {images.length > 0 && <p className="ne-images"><Linkified text={images.join(' ')} base={base} /></p>}
       <dl className="ne-props">
         <div><dt><i>◔</i>status</dt><dd>
           <select className={`ne-select status-sel s-${status}`} value={status} onChange={e => save({ status: e.target.value })}>

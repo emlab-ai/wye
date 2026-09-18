@@ -81,10 +81,11 @@ React components (`component:` cards). `side` says whether it renders on the ser
   side: client
   purpose: >
     A node's page in the right column, laid out like a Notion task (task:new-826, bug:properties-need-to-be): the
-    title first, then every property as a label/value row — status, the text, the ones its type declares (enum →
+    kind and id, then every property as a label/value row — status, the ones its type declares (enum →
     select, bool → checkbox, ref → a select of that type's instances or ids with tags), the keys the card carries,
     and for goals and tasks their tracking fields (due/target, owner, progress, part-of goal — the former
-    TrackEditor, folded in here); empty optional ones under "n more properties". Images in a prose node's text show
+    TrackEditor, folded in here); the node's text is not a field here but the first block of the Content editor
+    under the properties (decision:wf2.text-is-first-block); empty optional ones under "n more properties". Images in a prose node's text show
     under the title and stay in the line. Every change writes back to the defining line (prose) or the yaml card
     (patchYamlCard) and rebuilds the graph.
   part-of: module:app-knowledge

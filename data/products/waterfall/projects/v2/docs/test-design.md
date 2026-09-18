@@ -404,14 +404,15 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     children at every level; the paragraph card's header reads ▸ 3 blocks, only the first child has a height,
     the toggle unfolds them and arrow keys into a hidden child unfold too; with the caret in a plain paragraph
     Related is a bar reading "show" and no /context request went out, "show" mounts the panel and runs one search;
-    selecting the task shows its properties and a Content editor holding the question with its paragraph;
-    Enter at the end and typing writes a new item under the task in the file while the question keeps its
-    paragraph; /req makes a new node under the task (blank line, indented, in the graph as the task's child);
-    a click on its card opens it as a chip with an empty Content editor; typing there lands two levels down in
-    the file; ← returns to the task at the root, now 4 blocks, the child's card folded to ▸ 1 block; the page
+    selecting the task shows its properties (no title field) and a Content editor whose first block is the task's
+    text, then the question with its paragraph; typing in the first block edits the defining line with the content
+    under it kept; Enter at the end and typing writes a new item under the task in the file while the question
+    keeps its paragraph; /req makes a new node under the task (blank line, indented, in the graph as the task's child);
+    a click on its card opens it as a chip with a Content editor of its own (its text, nothing under it);
+    Enter and typing there lands two levels down in the file; ← returns to the task at the root, now 4 blocks, the child's card folded to ▸ 1 block; the page
     editor reloaded the nesting task → req → paragraph; the embed shows one preview paragraph and ▸ 3 blocks,
     unfolded all three with the card as its id and title (2026-09-18, session ffab751604:
-    /tmp/wfpw/node-content.mjs, 26 checks passed in Chrome; no page error; table-filter 25/25 and block-select
+    /tmp/wfpw/node-content.mjs, 27 checks passed in Chrome; no page error; table-filter 25/25 and block-select
     15/15 still pass)
   status: passed
   verifies: [req:wf2.ui.node-content, req:wf2.ui.card-preview, req:wf2.ui.related-collapsed, req:ontology.content, rule:content-editor, rule:card-fold, rule:related-collapsed, rule:content-lines]

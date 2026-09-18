@@ -2,13 +2,14 @@
 node: plan:plan-need-more-work-context-panel-proper
 type: plan
 title: need more work on context panel and proper graph nodes
-status: proposed
+status: done
 owner: unassigned
 last-verified: 2026-09-18
 session: ffab751604
 agent: claude-code
 started: 2026-09-18T21:04:02.383Z
 part-of: module:v2-plans
+finished: 2026-09-18T21:59:12.713Z
 ---
 
 # need more work on context panel and proper graph nodes
@@ -111,6 +112,29 @@ Decisions this plan makes on its own, and what it cannot decide:
   status: proposed
   affects: [req:wf2.ui.related-collapsed, component:context-panel, component:peek-panel]
   session: ffab751604
+- id: decision:wf2.text-is-first-block
+  title: A node's text is the first block of its content; the column shows properties first, then the content
+  context: >
+    The first build showed a node in the column as a title field, then its properties, then a Content editor:
+    the text on top and the content below were two things. The person (session ffab751604, 2026-09-18): the
+    text and the content are the same thing; properties go on top, then the content, and the node's text — "When
+    i select a bug…" for bug:when-i-select-a — must be a text block inside the content field.
+  choice: >
+    The column shows the kind and id, the properties (status, the type's properties, tracking fields, inverses),
+    then Content: one editor whose first block is the node's text and whose following blocks are its content.
+    A save splits the editor's blocks: the first block's inline text becomes the node's text (op:node.edit's
+    patch of the defining line or the yaml card's text key), the rest its content (op:node.content), in one
+    write under one hash. An empty or non-text first block leaves the text as it was.
+  alternatives: >
+    Keeping the title field above the editor (two things for one field); making the text the card's header
+    only (then the text is not a block and cannot be edited like one).
+  consequences: >
+    NodeEditor loses its title field; the content route's GET returns the node's text and its PUT takes `text`
+    with `content`; an embed's card and the page's card keep the text in their own slot as before.
+  date: 2026-09-18
+  status: proposed
+  affects: [req:wf2.ui.node-content, rule:content-editor, op:node.content, component:node-editor]
+  session: ffab751604
 - id: question:wf2.content-of-block-nodes
   title: Does a plain paragraph — a block:<doc>.<hash> node — get a content editor too?
   q: >
@@ -135,6 +159,49 @@ Decisions this plan makes on its own, and what it cannot decide:
 - [x] task:wf2.related-collapsed Related in the Context root is a heading with a show/hide button, collapsed by default, remembered in localStorage, ContextPanel unmounted while collapsed (decision:wf2.related-collapsed-default); ui-test:block-select opens it before its Related checks. Implements req:wf2.ui.related-collapsed; part of plan:plan-need-more-work-context-panel-proper. (session: ffab751604)
 - [x] task:wf2.content-ui-test ui-test:node-content in Chrome via playwright-core on a scratch product: open a task, type a paragraph and a `/req` block in its Content, see the nested lines in the file, click the child card, see its own Content, add a block two levels down, go back with ←, see the fold on the parent's card, Related collapsed and opened; then knowledge: rules with sources for the parser, the content routes, the scoped editor, the fold and the collapsed Related on their pages, reqs shipped, test-design entry. Part of plan:plan-need-more-work-context-panel-proper; depends on every task above. (session: ffab751604)
 
+- [x] task:wf2.content-text-first The column's node view is properties first, then one Content editor whose first block is the node's text (decision:wf2.text-is-first-block): GET content returns the text, PUT takes text + content and writes both under one hash, NodeEditor drops its title field, ui-test:node-content covers the text block. Part of plan:plan-need-more-work-context-panel-proper. (session: ffab751604)
+
 ## Result
 
-_Written by the app when the session ends: the summary and the blocks this plan produced._
+Nodes have content, at any depth. Markdown: the blocks indented two spaces under a node's defining line are its content (nested list items; after a blank line, paragraphs and fences; after a card's fence for a yaml card), parsed recursively by lib/parse.js (rule:ontology.content); type:node declares content -(inverse)-> parent. Editor round trip lifts content and parses it with the whole pipeline at every level (rule:content-lines) — real documents export unchanged. API: GET/PUT /api/<product>/node/<id>/content and wf node content <id> (op:node.content). Column: a node's details are its properties then Content — the page's editor scoped to the node (rule:content-editor): /blocks make child nodes, a click on a child card opens it one level deeper as a chip, ← back (decision:ontology.depth-by-navigation). Cards fold to the first block behind '▸ n blocks' in the header; embeds show a preview (rule:card-fold). Related is hidden behind show/hide, no search while closed, remembered per browser (rule:related-collapsed). ui-test:node-content 26/26, table-filter and block-select still pass, 203 unit tests, tsc clean; commit e3e6a3d. Open: question:wf2.content-of-block-nodes (plain paragraphs as content holders — recommended with task:ontology.paragraph-select). Proposed for review: decision:ontology.content-markdown, decision:ontology.depth-by-navigation, decision:wf2.content-editor-scoped, decision:wf2.related-collapsed-default.
+
+Blocks this plan produced:
+
+- added req:ontology.content — The blocks indented under a node are its content, at any depth
+- added decision:ontology.content-markdown — Content is written indented under the defining line — two spaces per level, the same rules at every level
+- added decision:ontology.depth-by-navigation — Going deeper is navigation in the column, not nesting inside it
+- added req:wf2.ui.node-content — A node's details are its properties and its content, edited with the document's editor
+- added req:wf2.ui.card-preview — A card of a node with content shows its first block and folds the rest
+- added req:wf2.ui.related-collapsed — Related knowledge in the column is hidden until asked for
+- added decision:wf2.content-editor-scoped — The column's content editor is the document editor scoped to one node, over one store
+- added decision:wf2.related-collapsed-default — Related is closed by default, runs no search while closed, and remembers the choice per browser
+- added question:wf2.content-of-block-nodes — Does a plain paragraph — a block:<doc>.<hash> node — get a content editor too?
+- added task:wf2.content-roundtrip — The editor's `import.ts` keeps a node block's nested blocks as its children in every form the parser reads (ne
+- added task:wf2.content-api — `GET /api/<product>/node/<id>/content` returns the node's content markdown (de-indented), its child ids in ord
+- added task:wf2.content-editor — DocEditor takes a `scope` (a node id) that swaps its load and save for the content routes (decision:wf2.conten
+- added task:wf2.card-preview — NodeCards (ProseCard, QuestionCard, DecisionCard) show the first content block and a "▸ n more blocks" fold;
+- added task:wf2.related-collapsed — Related in the Context root is a heading with a show/hide button, collapsed by default, remembered in localSto
+- added task:wf2.content-ui-test — ui-test:node-content in Chrome via playwright-core on a scratch product:
+- added task:wf2.content-parse — `lib/parse.js` reads content by decision:ontology.content-markdown:
+- changed task:new-453 — we need to add.
+- changed component:node-cards — node-cards
+- added rule:card-fold — card-fold
+- changed lib:import — import
+- changed lib:serialize — serialize
+- added rule:content-lines — content-lines
+- added lib:node-content — node-content
+- changed page:web/context-column — web/context-column
+- added action:edit-content — type, or / for a block, in a node's Content editor: the blocks are written under the node's line in its docume
+- added rule:content-editor — content-editor
+- added rule:related-collapsed — related-collapsed
+- added op:node.content — node.content
+- changed task:ontology.child-nodes-design — type:comment declared as a block type with an author and a date, and a comment written as a nested block under
+- changed task:ontology.children-in-column — The context column shows a node's `content` — its child blocks — in the document's own editor scoped to the no
+- added rule:ontology.content — ontology.content
+- changed test:blocks — test/blocks.js
+- added test:node-content-web — node-content-web
+- added test:import-web — import-web
+- added test:serialize-web — serialize-web
+- added ui-test:node-content — node-content
+
+34 paragraphs added or changed — [per document](/waterfall/sessions/ffab751604/changes)
