@@ -553,7 +553,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     const j = await r.json();
     if (!r.ok) { setLintMsg(`could not create document: ${j.message ?? j.error}`); return null; }
     router.refresh();
-    return `module:${j.slug}`;
+    return j.node as string;
   };
   const applyLink = (id: string) => {
     if (!linkReq) return;
@@ -632,7 +632,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
         const href = a?.getAttribute('href') ?? '';
         if (a && !a.classList.contains('tag') && new RegExp('^' + ID_RE.source + '$').test(href)) {
           e.preventDefault();
-          const doc = href.startsWith('module:') && (e.metaKey || e.ctrlKey) ? hrefFor(href) : null; // ⌘-click opens the document, a click peeks
+          const doc = index[href]?.doc && (e.metaKey || e.ctrlKey) ? hrefFor(href) : null; // ⌘-click opens the document, a click peeks
           if (doc) router.push(doc.replace(/#.*$/, '')); else openPeek(href);
         }
       }}>

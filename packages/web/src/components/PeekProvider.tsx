@@ -54,7 +54,8 @@ export function PeekProvider({ product, index, kinds, types, children }: { produ
   const remove = useCallback((i: number) => setNav(n => ({ stack: n.stack.filter((_, k) => k !== i), cursor: n.cursor >= i ? n.cursor - 1 : n.cursor })), []);
   // Close: on document pages fall back to the Context root; elsewhere clear the column entirely.
   const close = useCallback(() => setNav(n => showContext ? { ...n, cursor: -1 } : { stack: n.stack.filter(e => e.pinned), cursor: -1 }), [showContext]);
-  const hrefFor = useCallback((id: string) => { const e = index[id]; const r = e?.file ? docRoute(e.file) : null; return r ? `/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(id)}` : null; }, [index, product]);
+  // a document's node opens the document itself (whatever the node's kind, rule:page-node-line); any other node its anchor
+  const hrefFor = useCallback((id: string) => { const e = index[id]; const r = e?.file ? docRoute(e.file) : null; if (!r) return null; return e.doc ? `/${product}/${r.project}/d/${e.doc}` : `/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(id)}`; }, [index, product]);
   useEffect(() => { const h = (e: KeyboardEvent) => { if (e.key === 'Escape') back(); }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [back]);
   return <PeekCtx.Provider value={{ product, index, ownKinds, ownTypes, openId, stack, cursor, open, back, go, togglePin, remove, close, hrefFor, editing, setEditing, showContext, setShowContext, panelOpen, setPanelOpen }}>{children}</PeekCtx.Provider>;
 }

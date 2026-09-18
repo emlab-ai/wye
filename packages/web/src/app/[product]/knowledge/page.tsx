@@ -9,8 +9,9 @@ import { SmartTag } from '@/components/SmartTag';
 export default async function KnowledgePage({ params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const scope = await loadScope(product); if (!scope) notFound();
+  const docIds = new Set(scope.graph.modules.map(m => m.id)); // documents' nodes are pages, not knowledge cards (rule:page-node-line)
   const byKind = new Map<string, typeof scope.graph.nodes>();
-  for (const n of scope.graph.nodes) { if (!n.defined || HIDDEN_KINDS.has(n.kind) || n.kind === 'type' || n.kind === 'module') continue; if (!byKind.has(n.kind)) byKind.set(n.kind, []); byKind.get(n.kind)!.push(n); }
+  for (const n of scope.graph.nodes) { if (!n.defined || HIDDEN_KINDS.has(n.kind) || n.kind === 'type' || docIds.has(n.id)) continue; if (!byKind.has(n.kind)) byKind.set(n.kind, []); byKind.get(n.kind)!.push(n); }
   const kinds = KIND_ORDER.filter(k => byKind.has(k)).concat([...byKind.keys()].filter(k => !KIND_ORDER.includes(k)));
   return (
     <div className="page">

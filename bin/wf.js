@@ -5,7 +5,8 @@
 //   wf resolve <link|id>                 what a link points at: document, node, block or section (text included)
 //   wf doc <product/project/doc>         a document's markdown body
 //   wf doc write <product/project/doc> [--file f]   replace the body (stdin or --file), checked against the current hash
-//   wf doc create <product/project/slug> --title "…" [--template blank] [--parent doc]   a new document in a project
+//   wf doc create <product/project/slug> --title "…" [--template blank] [--parent doc] [--type module]   a new document in a project (a page of that type)
+//   wf doc retype <product/project/doc> --type <slug>   the page becomes an instance of that type; every link to it follows
 //   wf node <id> [--product p]           a node with its relations
 //   wf node set <id> --product p [--status s] [--text t] [--set key=value ...] [--unset key ...]
 //   wf context "<text>" --product p      knowledge closest to a text (local semantic search)
@@ -90,9 +91,14 @@ const commands = {
   async doc() {
     if (pos[1] === 'create') {
       const d = docRef(pos[2] || die('wf doc create <product/project/slug> --title "…"'));
-      const j = await api('POST', `/api/${d.product}/${d.project}/doc`, { title: flags.title || die('--title is required'), template: flags.template || 'blank', parent: flags.parent || '' });
+      const j = await api('POST', `/api/${d.product}/${d.project}/doc`, { title: flags.title || die('--title is required'), template: flags.template || 'blank', parent: flags.parent || '', type: flags.type || 'module' });
       if (j.slug !== d.doc) console.error(`note: the slug comes from the title — created ${j.slug}, not ${d.doc}`);
       return out(flags.json ? j : `created ${d.product}/${d.project}/${j.slug} (${WF_URL}/${d.product}/${d.project}/d/${j.slug})`);
+    }
+    if (pos[1] === 'retype') {
+      const d = docRef(pos[2] || die('wf doc retype <product/project/doc> --type <slug>'));
+      const j = await api('PUT', `/api/${d.product}/${d.project}/doc/${d.doc}`, { op: 'retype', type: flags.type || die('--type is required') });
+      return out(flags.json ? j : `${d.product}/${d.project}/${d.doc} is now ${j.node}${j.rewritten ? ` — ${j.rewritten} reference(s) in ${j.files} file(s) rewritten` : ''}`);
     }
     if (pos[1] === 'write') {
       const d = docRef(pos[2]); const body = flags.file ? fs.readFileSync(flags.file, 'utf8') : await readStdin();

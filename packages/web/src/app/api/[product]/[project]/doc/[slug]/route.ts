@@ -5,6 +5,8 @@ import { loadMarkdown } from '@/lib/load';
 import { REPO_ROOT } from '@/lib/products';
 import { docRoute, splitDocument } from '@/lib/doc';
 import { recordArtifact } from '@/lib/artifacts';
+import { retypeFrontmatter, rewriteId } from '@/lib/retype';
+import { readFile } from 'node:fs/promises';
 import { appendChunk, bodyOf, hashOf, insertYamlAfterSegment, lint, patchFrontmatter, rebuild, replaceBody, replaceChunk, replaceSegment, writeAtomic, type WriteResult } from '@/lib/write';
 
 type Op =
@@ -13,7 +15,8 @@ type Op =
   | { op: 'append-chunk'; segment: number; body: string }
   | { op: 'insert-yaml-after-segment'; segment: number; body: string }
   | { op: 'frontmatter'; patch: Record<string, string> }
-  | { op: 'replace-body'; ifMatch: string; body: string };
+  | { op: 'replace-body'; ifMatch: string; body: string }
+  | { op: 'retype'; type: string };
 
 async function locate(product: string, project: string, slug: string) {
   const scope = await loadScope(product, project); if (!scope) return null;
@@ -34,6 +37,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
   const body = (await req.json()) as Op;
   const session = req.headers.get('x-wf-session'); if (session) recordArtifact(hit.scope.product.dir, session, { doc: hit.d.module.id }).catch(() => {});
   const md = await loadMarkdown(REPO_ROOT, hit.d.file);
+  if (body.op === 'retype') return retype(hit.scope, hit.d.file, md, body.type);
   let r: WriteResult;
   switch (body.op) {
     case 'replace-segment': r = replaceSegment(md, body.index, body.ifMatch, body.text); break;
@@ -53,4 +57,25 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
   const split = splitDocument(r.md);
   const hashes = split.segments.map(s => s.type === 'markdown' ? hashOf(s.text) : s.type === 'yaml' ? s.chunks.map(c => hashOf(c.raw)) : null);
   return NextResponse.json({ ok: true, rebuilt: built.code === 0, build: built.output.trim(), lintOk: checked.code === 0, lintErrors: errors, hashes, bodyHash: hashOf(bodyOf(r.md)) });
+}
+
+// op:doc.retype (rule:doc-retype): the page becomes an instance of `type` — its node line takes the kind and every
+// reference to the old id across the product's documents is rewritten in the same operation, one write per file;
+// refused when the new id already exists.
+async function retype(scope: Awaited<ReturnType<typeof loadScope>> & object, file: string, md: string, type: string) {
+  const kind = (type ?? '').trim();
+  if (!(scope.graph.types ?? []).some(t => t.slug === kind)) return NextResponse.json({ error: 'invalid', message: `unknown type ${kind}` }, { status: 422 });
+  const r = retypeFrontmatter(md, kind); if (!r) return NextResponse.json({ error: 'invalid', message: 'the page has no node line' }, { status: 422 });
+  if (r.from === r.to) return NextResponse.json({ ok: true, node: r.to, rewritten: 0, files: 0 });
+  if (scope.idx.byId.get(r.to)?.defined) return NextResponse.json({ error: 'conflict', message: `${r.to} already exists` }, { status: 409 });
+  let rewritten = 0, files = 0;
+  for (const rel of scope.graph.files) {
+    const abs = path.join(REPO_ROOT, rel);
+    const cur = rel === file ? r.md : await readFile(abs, 'utf8').catch(() => '');
+    const w = rewriteId(cur, r.from, r.to);
+    if (rel !== file && !w.count) continue;
+    await writeAtomic(abs, w.md); rewritten += w.count; files++;
+  }
+  const built = await rebuild(scope.product.dir);
+  return NextResponse.json({ ok: true, node: r.to, from: r.from, rewritten, files, rebuilt: built.code === 0 });
 }

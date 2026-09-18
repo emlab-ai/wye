@@ -77,7 +77,7 @@ Where data lives (`store:` cards): path pattern, format, purpose. Markdown store
   path: data/products/<product>/projects/<project>/docs/*.md
   format: markdown
   purpose: >
-    The knowledge itself: every document with its frontmatter (node: module:<slug>, part-of), prose, typed blocks and yaml cards. The single source of truth (rule:markdown-canonical).
+    The knowledge itself: every document with its frontmatter (node: <kind>:<slug> — the page's node, of any declared type, module by default (rule:page-node-line); part-of; the type's properties), prose, typed blocks and yaml cards. The single source of truth (rule:markdown-canonical).
   part-of: module:app-storage
 - id: store:assets
   path: data/products/<product>/projects/<project>/docs/assets/*

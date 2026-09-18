@@ -212,7 +212,11 @@ button.pill { cursor: pointer; font-family: var(--font-m); } .nblock-peek:hover 
 .doc { max-width: 84ch; } .doc h2 { font-size: 20px; margin: 36px 0 10px; padding-top: 14px; border-top: 1px solid var(--line); scroll-margin-top: 12px; } .doc h3 { font-size: 15px; margin: 24px 0 8px; font-family: var(--font-m); scroll-margin-top: 12px; }
 .doc p, .doc li { max-width: 75ch; } .doc .tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); margin: 10px 0; } .doc table { border-collapse: collapse; font-size: 13px; min-width: 100%; } .doc th, .doc td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--line); } .doc th { font: 600 11px var(--font-m); text-transform: uppercase; color: var(--muted); background: var(--sunk); } .doc tr:last-child td { border-bottom: 0; }
 .doc pre.yaml, .doc pre { background: var(--sunk); border-radius: 8px; padding: 10px; font-size: 12px; white-space: pre-wrap; word-break: break-word; } .doc :not(pre) > code { background: var(--sunk); padding: 1px 5px; border-radius: 4px; font-size: .92em; }
-.doc-head .pills { display: flex; gap: 6px; margin-bottom: 6px; }
+.doc-head .pills { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; flex-wrap: wrap; }
+/* the page node's card (req:wf2.page.header-card): the type as a picker pill, the id, the type's properties as fields */
+.doc-head .type-sel { appearance: none; -webkit-appearance: none; border: 0; cursor: pointer; padding-right: 14px; background-image: none; }
+.doc-head .doc-id { font-size: 11px; color: var(--muted); } .doc-head .doc-msg { font-size: 12px; } .doc-head .doc-msg.bad, .doc-head .doc-warn { color: var(--warn, #b8860b); font-size: 12px; }
+.doc-head .doc-props { margin-top: 8px; max-width: 720px; } .doc-head .doc-props > div.empty dt { opacity: .6; } .doc-head .doc-more { font-size: 12px; color: var(--muted); }
 .linked { margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--line); } .linked ul { padding-left: 18px; }
 .muted { color: var(--muted); }
 @media (max-width: 720px) { .shell, .shell.split, .shell.rail-hidden, .shell.rail-hidden.split { grid-template-columns: 1fr; } .splitter, .rail-toggle { display: none; } .rail { height: auto; max-height: 45dvh; } .peek { position: fixed; top: 0; right: 0; bottom: 0; width: 100%; z-index: 30; } }

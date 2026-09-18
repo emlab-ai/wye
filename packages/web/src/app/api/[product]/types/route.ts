@@ -33,7 +33,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     const abs = path.join(REPO_ROOT, file);
     try { await access(abs); } catch {
       const tpl = await readFile(path.join(REPO_ROOT, 'templates/docs/blank.md'), 'utf8');
-      const md = instantiate(tpl, { title: 'Ontology', slug: 'ontology', parent: '', date: new Date().toISOString().slice(0, 10) }).replace(/^part-of: module:\n/m, '').replace(/\npart-of: module:$/m, '');
+      const md = instantiate(tpl, { title: 'Ontology', slug: 'ontology', parent: '', date: new Date().toISOString().slice(0, 10) }).replace(/^part-of: \n/m, '').replace(/\npart-of: $/m, '');
       await mkdir(project.docsDir, { recursive: true });
       await writeAtomic(abs, md);
     }

@@ -7,9 +7,9 @@ import type { BlockChange } from './session-types';
 import { withFileLock } from './write';
 import { loadScope } from './scope';
 import { editNode } from './node-edit';
+import { docIdOf } from './doc';
 import path from 'node:path';
 
-const docModule = (rel: string) => { const m = rel.match(/^projects\/[^/]+\/docs\/([^/]+)\.md$/); return m ? `module:${m[1]}` : null; };
 
 type Artifacts = { docs: string[]; nodes: string[]; blocks?: BlockChange[] };
 // one entry per block: a later change of the same block replaces the earlier one (added then changed stays added;
@@ -44,11 +44,12 @@ export async function creditBlockChanges(productDir: string, changes: BlockChang
 // A document changed on disk: credit every running session of the product and link their tasks. Called by the
 // watcher after the graph rebuilt (so the task's line can be found and the module id resolved).
 const linking = new Set<string>();
-// documents the app itself just wrote (task links) are not credited to sessions
+// documents the app itself just wrote (task links) are not credited to sessions — keyed by file
 const selfWrites = new Map<string, number>();
-const wroteMyself = (mod: string) => { const t = selfWrites.get(mod); return !!t && Date.now() - t < 5000; };
+const wroteMyself = (file: string) => { for (const [f, t] of selfWrites) if ((f.endsWith('/' + file) || file.endsWith('/' + f) || f === file) && Date.now() - t < 5000) return true; return false; };
 export async function creditDocumentChange(productDir: string, product: string, rel: string): Promise<void> {
-  const mod = docModule(rel); if (!mod || wroteMyself(mod)) return;
+  if (!/^projects\/[^/]+\/docs\/[^/]+\.md$/.test(rel) || wroteMyself(rel)) return;
+  const scope = await loadScope(product); const mod = scope ? docIdOf(scope.graph, rel) : null; if (!mod) return; // the document's node, of any kind
   const running = (await listSessions(productDir)).filter(s => s.status === 'running');
   for (const s of running) {
     await recordArtifact(productDir, s.id, { doc: mod });
@@ -70,10 +71,10 @@ export async function linkTasks(productDir: string, product: string, sessionId: 
       const n = scope.idx.byId.get(t); if (!n?.defined) continue;
       const cur = (n.body.match(/^session:\s*(.+)$/m)?.[1] ?? '').split(/\s+/).filter(Boolean);
       const curProduced = (n.body.match(/^produced:\s*(.+)$/m)?.[1] ?? '').split(/[\s,]+/).filter(Boolean);
-      const sessions = [...new Set([...cur, sessionId])]; const prods = [...new Set([...curProduced, ...produced])].filter(m => m !== `module:${n.file.split('/').pop()?.replace(/\.md$/, '')}`);
+      const sessions = [...new Set([...cur, sessionId])]; const prods = [...new Set([...curProduced, ...produced])].filter(m => m !== docIdOf(scope.graph, n.file));
       if (sessions.join(' ') === cur.join(' ') && prods.join(' ') === curProduced.join(' ')) continue;
       const r = await editNode(scope, t, { props: { session: sessions.join(' '), ...(prods.length ? { produced: prods.join(' ') } : {}) } }, { rebuild: false });
-      if (r.ok) { changed = true; selfWrites.set(`module:${n.file.split('/').pop()?.replace(/\.md$/, '')}`, Date.now()); }
+      if (r.ok) { changed = true; selfWrites.set(n.file, Date.now()); }
     }
     if (changed) { const { rebuild } = await import('./write'); await rebuild(productDir); }
   } finally { linking.delete(sessionId); }

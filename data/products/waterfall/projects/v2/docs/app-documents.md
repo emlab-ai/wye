@@ -63,7 +63,12 @@ React components (`component:` cards). `side` says whether it renders on the ser
   file: packages/web/src/components/DocProps.tsx
   side: client
   purpose: >
-    The document header: title and properties, always editable; a field saves when it loses focus.
+    The document header is the page node's card (req:wf2.page.header-card): a type picker pill (the product's own
+    types first, then the base types — picking one calls op:doc.retype and reports how many links followed), the
+    id, the status, the icon and the title, then the type's effective properties as editable fields (enum → select,
+    bool → checkbox, text → textarea, ref → a select of that type's instances, list → an input with suggestions and
+    tags; the root type's folded behind "n more" unless filled); a field saves to the frontmatter when it loses
+    focus (op:doc.frontmatter). An unknown type shows a warning.
   part-of: module:app-documents
 - id: component:node-card
   file: packages/web/src/components/NodeCard.tsx
@@ -333,6 +338,179 @@ Work, in order:
 - [x] task:embed-reader DocumentReader renders an embed line as the same EmbeddedCard the editor uses (component:node-card needs the body, which the reader's index does not carry; the card loads on the client and the editor takes over right after). Part of req:wf2.embeds.render.
 - [x] task:session-changes-cards component:session-changes rows become EmbeddedCards (removed rows keep the tag; paragraphs show their text; chips unchanged). Part of req:wf2.sessions.changes-cards.
 - [x] task:embeds-ui-test Run ui-test:embeds in Chrome (playwright-core) and record the result. Part of req:wf2.embeds.edit-sync.
+
+## The page as a node
+
+A document is already a node — `module:<slug>`, from the `node:` line of its frontmatter — but it is a node of one fixed kind. lib/parse.js:209 only accepts `module:` there, the frontmatter `type: module` line is never read, and the header (component:doc-props) shows the same five fields for every page: icon, title, status, owner, last-verified. So a page cannot be a `team:`, a `person:` or a `bug:` the way a card can, its frontmatter cannot carry the properties such a type declares, and a type's instance table never lists a page. The change: the page's node is an instance of whatever type the page chooses, the way a card's kind prefix is its type (decision:ontology.kind-is-type). The `node:` line takes any `kind:slug`; the header is the node's card — a type picker in place of the fixed "document" pill and the type's properties (own and inherited) as the editable fields, empty ones shown as placeholders; the type's `ref`/`list of` properties written in the frontmatter become edges named by the property, like on any card. The document tree, links, sessions and the CLI keep working because every place that spells `module:<slug>` by hand is replaced by "the id of this document's node".
+
+```yaml
+- id: decision:wf2.page-node-typed
+  title: A page's node is an instance of the type the page chooses; module stays the default
+  context: >
+    task:new-226 asks that each page is a node like any other block and that its type can be set to choose its
+    properties. Today the parser hardcodes the document node's kind to module (lib/parse.js:209), the frontmatter
+    `type:` key is decorative, and the header renders five fixed fields; instancesOf(type) never sees a page.
+  choice: >
+    The frontmatter `node:` line accepts any `kind:slug` whose kind is a declared type; that node is the page's
+    node — defined, titled, statused, with the frontmatter as its body and validated by ctx check against the
+    type's effective properties like any instance. `module` remains the default type of a new page and of
+    every existing page; nothing changes in existing files. The header becomes the page node's card: a type
+    picker (the product's own types first, then the base types) and the type's effective properties as fields.
+    The frontmatter `type:` line is dropped from the templates (the kind prefix is the type); parse ignores it.
+    graph.modules keeps its name and lists every document node regardless of kind; the web gets one helper
+    (docIdOf(file) / isDocNode(id)) and every hand-built `module:${slug}` goes through it.
+  alternatives: >
+    Keep `module:<slug>` as every page's id and read a free `type:` from the frontmatter — the type and the
+    kind prefix would disagree, typeOf(id) everywhere derives the type from the prefix, and a page would be a
+    module in links and a team on its card. Rejected: two notions of type. A separate "page type" property
+    shown only in the header — same disagreement, less visible. A new `page:` kind for every document — the
+    base type page exists (a screen in the app), and a document is not a screen.
+  consequences: >
+    Choosing a different type for an existing page changes its id (team:platform instead of module:platform):
+    op:doc.retype rewrites every reference to the old id across the product's documents in one write, the
+    same way a card's slug edit would have to (rule:doc-retype). A page is listed in its type's instance table
+    (req:ontology.type-page) and opens as a document from there. A type may now be the shape of a page, not
+    only of a card; "+ add" on a type page still adds a card (question:wf2.page-instance-add).
+  date: 2026-09-18
+  status: proposed
+  affects: [component:doc-props, lib:parse, page:web/node, page:web/types]
+  related-to: [decision:ontology.kind-is-type, req:ontology.types, task:new-226]
+  session: 64813dfdab
+- id: req:wf2.page.node
+  title: Every page is a node of the type it declares
+  when: a document's frontmatter has `node: <kind>:<slug>` and `kind` is a declared type (base or the product's own)
+  then: >
+    the graph has that node as the document's node — defined at line 1, title and status from the frontmatter,
+    the frontmatter as its body; frontmatter keys that are ref/list properties of the type (or base edge keys)
+    are edges from the node named by the property; the document tree, hrefFor, the peek panel, sessions and
+    `wf doc` treat it as the document whatever its kind; ctx check validates the frontmatter against the type
+    (required, undeclared and mistyped properties) ignoring the page bookkeeping keys (node, title, icon,
+    order, last-verified, sources, source-roots)
+  unless: >
+    the kind is not a declared type — ctx check reports an error and the page is not part of the graph
+  status: shipped
+  refines: req:ontology.types
+  satisfied-by: [lib:parse, decision:wf2.page-node-typed]
+  verified-by: [test:page-node]
+  part-of: module:app-documents
+- id: req:wf2.page.header-card
+  title: The page header is the page node's card with the type's properties
+  when: a person opens a document
+  then: >
+    the header shows the page node's type as a pill that opens a type picker, the id, the status, the icon and
+    the title, then the type's effective properties (own and inherited; the root type's folded unless filled)
+    as editable fields with the value type as placeholder; a field saves to the frontmatter when it loses
+    focus (op:doc.frontmatter), and a ref/list field offers the link picker
+  unless: the page node's type is unknown — the header shows the plain five fields and a warning
+  status: shipped
+  refines: req:wf2.ui.edit-in-context
+  satisfied-by: [component:doc-props, op:doc.frontmatter]
+  verified-by: [ui-test:page-node]
+  part-of: module:app-documents
+- id: req:wf2.page.retype
+  title: Choosing another type for a page moves its node and every link to it
+  when: a person picks a different type in the page header (or runs `wf doc retype <product/project/doc> --type <slug>`)
+  then: >
+    the frontmatter `node:` line becomes `<type>:<slug>`, every reference to the old id in the product's
+    documents (frontmatter keys, yaml values, prose ids, embeds, part-of lines of child pages) is rewritten
+    to the new id in one write per file, the graph rebuilds, and the header shows the new type's properties;
+    values of properties the new type does not declare stay in the frontmatter (ctx check warns when the type
+    is not open)
+  unless: >
+    a node with the new id already exists — the change is refused with the conflict shown in the header
+  status: shipped
+  refines: req:wf2.page.node
+  satisfied-by: [op:doc.retype, component:doc-props]
+  verified-by: [test:retype, ui-test:page-node]
+  part-of: module:app-documents
+- id: req:wf2.page.create-typed
+  title: A new page can be created as an instance of a type
+  when: a person creates a page (component:new-doc, `wf doc create … --type <slug>`) and picks a type
+  then: >
+    the page's `node:` line is `<type>:<slug>`, the frontmatter carries the type's required properties as empty
+    keys, and the page appears in the type's instance table
+  unless: no type is picked — the page is a module, as today
+  status: shipped
+  refines: req:wf2.page.node
+  satisfied-by: [op:doc.create, component:new-doc]
+  verified-by: [ui-test:page-node]
+  part-of: module:app-documents
+- id: rule:page-node-line
+  statement: >
+    The document's node is the `node: kind:slug` line of its frontmatter; the kind is the node's type; a
+    document without a `node:` line has no node and is not in the graph. The frontmatter `type:` key is not
+    read. graph.modules lists every document node whatever its kind; nothing in the app tests
+    `kind === 'module'` to mean "is a document" — it asks the modules list.
+  source: lib/parse.js:212; packages/web/src/lib/doc.ts:168
+  status: shipped
+  verified-by: [test:page-node]
+- id: rule:doc-retype
+  statement: >
+    Changing a page's type changes its id, and the change rewrites every reference to the old id in the
+    product's documents (word-boundary match on the full id) in the same operation, so no link dangles.
+    The rewrite is refused when the new id already exists.
+  source: packages/web/src/lib/retype.ts:1
+  status: shipped
+  verified-by: [test:web-lib#retype]
+- id: test:page-node
+  title: The page as a typed node — parser and check
+  file: test/page-node.js
+  covers: [req:wf2.page.node, rule:page-node-line]
+  status: passed
+  result: >
+    a `node: team:platform` page is the document node at line 1 with the frontmatter as its body and its
+    ref/list properties as edges (lead → person:ana, members → person:bo, the inverse generated); ctx check reports
+    a mistyped frontmatter property and ignores the page bookkeeping keys; an undeclared kind on the node line
+    is an error and the page is not in the graph; `type:` is not read.
+- id: test:retype
+  title: rewriteId and retypeFrontmatter
+  file: packages/web/src/lib/retype.test.ts
+  covers: [rule:doc-retype]
+  status: passed
+  result: >
+    every whole-id occurrence rewritten (frontmatter keys, yaml values, prose ids, embeds, links, a trailing full
+    stop), a longer id that starts with the old one left alone; the node line takes the new kind and the old
+    `type:` line goes.
+- id: ui-test:page-node
+  title: A page created as a team, filled in the header, listed in the team table, retyped to person with its links following
+  steps: >
+    1. POST /api/waterfall/v2/doc { title: 'Probe team', type: 'team' }: the frontmatter has `node: team:probe-team`,
+    an empty `name:` key and no `type:` line. 2. Open the page: the header shows the type pill `team`, the id, and
+    the fields name (required) and members with the value type as placeholder. 3. Fill name and members in the
+    header: the frontmatter has them; after a reload the member shows as a tag. 4. /waterfall/types/team lists
+    team:probe-team with a 📄 link to the page. 5. Pick `person` in the type pill: the header shows person:probe-team
+    with name, email, role; every link in a second page (a prose id, a markdown link, a yaml list) now says
+    person:probe-team, none says team:probe-team; the page's own node line changed. 6. The tree lists the page; the
+    tag in the other page peeks it with "Open document →" to /waterfall/v2/d/probe-team. 7. A card elsewhere takes
+    team:probe-team: retyping back is refused with 409 "team:probe-team already exists".
+  covers: [req:wf2.page.node, req:wf2.page.header-card, req:wf2.page.retype, req:wf2.page.create-typed]
+  status: passed
+  result: >
+    run by hand with playwright-core (Chrome, headless) on 2026-09-18 (/tmp/wfpw/pagenode.mjs): every step as
+    written; retype reported "3 links in 2 pages now point at person:probe-team". `wf doc create --type team` and
+    `wf doc retype --type person` did the same from the CLI.
+- id: question:wf2.page-instance-add
+  q: >
+    Should "+ add" on a type page (and the "<Type>s table" block) be able to create an instance as a page — a
+    document of that type — instead of a card in the type's home document? A person page or a team page reads
+    better as a page; a bug reads better as a card.
+  context: >
+    decision:wf2.page-node-typed makes a page a valid instance; today op:types.add only appends a card.
+    Touches page:web/types, component:add-instance, rule:type-tables.
+  status: open
+  related-to: [decision:wf2.page-node-typed, req:ontology.type-page]
+```
+
+<!-- tasks -->
+- [x] task:page-node-parse lib/parse.js: accept any `kind:slug` on the frontmatter `node:` line (kind must be a declared type, else an error problem); edges from frontmatter keys that are ref/list props of the type (propVerb) as well as EDGE_KEYS; lib/graph.js check ignores page bookkeeping keys; tests in test/parse. Part of req:wf2.page.node and rule:page-node-line. (session: 64813dfdab)
+- [x] task:page-node-web-helper packages/web/src/lib/doc.ts: docIdOf(file) / isDocNode(g, id) over graph.modules; replace every hand-built `module:${slug}` and `kind === 'module'` check (the tree items and the top bar's docs carry the node id; CommandBox → docNodeOf; DocEditor takes the id the create route returns; PeekPanel, SmartTag and hrefFor ask the index entry's `doc`; artifacts, session-page, session-changes, graph-diff, the node route → docIdOf; review, the knowledge page and linkedDocuments → the modules set; the types home lookup strips any kind). Part of rule:page-node-line. (session: 64813dfdab)
+- [x] task:page-node-header component:doc-props becomes the page node's card: type picker pill (own types then base types), id, status, icon, title, then nodeProps(type) as fields with the value type as placeholder, root props folded unless filled, ref/list fields with the link picker; saves through op:doc.frontmatter. Part of req:wf2.page.header-card. (session: 64813dfdab)
+- [x] task:page-node-retype packages/web/src/lib/retype.ts (pure, tested): rewrite an id across a set of markdown files; op:doc.retype (PUT op 'retype' on the doc route) rewrites the frontmatter node line and every reference in the product's documents, refuses a conflict; `wf doc retype`. Part of req:wf2.page.retype and rule:doc-retype. (session: 64813dfdab)
+- [x] task:page-node-create component:new-doc and `wf doc create --type <slug>`: type choice (default module); templates drop the `type: module` line; the required properties of the type written as empty keys. Part of req:wf2.page.create-typed. (session: 64813dfdab)
+- [x] task:page-node-types-page page:web/types: a page instance in the table links to the document (hrefFor already resolves it); the row shows a page icon. Part of req:ontology.type-page. (session: 64813dfdab)
+- [x] task:page-node-ui-test ui-test:page-node in Chrome: create a page as team, fill a property in the header, see it in the team table, retype it to person and see the links follow. Part of req:wf2.page.header-card. (session: 64813dfdab)
+- [x] task:page-node-knowledge After shipping: statuses to shipped, component:doc-props purpose updated, app-storage store:documents frontmatter description updated (node: any kind), task:new-226 done. Part of decision:wf2.page-node-typed. (session: 64813dfdab)
+<!-- /tasks -->
 
 ## Libraries
 

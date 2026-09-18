@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useLayout } from './Shell';
 import { requestSend } from './CommandBox';
 
-export type DocMeta = { slug: string; title: string; icon: string; project: string; parent?: string; mtime: string };
+export type DocMeta = { slug: string; node: string; title: string; icon: string; project: string; parent?: string; mtime: string };
 const PAGES: Record<string, string> = { goals: 'Goals', tasks: 'Tasks', questions: 'Questions', knowledge: 'Knowledge', graph: 'Graph', inbox: 'Inbox', sessions: 'Agents', new: 'New product' };
 
 const ago = (iso: string) => { const m = (Date.now() - Date.parse(iso)) / 60000; if (m < 1) return 'just now'; if (m < 60) return `${Math.round(m)} min ago`; if (m < 1440) return `${Math.round(m / 60)} h ago`; const d = Math.round(m / 1440); return d < 30 ? `${d} d ago` : new Date(iso).toLocaleDateString(); };
@@ -66,7 +66,7 @@ export function TopBar({ product, docs }: { product: { slug: string; title: stri
       </nav>
       <span className="topbar-right">
         {edited && <span className="muted topbar-edited">Edited {edited}</span>}
-        {doc && <button className="topbar-btn" onClick={() => requestSend({ refs: [`module:${doc!.slug}`], source: { project: doc!.project, doc: doc!.slug, link } })} title="Send this document to an agent">⇢ agent</button>}
+        {doc && <button className="topbar-btn" onClick={() => requestSend({ refs: [doc!.node], source: { project: doc!.project, doc: doc!.slug, link } })} title="Send this document to an agent">⇢ agent</button>}
         <button className="topbar-btn" onClick={copy} title="Copy link">⧉</button>
         <button className={`topbar-btn ${panel ? 'on' : ''}`} onClick={togglePanel} title={`${panel ? 'Hide' : 'Show'} the context panel (⌘.)`} aria-label="Toggle context panel">◫</button>
       </span>

@@ -1,11 +1,10 @@
 ---
-node: module:{{slug}}
-type: module
+node: {{kind}}:{{slug}}
 title: {{title}}
 status: proposed
 owner: unassigned
 last-verified: {{date}}
-part-of: module:{{parent}}
+part-of: {{parent}}
 ---
 
 # {{title}}
@@ -13,10 +12,10 @@ part-of: module:{{parent}}
 ## 0. module:{{slug}}
 
 ```yaml
-id: module:{{slug}}
+id: {{kind}}:{{slug}}
 purpose: >
   The product requirements of {{title}}: one node per behaviour, grouped by capability.
-part-of: module:{{parent}}
+part-of: {{parent}}
 ```
 
 ## Problem statement

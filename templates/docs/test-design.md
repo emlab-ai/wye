@@ -1,11 +1,10 @@
 ---
-node: module:{{slug}}
-type: module
+node: {{kind}}:{{slug}}
 title: {{title}}
 status: proposed
 owner: unassigned
 last-verified: {{date}}
-part-of: module:{{parent}}
+part-of: {{parent}}
 ---
 
 # {{title}}
@@ -13,10 +12,10 @@ part-of: module:{{parent}}
 ## 0. module:{{slug}}
 
 ```yaml
-id: module:{{slug}}
+id: {{kind}}:{{slug}}
 purpose: >
   The verification plan: test nodes per area, their cases, and what stays untested.
-part-of: module:{{parent}}
+part-of: {{parent}}
 ```
 
 ## 9. Verification index

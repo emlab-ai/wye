@@ -20,7 +20,7 @@ export default async function DocPage({ params }: { params: Promise<{ product: s
   const linked = linkedDocuments(scope.graph, scope.idx, d.file);
   return (
     <div className="page">
-      <DocProps product={product} project={project} slug={d.slug} file={d.file} fm={split.frontmatter} />
+      <DocProps product={product} project={project} slug={d.slug} file={d.file} fm={split.frontmatter} node={d.module.id} types={scope.graph.types ?? []} />
       <LiveDocument product={product} project={project} slug={d.slug} body={body} ifMatch={hashOf(body)}>
         <DocumentReader doc={split} index={scope.index} />
       </LiveDocument>

@@ -3,7 +3,9 @@ import { diffGraphs } from './graph-diff';
 import type { GraphData, GraphNode } from './graph';
 
 const N = (id: string, over: Partial<GraphNode> = {}): GraphNode => ({ id, kind: id.split(':')[0], title: id, status: '', section: '', subsection: '', body: '', defined: true, file: 'data/products/p/projects/v2/docs/prd.md', line: 1, ...over });
-const G = (nodes: GraphNode[]): GraphData => ({ generatedAt: '', modules: [], files: [], nodes, edges: [], fieldIndex: {} });
+// the document of a node comes from the graph's modules (rule:page-node-line), so the fixture declares them
+const M = (id: string, file: string) => ({ id, title: id, file: `data/products/p/projects/v2/docs/${file}.md`, verified: '', sourceRoots: [] });
+const G = (nodes: GraphNode[]): GraphData => ({ generatedAt: '', modules: [M('module:prd', 'prd'), M('module:plan', 'plan')], files: [], nodes, edges: [], fieldIndex: {} });
 
 describe('diffGraphs', () => {
   it('reports added, changed and removed defined nodes with their document', () => {

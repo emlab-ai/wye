@@ -7,7 +7,7 @@ export type Segment =
   | { type: 'yaml'; raw: string; chunks: Chunk[]; start: number; end: number };
 export interface SplitDoc { frontmatter: Record<string, string>; segments: Segment[] }
 export interface DocNode { module: GraphNode; file: string; slug: string; title: string; children: DocNode[] }
-export type IndexEntry = { id: string; kind: string; title: string; status: string; defined: boolean; file: string; owner?: string; target?: string; progress?: number; parts?: { done: number; total: number }; parent?: string; sessions?: string[] };
+export type IndexEntry = { id: string; kind: string; title: string; status: string; defined: boolean; file: string; doc?: string; owner?: string; target?: string; progress?: number; parts?: { done: number; total: number }; parent?: string; sessions?: string[] };
 
 export const DONE_STATUSES = new Set(['done', 'shipped', 'complete']);
 
@@ -126,7 +126,7 @@ export function linkedDocuments(g: GraphData, idx: GraphIndex, file: string) {
   for (const e of g.edges) {
     const a = idx.byId.get(e.from), b = idx.byId.get(e.to);
     if (!a || !b || !a.defined || !b.defined || !STRUCTURAL.has(e.verb)) continue; // mentions are too weak to count as a link
-    if (a.kind === 'module' && b.kind === 'module' && (e.verb === 'has' || e.verb === 'part-of')) continue; // containment, shown in the tree instead
+    if (byFile.has(a.file) && byFile.has(b.file) && isDocNode(g, a.id) && isDocNode(g, b.id) && (e.verb === 'has' || e.verb === 'part-of')) continue; // containment, shown in the tree instead
     const other = a.file === file && b.file !== file ? b.file : b.file === file && a.file !== file ? a.file : null;
     if (!other || !byFile.has(other)) continue;
     counts.set(other, (counts.get(other) ?? 0) + 1);
@@ -137,9 +137,11 @@ export function linkedDocuments(g: GraphData, idx: GraphIndex, file: string) {
 export function nodeIndex(g: GraphData): Record<string, IndexEntry> {
   const out: Record<string, IndexEntry> = {};
   const field = (body: string, key: string) => body.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'))?.[1].trim();
+  const docOf = new Map(g.modules.map(m => [m.id, docSlug(m.file)]));
   for (const n of g.nodes) {
     if (HIDDEN_KINDS.has(n.kind)) continue;
     const e: IndexEntry = { id: n.id, kind: n.kind, title: n.title, status: n.status, defined: n.defined, file: n.file };
+    const doc = docOf.get(n.id); if (doc) e.doc = doc; // a document's node, of any kind (rule:page-node-line)
     if (n.kind === 'goal' || n.kind === 'task') {
       const owner = field(n.body, 'owner'); const target = field(n.body, 'target') ?? field(n.body, 'due'); const progress = Number(field(n.body, 'progress'));
       if (owner) e.owner = owner; if (target) e.target = target; if (!Number.isNaN(progress) && field(n.body, 'progress')) e.progress = Math.max(0, Math.min(100, progress));
@@ -165,6 +167,12 @@ export function assetBase(file: string): string {
   const m = file.match(/data\/products\/([^/]+)\/projects\/([^/]+)\/docs\//);
   return m ? `/${m[1]}/${m[2]}/d/` : '';
 }
+// The document's node is whatever graph.modules says, of any kind (rule:page-node-line): these are the only questions
+// the app asks — never "kind === 'module'".
+export function isDocNode(g: Pick<GraphData, 'modules'>, id: string): boolean { return g.modules.some(m => m.id === id); }
+export function docIdOf(g: Pick<GraphData, 'modules'>, file: string): string | null { return g.modules.find(m => m.file === file || m.file.endsWith('/' + file) || file.endsWith('/' + m.file))?.id ?? null; }
+// client side: the node of the document with this slug, from the index
+export function docNodeOf(index: Record<string, IndexEntry>, slug: string): string | null { for (const e of Object.values(index)) if (e.doc === slug) return e.id; return null; }
 export function docRoute(file: string): { project: string; doc: string } | null {
   const m = file.match(/\/projects\/([^/]+)\/docs\/([^/]+)\.md$/);
   return m ? { project: m[1], doc: m[2] } : null;

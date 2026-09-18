@@ -19,7 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   if (!/^[a-z0-9][a-z0-9_.-]*$/.test(slug)) return NextResponse.json({ error: 'invalid', message: 'slug must be lowercase letters, digits, dots or dashes' }, { status: 422 });
   const id = `${typeSlug}:${slug}`;
   if (scope.idx.byId.get(id)?.defined) return NextResponse.json({ error: 'conflict', message: `${id} already exists` }, { status: 409 });
-  const file = t.home ? scope.graph.modules.find(m => m.id === t.home || m.file.endsWith('/' + t.home.replace(/^module:/, '') + '.md'))?.file : (isBaseType(t) ? '' : t.file);
+  const file = t.home ? scope.graph.modules.find(m => m.id === t.home || m.file.endsWith('/' + t.home.replace(/^[a-z-]+:/, '') + '.md'))?.file : (isBaseType(t) ? '' : t.file);
   if (!file) return NextResponse.json({ error: 'invalid', message: 'the type has no home document' }, { status: 422 });
   const abs = path.join(REPO_ROOT, file);
   await withFileLock(abs, async () => {

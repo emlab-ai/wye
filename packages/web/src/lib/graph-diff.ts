@@ -3,9 +3,11 @@
 // session as its block-level attribution (req:wf2.sessions.block-attribution); nothing is written to documents.
 import type { GraphData, GraphNode } from './graph';
 import type { BlockChange } from './session-types';
+import { docIdOf } from './doc';
 export type { BlockChange };
 
-const docOf = (n: GraphNode) => { const m = n.file.match(/\/docs\/([^/]+)\.md$/); return m ? `module:${m[1]}` : ''; };
+// the document a node lives in: its node id from the graph's modules, of any kind (rule:page-node-line)
+const docOf = (g: Pick<GraphData, 'modules'>, n: GraphNode) => docIdOf(g, n.file) ?? '';
 // the app's own task links (rule:task-artifacts) are tracking, not knowledge: drop them before comparing bodies
 const essence = (n: GraphNode) => [n.title, n.status, n.body.split('\n').filter(l => !/^(session|produced):/.test(l)).join('\n')].join('|');
 const visible = (n: GraphNode) => n.defined && n.kind !== 'field' && n.kind !== 'prop';
@@ -18,9 +20,9 @@ export function diffGraphs(before: GraphData, after: GraphData, at: string): Blo
     if (!visible(n)) continue;
     seen.add(n.id);
     const o = old.get(n.id);
-    if (!o) out.push({ id: n.id, change: 'added', doc: docOf(n), title: n.title, at });
-    else if (essence(o) !== essence(n)) out.push({ id: n.id, change: 'changed', doc: docOf(n), title: n.title, at });
+    if (!o) out.push({ id: n.id, change: 'added', doc: docOf(after, n), title: n.title, at });
+    else if (essence(o) !== essence(n)) out.push({ id: n.id, change: 'changed', doc: docOf(after, n), title: n.title, at });
   }
-  for (const [id, o] of old) if (!seen.has(id)) out.push({ id, change: 'removed', doc: docOf(o), title: o.title, at });
+  for (const [id, o] of old) if (!seen.has(id)) out.push({ id, change: 'removed', doc: docOf(before, o) || docOf(after, o), title: o.title, at });
   return out;
 }

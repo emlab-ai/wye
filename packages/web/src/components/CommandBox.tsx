@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import { usePeek } from './PeekProvider';
+import { docNodeOf } from '@/lib/doc';
 import { SmartTag } from './SmartTag';
 import { AGENTS, type Session } from '@/lib/session-types';
 import { AttachStrip, useImageAttachments } from './Attachments';
@@ -19,7 +20,7 @@ export function requestSend(detail: SendRequest) { window.dispatchEvent(new Cust
 type Live = Session & { live?: boolean };
 
 export function CommandBox() {
-  const { product, open, editing } = usePeek();
+  const { product, open, editing, index } = usePeek();
   const path = usePathname();
   const [req, setReq] = useState<SendRequest | null>(null); // null: closed
   const [text, setText] = useState('');
@@ -36,7 +37,7 @@ export function CommandBox() {
   const box = useRef<HTMLTextAreaElement>(null);
   // where the person is: the document page and the node under the cursor, so the agent starts from there
   const m = path.match(/^\/[^/]+\/([^/]+)\/d\/([^/#?]+)/);
-  const here = (): SendRequest => ({ refs: [...new Set([...(editing?.nodeId ? [editing.nodeId] : []), ...(m ? [`module:${m[2]}`] : [])])], source: m ? { project: m[1], doc: m[2], link: `${location.origin}${path}${editing?.nodeId ? `#n-${encodeURIComponent(editing.nodeId)}` : ''}` } : {} });
+  const here = (): SendRequest => ({ refs: [...new Set([...(editing?.nodeId ? [editing.nodeId] : []), ...(m ? [docNodeOf(index, m[2]) ?? []].flat() : [])])], source: m ? { project: m[1], doc: m[2], link: `${location.origin}${path}${editing?.nodeId ? `#n-${encodeURIComponent(editing.nodeId)}` : ''}` } : {} });
   const show = (d: SendRequest) => {
     const ids = d.refs?.length ? d.refs.join(', ') : '';
     setText(d.text ? `${ids ? `Work on ${ids}.\n\n` : ''}${d.text.trim()}` : '');

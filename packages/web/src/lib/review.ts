@@ -11,14 +11,15 @@ export interface ReviewItem { id: string; kind: string; title: string; text: str
 const OPEN_QUESTION = (s: string) => !['resolved', 'rejected', 'done', 'dismissed', 'answered'].includes(s);
 const NEEDS_APPROVAL = new Set(['proposed', 'draft', 'unverified']);
 
-export function isReviewable(n: GraphNode): boolean {
-  if (!n.defined || n.kind === 'module' || HIDDEN_KINDS.has(n.kind) || n.kind === 'product') return false;
+export function isReviewable(n: GraphNode, docIds?: Set<string>): boolean {
+  if (!n.defined || docIds?.has(n.id) || HIDDEN_KINDS.has(n.kind) || n.kind === 'product') return false;
   if (n.kind === 'question' || n.status === 'question') return OPEN_QUESTION(n.status === 'question' ? 'open' : n.status || 'open');
   return NEEDS_APPROVAL.has(n.status) && ['decision', 'req', 'rule', 'goal', 'entity', 'task'].includes(n.kind) && n.status !== 'unverified';
 }
 
 export function reviewQueue(product: string, g: GraphData, idx: GraphIndex): ReviewItem[] {
-  return g.nodes.filter(isReviewable).map(n => {
+  const docIds = new Set(g.modules.map(m => m.id)); // a page's node is not a review item, whatever its kind
+  return g.nodes.filter(n => isReviewable(n, docIds)).map(n => {
     const rows = parseBody(n.body); const get = (k: string) => rows.find(r => r.key === k)?.value ?? '';
     const r = docRoute(n.file);
     const text = get('q') || get('text') || get('statement') || get('choice') || get('description') || get('then') || '';

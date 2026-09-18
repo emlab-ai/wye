@@ -4,6 +4,7 @@ import { relations, neighborhood } from '@/lib/graph';
 import { typeOf, nodeProps, instancesOf } from '@/lib/types';
 import { editNode, type NodePatch } from '@/lib/node-edit';
 import { recordArtifact } from '@/lib/artifacts';
+import { docIdOf } from '@/lib/doc';
 
 export async function GET(req: Request, { params }: { params: Promise<{ product: string; id: string }> }) {
   const { product, id: raw } = await params; const id = decodeURIComponent(raw);
@@ -32,7 +33,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
   if (session && id.startsWith('task:') && patch.status === 'done') patch.props = { ...(patch.props ?? {}), session: addToken((scope.idx.byId.get(id)?.body.match(/^session:\s*(.+)$/m)?.[1] ?? ''), session) };
   const r = await editNode(scope, id, patch);
   if (!r.ok) return NextResponse.json({ error: r.error, message: r.message }, { status: r.error === 'not_found' ? 404 : 422 });
-  if (session) { const n = scope.idx.byId.get(id); recordArtifact(scope.product.dir, session, { node: id, blocks: [{ id, change: 'changed', doc: n ? `module:${n.file.split('/').pop()?.replace(/\.md$/, '')}` : '', title: n?.title ?? id, at: new Date().toISOString() }] }).catch(() => {}); }
+  if (session) { const n = scope.idx.byId.get(id); recordArtifact(scope.product.dir, session, { node: id, blocks: [{ id, change: 'changed', doc: n ? docIdOf(scope.graph, n.file) ?? '' : '', title: n?.title ?? id, at: new Date().toISOString() }] }).catch(() => {}); }
   return NextResponse.json({ ok: true, line: r.line, file: r.file });
 }
 const addToken = (cur: string, t: string) => [...new Set([...cur.split(/\s+/).filter(Boolean), t])].join(' ');

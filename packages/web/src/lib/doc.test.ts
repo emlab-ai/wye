@@ -115,3 +115,24 @@ describe('nodeIndex', () => {
   });
   it('docSlug strips directory and extension', () => { expect(docSlug('docs/context-graph/dev-design.md')).toBe('dev-design'); });
 });
+
+// The page as a node (rule:page-node-line): the document's node is whatever graph.modules says, of any kind; nothing
+// asks "kind === 'module'" to mean "is a document".
+describe('document nodes of any kind', () => {
+  const g2: GraphData = { ...g, modules: [...g.modules, { id: 'team:platform', title: 'Platform', file: 'docs/context-graph/platform.md', verified: '', sourceRoots: [] }], nodes: [...g.nodes, n('team:platform', 'docs/context-graph/platform.md', 'Platform')] };
+  it('nodeIndex marks a document node with its document slug', async () => {
+    const ix = nodeIndex(g2);
+    expect(ix['team:platform'].doc).toBe('platform');
+    expect(ix['module:wf2-prd'].doc).toBe('prd');
+    expect(ix['req:wf2.a'].doc).toBeUndefined();
+  });
+  it('isDocNode / docIdOf / docNodeOf ask the modules list', async () => {
+    const { isDocNode, docIdOf, docNodeOf } = await import('./doc');
+    expect(isDocNode(g2, 'team:platform')).toBe(true);
+    expect(isDocNode(g2, 'req:wf2.a')).toBe(false);
+    expect(docIdOf(g2, 'docs/context-graph/platform.md')).toBe('team:platform');
+    expect(docIdOf(g2, 'docs/context-graph/nope.md')).toBeNull();
+    expect(docNodeOf(nodeIndex(g2), 'platform')).toBe('team:platform');
+    expect(docNodeOf(nodeIndex(g2), 'nope')).toBeNull();
+  });
+});

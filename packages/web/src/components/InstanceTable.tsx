@@ -36,10 +36,11 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
   const span = 2 + table.columns.length + (table.typed ? 0 : 1);
   const Row = ({ r }: { r: InstanceRow }) => {
     const where = docRoute(r.file);
-    const href = where ? `/${product}/${where.project}/d/${where.doc}#n-${encodeURIComponent(r.id)}` : '';
+    const page = index[r.id]?.doc; // a page instance (rule:page-node-line) links to the document itself
+    const href = page && where ? `/${product}/${where.project}/d/${page}` : where ? `/${product}/${where.project}/d/${where.doc}#n-${encodeURIComponent(r.id)}` : '';
     return (
       <tr className={r.id === openId ? 'on' : ''} onClick={() => open(r.id)} role="button">
-        <td><div className="itable-id"><SmartTag id={r.id} /><StatusPill status={r.status} />{href && <Link className="klist-doc" href={href} title={r.doc} onClick={e => e.stopPropagation()}>↗</Link>}</div><div className="itable-title">{r.title !== r.id && !r.id.endsWith(':' + r.title) ? plain(r.title) : ''}</div></td>
+        <td><div className="itable-id"><SmartTag id={r.id} /><StatusPill status={r.status} />{href && <Link className="klist-doc" href={href} title={page ? 'a page — open it' : r.doc} onClick={e => e.stopPropagation()}>{page ? '📄' : '↗'}</Link>}</div><div className="itable-title">{r.title !== r.id && !r.id.endsWith(':' + r.title) ? plain(r.title) : ''}</div></td>
         {table.columns.map(c => <td key={c.name} className={r.props[c.name] ? '' : 'empty'}>{r.props[c.name] ? <Linkified text={r.props[c.name].replace(/^\[|\]$/g, '')} base={assetBase(r.file)} /> : <span className="muted">—</span>}</td>)}
         {!table.typed && <td className="itable-rels">{(r.rels ?? []).slice(0, 6).map(e => <span key={e.verb + e.to} className="klist-rel"><small>{e.verb}</small><SmartTag id={e.to} /></span>)}</td>}
         <td className="itable-doc">{href ? <Link href={href} onClick={e => e.stopPropagation()}>{r.doc}</Link> : <span className="muted">{r.doc}</span>}</td>

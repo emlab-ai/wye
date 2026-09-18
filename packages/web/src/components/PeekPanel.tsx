@@ -82,7 +82,7 @@ function NodeView({ id }: { id: string }) {
   }, [id, product, depth, tick]);
   const entry = index[id];
   const def = hrefFor(id);
-  if (entry?.kind === 'module' && def) return (
+  if (entry?.doc && def) return (
     <>
       <div className="peek-bar">
         <Link href={def.replace(/#.*$/, '')} className="pri-link">Open document →</Link>
