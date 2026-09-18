@@ -305,6 +305,18 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     from the Agents page a row opens the session in the column, "page ↗" navigates to the page with the column
     kept, ‹ in the top bar returns to Agents with the column kept, ⌘] and ⌘[ go forward and back (2026-09-18,
     session efee530d46)
+- id: ui-test:table-scroll
+  file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    open the Bugs document (a bug table) and ontology (a goals/tasks table) at a 700 px viewport with the context
+    column open — the editor is 318 px wide: every row's name column is 200 px, the header and every row are one
+    width (552 / 586 px), the collection's block has overflow-x auto and scrolls sideways (scrollLeft moves), the
+    block itself fits the editor and the page does not scroll; widen to 1400 px — no scrollbar, the rows fill the
+    editor (2026-09-18, session 01b14dc871: /tmp/wfpw/table-scroll.mjs, 14 checks passed in Chrome; screenshots at
+    480 px show the name column readable and the property columns reached by scrolling)
+  status: passed
+  verifies: [req:wf2.editor.table-scroll, rule:table-scroll]
+  last-run: 2026-09-18
 - id: ui-test:column-frame
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >

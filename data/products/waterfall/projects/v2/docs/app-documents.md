@@ -45,7 +45,19 @@ React components (`component:` cards). `side` says whether it renders on the ser
   file: packages/web/src/components/DocEditor.tsx
   side: client
   purpose: >
-    kind:slug as inline content: a clickable tag in the editor, plain id text when serialised.
+    The single-page BlockNote editor of a document (rule:single-page-editor): prose blocks, node cards and prose
+    nodes, data tables (component:data-table), view blocks, embeds, drawings and images, the slash and mention
+    menus, and the round trip to markdown through lib:import and lib:serialize; it publishes the block under the
+    cursor to the context column and saves with the document's hash.
+  part-of: module:app-documents
+- id: component:data-table
+  file: packages/web/src/components/DocEditor.tsx
+  side: client
+  purpose: >
+    The "Data table" block of the editor (CollectionBlock, RowNode, TypeRow): a header with the type picker and one
+    grid row per child node block — name, status, then target/due, progress and owner for goals and tasks, or one
+    column per declared property for a product's own type (rule:type-tables, rule:goals-and-tasks). The header and
+    every row are separate blocks that share one column template (`typeGrid`), so they line up without a <table>.
   part-of: module:app-documents
 - id: component:document-reader
   file: packages/web/src/components/DocumentReader.tsx
@@ -97,6 +109,39 @@ React components (`component:` cards). `side` says whether it renders on the ser
     editor puts the block's inline content in the slot; an embed (component:embed-block) puts a text area there.
     One code path, so the two renderings cannot drift (decision:wf2.embed-renders-source-card).
   part-of: module:app-documents
+```
+
+## Tables
+
+A data table in a narrow editor — a small screen, or the context column open — must stay readable: the columns keep
+their minimum widths and the block scrolls sideways instead of squeezing the name column to a few characters
+(component:data-table).
+
+```yaml
+- id: req:wf2.editor.table-scroll
+  title: A data table scrolls sideways when the editor is narrower than its columns
+  when: >
+    a document shows a data table (goals, tasks or a type's) and the editor is narrower than the sum of the table's
+    column widths — a small screen, or the context column open beside the document
+  then: >
+    the name column keeps a readable minimum width, every other column its minimum, and the table block scrolls
+    horizontally as one — header and rows together, the rest of the document unchanged
+  unless: the editor is wide enough — the table fills its width as today, no scrollbar
+  status: shipped
+  refines: [req:wf2.ui.node-page]
+  satisfied-by: [rule:table-scroll]
+  verified-by: [ui-test:table-scroll]
+  part-of: module:app-documents
+- id: rule:table-scroll
+  statement: >
+    The editor block that holds a data table (the collection block with its child rows) is the horizontal scroll
+    container: `overflow-x: auto`. The header and every row have `min-width: min-content`, so a row is never
+    narrower than its column minima — the name column's minimum is 200px, status 100px, the property columns as
+    typeGrid says — and all rows stay one width whether the block scrolls or not.
+  source: packages/web/src/app/globals.css#.nrow; packages/web/src/components/DocEditor.tsx#typeGrid
+  status: shipped
+  related-to: [rule:type-tables, rule:goals-and-tasks]
+  verified-by: [ui-test:table-scroll]
 ```
 
 ## Cards
