@@ -11,6 +11,11 @@ import { AttachStrip, useImageAttachments } from './Attachments';
 import { SmartTag } from './SmartTag';
 
 // The live conversation with an agent: every event of the transcript, streamed over SSE, plus a message box.
+// The nearest scrolling ancestor — the column's body (rule:column-frame) — or the page when there is none.
+function scrollParent(el: HTMLElement): HTMLElement {
+  for (let p = el.parentElement; p; p = p.parentElement) if (/(auto|scroll)/.test(getComputedStyle(p).overflowY)) return p;
+  return document.scrollingElement as HTMLElement;
+}
 const k = (n: number) => n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M` : n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n);
 export function Console({ session, onStatus, onKnowledge }: { session: Session; onStatus: (s: string) => void; onKnowledge?: (ids: string[]) => void }) {
   const { product } = usePeek();
@@ -43,7 +48,18 @@ export function Console({ session, onStatus, onKnowledge }: { session: Session; 
     es.onerror = () => { /* the browser reconnects */ };
     return () => es.close();
   }, [product, id, onStatus, onKnowledge, router]);
-  useEffect(() => { if (stick.current) bottom.current?.scrollIntoView({ block: 'end' }); }, [events]);
+  // the conversation has no scroll of its own: "at the end" is read from the scroller it lives in, and a new event
+  // scrolls that to the end when the person was there (req:wf2.ui.column-frame)
+  const scroller = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const sc = bottom.current ? scrollParent(bottom.current) : null; if (!sc) return;
+    scroller.current = sc;
+    const target: EventTarget = sc === document.scrollingElement ? window : sc;
+    const onScroll = () => { stick.current = sc.scrollHeight - sc.scrollTop - sc.clientHeight < 40; };
+    target.addEventListener('scroll', onScroll, { passive: true });
+    return () => target.removeEventListener('scroll', onScroll);
+  }, []);
+  useEffect(() => { const sc = scroller.current; if (!stick.current) return; if (sc) sc.scrollTop = sc.scrollHeight; else bottom.current?.scrollIntoView({ block: 'end' }); }, [flow]);
   // images from the clipboard (or dropped files) ride along with the message (useImageAttachments)
   const send = async () => {
     const t = text.trim(); if (!t && !images.length) return;
@@ -75,7 +91,7 @@ export function Console({ session, onStatus, onKnowledge }: { session: Session; 
           <QueueList items={queue.items} control={control} />
         </div>
       )}
-      <div className="console-log" onScroll={e => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40; }}>
+      <div className="console-log">
         {foldActivity(groupSubagents(flow)).map((g, i) => g.parent
           ? <Subagent key={'s' + i} events={g.events} task={events.find(e => e.kind === 'tool_use' && e.toolUseId === g.parent)} finished={events.some(e => e.kind === 'tool_result' && e.toolUseId === g.parent)} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />
           : g.activity
@@ -104,7 +120,9 @@ function Event({ e, answered, answers, showThinking, answer }: { e: ChatEvent; a
   const [open, setOpen] = useState(false);
   const time = <time dateTime={e.t} title={e.t}>{e.t.slice(11, 19)}</time>; // hidden until the row is hovered
   switch (e.kind) {
-    case 'user': return <div className="ev ev-user">{time}<div className="ev-body"><TranscriptMarkdown>{e.text ?? ''}</TranscriptMarkdown>{e.images && e.images.length > 0 && <div className="ev-images">{e.images.map(u => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="attachment" /></a>)}</div>}</div></div>;
+    case 'user': return <div className="ev ev-user">{time}<div className="ev-body"><TranscriptMarkdown>{e.text ?? ''}</TranscriptMarkdown>{e.images && e.images.length > 0 && <div className="ev-images">{e.images.map(u => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="attachment" /></a>)}</div>}
+      {/* the first message's Waterfall wrapper is the agent's, not the person's words: folded (req:wf2.console.first-message-is-the-request) */}
+      {e.prompt && e.prompt !== e.text && <details className="ev-prompt"><summary>what the agent received</summary><TranscriptMarkdown>{e.prompt}</TranscriptMarkdown></details>}</div></div>;
     case 'assistant': return <div className="ev ev-assistant">{time}<div className="ev-body"><TranscriptMarkdown>{e.text ?? ''}</TranscriptMarkdown></div></div>;
     case 'thinking': return showThinking ? <div className="ev ev-thinking">{time}<div className="ev-body">{e.text}</div></div> : null;
     case 'tool_use': {

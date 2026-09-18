@@ -14,3 +14,11 @@ export function dedupeUserEvents(tail: ChatEvent[], batch: ChatEvent[]): ChatEve
   }
   return out;
 }
+
+// The `user` event for a conversation's first message (req:wf2.console.first-message-is-the-request): `text` is
+// what the person asked — the instruction, or the batch text — and `prompt` the whole message the agent received
+// when the Waterfall wrapper (product line, Context, plan-first, How to work) adds to it. Equal texts carry no prompt.
+export function firstUserEvent(prompt: string, shown: string, images: string[] = []): Omit<ChatEvent, 't'> {
+  const text = shown.trim() || prompt;
+  return text === prompt ? { kind: 'user', text, images } : { kind: 'user', text, prompt, images };
+}

@@ -48,7 +48,9 @@ React components (`component:` cards). `side` says whether it renders on the ser
     only while it is hovered (`.ev time`, globals.css). A `knowledge` event renders as a row of tags and is
     reported up (onKnowledge) so the session header's knowledge strip grows live. The queue panel (component:queue-list)
     shows every item with its state while something is working or waiting; the message box has a "clear context
-    first" tick (plan-first under it) that rides on the queued item (req:wf2.sessions.fresh-in-queue).
+    first" tick (plan-first under it) that rides on the queued item (req:wf2.sessions.fresh-in-queue). The first
+    user row shows the request as the person wrote it; the Waterfall wrapper the agent received is behind a
+    collapsed "what the agent received" fold (req:wf2.console.first-message-is-the-request).
   part-of: module:app-agents
 - id: component:ask-questions
   file: packages/web/src/components/AskQuestions.tsx
@@ -1000,3 +1002,68 @@ Work, in order:
 - [ ] task:session-page-retire `/<product>/sessions/<id>` redirects to the plan document (else to `/changes`); remove component:session-page, lib:session-page and op:api.sessions.page with their tests; keep the changes page; decision:wf2.session-page-derived → superseded, req:wf2.sessions.page → superseded. Part of decision:wf2.plan-is-a-document.
 - [ ] task:plan-doc-ui-test Run ui-test:plan-doc in Chrome (playwright-core) against a live palette request; record the result. Part of req:wf2.sessions.plan-doc.
 - [ ] task:plan-doc-knowledge After shipping: statuses to shipped, module:app-agents' purpose and rule:plan-first mention the plan document, this session's own plan moved to `plan-…` as the first instance. Part of decision:wf2.plan-is-a-document.
+
+## Plan: the console shows the request, not the agent's first-message wrapper (session c2bbac979d)
+
+What is there today: lib:agent-host `buildPrompt` builds the agent's first message — a product line, "## Instruction"
+with the request and its image paths, "## Context" with the refs resolved, the plan-first protocol (rule:plan-first)
+when the request came from the palette, and "## How to work" — and `startProcess` emits that whole text as the
+`user` event, so component:console shows the person a page of protocol above their own words (the same on a fresh
+restart, agent-host#restartFresh). The wrapper is for the agent; the person wrote only the request.
+
+```yaml
+- id: req:wf2.console.first-message-is-the-request
+  when: a conversation's first message goes to the agent (a new session, or a fresh restart with a queued item)
+  then: >
+    the console's user row shows what the person asked — the instruction text (a batch joined the way the queue
+    joins it) and its images — and not the product line, Context, plan-first protocol or How-to-work sections;
+    the full text the agent received stays on the event and opens from a small "what the agent received" fold
+    under the row, collapsed by default
+  unless: the transcript was recorded before this shipped — those rows keep the text they have
+  status: shipped
+  satisfied-by: [lib:agent-host, component:console, lib:session-types, lib:transcript]
+  verified-by: [test:web-lib#transcript, ui-test:first-message-fold]
+  part-of: module:app-agents
+- id: decision:wf2.first-message-shown-as-request
+  title: The user row shows the instruction; the full prompt rides on the event behind a fold
+  context: >
+    The first message an agent gets is the request wrapped in the Waterfall preamble (product line, Context,
+    plan-first, How to work). The console shows the event's text, so the person sees the preamble as if they had
+    typed it. Where to cut: in the host when the event is emitted, in the console by recognising the wrapper's
+    headings, or by moving the wrapper out of the message into the system prompt.
+  choice: >
+    lib:agent-host emits the `user` event with `text` = the instruction (what the person or the batch said) and a
+    new `prompt` field = the full message sent; component:console renders `text` as today and, when `prompt`
+    differs, a collapsed `<details>` "what the agent received" with the prompt. The message to the agent does not
+    change; Codex and Claude paths and agent-host#restartFresh do the same. Old transcripts are untouched.
+  alternatives: >
+    Strip in the console by heading markers — fragile when the wrapper's wording changes and wrong for old rows;
+    move the wrapper into the system prompt — the plan-first section is per request (its plan document) and Codex
+    has no system-prompt flag, so the message would still carry it; hide the wrapper entirely — the person
+    could no longer see what the agent was told when a session goes wrong.
+  consequences: >
+    ChatEvent gains `prompt?: string`; lib:transcript's dedupe still compares `text`; component:console's user row
+    gets a fold; a `shown` text accompanies `firstMessage` in agent-host#startChat.
+  status: proposed
+  date: 2026-09-18
+  affects: [lib:agent-host, component:console, lib:session-types, req:wf2.console.first-message-is-the-request]
+  related-to: [rule:plan-first, decision:wf2.plan-first-is-a-prompt]
+  session: c2bbac979d
+- id: ui-test:first-message-fold
+  title: The console's first user row is the request; the wrapper opens from a fold
+  steps: >
+    1. Start a chat session from the API (or the palette) with a one-line instruction. 2. Open it from the Agents
+    list: the first user row shows only the instruction; under it a collapsed "what the agent received".
+    3. Open the fold: the full first message (product line, Instruction, How to work) is there.
+  covers: [req:wf2.console.first-message-is-the-request]
+  status: passed
+  result: >
+    run with playwright-core (Chrome, headless) on 2026-09-18 against probe session 90e580f3bb: the row's visible
+    text was the instruction alone, the fold was present and closed, its summary "what the agent received"; opened,
+    it held the preamble and the How-to-work section. The transcript event carried text = instruction and a
+    999-character prompt.
+```
+
+- [x] task:first-message-shown lib:agent-host: `startProcess` emits the first `user` event with `text` = the instruction (`s.instruction`, or the joined batch text for a fresh restart, passed as `shown` next to `firstMessage`) and `prompt` = the full message; both the Claude and the Codex path; `ChatEvent.prompt` added in lib:session-types; lib:transcript `firstUserEvent` (tested). Part of req:wf2.console.first-message-is-the-request and plan:plan-text-which-sent-agent-beginning-no. (session: c2bbac979d)
+- [x] task:first-message-fold component:console: a user row whose `prompt` differs from `text` renders a collapsed "what the agent received" fold with the prompt below the text; styles in globals.css. Verified in the browser (ui-test:first-message-fold). Part of req:wf2.console.first-message-is-the-request and plan:plan-text-which-sent-agent-beginning-no. (session: c2bbac979d)
+- [x] task:first-message-knowledge After shipping: req:wf2.console.first-message-is-the-request shipped, component:console's purpose mentions the fold. Part of decision:wf2.first-message-shown-as-request and plan:plan-text-which-sent-agent-beginning-no. (session: c2bbac979d)
