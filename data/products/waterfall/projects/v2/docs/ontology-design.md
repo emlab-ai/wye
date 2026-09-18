@@ -188,14 +188,42 @@ The graph already says it (req:ontology.blocks): a document is a node, every blo
     plan:plan-still-bad-now-need-click-tag. Nested list items are the only child form the parser has today
     (req:ontology.blocks); a comment type does not exist yet (type:comment would extend type:node with `on: ref node
     -(inverse)-> comments` and `by`).
-  status: open
+  status: resolved
   related-to: [goal:ontology.graph-editor, req:ontology.blocks, type:block]
+- id: decision:ontology.uniform-content
+  title: Every node has the same `content` field — a list of child blocks — and everything else related is a ref
+  context: >
+    question:ontology.child-nodes asked how a child node (a comment on a block) is written. The person's answer
+    (session 367dedec3c, 2026-09-18): the page's content consists of blocks; each block has the same content
+    field, so child blocks are added the same way at every level; anything related that is not a child is a ref.
+  choice: >
+    One shape for every node, whatever its type: `content` — an ordered list of blocks the node has (inverse
+    `parent`), declared once on type:node and inherited by document, block, req, rule, comment and every product
+    type — and refs (single `ref` or `list of` properties) for every other relation. A document is a node whose
+    content is its top-level blocks; a block is a node whose content is the blocks nested under it; a comment is a
+    block of type comment in its parent's content. In the markdown, content is what sits under the node: the
+    document's body for a document, the indented blocks under a paragraph, list item or card for a block (the
+    nesting the parser already reads for list items); refs are the existing edge properties and inline tags.
+  alternatives: >
+    A `comment:` card anywhere with `on: <id>` (a ref, not a child — the comment would not live under what it
+    comments on); a sidecar store for comments (invisible to the markdown, against the one-store rule); a
+    different child form per type.
+  consequences: >
+    type:node gains `content: list of block -(inverse)-> parent`; the document → heading → block `has` tree of
+    req:ontology.blocks becomes the `content` tree (has stays as its alias until the parser and UI moved over);
+    the editor lets any block nest child blocks (a comment, a question, a decision, an instance of any type);
+    the context column shows a node's content as children; task:ontology.child-nodes-design starts from this.
+  date: 2026-09-18
+  status: proposed
+  resolves: question:ontology.child-nodes
+  affects: [goal:ontology.graph-editor, type:block, req:ontology.blocks, task:ontology.child-nodes-design, task:ontology.children-in-column]
+  session: 367dedec3c
 ```
 
 - [x] task:ontology.block-select A click anywhere on a typed block — card, row, embed, text included — selects it and the context column shows the node (req:wf2.ui.block-select, rule:block-select). Part of goal:ontology.graph-editor; done by plan:plan-still-bad-now-need-click-tag. (session: 367dedec3c)
 - [ ] task:ontology.paragraph-select A click in a plain paragraph selects its block node: the Context root shows block:<doc>.<hash> — its heading, its links, what it has — instead of only the knowledge nearest to its text. Part of goal:ontology.graph-editor; depends on task:ontology.block-peek and task:ontology.block-select.
-- [ ] task:ontology.child-nodes-design Decide the markdown form of a child node (question:ontology.child-nodes), declare type:comment in the base ontology (a ref to the node it is on with inverse comments, an author, a date) and make the parser attach it to its parent with has. Part of goal:ontology.graph-editor; depends on question:ontology.child-nodes.
-- [ ] task:ontology.children-in-column The context column shows what a node `has` — its child nodes: comments, nested items, the blocks under a heading — as a Children group of expandable cards (rule:connected-cards), and "+ comment" writes a child under the block. Part of goal:ontology.graph-editor; depends on task:ontology.child-nodes-design.
+- [ ] task:ontology.child-nodes-design The uniform content model (decision:ontology.uniform-content): `content: list of block` with inverse `parent` on type:node, the parser reads the blocks nested under any block as its content (list items already, paragraphs and cards next), type:comment declared as a block type with an author and a date, and a comment written as a nested block under what it comments on. Part of goal:ontology.graph-editor; depends on decision:ontology.uniform-content.
+- [ ] task:ontology.children-in-column The context column shows a node's `content` — its child blocks: comments, nested items, the blocks under a heading — as a Content group of expandable cards (rule:connected-cards), and "+ block" / "+ comment" writes a child under the node; the editor nests a child block under any block. Part of goal:ontology.graph-editor; depends on task:ontology.child-nodes-design.
 
 ### Where types live and how the parser finds them
 
