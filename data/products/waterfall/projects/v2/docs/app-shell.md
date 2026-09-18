@@ -87,7 +87,7 @@ React components (`component:` cards). `side` says whether it renders on the ser
   file: packages/web/src/components/DocTree.tsx
   side: client
   purpose: >
-    Docmost-style document tree: chevron for documents with children, a dot for leaves, an emoji icon, the title. Rows can be dragged: onto a row nests the document under it, between rows reorders; a hover \"+\" adds a child.
+    Docmost-style document tree: chevron for documents with children, a dot for leaves, an emoji icon, the title. Rows can be dragged: onto a row nests the document under it, between rows reorders, a zone under the tree makes it top level; a hover \"+\" adds a child. The row is a module-level component so a drag survives the tree's re-render (rule:doc-tree-row-stable).
   part-of: module:app-shell
 - id: component:search
   file: packages/web/src/components/Search.tsx

@@ -1234,6 +1234,15 @@ The column's frame: what stays put and what scrolls.
     another project moves the file into that project's docs folder. A document cannot be moved under itself.
   source: packages/web/src/components/DocTree.tsx; packages/web/src/app/api/[product]/docs/move/route.ts; packages/web/src/lib/doc.ts#documentTree
   status: shipped
+- id: rule:doc-tree-row-stable
+  statement: >
+    The document tree's row is a module-level component (Row) that takes the tree's shared state as one prop; it
+    is never a component defined inside DocTree's render. A nested component takes a new identity on every state
+    change, so setDrag on dragstart remounted every row, and Chrome ends a native HTML5 drag the moment its source
+    node leaves the document — the tree's drag and drop did nothing (bug:doc-tree-dnd). The same holds for any
+    draggable row in the app.
+  source: packages/web/src/components/DocTree.tsx:10; packages/web/src/components/DocTree.tsx:47
+  status: shipped
 - id: rule:block-links
   statement: >
     Every block has a stable link: `<web>/<product>/<project>/d/<doc>#<anchor>` where the anchor is `n-<id>` for a

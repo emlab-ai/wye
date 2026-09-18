@@ -317,6 +317,19 @@ One node per test file. Requirements and rules point here with `requires-tests: 
   status: passed
   verifies: [req:wf2.editor.table-scroll, rule:table-scroll]
   last-run: 2026-09-18
+- id: ui-test:doc-tree-dnd
+  file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    a scratch product with three top-level documents alpha, beta, gamma; drive a native HTML5 drag with the mouse
+    (mousedown on a row, a few moves, mouseup on the target): while dragging, the source row is .dragging, the
+    target lights up drop-into and the top-level drop zone appears; gamma dropped onto alpha nests under it
+    (indented, part-of), beta dropped on alpha's top quarter reorders before it (order: 10/20/30), gamma dropped on
+    the zone under the tree is top level again; no error notice. Before the fix the dragged row was unmounted on
+    dragstart (isConnected false) and the drag never reached a target (2026-09-18, session 9091132439:
+    /tmp/wfpw/dnd.mjs, 7 checks passed in Chrome; /tmp/wfpw/dnd-remount.mjs is the one-check hypothesis test)
+  status: passed
+  verifies: [rule:documents-tree, rule:doc-tree-row-stable]
+  last-run: 2026-09-18
 - id: ui-test:column-frame
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >
