@@ -2,8 +2,7 @@
 import Link from 'next/link';
 import { AskQuestions, type AskInput } from './AskQuestions';
 import { useEffect, useRef, useState, useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { TranscriptMarkdown } from './TranscriptMarkdown';
 import { usePeek } from './PeekProvider';
 import { useRouter } from 'next/navigation';
 import { queueSummary, type ChatEvent, type QueueView, type Session } from '@/lib/session-types';
@@ -105,8 +104,8 @@ function Event({ e, answered, answers, showThinking, answer }: { e: ChatEvent; a
   const [open, setOpen] = useState(false);
   const time = <time dateTime={e.t} title={e.t}>{e.t.slice(11, 19)}</time>; // hidden until the row is hovered
   switch (e.kind) {
-    case 'user': return <div className="ev ev-user">{time}<div className="ev-body"><ReactMarkdown remarkPlugins={[remarkGfm]}>{e.text ?? ''}</ReactMarkdown>{e.images && e.images.length > 0 && <div className="ev-images">{e.images.map(u => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="attachment" /></a>)}</div>}</div></div>;
-    case 'assistant': return <div className="ev ev-assistant">{time}<div className="ev-body"><ReactMarkdown remarkPlugins={[remarkGfm]}>{e.text ?? ''}</ReactMarkdown></div></div>;
+    case 'user': return <div className="ev ev-user">{time}<div className="ev-body"><TranscriptMarkdown>{e.text ?? ''}</TranscriptMarkdown>{e.images && e.images.length > 0 && <div className="ev-images">{e.images.map(u => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="attachment" /></a>)}</div>}</div></div>;
+    case 'assistant': return <div className="ev ev-assistant">{time}<div className="ev-body"><TranscriptMarkdown>{e.text ?? ''}</TranscriptMarkdown></div></div>;
     case 'thinking': return showThinking ? <div className="ev ev-thinking">{time}<div className="ev-body">{e.text}</div></div> : null;
     case 'tool_use': {
       const input = e.input as Record<string, unknown> | undefined;
@@ -132,7 +131,7 @@ function Event({ e, answered, answers, showThinking, answer }: { e: ChatEvent; a
       return <div className="ev ev-note ev-know">{time}<span className="muted"><i>knowledge</i></span><span className="tags">{(e.refs ?? []).map(r => <span key={r} className={ch.has(r) ? `ch-${ch.get(r)}` : ''}><SmartTag id={r} /></span>)}{prose > 0 && <small className="muted">{prose} paragraph{prose === 1 ? '' : 's'}</small>}</span></div>;
     }
     case 'open': return <div className="ev ev-note ev-log">{time}<span className="muted"><i>opened</i> <Link href={e.text ?? '#'}>{e.text}</Link></span></div>;
-    case 'summary': return <div className="ev ev-summary">{time}<div className="ev-body"><span className="ev-summary-tag">session summary</span><ReactMarkdown remarkPlugins={[remarkGfm]}>{e.text ?? ''}</ReactMarkdown></div></div>;
+    case 'summary': return <div className="ev ev-summary">{time}<div className="ev-body"><span className="ev-summary-tag">session summary</span><TranscriptMarkdown>{e.text ?? ''}</TranscriptMarkdown></div></div>;
     case 'stderr': return <div className="ev ev-stderr">{time}<pre className="ev-pre">{e.text}</pre></div>;
     case 'exit': return <div className="ev ev-note">{time}<span className="muted">{e.text}</span></div>;
     default: return null;

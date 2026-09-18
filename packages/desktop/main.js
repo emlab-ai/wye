@@ -35,6 +35,8 @@ function createWindow() {
   win = new BrowserWindow({ width: 1500, height: 960, minWidth: 900, minHeight: 600, title: 'Waterfall', backgroundColor: '#141614', webPreferences: { contextIsolation: true, nodeIntegration: false } });
   win.loadURL(URL_);
   win.webContents.setWindowOpenHandler(({ url }) => { if (url.startsWith(URL_)) return { action: 'allow' }; shell.openExternal(url); return { action: 'deny' }; });
+  // a click on a foreign link (a transcript, a document) opens the system browser; the window stays on the app (rule:app-link)
+  win.webContents.on('will-navigate', (ev, url) => { if (url.startsWith(URL_)) return; ev.preventDefault(); shell.openExternal(url); });
   win.on('closed', () => { win = null; });
 }
 

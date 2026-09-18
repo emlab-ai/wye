@@ -1,8 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { TranscriptMarkdown, keepBreaks } from './TranscriptMarkdown';
+import { docTitles, plainAppLinks } from '@/lib/app-link';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import { StatusPill } from './Pills';
@@ -18,7 +18,8 @@ export type SessionPageInitial = SessionPageData & { session: Session };
 // session opened), the todo list with the check state the graph has now, the blocks it touched by kind with their
 // status now, the result. Refetches op:api.sessions.page on every graph or session change while the session is live.
 export function SessionPage({ product, id, initial }: { product: string; id: string; initial: SessionPageInitial }) {
-  const { open } = usePeek();
+  const { open, index } = usePeek();
+  const [origin, setOrigin] = useState(''); useEffect(() => { setOrigin(window.location.origin); }, []);
   const [d, setD] = useState<SessionPageInitial>(initial);
   const s = d.session;
   const live = s.live || s.busy || s.status === 'running' || s.status === 'queued';
@@ -34,7 +35,8 @@ export function SessionPage({ product, id, initial }: { product: string; id: str
     fetch(`/api/${product}/sessions/${id}/page`).then(r => r.ok ? r.json() : null).then(j => { if (on && j) setD(j); });
     return () => { on = false; };
   }, [product, id, version]);
-  const title = s.instruction.split('\n').find(l => l.trim())?.trim() || '(no instruction)';
+  // the first line of the instruction, app URLs shown as their targets (rule:app-link)
+  const title = plainAppLinks(s.instruction.split('\n').find(l => l.trim())?.trim() || '(no instruction)', origin, docTitles(index));
   const counts = [d.counts.added && `+${d.counts.added}`, d.counts.changed && `~${d.counts.changed}`, d.counts.removed && `−${d.counts.removed}`, d.prose && `${d.prose}¶`].filter(Boolean).join(' ');
   const queue = queueView(s.queue, s.batch).items;
   return (
@@ -56,7 +58,7 @@ export function SessionPage({ product, id, initial }: { product: string; id: str
       <section className="spage-sec">
         <h2>Task</h2>
         {/* a line break in what the person typed stays a line break */}
-        <div className="spage-instruction"><ReactMarkdown remarkPlugins={[remarkGfm]}>{s.instruction.replace(/([^\n])\n(?!\n)/g, '$1  \n')}</ReactMarkdown></div>
+        <div className="spage-instruction"><TranscriptMarkdown>{keepBreaks(s.instruction)}</TranscriptMarkdown></div>
         {(s.refs.length > 0 || s.source?.doc) && <p className="tags spage-refs">{s.source?.doc && <small className="muted">from {s.source.project ? `${s.source.project} / ` : ''}{s.source.doc}</small>}{s.refs.map(r => <SmartTag key={r} id={r} />)}</p>}
         {queue.length > 0 && <div className="spage-queue"><h5 className="muted">follow-up messages · {queueSummary(s.queue ?? [])}</h5><QueueList items={queue} control={body => fetch(`/api/${product}/sessions/${id}/control`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })} compact /></div>}
       </section>
@@ -83,7 +85,7 @@ export function SessionPage({ product, id, initial }: { product: string; id: str
         {d.prose > 0 && <p className="muted small">{d.prose} paragraph{d.prose === 1 ? '' : 's'} added or changed — <Link href={`/${product}/sessions/${id}/changes`}>per document</Link></p>}
       </section>
 
-      {s.result && <section className="spage-sec"><h2>Result</h2><div className="spage-result"><ReactMarkdown remarkPlugins={[remarkGfm]}>{s.result}</ReactMarkdown></div></section>}
+      {s.result && <section className="spage-sec"><h2>Result</h2><div className="spage-result"><TranscriptMarkdown>{s.result}</TranscriptMarkdown></div></section>}
     </div>
   );
 }

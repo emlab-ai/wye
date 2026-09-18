@@ -7,6 +7,7 @@ import { agentLabel, when } from './SessionView';
 import { requestSend } from './CommandBox';
 import { queueSummary, queueView, type Session, type Runner } from '@/lib/session-types';
 import { QueueList } from './QueueList';
+import { docTitles, plainAppLinks } from '@/lib/app-link';
 
 // The Agents page: every conversation and run of a product. A conversation whose claude/codex process is up counts as
 // active whatever its recorded status (working while a turn is open, live when idle) — the process is the agent
@@ -21,7 +22,9 @@ export const shownStatus = (s: Session) => s.busy ? 'working' : s.live ? 'live' 
 // live, no open turn, nothing waiting: what "Stop idle" ends
 export const isIdle = (s: Session) => !!s.live && !s.busy && !(s.queue ?? []).some(q => !q.sentAt);
 export function SessionList({ product, initial, initialRunners }: { product: string; initial: Session[]; initialRunners: Runner[] }) {
-  const { open, openId } = usePeek();
+  const { open, openId, index } = usePeek();
+  const [origin, setOrigin] = useState(''); useEffect(() => { setOrigin(window.location.origin); }, []);
+  const titles = docTitles(index);
   const [sessions, setSessions] = useState(initial);
   const [runners, setRunners] = useState(initialRunners);
   const [filter, setFilter] = useState<'active' | 'all'>('active');
@@ -60,7 +63,7 @@ export function SessionList({ product, initial, initialRunners }: { product: str
           <li key={s.id} className={`session-row ${openId === `session:${s.id}` ? 'on' : ''}`} onClick={() => open(`session:${s.id}`)}>
             <span className={`pill s ${shownStatus(s)}`} title={s.live ? `process up · recorded status: ${s.status}` : s.status}>{shownStatus(s)}</span>
             <div className="session-row-main">
-              <div className="session-row-title">{s.instruction.split('\n').find(l => l.trim()) ?? '(no instruction)'}</div>
+              <div className="session-row-title">{plainAppLinks(s.instruction.split('\n').find(l => l.trim()) ?? '(no instruction)', origin, titles)}</div>
               <div className="session-row-sub"><span>{agentLabel(s.agent)}{s.mode === 'chat' ? ' · chat' : ''}</span>{s.cwd && <><span>·</span><span>{s.cwd.replace(/^\/Users\/[^/]+/, '~')}</span></>}<span>·</span><span>{when(s.createdAt)}</span>{s.source?.doc && <><span>·</span><span>{s.source.project ? `${s.source.project} / ` : ''}{s.source.doc}</span></>}{s.refs.length > 0 && <span className="tags">{s.refs.slice(0, 4).map(r => <SmartTag key={r} id={r} />)}{s.refs.length > 4 && <span className="muted">+{s.refs.length - 4}</span>}</span>}</div>
               {(s.queue?.length ?? 0) > 0 && <div className="session-row-queue"><span className="muted">queue · {queueSummary(s.queue!)}</span><QueueList items={queueView(s.queue, s.batch).items} control={body => control(s.id, body)} compact /></div>}
             </div>

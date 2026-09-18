@@ -6,6 +6,7 @@ import { SmartTag } from './SmartTag';
 import type { Session } from '@/lib/session-types';
 import { AGENTS } from '@/lib/session-types';
 import { Console } from './Console';
+import { TranscriptMarkdown, keepBreaks } from './TranscriptMarkdown';
 import { shownStatus } from './SessionList';
 import { SessionChanges } from './SessionChanges';
 
@@ -68,12 +69,13 @@ export function SessionView({ id }: { id: string }) {
       {s.refs.length > 0 && <div className="tags session-refs">{s.refs.map(r => <SmartTag key={r} id={r} />)}</div>}
       {knowledge.length > 0 && <div className="tags session-know" title="documents and nodes this session changed"><small className="muted">knowledge</small>{knowledge.map(r => <SmartTag key={r} id={r} />)}{(blocks.length > 0 || known.length > 0) && <a className="know-open muted small" href={`/${product}/sessions/${id}/changes`} title="every block this session changed, as a page">{bcLine || 'changes'} ↗</a>}</div>}
       {(blocks.length > 0 || known.length > 0) && <details className="session-changes-fold"><summary>changes {bcLine && <span className="muted">{bcLine}</span>}</summary><SessionChanges product={product} id={id} live={active || s.mode === 'chat'} /></details>}
-      {s.mode === 'chat' ? <details className="session-instr-fold"><summary className="muted">instruction</summary><pre className="session-instruction">{s.instruction}</pre></details> : <pre className="session-instruction">{s.instruction}</pre>}
+      {/* the instruction as markdown with the person's line breaks kept; app links and ids as their targets (rule:app-link) */}
+      {s.mode === 'chat' ? <details className="session-instr-fold"><summary className="muted">instruction</summary><div className="session-instruction"><TranscriptMarkdown>{keepBreaks(s.instruction)}</TranscriptMarkdown></div></details> : <div className="session-instruction"><TranscriptMarkdown>{keepBreaks(s.instruction)}</TranscriptMarkdown></div>}
       {s.source?.doc && <p className="muted session-src">from {s.source.project ? `${s.source.project} / ` : ''}{s.source.doc}</p>}
       {s.mode === 'chat' && <Console session={s} onStatus={st => setS(x => x ? { ...x, status: st as Session['status'] } : x)} onKnowledge={onKnowledge} />}
       {s.mode !== 'chat' && <><h5>Log {active && <span className="live-dot" title="following" />}</h5>
       <pre className="session-log">{s.log.map((l, i) => <span key={i}><time>{new Date(l.t).toLocaleTimeString()}</time> {l.line}{'\n'}</span>)}{s.status === 'queued' && <span className="muted">waiting for an agent runner to pick this up…{'\n'}</span>}</pre></>}
-      {s.result && s.mode !== 'chat' && <><h5>Result</h5><pre className="session-result">{s.result}</pre></>}
+      {s.result && s.mode !== 'chat' && <><h5>Result</h5><div className="session-result"><TranscriptMarkdown>{s.result}</TranscriptMarkdown></div></>}
     </div>
   );
 }

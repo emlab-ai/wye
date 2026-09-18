@@ -43,6 +43,7 @@ React components (`component:` cards). `side` says whether it renders on the ser
   side: client
   purpose: >
     The live conversation with an agent: every event of the transcript, streamed over SSE, plus a message box.
+    User, assistant and summary rows render through component:transcript-markdown (rule:app-link).
     Rows are full width, without a time column (task:new-954): an event's time appears at the row's right edge
     only while it is hovered (`.ev time`, globals.css). A `knowledge` event renders as a row of tags and is
     reported up (onKnowledge) so the session header's knowledge strip grows live. The queue panel (component:queue-list)
@@ -560,7 +561,8 @@ current graph, like the changes page — and the top bar gets back / forward.
   file: packages/web/src/components/SessionPage.tsx
   side: client
   purpose: >
-    The body of page:web/session: head (agent, status, when, "open conversation"), the task, "plan on" links
+    The body of page:web/session: head (agent, status, when, "open conversation"), the task (through
+    component:transcript-markdown; the title with plain app-link labels), "plan on" links
     (every `open` event of the transcript → document#node), the todo list (task lines with a live check state,
     "n of m done"), the blocks by kind (badge + tag + status pill, a row opens the node in the context column,
     paragraphs folded), the result. Refetches op:api.sessions.page on graph and session changes while live.
@@ -677,3 +679,324 @@ Work, in order:
 - [x] task:session-page page:web/session at `/<product>/sessions/<id>` (server-rendered from the record and the graph) with component:session-page; op:api.sessions.page for the live refetch; entry points — ↗ "page" on the session head in component:session-view, a "page" hover action on component:session-list rows, the console's "opened …" line as a client-side link. Part of req:wf2.sessions.page; follows decision:wf2.session-page-derived. (session: efee530d46)
 - [x] task:history-nav ‹ › in component:top-bar before the crumbs (history.back / forward, disabled when there is nowhere to go), ⌘[ / ⌘] shortcuts; `wf session open` and the console's "opened" line stay client-side so the right column keeps its stack. Part of req:wf2.ui.history-nav. (session: efee530d46)
 - [x] task:session-page-ui-test ui-test:session-page — a session with a task line added and a req proposed: the page lists the task unchecked, the req as proposed; setting the task done and the req shipped through the API updates the page; ‹ in the top bar returns to the previous page with the session still in the right column. Part of req:wf2.sessions.page. (session: efee530d46)
+
+## Plan: a Waterfall link in a transcript is shown as what it points at (session 64813dfdab)
+
+What is there today: the first message of every conversation (lib:agent-host buildPrompt) and the session page
+carry the app's own URLs — `http://localhost:3456` in the opening line, `http://localhost:3456/waterfall/v2/d/todo#n-task%3Anew-226`
+under Context — and component:console and component:session-page render them with react-markdown as plain `<a>`
+links: the raw URL as the text, a full page load on click. Inside the desktop app (decision:wf2.desktop-electron)
+a raw `localhost` address is noise, and a click on any other link would navigate the window away from the app.
+Ids in the transcript (`task:new-226`) are plain text too, while every document renders them as tags.
+
+The plan: one markdown renderer for transcripts. A link whose target is this app (same origin as the page, or
+localhost / 127.0.0.1 on the app's port — the agent's `WF_URL` is whatever host the request came in on, and the
+desktop always loads localhost) is shown as what it points at and opens in place: a node link as the document's
+title and the node's tag (`todo › task:new-226`, the tag opens the peek like any tag), a document link as the
+document's title, a session link as `session <id>`, the root as `Waterfall`. Any other link opens outside the app
+in the desktop (a new tab in the browser). Ids in the text become tags (lib:remark-tags, as in documents). The
+rule holds in the browser and in the desktop alike: the label is derived from the URL's path, the app's origin is
+read from the page, so nothing is hard-wired to localhost.
+
+```yaml
+- id: req:wf2.transcript.app-links
+  title: A Waterfall link in a transcript is shown as what it points at
+  when: >
+    a user, assistant, summary or instruction text in a conversation or on a session page contains a link whose
+    target is this app (same origin as the page, or localhost / 127.0.0.1 on the app's port)
+  then: >
+    the link is rendered as its target — a document as the document's title, a node as `<document> › <tag>` with
+    the tag opening the peek panel, a session as `session <id>`, the app root as `Waterfall` — with the full URL as
+    the tooltip, and a click navigates inside the app (client-side, the right column kept, no page load); the
+    same text's kind:slug ids are tags
+  unless: >
+    the link points elsewhere — it stays a normal link that opens outside the app (a new tab in the browser, the
+    system browser in the desktop); a document the graph does not know is shown by its slug
+  status: shipped
+  refines: req:wf2.sessions.page
+  satisfied-by: [component:transcript-markdown, lib:app-link, rule:app-link]
+  verified-by: [test:web-lib#app-link, ui-test:app-links]
+  part-of: module:app-agents
+- id: rule:app-link
+  title: app-link
+  statement: >
+    `appLink(href, origin)` (lib/app-link.ts) decides whether a URL is this app's and what it points at; it is pure:
+    the origin comes from the page (window.location.origin) and localhost / 127.0.0.1 on the same port count as
+    the app as well. Every transcript renderer (component:console, component:session-page) goes through
+    component:transcript-markdown, which maps `a` to that decision and adds lib:remark-tags; no transcript renders
+    its own `<a>`. The desktop's `will-navigate` handler opens every URL outside the app's origin externally, so
+    an in-app click is the only way to leave a page. The plain-text form (`plainAppLinks`) labels the same URLs
+    where no tag can render: the session page's title and the Agents rows.
+  source: packages/web/src/lib/app-link.ts:1
+  status: shipped
+  related-to: [rule:session-page, decision:wf2.desktop-electron]
+- id: decision:wf2.transcript-app-links
+  title: A transcript shows a Waterfall URL as its target, derived from the path, never from a hard-wired host
+  context: >
+    The desktop app loads http://localhost:3456; the web app can be opened on any host that reaches the server.
+    The agent's first message carries the app's URLs (they are what `wf resolve` takes), so they must stay in the
+    text the agent gets, but a person reading the transcript should see the todo page and the task, not the
+    address of their own machine.
+  choice: >
+    Keep the URLs in the prompt as they are; change only the rendering. lib:app-link parses an app URL's path
+    (`/<product>/<project>/d/<doc>#n-<id>`, `/<product>/sessions/<id>`, `/`) into a label and an in-app path,
+    with the origin taken from the page at render time; component:transcript-markdown renders the label as a link
+    (client-side navigation) and the node part as a tag. The desktop shell blocks navigation away from its origin
+    and opens such URLs in the system browser.
+  alternatives: >
+    Rewrite the prompt to omit URLs — the agent needs them for `wf resolve` and the session link; a special
+    `waterfall://` scheme in the desktop — two forms of the same link, and the web would still show localhost;
+    rendering only in the desktop — the web has the same raw URLs.
+  consequences: >
+    component:transcript-markdown, lib:app-link, rule:app-link; component:console and component:session-page
+    render through it; packages/desktop/main.js gains a `will-navigate` handler; ui-test:app-links.
+  date: 2026-09-18
+  status: proposed
+  affects: [component:console, component:session-page, lib:agent-host, decision:wf2.desktop-electron]
+  related-to: [req:wf2.transcript.app-links, rule:app-link]
+- id: component:transcript-markdown
+  file: packages/web/src/components/TranscriptMarkdown.tsx
+  side: client
+  purpose: >
+    The one markdown renderer for conversation and session text: react-markdown with GFM and lib:remark-tags,
+    `a` mapped through lib:app-link — an app link becomes its target's label with client-side navigation (a node
+    link: the document's title and the node's tag), any other link opens outside the app. The page's origin is read
+    after mount (the server render shows plain links, so hydration matches). `keepBreaks` keeps a person's single
+    line breaks. Used by component:console (user, assistant, summary rows), component:session-page (task, result)
+    and component:session-view (instruction, result).
+  part-of: module:app-agents
+- id: lib:app-link
+  file: packages/web/src/lib/app-link.ts
+  side: shared
+  purpose: >
+    Pure: `appLink(href, origin)` → null for a foreign URL, else `{ path, hash, kind: 'root' | 'doc' | 'node' |
+    'session' | 'page', product, project, doc, node, session }`; `appLinkLabel(link, titles)` → the label from the
+    document title (or slug) and the node id; `docTitles(index)` → titles by document slug from the client's node
+    index (a document's node may be a card elsewhere, so by id, not by file); `plainAppLinks(text, origin, titles)`
+    → the same labels as text. localhost / 127.0.0.1 on the origin's port count as the origin. Tested (app-link.test).
+  part-of: module:app-agents
+- id: ui-test:app-links
+  title: A transcript's app links are labels, foreign links leave the app
+  steps: >
+    1. Open a conversation whose first message has the Context link to a todo task: the Context shows
+    `TODO › task:…` with the tag; the opening line shows `Waterfall`. 2. Click the document part: the todo page
+    opens in the main column, the conversation stays in the right column. 3. Click the tag: the peek shows the
+    task. 4. A message with https://example.com renders as a normal link with target _blank. 5. The session page
+    shows the same labels in Instruction and Result.
+  covers: [req:wf2.transcript.app-links]
+  status: passed
+  result: >
+    run by hand with playwright-core (Chrome, headless) on 2026-09-18 against a probe session whose transcript held
+    buildPrompt-shaped text: the opening line showed `Waterfall`, Context showed `TODO › task:new-226` (href
+    /waterfall/v2/d/todo, the URL as title), a session link `session <id>`, a document link its title (`Agents and
+    sessions` for app-agents, whose node is a card in app.md); https://example.com/x stayed a link with target
+    _blank; the document click moved the main column to the todo page with the conversation still in the right
+    column; the tag click peeked the task; the session page's task and result and the Agents rows showed the same
+    labels, no raw localhost anywhere. Desktop (CDP on the relaunched shell): a click on a foreign link left the
+    window on http://localhost:3456/waterfall.
+```
+
+Work, in order:
+
+- [x] task:app-link-lib lib:app-link (pure, vitest): parse an app URL against the page origin (localhost / 127.0.0.1 on the same port count), label it from the document title or slug and the node id; refuse foreign URLs. Part of req:wf2.transcript.app-links and rule:app-link. (session: 64813dfdab)
+- [x] task:transcript-markdown component:transcript-markdown: react-markdown + GFM + lib:remark-tags with `a` mapped through lib:app-link (Next Link for in-app paths, the node as SmartTag, the URL as title; foreign links target _blank); component:console (user, assistant, summary rows), component:session-page (instruction, result) and component:session-view (instruction, result) render through it; the session page's title and the Agents rows use the plain-text labels. Part of req:wf2.transcript.app-links. (session: 64813dfdab)
+- [x] task:desktop-external-links packages/desktop/main.js: `will-navigate` keeps the window on the app's origin and opens any other URL with shell.openExternal. Part of rule:app-link. (session: 64813dfdab)
+- [x] task:app-links-ui-test Run ui-test:app-links in Chrome (playwright-core) against a live conversation; record the result. Part of req:wf2.transcript.app-links. (session: 64813dfdab)
+- [x] task:app-links-knowledge After shipping: statuses to shipped, component:console and component:session-page purposes mention component:transcript-markdown. Part of decision:wf2.transcript-app-links. (session: 64813dfdab)
+
+## Plan: a plan document per request — `plan-<slug>` under the documents (session 672f4fdf3d)
+
+What is there today: a request from the command palette makes the agent write its plan as blocks on the subject's
+page (decision:wf2.plan-is-a-page), and the session gets a page of its own at `/<product>/sessions/<id>`
+(page:web/session) computed from the session record and the graph (decision:wf2.session-page-derived). The person
+liked what that page shows — the task, the todo items with their state now, the blocks, the result — but not how it
+is made: it is a view outside the documents, not a page they can edit, comment on, or find in the document tree
+later; the plan itself is spread over the subject's page as a section among others.
+
+The plan: every request from the palette gets a **plan document** — `plan-<slug>`, a sub-page in the documents
+section — created by the app the moment the session starts, filled by the agent and the person while they plan,
+and finished by the app with the result when the session is done. It is what the session's "page ↗" opens; the
+derived session page is retired. The document holds three things the person asked for: the **tasks** (`- [ ] task:`
+lines the agent proposes, ticked as the graph ticks them), the **context** (the request, the node and document it
+came from, the refs, and what the agent found — as tags and embeds), and later the **result** (the session's
+summary and the blocks it changed). Requirements, decisions and rules the agent proposes are still defined where
+the entity lives and *embedded* on the plan page (`![[req:x]]`, rule:embed-line) — one source, no drift, which is
+what decision:wf2.plan-is-a-page rejected a plan document for.
+
+The document type is type:plan (ontology, proposed). A plan document:
+
+```markdown
+---
+node: plan:session-plan-page
+type: plan
+title: page link on the session as a plan document
+status: proposed          # proposed → building (after Proceed) → done | cancelled
+session: 672f4fdf3d
+agent: claude-code
+part-of: module:app-agents
+---
+# page link on the session as a plan document
+
+## Request
+<the instruction, verbatim, markdown>  · from: module:app-agents › (node under the cursor) · refs: …
+
+## Context
+<the agent's tags and embeds: modules, documents, nodes, code paths it found>
+
+## Plan
+<prose; questions as question: blocks; decisions as decision: blocks; embeds of the blocks defined elsewhere>
+
+## Tasks
+- [ ] task:… … part of plan:session-plan-page
+
+## Result
+<empty until the session is done; then the summary and the changes>
+```
+
+```yaml
+- id: req:wf2.sessions.plan-doc
+  title: A request from the palette becomes a plan document in the documents section
+  when: >
+    a person sends a request from the command palette with "plan first" on (or `plan: true` on a fresh
+    queue item)
+  then: >
+    the app creates `plan-<slug>` in the project the request came from — a sub-page of the document the request
+    was made on (else of the project's plan document) — with the type:plan card in its frontmatter (`session`,
+    `agent`, `status: proposed`), the request verbatim under "Request" with the source document, node and refs
+    as tags, and empty "Context", "Plan", "Tasks" and "Result" sections; the session record keeps `planDoc:
+    <product/project/slug>`; the agent's first message names the document as the page to plan on; the agent
+    fills Context (what it found, as tags and embeds), Plan (prose, `question:` and `decision:` blocks, embeds of
+    the `req:`/`rule:` blocks it defined on the entities' pages) and Tasks (`- [ ] task:` lines, `part of
+    plan:<slug>`) and opens the page (`wf session open`); the person edits, comments and answers there; the
+    "page ↗" of the session head, the Agents rows and the console's "opened …" line open this document; the
+    document tree shows it under its parent
+  unless: "plan first" is off — no document; the session runs as before
+  status: proposed
+  refines: req:wf2.ui.command-palette
+  satisfied-by: [type:plan, lib:plan-doc, rule:plan-doc]
+  verified-by: [ui-test:plan-doc]
+- id: req:wf2.sessions.plan-result
+  title: The plan document ends with the result
+  when: a session with a plan document is set done, failed or cancelled (`wf session done <id> "<result>"`, Cancel)
+  then: >
+    the app writes the result under "Result" — the summary as markdown, then the blocks the session added,
+    changed or removed (artifacts.blocks) as a list with the change badge and a tag per block, paragraphs as a
+    count with a link to the changes page — and sets the card's `status` (done / cancelled) and `finished`;
+    the tasks under "Tasks" keep the check state the graph has (the agent ticks them with `wf node set`)
+  unless: the session has no plan document — nothing is written; or the Result section was edited by hand — the
+    app appends below what is there
+  status: proposed
+  refines: req:wf2.sessions.plan-doc
+  satisfied-by: [lib:plan-doc, rule:plan-doc]
+  verified-by: [ui-test:plan-doc]
+- id: rule:plan-doc
+  statement: >
+    The plan document is written, not derived: lib:plan-doc makes the slug (`plan-` + the first words of the
+    request slugified, `-2`, `-3` on a collision in the project), the body from templates/docs/plan-request.md
+    (frontmatter `node: plan:<slug>`, `type: plan`, `session`, `agent`, `status`, `part-of: module:<parent>`;
+    Request / Context / Plan / Tasks / Result), and the Result section from the session's summary and
+    artifacts.blocks. createSession (and a fresh queue item with `plan: true`) creates it before the agent starts
+    and stores `planDoc` on the session; the PATCH that ends the session appends the result; the app's own
+    writes carry x-wf-session so they are not credited as the agent's changes. The PLAN_FIRST section of the
+    first message names the plan document and says where each kind of block goes: tasks, questions and
+    decisions on the plan page; requirements, rules, components and pages on the entity's page, embedded on the
+    plan page. `/<product>/sessions/<id>` redirects to the plan document when the session has one, else to
+    `/changes`.
+  source: packages/web/src/lib/plan-doc.ts; packages/web/src/lib/sessions.ts#createSession; packages/web/src/app/api/[product]/sessions/[id]/route.ts; packages/web/src/lib/agent-host.ts#PLAN_FIRST; templates/docs/plan-request.md
+  status: proposed
+  verified-by: [test:web-lib#plan-doc, ui-test:plan-doc]
+  related-to: [rule:plan-first, rule:embed-line, rule:block-attribution]
+- id: lib:plan-doc
+  file: packages/web/src/lib/plan-doc.ts
+  side: server
+  purpose: >
+    Pure: `planSlug(request, taken)`, `planDocBody(session, parent, date)` from the template, `resultSection(session)`
+    (summary + blocks list), `withResult(markdown, section)` (replace or append under "## Result"). Tested by
+    test:web-lib#plan-doc.
+  part-of: module:app-agents
+- id: ui-test:plan-doc
+  title: A palette request makes a plan document; the result lands on it
+  steps: >
+    1. ⌘P on a document, type a request with "plan first" on, Enter: the document tree shows `plan-…` under
+    that document; the page shows the request under Request with the document as a tag; the session head's
+    "page ↗" opens it. 2. The agent (or a probe through the API) adds a task line under Tasks and an embed of
+    a req it defined on the entity's page: the page shows the task unchecked and the req card. 3. Set the task
+    done through the API: the check ticks on the page. 4. `wf session done <id> "shipped x"`: Result shows
+    "shipped x" and the changed blocks; the card's status is done. 5. `/waterfall/sessions/<id>` redirects
+    to the plan document.
+  covers: [req:wf2.sessions.plan-doc, req:wf2.sessions.plan-result]
+  status: planned
+- id: decision:wf2.plan-is-a-document
+  title: A plan is a document of its own — plan-<slug> under the page it was asked on — not a derived session page
+  context: >
+    decision:wf2.plan-is-a-page put the plan on the subject's page and decision:wf2.session-page-derived added a
+    computed session page to see it as one thing. The person wants the one thing to be a page in the documents:
+    created for the request, editable, in the tree, with the tasks, the context and later the result.
+  choice: >
+    A plan document per palette request, created by the app at session start from a template (type:plan), a
+    sub-page of the document the request was made on. Tasks, questions and decisions of the plan live on it;
+    requirements, rules and components are defined on the entity's page and embedded on the plan page so there
+    is one source. The app appends the result when the session ends. The derived session page is retired; its
+    route redirects to the plan document.
+  alternatives: >
+    Keep the derived page and add a "save as document" — two shapes of the same thing; keep the plan on the
+    subject's page only — the person cannot find or scope one request later; a plan document with copies of
+    every block — the drift decision:wf2.plan-is-a-page rejected, avoided here by embeds.
+  consequences: >
+    supersedes decision:wf2.session-page-derived; refines decision:wf2.plan-is-a-page (the plan is still a page
+    the two work on — now its own); req:wf2.sessions.plan-doc, req:wf2.sessions.plan-result, rule:plan-doc,
+    lib:plan-doc, type:plan; page:web/session, component:session-page, lib:session-page and
+    op:api.sessions.page are removed; rule:plan-first's steps 2–3 change; sessions without a plan document keep
+    the changes page only.
+  status: proposed
+  date: 2026-09-18
+  related-to: [decision:wf2.plan-is-a-page, decision:wf2.session-page-derived, rule:plan-first, rule:embed-line]
+  session: 672f4fdf3d
+- id: question:wf2.plan-doc-parent
+  q: >
+    Which document is the plan's parent? Proposed: the document the request was made on (the palette's
+    Context), else the project's plan document (module:wf2-plan). Alternative: always under one "Plans" page
+    per project, so every request is in one list.
+  context: >
+    The parent is where the person finds the plan later in the tree; with "the document it was asked on" the
+    plans of a module sit under that module, with a "Plans" page they sit in one chronological list.
+  status: open
+  related-to: [req:wf2.sessions.plan-doc]
+- id: question:wf2.plan-doc-slug
+  q: >
+    What is the `xxx` in `plan-xxx`? Proposed: the first words of the request, slugified (`plan-page-link-on-the-
+    session`), with `-2` on a collision. Alternative: the session id (`plan-672f4f`) — unique and short but says
+    nothing.
+  context: the slug is the URL and the node id (`plan:<slug>`); it should read as the request when it shows in a tag
+  status: open
+  related-to: [req:wf2.sessions.plan-doc, rule:plan-doc]
+- id: question:wf2.plan-doc-knowledge
+  q: >
+    Do requirements, rules and components an agent proposes stay on the entity's page (embedded on the plan) as
+    proposed here, or should everything the plan proposes be defined on the plan page and only referenced from
+    the entity's page?
+  context: >
+    Defining on the entity's page keeps a module's knowledge in one document (what decision:wf2.plan-is-a-page
+    wanted); defining on the plan page makes the plan self-contained but scatters a module's requirements over
+    many plan pages.
+  status: open
+  related-to: [decision:wf2.plan-is-a-document, rule:embed-line]
+- id: question:wf2.plan-doc-status-building
+  q: >
+    Should the card's status move from proposed to building when the person answers Proceed (the host sees the
+    answer to the "Plan" question), or is proposed → done enough for the first version?
+  context: the status tells, in the tree and on the card, whether a plan is still being discussed, is being built, or is finished
+  status: open
+  related-to: [req:wf2.sessions.plan-doc]
+```
+
+Work, in order:
+
+- [ ] task:plan-doc-lib lib:plan-doc (pure, vitest): `planSlug` (first words of the request, slugified, `-2` on collision), `planDocBody` from templates/docs/plan-request.md (frontmatter with the type:plan card, Request with the source document, node and refs as tags, empty Context / Plan / Tasks / Result), `resultSection` (summary + blocks list from artifacts.blocks), `withResult`. Part of req:wf2.sessions.plan-doc and rule:plan-doc.
+- [ ] task:plan-doc-create createSession and a fresh queue item with `plan: true` create the plan document in the request's project under the source document (else the project's plan document), store `planDoc` on the session, log "plan document <path>"; the write carries x-wf-session so it is not attributed to the agent. Part of req:wf2.sessions.plan-doc.
+- [ ] task:plan-first-prompt PLAN_FIRST names the plan document (path and node) and says where blocks go: tasks (`part of plan:<slug>`), questions and decisions on the plan page; req/rule/component/page on the entity's page, embedded on the plan page with `![[id]]`; the type/card step stays for a new entity. Part of rule:plan-first and rule:plan-doc.
+- [ ] task:plan-doc-result the PATCH that sets a session done / failed / cancelled writes the Result section (summary, blocks, paragraphs count → changes page) and the card's `status` and `finished`. Part of req:wf2.sessions.plan-result.
+- [ ] task:plan-doc-links "page ↗" on the session head (component:session-view), the Agents rows (component:session-list) and the console's "opened …" line open the plan document; sessions without one show no "page" link (the changes link stays). Part of req:wf2.sessions.plan-doc.
+- [ ] task:session-page-retire `/<product>/sessions/<id>` redirects to the plan document (else to `/changes`); remove component:session-page, lib:session-page and op:api.sessions.page with their tests; keep the changes page; decision:wf2.session-page-derived → superseded, req:wf2.sessions.page → superseded. Part of decision:wf2.plan-is-a-document.
+- [ ] task:plan-doc-ui-test Run ui-test:plan-doc in Chrome (playwright-core) against a live palette request; record the result. Part of req:wf2.sessions.plan-doc.
+- [ ] task:plan-doc-knowledge After shipping: statuses to shipped, module:app-agents' purpose and rule:plan-first mention the plan document, this session's own plan moved to `plan-…` as the first instance. Part of decision:wf2.plan-is-a-document.
