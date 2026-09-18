@@ -8,14 +8,14 @@ import { loadScope } from './scope';
 import { docRoute, projectTree } from './doc';
 import { rebuild, writeAtomic } from './write';
 import { onSessionEnd, setPlanDoc } from './sessions';
-import { fromLine, getFrontmatter, planDocBody, planSlug, planStatusOnEnd, planTitle, resultSection, setFrontmatter, withResult, type PlanEndStatus } from './plan-doc';
+import { fromLine, getFrontmatter, planDocBody, planSlug, plansPageId, planStatusOnEnd, planTitle, resultSection, setFrontmatter, withResult, type PlanEndStatus } from './plan-doc';
+export { plansPageId };
 import type { Session } from './session-types';
 
 const TEMPLATE = path.join(REPO_ROOT, 'templates/docs/plan-request.md');
 
-// The Plans page of a project: `plans.md`, node module:<project>-plans, under the project's main document when it
-// has one. Every plan document is a sub-page of it. Written when missing; returns its node id.
-export const plansPageId = (projectSlug: string) => `module:${projectSlug}-plans`;
+// The Plans page of a project: `plans.md`, node module:<project>-plans (plansPageId, lib/plan-doc), under the
+// project's main document when it has one. Every plan document is a sub-page of it. Written when missing; returns its node id.
 export async function ensurePlansPage(project: Project, root: string | null): Promise<string> {
   const id = plansPageId(project.slug);
   const file = path.join(project.docsDir, 'plans.md');

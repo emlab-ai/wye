@@ -5,11 +5,13 @@ import { useState } from 'react';
 import { DocTree, type TreeItem } from './DocTree';
 import { Search } from './Search';
 import { NewDoc } from './NewDoc';
+import { PlanFolder, type PlanItem } from './PlanFolder';
 
 export type RailProject = { slug: string; title: string; icon: string; kind: string; status: string; main: string; roots: TreeItem[]; docs: { slug: string; title: string }[] };
 
-// The left rail: product switcher, menu (Overview, Search, Knowledge, Graph, Inbox), then projects with their pages.
-export function Rail({ products, product, projects, headings }: { products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; headings: { doc: string; slug: string; text: string }[] }) {
+// The left rail: product switcher, menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inbox, Agents,
+// then the Plans system folder — component:plan-folder), then every project's documents as one tree.
+export function Rail({ products, product, projects, plans, headings }: { products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; plans: PlanItem[]; headings: { doc: string; slug: string; text: string }[] }) {
   const path = usePathname(); const router = useRouter();
   const [showSearch, setShowSearch] = useState(false);
   const [newIn, setNewIn] = useState<string | null>(null); // '' = top level, slug = under that document
@@ -39,6 +41,7 @@ export function Rail({ products, product, projects, headings }: { products: { sl
         {item(`${base}/questions`, 'Questions', '?')}
         {item(`${base}/inbox`, 'Inbox', '⇩')}
         {item(`${base}/sessions`, 'Agents', '⚡')}
+        <PlanFolder product={product.slug} plans={plans} />
       </ul>
       {showSearch && <div className="rail-search"><Search product={product.slug} projects={projects.map(p => ({ slug: p.slug, docs: p.docs }))} headings={headings} /></div>}
       <div className="rail-pages-head"><span>Documents</span><button onClick={() => setNewIn(newIn === '' ? null : '')} title="New document">+</button></div>

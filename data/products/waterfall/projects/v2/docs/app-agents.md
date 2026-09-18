@@ -872,7 +872,8 @@ part-of: module:app-agents
     document; the agent fills Context (what it found, as tags and embeds), Plan (prose, `question:` and `decision:`
     blocks, embeds of the `req:`/`rule:` blocks it defined on the entities' pages) and Tasks (`- [ ] task:` lines,
     `part of plan:<slug>`, ticked as it goes — what is in progress) and opens the page (`wf session open`); the
-    person edits, comments and answers there; the document tree shows it under Plans; the page header shows the
+    person edits, comments and answers there; the rail's Plans folder shows it (req:wf2.ui.plans-folder — not the
+  Documents tree); the page header shows the
     session as a link that opens the conversation; a handed-off session continues the same plan (its id is added
     to `session`)
   unless: >
@@ -937,7 +938,8 @@ part-of: module:app-agents
     Pure: `planSlug(request, taken)`, `planTitle`, `planDocBody(template, vars)`, `resultSection(session, window)`
     (summary + the blocks inside the plan's window), `withResult(markdown, section)` (the app owns what is under
     "## Result"), `planStatusOnEnd`, `getFrontmatter` / `setFrontmatter`, `plansOf(product, graph, sessionId)`
-    (a worker's plans with task counts), `planDocPath`. Tested by test:web-lib#plan-doc (12 tests). The IO —
+    (a worker's plans with task counts), `planDocPath`, `plansPageId(project)` (module:<project>-plans — the Plans page
+    the rail treats as a system folder, rule:plans-folder). Tested by test:web-lib#plan-doc (12 tests). The IO —
     Plans page, create, finish, close, adopt — is lib/plan-docs.ts.
   part-of: module:app-agents
 - id: component:plan-list

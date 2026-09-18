@@ -397,6 +397,21 @@ One node per test file. Requirements and rules point here with `requires-tests: 
   status: passed
   verifies: [req:wf2.ui.tree-menu, rule:tree-menu]
   last-run: 2026-09-18
+- id: ui-test:plans-folder
+  file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    on the waterfall product: the rail's menu ends with Plans after Agents; the folder rows are exactly the
+    `plan-*.md` files of the project newest first (`started` descending), the first is the newest request; the
+    Documents tree has neither the Plans page nor any plan; every row carries its status class and a
+    "status · date" tooltip; a row opens its plan document and is marked while no tree row is; the entry opens
+    /waterfall/plans — marked, titled Plans, the table has one row per plan and a status chip; the caret collapses
+    the folder (aria-expanded false), a reload keeps it collapsed, the caret expands it. On a scratch product whose
+    Plans page sits under its main document with no plan: the tree shows Main > Other only, the folder says
+    "no plans yet", /pftest/plans says "No plans yet" (2026-09-18, session 48c8885cd2: /tmp/wfpw/plans-folder.mjs,
+    16 checks passed in Chrome at 1400×900; the scratch product is removed afterwards)
+  status: passed
+  verifies: [req:wf2.ui.plans-folder, rule:plans-folder]
+  last-run: 2026-09-18
 - id: ui-test:column-frame
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >

@@ -14,15 +14,27 @@ import { loadMarkdown } from '@/lib/load';
 import { outline, splitDocument, docRoute, type DocNode } from '@/lib/doc';
 import { REPO_ROOT } from '@/lib/products';
 import type { TreeItem } from '@/components/DocTree';
+import type { PlanItem } from '@/components/PlanFolder';
+import { plansPageId } from '@/lib/plan-doc';
 
 export default async function ProductLayout({ children, params }: { children: ReactNode; params: Promise<{ product: string }> }) {
   const { product } = await params;
   const scope = await loadScope(product); if (!scope) notFound();
   const products = await listProducts();
-  const icons = new Map<string, string>(); const outlines = new Map<string, { level: 2 | 3; text: string; slug: string }[]>();
-  await Promise.all(scope.graph.modules.map(async m => { try { const md = await loadMarkdown(REPO_ROOT, m.file); icons.set(m.file, splitDocument(md).frontmatter.icon ?? ''); outlines.set(m.file, outline(md)); } catch { /* file gone */ } }));
+  const fm = new Map<string, Record<string, string>>(); const outlines = new Map<string, { level: 2 | 3; text: string; slug: string }[]>();
+  await Promise.all(scope.graph.modules.map(async m => { try { const md = await loadMarkdown(REPO_ROOT, m.file); fm.set(m.file, splitDocument(md).frontmatter); outlines.set(m.file, outline(md)); } catch { /* file gone */ } }));
+  const icons = { get: (file: string) => fm.get(file)?.icon ?? '' };
   const toItem = (d: DocNode): TreeItem => ({ slug: d.slug, node: d.module.id, title: d.title, icon: icons.get(d.file) || defaultIcon(d.slug), project: docRoute(d.file)?.project ?? '', children: d.children.map(toItem) });
-  const projects = scope.projects.map(p => { const t = treeFor(scope, p.slug); return { slug: p.slug, title: p.meta.title, icon: p.meta.icon || (p.meta.kind === 'goal' ? '🎯' : '📁'), kind: p.meta.kind, status: p.meta.status, main: t.main?.slug ?? '', roots: t.roots.map(toItem), docs: [...t.byFile.values()].filter(d => d.file.includes(`/projects/${p.slug}/docs/`)).map(d => ({ slug: d.slug, title: d.title })) }; });
+  // the project's Plans page is a system folder (rule:plans-folder): it and its sub-documents leave the Documents
+  // tree, and the plans go to the rail's Plans folder, every project together, newest first
+  const plans: PlanItem[] = [];
+  const withoutPlans = (items: DocNode[], project: string): DocNode[] => items.filter(d => {
+    if (d.module.id !== plansPageId(project)) return true;
+    for (const c of d.children) { const f = fm.get(c.file) ?? {}; plans.push({ slug: c.slug, project, title: c.title, icon: icons.get(c.file) || defaultIcon(c.slug), status: f.status ?? '', started: f.started ?? '' }); }
+    return false;
+  }).map(d => ({ ...d, children: withoutPlans(d.children, project) }));
+  const projects = scope.projects.map(p => { const t = treeFor(scope, p.slug); return { slug: p.slug, title: p.meta.title, icon: p.meta.icon || (p.meta.kind === 'goal' ? '🎯' : '📁'), kind: p.meta.kind, status: p.meta.status, main: t.main?.slug ?? '', roots: withoutPlans(t.roots, p.slug).map(toItem), docs: [...t.byFile.values()].filter(d => d.file.includes(`/projects/${p.slug}/docs/`)).map(d => ({ slug: d.slug, title: d.title })) }; });
+  plans.sort((a, b) => b.started.localeCompare(a.started) || a.title.localeCompare(b.title));
   const headings = scope.graph.modules.flatMap(m => (outlines.get(m.file) ?? []).map(h => ({ doc: m.file, slug: h.slug, text: h.text })));
   // every document with its parent and last edit, for the top bar's breadcrumbs
   const docs: Record<string, DocMeta> = {};
@@ -33,7 +45,7 @@ export default async function ProductLayout({ children, params }: { children: Re
   return (
     <PeekProvider product={scope.product.slug} index={scope.index} kinds={scope.graph.kinds} types={ownTypes}>
       <Shell>
-        <Rail products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} headings={headings} />
+        <Rail products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} plans={plans} headings={headings} />
         <LiveRefresh product={scope.product.slug} />
         <main className="content"><TopBar product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} docs={docs} />{children}</main>
       </Shell>

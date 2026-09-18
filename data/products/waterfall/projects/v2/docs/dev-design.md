@@ -420,11 +420,12 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - action:open-questions:  Questions — open question blocks and inbox questions
     - action:open-inbox:      Inbox — proposed blocks and raw notes awaiting review
     - action:open-sessions:   Agents — every conversation and run, and the runners (the rail and the top bar say "Agents", task:new-917) -(navigates)-> page:web/sessions
+    - action:open-plans:      Plans — the system folder at the end of the menu: the entry opens every plan as a table, the rows beneath open one plan document each, the caret collapses it (req:wf2.ui.plans-folder) -(navigates)-> page:web/plans
     - action:new-document:    + next to Documents creates a document under a parent
     - action:duplicate-document: right-click or ⋯ on a row → Duplicate: a copy next to the document, opened (rule:tree-menu) -(calls)-> op:api.docs.duplicate
     - action:delete-document: right-click or ⋯ on a row → Delete: confirm with the sub-document count, the subtree removed (rule:tree-menu) -(calls)-> op:api.docs.delete
   display-rules:
-    - menu order: Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inbox, Sessions; then the Documents tree (rule:documents-tree); the rail is collapsible (rule:app-navigation)
+    - menu order: Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inbox, Agents, Plans (a folder: the plan documents newest first, the open one marked, collapsed state remembered — rule:plans-folder); then the Documents tree (rule:documents-tree); the rail is collapsible (rule:app-navigation)
     - the rail lists documents, not nodes: root documents → sub-documents; the open document shows its ## outline beneath it
     - counts and lists refresh on graph, inbox and session change events (rule:live-refresh)
 ```
@@ -1302,8 +1303,10 @@ Selecting a block: what a click on any part of a typed block does to the column.
     several). Any row has "+" for a sub-document; the section "+" creates a top-level one. Rows drag: dropping onto
     a row nests the document under it (its `part-of` frontmatter), dropping between rows reorders siblings (`order:`
     frontmatter, renumbered in tens), and a drop zone under the tree makes it top level. Moving under a document of
-    another project moves the file into that project's docs folder. A document cannot be moved under itself.
-  source: packages/web/src/components/DocTree.tsx; packages/web/src/app/api/[product]/docs/move/route.ts; packages/web/src/lib/doc.ts#documentTree
+    another project moves the file into that project's docs folder. A document cannot be moved under itself. One
+    exception: a project's Plans page and the plan documents under it are not in the tree — they are the rail's Plans
+    system folder (rule:plans-folder).
+  source: packages/web/src/components/DocTree.tsx; packages/web/src/app/api/[product]/docs/move/route.ts; packages/web/src/lib/doc.ts#documentTree; packages/web/src/app/[product]/layout.tsx#withoutPlans
   status: shipped
 - id: rule:doc-tree-row-stable
   statement: >
@@ -1325,6 +1328,17 @@ Selecting a block: what a click on any part of a typed block does to the column.
     references and moves a person off a removed page to its parent.
   source: packages/web/src/components/DocTree.tsx#Row; packages/web/src/app/api/[product]/docs/duplicate/route.ts; packages/web/src/app/api/[product]/docs/delete/route.ts; packages/web/src/lib/doc-ops.ts
   status: shipped
+- id: rule:plans-folder
+  statement: >
+    The rail treats a project's Plans page (`module:<project>-plans`, lib/plan-docs#plansPageId) as a system folder:
+    the product layout takes it and its sub-documents out of the Documents tree and hands the plans (every project,
+    sorted by the plan card's `started` descending) to the Plans folder in the rail's menu, whose entry is
+    /<product>/plans. A plan document is found by the tree, not by its type: what sits under the Plans page is a
+    plan. Files stay in the project's docs folder (decision:wf2.plans-system-folder).
+  source: packages/web/src/app/[product]/layout.tsx#withoutPlans; packages/web/src/components/Rail.tsx; packages/web/src/components/PlanFolder.tsx; packages/web/src/app/[product]/plans/page.tsx; packages/web/src/lib/plan-doc.ts#plansPageId
+  status: shipped
+  verified-by: [ui-test:plans-folder]
+  related-to: [rule:documents-tree, rule:plan-doc]
 - id: rule:block-links
   statement: >
     Every block has a stable link: `<web>/<product>/<project>/d/<doc>#<anchor>` where the anchor is `n-<id>` for a

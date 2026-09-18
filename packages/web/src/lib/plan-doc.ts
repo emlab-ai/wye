@@ -5,6 +5,10 @@
 // graph; the IO lives in lib/plan-docs.
 import type { BlockChange, Session, SessionPlan, SessionStatus } from './session-types';
 
+// The Plans page of a project: `plans.md`, node module:<project>-plans — every plan document is a sub-page of it
+// (decision:wf2.plans-folder); the rail shows it as a system folder, not in the Documents tree (rule:plans-folder).
+export const plansPageId = (projectSlug: string) => `module:${projectSlug}-plans`;
+
 const STOP = new Set(['a', 'an', 'the', 'to', 'of', 'in', 'on', 'for', 'and', 'or', 'is', 'it', 'be', 'me', 'my', 'so', 'as', 'at', 'by', 'do', 'we', 'i', 'that', 'this', 'with', 'from', 'into', 'when', 'then', 'not', 'must', 'should', 'please', 'can', 'you']);
 
 // `plan-` + the first telling words of the request (stop words dropped, six at most), `-2`, `-3`… when taken.

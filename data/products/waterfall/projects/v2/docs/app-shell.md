@@ -31,7 +31,7 @@ sources:
 
 ## Requirements and rules
 
-What this module must do is written where it was decided — the PRD and the dev design; this document maps the code onto it. Requirements: req:wf2.ui, req:wf2.ui.sidebar, req:wf2.ui.live, req:wf2.ui.phone, req:wf2.ui.tree-menu (below). Rules the code enforces: rule:app-navigation, rule:documents-tree, rule:doc-tree-row-stable, rule:tree-menu, rule:document-tree, rule:smart-tags, rule:deep-links, rule:doc-links, rule:live-refresh, rule:new-document, rule:product-layout.
+What this module must do is written where it was decided — the PRD and the dev design; this document maps the code onto it. Requirements: req:wf2.ui, req:wf2.ui.sidebar, req:wf2.ui.live, req:wf2.ui.phone, req:wf2.ui.tree-menu, req:wf2.ui.plans-folder (below). Rules the code enforces: rule:app-navigation, rule:documents-tree, rule:doc-tree-row-stable, rule:tree-menu, rule:document-tree, rule:smart-tags, rule:deep-links, rule:doc-links, rule:live-refresh, rule:new-document, rule:product-layout.
 
 ```yaml
 - id: req:wf2.ui.tree-menu
@@ -49,6 +49,23 @@ What this module must do is written where it was decided — the PRD and the dev
   refines: [req:wf2.ui.sidebar]
   satisfied-by: [component:doc-tree, lib:doc-ops, op:api.docs.duplicate, op:api.docs.delete, rule:tree-menu]
   verified-by: [ui-test:tree-menu, test:doc-ops]
+- id: req:wf2.ui.plans-folder
+  title: Plans is a system folder at the top of the rail, not a page in the Documents tree
+  when: >
+    a product has plan documents (type:plan — one per request that starts work, req:wf2.sessions.plan-doc)
+  then: >
+    the rail's menu (Overview … Agents) ends with a "Plans" folder: the entry opens the product's Plans page
+    (page:web/plans — every plan of every project as a table with status, tasks done, session, started); beneath it
+    the plan documents themselves, newest first, each a row with its icon and title that opens the plan page (the
+    open one marked), a plan still `proposed` before a done one only by date; the folder collapses and expands with
+    a caret and the choice is remembered per browser. The project's Plans page (`plans.md`) and the plans under it
+    are not shown in the Documents tree; on disk nothing moves — a plan is still `plan-<slug>.md` in the project's
+    docs folder, `part-of` the project's Plans page
+  unless: the product has no plan yet — the folder shows "no plans yet" beneath the entry
+  refines: [req:wf2.ui.sidebar, req:wf2.sessions.plan-doc]
+  satisfied-by: [component:rail, component:plan-folder, page:web/plans, rule:plans-folder]
+  verified-by: [ui-test:plans-folder]
+  status: shipped
 ``` Pages: page:web/sidebar, page:web/context-column, page:web/overview, page:web/project, page:web/new-product.
 
 ## Pages
@@ -74,6 +91,13 @@ Screens this module adds (the others are described in the dev design and linked 
   purpose: >
     Create a product (title, description, icon) — writes data/products/<slug>/_product.md.
   part-of: module:app-shell
+- id: page:web/plans
+  route: /<product>/plans
+  component: app/[product]/plans/page.tsx
+  purpose: >
+    Every plan of the product (type:plan, all projects) as the filterable instance table — status, tasks, session,
+    started, finished; a row opens the plan document. The page the rail's Plans folder opens (req:wf2.ui.plans-folder).
+  part-of: module:app-shell
 ```
 
 ## Components
@@ -91,7 +115,17 @@ React components (`component:` cards). `side` says whether it renders on the ser
   file: packages/web/src/components/Rail.tsx
   side: client
   purpose: >
-    The left rail: product switcher, menu (Overview, Search, Knowledge, Graph, Inbox), then projects with their pages.
+    The left rail: product switcher, menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inbox, Agents) ending
+    with the Plans system folder (component:plan-folder — the plan documents the product layout took out of the tree,
+    rule:plans-folder), then every project's documents as one tree (component:doc-tree).
+  part-of: module:app-shell
+- id: component:plan-folder
+  file: packages/web/src/components/PlanFolder.tsx
+  side: client
+  purpose: >
+    The rail's Plans system folder (req:wf2.ui.plans-folder): the entry to page:web/plans with a caret, and under it
+    the product's plan documents newest first as rows (icon, title, the open one marked); collapsed state remembered
+    in localStorage (`wf-plans-open`). No drag, no menu — plans are made by requests, not by hand.
   part-of: module:app-shell
 - id: component:top-bar
   file: packages/web/src/components/TopBar.tsx

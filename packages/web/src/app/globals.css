@@ -524,3 +524,13 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .spage-todo { list-style: none; margin: 0; padding: 0; } .spage-task { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 13px; min-width: 0; } .spage-task:hover { background: var(--sunk); } .spage-task.gone { opacity: .6; cursor: default; } .spage-task input { margin: 0 2px 0 0; pointer-events: none; } .spage-task.done .schange-title { text-decoration: line-through; color: var(--muted); } .spage-partof { flex: none; white-space: nowrap; }
 .spage-kind { margin: 0 0 12px; } .spage-kind h5 { margin: 0 0 4px; font-weight: 500; font-size: 13px; } .spage .schange > small { flex: none; }
 .spage-result { font-size: 14px; }
+
+/* the rail's Plans system folder (component:plan-folder): a menu entry with a caret, the plans as rows beneath */
+.plan-folder .pf-head { display: flex; align-items: center; gap: 2px; } .plan-folder .pf-head a { flex: 1; } .plan-folder .pf-head.on a { background: var(--sunk); }
+.rail-menu .pf-caret { flex: none; width: 24px; height: 24px; padding: 0; justify-content: center; color: var(--muted); font-size: 13px; }
+.rail-menu .pf-caret:hover { color: var(--ink); }
+.pf-list { list-style: none; margin: 0; padding: 0 0 2px; }
+.rail-menu .pf-row .pg-link { display: flex; align-items: center; gap: 6px; padding: 4px 8px 4px 36px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 13px; min-width: 0; }
+.rail-menu .pf-row.on .pg-link { background: var(--sunk); font-weight: 600; }
+.pf-row .pg-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-empty { padding: 4px 8px 4px 36px; font-size: 13px; }
