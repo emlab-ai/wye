@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { AskQuestions, type AskInput } from './AskQuestions';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -130,7 +131,7 @@ function Event({ e, answered, answers, showThinking, answer }: { e: ChatEvent; a
       const prose = (e.changes ?? []).filter(c => c.id.startsWith('block:')).length;
       return <div className="ev ev-note ev-know">{time}<span className="muted"><i>knowledge</i></span><span className="tags">{(e.refs ?? []).map(r => <span key={r} className={ch.has(r) ? `ch-${ch.get(r)}` : ''}><SmartTag id={r} /></span>)}{prose > 0 && <small className="muted">{prose} paragraph{prose === 1 ? '' : 's'}</small>}</span></div>;
     }
-    case 'open': return <div className="ev ev-note ev-log">{time}<span className="muted"><i>opened</i> <a href={e.text}>{e.text}</a></span></div>;
+    case 'open': return <div className="ev ev-note ev-log">{time}<span className="muted"><i>opened</i> <Link href={e.text ?? '#'}>{e.text}</Link></span></div>;
     case 'summary': return <div className="ev ev-summary">{time}<div className="ev-body"><span className="ev-summary-tag">session summary</span><ReactMarkdown remarkPlugins={[remarkGfm]}>{e.text ?? ''}</ReactMarkdown></div></div>;
     case 'stderr': return <div className="ev ev-stderr">{time}<pre className="ev-pre">{e.text}</pre></div>;
     case 'exit': return <div className="ev ev-note">{time}<span className="muted">{e.text}</span></div>;

@@ -79,7 +79,9 @@ React components (`component:` cards). `side` says whether it renders on the ser
   file: packages/web/src/components/TopBar.tsx
   side: client
   purpose: >
-    The bar above the content, Notion style: sidebar control, breadcrumbs (product › parents › document), last edit, copy link and send to agent.
+    The bar above the content, Notion style: sidebar control, back / forward (‹ ›, ⌘[ / ⌘] — rule:history-nav,
+    req:wf2.ui.history-nav), breadcrumbs (product › parents › document; Agents › session › changes on session pages),
+    last edit, copy link and send to agent.
   part-of: module:app-shell
 - id: component:doc-tree
   file: packages/web/src/components/DocTree.tsx

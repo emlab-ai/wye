@@ -199,6 +199,7 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     - layout: every node positioned, children right of the focus, tree edges vs cross-links, forest without focus
     - doc: splitDocument (frontmatter, markdown/yaml segments, chunking on id lines), outline, documentTree (roots, main, byFile), linkedDocuments (excludes containment), nodeIndex, docSlug
     - graph-diff: added / changed / removed defined nodes with their document, status change counts, task-link writes ignored, undefined ignored; mergeBlocks (added+changed, added+removed, changed+removed)
+    - session-page: todo rows from blocks ∪ task refs ∪ session: back-links (once each, done from the graph, part-of, change), a gone task kept as gone, blocks by kind in order with status now, opened pages from open events (latest first, once per path), empty session
     - instance-table: columns per property kind, rows with values and document, relations for a bare kind; parseFilters / filtersToQuery; search, status, property and list-cell filters; group by column / status / doc; sort asc / desc; parseViewQuery / viewQuery (quoted values)
     - remark-tags: ids in text and inline code become tag links, trailing punctuation stays text, test #method kept in label, existing links untouched
     - write: replaceSegment (exact span, conflict, bad index), replaceChunk (list re-indent), appendChunk, insertYamlAfterSegment, patchFrontmatter
@@ -294,6 +295,16 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     /sessions/<id>/changes shows the counts in the heading, the change and kind chips narrow the list, a row opens
     the node in the context column; the session in the context column shows +n ~n n¶ ↗ on the knowledge strip
     and the same list in the "changes" fold (2026-09-18, session 53f99bfd98)
+- id: ui-test:session-page
+  file: (run by hand with playwright-core against the dev server — /tmp/wfpw/spage.mjs; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    create a session and take it (running); write a document on disk with one proposed req and one task line, add
+    an `open` event to its transcript — /sessions/<id> shows the instruction as markdown, "plan on" with the document
+    and node, the task unchecked with "0 of 1 done" and its part-of, the req under "req" as proposed; setting the
+    task done and the req shipped through the API (x-wf-session) ticks the task and shows shipped without a reload;
+    from the Agents page a row opens the session in the column, "page ↗" navigates to the page with the column
+    kept, ‹ in the top bar returns to Agents with the column kept, ⌘] and ⌘[ go forward and back (2026-09-18,
+    session efee530d46)
 - id: ui-test:edit-node-flow
   file: packages/web/e2e/edit-node.spec.ts
   scenario: open a project, open a node, edit a prose key and a status, save; assert the file on disk changed, the graph.changed event arrived, and the sidebar dot updated without a reload

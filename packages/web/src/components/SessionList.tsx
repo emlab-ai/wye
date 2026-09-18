@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
@@ -64,6 +65,7 @@ export function SessionList({ product, initial, initialRunners }: { product: str
               {(s.queue?.length ?? 0) > 0 && <div className="session-row-queue"><span className="muted">queue · {queueSummary(s.queue!)}</span><QueueList items={queueView(s.queue, s.batch).items} control={body => control(s.id, body)} compact /></div>}
             </div>
             <span className="session-row-acts" onClick={e => e.stopPropagation()}>
+              <Link className="mini linkish" href={`/${product}/sessions/${s.id}`} title="This session as a page: the task, its todo items, the blocks it touched">page ↗</Link>
               {s.live && <button className="mini" title="End the agent's process; the context comes back with Resume or a message" onClick={() => control(s.id, { action: 'stop' })}>Stop</button>}
               {isActive(s) && <button className="mini" title="End the process, drop the waiting items and mark the conversation cancelled (it stays under All)" onClick={() => control(s.id, { action: 'close' })}>Close</button>}
             </span>

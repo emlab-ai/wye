@@ -31,7 +31,7 @@ sources:
 
 ## Requirements and rules
 
-What this module must do is written where it was decided — the PRD and the dev design; this document maps the code onto it. Requirements: req:wf2.api, req:wf2.api.identity, req:wf2.api.skills, req:wf2.sessions.questions, req:wf2.sessions.quiet-console, req:wf2.sessions.summary-in-flow, req:wf.skills, req:wf.skills.mcp. Rules the code enforces: rule:agent-sessions, rule:agent-host, rule:agent-runner, rule:session-queue, rule:subagents-in-console, rule:agent-questions, rule:console-flow, rule:agent-contract, rule:task-artifacts. Pages: page:web/sessions, page:skill/context-v2, page:agents-snippet.
+What this module must do is written where it was decided — the PRD and the dev design; this document maps the code onto it. Requirements: req:wf2.api, req:wf2.api.identity, req:wf2.api.skills, req:wf2.sessions.questions, req:wf2.sessions.quiet-console, req:wf2.sessions.summary-in-flow, req:wf.skills, req:wf.skills.mcp. Rules the code enforces: rule:agent-sessions, rule:agent-host, rule:agent-runner, rule:session-queue, rule:subagents-in-console, rule:agent-questions, rule:console-flow, rule:agent-contract, rule:task-artifacts. Pages: page:web/sessions, page:web/session, page:web/session-changes, page:skill/context-v2, page:agents-snippet.
 
 ## Components
 
@@ -61,7 +61,7 @@ React components (`component:` cards). `side` says whether it renders on the ser
   purpose: >
     One agent session in the right column: what was sent, its status, and the live log (polled while active). The
     knowledge strip counts the blocks it changed (+added ~changed −removed ¶paragraphs, ↗ the changes page) and a
-    "changes" fold under it holds component:session-changes.
+    "changes" fold under it holds component:session-changes. "page ↗" in the head opens page:web/session.
   part-of: module:app-agents
 - id: component:session-changes
   file: packages/web/src/components/SessionChanges.tsx
@@ -79,7 +79,7 @@ React components (`component:` cards). `side` says whether it renders on the ser
     All agent sessions of a product, active first; polls while any is active. A row opens the session in the right
     column and shows its queue with states (component:queue-list, req:wf2.sessions.queue-on-agents); on hover it
     offers Stop (live rows) and Close (active rows), the header "Stop idle (n)" (req:wf2.sessions.stop-from-list);
-    row actions refetch the list at once and never open the conversation.
+    row actions refetch the list at once and never open the conversation; "page ↗" on hover opens page:web/session.
   part-of: module:app-agents
 - id: component:queue-list
   file: packages/web/src/components/QueueList.tsx
@@ -532,3 +532,148 @@ Work, in order:
 - [x] task:agents-queue-rows component:session-list shows each row's queue: working item, waiting items (with remove and the fresh mark), done items folded, a "n working · n waiting · n done" summary; component:console's queue panel shows the same states. Part of req:wf2.sessions.queue-on-agents. (session: 181e88ad1f)
 - [x] task:agent-stop-from-list Stop (live rows) and Close (active rows) on hover in component:session-list, "Stop idle (n)" in the header; control action `close` = stopChat + drop pending items + status cancelled; row actions do not open the conversation. Part of req:wf2.sessions.stop-from-list. (session: 181e88ad1f)
 - [x] task:agents-queue-ui-test Run ui-test:agents-queue in Chrome (playwright-core) and record the result on the rules. Part of req:wf2.sessions.stop-from-list. (session: 181e88ad1f)
+
+## Plan: a page for each session — the task, its todo items, the blocks it touched (session efee530d46)
+
+What is there today: a session lives in the right column (component:session-view) — the instruction folded away,
+a knowledge strip, a "changes" fold and the console. The plan an agent writes is a section on the subject's page
+(decision:wf2.plan-is-a-page), and once the agent has built it nothing shows the plan as one thing: what was asked,
+which task lines came out of it and where each one stands, which blocks were proposed and which of them shipped.
+`/<product>/sessions/<id>` does not exist — only `/changes` under it. And there is no way back: after `wf session
+open` (or a click on the console's "opened …" line, a plain anchor that reloads the app and drops the right
+column's stack) the only way to return is the browser's own button, and the top bar (component:top-bar) has none.
+
+The plan: the session gets a page of its own at `/<product>/sessions/<id>` — derived from the session record and the
+current graph, like the changes page — and the top bar gets back / forward.
+
+```yaml
+- id: page:web/session
+  route: /<product>/sessions/<id>
+  component: packages/web/src/app/[product]/sessions/[id]/page.tsx; packages/web/src/components/SessionPage.tsx
+  purpose: >
+    A session as a page: the task (instruction, refs, source, the follow-up messages and their states), the page
+    the plan was written on, the todo items that came out of it with their state now, every block it added or
+    changed grouped by kind with its status now, and the result. Live while the session runs. The conversation
+    itself stays in the right column (a button opens it there).
+  part-of: module:app-agents
+- id: component:session-page
+  file: packages/web/src/components/SessionPage.tsx
+  side: client
+  purpose: >
+    The body of page:web/session: head (agent, status, when, "open conversation"), the task, "plan on" links
+    (every `open` event of the transcript → document#node), the todo list (task lines with a live check state,
+    "n of m done"), the blocks by kind (badge + tag + status pill, a row opens the node in the context column,
+    paragraphs folded), the result. Refetches op:api.sessions.page on graph and session changes while live.
+  part-of: module:app-agents
+- id: lib:session-page
+  file: packages/web/src/lib/session-page.ts
+  side: shared
+  purpose: >
+    What the session page shows, derived: the todo rows — tasks the session added or changed (artifacts.blocks),
+    tasks among its refs, tasks whose `session:` names it — joined with the graph (status now, title, part-of);
+    the other blocks grouped by kind, each with its status now; the pages opened (from the transcript's `open`
+    events). Pure; tested by test:web-lib#session-page.
+  part-of: module:app-agents
+- id: op:api.sessions.page
+  args: GET /api/<product>/sessions/<id>/page
+  does: >
+    The session page's data — todo rows, blocks by kind, opened pages, counts — joined with the current graph.
+    Read by component:session-page while the session is live.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/sessions/[id]/page/route.ts
+  part-of: module:app-agents
+- id: req:wf2.sessions.page
+  title: Every session has a page that shows its task, its todo items and the blocks it touched
+  when: >
+    a person opens /<product>/sessions/<id> — from the ↗ on the session's head in the right column, from a row's
+    "page" action on the Agents page, or from the "opened …" line of the console
+  then: >
+    the page shows the agent, the status and when; the instruction in full (markdown) with its refs and source; the
+    follow-up messages of its queue with their states; "plan on" — the document and node every `wf session open`
+    pointed at; the todo list — every task the session added, changed, was sent or is named on (`session:`) — as
+    task lines with the check state the graph has now and "n of m done"; every other block it added, changed or
+    removed, grouped by kind (req, decision, question, rule, page, component, …), each with the change badge and
+    its status now (proposed = still to approve or build, shipped, open, done); paragraphs folded per document; a
+    row opens the node in the context column; the result when the session is done; a button opens the
+    conversation in the right column; the page refreshes while the session runs
+  unless: the session does not exist — 404; or it changed nothing yet — the lists say so
+  status: shipped
+  refines: req:wf2.sessions.knowledge-changes
+  satisfied-by: [page:web/session, component:session-page, lib:session-page, op:api.sessions.page, rule:session-page]
+  verified-by: [ui-test:session-page]
+- id: req:wf2.ui.history-nav
+  title: Back and forward from the top bar
+  when: a person clicks ‹ or › in the top bar, or presses ⌘[ / ⌘] (Ctrl on Windows)
+  then: >
+    the browser goes back or forward in its history; every in-app navigation — links, `wf session open`, the
+    console's "opened …" line, search hits — is client-side, so the right column keeps its stack across it
+  unless: there is nothing to go back or forward to — the button is disabled (the Navigation API when the browser has it, `history.length` otherwise)
+  status: shipped
+  refines: req:wf2.ui
+  satisfied-by: [component:top-bar, rule:history-nav]
+  verified-by: [ui-test:session-page]
+- id: rule:session-page
+  statement: >
+    The session page is computed, never stored: lib:session-page joins the session record with the current graph on
+    every render and on every graph or session change while the session is live. Todo rows are the tasks the session
+    added or changed (artifacts.blocks), the tasks among its refs and the tasks whose `session:` names it — once each,
+    in that order — with `done` read from the graph now; the check box is read-only (the document or the task's card
+    changes it). Every other block is grouped by kind (req, decision, question, rule, goal, page, component, … then
+    alphabetical) with its status now; paragraphs are a count with a link to the changes page; "plan on" is every
+    `open` event of the transcript, latest first, once per path. The transcript and the log are left out of the
+    page's payload.
+  source: packages/web/src/lib/session-page.ts; packages/web/src/app/[product]/sessions/[id]/page.tsx; packages/web/src/app/api/[product]/sessions/[id]/page/route.ts; packages/web/src/components/SessionPage.tsx
+  status: shipped
+  verified-by: [test:web-lib#session-page, ui-test:session-page]
+  related-to: [rule:block-attribution, decision:wf2.session-page-derived]
+- id: rule:history-nav
+  statement: >
+    ‹ › in the top bar call history.back / history.forward; ⌘[ / ⌘] (Ctrl on Windows) do the same. Whether there
+    is anywhere to go comes from the Navigation API (canGoBack / canGoForward, re-read on currententrychange) when
+    the browser has it, else back needs history.length > 1 and forward is always offered. Every in-app navigation
+    is client-side (next/link, router.push) — including `wf session open` and the console's "opened …" line — so
+    the right column's stack survives it.
+  source: packages/web/src/components/TopBar.tsx#useHistoryNav; packages/web/src/components/Console.tsx
+  status: shipped
+  verified-by: [ui-test:session-page]
+  related-to: [component:top-bar, component:peek-provider, op:session.open]
+- id: decision:wf2.session-page-derived
+  title: The session page is derived from the session and the graph, not a plan document
+  context: >
+    A "dedicated page for each plan" could be a document written per session (a plan.md next to the subject's page)
+    or a view computed from what already exists: the session record (instruction, queue, transcript's open events,
+    block attribution, result) and the current graph (status of every block now).
+  choice: >
+    A derived page at /<product>/sessions/<id>. The plan keeps living on the subject's page as typed blocks
+    (decision:wf2.plan-is-a-page); the session page is the lens that shows the task, the todo items and the blocks
+    with their state today. Nothing new is stored: the `open` events already say where the plan was written, the
+    block attribution already says what was added or changed, the graph says where each stands.
+  alternatives: >
+    A plan document per session — a second copy of the blocks that drifts from the subject's page, and one more
+    document in the tree per request (rejected already in decision:wf2.plan-is-a-page); a "plan" tab in the right
+    column only — too narrow for a task list plus blocks by kind, and not linkable.
+  consequences: >
+    page:web/session, component:session-page, lib:session-page, op:api.sessions.page; the session head and the
+    Agents rows link the page; the console's "opened" line navigates client-side.
+  status: proposed
+  date: 2026-09-18
+  related-to: [decision:wf2.plan-is-a-page, decision:wf2.attribution-derived-not-written, req:wf2.sessions.page]
+  session: efee530d46
+- id: question:wf2.session-page-per-item
+  q: >
+    A conversation that received several messages (queue items) has one page. Should the todo items and blocks be
+    sliced per message — by the block's `at` between the item's sentAt and doneAt — so each task in the conversation
+    shows its own plan, or is one list per session enough while conversations are clean-slate by default?
+  context: >
+    rule:clean-slate makes one session ≈ one task, so the first version shows one list per session with the queue
+    items listed under the task. Slicing is possible later from the timestamps already stored.
+  status: open
+  related-to: [req:wf2.sessions.page, rule:clean-slate, decision:wf2.queue-item-state]
+```
+
+Work, in order:
+
+- [x] task:session-page-lib lib:session-page — pure: `sessionPage(s, graph)` → todo rows (tasks from blocks ∪ refs ∪ `session:` back-links, joined with the graph: status now, title, part-of), blocks by kind with status now, opened pages from `open` events, counts; vitest. Part of req:wf2.sessions.page. (session: efee530d46)
+- [x] task:session-page page:web/session at `/<product>/sessions/<id>` (server-rendered from the record and the graph) with component:session-page; op:api.sessions.page for the live refetch; entry points — ↗ "page" on the session head in component:session-view, a "page" hover action on component:session-list rows, the console's "opened …" line as a client-side link. Part of req:wf2.sessions.page; follows decision:wf2.session-page-derived. (session: efee530d46)
+- [x] task:history-nav ‹ › in component:top-bar before the crumbs (history.back / forward, disabled when there is nowhere to go), ⌘[ / ⌘] shortcuts; `wf session open` and the console's "opened" line stay client-side so the right column keeps its stack. Part of req:wf2.ui.history-nav. (session: efee530d46)
+- [x] task:session-page-ui-test ui-test:session-page — a session with a task line added and a req proposed: the page lists the task unchecked, the req as proposed; setting the task done and the req shipped through the API updates the page; ‹ in the top bar returns to the previous page with the session still in the right column. Part of req:wf2.sessions.page. (session: efee530d46)

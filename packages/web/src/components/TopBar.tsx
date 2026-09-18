@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useLayout } from './Shell';
 import { requestSend } from './CommandBox';
 
@@ -9,14 +10,39 @@ const PAGES: Record<string, string> = { goals: 'Goals', tasks: 'Tasks', question
 
 const ago = (iso: string) => { const m = (Date.now() - Date.parse(iso)) / 60000; if (m < 1) return 'just now'; if (m < 60) return `${Math.round(m)} min ago`; if (m < 1440) return `${Math.round(m / 60)} h ago`; const d = Math.round(m / 1440); return d < 30 ? `${d} d ago` : new Date(iso).toLocaleDateString(); };
 
-// The bar above the content, Notion style: sidebar control, breadcrumbs (product › parents › document), last edit,
-// copy link and send to agent.
+// Back and forward through the browser's history (req:wf2.ui.history-nav): the Navigation API says whether there is
+// anywhere to go when the browser has it; otherwise back is possible once the history has more than one entry and
+// forward is always offered. ⌘[ / ⌘] do the same.
+type Nav = { canGoBack: boolean; canGoForward: boolean; addEventListener: (t: string, h: () => void) => void; removeEventListener: (t: string, h: () => void) => void };
+function useHistoryNav(path: string) {
+  const [can, setCan] = useState({ back: false, forward: true });
+  useEffect(() => {
+    const nav = (window as unknown as { navigation?: Nav }).navigation;
+    const read = () => setCan(nav ? { back: nav.canGoBack, forward: nav.canGoForward } : { back: window.history.length > 1, forward: true });
+    read();
+    nav?.addEventListener('currententrychange', read);
+    return () => nav?.removeEventListener('currententrychange', read);
+  }, [path]);
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      if (e.key === '[') { e.preventDefault(); window.history.back(); } else if (e.key === ']') { e.preventDefault(); window.history.forward(); }
+    };
+    window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h);
+  }, []);
+  return can;
+}
+
+// The bar above the content, Notion style: sidebar control, back / forward, breadcrumbs (product › parents ›
+// document), last edit, copy link and send to agent.
 export function TopBar({ product, docs }: { product: { slug: string; title: string; icon: string }; docs: Record<string, DocMeta> }) {
   const path = usePathname(); const { rail, toggleRail, panel, togglePanel } = useLayout();
+  const can = useHistoryNav(path);
   const parts = path.split('/').filter(Boolean); // [product, ...]
   const crumbs: { href: string; label: string; icon?: string }[] = [{ href: `/${product.slug}`, label: product.title, icon: product.icon || '◆' }];
   let doc: DocMeta | undefined; let edited = '';
-  if (parts[1] && PAGES[parts[1]]) crumbs.push({ href: `/${product.slug}/${parts[1]}`, label: PAGES[parts[1]] });
+  if (parts[1] === 'sessions' && parts[2]) { crumbs.push({ href: `/${product.slug}/sessions`, label: PAGES.sessions }, { href: `/${product.slug}/sessions/${parts[2]}`, label: `session ${parts[2].slice(0, 6)}` }); if (parts[3]) crumbs.push({ href: path, label: parts[3] }); }
+  else if (parts[1] && PAGES[parts[1]]) crumbs.push({ href: `/${product.slug}/${parts[1]}`, label: PAGES[parts[1]] });
   else if (parts[1] === 'knowledge' && parts[2]) crumbs.push({ href: `/${product.slug}/knowledge`, label: 'Knowledge' }, { href: path, label: parts[2] });
   else if (parts[1] && parts[2] === 'd' && parts[3]) {
     doc = docs[parts[3]];
@@ -31,6 +57,10 @@ export function TopBar({ product, docs }: { product: { slug: string; title: stri
   return (
     <header className="topbar">
       {!rail && <button className="topbar-btn topbar-rail" onClick={toggleRail} title="Open the sidebar (⌘\\)" aria-label="Open sidebar">»</button>}
+      <span className="topbar-nav">
+        <button className="topbar-btn" onClick={() => window.history.back()} disabled={!can.back} title="Back (⌘[)" aria-label="Back">‹</button>
+        <button className="topbar-btn" onClick={() => window.history.forward()} disabled={!can.forward} title="Forward (⌘])" aria-label="Forward">›</button>
+      </span>
       <nav className="crumbs-nav" aria-label="Breadcrumb">
         {crumbs.map((c, i) => <span key={c.href + i} className="crumb">{i > 0 && <span className="crumb-sep">/</span>}<Link href={c.href} className={i === crumbs.length - 1 ? 'on' : ''}>{c.icon && <span className="crumb-icon">{c.icon}</span>}{c.label}</Link></span>)}
       </nav>

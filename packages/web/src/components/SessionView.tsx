@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
@@ -50,6 +51,7 @@ export function SessionView({ id }: { id: string }) {
         <strong>{agentLabel(s.agent)}</strong>{s.mode === 'chat' && <span className="pill">chat</span>}
         <span className="muted">{when(s.createdAt)}</span>
         <span className="session-acts">
+          <Link className="mini linkish" href={`/${product}/sessions/${id}`} title="This session as a page: the task, its todo items, the blocks it touched">page ↗</Link>
           <button className="mini" onClick={() => setHandoff(h => h ? null : { agent: AGENTS.find(a => a.id !== s.agent)?.id ?? s.agent, note: '' })} title="Continue this work under another agent">Hand off…</button>
           {active && <button className="mini" onClick={() => patch({ status: 'cancelled' })}>Cancel</button>}
         </span>

@@ -485,3 +485,14 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .schange-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); } .schanges-prose { margin: 2px 0 0 4px; } .schanges-prose summary { cursor: pointer; }
 .session-know .know-open { margin-left: auto; } .session-changes-fold { margin: 0 0 8px; } .session-changes-fold > summary { cursor: pointer; font-size: 12px; color: var(--ink-2); }
 .ev-know .ch-added::before { content: '+'; color: var(--ok, #2e8b57); font-weight: 700; margin-right: 2px; } .ev-know .ch-changed::before { content: '~'; color: var(--accent); font-weight: 700; margin-right: 2px; } .ev-know .ch-removed::before { content: '−'; color: var(--bad); font-weight: 700; margin-right: 2px; }
+/* top bar back / forward (req:wf2.ui.history-nav) */
+.topbar-nav { display: inline-flex; gap: 0; margin-right: 4px; } .topbar-nav .topbar-btn { font-size: 18px; line-height: 1; padding: 2px 7px 4px; } .topbar-nav .topbar-btn:disabled { color: var(--line); cursor: default; background: none; }
+/* the session page (page:web/session) */
+.spage-sub { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; } .spage-sub code { font-size: 11px; } .spage-acts { display: inline-flex; gap: 6px; margin-left: auto; } .spage-acts .linkish { text-decoration: none; }
+.spage-sec { margin: 0 0 24px; } .spage-sec h2 { font-size: 15px; margin: 20px 0 8px; display: flex; align-items: baseline; gap: 8px; } .spage-sec h2 .muted { font: 12px var(--font-m); }
+.spage-instruction { font-size: 14px; } .spage-instruction p { margin: 0 0 6px; } .spage-refs { align-items: center; gap: 6px; margin: 6px 0 0; }
+.spage-queue { margin-top: 10px; } .spage-queue h5 { margin: 0 0 4px; font: 12px var(--font-m); }
+.spage-opened { list-style: none; margin: 0; padding: 0; } .spage-opened li { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 13px; }
+.spage-todo { list-style: none; margin: 0; padding: 0; } .spage-task { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 13px; min-width: 0; } .spage-task:hover { background: var(--sunk); } .spage-task.gone { opacity: .6; cursor: default; } .spage-task input { margin: 0 2px 0 0; pointer-events: none; } .spage-task.done .schange-title { text-decoration: line-through; color: var(--muted); } .spage-partof { flex: none; white-space: nowrap; }
+.spage-kind { margin: 0 0 12px; } .spage-kind h5 { margin: 0 0 4px; font-weight: 500; font-size: 13px; } .spage .schange > small { flex: none; }
+.spage-result { font-size: 14px; }
