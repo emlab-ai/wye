@@ -499,6 +499,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - in a document, a click anywhere on a typed block — card, table row or embed, its text included — selects it: the column comes to its Context root and shows that node (rule:block-select)
     - a defined node's details are its kind and id, its properties, then Content — one editor scoped to the node whose first block is the node's text and whose other blocks are the blocks under it in the document (rule:content-editor, decision:wf2.text-is-first-block); a child's card there opens the child one level deeper, ← comes back (decision:ontology.depth-by-navigation)
     - Related (the knowledge nearest to the block) is a bar with a show / hide button, closed by default and remembered per browser; no search runs while closed (rule:related-collapsed)
+    - a goal's or task's Produced (its sessions, the documents they wrote, the nodes they changed, the inbox items) is the last section, a bar with counts and a show / hide button, closed on every node; nothing is fetched while closed (rule:produced-collapsed)
     - a document shows a preview (title, status, intro, outline, Open document →) and Connected; a goal or task shows its tracking editor and what is part of it; a type shows its card, editable properties, instances and Connected; a session shows its console
     - Context mode (no item open on a document page) follows the block being edited and shows the knowledge nearest to it (rule:context-panel)
     - field, prop and block nodes never appear in Connected; a document's phrase links are read from its blocks (rule:ontology.hidden-kinds)
@@ -655,6 +656,19 @@ A node's details: properties, content, and what a card shows of it.
   satisfied-by: [component:peek-panel, component:context-panel, rule:related-collapsed]
   verified-by: [ui-test:node-content]
   related-to: [rule:context-panel]
+- id: req:wf2.ui.produced-collapsed
+  title: What a task's sessions produced is folded at the bottom of the column
+  when: the context column shows a goal or task that has sessions (rule:task-artifacts)
+  then: >
+    Produced comes after Connected, as a bar that reads how many sessions and documents it holds and has a
+    "show" button; pressing it fetches the sessions and the inbox and lists them as today (sessions with their
+    result, documents, nodes changed, inbox items); "hide" folds it again; it is closed on every node it opens on
+  unless: the node has no sessions — no bar at all, as today
+  status: shipped
+  refines: req:wf2.ui.node-page
+  satisfied-by: [component:produced, component:peek-panel, rule:produced-collapsed]
+  verified-by: [ui-test:node-content]
+  related-to: [req:wf2.ui.related-collapsed, rule:task-artifacts]
 - id: rule:content-editor
   statement: >
     `DocEditor` takes a `scope` — a node id. Scoped, it loads the node's text as its first block and the content
@@ -669,6 +683,14 @@ A node's details: properties, content, and what a card shows of it.
     focus (a reload after the column saved), so the selected node survives the refetch. `NodeContent` refetches on
     every graph change; the editor ignores a refetch while its own save is pending.
   source: packages/web/src/components/DocEditor.tsx:527 (scope, rootRef, publishContext, save); packages/web/src/components/PeekPanel.tsx:157; packages/web/src/components/EditorScope.ts; packages/web/src/components/EmbedBlock.tsx
+  status: shipped
+- id: rule:produced-collapsed
+  statement: >
+    NodeView renders `Produced` after Connected (list or graph) for a goal or task with sessions; `Produced` is
+    a bar (`.peek-bar.peek-sub.produced-bar`) with the counts it knows without a request — the entry's sessions
+    and the `produced` edge — and a show / hide button; the sessions and the inbox are fetched only while it is
+    open, in local state that resets with the node.
+  source: packages/web/src/components/Produced.tsx; packages/web/src/components/PeekPanel.tsx
   status: shipped
 - id: rule:related-collapsed
   statement: >
@@ -1737,7 +1759,7 @@ A node's details: properties, content, and what a card shows of it.
     `(session: <ids>, produced: module:…)` in their property group — `produced` is an edge — and marking a task
     done with wf node set adds the session too. The task's panel shows a Produced section: the sessions (with
     status and result), the documents, the nodes changed and the inbox items (questions, decisions) with their
-    review status. An html comment ends a prose node's text, so tables' closing markers never leak into a task.
+    review status — folded at the bottom of the column until asked for (rule:produced-collapsed). An html comment ends a prose node's text, so tables' closing markers never leak into a task.
   source: packages/web/src/lib/artifacts.ts; packages/web/src/components/Produced.tsx; lib/parse.js
   status: shipped
   verified-by: [test:prose]

@@ -98,7 +98,7 @@ React components (`component:` cards). `side` says whether it renders on the ser
   file: packages/web/src/components/Produced.tsx
   side: client
   purpose: >
-    Everything that came out of the sessions that worked on a task: the sessions themselves (with their logs), the documents they wrote, the nodes they changed, and the inbox items (questions, decisions, notes) they filed.
+    Everything that came out of the sessions that worked on a task: the sessions themselves (with their logs), the documents they wrote, the nodes they changed, and the inbox items (questions, decisions, notes) they filed. Rendered last in the context column as a bar with counts and a show / hide button (req:wf2.ui.produced-collapsed, rule:produced-collapsed); the sessions and the inbox are fetched only while it is open.
   part-of: module:app-agents
 - id: component:command-box
   file: packages/web/src/components/CommandBox.tsx

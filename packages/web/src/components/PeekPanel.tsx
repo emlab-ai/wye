@@ -120,7 +120,7 @@ function NodeView({ id }: { id: string }) {
       {d && d.self && <TypeView type={d.self} instances={d.instances ?? []} index={index} product={product} onSaved={() => setTick(t => t + 1)} />}
       {d && d.self ? null : d && d.node.defined && d.type
         ? <><NodeEditor key={id} id={id} body={d.node.body} form={d.node.form ?? 'yaml'} type={d.type} props={d.props ?? []} entry={entry} onSaved={() => setTick(t => t + 1)} />
-          {entry && (entry.kind === 'goal' || entry.kind === 'task') && <>{entry.sessions && entry.sessions.length > 0 && <Produced sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}<Tracking entry={entry} rows={rows} inc={d.relations.inc} /></>}</>
+          {entry && (entry.kind === 'goal' || entry.kind === 'task') && <Tracking entry={entry} rows={rows} inc={d.relations.inc} />}</>
         : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
       {d && d.type && d.props && d.relations.inc.some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={d.relations.inc} inverses={d.inverses ?? {}} product={product} />}
       {d && !d.self && d.node.defined && <NodeContent id={id} />}
@@ -136,6 +136,8 @@ function NodeView({ id }: { id: string }) {
       )}
       {d && view === 'list' && <Relations out={d.relations.out} inc={d.relations.inc} rows={rows} inverses={d.inverses} />}
       {d && view === 'graph' && (d.graph.nodes.length > 1 ? <PeekGraph focus={id} nodes={d.graph.nodes} edges={d.graph.edges} onPick={open} /> : <p className="muted rels-empty">Nothing links to or from this node yet.</p>)}
+      {/* what a goal's or task's sessions produced: last, folded (req:wf2.ui.produced-collapsed); keyed so the fold closes with the node */}
+      {d && entry && (entry.kind === 'goal' || entry.kind === 'task') && entry.sessions && entry.sessions.length > 0 && <Produced key={id} sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}
     </>
   );
 }

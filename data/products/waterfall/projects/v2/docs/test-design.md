@@ -411,11 +411,14 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     keeps its paragraph; /req makes a new node under the task (blank line, indented, in the graph as the task's child);
     a click on its card opens it as a chip with a Content editor of its own (its text, nothing under it);
     Enter and typing there lands two levels down in the file; ← returns to the task at the root, now 4 blocks, the child's card folded to ▸ 1 block; the page
+    a task line with `(session: …, produced: module:ct-spec)` shows a Produced bar reading "1 session · 1 document" and "show"
+    after Content and Connected and before Related, with no /sessions or /inbox request; "show" fetches both and lists them;
+    the next node (no session) has no bar and coming back the fold is closed again; the page
     editor reloaded the nesting task → req → paragraph; the embed shows no preview and ▸ 3 blocks, and its chip
-    opens the embedded node's details (2026-09-18, session a4dbc39398: /tmp/wfpw/node-content.mjs, 28 checks
-    passed in Chrome; no page error; table-filter 25/25 and block-select 15/15 still pass; 203 unit tests)
+    opens the embedded node's details (2026-09-18, session c8eadd53da: /tmp/wfpw/node-content.mjs, 33 checks
+    passed in Chrome; no page error; 203 unit tests)
   status: passed
-  verifies: [req:wf2.ui.node-content, req:wf2.ui.card-preview, req:wf2.ui.related-collapsed, req:ontology.content, rule:content-editor, rule:card-fold, rule:related-collapsed, rule:content-lines]
+  verifies: [req:wf2.ui.node-content, req:wf2.ui.card-preview, req:wf2.ui.related-collapsed, req:wf2.ui.produced-collapsed, req:ontology.content, rule:content-editor, rule:card-fold, rule:related-collapsed, rule:produced-collapsed, rule:content-lines]
   last-run: 2026-09-18
 - id: ui-test:tree-menu
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
