@@ -15,6 +15,7 @@ import { KIND_ORDER } from '@/lib/knowledge';
 import { ProgressBar } from './Progress';
 import { Produced } from './Produced';
 import { DocPeek } from './DocPeek';
+import { EmbeddedCard } from './EmbedBlock';
 import { TypeView } from './TypeView';
 import type { GraphNode, TypeDef } from '@/lib/graph';
 import type { NodeProp } from '@/lib/types';
@@ -81,11 +82,16 @@ function NodeView({ id }: { id: string }) {
   const [view, setView] = useState<'list' | 'graph'>('list');
   const [depth, setDepth] = useState<1 | 2>(1);
   const [tick, setTick] = useState(0);
+  // the connected rows opened as cards (rule:connected-cards): forgotten when another node opens, kept over a refetch
+  const [opened, setOpened] = useState<Set<string>>(() => new Set());
+  const toggle = (ids: string[], on?: boolean) => setOpened(cur => { const next = new Set(cur); for (const x of ids) { if (on ?? !next.has(x)) next.add(x); else next.delete(x); } return next; });
+  useEffect(() => { setOpened(new Set()); }, [id]);
   useEffect(() => {
     let live = true; setD(null);
     fetch(`/api/${product}/node/${encodeURIComponent(id)}?depth=${depth}`).then(r => r.ok ? r.json() : null).then(j => { if (live) setD(j); });
     return () => { live = false; };
   }, [id, product, depth, tick]);
+  const rows = { index, opened, toggle };
   const entry = index[id];
   const def = hrefFor(id);
   if (entry?.doc && def) return (
@@ -96,7 +102,7 @@ function NodeView({ id }: { id: string }) {
         <button className="linkish" onClick={() => requestSend({ refs: [id], text: entry.title })}>Send to agent</button>
       </div>
       <DocPeek id={id} href={def.replace(/#.*$/, '')} />
-      {d && <><div className="peek-views"><h4>Connected <span className="muted">{[...d.relations.out, ...d.relations.inc].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0)}</span></h4></div><Relations out={d.relations.out} inc={d.relations.inc} index={index} inverses={d.inverses} /></>}
+      {d && <><div className="peek-views"><h4>Connected <span className="muted">{[...d.relations.out, ...d.relations.inc].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0)}</span></h4></div><Relations out={d.relations.out} inc={d.relations.inc} rows={rows} inverses={d.inverses} /></>}
     </>
   );
   return (
@@ -110,7 +116,7 @@ function NodeView({ id }: { id: string }) {
       {d && d.self && <TypeView type={d.self} instances={d.instances ?? []} index={index} product={product} onSaved={() => setTick(t => t + 1)} />}
       {d && d.self ? null : d && d.node.defined && d.type
         ? <><NodeEditor key={id} id={id} body={d.node.body} form={d.node.form ?? 'yaml'} type={d.type} props={d.props ?? []} entry={entry} onSaved={() => setTick(t => t + 1)} />
-          {entry && (entry.kind === 'goal' || entry.kind === 'task') && <>{entry.sessions && entry.sessions.length > 0 && <Produced sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}<Tracking entry={entry} index={index} inc={d.relations.inc} /></>}</>
+          {entry && (entry.kind === 'goal' || entry.kind === 'task') && <>{entry.sessions && entry.sessions.length > 0 && <Produced sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}<Tracking entry={entry} rows={rows} inc={d.relations.inc} /></>}</>
         : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
       {d && d.type && d.props && d.relations.inc.some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={d.relations.inc} inverses={d.inverses ?? {}} product={product} />}
       {d && (
@@ -123,7 +129,7 @@ function NodeView({ id }: { id: string }) {
           {view === 'graph' && <div className="seg small" title="how many hops from this node"><button className={depth === 1 ? 'on' : ''} onClick={() => setDepth(1)}>1 hop</button><button className={depth === 2 ? 'on' : ''} onClick={() => setDepth(2)}>2 hops</button></div>}
         </div>
       )}
-      {d && view === 'list' && <Relations out={d.relations.out} inc={d.relations.inc} index={index} inverses={d.inverses} />}
+      {d && view === 'list' && <Relations out={d.relations.out} inc={d.relations.inc} rows={rows} inverses={d.inverses} />}
       {d && view === 'graph' && (d.graph.nodes.length > 1 ? <PeekGraph focus={id} nodes={d.graph.nodes} edges={d.graph.edges} onPick={open} /> : <p className="muted rels-empty">Nothing links to or from this node yet.</p>)}
     </>
   );
@@ -132,8 +138,31 @@ function NodeView({ id }: { id: string }) {
 // Titles come from the graph as raw markdown; the list shows them plain.
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');
 
+// What the row lists share: the index, which ids are opened as cards, and how to open or close some.
+type Rows = { index: Record<string, IndexEntry>; opened: Set<string>; toggle: (ids: string[], on?: boolean) => void };
+
+// One connected node (rule:connected-cards): the expand toggle (only for a defined node — a stub has no card), the
+// tag, the status and the title; opened, the node's embedded card follows — the same card its document shows.
+function RelRow({ id, rows, extra, className }: { id: string; rows: Rows; extra?: React.ReactNode; className?: string }) {
+  const e = rows.index[id]; const can = e?.defined === true; const on = can && rows.opened.has(id);
+  return (
+    <li className={`${className ?? ''} ${on ? 'open' : ''}`.trim()}>
+      {can ? <button className="rel-x" onClick={() => rows.toggle([id])} aria-expanded={on} title={on ? 'Hide the card' : 'Show as a card'}>{on ? '▾' : '▸'}</button> : <span className="rel-x none" />}
+      <SmartTag id={id} />{e?.status && <StatusPill status={e.status} />}{extra}<span className="rt">{e?.title && e.title !== id ? plain(e.title) : ''}</span>
+      {on && <EmbeddedCard id={id} className="rel-card" />}
+    </li>
+  );
+}
+
+// A group heading: its label, count, and the cards / tags toggle that opens or closes every defined row at once.
+function RelHead({ label, ids, rows, count }: { label: string; ids: string[]; rows: Rows; count?: React.ReactNode }) {
+  const can = ids.filter(id => rows.index[id]?.defined === true);
+  const all = can.length > 0 && can.every(id => rows.opened.has(id));
+  return <h5>{label} <span className="muted">{count ?? ids.length}</span>{can.length > 0 && <button className="rel-all" onClick={() => rows.toggle(can, !all)} title={all ? 'Show these as tags' : 'Show these as cards'}>{all ? 'tags' : 'cards'}</button>}</h5>;
+}
+
 // Every node connected to the open one, grouped by how it is connected, each row with its title and status.
-function Relations({ out, inc, index, inverses = {} }: { out: [string, string[]][]; inc: [string, string[]][]; index: Record<string, IndexEntry>; inverses?: Record<string, string> }) {
+function Relations({ out, inc, rows, inverses = {} }: { out: [string, string[]][]; inc: [string, string[]][]; rows: Rows; inverses?: Record<string, string> }) {
   // generated 'mentions' edges (a node's text naming a field) are noise next to real relations; an incoming edge
   // reads by its inverse name (the ontology's, else the built-in label)
   const groups = [...out.filter(([v]) => v !== 'mentions').map(([v, ids]) => ({ key: 'o' + v, label: OUT[v] ?? `${v} →`, ids })), ...inc.filter(([v]) => v !== 'mentions').map(([v, ids]) => ({ key: 'i' + v, label: INC[v] ?? (inverses[v] ? inverses[v] : `← ${v}`), ids }))];
@@ -144,13 +173,8 @@ function Relations({ out, inc, index, inverses = {} }: { out: [string, string[]]
     <div className="rels">
       {groups.map(g => (
         <section key={g.key}>
-          <h5>{g.label} <span className="muted">{g.ids.length}</span></h5>
-          <ul>
-            {[...g.ids].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)).map(id => {
-              const e = index[id];
-              return <li key={id}><SmartTag id={id} />{e?.status && <StatusPill status={e.status} />}<span className="rt">{e?.title && e.title !== id ? plain(e.title) : ''}</span></li>;
-            })}
-          </ul>
+          <RelHead label={g.label} ids={g.ids} rows={rows} />
+          <ul>{[...g.ids].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)).map(id => <RelRow key={id} id={id} rows={rows} />)}</ul>
         </section>
       ))}
     </div>
@@ -180,8 +204,8 @@ function Properties({ type, props, inc, inverses, product }: { type: TypeDef; pr
 }
 
 // Goal / task tracking: status, target, owner, progress and what contributes to it.
-function Tracking({ entry, index, inc }: { entry: IndexEntry; index: Record<string, IndexEntry>; inc: [string, string[]][] }) {
-  const parts = (inc.find(([v]) => v === 'part-of')?.[1] ?? []).map(id => index[id]).filter(Boolean);
+function Tracking({ entry, rows, inc }: { entry: IndexEntry; rows: Rows; inc: [string, string[]][] }) {
+  const parts = (inc.find(([v]) => v === 'part-of')?.[1] ?? []).map(id => rows.index[id]).filter(Boolean);
   const byKind = (k: string) => parts.filter(p => p.kind === k);
   const done = (p: IndexEntry) => ['done', 'complete', 'shipped'].includes(p.status) || (p.progress ?? 0) >= 100;
   return (
@@ -191,8 +215,8 @@ function Tracking({ entry, index, inc }: { entry: IndexEntry; index: Record<stri
         const label = k === 'goal' ? 'Sub-goals' : k === 'task' ? 'Tasks' : 'Requirements';
         return (
           <div key={k} className="tracking-parts">
-            <h5>{label} <span className="muted">{items.filter(done).length}/{items.length}</span></h5>
-            <ul>{items.map(p => <li key={p.id} className={done(p) ? 'done' : ''}><SmartTag id={p.id} /><StatusPill status={p.status} />{p.progress !== undefined && k === 'goal' && <span className="tpct">{p.progress}%</span>}<span className="rt">{p.title !== p.id ? plain(p.title) : ''}</span></li>)}</ul>
+            <RelHead label={label} ids={items.map(p => p.id)} rows={rows} count={`${items.filter(done).length}/${items.length}`} />
+            <ul>{items.map(p => <RelRow key={p.id} id={p.id} rows={rows} className={done(p) ? 'done' : ''} extra={p.progress !== undefined && k === 'goal' ? <span className="tpct">{p.progress}%</span> : undefined} />)}</ul>
           </div>
         );
       })}

@@ -492,6 +492,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - action:answer-question:  in a session console, answer the agent's question (rule:agent-questions)
   display-rules:
     - a node shows its card, then (typed nodes) Properties — effective properties with placeholders and the inverses read from the other side — then Connected as a list grouped by relation (incoming relations labelled by their inverse name) or as a graph 1–2 hops out
+    - a Connected or tracking row expands in place into the node's embedded card; a group heading expands or collapses all of its rows (rule:connected-cards)
     - a document shows a preview (title, status, intro, outline, Open document →) and Connected; a goal or task shows its tracking editor and what is part of it; a type shows its card, editable properties, instances and Connected; a session shows its console
     - Context mode (no item open on a document page) follows the block being edited and shows the knowledge nearest to it (rule:context-panel)
     - field, prop and block nodes never appear in Connected; a document's phrase links are read from its blocks (rule:ontology.hidden-kinds)
@@ -520,6 +521,35 @@ The column's frame: what stays put and what scrolls.
     header and the conversation scroll as one under the bar and above the message box. The console has no height and
     no scroll of its own; the conversation's stick-to-bottom follows the nearest scroll ancestor.
   source: packages/web/src/app/globals.css (.peek, .peek-nav, .peek-body, .console, .console-input); packages/web/src/components/Console.tsx
+  status: shipped
+```
+
+Connected rows as cards: what a related or child node looks like when opened in place.
+
+```yaml
+- id: req:wf2.ui.connected-cards
+  title: A connected node opens as its card under its row in the context column
+  when: >
+    a node is open in the context column and a person presses the expand toggle on a row of Connected (any
+    relation group) or of a goal's Sub-goals / Tasks / Requirements, or the cards toggle on a group heading
+  then: >
+    the row (every row of the group) is followed by the node's card as its document shows it — kind, slug,
+    status, text, properties — editable in place, with a line naming the document it comes from; the toggle
+    collapses it again; the tag still opens the node in the column; the expanded set is forgotten when another
+    node opens
+  unless: the row names a node that is only referenced, never defined — the row has no toggle
+  status: shipped
+  refines: req:wf2.ui.node-page
+  satisfied-by: [component:peek-panel, component:embed-block, rule:connected-cards]
+  verified-by: [ui-test:connected-cards]
+- id: rule:connected-cards
+  statement: >
+    The Connected list and a goal's tracking lists share one row (`RelRow`): the expand toggle (`.rel-x`, ▸/▾,
+    only when the index says the node is defined), the tag, the status and the title, then — when the id is in
+    the node view's expanded set — the node's `EmbeddedCard`. A group heading carries a cards / tags toggle
+    (`.rel-all`) that adds or removes all of the group's defined ids; the set is state of the node view, so it
+    resets with the open node and survives the card's own refetch after an edit.
+  source: packages/web/src/components/PeekPanel.tsx#RelRow; packages/web/src/app/globals.css#rels
   status: shipped
 ```
 

@@ -137,7 +137,8 @@ React components (`component:` cards). `side` says whether it renders on the ser
   purpose: >
     The context column itself: the bar (←, the chip stack, ×) fixed at the top and, under it, the one scroller
     (`.peek-body`) that shows the open item — a node's card, properties and relations; a document's preview; a type;
-    a session's header and console; or Context mode (rule:column-frame).
+    a session's header and console; or Context mode (rule:column-frame). Every Connected or tracking row can open
+    in place into the node's embedded card (rule:connected-cards).
   part-of: module:app-shell
 - id: component:peek-graph
   file: packages/web/src/components/PeekGraph.tsx

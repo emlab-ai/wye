@@ -334,6 +334,23 @@ One node per test file. Requirements and rules point here with `requires-tests: 
   status: passed
   verifies: [rule:documents-tree, rule:doc-tree-row-stable]
   last-run: 2026-09-18
+- id: ui-test:connected-cards
+  file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    a scratch product with a goal, a req (refines the goal, satisfied-by a defined rule and a stub rule) and two
+    tasks part of the goal; open the req from its tag in the prose: Connected shows Refines 1 and Satisfied by 2,
+    every group heading with a "cards" toggle, no card open, the stub row without a toggle; ▸ on the rule's row
+    opens it (▾, li.open) with the node's embedded card under it — "from spec", the rule kind, slug cc.rows in the
+    slug field, the statement in the text field, the source — 511 px wide, the row's own title line hidden; the
+    row's tag still opens the rule in the column and the new node starts with nothing expanded; ← back; "cards"
+    on Satisfied by opens its one defined row and reads "tags", "cards" on Refines opens the goal's card, "tags"
+    closes the group; typing in the goal's expanded card writes the title to spec.md within 1.5 s and the card
+    stays open over the refetch; opening the goal, Tasks 1/2 carries the toggle and ▸ on task:cc.one shows its
+    task card (2026-09-18, session edd6ae474d: /tmp/wfpw/connected-cards.mjs, 16 checks passed in Chrome; no
+    console error from the column)
+  status: passed
+  verifies: [req:wf2.ui.connected-cards, rule:connected-cards]
+  last-run: 2026-09-18
 - id: ui-test:tree-menu
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >
