@@ -109,8 +109,9 @@ export function blocksToMarkdown(blocks: AnyBlock[]): string {
       case 'quote': { blank(); push(...inlineToMarkdown(b.content as Inline[]).split('\n').map(l => '> ' + l)); blank(); break; }
       case 'divider': { blank(); push('---'); blank(); break; }
       case 'collection': { // a goals/tasks/type table: its rows are node blocks, written as plain list lines inside comment markers
-        const ck = collectionMarker((b.props as { kind?: string }).kind ?? 'goal');
-        blank(); push(`<!-- ${ck} -->`);
+        const cp = b.props as { kind?: string; query?: string };
+        const ck = collectionMarker(cp.kind ?? 'goal');
+        blank(); push(`<!-- ${ck}${cp.query?.trim() ? ' ' + cp.query.trim() : ''} -->`); // the filters ride on the opening marker (rule:table-filter)
         // the editor keeps an empty row at the end for typing the next item; rows without text are not written
         const rows = (b.children ?? []).filter(c => c.type !== 'node' || (inlineToMarkdown(c.content as Inline[]).trim() && (c.props as unknown as NodeProps).slug));
         push(...childrenLines(rows.map(c => c.type === 'node' && !(c.props as unknown as NodeProps).check && !(c.props as unknown as NodeProps).list ? { ...c, props: { ...c.props, list: 'bullet' } } : c), 0));

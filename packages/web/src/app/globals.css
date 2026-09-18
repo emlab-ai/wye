@@ -112,6 +112,9 @@ code, pre { font-family: var(--font-m); }
 .bn-block-content[data-content-type="collection"] { padding: 0 !important; }
 /* a table wider than the editor scrolls sideways as one block — header and rows keep their column minima (rule:table-scroll) */
 .bn-block:has(> .react-renderer.node-collection) { overflow-x: auto; }
+/* a filtered table hides the rows that do not match (a style element in its header, by block id); they stay blocks and stay in the file (rule:table-filter) */
+.collection-filter { margin: 4px 0 8px; gap: 6px; } .collection-filter .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .collection-filter input[type="search"] { max-width: 220px; padding: 3px 8px; border-radius: 999px; font: 12px var(--font-m); }
+.collection-filter-toggle { margin-left: 6px; background: none; border: 1px solid transparent; border-radius: 5px; padding: 1px 4px; color: var(--muted); cursor: pointer; font: 500 10px var(--font-m); text-transform: none; letter-spacing: 0; } .collection-filter-toggle:hover { border-color: var(--line); color: var(--ink); } .collection-filter-toggle.on { color: var(--accent); }
 .page-wide { max-width: 1100px; }
 .track-tools { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 14px; } .track-tools input { width: 100%; max-width: 420px; padding: 7px 10px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; }
 .track-tools .chips { display: flex; flex-wrap: wrap; gap: 6px; } .track-tools .chip { display: inline-flex; gap: 5px; align-items: center; border: 1px solid var(--line-2); border-radius: 999px; padding: 3px 10px; background: none; color: var(--ink-2); font: 500 11px var(--font-m); cursor: pointer; text-transform: uppercase; } .track-tools .chip.on { background: var(--ink); color: var(--ground); border-color: var(--ink); } .track-tools .chip small { opacity: .7; }

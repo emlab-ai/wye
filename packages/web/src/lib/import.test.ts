@@ -145,6 +145,27 @@ describe('expand', () => {
     expect(blocks[1].children?.[0].props).toMatchObject({ kind: 'bug', slug: 'login', status: 'open', extra: 'severity: high, foundIn: 1.2', row: 'bug', list: 'bullet' });
     expect(blocksToMarkdown(blocks)).toBe(src);
   });
+  it('a table marker with a query — <!-- table:bug status=open priority=high --> — carries the filters on the block and writes them back', () => {
+    setKinds(['bug']);
+    const src = 'Intro.\n\n<!-- table:bug status=open q="login page" -->\n- bug:login Login fails on Safari #open (severity: high)\n<!-- /table:bug -->\n\n<!-- goals owner=alex -->\n- goal:g1 First goal #on-track (owner: alex)\n<!-- /goals -->\n\nAfter.\n';
+    const p = prepare(src);
+    expect(p.tables).toEqual(['status=open q="login page"', 'owner=alex']);
+    expect(p.md).toContain('%%COLLECTION:bug:0%%');
+    expect(p.md).toContain('%%COLLECTION:goal:1%%');
+    const parsed: { type: string; content: { type: string; text: string; styles: object }[] }[] = [];
+    for (const para of p.md.split(/\n\n+/).map(x => x.trim()).filter(Boolean)) {
+      if (para.startsWith('- ')) for (const line of para.split('\n')) parsed.push({ type: 'bulletListItem', content: [t(line.replace(/^- /, ''))] });
+      else parsed.push({ type: 'paragraph', content: [t(para)] });
+    }
+    const blocks = expand(parsed, p.yaml, p.drawings, p.images, p.views, p.embeds, p.tables);
+    expect(blocks.map(b => b.type)).toEqual(['paragraph', 'collection', 'collection', 'paragraph']);
+    expect(blocks[1].props).toEqual({ kind: 'bug', query: 'status=open q="login page"' });
+    expect(blocks[1].children?.[0].props).toMatchObject({ kind: 'bug', slug: 'login', row: 'bug' });
+    expect(blocks[2].props).toEqual({ kind: 'goal', query: 'owner=alex' });
+    expect(blocksToMarkdown(blocks)).toBe(src);
+    // no query: the bare marker, as before
+    expect(blocksToMarkdown([{ type: 'collection', props: { kind: 'bug', query: '' }, children: [] }])).toBe('<!-- table:bug -->\n<!-- /table:bug -->\n');
+  });
   it('turns a <!-- view:bug status=open --> line into a view block with the type and its filters, and writes it back', () => {
     const src = 'Intro.\n\n<!-- view:bug status=open group=owner -->\n\nAfter.\n';
     const p = prepare(src);

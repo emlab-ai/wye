@@ -321,6 +321,22 @@ One node per test file. Requirements and rules point here with `requires-tests: 
   status: passed
   verifies: [req:wf2.editor.table-scroll, rule:table-scroll]
   last-run: 2026-09-18
+- id: ui-test:table-filter
+  file: (run by hand with playwright-core against the dev server — /tmp/wfpw/table-filter.mjs; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    a scratch product with type:bug (priority enum, blocking bool), a bug table of three rows and a goals table of
+    three: no toolbar without a filter; the header's toggle opens it with All 3 / open 2 / done 1 and the priority
+    and blocking chip rows; status=open hides the done row and keeps the trailing empty row, "2 of 3", the hidden
+    row still a block; + priority=high leaves one; the file keeps every row and the marker reads
+    `<!-- table:bug status=open priority=high -->`; a search narrows by text and lands on the marker; the goals
+    table offers an owner select (any / alex / bo), owner=bo shows g2, `<!-- goals owner=bo -->`; after a reload
+    both filters apply, the toolbar is open and the toggle says 1/3; a row typed in the trailing row under a filter
+    stays one row and visible, hides once the cursor leaves it and is in the file; a hidden row reached with the
+    arrow keys shows while the cursor is in it; clear filters shows every row and restores the bare markers
+    (2026-09-18, session bd2ece3698: 25 checks passed in Chrome)
+  status: passed
+  verifies: [req:wf2.editor.table-filter, rule:table-filter]
+  last-run: 2026-09-18
 - id: ui-test:doc-tree-dnd
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >

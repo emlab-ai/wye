@@ -10,12 +10,13 @@ import { EXTRA_GROUP } from './props';
 const TEXT_KEYS = ['title', 'statement', 'description', 'purpose', 'q', 'text', 'context', 'does', 'intent'];
 const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused|resolved|rejected)\b/;
 
-export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[]; images: { alt: string; url: string }[]; views: { slug: string; query: string }[]; embeds: string[] }
+export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[]; images: { alt: string; url: string }[]; views: { slug: string; query: string }[]; embeds: string[]; tables: string[] }
 
 // A drawing is referenced like an image whose file is an Excalidraw scene: ![Title](drawings/name.excalidraw)
 // A table region: ordinary node lines between <!-- goals --> and <!-- /goals --> (or tasks), or for any type
-// <!-- table:<slug> --> … <!-- /table:<slug> -->. The marker carries the kind of its rows.
-export const COLLECTION_OPEN = /^<!--\s*(goals|tasks|table:[a-z][a-z0-9-]*)\s*-->\s*$/;
+// <!-- table:<slug> --> … <!-- /table:<slug> -->. The marker carries the kind of its rows and, after it, the table's
+// filters as key=value pairs in the view block's grammar (rule:table-filter): <!-- table:bug status=open q="login" -->
+export const COLLECTION_OPEN = /^<!--\s*(goals|tasks|table:[a-z][a-z0-9-]*)((?:\s+[^\s>][^>]*?)?)\s*-->\s*$/;
 export const COLLECTION_CLOSE = /^<!--\s*\/(goals|tasks|table:[a-z][a-z0-9-]*)\s*-->\s*$/;
 
 export const DRAWING_LINE = /^!\[([^\]]*)\]\((\S+\.excalidraw)\)\s*$/;
@@ -48,6 +49,7 @@ export function prepare(body: string): Prepared {
   const images: { alt: string; url: string }[] = [];
   const views: { slug: string; query: string }[] = [];
   const embeds: string[] = [];
+  const tables: string[] = []; // the filter query of every table marker that has one, by index
   const parts: string[] = [];
   const liftDrawings = (text: string) => { let fence = false; return text.split('\n').map(l => {
     if (/^\s*(```|~~~)/.test(l)) { fence = !fence; return l; }
@@ -55,7 +57,7 @@ export function prepare(body: string): Prepared {
     const m = l.match(DRAWING_LINE); if (m) { drawings.push({ title: m[1], src: m[2] }); return `\n%%DRAWING:${drawings.length - 1}%%\n`; }
     const v = l.match(VIEW_LINE); if (v) { views.push({ slug: v[1], query: v[2].trim() }); return `\n%%VIEW:${views.length - 1}%%\n`; }
     const e = l.match(EMBED_LINE); if (e) { embeds.push(cleanId(e[1])); return `\n%%EMBED:${embeds.length - 1}%%\n`; }
-    const o = l.match(COLLECTION_OPEN); if (o) return `\n%%COLLECTION:${collectionKind(o[1])}%%\n`;
+    const o = l.match(COLLECTION_OPEN); if (o) { const q = o[2].trim(); if (!q) return `\n%%COLLECTION:${collectionKind(o[1])}%%\n`; tables.push(q); return `\n%%COLLECTION:${collectionKind(o[1])}:${tables.length - 1}%%\n`; }
     const c = l.match(COLLECTION_CLOSE); if (c) return `\n%%/COLLECTION%%\n`;
     return l;
   }).join('\n'); };
@@ -64,7 +66,7 @@ export function prepare(body: string): Prepared {
     else if (s.type === 'hr') parts.push('%%DIVIDER%%');
     else parts.push(protectCode(escapeAngles(liftLinks(unwrapParagraphs(liftDrawings(liftInlineImages(s.text, images)))))));
   }
-  return { md: parts.join('\n\n'), yaml, drawings, images, views, embeds };
+  return { md: parts.join('\n\n'), yaml, drawings, images, views, embeds, tables };
 }
 
 // Split markdown into alternating [text, code, text, code, …] regions: fenced blocks, indented (4-space) blocks
@@ -153,14 +155,14 @@ function topLevel(body: string): Map<string, string> {
 const text = (s: string): InlineText => ({ type: 'text', text: s, styles: {} });
 
 // Expand markers and id-first paragraphs into node/divider blocks, then tag ids everywhere.
-export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Prepared['drawings'] = [], images: Prepared['images'] = [], views: Prepared['views'] = [], embeds: Prepared['embeds'] = []): AnyBlock[] {
+export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Prepared['drawings'] = [], images: Prepared['images'] = [], views: Prepared['views'] = [], embeds: Prepared['embeds'] = [], tables: Prepared['tables'] = []): AnyBlock[] {
   const out: AnyBlock[] = [];
   let coll: AnyBlock | null = null; // the goals/tasks table being filled; blocks until %%/COLLECTION%% become its rows
   const push = (blk: AnyBlock) => { if (coll) coll.children!.push(blk); else out.push(blk); };
   for (const b of blocks) {
     const first = firstText(b);
-    const cm = first.trim().match(/^%%COLLECTION:([a-z][a-z0-9-]*)%%$/);
-    if (b.type === 'paragraph' && cm) { coll = { type: 'collection', props: { kind: cm[1] }, children: [] }; out.push(coll); continue; }
+    const cm = first.trim().match(/^%%COLLECTION:([a-z][a-z0-9-]*)(?::(\d+))?%%$/);
+    if (b.type === 'paragraph' && cm) { coll = { type: 'collection', props: cm[2] ? { kind: cm[1], query: tables[Number(cm[2])] ?? '' } : { kind: cm[1] }, children: [] }; out.push(coll); continue; }
     if (b.type === 'paragraph' && /^%%\/COLLECTION%%$/.test(first.trim())) { coll = null; continue; }
     if ((b.type === 'paragraph') && /^%%DIVIDER%%$/.test(first.trim())) { push({ type: 'divider' }); continue; }
     const dm = first.trim().match(/^%%DRAWING:(\d+)%%$/);
@@ -180,7 +182,7 @@ export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Pre
     }
     const pn = proseNode(b, yaml, drawings);
     if (pn) { if (coll) pn.props = { ...pn.props, row: (coll.props as { kind: string }).kind }; push(withLinks(pn)); continue; }
-    push(withLinks(b.children?.length ? { ...b, children: expand(b.children, yaml, drawings, images, views, embeds) } : b));
+    push(withLinks(b.children?.length ? { ...b, children: expand(b.children, yaml, drawings, images, views, embeds, tables) } : b));
   }
   return (tagifyBlocks(out as never[]) as AnyBlock[]).map(b => unescapeBlock(imagifyBlock(b, images)));
 }

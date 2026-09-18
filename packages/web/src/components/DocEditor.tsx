@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState, type FocusEvent as ReactFocusEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, filterSuggestionItems, insertOrUpdateBlockForSlashMenu } from '@blocknote/core';
+import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, filterSuggestionItems, insertOrUpdateBlockForSlashMenu, getNodeById } from '@blocknote/core';
 import { useCreateBlockNote, createReactInlineContentSpec, createReactBlockSpec, FormattingToolbar, FormattingToolbarController, getFormattingToolbarItems, SuggestionMenuController, getDefaultReactSlashMenuItems, useBlockNoteEditor, useComponentsContext, SideMenuController, SideMenu, DragHandleMenu, RemoveBlockItem, BlockColorsItem, useExtensionState, useEditorSelectionChange, useEditorChange } from '@blocknote/react';
 import { SideMenuExtension } from '@blocknote/core/extensions';
 import { BlockNoteView } from '@blocknote/mantine';
@@ -17,6 +17,7 @@ import { EmbedBlock } from './EmbedBlock';
 import { usePeek, type OwnType } from './PeekProvider';
 import { ID_RE } from '@/lib/ids';
 import { parseExtra, withExtra, GOAL_STATUSES, TASK_STATUSES, STATUSES } from '@/lib/props';
+import { filterRows, parseViewQuery, viewQuery, EMPTY_FILTERS, type Filters, type InstanceRow } from '@/lib/instance-table';
 import { slugify } from '@/lib/templates';
 import { blockHash } from '@/lib/anchors';
 import { headingSlug, DONE_STATUSES } from '@/lib/doc';
@@ -186,16 +187,24 @@ const typeGrid = (t: OwnType) => `minmax(200px, 1fr) 100px${t.cols.map(c => c.ty
 // Selecting a row or block by clicking anything in it but its text (a status select, a property cell, the grid
 // background) puts the editor cursor in that block without taking focus from the control, so the context column
 // shows the node — the same as clicking its text (bug:when-i-select-a).
-type EditorLike = { setTextCursorPosition: (id: string, at: 'start' | 'end') => void; getBlock: (id: string) => unknown; document: unknown; updateBlock: (b: unknown, u: unknown) => void; insertBlocks: (blocks: unknown[], ref: string, placement: 'before' | 'after') => unknown; removeBlocks: (ids: string[]) => unknown };
+type EditorLike = { setTextCursorPosition: (id: string, at: 'start' | 'end') => void; getTextCursorPosition?: () => { block: { id: string } }; getBlock: (id: string) => unknown; document: unknown; updateBlock: (b: unknown, u: unknown) => void; insertBlocks: (blocks: unknown[], ref: string, placement: 'before' | 'after') => unknown; removeBlocks: (ids: string[]) => unknown };
 // A click anywhere on the block — its text too — also selects its node: the context column comes to its Context
 // root and shows it, whatever it showed before (rule:block-select). A tag or link inside the block navigates instead.
 function selectBlockOnClick(editor: EditorLike, block: AnyBlock, textEl: HTMLElement | null) {
   return (e: React.MouseEvent) => {
     if ((e.target as Element).closest('a')) return;
-    if (!textEl || !textEl.contains(e.target as Node)) { // clicking the text places the caret itself
-      try { editor.setTextCursorPosition(String((block as { id?: string }).id), 'end'); } catch { /* block gone */ }
+    const id = String((block as { id?: string }).id);
+    if (!textEl || !textEl.contains(e.target as Node)) {
+      try { editor.setTextCursorPosition(id, 'end'); } catch { /* block gone */ }
       // the cursor may already be in this block (no selection change fires): ask the editor to publish the context anyway
       window.dispatchEvent(new CustomEvent('wf:publish'));
+    } else {
+      // clicking the text places the caret itself — unless the editor's selection did not follow the click (seen
+      // now and then after a transaction dispatched while a control in the table's header had the focus): the
+      // caret then sits in the row's DOM while the editor still thinks it is elsewhere, and the first keystroke
+      // would count as leaving the previous block (a slug assigned at once, rule:table-rows). Bring it here.
+      let at = ''; try { at = editor.getTextCursorPosition?.().block.id ?? ''; } catch { /* no selection */ }
+      if (at && at !== id) { try { editor.setTextCursorPosition(id, 'end'); } catch { /* block gone */ } }
     }
     const bp = block.props as unknown as { kind?: string; slug?: string };
     if (bp.kind && bp.slug) window.dispatchEvent(new CustomEvent('wf:select', { detail: `${bp.kind}:${bp.slug}` }));
@@ -262,22 +271,24 @@ function TypeRowFor({ p, set, contentRef, block, editor }: { p: { kind: string; 
 // of its rows (decision:wf2.one-table-block). The rows are the block's children (nodes in row mode). The type can
 // change while no row has text — after that the rows have ids of that kind.
 const CollectionBlock = createReactBlockSpec(
-  { type: 'collection', propSchema: { kind: { default: 'goal' } }, content: 'none' },
+  { type: 'collection', propSchema: { kind: { default: 'goal' }, query: { default: '' } }, content: 'none' },
   {
     render: props => {
-      const kind = (props.block.props as { kind: string }).kind;
+      const { kind, query } = props.block.props as { kind: string; query: string };
       const { ownTypes } = usePeek();
       const type = kind === 'goal' || kind === 'task' ? undefined : ownTypes.find(t => t.slug === kind);
       // the header re-renders on every editor change: whether the type can still change depends on the rows' text
       const [, tick] = useState(0); useEditorChange(() => tick(t => t + 1), props.editor);
+      useEditorSelectionChange(() => tick(t => t + 1), props.editor); // the row under the cursor is never hidden by a filter
       const kids = ((props.editor.getBlock(props.block.id) as unknown as AnyBlock | undefined)?.children ?? []) as AnyBlock[];
       const locked = kids.some(k => k.type === 'node' && rowText(k));
       const options = ['goal', 'task', ...ownTypes.map(t => t.slug)]; if (!options.includes(kind)) options.push(kind);
       const setKind = (k: string) => {
         if (k === kind || locked) return;
         for (const c of kids) if (c.type === 'node') props.editor.updateBlock(c as never, { props: { ...emptyRow(k).props, slug: '' } } as never);
-        props.editor.updateBlock(props.block, { props: { kind: k } } as never);
+        props.editor.updateBlock(props.block, { props: { kind: k, query: '' } } as never);
       };
+      const filter = useTableFilter(props.editor as unknown as EditorLike, props.block as unknown as AnyBlock, kids, type ?? (kind === 'goal' || kind === 'task' ? undefined : { slug: kind, cols: [] }), query);
       const picker = (
         <select className="collection-kind" value={kind} disabled={locked} title={locked ? 'rows already have ids of this type; start another table for another type' : 'the type of this table'} onChange={e => setKind(e.target.value)} onMouseDown={e => e.stopPropagation()}>
           {options.map(o => <option key={o} value={o}>{o === 'goal' ? 'Goals' : o === 'task' ? 'Tasks' : `${o[0].toUpperCase()}${o.slice(1)}s`}</option>)}
@@ -285,22 +296,103 @@ const CollectionBlock = createReactBlockSpec(
       );
       if (kind !== 'goal' && kind !== 'task') return (
         <div className={`collection c-type c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
+          {filter.hide}{filter.bar}
           <div className="nrow nrow-head nrow-type" style={{ gridTemplateColumns: typeGrid(type ?? { slug: kind, cols: [] }) }}>
-            <div className="nrow-cell nrow-name">{picker}{!type && <span className="muted" title="the product declares no such type; rows are still written">?</span>}</div><div className="nrow-cell">Status</div>
+            <div className="nrow-cell nrow-name">{picker}{!type && <span className="muted" title="the product declares no such type; rows are still written">?</span>}{filter.toggle}</div><div className="nrow-cell">Status</div>
             {(type?.cols ?? []).map(c => <div key={c.name} className="nrow-cell" title={c.ref ? `${c.type}` : c.type}>{c.name}</div>)}
           </div>
         </div>
       );
       return (
         <div className={`collection c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
+          {filter.hide}{filter.bar}
           <div className="nrow nrow-head">
-            <div className="nrow-cell nrow-name">{picker}</div><div className="nrow-cell">Status</div><div className="nrow-cell">{kind === 'goal' ? 'Target' : 'Due'}</div><div className="nrow-cell nrow-progress">Progress</div><div className="nrow-cell">Owner</div>
+            <div className="nrow-cell nrow-name">{picker}{filter.toggle}</div><div className="nrow-cell">Status</div><div className="nrow-cell">{kind === 'goal' ? 'Target' : 'Due'}</div><div className="nrow-cell nrow-progress">Progress</div><div className="nrow-cell">Owner</div>
           </div>
         </div>
       );
     },
   },
 );
+
+// The table's filters (req:wf2.editor.table-filter, rule:table-filter): a toolbar in the header — search, status
+// chips with counts, a chip row per enum / bool column, a select per ref column (owner for goals and tasks) — the
+// same filter as the type page (lib/instance-table#filterRows) over the row blocks. A row that does not match is
+// hidden, not removed: the header renders a style element that hides the rows' `.bn-block-outer` by block id, so
+// the row stays a child block and is written to the file. A row without a slug (the trailing empty row) and the row
+// the cursor is in (one being typed, one reached with the arrow keys) are never hidden. The state lives on the block's `query` prop (the marker line,
+// decision:wf2.table-filter-on-marker) in the view block's key=value grammar; search typing is written back after
+// a pause, chips at once.
+type RowP = { kind: string; slug: string; status: string; extra: string };
+// One attribute of a block's content node, set in place: editor.updateBlock would replace the whole block with its
+// children, rebuilding every row's node view for a filter change; a setNodeMarkup touches the header's node only.
+function setBlockAttr(editor: EditorLike, blockId: string, key: string, value: string) {
+  const ed = editor as unknown as { transact?: (f: (tr: { doc: unknown; setNodeMarkup: (pos: number, type: undefined, attrs: Record<string, unknown>) => unknown }) => void) => void };
+  if (!ed.transact) return;
+  ed.transact(tr => {
+    const found = getNodeById(blockId, tr.doc as never); const content = found?.node.firstChild;
+    if (!found || !content) return;
+    if (content.attrs[key] === value) return;
+    tr.setNodeMarkup(found.posBeforeNode + 1, undefined, { ...content.attrs, [key]: value });
+  });
+}
+function useTableFilter(editor: EditorLike, block: AnyBlock, kids: AnyBlock[], type: OwnType | undefined, query: string) {
+  const cols = type ? type.cols.map(c => c.name) : ['owner'];
+  const [f, setF] = useState<Filters>(() => parseViewQuery(query, cols));
+  const [open, setOpen] = useState(false);
+  const colsKey = cols.join(',');
+  // the prop changed under us (a reload, another editor): take it
+  useEffect(() => { if (viewQuery(parseViewQuery(query, cols)) !== viewQuery(f)) setF(parseViewQuery(query, cols)); }, [query, colsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // write the state to the block — after a pause, so a search keystroke is not a document change each
+  useEffect(() => {
+    const q = viewQuery(f); if (q === viewQuery(parseViewQuery(query, cols))) return;
+    const t = setTimeout(() => setBlockAttr(editor, String((block as { id?: string }).id), 'query', q), 250);
+    return () => clearTimeout(t);
+  }, [f]); // eslint-disable-line react-hooks/exhaustive-deps
+  const rows = kids.filter(k => k.type === 'node' && (k.props as unknown as RowP).slug);
+  const asRow = (k: AnyBlock): InstanceRow => { const rp = k.props as unknown as RowP; return { id: `${rp.kind}:${rp.slug}`, kind: rp.kind, title: rowText(k), status: rp.status, file: '', doc: '', props: parseExtra(rp.extra) }; };
+  const irows = rows.map(asRow);
+  const active = !!(f.q || f.status || Object.values(f.props).some(Boolean));
+  const kept = active ? new Set(filterRows(irows, { ...f, group: '', sort: '' }).map(r => r.id)) : null;
+  // a row gets its slug at the first keystroke, so "no slug yet" is not enough: the row the cursor is in stays visible
+  let cursor = ''; try { cursor = editor.getTextCursorPosition?.().block.id ?? ''; } catch { /* no selection */ }
+  const hidden = new Set(kept ? rows.filter(k => !kept.has(asRow(k).id) && String((k as { id?: string }).id) !== cursor).map(k => String((k as { id?: string }).id)) : []);
+  // the hidden rows are a stylesheet the header owns: BlockNote may rebuild a row's wrapper at any time, a style
+  // element React renders survives that where an attribute set on the wrapper would not
+  // zero height + clipped rather than display: none: a row taken out of layout entirely made ProseMirror map a click
+  // on the row after it to the wrong block (the caret landed in the next paragraph until the first keystroke)
+  const hide = hidden.size ? <style>{[...hidden].map(id => `.bn-block-outer[data-id="${id}"]`).join(', ') + ' { height: 0; min-height: 0; overflow: hidden; visibility: hidden; }'}</style> : null;
+  const count = new Map<string, number>(); for (const r of irows) if (r.status) count.set(r.status, (count.get(r.status) ?? 0) + 1);
+  const statuses = [...count].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const seen = (name: string) => [...new Set(irows.flatMap(r => (r.props[name] ?? '').replace(/^\[|\]$/g, '').split(',').map(v => v.trim()).filter(Boolean)))].sort();
+  const setProp = (name: string, v: string) => setF({ ...f, props: { ...f.props, [name]: f.props[name] === v ? '' : v } });
+  const chipCols = type ? type.cols.filter(c => c.enum || c.type === 'bool') : [];
+  const selectCols = type ? type.cols.filter(c => c.ref && !c.enum) : [{ name: 'owner', type: 'string', enum: null, ref: null, required: false }];
+  const toggle = (
+    <button type="button" className={`collection-filter-toggle ${active ? 'on' : ''}`} title={active ? 'filters set — click to show them' : 'filter the rows'} onMouseDown={e => e.stopPropagation()} onClick={() => setOpen(o => !o)}>⏷ filter{active ? ` ${kept!.size}/${rows.length}` : ''}</button>
+  );
+  const bar = (open || active) ? (
+    <div className="track-tools collection-filter" ref={stopEditorEvents} onMouseDown={e => e.stopPropagation()}>
+      <div className="chips">
+        <input type="search" placeholder="Search rows…" value={f.q} onChange={e => setF({ ...f, q: e.target.value })} />
+        <button type="button" className={`chip ${!f.status ? 'on' : ''}`} onClick={() => setF({ ...f, status: '' })}>All <small>{rows.length}</small></button>
+        {statuses.map(([st, n]) => <button type="button" key={st} className={`chip s-${st} ${f.status === st ? 'on' : ''}`} onClick={() => setF({ ...f, status: f.status === st ? '' : st })}>{st} <small>{n}</small></button>)}
+      </div>
+      {chipCols.map(c => (
+        <div key={c.name} className="chips"><span className="chips-label">{c.name}</span>
+          {(c.type === 'bool' ? ['true', 'false'] : c.enum ?? []).map(v => <button type="button" key={v} className={`chip ${f.props[c.name] === v ? 'on' : ''}`} onClick={() => setProp(c.name, v)}>{v}</button>)}
+        </div>))}
+      {selectCols.map(c => { const vals = seen(c.name); return vals.length ? (
+        <div key={c.name} className="chips"><span className="chips-label">{c.name}</span>
+          <select className="itable-select" value={f.props[c.name] ?? ''} onChange={e => setF({ ...f, props: { ...f.props, [c.name]: e.target.value } })}>
+            <option value="">any</option>{vals.map(v => <option key={v} value={v}>{v}</option>)}
+          </select>
+        </div>) : null; })}
+      {active && <div className="chips"><span className="muted small">{kept!.size} of {rows.length}</span><button type="button" className="linkish" onClick={() => setF({ ...EMPTY_FILTERS })}>clear filters</button></div>}
+    </div>
+  ) : null;
+  return { toggle, bar, hide };
+}
 
 // A typed block (requirement, entity, rule, …): header with kind, id and status; the text is normal inline content.
 const NodeBlock = createReactBlockSpec(

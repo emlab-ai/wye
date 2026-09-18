@@ -58,6 +58,8 @@ React components (`component:` cards). `side` says whether it renders on the ser
     grid row per child node block — name, status, then target/due, progress and owner for goals and tasks, or one
     column per declared property for a product's own type (rule:type-tables, rule:goals-and-tasks). The header and
     every row are separate blocks that share one column template (`typeGrid`), so they line up without a <table>.
+    The header also holds the table's filters (useTableFilter — search, status, one per column; kept on the
+    marker line; rows that do not match are hidden, not removed: rule:table-filter).
   part-of: module:app-documents
 - id: component:document-reader
   file: packages/web/src/components/DocumentReader.tsx
@@ -142,6 +144,53 @@ their minimum widths and the block scrolls sideways instead of squeezing the nam
   status: shipped
   related-to: [rule:type-tables, rule:goals-and-tasks]
   verified-by: [ui-test:table-scroll]
+```
+
+A data table that has grown long — the Bugs table, a product's goals — needs filters the way the type page has
+them (component:instance-table): the person narrows the rows without leaving the document, and the rows stay
+what they are in the file.
+
+```yaml
+- id: req:wf2.editor.table-filter
+  title: A data table can be filtered by the person reading it
+  when: >
+    a document shows a data table (goals, tasks or a type's) and the person adds a filter from its header —
+    a search over the rows' text and property values, a status, one value per enum / bool / ref column the
+    type declares (owner for goals and tasks)
+  then: >
+    only the rows that match stay visible, the header says how many of the rows match and offers to clear
+    the filters, the trailing empty row stays so a row can still be added, and the filters are kept with the
+    table (the same person and anyone else opening the document see the filtered table until the filters are
+    cleared); the hidden rows are still rows of the table — nothing is removed from the file
+  unless: no filter is set — the table shows every row as today, with no toolbar in the way
+  status: shipped
+  refines: [req:wf2.ui.node-page]
+  related-to: [req:wf2.instances.filter, rule:type-tables, rule:goals-and-tasks]
+  satisfied-by: [rule:table-filter]
+  verified-by: [ui-test:table-filter, test:web-lib#import]
+  part-of: module:app-documents
+- id: rule:table-filter
+  statement: >
+    A data table's filters live on its opening marker as key=value pairs in the view block's grammar —
+    `<!-- table:bug status=open priority=high -->`, `<!-- goals owner=alex q="login page" -->` — parsed by
+    COLLECTION_OPEN into the collection block's `query` prop and written back by serialize.ts; no query leaves the
+    bare marker, and the rows are the same node lines either way (decision:wf2.table-filter-on-marker). The
+    header's toolbar (behind a "filter" toggle; open whenever a filter is set) is the type page's: search, status
+    chips with counts, a chip row per enum / bool column, a select of the values present per ref column (owner for
+    goals and tasks); the rows are matched with lib/instance-table#filterRows over the row blocks' text, status
+    and property group. A row that does not match is hidden by a style element the header renders (its
+    `.bn-block-outer` by block id: zero height, clipped — not display none, which made a click on the next row
+    map to the wrong block), never removed: it stays a child block and is written to the file
+    (decision:wf2.table-filter-hides-rows). A row without a slug (the trailing empty row) and the row the editor's
+    cursor is in — one being typed, one reached with the arrow keys — are never hidden, so a new row stays until
+    the cursor leaves it and the caret is never in an invisible row. The query is written as a setNodeMarkup of
+    the header's node (not updateBlock, which would rebuild every row), after a pause for search typing; a text
+    click in a row that the editor's selection did not follow puts the selection there, so the row's first
+    keystroke is never taken for leaving the previous block (rule:table-rows).
+  source: packages/web/src/lib/import.ts#COLLECTION_OPEN; packages/web/src/lib/serialize.ts; packages/web/src/components/DocEditor.tsx#useTableFilter; packages/web/src/components/DocEditor.tsx#setBlockAttr; packages/web/src/components/DocEditor.tsx#selectBlockOnClick; packages/web/src/app/globals.css#.collection-filter
+  status: shipped
+  related-to: [rule:type-tables, rule:goals-and-tasks, rule:table-rows, rule:view-block]
+  verified-by: [ui-test:table-filter, test:web-lib#import]
 ```
 
 ## Cards
