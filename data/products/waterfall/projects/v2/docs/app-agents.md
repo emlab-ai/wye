@@ -825,7 +825,7 @@ summary and the blocks it changed). Requirements, decisions and rules the agent 
 the entity lives and *embedded* on the plan page (`![[req:x]]`, rule:embed-line) — one source, no drift, which is
 what decision:wf2.plan-is-a-page rejected a plan document for.
 
-The document type is type:plan (ontology, proposed). A plan document:
+The document type is type:plan (a base type in `schema/base-ontology.md`, rule:plan-type-base). A plan document:
 
 ```markdown
 ---
@@ -891,6 +891,15 @@ part-of: module:app-agents
   refines: req:wf2.sessions.plan-doc
   satisfied-by: [lib:plan-doc, rule:plan-doc]
   verified-by: [ui-test:plan-doc]
+- id: rule:plan-type-base
+  statement: >
+    type:plan is declared in schema/base-ontology.md, read first for every product, so a plan page (`node:
+    plan:<slug>`) parses in any product: the app writes plan documents wherever a request is made, and a type the
+    app writes instances of is never a product-local card. schema/kinds.yaml lists plan as a base kind.
+  source: schema/base-ontology.md; schema/kinds.yaml; lib/parse.js#parseFiles
+  status: shipped
+  verified-by: [test:page-node]
+  related-to: [rule:plan-doc, rule:page-node-line, rule:ontology.open-kinds]
 - id: rule:plan-doc
   statement: >
     The plan document is written, not derived: lib:plan-doc makes the slug (`plan-` + the first words of the
