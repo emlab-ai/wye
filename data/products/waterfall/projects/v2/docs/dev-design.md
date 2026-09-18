@@ -559,6 +559,7 @@ The column's frame: what stays put and what scrolls.
     - action:hand-off:         continue the work under another agent (rule:agent-sessions)
   display-rules:
     - Runners online and working; Active / All filters; a row shows status, first line of the instruction, agent, mode, folder, age and refs
+    - a row is a worker: under its request line, every plan it is on or has done (component:plan-list — status, title → the plan page, tasks done / all, when), the current one marked; one agent works on many plans, one at a time (decision:wf2.plan-per-request)
     - the console is the conversation: user messages (with images), the agent's replies as markdown, questions and permission cards, folded activity rows, subagents nested under their Task, turn ends with time and cost, `wf session log` lines and the `wf session done` summary in place by time (rule:console-flow)
     - a pending question is the agent waiting: nothing continues until Answer or Skip
 ```

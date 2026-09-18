@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import { PlanList } from './PlanList';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
@@ -65,10 +65,11 @@ export function SessionList({ product, initial, initialRunners }: { product: str
             <div className="session-row-main">
               <div className="session-row-title">{plainAppLinks(s.instruction.split('\n').find(l => l.trim()) ?? '(no instruction)', origin, titles)}</div>
               <div className="session-row-sub"><span>{agentLabel(s.agent)}{s.mode === 'chat' ? ' · chat' : ''}</span>{s.cwd && <><span>·</span><span>{s.cwd.replace(/^\/Users\/[^/]+/, '~')}</span></>}<span>·</span><span>{when(s.createdAt)}</span>{s.source?.doc && <><span>·</span><span>{s.source.project ? `${s.source.project} / ` : ''}{s.source.doc}</span></>}{s.refs.length > 0 && <span className="tags">{s.refs.slice(0, 4).map(r => <SmartTag key={r} id={r} />)}{s.refs.length > 4 && <span className="muted">+{s.refs.length - 4}</span>}</span>}</div>
+              {/* the worker's work items: every plan of the session, the current one marked (decision:wf2.plan-per-request) */}
+              <PlanList session={s} plans={s.plans ?? []} />
               {(s.queue?.length ?? 0) > 0 && <div className="session-row-queue"><span className="muted">queue · {queueSummary(s.queue!)}</span><QueueList items={queueView(s.queue, s.batch).items} control={body => control(s.id, body)} compact /></div>}
             </div>
             <span className="session-row-acts" onClick={e => e.stopPropagation()}>
-              <Link className="mini linkish" href={`/${product}/sessions/${s.id}`} title="This session as a page: the task, its todo items, the blocks it touched">page ↗</Link>
               {s.live && <button className="mini" title="End the agent's process; the context comes back with Resume or a message" onClick={() => control(s.id, { action: 'stop' })}>Stop</button>}
               {isActive(s) && <button className="mini" title="End the process, drop the waiting items and mark the conversation cancelled (it stays under All)" onClick={() => control(s.id, { action: 'close' })}>Close</button>}
             </span>

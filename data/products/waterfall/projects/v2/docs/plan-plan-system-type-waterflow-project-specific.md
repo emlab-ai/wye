@@ -2,13 +2,14 @@
 node: plan:plan-plan-system-type-waterflow-project-specific
 type: plan
 title: plan must be system type, not waterflow project specific
-status: proposed
+status: done
 owner: unassigned
 last-verified: 2026-09-18
 session: 3805823665
 agent: claude-code
 started: 2026-09-18T12:38:15.225Z
 part-of: module:v2-plans
+finished: 2026-09-18T12:44:33.000Z
 ---
 
 # plan must be system type, not waterflow project specific
@@ -81,4 +82,38 @@ type; app-agents' prose that says "type:plan (ontology, proposed)" points at the
 
 ## Result
 
-_Written by the app when the session ends: the summary and the blocks this plan produced._
+type:plan moved from waterfall/v2/ontology.md to schema/base-ontology.md (extends module; session, agent?, started?, finished?), plan listed in schema/kinds.yaml — a plan page now parses in every product (was: 'plan is not a declared type' outside waterfall). test/page-node.js covers it; ctx check green for waterfall and yessensei; all tests pass. Knowledge: decision:wf2.plan-type-is-base (proposed, on this plan), rule:plan-type-base (shipped, app-agents), task:plan-type-agent-prop closed. Commit ffe2df6.
+
+Blocks this plan produced:
+
+- removed plan:plan-probe-plans-list-open-questions-module — Probe plans: list the open questions of module app-agents
+- added rule:plan-type-base — plan-type-base
+- added decision:wf2.plan-type-is-base — type:plan is a base type in schema/base-ontology.md, not a card of the waterfall product
+- added task:wf2.plan-type-move-base — Move the type:plan card from data/products/waterfall/projects/v2/docs/ontology.md to schema/base-ontology.md (
+- added task:wf2.plan-type-kinds-yaml — Add `plan` to schema/kinds.yaml (purpose, required:
+- added task:wf2.plan-type-test — test/page-node.js:
+- added task:wf2.plan-type-knowledge — app-agents.md "type:plan (ontology, proposed)" → base ontology;
+- changed type:plan — plan
+- changed task:plan-type-agent-prop — The plan pages the app writes (plan:plan-…, type:plan) carry `agent:` and `session:` in their frontmatter;
+- changed component:session-view — session-view
+- changed component:session-list — session-list
+- changed req:wf2.sessions.plan-doc — Every request that starts work becomes a plan document under the project's Plans page
+- changed req:wf2.sessions.plan-result — The plan document ends with the result — the app's section, scoped to the plan
+- changed rule:plan-doc — plan-doc
+- changed lib:plan-doc — plan-doc
+- added component:plan-list — plan-list
+- changed ui-test:plan-doc — A palette request makes a plan document; the result lands on it
+- changed decision:wf2.plan-is-a-document — A plan is a document of its own — plan-<slug> under the page it was asked on — not a derived session page
+- changed question:wf2.plan-doc-parent — wf2.plan-doc-parent
+- changed task:plan-doc-lib — lib:plan-doc (pure, vitest):
+- changed task:plan-doc-create — createSession and a fresh queue item with `plan:
+- changed task:plan-first-prompt — PLAN_FIRST names the plan document (path and node) and says where blocks go:
+- changed task:plan-doc-result — the PATCH that sets a session done / failed / cancelled writes the Result section (summary, blocks, paragraphs
+- changed task:plan-doc-links — "page ↗" on the session head (component:session-view), the Agents rows (component:session-list) and the consol
+- changed task:session-page-retire — `/<product>/sessions/<id>` redirects to the plan document (else to `/changes`);
+- changed task:plan-doc-ui-test — Run ui-test:plan-doc in Chrome (playwright-core) against a live palette request;
+- changed task:plan-doc-knowledge — After shipping:
+- changed page:web/sessions — Agents
+- added ui-test:plans — plans
+
+27 paragraphs added or changed — [per document](/waterfall/sessions/3805823665/changes)

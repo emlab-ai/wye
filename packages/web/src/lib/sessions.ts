@@ -48,8 +48,15 @@ async function mutate<T>(productDir: string, id: string, fn: (s: Session) => T |
   if (!ID.test(id)) return null;
   return withFileLock(file(productDir, id), async () => { const s = await getSession(productDir, id); if (!s) return null; const r = await fn(s); await saveSession(productDir, s); return r; });
 }
+// Hooks run once a session reaches done / failed / cancelled (the plan document's result, rule:plan-doc); after the
+// record is saved, outside the file lock.
+export type EndHook = (productDir: string, s: Session) => Promise<void>;
+const endHooks: EndHook[] = (globalThis as unknown as { __wfEndHooks?: EndHook[] }).__wfEndHooks ??= [];
+export function onSessionEnd(fn: EndHook): void { if (!endHooks.includes(fn)) endHooks.push(fn); }
+
 export async function updateSession(productDir: string, id: string, patch: { status?: SessionStatus; line?: string; lines?: string[]; result?: string; runner?: string; agentSessionId?: string; forgetAgentSession?: boolean; cwd?: string; totalCostUsd?: number }): Promise<Session | null> {
-  return mutate(productDir, id, s => {
+  let ended = false;
+  const out = await mutate(productDir, id, s => {
   const now = new Date().toISOString();
   if (patch.runner) s.runner = patch.runner;
   if (patch.agentSessionId) s.agentSessionId = patch.agentSessionId;
@@ -59,13 +66,20 @@ export async function updateSession(productDir: string, id: string, patch: { sta
   if (patch.status && patch.status !== s.status) {
     s.status = patch.status; s.log.push({ t: now, line: `status → ${patch.status}${patch.runner ? ` (${patch.runner})` : ''}` });
     if (patch.status === 'running') s.startedAt = now;
-    if (['done', 'failed', 'cancelled'].includes(patch.status)) s.finishedAt = now;
+    if (['done', 'failed', 'cancelled'].includes(patch.status)) { s.finishedAt = now; ended = true; }
   }
   for (const l of [...(patch.line ? [patch.line] : []), ...(patch.lines ?? [])]) s.log.push({ t: now, line: l });
   if (patch.result !== undefined) s.result = patch.result;
   s.updatedAt = now; s.log = s.log.slice(-2000);
   return s;
   });
+  if (ended && out) for (const h of endHooks) { try { await h(productDir, out); } catch { /* the record is saved; a hook's failure is its own */ } }
+  return out;
+}
+
+// The plan document a plan-first session works on (rule:plan-doc): product/project/slug.
+export async function setPlanDoc(productDir: string, id: string, ref: string, line?: string): Promise<Session | null> {
+  return mutate(productDir, id, s => { s.planDoc = ref; if (line) s.log.push({ t: new Date().toISOString(), line }); s.updatedAt = new Date().toISOString(); return s; });
 }
 
 // Claim the oldest queued session for an agent: first come, first served, one at a time per file lock.
@@ -85,7 +99,7 @@ export async function handoffSession(productDir: string, product: string, id: st
   const tail = s.log.slice(-40).map(l => `${l.t.slice(11, 19)} ${l.line}`).join('\n');
   const instruction = [`Continue session ${s.id} (${s.agent}${s.runner ? ' on ' + s.runner : ''}, ${s.status}).`, note.trim() ? `\nHandoff note: ${note.trim()}` : '', `\nOriginal instruction:\n${s.instruction}`, s.result ? `\nResult so far:\n${s.result}` : '', tail ? `\nLog tail:\n${tail}` : ''].filter(Boolean).join('\n');
   const child = await createSession(productDir, product, { agent, instruction, refs: s.refs, source: s.source, cwd: s.cwd });
-  await mutate(productDir, child.id, c => { c.parent = s.id; });
+  await mutate(productDir, child.id, c => { c.parent = s.id; if (s.planDoc) c.planDoc = s.planDoc; }); // the same plan goes on under the next agent
   await mutate(productDir, s.id, p => { p.children = [...(p.children ?? []), child.id]; p.log.push({ t: new Date().toISOString(), line: `handed off to ${agent} as session ${child.id}` }); if (p.status === 'queued' || p.status === 'running') p.status = 'cancelled'; });
   return (await getSession(productDir, child.id)) ?? child;
 }

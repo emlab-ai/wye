@@ -314,6 +314,22 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     while scrolled to the bottom — the column follows it; open a long node — the bar stays and the relations scroll
     (2026-09-18, session 07aa6645ad: /tmp/wfpw/frame.mjs, 14 checks passed in Chrome at 1400×900; the event was a
     `wf session open`, since a log line is not streamed to the console)
+- id: ui-test:plans
+  file: (run by hand with playwright-core and the API against the dev server; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    a queued session created through the API gets `plan-<slug>` under the project's Plans page with `session`,
+    `agent`, `started` and the request quoted with its source; PATCH done writes one Result with the summary and
+    sets status / finished; running → done again keeps one Result with the later summary; the plan's own page is
+    not among its blocks; the session API lists the plan. The Agents page: a worker row with two plans shows both
+    (the first done with 4/4 tasks, the second marked current and running with 0/7), no "plan ↗" button; the
+    session head shows the same list; a plan title opens the plan page, whose header shows the session as a link
+    that opens the conversation; the tree shows Plans; the Plans page's view lists the plans. A live probe
+    conversation without plan-first gets a plan; a fresh message makes a second one and closes the first as
+    cancelled ("Left unfinished"); the first message names the plan document; Close finishes the second as
+    cancelled. (2026-09-18, session 07aa6645ad: /tmp/wfpw/plans.mjs 21 checks and /tmp/wfpw/plans-fresh.mjs 6
+    checks, all passed in Chrome at 1400×900; the probe plan pages were removed afterwards)
+  covers: [req:wf2.sessions.plan-doc, req:wf2.sessions.plan-result]
+  status: passed
 - id: ui-test:edit-node-flow
   file: packages/web/e2e/edit-node.spec.ts
   scenario: open a project, open a node, edit a prose key and a status, save; assert the file on disk changed, the graph.changed event arrived, and the sidebar dot updated without a reload

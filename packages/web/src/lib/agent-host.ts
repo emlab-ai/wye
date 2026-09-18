@@ -10,7 +10,7 @@ import { loadScope } from './scope';
 import { resolveLink, renderResolved } from './resolve';
 import { REPO_ROOT } from './products';
 import { agentSystemPrompt } from './agent-prompt';
-import { createPlanDoc } from './plan-docs';
+import { createPlanDoc, closePlanDoc } from './plan-docs';
 import { firstUserEvent } from './transcript';
 
 // `turn`: the queue items handed to the open turn — stamped done / failed when it ends (decision:wf2.queue-item-state);
@@ -43,15 +43,21 @@ export function subscribe(id: string, fn: (e: ChatEvent) => void): () => void {
   l.subs.add(fn); return () => { l.subs.delete(fn); };
 }
 
-// Plan-first protocol (rule:plan-first, rule:plan-doc): a request from the command palette is understood and proposed
-// on its plan document before anything is built; the person confirms through the agent's question card
-// (rule:agent-questions). `planDoc` is the document the app created for the request (product/project/slug).
+// The plan document of the request (rule:plan-doc, decision:wf2.plan-per-request): every request that starts work has
+// one — the page the person and the agent work on, where the tasks live and where the app writes the result.
+export function planDocNote(planDoc?: string): string {
+  if (!planDoc) return '\n## The plan document\nNo plan document could be created for this request; write the plan and its tasks on the subject\'s page instead.';
+  const [product, project, slug] = planDoc.split('/');
+  return `\n## The plan document\nThis request's plan document is \`${planDoc}\` (node \`plan:${slug}\`, file data/products/${product}/projects/${project}/docs/${slug}.md, under the project's Plans page). The app created it with the request under "Request" and empty Context / Plan / Tasks / Result sections. Keep the work there: what you found under **Context** (tags \`kind:slug\`, embeds \`![[kind:slug]]\`), what you decided or cannot answer under **Plan** (\`decision:\` and \`question:\` blocks), the work as \`- [ ] task:<product>.<slug> … part of plan:${slug}\` lines under **Tasks** — tick them with \`wf node set task:… --status done\` as you go, that is what the person watches. The app writes **Result** (your \`wf session done\` summary and the blocks this plan produced) when the session ends.`;
+}
+
+// Plan-first protocol (rule:plan-first): a request with "plan first" on is understood and proposed on its plan
+// document before anything is built; the person confirms through the agent's question card (rule:agent-questions).
 export function planFirst(planDoc?: string): string {
   const slug = planDoc?.split('/')[2] ?? '';
-  const where = planDoc ? `The plan document for this request is \`${planDoc}\` (node \`plan:${slug}\`, file data/products/${planDoc.split('/')[0]}/projects/${planDoc.split('/')[1]}/docs/${slug}.md) — the app created it with the request under "Request" and empty Context / Plan / Tasks / Result sections. It is the page the person and you work on; the app writes "Result" when the session ends.` : 'No plan document could be created for this request; write the plan on the subject\'s page instead.';
   return `
 ## Before you build — plan first, on the plan document
-This request came from the command palette (⌘P). The plan is a page the person and you work on together, not a chat message. ${where} Do not change code until the person has confirmed it:
+This request came with "plan first" on. The plan is a page the person and you work on together — the plan document above — not a chat message. Do not change code until the person has confirmed it:
 1. Understand: run \`wf context "<the request in your words>"\`, resolve the nodes it returns (\`wf resolve\`) and read the documents they live in; look at the code areas involved. Work out which part of the app and which knowledge — modules, documents, requirements, rules, decisions, tasks — the change touches.
 2. Model: name the subject of the request as one node, \`kind:slug\` — the node under the cursor or the document from Context when they fit, else the node you found, else the new node the request creates ("add a page X" → \`page:x\`). Make sure its type exists: \`wf node type:<kind>\` (base types such as page, entity, op, action, component, req, rule, decision, task exist already); if not, \`wf type add <kind> --extends <parent> --purpose "…"\` writes a proposed type card into the product's ontology document. The subject's page is the document where the node is defined, else the document the request came from (Context above), else the type's home; only when the subject is new and no document fits, create one — \`wf doc create <product/project/slug> --title "…" [--parent <doc>]\`.
 3. Write the plan on the plan document (\`wf doc\` to read, edit the file, \`ctx --root data/products/<product> check\` green). Under **Context**: the modules, documents, nodes and code paths the request touches, as tags (\`kind:slug\` in prose) and embeds (\`![[kind:slug]]\` on a line of its own shows that block's card). Under **Plan**: prose for what you understood; \`question:\` blocks (status: open) for what you cannot answer; \`decision:\` blocks (status: proposed) for what is decided. Requirements, rules, components, pages and the subject's card are defined on the subject's page (one source, with the entity) and embedded on the plan document with \`![[id]]\`. Under **Tasks**: \`- [ ] task:<product>.<slug> … part of plan:${slug || '<slug>'}\` lines for the work, in order. Prose explains; blocks carry what is required, decided, asked and to do.
@@ -81,6 +87,7 @@ export async function buildPrompt(product: string, s: Session, wfUrl: string, pr
   }
   if (ctx.length) parts.push(`\n## Context\n${ctx.join('\n\n')}`);
   if (s.parent) parts.push(`\nThis session continues session ${s.parent}; its log and result are in the instruction above.`);
+  parts.push(planDocNote(s.planDoc));
   if (s.plan) parts.push(planFirst(s.planDoc));
   parts.push(`\n## How to work\n- The Waterfall CLI is \`wf\` (WF_URL=${wfUrl}, WF_PRODUCT=${product}). Read: \`wf resolve <link|id>\`, \`wf doc <product/project/doc>\`, \`wf node <id>\`, \`wf context "<text>"\`. Write: \`wf node set <id> --status s --set key=value\`, \`wf doc write <product/project/doc> --file f\`.\n- Product documents live under ${REPO_ROOT}/data/products/${product}/projects/<project>/docs/ (markdown; a line that starts with an id defines that node; keep ids stable). Run \`ctx --root data/products/${product} check\` from ${REPO_ROOT} after editing them.\n- This is a conversation: the person can reply here. Ask when something is unclear; say plainly what you changed.`);
   return parts.join('\n');
@@ -263,8 +270,10 @@ export async function restartFresh(productDir: string, product: string, id: stri
   await updateSession(productDir, id, { forgetAgentSession: true, line: 'context cleared' });
   await notifyQueue(productDir, id);
   const fresh: Session = { ...s, agentSessionId: undefined, plan: !!items[0].plan, instruction: items.map(i => i.text.trim()).filter(Boolean).join('\n\n---\n\n'), refs: [...new Set(items.flatMap(i => i.refs ?? []))], source: { ...(s.source ?? {}), link: items.find(i => i.link)?.link }, images: items.flatMap(i => i.images ?? []), parent: undefined };
-  // a fresh plan-first request gets a plan document of its own (rule:plan-doc), whatever earlier requests had
-  if (fresh.plan) fresh.planDoc = (await createPlanDoc(productDir, product, { ...fresh, planDoc: undefined })) ?? undefined;
+  // a fresh request is new work: the plan it leaves unfinished is closed, and it gets a plan document of its own
+  // (rule:plan-doc, decision:wf2.plan-per-request)
+  await closePlanDoc(productDir, s).catch(() => {});
+  fresh.planDoc = (await createPlanDoc(productDir, product, { ...fresh, planDoc: undefined })) ?? undefined;
   const first = await buildPrompt(product, fresh, opts.wfUrl, productDir);
   const shown = items.length > 1 ? `(batch of ${items.length})\n\n${fresh.instruction}` : fresh.instruction;
   await startChat(productDir, product, id, { wfUrl: opts.wfUrl, firstMessage: first, shown, images: fresh.images });

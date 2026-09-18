@@ -18,7 +18,7 @@ const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/
 // loses focus (op:doc.frontmatter). An unknown type shows the plain fields and a warning.
 export function DocProps({ product, project, slug, file, fm, node, types }: { product: string; project: string; slug: string; file: string; fm: Record<string, string>; node: string; types: TypeDef[] }) {
   const router = useRouter();
-  const { index } = usePeek();
+  const { index, open } = usePeek();
   const [vals, setVals] = useState<Record<string, string>>(fm);
   const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [msg, setMsg] = useState('');
@@ -56,6 +56,12 @@ export function DocProps({ product, project, slug, file, fm, node, types }: { pr
     const set = (x: string) => setVals(c => ({ ...c, [p.name]: x }));
     if (p.enum) return <select className="ne-select" value={v} onChange={e => { set(e.target.value); }} onBlur={() => commit(p.name)}>{(v && !p.enum.includes(v) ? [v] : []).concat(['', ...p.enum]).map(o => <option key={o} value={o}>{o || 'Empty'}</option>)}</select>;
     if (p.type === 'bool') return <input type="checkbox" checked={/^(true|yes)$/i.test(v)} onChange={e => { set(e.target.checked ? 'true' : ''); }} onBlur={() => commit(p.name)} />;
+    // a plan's `session` (type:plan): the conversation(s) that did the work, each opening in the context column
+    if (p.name === 'session' && v.trim()) return (
+      <span className="ne-ref">
+        <input className="ne-in" value={v} placeholder="session id" onChange={e => set(e.target.value)} onKeyDown={enterBlurs} onBlur={() => commit(p.name)} />
+        <span className="list">{v.split(/\s+/).filter(Boolean).map(id => <span key={id} className="item"><button type="button" className="linkish" title={`open session ${id}`} onClick={() => open(`session:${id}`)}>session {id.slice(0, 6)}</button></span>)}</span>
+      </span>);
     if (p.type === 'text') return <textarea className="ne-in ne-text" rows={Math.min(8, Math.max(1, Math.ceil(v.length / 70) + v.split('\n').length - 1))} value={v} placeholder={p.type} onChange={e => set(e.target.value)} onBlur={() => commit(p.name)} />;
     if (p.ref && !p.many && p.ref !== 'node') {
       const opts = suggest(p);

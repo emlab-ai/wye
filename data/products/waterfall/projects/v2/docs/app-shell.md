@@ -1,7 +1,7 @@
 ---
 node: module:app-shell
 type: module
-title: App — shell and navigation
+title: Shell and navigation
 status: proposed
 owner: unassigned
 last-verified: 2026-09-17

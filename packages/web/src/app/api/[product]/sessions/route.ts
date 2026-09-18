@@ -2,15 +2,19 @@ import { NextResponse } from 'next/server';
 import { getProduct } from '@/lib/products';
 import { AGENTS, createSession, listSessions, listRunners } from '@/lib/sessions';
 import { startChat, liveState, reconcileStale } from '@/lib/agent-host';
+import { createPlanDoc } from '@/lib/plan-docs';
+import { plansOf } from '@/lib/plan-doc';
+import { loadScope } from '@/lib/scope';
 import { stat } from 'node:fs/promises';
 import { REPO_ROOT } from '@/lib/products';
 
-// GET → { sessions } ; POST { agent, instruction, refs?, source?, images? } → the new session (status queued).
+// GET → { sessions } — each with its plans from the graph (decision:wf2.plan-per-request); POST { agent, instruction, refs?, source?, images? } → the new session (status queued).
 export async function GET(_req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   await reconcileStale(p.dir);
-  const sessions = (await listSessions(p.dir)).map(s => ({ ...s, transcript: undefined, ...(s.mode === 'chat' ? liveState(s.id) : {}) }));
+  const scope = await loadScope(product);
+  const sessions = (await listSessions(p.dir)).map(s => ({ ...s, transcript: undefined, ...(s.mode === 'chat' ? liveState(s.id) : {}), plans: scope ? plansOf(product, scope.graph, s.id) : [] }));
   return NextResponse.json({ sessions, runners: await listRunners(p.dir), defaults: { cwd: p.meta.repo ?? '', waterfall: REPO_ROOT } }, { headers: { 'cache-control': 'no-store' } });
 }
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {
@@ -30,6 +34,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     try { if (!(await stat(cwd)).isDirectory()) throw new Error(); } catch { return NextResponse.json({ error: 'invalid', message: `folder not found: ${cwd}` }, { status: 422 }); }
   }
   const s = await createSession(p.dir, product, { agent, instruction: instruction || '(image)', refs: (body.refs ?? []).filter(r => typeof r === 'string').slice(0, 50), source: body.source ?? {}, mode, cwd: cwd || undefined, plan: body.plan === true, images });
+  s.planDoc = (await createPlanDoc(p.dir, product, s)) ?? undefined; // every request that starts work has a plan document before the first message names it (rule:plan-doc)
   if (mode === 'chat') { const started = await startChat(p.dir, product, s.id, { wfUrl: new URL(req.url).origin }); return NextResponse.json(started ?? s, { status: 201 }); }
   return NextResponse.json(s, { status: 201 });
 }

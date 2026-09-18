@@ -64,7 +64,8 @@ React components (`component:` cards). `side` says whether it renders on the ser
   purpose: >
     One agent session in the right column: what was sent, its status, and the live log (polled while active). The
     knowledge strip counts the blocks it changed (+added ~changed −removed ¶paragraphs, ↗ the changes page) and a
-    "changes" fold under it holds component:session-changes. "page ↗" in the head opens page:web/session.
+    "changes" fold under it holds component:session-changes. Under the head, "work" lists the session's plans
+  (component:plan-list) — the pages where its tasks and results are.
   part-of: module:app-agents
 - id: component:session-changes
   file: packages/web/src/components/SessionChanges.tsx
@@ -82,7 +83,8 @@ React components (`component:` cards). `side` says whether it renders on the ser
     All agent sessions of a product, active first; polls while any is active. A row opens the session in the right
     column and shows its queue with states (component:queue-list, req:wf2.sessions.queue-on-agents); on hover it
     offers Stop (live rows) and Close (active rows), the header "Stop idle (n)" (req:wf2.sessions.stop-from-list);
-    row actions refetch the list at once and never open the conversation; "page ↗" on hover opens page:web/session.
+    row actions refetch the list at once and never open the conversation; under the request line the row lists the
+  worker's plans (component:plan-list) — every work item it is on or has done, the current one marked.
   part-of: module:app-agents
 - id: component:queue-list
   file: packages/web/src/components/QueueList.tsx
@@ -857,40 +859,46 @@ part-of: module:app-agents
 
 ```yaml
 - id: req:wf2.sessions.plan-doc
-  title: A request from the palette becomes a plan document in the documents section
+  title: Every request that starts work becomes a plan document under the project's Plans page
   when: >
-    a person sends a request from the command palette with "plan first" on (or `plan: true` on a fresh
-    queue item)
+    a request starts work — a new session (from the command box or the API, chat or queued) or a fresh-context
+    message on a live conversation — with or without "plan first"
   then: >
-    the app creates `plan-<slug>` in the project the request came from — a sub-page of the document the request
-    was made on (else of the project's plan document) — with the type:plan card in its frontmatter (`session`,
-    `agent`, `status: proposed`), the request verbatim under "Request" with the source document, node and refs
-    as tags, and empty "Context", "Plan", "Tasks" and "Result" sections; the session record keeps `planDoc:
-    <product/project/slug>`; the agent's first message names the document as the page to plan on; the agent
-    fills Context (what it found, as tags and embeds), Plan (prose, `question:` and `decision:` blocks, embeds of
-    the `req:`/`rule:` blocks it defined on the entities' pages) and Tasks (`- [ ] task:` lines, `part of
-    plan:<slug>`) and opens the page (`wf session open`); the person edits, comments and answers there; the
-    "page ↗" of the session head, the Agents rows and the console's "opened …" line open this document; the
-    document tree shows it under its parent
-  unless: "plan first" is off — no document; the session runs as before
-  status: proposed
+    the app creates `plan-<slug>` in the project the request came from, a sub-page of that project's Plans page
+    (`plans.md`, module:<project>-plans, created when missing — decision:wf2.plans-folder), with the type:plan card
+    in its frontmatter (`session`, `agent`, `started`, `status: proposed`), the request verbatim under "Request"
+    with the source document, node and refs as tags, and empty "Context", "Plan", "Tasks" and "Result" sections;
+    the session record keeps the current `planDoc: <product/project/slug>`; the agent's first message names the
+    document; the agent fills Context (what it found, as tags and embeds), Plan (prose, `question:` and `decision:`
+    blocks, embeds of the `req:`/`rule:` blocks it defined on the entities' pages) and Tasks (`- [ ] task:` lines,
+    `part of plan:<slug>`, ticked as it goes — what is in progress) and opens the page (`wf session open`); the
+    person edits, comments and answers there; the document tree shows it under Plans; the page header shows the
+    session as a link that opens the conversation; a handed-off session continues the same plan (its id is added
+    to `session`)
+  unless: >
+    a follow-up message without "clear context first" — it continues the current plan; the product has no
+    project — no document, the agent is told to plan on the subject's page
+  status: shipped
   refines: req:wf2.ui.command-palette
   satisfied-by: [type:plan, lib:plan-doc, rule:plan-doc]
-  verified-by: [ui-test:plan-doc]
+  verified-by: [ui-test:plan-doc, ui-test:plans]
 - id: req:wf2.sessions.plan-result
-  title: The plan document ends with the result
-  when: a session with a plan document is set done, failed or cancelled (`wf session done <id> "<result>"`, Cancel)
+  title: The plan document ends with the result — the app's section, scoped to the plan
+  when: >
+    a session with a plan document is set done, failed or cancelled (`wf session done <id> "<result>"`, Cancel,
+    Close), or a fresh request replaces a plan the session never finished
   then: >
-    the app writes the result under "Result" — the summary as markdown, then the blocks the session added,
-    changed or removed (artifacts.blocks) as a list with the change badge and a tag per block, paragraphs as a
-    count with a link to the changes page — and sets the card's `status` (done / cancelled) and `finished`;
-    the tasks under "Tasks" keep the check state the graph has (the agent ticks them with `wf node set`)
-  unless: the session has no plan document — nothing is written; or the Result section was edited by hand — the
-    app appends below what is there
-  status: proposed
+    the app writes "Result" — the summary as markdown, then the blocks credited to the session between the plan's
+    `started` and `finished` (artifacts.blocks by `at`; the plan's own page and the Plans page left out) as a list
+    with the change badge and a tag per block, paragraphs as a count with a link to the changes page — replacing
+    whatever was under the heading, so ending twice writes it once; and sets the card's `status` (done / failed /
+    cancelled; a replaced plan is cancelled with "Left unfinished") and `finished`; the tasks under "Tasks" keep the
+    check state the graph has (the agent ticks them with `wf node set`)
+  unless: the session has no plan document — nothing is written
+  status: shipped
   refines: req:wf2.sessions.plan-doc
   satisfied-by: [lib:plan-doc, rule:plan-doc]
-  verified-by: [ui-test:plan-doc]
+  verified-by: [ui-test:plan-doc, ui-test:plans]
 - id: rule:plan-type-base
   statement: >
     type:plan is declared in schema/base-ontology.md, read first for every product, so a plan page (`node:
@@ -904,26 +912,43 @@ part-of: module:app-agents
   statement: >
     The plan document is written, not derived: lib:plan-doc makes the slug (`plan-` + the first words of the
     request slugified, `-2`, `-3` on a collision in the project), the body from templates/docs/plan-request.md
-    (frontmatter `node: plan:<slug>`, `type: plan`, `session`, `agent`, `status`, `part-of: module:<parent>`;
-    Request / Context / Plan / Tasks / Result), and the Result section from the session's summary and
-    artifacts.blocks. createSession (and a fresh queue item with `plan: true`) creates it before the agent starts
-    and stores `planDoc` on the session; the PATCH that ends the session appends the result; the app's own
-    writes carry x-wf-session so they are not credited as the agent's changes. The PLAN_FIRST section of the
-    first message names the plan document and says where each kind of block goes: tasks, questions and
-    decisions on the plan page; requirements, rules, components and pages on the entity's page, embedded on the
-    plan page. `/<product>/sessions/<id>` redirects to the plan document when the session has one, else to
-    `/changes`.
-  source: packages/web/src/lib/plan-doc.ts; packages/web/src/lib/sessions.ts#createSession; packages/web/src/app/api/[product]/sessions/[id]/route.ts; packages/web/src/lib/agent-host.ts#PLAN_FIRST; templates/docs/plan-request.md
-  status: proposed
+    (frontmatter `node: plan:<slug>`, `type: plan`, `session`, `agent`, `started`, `status`, `part-of:
+    module:<project>-plans`; Request / Context / Plan / Tasks / Result), the Result section from the session's
+    summary and the artifacts.blocks inside the plan's window (`started`…`finished`, minus the plan's own page and
+    the Plans page), and a session's plans from the graph (`plansOf`: plan nodes whose `session` names the id,
+    oldest first, tasks `part of` the plan counted). lib/plan-docs does the IO: `ensurePlansPage` writes
+    `plans.md` when missing; `createPlanDoc` runs for every session the POST creates (chat or queued) and for
+    every fresh item agent-host#restartFresh hands over — after `closePlanDoc` cancelled the plan the session left
+    unfinished — and stores `planDoc`; `finishPlanDoc` runs from lib:sessions' end hook (done / failed /
+    cancelled) and rewrites Result; `adoptPlanDoc` adds a handed-off session's id to `session`. The first
+    message always carries "The plan document" (agent-host#planDocNote: where it is, what goes where — tasks,
+    questions and decisions on the plan page; requirements, rules, components and pages on the entity's page,
+    embedded on the plan page); the plan-first protocol adds its steps when the tick is on. The sessions API
+    answers each session with `plans` (SessionPlan[]). `/<product>/sessions/<id>` redirects to the current plan
+    document when the session has one, else to `/changes`.
+  source: packages/web/src/lib/plan-doc.ts; packages/web/src/lib/plan-docs.ts; packages/web/src/lib/sessions.ts#onSessionEnd; packages/web/src/app/api/[product]/sessions/route.ts; packages/web/src/lib/agent-host.ts#planDocNote; packages/web/src/lib/agent-host.ts#restartFresh; templates/docs/plan-request.md
+  status: shipped
   verified-by: [test:web-lib#plan-doc, ui-test:plan-doc]
   related-to: [rule:plan-first, rule:embed-line, rule:block-attribution]
 - id: lib:plan-doc
   file: packages/web/src/lib/plan-doc.ts
   side: server
   purpose: >
-    Pure: `planSlug(request, taken)`, `planDocBody(session, parent, date)` from the template, `resultSection(session)`
-    (summary + blocks list), `withResult(markdown, section)` (replace or append under "## Result"). Tested by
-    test:web-lib#plan-doc.
+    Pure: `planSlug(request, taken)`, `planTitle`, `planDocBody(template, vars)`, `resultSection(session, window)`
+    (summary + the blocks inside the plan's window), `withResult(markdown, section)` (the app owns what is under
+    "## Result"), `planStatusOnEnd`, `getFrontmatter` / `setFrontmatter`, `plansOf(product, graph, sessionId)`
+    (a worker's plans with task counts), `planDocPath`. Tested by test:web-lib#plan-doc (12 tests). The IO —
+    Plans page, create, finish, close, adopt — is lib/plan-docs.ts.
+  part-of: module:app-agents
+- id: component:plan-list
+  file: packages/web/src/components/PlanList.tsx
+  side: client
+  purpose: >
+    A worker's work items (decision:wf2.plan-per-request): the session's plans oldest first — status pill, the
+    title as a link to the plan page, tasks done / all, when it started or finished; the plan the session is on
+    now is marked while it is active (a `proposed` plan on a running session shows as running). Used by
+    component:session-list under each row and by component:session-view in the head; clicks inside it never open
+    the conversation.
   part-of: module:app-agents
 - id: ui-test:plan-doc
   title: A palette request makes a plan document; the result lands on it
@@ -934,9 +959,12 @@ part-of: module:app-agents
     a req it defined on the entity's page: the page shows the task unchecked and the req card. 3. Set the task
     done through the API: the check ticks on the page. 4. `wf session done <id> "shipped x"`: Result shows
     "shipped x" and the changed blocks; the card's status is done. 5. `/waterfall/sessions/<id>` redirects
-    to the plan document.
+    to the plan document. (2026-09-18, session 07aa6645ad: steps 1, 4 and 5 covered by ui-test:plans through the
+    API and Chrome — a queued session's plan under Plans with session / agent / started, the request quoted with
+    its source; Result written once with the summary and status done; ending twice keeps one Result. Steps 2–3
+    are what every plan-first session does by hand — plan-work-in-progress-visibility is one.)
   covers: [req:wf2.sessions.plan-doc, req:wf2.sessions.plan-result]
-  status: planned
+  status: passed
 - id: decision:wf2.plan-is-a-document
   title: A plan is a document of its own — plan-<slug> under the page it was asked on — not a derived session page
   context: >
@@ -958,10 +986,11 @@ part-of: module:app-agents
     the two work on — now its own); req:wf2.sessions.plan-doc, req:wf2.sessions.plan-result, rule:plan-doc,
     lib:plan-doc, type:plan; page:web/session, component:session-page, lib:session-page and
     op:api.sessions.page are removed; rule:plan-first's steps 2–3 change; sessions without a plan document keep
-    the changes page only.
+    the changes page only. Refined the same day by decision:wf2.plans-folder (the parent is the project's Plans
+    page, not the source document) and decision:wf2.plan-per-request (every request, not only plan-first ones).
   status: proposed
   date: 2026-09-18
-  related-to: [decision:wf2.plan-is-a-page, decision:wf2.session-page-derived, rule:plan-first, rule:embed-line]
+  related-to: [decision:wf2.plan-is-a-page, decision:wf2.session-page-derived, rule:plan-first, rule:embed-line, decision:wf2.plans-folder, decision:wf2.plan-per-request]
   session: 672f4fdf3d
 - id: question:wf2.plan-doc-parent
   q: >
@@ -970,9 +999,10 @@ part-of: module:app-agents
     per project, so every request is in one list.
   context: >
     The parent is where the person finds the plan later in the tree; with "the document it was asked on" the
-    plans of a module sit under that module, with a "Plans" page they sit in one chronological list.
-  status: open
-  related-to: [req:wf2.sessions.plan-doc]
+    plans of a module sit under that module, with a "Plans" page they sit in one chronological list. Answered by
+    the person on 2026-09-18: a Plans folder — decision:wf2.plans-folder.
+  status: resolved
+  related-to: [req:wf2.sessions.plan-doc, decision:wf2.plans-folder]
 - id: question:wf2.plan-doc-slug
   q: >
     What is the `xxx` in `plan-xxx`? Proposed: the first words of the request, slugified (`plan-page-link-on-the-
@@ -1003,14 +1033,14 @@ part-of: module:app-agents
 
 Work, in order:
 
-- [ ] task:plan-doc-lib lib:plan-doc (pure, vitest): `planSlug` (first words of the request, slugified, `-2` on collision), `planDocBody` from templates/docs/plan-request.md (frontmatter with the type:plan card, Request with the source document, node and refs as tags, empty Context / Plan / Tasks / Result), `resultSection` (summary + blocks list from artifacts.blocks), `withResult`. Part of req:wf2.sessions.plan-doc and rule:plan-doc.
-- [ ] task:plan-doc-create createSession and a fresh queue item with `plan: true` create the plan document in the request's project under the source document (else the project's plan document), store `planDoc` on the session, log "plan document <path>"; the write carries x-wf-session so it is not attributed to the agent. Part of req:wf2.sessions.plan-doc.
-- [ ] task:plan-first-prompt PLAN_FIRST names the plan document (path and node) and says where blocks go: tasks (`part of plan:<slug>`), questions and decisions on the plan page; req/rule/component/page on the entity's page, embedded on the plan page with `![[id]]`; the type/card step stays for a new entity. Part of rule:plan-first and rule:plan-doc.
-- [ ] task:plan-doc-result the PATCH that sets a session done / failed / cancelled writes the Result section (summary, blocks, paragraphs count → changes page) and the card's `status` and `finished`. Part of req:wf2.sessions.plan-result.
-- [ ] task:plan-doc-links "page ↗" on the session head (component:session-view), the Agents rows (component:session-list) and the console's "opened …" line open the plan document; sessions without one show no "page" link (the changes link stays). Part of req:wf2.sessions.plan-doc.
-- [ ] task:session-page-retire `/<product>/sessions/<id>` redirects to the plan document (else to `/changes`); remove component:session-page, lib:session-page and op:api.sessions.page with their tests; keep the changes page; decision:wf2.session-page-derived → superseded, req:wf2.sessions.page → superseded. Part of decision:wf2.plan-is-a-document.
-- [ ] task:plan-doc-ui-test Run ui-test:plan-doc in Chrome (playwright-core) against a live palette request; record the result. Part of req:wf2.sessions.plan-doc.
-- [ ] task:plan-doc-knowledge After shipping: statuses to shipped, module:app-agents' purpose and rule:plan-first mention the plan document, this session's own plan moved to `plan-…` as the first instance. Part of decision:wf2.plan-is-a-document.
+- [x] task:plan-doc-lib lib:plan-doc (pure, vitest): `planSlug` (first words of the request, slugified, `-2` on collision), `planDocBody` from templates/docs/plan-request.md (frontmatter with the type:plan card, Request with the source document, node and refs as tags, empty Context / Plan / Tasks / Result), `resultSection` (summary + blocks list from artifacts.blocks), `withResult`. Part of req:wf2.sessions.plan-doc and rule:plan-doc.
+- [x] task:plan-doc-create createSession and a fresh queue item with `plan: true` create the plan document in the request's project under the source document (else the project's plan document), store `planDoc` on the session, log "plan document <path>"; the write carries x-wf-session so it is not attributed to the agent. Part of req:wf2.sessions.plan-doc. (built by session 672f4fdf3d; changed by decision:wf2.plans-folder and decision:wf2.plan-per-request in plan:plan-work-in-progress-visibility, session 07aa6645ad)
+- [x] task:plan-first-prompt PLAN_FIRST names the plan document (path and node) and says where blocks go: tasks (`part of plan:<slug>`), questions and decisions on the plan page; req/rule/component/page on the entity's page, embedded on the plan page with `![[id]]`; the type/card step stays for a new entity. Part of rule:plan-first and rule:plan-doc.
+- [x] task:plan-doc-result the PATCH that sets a session done / failed / cancelled writes the Result section (summary, blocks, paragraphs count → changes page) and the card's `status` and `finished`. Part of req:wf2.sessions.plan-result.
+- [x] task:plan-doc-links "page ↗" on the session head (component:session-view), the Agents rows (component:session-list) and the console's "opened …" line open the plan document; sessions without one show no "page" link (the changes link stays). Part of req:wf2.sessions.plan-doc. (the single link became component:plan-list — every plan of the worker, task:plans-in-agents-view)
+- [x] task:session-page-retire `/<product>/sessions/<id>` redirects to the plan document (else to `/changes`); remove component:session-page, lib:session-page and op:api.sessions.page with their tests; keep the changes page; decision:wf2.session-page-derived → superseded, req:wf2.sessions.page → superseded. Part of decision:wf2.plan-is-a-document.
+- [x] task:plan-doc-ui-test Run ui-test:plan-doc in Chrome (playwright-core) against a live palette request; record the result. Part of req:wf2.sessions.plan-doc.
+- [x] task:plan-doc-knowledge After shipping: statuses to shipped, module:app-agents' purpose and rule:plan-first mention the plan document, this session's own plan moved to `plan-…` as the first instance. Part of decision:wf2.plan-is-a-document.
 
 ## Plan: the console shows the request, not the agent's first-message wrapper (session c2bbac979d)
 

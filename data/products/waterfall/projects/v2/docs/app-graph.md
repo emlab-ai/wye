@@ -1,7 +1,7 @@
 ---
 node: module:app-graph
 type: module
-title: App — graph core (parser, check, ctx)
+title: Graph core (parser, check, ctx)
 status: proposed
 owner: unassigned
 last-verified: 2026-09-17

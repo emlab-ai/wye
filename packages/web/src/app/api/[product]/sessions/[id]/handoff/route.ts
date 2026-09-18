@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getProduct } from '@/lib/products';
 import { AGENTS, handoffSession } from '@/lib/sessions';
+import { adoptPlanDoc } from '@/lib/plan-docs';
 
 // POST { agent, note? } → a new queued session for `agent` that continues this one.
 export async function POST(req: Request, { params }: { params: Promise<{ product: string; id: string }> }) {
@@ -9,5 +10,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const body = (await req.json()) as { agent?: string; note?: string };
   if (!AGENTS.some(a => a.id === body.agent)) return NextResponse.json({ error: 'invalid', message: 'unknown agent' }, { status: 422 });
   const child = await handoffSession(p.dir, product, id, body.agent!, body.note ?? '');
+  if (child?.planDoc) await adoptPlanDoc(p.dir, child).catch(() => {}); // the plan lists both sessions
   return child ? NextResponse.json(child, { status: 201 }) : NextResponse.json({ error: 'not_found' }, { status: 404 });
 }

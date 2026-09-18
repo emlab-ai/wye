@@ -75,6 +75,6 @@ Three product types on top of the base kinds (page and op are base kinds): a **c
 
 ## Tasks
 
-- [x] task:new-171 Add desctiption of the app, and all the modules of the app, so we can keep track all requirements about it, i.e. add section UI, add Storage, Navigation etc. add logical modules, create types, like component, page etc, then review entire waterfall app and fill all details. Part of module:app.
+- [x] task:new-171 Add desctiption of the app, and all the modules of the app, so we can keep track all requirements about it, i.e. add section UI, add Storage, Navigation etc. add logical modules, create types, like component, page etc, then review entire waterfall app and fill all details. Part of module:app. (session: 94ac3cf3e0)
 - [ ] task:app.trace-requirements For every requirement in the PRD that the app satisfies, add the component, lib or op that satisfies it to its `satisfied-by` (the map here names the pieces; the PRD's edges still point at rules only). Part of module:app.
 - [ ] task:app.keep-in-step Regenerate the component, lib and op cards from the code (the header comment is the purpose) whenever a file is added or renamed under packages/web/src; a check that every file has a card and every card a file. Part of module:app.

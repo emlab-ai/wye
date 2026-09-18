@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import { PlanList } from './PlanList';
 import { useCallback, useEffect, useState } from 'react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
@@ -52,11 +52,12 @@ export function SessionView({ id }: { id: string }) {
         <strong>{agentLabel(s.agent)}</strong>{s.mode === 'chat' && <span className="pill">chat</span>}
         <span className="muted">{when(s.createdAt)}</span>
         <span className="session-acts">
-          <Link className="mini linkish" href={`/${product}/sessions/${id}`} title="This session as a page: the task, its todo items, the blocks it touched">page ↗</Link>
           <button className="mini" onClick={() => setHandoff(h => h ? null : { agent: AGENTS.find(a => a.id !== s.agent)?.id ?? s.agent, note: '' })} title="Continue this work under another agent">Hand off…</button>
           {active && <button className="mini" onClick={() => patch({ status: 'cancelled' })}>Cancel</button>}
         </span>
       </div>
+      {/* the work items of this worker, the current plan marked; the page they link to is where the tasks and the result are */}
+      {(s.plans?.length ?? 0) > 0 && <div className="session-plans"><small className="muted">work</small><PlanList session={s} plans={s.plans!} compact /></div>}
       {(s.runner || s.cwd) && <p className="muted session-src">{s.cwd && <>folder <code>{s.cwd.replace(/^\/Users\/[^/]+/, '~')}</code>{s.runner ? ' · ' : ''}</>}{s.runner && <>runner {s.runner}</>}{s.startedAt ? ` · started ${when(s.startedAt)}` : ''}{s.finishedAt ? ` · finished ${when(s.finishedAt)}` : ''}</p>}
       {(s.parent || (s.children && s.children.length > 0)) && <p className="session-src">{s.parent && <>continues <button className="linkish" onClick={() => open(`session:${s.parent}`)}>session {s.parent.slice(0, 6)}</button></>}{s.children && s.children.length > 0 && <> handed off to {s.children.map(c => <button key={c} className="linkish" onClick={() => open(`session:${c}`)}>session {c.slice(0, 6)}</button>)}</>}</p>}
       {handoff && (
