@@ -7,7 +7,7 @@ owner: unassigned
 last-verified: 2026-09-17
 ---
 
-- [ ] task:new-441 in session window if you can show size of context, and tokens spent already by agent - show it
+- [x] task:new-441 in session window if you can show size of context, and tokens spent already by agent - show it (session: 53f99bfd98)
 - [x] task:new-917 if we have codex or claude process running it must be visible as live/active sessions, and rename sessions to agents (session: 6ca1fd641c)
 - [x] task:new-453 we need to add. a section/block or page which can show us all cards of specific type with filter, i.e. if i want to show all pages, or all manager or all tasks .. (session: 53f99bfd98, produced: module:app-knowledge module:dev-design module:test-design module:app-documents module:app-graph module:app-shell module:app module:ontology module:scratch-view-block-test)
 - [ ] task:new-954 ![image](assets/2026-09-17-image-56ba74.png) do not show time stamp, it takes a lot of space #done
