@@ -222,8 +222,94 @@ The graph already says it (req:ontology.blocks): a document is a node, every blo
 
 - [x] task:ontology.block-select A click anywhere on a typed block — card, row, embed, text included — selects it and the context column shows the node (req:wf2.ui.block-select, rule:block-select). Part of goal:ontology.graph-editor; done by plan:plan-still-bad-now-need-click-tag. (session: 367dedec3c)
 - [ ] task:ontology.paragraph-select A click in a plain paragraph selects its block node: the Context root shows block:<doc>.<hash> — its heading, its links, what it has — instead of only the knowledge nearest to its text. Part of goal:ontology.graph-editor; depends on task:ontology.block-peek and task:ontology.block-select.
-- [ ] task:ontology.child-nodes-design The uniform content model (decision:ontology.uniform-content): `content: list of block` with inverse `parent` on type:node, the parser reads the blocks nested under any block as its content (list items already, paragraphs and cards next), type:comment declared as a block type with an author and a date, and a comment written as a nested block under what it comments on. Part of goal:ontology.graph-editor; depends on decision:ontology.uniform-content.
-- [ ] task:ontology.children-in-column The context column shows a node's `content` — its child blocks: comments, nested items, the blocks under a heading — as a Content group of expandable cards (rule:connected-cards), and "+ block" / "+ comment" writes a child under the node; the editor nests a child block under any block. Part of goal:ontology.graph-editor; depends on task:ontology.child-nodes-design.
+- [ ] task:ontology.child-nodes-design type:comment declared as a block type with an author and a date, and a comment written as a nested block under what it comments on — the rest of the uniform content model (decision:ontology.uniform-content) shipped with plan:plan-need-more-work-context-panel-proper: `content` on type:node, the parser reading the blocks under any prose line, list item or card (rule:ontology.content). Part of goal:ontology.graph-editor; depends on req:ontology.content.
+- [x] task:ontology.children-in-column The context column shows a node's `content` — its child blocks — in the document's own editor scoped to the node, where any block can be added and a child's card opens the child one level deeper (req:wf2.ui.node-content, rule:content-editor). Part of goal:ontology.graph-editor; done by plan:plan-need-more-work-context-panel-proper. (session: ffab751604)
+
+### Content: how it is written and how deep it goes
+
+decision:ontology.uniform-content says every node has `content` — the blocks under it. plan:plan-need-more-work-context-panel-proper asks for the rest: the markdown form at every level, a content editor on the node itself, and what a card shows when the node has content. The requirement and the two decisions below say what the parser reads and how a person goes deeper; the column's side is req:wf2.ui.node-content on page:web/context-column.
+
+```yaml
+- id: req:ontology.content
+  title: The blocks indented under a node are its content, at any depth
+  when: >
+    a node's defining line — a prose line, a list item, a yaml card's closing fence — is followed by blocks
+    indented under it (two spaces deeper than the line): list items, paragraphs after a blank line, fenced cards
+  then: >
+    those blocks are the node's content in document order — each one a node the parent has (inverse `parent`),
+    typed when its first token is an id, a block:<doc>.<hash> node otherwise — and the same rule applies inside
+    each of them, so a block of content can carry content of its own to any depth; a document's content is its
+    body, a heading's the blocks under it (req:ontology.blocks)
+  unless: >
+    the indented lines are the continuation text of a prose line — no blank line before them, no list marker, no
+    id — which stay the line's text (rule:prose-round-trip); or an html comment or a horizontal rule
+  status: shipped
+  refines: req:ontology.blocks
+  depends-on: decision:ontology.uniform-content
+  satisfied-by: [rule:ontology.content, rule:content-lines, op:node.content]
+  verified-by: [test:blocks, test:import-web, test:serialize-web, test:node-content-web, ui-test:node-content]
+  related-to: [goal:ontology.graph-editor, req:wf2.ui.node-content]
+- id: decision:ontology.content-markdown
+  title: Content is written indented under the defining line — two spaces per level, the same rules at every level
+  context: >
+    decision:ontology.uniform-content fixed that content is what sits under the node; it left the form for cards
+    and for paragraph-form prose nodes open. Today the parser reads nested list items under a list item only, the
+    editor writes a node block's children as indented lines, and a yaml fence can hold several cards.
+  choice: >
+    One form for every node: its content is the markdown indented two spaces under its defining line and is parsed
+    with the document's own rules (paragraphs, list items, fences, ids), recursively. A prose node — paragraph or
+    list item — has nested list items and, after a blank line, indented paragraphs and fences. A yaml card has its
+    content indented after its closing fence; a card with content is alone in its fence (the serializer splits the
+    group). Children keep their own ids (a typed child its `kind:slug`, an anonymous one its text hash), so a child
+    survives its parent's text changing and a parent survives its children changing.
+  alternatives: >
+    A `content: |` key on the card holding markdown (one form for cards, another for prose lines, and a second
+    parse inside yaml); comment-marker regions (`<!-- content:id -->`) around the children (invisible structure,
+    a third marker grammar next to tables and views); a sidecar store (against the one-store rule).
+  consequences: >
+    lib/parse.js attaches an indented list under a named paragraph line to that node, not to its heading, and reads
+    the indented blocks after a fence as the last card's content; type:node declares `content: list of block
+    -(inverse)-> parent` and `has` stays its alias until every reader moved; the editor's import keeps a node
+    block's nested blocks as its children in both forms and the serializer writes them back at the right depth;
+    documents that already nest list items under task lines read the same as before.
+  date: 2026-09-18
+  status: proposed
+  affects: [req:ontology.content, type:node, req:ontology.blocks, rule:prose-round-trip]
+  session: ffab751604
+- id: rule:ontology.content
+  statement: >
+    lib/parse.js keeps a stack of open containers — list items, named paragraph lines and the last card of a yaml
+    fence, each with the indent of its defining line; a block belongs to the deepest container shallower than its
+    own indent, else to the heading, and a heading empties the stack. A prose line's continuation lines (no blank
+    line, no list marker, no fence) stay its text; a fence is one block flushed at its closing line; the text of an
+    indented block is de-indented before it is hashed, so a child's id does not depend on its depth. Indented yaml
+    fences open a yaml region like top-level ones, so a card inside content defines its node. type:node declares
+    `content: list of block -(inverse)-> parent`; the parser writes the edge as `has` until every reader moved.
+  source: lib/parse.js:368-410 (open, parentFor, flush); lib/parse.js:281; schema/base-ontology.md:23
+  status: shipped
+- id: decision:ontology.depth-by-navigation
+  title: Going deeper is navigation in the column, not nesting inside it
+  context: >
+    Content can nest to any depth (req:ontology.content). The column is narrow: a tree of editors inside editors
+    would run out of width at the third level, and every level would need its own save path.
+  choice: >
+    The column shows one node at a time: its properties, then its content in one editor whose blocks are the
+    node's direct children. A child's card in that editor shows its head and its first block; a click on it opens
+    the child in the column (pushed as a chip, ← returns to the parent), which shows the child's properties and
+    its own content editor. Depth costs one click per level and nothing in layout; the chips are the path back.
+  alternatives: >
+    Nested editors expanded in place (unbounded indent and width, one save per level); a modal per level (loses
+    the column's stack and the document behind it); showing the whole subtree read-only and editing only on the
+    document page.
+  consequences: >
+    the content editor renders a child node block with its children folded to a preview (req:wf2.ui.card-preview)
+    and selecting it opens the child (rule:block-select applies inside the column too); the chip stack is the
+    breadcrumb; the document page keeps showing the full tree inline as it does today.
+  date: 2026-09-18
+  status: proposed
+  affects: [req:wf2.ui.node-content, req:wf2.ui.card-preview, rule:block-select]
+  session: ffab751604
+```
 
 ### Where types live and how the parser finds them
 
@@ -264,7 +350,7 @@ What shipped, as requirements the tests verify and rules the code enforces. Stat
 | test | file | cases |
 |---|---|---|
 | test:ontology | test/ontology.js | 30 |
-| test:blocks | test/blocks.js | 22 |
+| test:blocks | test/blocks.js | 38 |
 | test:types-web | packages/web/src/lib/types.test.ts | 5 |
 | test:instances-web | packages/web/src/lib/instances.test.ts | 3 |
 | test:type-edit-web | packages/web/src/lib/type-edit.test.ts | 8 |

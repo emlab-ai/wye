@@ -489,6 +489,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - action:go-to-definition: jump to the node's block in its document -(navigates)-> page:web/node
     - action:show-in-graph:    open the graph focused on the node -(navigates)-> page:web/graph
     - action:send-to-agent:    send the node (id, title, link) to an active session or a new one (rule:agent-sessions)
+    - action:edit-content:     type, or / for a block, in a node's Content editor: the blocks are written under the node's line in its document -(calls)-> op:node.content
     - action:open-type-page:   on a type: node -(navigates)-> page:web/types
     - action:edit-type:        on a product type, edit its own properties (name, value type, required, inverse; + property) and purpose; Save to document rewrites the type card
     - action:answer-question:  in a session console, answer the agent's question (rule:agent-questions)
@@ -496,6 +497,8 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - a node shows its card, then (typed nodes) Properties — effective properties with placeholders and the inverses read from the other side — then Connected as a list grouped by relation (incoming relations labelled by their inverse name) or as a graph 1–2 hops out
     - a Connected or tracking row expands in place into the node's embedded card; a group heading expands or collapses all of its rows (rule:connected-cards)
     - in a document, a click anywhere on a typed block — card, table row or embed, its text included — selects it: the column comes to its Context root and shows that node (rule:block-select)
+    - a defined node's details are its properties, then Content — the blocks under it in the document's editor scoped to the node (rule:content-editor); a child's card there opens the child one level deeper, ← comes back (decision:ontology.depth-by-navigation)
+    - Related (the knowledge nearest to the block) is a bar with a show / hide button, closed by default and remembered per browser; no search runs while closed (rule:related-collapsed)
     - a document shows a preview (title, status, intro, outline, Open document →) and Connected; a goal or task shows its tracking editor and what is part of it; a type shows its card, editable properties, instances and Connected; a session shows its console
     - Context mode (no item open on a document page) follows the block being edited and shows the knowledge nearest to it (rule:context-panel)
     - field, prop and block nodes never appear in Connected; a document's phrase links are read from its blocks (rule:ontology.hidden-kinds)
@@ -590,6 +593,87 @@ Selecting a block: what a click on any part of a typed block does to the column.
     (cursor -1) keeps every chip and appends — nothing is "above" the root — so a session read before a block
     click survives the next tag click.
   source: packages/web/src/components/PeekProvider.tsx#select; packages/web/src/components/NodeCards.tsx#selectOn; packages/web/src/components/EmbedBlock.tsx; packages/web/src/components/DocEditor.tsx#selectBlockOnClick
+  status: shipped
+```
+
+A node's details: properties, content, and what a card shows of it.
+
+```yaml
+- id: req:wf2.ui.node-content
+  title: A node's details are its properties and its content, edited with the document's editor
+  when: >
+    a defined node of any kind — a requirement, a task, a decision, a product type's instance, a document — is
+    shown in the context column (the Context root after a click on its block, or pushed by a tag)
+  then: >
+    the column shows its properties (component:node-editor) and, under a Content heading, its content in the same
+    block editor a document page uses (component:doc-editor): the slash menu offers every block type, a typed
+    block inserted there is a new node the parent has, tags, embeds, images and nested blocks work as on the page,
+    and every change saves to the node's nested lines in its source document (req:ontology.content, one store);
+    a child's card in that editor shows its head and first block, and a click on it opens the child in the column
+    with its own properties and content editor — so a person goes one level deeper per click, to any depth, and
+    ← comes back (decision:ontology.depth-by-navigation)
+  unless: >
+    the node is only referenced and never defined — no content, the row says so; or a block: node whose id is
+    the hash of its text (question:wf2.content-of-block-nodes)
+  status: shipped
+  refines: req:wf2.ui.node-page
+  depends-on: [req:ontology.content, decision:ontology.depth-by-navigation]
+  satisfied-by: [component:peek-panel, component:doc-editor, rule:content-editor, op:node.content]
+  verified-by: [ui-test:node-content]
+  related-to: [page:web/context-column, component:node-editor]
+- id: req:wf2.ui.card-preview
+  title: A card of a node with content shows its first block and folds the rest
+  when: >
+    a node whose content is not empty renders as a card — on its document page, as an embed on another page, as
+    an expanded Connected row in the column, or inside its parent's content editor
+  then: >
+    the card shows its head (kind, id, status), its text and properties as today, then the first block of its
+    content and, in place of the rest, a fold toggle with the count ("▸ 3 more blocks"); the toggle unfolds the
+    content in place; a click on the card opens the node's details (rule:block-select), where the whole content
+    is editable
+  unless: the content is one block — it is shown whole and there is no toggle
+  status: shipped
+  refines: req:wf2.ui.connected-cards
+  depends-on: req:ontology.content
+  satisfied-by: [component:node-cards, component:embed-block, rule:card-fold]
+  verified-by: [ui-test:node-content]
+  related-to: [decision:ontology.depth-by-navigation]
+- id: req:wf2.ui.related-collapsed
+  title: Related knowledge in the column is hidden until asked for
+  when: >
+    the Context root shows a node or follows the caret in a document, where today the knowledge closest to the
+    block's text (rule:context-panel) is listed under Related
+  then: >
+    Related is a collapsed heading with a "show" button; no search runs while it is collapsed; pressing it runs
+    the search and lists the hits as today; the choice is remembered per browser so a person who wants Related
+    open keeps it open across pages and reloads
+  unless: no block is being edited — the Context root has nothing to search for and says so, as today
+  status: shipped
+  refines: req:wf2.ui.node-page
+  satisfied-by: [component:peek-panel, component:context-panel, rule:related-collapsed]
+  verified-by: [ui-test:node-content]
+  related-to: [rule:context-panel]
+- id: rule:content-editor
+  statement: >
+    `DocEditor` takes a `scope` — a node id. Scoped, it loads the node's content markdown (given by `NodeContent`
+    from op:node.content with the document's hash) through the same import as a page and saves with PUT
+    …/node/<id>/content under that hash; it publishes no editing context and never clears the selected node, so
+    the column keeps showing the node whose content it edits; the half-wipe guard and the dev handles are the
+    page's only. A block asks its own editor through a DOM event (`emit`: wf:select, wf:peek) that bubbles to the
+    editor's container — two editors on one page never hear each other — and in a scoped editor a select opens
+    the child on the chip stack instead of selecting it at the root (decision:ontology.depth-by-navigation); an
+    embedded card reads the same scope from `EditorScope`. The page editor ignores a block change while it has no
+    focus (a reload after the column saved), so the selected node survives the refetch. `NodeContent` refetches on
+    every graph change; the editor ignores a refetch while its own save is pending.
+  source: packages/web/src/components/DocEditor.tsx:527 (scope, rootRef, publishContext, save); packages/web/src/components/PeekPanel.tsx:157; packages/web/src/components/EditorScope.ts; packages/web/src/components/EmbedBlock.tsx
+  status: shipped
+- id: rule:related-collapsed
+  statement: >
+    The Context root renders Related as a bar with a show / hide button (`Related` in PeekPanel); `ContextPanel`
+    — the component that runs the semantic search — is mounted only while it is open, so no request goes out
+    while it is closed. The state is `relatedOpen` in `PeekProvider`, read from and written to localStorage
+    (`wf-related`), closed by default.
+  source: packages/web/src/components/PeekPanel.tsx:145; packages/web/src/components/PeekProvider.tsx:46
   status: shipped
 ```
 
@@ -1018,6 +1102,18 @@ Selecting a block: what a click on any part of a typed block does to the column.
     node as the session's artifact. Used by the wf CLI (wf node set) and the context column's editors.
   gate: none (local app)
   source: packages/web/src/app/api/[product]/node/[id]/route.ts; packages/web/src/lib/node-edit.ts
+- id: op:node.content
+  args: product, node id; GET → { content, children, bodyHash, project, doc }; PUT { content, ifMatch? } → { ok, bodyHash, lintOk, lintErrors }
+  does: >
+    reads and replaces a node's content — the blocks indented under its defining line (req:ontology.content) — as
+    markdown of its own: `readContent` de-indents the run after a prose line's continuation text or after a card's
+    closing fence; `writeContent` re-indents it two spaces deeper than the line, a blank line before it unless it
+    starts with a list item and after it when a block follows, and splits a yaml fence so a card that was not last
+    gets its content right after it. PUT holds the file lock, refuses a stale `ifMatch` (409, rule:if-match),
+    rebuilds and runs the check (rule:validate-before-write), records the session's artifact. `wf node content
+    <id> [--file f]` uses both. A block: node has no content form (question:wf2.content-of-block-nodes).
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/node/[id]/content/route.ts; packages/web/src/lib/node-content.ts; bin/wf.js (node content)
 - id: op:types.create
   args: product; body { slug, extends?, purpose?, doc?, project? } (POST /api/<product>/types)
   does: >

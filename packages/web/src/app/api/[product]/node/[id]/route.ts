@@ -5,6 +5,10 @@ import { typeOf, nodeProps, instancesOf } from '@/lib/types';
 import { editNode, type NodePatch } from '@/lib/node-edit';
 import { recordArtifact } from '@/lib/artifacts';
 import { docIdOf } from '@/lib/doc';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { REPO_ROOT } from '@/lib/products';
+import { readContent } from '@/lib/node-content';
 
 export async function GET(req: Request, { params }: { params: Promise<{ product: string; id: string }> }) {
   const { product, id: raw } = await params; const id = decodeURIComponent(raw);
@@ -19,7 +23,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ product:
   // a type: node also carries its own definition and every instance (the kind and its subtypes)
   const self = id.startsWith('type:') ? (scope.graph.types ?? []).find(t => t.id === id) ?? null : null;
   const instances = self ? instancesOf(scope.graph, self.slug).map(n => ({ id: n.id, title: n.title, status: n.status })) : undefined;
-  return NextResponse.json({ node, relations: relations(scope.idx, id), graph: { nodes, edges }, type: type ?? null, props: type ? nodeProps(scope.graph, node) : [], inverses: scope.graph.inverses ?? {}, self, instances });
+  // the node's content (req:ontology.content) as markdown of its own, for the card's preview; null when it has no form for it
+  let content: string | null = null;
+  if (node.defined && node.file && node.form !== 'block') { try { content = readContent(await readFile(path.join(REPO_ROOT, node.file), 'utf8'), id, node.line, node.form ?? 'yaml'); } catch { content = null; } }
+  return NextResponse.json({ node, relations: relations(scope.idx, id), graph: { nodes, edges }, type: type ?? null, props: type ? nodeProps(scope.graph, node) : [], inverses: scope.graph.inverses ?? {}, self, instances, content });
 }
 
 // PUT { status?, text?, props?: { key: value | null } } → edits the prose line that defines the node in place, then

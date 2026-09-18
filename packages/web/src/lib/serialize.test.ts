@@ -67,8 +67,59 @@ describe('blocksToMarkdown', () => {
   2. second step
     - detail
   - [x] task:b Sub task
+
   a trailing note
+
 - [ ] task:c Next
+`);
+  });
+  it('writes content under a paragraph node and after a card\'s fence, indented, a blank line before a non-list first block', () => {
+    const req = (slug: string, text: string, children?: AnyBlock[]) => ({ type: 'node', props: { kind: 'req', slug, status: '', form: 'prose', textKey: 'text', body: '', extra: '', check: '', list: '' }, content: [t(text)], children });
+    const card = (slug: string, children?: AnyBlock[]) => ({ type: 'node', props: { kind: 'decision', slug, status: 'proposed', form: 'yaml', textKey: 'title', body: `id: decision:${slug}\ntitle: D ${slug}\nstatus: proposed`, extra: '' }, content: [t('D ' + slug)], children });
+    const md = blocksToMarkdown([
+      req('a', 'Text of a.', [
+        { type: 'paragraph', content: [t('A paragraph inside a.')] },
+        req('b', 'Inside a.', [{ type: 'bulletListItem', content: [t('two levels down')] }]),
+        card('c', [{ type: 'paragraph', content: [t('under the inner card')] }]),
+      ]),
+      card('x'), card('y', [{ type: 'bulletListItem', content: [t('under y')] }, { type: 'paragraph', content: [t('and a paragraph')] }]), card('z'),
+      { type: 'paragraph', content: [t('top again')] },
+    ]);
+    expect(md).toBe(`req:a Text of a.
+
+  A paragraph inside a.
+
+  req:b Inside a.
+    - two levels down
+
+  \`\`\`yaml
+  - id: decision:c
+    title: D c
+    status: proposed
+  \`\`\`
+
+    under the inner card
+
+\`\`\`yaml
+- id: decision:x
+  title: D x
+  status: proposed
+- id: decision:y
+  title: D y
+  status: proposed
+\`\`\`
+
+  - under y
+
+  and a paragraph
+
+\`\`\`yaml
+- id: decision:z
+  title: D z
+  status: proposed
+\`\`\`
+
+top again
 `);
   });
   it('serialises headings, paragraphs, lists, tables, code, dividers and nodes', () => {

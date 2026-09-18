@@ -78,3 +78,76 @@ assert(!g.search('plain paragraph').some(h => h.n.kind === 'block'), 'search hid
 assert(g.search('block:pos plain').some(h => h.n.kind === 'block'), 'search shows blocks when asked for block:');
 assert(data.nodes.filter(x => x.kind === 'block').length === 8, 'eight anonymous blocks: ' + data.nodes.filter(x => x.kind === 'block').map(x => x.title).join(' | '));
 console.log('ok — blocks: nodes, tree, owned links, hidden');
+
+// ---- content (req:ontology.content, decision:ontology.content-markdown): the blocks indented under a node's defining
+// line — a named paragraph, a list item, a yaml card's closing fence — are its content, at any depth
+const md2 = `---
+node: module:cnt
+title: Content
+---
+
+# Content
+
+## Forms
+
+req:cnt.para A paragraph node whose text
+wraps onto a continuation line.
+
+  A paragraph inside the node.
+
+  - a list item inside the node
+    - two levels down
+
+  \`\`\`yaml
+  - id: decision:cnt.inner
+    title: Inner
+  \`\`\`
+
+Back at the top level.
+
+- task:cnt.item An item with content
+
+  Paragraph under the item.
+
+  - question:cnt.q Nested question? #open
+
+    \`\`\`yaml
+    - id: rule:cnt.deep
+      statement: three levels down
+      source: a.js:1
+    \`\`\`
+
+\`\`\`yaml
+- id: req:cnt.card
+  title: A card with content
+\`\`\`
+
+  Under the card.
+
+  - rule:cnt.under A rule under the card #proposed
+
+Plain again.
+`;
+const file2 = path.join(dir, 'cnt.md');
+fs.writeFileSync(file2, md2);
+const g2 = new Graph(parseFiles([file2]));
+const out2 = id => (g2.out.get(id) || []).filter(e => !e.generated).map(e => e.verb + '>' + e.to).sort();
+const bid = t => 'block:cnt.' + blockHash(t);
+const forms = bid('## Forms');
+assert.strictEqual(g2.node('req:cnt.para').body.split('\n')[1], 'text: A paragraph node whose text wraps onto a continuation line.', 'continuation lines stay the text');
+assert(out2(forms).includes('has>req:cnt.para'), 'the named paragraph is the heading\'s block');
+assert(out2('req:cnt.para').includes('has>' + bid('A paragraph inside the node.')), 'an indented paragraph after a blank line is the node\'s content: ' + out2('req:cnt.para'));
+assert(out2('req:cnt.para').includes('has>' + bid('a list item inside the node')), 'an indented list item is the node\'s content');
+assert(out2(bid('a list item inside the node')).includes('has>' + bid('two levels down')), 'nesting continues inside the content');
+assert(g2.node('decision:cnt.inner') && g2.node('decision:cnt.inner').defined, 'an indented yaml card inside content defines its node');
+assert(out2('req:cnt.para').includes('has>decision:cnt.inner'), 'the indented card is the node\'s content');
+assert(!out2(forms).includes('has>' + bid('A paragraph inside the node.')), 'content is not the heading\'s');
+assert(out2(forms).includes('has>' + bid('Back at the top level.')), 'a top-level paragraph closes the content');
+assert(out2('task:cnt.item').includes('has>' + bid('Paragraph under the item.')) && out2('task:cnt.item').includes('has>question:cnt.q'), 'a list item\'s content: paragraph and nested typed item: ' + out2('task:cnt.item'));
+assert(out2('question:cnt.q').includes('has>rule:cnt.deep'), 'a card three levels down is the nested item\'s content: ' + out2('question:cnt.q'));
+assert.strictEqual(g2.node('rule:cnt.deep').title, 'three levels down', 'the nested card\'s body is de-indented');
+assert(out2(forms).includes('has>req:cnt.card'), 'the top-level card is the heading\'s block');
+assert(out2('req:cnt.card').includes('has>' + bid('Under the card.')) && out2('req:cnt.card').includes('has>rule:cnt.under'), 'the indented blocks after a card\'s fence are its content: ' + out2('req:cnt.card'));
+assert.strictEqual(g2.node('rule:cnt.under').status, 'proposed', 'a typed line inside content is a prose node');
+assert(out2(forms).includes('has>' + bid('Plain again.')), 'the content ends at the next top-level block');
+console.log('ok — content: indented blocks under a paragraph node, a list item and a card, three levels deep');

@@ -9,6 +9,7 @@
 //   wf doc retype <product/project/doc> --type <slug>   the page becomes an instance of that type; every link to it follows
 //   wf node <id> [--product p]           a node with its relations
 //   wf node set <id> --product p [--status s] [--text t] [--set key=value ...] [--unset key ...]
+//   wf node content <id> [--product p]   the blocks under the node (its content) as markdown; --file f | stdin replaces it
 //   wf context "<text>" --product p      knowledge closest to a text (local semantic search)
 //   wf type add <slug> --product p [--extends parent] [--purpose "…"] [--doc product/project/doc]   a proposed type card
 //   wf inbox add --product p --title "…" [--ref id ...] (body on stdin)   a raw note (pasted material) for later filing;
@@ -111,6 +112,15 @@ const commands = {
     out(flags.json ? j : j.body);
   },
   async node() {
+    if (pos[1] === 'content') {
+      // the node's content (req:ontology.content): read as markdown of its own, or replaced from --file / stdin
+      const id = pos[2] || die('wf node content <id> [--file f]');
+      const text = flags.file ? fs.readFileSync(flags.file, 'utf8') : await readStdin();
+      if (!flags.file && !text) { const j = await api('GET', `/api/${product()}/node/${encodeURIComponent(id)}/content`); return out(flags.json ? j : j.content); }
+      const cur = await api('GET', `/api/${product()}/node/${encodeURIComponent(id)}/content`);
+      const j = await api('PUT', `/api/${product()}/node/${encodeURIComponent(id)}/content`, { content: text, ifMatch: cur.bodyHash });
+      return out(flags.json ? j : `${cur.file}: content of ${id} written${j.lintOk ? '' : ' — check: ' + j.lintErrors.join(' · ')}`);
+    }
     if (pos[1] === 'set') {
       const id = pos[2] || die('wf node set <id> …'); const props = {};
       for (const kv of list(flags.set)) { const i = kv.indexOf('='); if (i > 0) props[kv.slice(0, i)] = kv.slice(i + 1); }
@@ -246,7 +256,7 @@ async function buildPrompt(p, s) {
   }
   if (ctx.length) parts.push(`\n## Context\n${ctx.join('\n\n')}`);
   if (s.parent) parts.push(`\nThis session continues session ${s.parent}; its log and result are in the instruction above. Pick up where it stopped.`);
-  parts.push(`\n## How to work\n- The Waterfall CLI is \`wf\` (WF_URL=${WF_URL}, WF_PRODUCT=${p}). Read: \`wf resolve <link|id>\`, \`wf doc <product/project/doc>\`, \`wf node <id>\`, \`wf context "<text>"\`. Write: \`wf node set <id> --status s --set key=value\`, \`wf doc write <product/project/doc> --file f\` (whole body). \`ctx\` queries the graph offline (\`ctx --root data/products/${p} search …\`).\n- Documents are markdown under data/products/${p}/projects/<project>/docs/. Nodes are lines that start with an id (\`req:x …\`, \`- [ ] task:y …\`) or yaml blocks; keep ids stable.\n- Report progress with \`wf session log ${s.id} "<line>"\` and finish with \`wf session done ${s.id} "<result>"\` (or \`wf session fail\`). The runner marks the session done when you exit, so a final summary on stdout is enough.\n- If the work belongs to another agent, \`wf session handoff ${s.id} --agent <codex|claude-code> "<note>"\`.`);
+  parts.push(`\n## How to work\n- The Waterfall CLI is \`wf\` (WF_URL=${WF_URL}, WF_PRODUCT=${p}). Read: \`wf resolve <link|id>\`, \`wf doc <product/project/doc>\`, \`wf node <id>\`, \`wf context "<text>"\`. Write: \`wf node set <id> --status s --set key=value\`, \`wf node content <id> --file f\` (the blocks under a node), \`wf doc write <product/project/doc> --file f\` (whole body). \`ctx\` queries the graph offline (\`ctx --root data/products/${p} search …\`).\n- Documents are markdown under data/products/${p}/projects/<project>/docs/. Nodes are lines that start with an id (\`req:x …\`, \`- [ ] task:y …\`) or yaml blocks; keep ids stable.\n- Report progress with \`wf session log ${s.id} "<line>"\` and finish with \`wf session done ${s.id} "<result>"\` (or \`wf session fail\`). The runner marks the session done when you exit, so a final summary on stdout is enough.\n- If the work belongs to another agent, \`wf session handoff ${s.id} --agent <codex|claude-code> "<note>"\`.`);
   return parts.join('\n');
 }
 // The request's images (pasted into the command box) are the session's files in the app; a runner fetches them

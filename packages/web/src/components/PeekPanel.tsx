@@ -17,6 +17,8 @@ import { Produced } from './Produced';
 import { DocPeek } from './DocPeek';
 import { EmbeddedCard } from './EmbedBlock';
 import { TypeView } from './TypeView';
+import dynamic from 'next/dynamic';
+const DocEditor = dynamic(() => import('./DocEditor'), { ssr: false });
 import type { GraphNode, TypeDef } from '@/lib/graph';
 import type { NodeProp } from '@/lib/types';
 import type { IndexEntry } from '@/lib/doc';
@@ -28,7 +30,7 @@ const OUT: Record<string, string> = { refines: 'Refines', 'satisfied-by': 'Satis
 const INC: Record<string, string> = { refines: 'Refined by', 'satisfied-by': 'Satisfies', 'verified-by': 'Verifies', 'depends-on': 'Needed by', 'part-of': 'Contains', 'related-to': 'Related from', 'governed-by': 'Governs', 'gated-by': 'Gates', has: 'Belongs to', refs: 'Referenced by', contradicts: 'Contradicted by', resolves: 'Resolved by', 'applies-to': 'Applied by', 'has-action': 'Action of', navigates: 'Reached from', reads: 'Read by', writes: 'Written by', produced: 'Produced by' };
 
 export function PeekPanel() {
-  const { product, index, openId, stack, cursor, go, back, togglePin, remove, close, showContext, editing, focused, setPanelOpen } = usePeek();
+  const { product, index, openId, stack, cursor, go, back, togglePin, remove, close, showContext, editing, focused, setPanelOpen, relatedOpen, setRelatedOpen } = usePeek();
   if (!openId && !showContext && !stack.length) return null;
   const chips = (
     <div className="peek-nav">
@@ -59,8 +61,8 @@ export function PeekPanel() {
       {chips}
       <div className="peek-body">
         {rootId
-          ? <><NodeView id={rootId} />{(!focused || focused === editing?.nodeId) && <><div className="peek-bar peek-sub"><strong>Related</strong><span className="muted">knowledge close to what you are writing</span></div><ContextPanel /></>}</>
-          : <><div className="peek-bar"><strong>Context</strong><span className="muted">{editing ? 'for the block you are editing' : 'put the cursor in the text'}</span></div><ContextPanel /></>}
+          ? <><NodeView id={rootId} />{(!focused || focused === editing?.nodeId) && <Related open={relatedOpen} setOpen={setRelatedOpen} sub />}</>
+          : <><div className="peek-bar"><strong>Context</strong><span className="muted">{editing ? 'for the block you are editing' : 'put the cursor in the text'}</span></div>{editing ? <Related open={relatedOpen} setOpen={setRelatedOpen} /> : <ContextPanel />}</>}
       </div>
     </aside>
   );
@@ -121,6 +123,7 @@ function NodeView({ id }: { id: string }) {
           {entry && (entry.kind === 'goal' || entry.kind === 'task') && <>{entry.sessions && entry.sessions.length > 0 && <Produced sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}<Tracking entry={entry} rows={rows} inc={d.relations.inc} /></>}</>
         : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
       {d && d.type && d.props && d.relations.inc.some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={d.relations.inc} inverses={d.inverses ?? {}} product={product} />}
+      {d && !d.self && d.node.defined && <NodeContent id={id} />}
       {d && (
         <div className="peek-views">
           <h4>Connected <span className="muted">{[...d.relations.out, ...d.relations.inc].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0)}</span></h4>
@@ -134,6 +137,42 @@ function NodeView({ id }: { id: string }) {
       {d && view === 'list' && <Relations out={d.relations.out} inc={d.relations.inc} rows={rows} inverses={d.inverses} />}
       {d && view === 'graph' && (d.graph.nodes.length > 1 ? <PeekGraph focus={id} nodes={d.graph.nodes} edges={d.graph.edges} onPick={open} /> : <p className="muted rels-empty">Nothing links to or from this node yet.</p>)}
     </>
+  );
+}
+
+// Related — the knowledge nearest to the block being written (rule:context-panel) — behind a button
+// (req:wf2.ui.related-collapsed): the search panel is not mounted, so no request goes out, until it is shown.
+function Related({ open, setOpen, sub }: { open: boolean; setOpen: (v: boolean) => void; sub?: boolean }) {
+  return (
+    <>
+      <div className={`peek-bar ${sub ? 'peek-sub' : ''} related-bar`}><strong>Related</strong><span className="muted">knowledge close to what you are writing</span><button className="linkish related-toggle" onClick={() => setOpen(!open)} aria-expanded={open}>{open ? 'hide' : 'show'}</button></div>
+      {open && <ContextPanel />}
+    </>
+  );
+}
+
+// The node's content (req:wf2.ui.node-content): the blocks under its defining line in the document's own editor,
+// scoped to the node (decision:wf2.content-editor-scoped) — loaded from the content route with the document's
+// hash, refetched on every graph change (the editor ignores a refetch while a save of its own is pending).
+function NodeContent({ id }: { id: string }) {
+  const { product } = usePeek();
+  const [c, setC] = useState<{ content: string; bodyHash: string; project: string; doc: string; children: string[] } | null | 'none'>(null);
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    const h = (e: Event) => { if ((e as CustomEvent<{ kinds: string[] }>).detail.kinds.includes('graph')) setVersion(v => v + 1); };
+    window.addEventListener('wf:change', h); return () => window.removeEventListener('wf:change', h);
+  }, []);
+  useEffect(() => {
+    let live = true;
+    fetch(`/api/${product}/node/${encodeURIComponent(id)}/content`).then(r => r.ok ? r.json() : null).then(j => { if (live) setC(j ?? 'none'); }).catch(() => { if (live) setC('none'); });
+    return () => { live = false; };
+  }, [id, product, version]);
+  if (c === 'none' || !c) return null;
+  return (
+    <section className="content">
+      <h4>Content <span className="muted">{c.children.length ? `${c.children.length} block${c.children.length === 1 ? '' : 's'} under this node` : 'blocks under this node — type, or / for a block'}</span></h4>
+      <div className="content-editor"><DocEditor key={id} product={product} project={c.project} slug={c.doc} body={c.content} ifMatch={c.bodyHash} scope={id} /></div>
+    </section>
   );
 }
 

@@ -1,10 +1,11 @@
 'use client';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { createReactBlockSpec } from '@blocknote/react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
-import { NodeCard, type CardP, type CardHost } from './NodeCards';
+import { NodeCard, ContentPreview, contentBlocks, type CardP, type CardHost } from './NodeCards';
+import { EditorScope } from './EditorScope';
 import { cardFromNode, cardText, cardPatchToNodePatch, type ApiNode } from '@/lib/embed';
 import { setBodyField } from '@/lib/yaml-form';
 import { requestSend } from './CommandBox';
@@ -16,8 +17,14 @@ import type { NodePatch } from '@/lib/node-edit';
 // keystroke, patches merged), the watcher rebuilds the graph, and every embed refetches on the graph change event.
 // The slug is read-only: renaming a node happens on its source page.
 export function EmbeddedCard({ id, badge, className, inEditor }: { id: string; badge?: React.ReactNode; className?: string; inEditor?: boolean }) {
-  const { product, index, hrefFor, open, select } = usePeek();
+  const { product, index, hrefFor, open, select: selectRoot } = usePeek();
+  // in a content editor (the column) a click opens the node one level deeper; on a page it selects (rule:block-select)
+  const scope = useContext(EditorScope);
+  const select = scope ? open : selectRoot;
   const [p, setP] = useState<CardP | null>(null);
+  // the node's content (req:wf2.ui.card-preview): shown as text under the card, the first block folded
+  const [content, setContent] = useState('');
+  const [folded, setFolded] = useState(true);
   // the text slot keeps its own draft: the body's parsed value is trimmed, which would eat a space just typed
   const [text, setText] = useState('');
   const [missing, setMissing] = useState(false);
@@ -37,9 +44,10 @@ export function EmbeddedCard({ id, badge, className, inEditor }: { id: string; b
     fetch(`/api/${product}/node/${encodeURIComponent(id)}`).then(async r => {
       if (!live) return;
       if (!r.ok) { setMissing(true); return; }
-      const j = await r.json() as { node: ApiNode & { defined?: boolean } };
+      const j = await r.json() as { node: ApiNode & { defined?: boolean }; content?: string | null };
       if (!live) return;
       if (!j.node?.defined) { setMissing(true); return; }
+      setContent(j.content ?? '');
       // a refresh while an edit is on its way would clobber what is being typed: the next graph event brings it
       if (pending.current || timer.current) return;
       const card = cardFromNode(j.node);
@@ -78,6 +86,8 @@ export function EmbeddedCard({ id, badge, className, inEditor }: { id: string; b
     copyLink: async () => { const url = `${location.origin}${hrefFor(id) ?? ''}`; try { await navigator.clipboard.writeText(url); } catch { /* clipboard unavailable */ } },
     send: () => requestSend({ text, refs: [id], source: { link: `${location.origin}${hrefFor(id) ?? ''}` } }),
     hostRef, slugReadOnly: true, extraClass: 'embedded',
+    fold: content ? { count: contentBlocks(content).length, folded, toggle: () => setFolded(f => !f) } : undefined,
+    preview: content ? <ContentPreview content={content} folded={folded} /> : undefined,
   };
   return (
     <div className={`embed ${className ?? ''} ${state}`} contentEditable={false} ref={inEditor ? stop : undefined} onClick={inEditor ? e => { if (!(e.target as Element).closest('a')) select(id); } : undefined}>

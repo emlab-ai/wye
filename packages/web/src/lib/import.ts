@@ -10,7 +10,9 @@ import { EXTRA_GROUP } from './props';
 const TEXT_KEYS = ['title', 'statement', 'description', 'purpose', 'q', 'text', 'context', 'does', 'intent'];
 const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused|resolved|rejected)\b/;
 
-export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[]; images: { alt: string; url: string }[]; views: { slug: string; query: string }[]; embeds: string[]; tables: string[] }
+export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[]; images: { alt: string; url: string }[]; views: { slug: string; query: string }[]; embeds: string[]; tables: string[]; contents: string[] }
+// How `expand` parses a block's lifted content: the whole pipeline again (prepare → BlockNote → expand), see importMarkdown
+export type ParseMd = (md: string) => AnyBlock[];
 
 // A drawing is referenced like an image whose file is an Excalidraw scene: ![Title](drawings/name.excalidraw)
 // A table region: ordinary node lines between <!-- goals --> and <!-- /goals --> (or tasks), or for any type
@@ -50,6 +52,7 @@ export function prepare(body: string): Prepared {
   const views: { slug: string; query: string }[] = [];
   const embeds: string[] = [];
   const tables: string[] = []; // the filter query of every table marker that has one, by index
+  const contents: string[] = []; // the content of every block that has some (req:ontology.content), de-indented, by index
   const parts: string[] = [];
   const liftDrawings = (text: string) => { let fence = false; return text.split('\n').map(l => {
     if (/^\s*(```|~~~)/.test(l)) { fence = !fence; return l; }
@@ -61,12 +64,73 @@ export function prepare(body: string): Prepared {
     const c = l.match(COLLECTION_CLOSE); if (c) return `\n%%/COLLECTION%%\n`;
     return l;
   }).join('\n'); };
-  for (const s of split.segments) {
-    if (s.type === 'yaml') { yaml.push(s.chunks.map(c => ({ id: c.id ?? '', body: c.body }))); parts.push(`%%YAML:${yaml.length - 1}%%`); }
+  for (let i = 0; i < split.segments.length; i++) {
+    const s = split.segments[i];
+    if (s.type === 'yaml') {
+      yaml.push(s.chunks.map(c => ({ id: c.id ?? '', body: c.body })));
+      // the indented lines that open the next segment are the last card's content (decision:ontology.content-markdown)
+      const next = split.segments[i + 1];
+      let marker = `%%YAML:${yaml.length - 1}%%`;
+      if (next && next.type === 'markdown' && /^ {2,}\S/.test(next.text)) {
+        const { content, rest } = liftLeadingContent(next.text);
+        if (content) { contents.push(content); marker += `%%CONTENT:${contents.length - 1}%%`; }
+        next.text = rest;
+      }
+      parts.push(marker);
+    }
     else if (s.type === 'hr') parts.push('%%DIVIDER%%');
-    else parts.push(protectCode(escapeAngles(liftLinks(unwrapParagraphs(liftDrawings(liftInlineImages(s.text, images)))))));
+    else if (s.text.trim()) parts.push(protectCode(escapeAngles(liftLinks(unwrapParagraphs(liftDrawings(liftInlineImages(liftContent(s.text, contents), images)))))));
   }
-  return { md: parts.join('\n\n'), yaml, drawings, images, views, embeds, tables };
+  return { md: parts.join('\n\n'), yaml, drawings, images, views, embeds, tables, contents };
+}
+
+// Content (req:ontology.content): the lines indented deeper than a block's line — a list item or a named paragraph
+// — after its continuation text are its content. They are lifted out, de-indented, and a %%CONTENT:n%% marker ends
+// the block's text; `expand` parses each one with the whole pipeline again, so nesting has no fixed depth and does
+// not rely on the markdown parser's own (unreliable) nesting of mixed content under list items.
+const ITEM_LINE = /^(\s*)(?:[-*+]|\d+[.)])\s/;
+const NAMED_LINE = new RegExp('^(\\s*)' + ID_RE.source + '\\s');
+const BLOCK_START = /^(\s*([-*+]|\d+[.)])\s|\s*[|#>]|\s*(```|~~~)|\s*$|\s*<!--)|^---\s*$/;
+const indentOf = (l: string) => l.match(/^\s*/)![0].length;
+export function liftContent(md: string, contents: string[]): string {
+  const lines = md.split('\n'); const out: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const l = lines[i];
+    if (/^(```|~~~)/.test(l)) { out.push(l); i++; while (i < lines.length && !/^(```|~~~)/.test(lines[i])) out.push(lines[i++]); if (i < lines.length) out.push(lines[i++]); continue; }
+    const item = ITEM_LINE.test(l), named = !item && NAMED_LINE.test(l) && !(out.length && out[out.length - 1].trim());
+    if (!item && !named) { out.push(l); i++; continue; }
+    const indent = indentOf(l);
+    out.push(l); i++;
+    while (i < lines.length && lines[i].trim() && !BLOCK_START.test(lines[i])) out.push(lines[i++]); // continuation text, whatever its indent (rule:prose-round-trip)
+    const run: string[] = []; let j = i;
+    while (j < lines.length) {
+      const c = lines[j];
+      if (!c.trim()) { run.push(c); j++; continue; }
+      if (indentOf(c) <= indent) break;
+      if (/^\s*(```|~~~)/.test(c)) { const f = c.match(/^\s*(```|~~~)/)![1]; run.push(c); j++; while (j < lines.length && !lines[j].trimStart().startsWith(f)) run.push(lines[j++]); if (j < lines.length) run.push(lines[j++]); continue; } // a fence's body may dedent
+      run.push(c); j++;
+    }
+    while (run.length && !run[run.length - 1].trim()) { run.pop(); j--; }
+    while (run.length && !run[0].trim()) run.shift();
+    if (run.some(x => x.trim())) {
+      const base = Math.min(...run.filter(x => x.trim()).map(indentOf));
+      contents.push(run.map(x => x.trim() ? x.slice(base) : '').join('\n'));
+      out[out.length - 1] += ` %%CONTENT:${contents.length - 1}%%`;
+      i = j;
+      if (i < lines.length && lines[i].trim() && !ITEM_LINE.test(lines[i])) out.push(''); // what follows is a block of its own
+    }
+  }
+  return out.join('\n');
+}
+// The indented lines a markdown segment starts with (a card's content after its fence) and the rest of the segment.
+function liftLeadingContent(text: string): { content: string; rest: string } {
+  const lines = text.split('\n'); let j = 0;
+  while (j < lines.length && (!lines[j].trim() || indentOf(lines[j]) >= 2)) j++;
+  const run = lines.slice(0, j); while (run.length && !run[run.length - 1].trim()) run.pop();
+  if (!run.some(x => x.trim())) return { content: '', rest: text };
+  const base = Math.min(...run.filter(x => x.trim()).map(indentOf));
+  return { content: run.map(x => x.trim() ? x.slice(base) : '').join('\n'), rest: lines.slice(j).join('\n').replace(/^\n+/, '') };
 }
 
 // Split markdown into alternating [text, code, text, code, …] regions: fenced blocks, indented (4-space) blocks
@@ -155,8 +219,18 @@ function topLevel(body: string): Map<string, string> {
 const text = (s: string): InlineText => ({ type: 'text', text: s, styles: {} });
 
 // Expand markers and id-first paragraphs into node/divider blocks, then tag ids everywhere.
-export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Prepared['drawings'] = [], images: Prepared['images'] = [], views: Prepared['views'] = [], embeds: Prepared['embeds'] = [], tables: Prepared['tables'] = []): AnyBlock[] {
+export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Prepared['drawings'] = [], images: Prepared['images'] = [], views: Prepared['views'] = [], embeds: Prepared['embeds'] = [], tables: Prepared['tables'] = [], nested?: { contents: string[]; parseMd: ParseMd }): AnyBlock[] {
   const out: AnyBlock[] = [];
+  // a block's lifted content (%%CONTENT:n%% at the end of its text) becomes its children, parsed with the whole pipeline
+  const CONTENT_MARK = /\s*%%CONTENT:(\d+)%%\s*$/;
+  const takeContent = (b: AnyBlock): AnyBlock[] | undefined => {
+    if (!nested || !Array.isArray(b.content)) return undefined;
+    const items = b.content as Inline[]; const last = items[items.length - 1];
+    if (!last || last.type !== 'text') return undefined;
+    const m = (last as InlineText).text.match(CONTENT_MARK); if (!m) return undefined;
+    (last as InlineText).text = (last as InlineText).text.slice(0, m.index).replace(/\s+$/, '');
+    const src = nested.contents[Number(m[1])]; return src ? nested.parseMd(src) : undefined;
+  };
   let coll: AnyBlock | null = null; // the goals/tasks table being filled; blocks until %%/COLLECTION%% become its rows
   const push = (blk: AnyBlock) => { if (coll) coll.children!.push(blk); else out.push(blk); };
   for (const b of blocks) {
@@ -171,18 +245,21 @@ export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Pre
     if (b.type === 'paragraph' && vm && views[Number(vm[1])]) { push({ type: 'view', props: { ...views[Number(vm[1])] } }); continue; }
     const em = first.trim().match(/^%%EMBED:(\d+)%%$/);
     if (b.type === 'paragraph' && em && embeds[Number(em[1])]) { push({ type: 'embed', props: { node: embeds[Number(em[1])] } }); continue; }
-    const ym = first.trim().match(/^%%YAML:(\d+)%%$/);
+    const ym = first.trim().match(/^%%YAML:(\d+)%%(?:%%CONTENT:(\d+)%%)?$/);
     if (b.type === 'paragraph' && ym) {
-      for (const chunk of yaml[Number(ym[1])] ?? []) {
+      const chunks = yaml[Number(ym[1])] ?? [];
+      chunks.forEach((chunk, k) => {
         const n = nodePropsFromChunk(chunk);
-        if (n) push({ type: 'node', props: n.props as unknown as Record<string, unknown>, content: [text(n.text)] });
+        const kids = k === chunks.length - 1 && ym[2] && nested ? nested.parseMd(nested.contents[Number(ym[2])] ?? '') : undefined;
+        if (n) push({ type: 'node', props: n.props as unknown as Record<string, unknown>, content: [text(n.text)], ...(kids?.length ? { children: kids } : {}) });
         else push({ type: 'codeBlock', props: { language: 'yaml' }, content: [text(chunk.body)] });
-      }
+      });
       continue;
     }
+    const kids = takeContent(b);
     const pn = proseNode(b, yaml, drawings);
-    if (pn) { if (coll) pn.props = { ...pn.props, row: (coll.props as { kind: string }).kind }; push(withLinks(pn)); continue; }
-    push(withLinks(b.children?.length ? { ...b, children: expand(b.children, yaml, drawings, images, views, embeds, tables) } : b));
+    if (pn) { if (coll) pn.props = { ...pn.props, row: (coll.props as { kind: string }).kind }; push(withLinks(kids?.length ? { ...pn, children: kids } : pn)); continue; }
+    push(withLinks(kids?.length ? { ...b, children: kids } : b.children?.length ? { ...b, children: expand(b.children, yaml, drawings, images, views, embeds, tables, nested) } : b));
   }
   return (tagifyBlocks(out as never[]) as AnyBlock[]).map(b => unescapeBlock(imagifyBlock(b, images)));
 }
@@ -267,4 +344,12 @@ function proseNode(b: AnyBlock, yaml: Prepared['yaml'], drawings: Prepared['draw
   const props: NodeProps = { kind, slug: rest.join(':'), status, form: 'prose', textKey: 'text', body: '', extra, check, list };
   // nested list items under the node (details, sub-tasks) stay its children; nested ids become nodes too
   return { type: 'node', props: props as unknown as Record<string, unknown>, content: restItems, children: b.children?.length ? expand(b.children, yaml, drawings) : b.children };
+}
+
+// The whole import for one level: prepare, BlockNote's markdown parser (passed in — it lives in the editor), expand;
+// a block's content goes through the same three steps, so the tree is built the same way at every depth.
+export function importMarkdown(md: string, tryParse: (md: string) => AnyBlock[]): AnyBlock[] {
+  const p = prepare(md);
+  const parseMd: ParseMd = src => importMarkdown(src, tryParse);
+  return expand(tryParse(p.md), p.yaml, p.drawings, p.images, p.views, p.embeds, p.tables, { contents: p.contents, parseMd });
 }

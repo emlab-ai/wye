@@ -77,14 +77,18 @@ export function blocksToMarkdown(blocks: AnyBlock[]): string {
     const b = blocks[i];
     if (b.type === 'node' && (b.props as unknown as NodeProps).form === 'yaml') {
       // merge consecutive yaml nodes into one fenced block, list style
+      // a card with content is alone at the end of its fence: its content follows the fence, indented (rule:content-lines)
       const group: AnyBlock[] = [];
-      while (i < blocks.length && blocks[i].type === 'node' && (blocks[i].props as unknown as NodeProps).form === 'yaml') group.push(blocks[i++]);
+      while (i < blocks.length && blocks[i].type === 'node' && (blocks[i].props as unknown as NodeProps).form === 'yaml') { group.push(blocks[i++]); if (group[group.length - 1].children?.length) break; }
       blank(); push('```yaml');
       for (const nb of group) {
         const lines = nodeToMarkdown(nb.props as unknown as NodeProps, inlineToMarkdown(nb.content as Inline[]));
         lines.forEach((l, k) => push((k === 0 ? '- ' : '  ') + l));
       }
-      push('```'); blank(); continue;
+      push('```');
+      const last = group[group.length - 1];
+      if (last.children?.length) { blank(); push(...contentLines(last.children).filter((l, k) => k > 0 || l !== '')); }
+      blank(); continue;
     }
     i++;
     n = isNumbered(b) ? n + 1 : 0;
@@ -92,8 +96,8 @@ export function blocksToMarkdown(blocks: AnyBlock[]): string {
       case 'node': {
         const np = b.props as unknown as NodeProps;
         const lines = nodeToMarkdown(np, inlineToMarkdown(b.content as Inline[]), n);
-        const kids = childrenLines(b.children, 1);
-        if (np.check || np.list) { const prevList = out.length && inList(out[out.length - 1]); if (!prevList) blank(); push(...lines, ...kids); }
+        const kids = contentLines(b.children);
+        if (np.check || np.list) { const prevList = out.length && inList(out[out.length - 1]); if (!prevList) blank(); push(...lines, ...kids); if (kids.length && !isItem(kids[kids.length - 1])) blank(); }
         else { blank(); push(...lines, ...kids); blank(); }
         break;
       }
@@ -102,7 +106,8 @@ export function blocksToMarkdown(blocks: AnyBlock[]): string {
       case 'bulletListItem': case 'numberedListItem': case 'checkListItem': {
         const prevList = out.length && inList(out[out.length - 1]);
         if (!prevList) blank();
-        push(...listLines(b, 0, n)); break;
+        const kids = contentLines(b.children);
+        push(...listLines(b, 0, n), ...kids); if (kids.length && !isItem(kids[kids.length - 1])) blank(); break;
       }
       case 'table': { blank(); push(...tableLines(b)); blank(); break; }
       case 'codeBlock': { blank(); const lang = String((b.props as { language?: string })?.language ?? ''); push('```' + (lang === 'text' ? '' : lang)); push(...plainText(b.content as Inline[]).split('\n')); push('```'); blank(); break; }
@@ -134,19 +139,29 @@ const inList = (l: string) => /^(\s*)([-*]|\d+\.)\s|^\s+\S/.test(l);
 function listLines(b: AnyBlock, depth: number, n = 1): string[] {
   const pad = '  '.repeat(depth);
   const marker = b.type === 'numberedListItem' ? `${n}. ` : b.type === 'checkListItem' ? ((b.props as { checked?: boolean })?.checked ? '- [x] ' : '- [ ] ') : '- ';
-  return [pad + marker + inlineToMarkdown(b.content as Inline[]), ...childrenLines(b.children, depth + 1)];
+  return [pad + marker + inlineToMarkdown(b.content as Inline[])];
 }
 
-// Blocks nested under a list item or a node: list items keep their markers (numbered ones count in sequence), prose
-// nodes become their line, anything else is indented text.
+// A block's content (req:ontology.content): its children written as a document of their own and indented two
+// spaces under the block's line — the same rules at every level, so a paragraph, a fence or a card nests like a
+// list item does. A list first keeps the line tight under its parent; anything else starts after a blank line,
+// which is what tells the parser it is content and not the parent's continuation text.
+export function contentLines(children: AnyBlock[] | undefined): string[] {
+  if (!children?.length) return [];
+  const inner = blocksToMarkdown(children).replace(/\n$/, '').split('\n').map(l => l ? '  ' + l : l);
+  return isItem(inner[0]) ? inner : ['', ...inner];
+}
+const isItem = (l: string) => /^\s*([-*+]|\d+[.)])\s/.test(l);
+
+// The rows of a table region (collection): list-form nodes at depth 0, their content under them.
 function childrenLines(children: AnyBlock[] | undefined, depth: number): string[] {
   const pad = '  '.repeat(depth);
   const lines: string[] = []; let n = 0;
   for (const c of children ?? []) {
     const numbered = c.type === 'numberedListItem' || (c.type === 'node' && (c.props as unknown as NodeProps).list === 'number');
     n = numbered ? n + 1 : 0;
-    if (c.type.endsWith('ListItem')) lines.push(...listLines(c, depth, n));
-    else if (c.type === 'node') lines.push(...nodeToMarkdown(c.props as unknown as NodeProps, inlineToMarkdown(c.content as Inline[]), n).map(l => pad + l), ...childrenLines(c.children, depth + 1));
+    if (c.type.endsWith('ListItem')) lines.push(...listLines(c, depth, n), ...contentLines(c.children).map(l => l ? pad + l : l));
+    else if (c.type === 'node') lines.push(...nodeToMarkdown(c.props as unknown as NodeProps, inlineToMarkdown(c.content as Inline[]), n).map(l => pad + l), ...contentLines(c.children).map(l => l ? pad + l : l));
     else lines.push(pad + inlineToMarkdown(c.content as Inline[]));
   }
   return lines;

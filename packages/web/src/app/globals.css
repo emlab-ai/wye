@@ -538,3 +538,12 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .rail-menu .pf-row.on .pg-link { background: var(--sunk); font-weight: 600; }
 .pf-row .pg-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pf-empty { padding: 4px 8px 4px 36px; font-size: 13px; }
+
+/* the content editor in the column (req:wf2.ui.node-content): the page's editor, compact, scoped to one node */
+.content { margin: 14px 0 4px; } .content h4 { margin: 0 0 2px; font: 600 11px var(--font-m); text-transform: uppercase; color: var(--muted); } .content h4 .muted { font-weight: 400; text-transform: none; }
+.content-editor { border: 1px solid var(--line); border-radius: 8px; background: var(--paper, transparent); }
+.content-editor .doc-editor { margin: 0; } .content-editor .doc-editor-bar { padding: 2px 10px 0; min-height: 14px; font-size: 11px; } .content-editor .bn-editor { padding-inline: 10px; padding-block: 6px; min-height: 40px; font-size: 14px; }
+/* a card's fold (req:wf2.ui.card-preview): the count of blocks under the node in its header; an embed's preview under the text */
+.nblock-fold { border: 1px solid var(--line); background: transparent; color: var(--ink-2); font: 11px var(--font-m); border-radius: 10px; padding: 0 7px; line-height: 17px; cursor: pointer; white-space: nowrap; } .nblock-fold:hover { border-color: var(--ink-2); } .nblock-fold.folded { color: var(--muted); }
+.nblock-preview { margin: 4px 0 2px 10px; padding-left: 8px; border-left: 2px solid var(--line); color: var(--ink-2); font-size: 13px; } .nblock-preview p { margin: 2px 0; } .nblock-preview p.code { font: 12px var(--font-m); white-space: pre-wrap; }
+.related-bar .related-toggle { margin-left: auto; }

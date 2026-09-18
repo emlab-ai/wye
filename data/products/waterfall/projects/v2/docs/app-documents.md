@@ -109,7 +109,7 @@ React components (`component:` cards). `side` says whether it renders on the ser
     The cards a typed block renders as — the plain node block, the question card, the decision card — as one
     set of components parameterised by a text slot and a host (peek, copy link, send, header click). The document
     editor puts the block's inline content in the slot; an embed (component:embed-block) puts a text area there.
-    One code path, so the two renderings cannot drift (decision:wf2.embed-renders-source-card).
+    One code path, so the two renderings cannot drift (decision:wf2.embed-renders-source-card). A card whose node has content folds it to the first block behind a count in its header (rule:card-fold).
   part-of: module:app-documents
 ```
 
@@ -239,6 +239,17 @@ A card in the editor shows what the block is *for* and folds the rest. The quest
     [req:wf2.ui.node-page]
   satisfied-by: [rule:card-essence]
   part-of: module:app-documents
+- id: rule:card-fold
+  statement: >
+    Every card's header carries `FoldToggle` when the node has content — "▸ n blocks" folded, "▾ n blocks" open.
+    In the editor (`EditorCard`) the count is the block's children; folded, a style element zero-heights the
+    children beyond the first by the block's id (`.bn-block-outer[data-id] > .bn-block > .bn-block-group >
+    .bn-block-outer:nth-child(n+2)`), so they stay blocks and in the file; the caret entering a child (selection
+    change with the anchor inside the group) unfolds; the state is the card's, folded by default. An embedded
+    card gets the node's content from op:node.edit's GET (`content`) and shows it as text under the card
+    (`ContentPreview`): the first block folded, all of them unfolded, a yaml card as its id and title.
+  source: packages/web/src/components/NodeCards.tsx:31 (FoldToggle), packages/web/src/components/NodeCards.tsx:177 (ContentPreview); packages/web/src/components/DocEditor.tsx:426 (EditorCard); packages/web/src/components/EmbedBlock.tsx
+  status: shipped
 - id: rule:card-essence
   statement: >
     A question card shows q and answer; a decision card shows context, choice and alternatives (in that order,
@@ -615,13 +626,34 @@ Modules under packages/web/src/lib (`lib:` cards): pure logic and server-only IO
   file: packages/web/src/lib/import.ts
   side: shared
   purpose: >
-    Markdown → editor blocks, in two steps: `prepare` (pure) lifts yaml blocks and rules out of the markdown and leaves markers; after BlockNote parses the rest in the browser, `expand` (pure) turns markers into divider and node blocks, turns id-first paragraphs into prose node blocks, and tags ids.
+    Markdown → editor blocks, in two steps: `prepare` (pure) lifts yaml blocks and rules out of the markdown and leaves markers; after BlockNote parses the rest in the browser, `expand` (pure) turns markers into divider and node blocks, turns id-first paragraphs into prose node blocks, and tags ids. A block's content (the lines indented under it) is lifted too and parsed with the same three steps by `importMarkdown`, recursively (rule:content-lines).
   part-of: module:app-documents
 - id: lib:serialize
   file: packages/web/src/lib/serialize.ts
   side: shared
   purpose: >
-    BlockNote blocks → markdown, under our control (BlockNote's own export is lossy). Pure; typed loosely so it can run on plain JSON in tests. Node blocks (our custom block) become prose lines or yaml blocks.
+    BlockNote blocks → markdown, under our control (BlockNote's own export is lossy). Pure; typed loosely so it can run on plain JSON in tests. Node blocks (our custom block) become prose lines or yaml blocks; a block's children become its content, written by `contentLines` as a document of their own indented under it (rule:content-lines).
+  part-of: module:app-documents
+- id: rule:content-lines
+  statement: >
+    Nesting never relies on the markdown parser's own nesting (BlockNote flattens a nested list that follows a
+    paragraph child). `liftContent` walks a markdown segment: after a list item's or a named paragraph's
+    continuation text, the lines indented deeper than the line — blank lines and indented fences whole — are its
+    content, lifted out de-indented into `contents[n]` and marked `%%CONTENT:n%%` at the end of the block's text;
+    the indented lines that open the segment after a yaml fence are the last card's (`%%YAML:i%%%%CONTENT:n%%`).
+    `expand` strips the marker and parses the content with `importMarkdown` — prepare, BlockNote, expand — so the
+    tree is built the same way at every depth. `contentLines` writes a block's children back by running
+    `blocksToMarkdown` on them and indenting the result two spaces: tight under the line when it starts with a
+    list item, after a blank line otherwise, a blank line after it when it ends without one; a yaml card with
+    children ends its fence (the group is split) and its content follows the fence. A node's content is written
+    the same way by op:node.content, so the column and the page produce the same lines.
+  source: packages/web/src/lib/import.ts:95 (liftContent, liftLeadingContent), packages/web/src/lib/import.ts:351 (importMarkdown); packages/web/src/lib/serialize.ts:149 (contentLines)
+  status: shipped
+- id: lib:node-content
+  file: packages/web/src/lib/node-content.ts
+  side: shared
+  purpose: >
+    A node's content in its document: `contentExtent` finds the lines under a prose line, a list item or a yaml card, `readContent` returns them de-indented, `writeContent` replaces them re-indented (splitting a fence for a card that is not last). Pure; op:node.content does the file.
   part-of: module:app-documents
 - id: lib:mdflow
   file: packages/web/src/lib/mdflow.ts

@@ -20,8 +20,10 @@ function useHistoryNav(path: string) {
     const nav = (window as unknown as { navigation?: Nav }).navigation;
     const read = () => setCan(nav ? { back: nav.canGoBack, forward: nav.canGoForward } : { back: window.history.length > 1, forward: true });
     read();
-    nav?.addEventListener('currententrychange', read);
-    return () => nav?.removeEventListener('currententrychange', read);
+    // the entry changes inside Next's own history patch (an insertion effect on router.refresh): update after it
+    const later = () => { setTimeout(read, 0); };
+    nav?.addEventListener('currententrychange', later);
+    return () => nav?.removeEventListener('currententrychange', later);
   }, [path]);
   useEffect(() => {
     const h = (e: KeyboardEvent) => {

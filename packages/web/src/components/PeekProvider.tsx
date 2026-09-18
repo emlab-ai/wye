@@ -24,6 +24,8 @@ interface Ctx {
   ownTypes: OwnType[]; // the same types with their table columns
   editing: EditingContext | null; setEditing: (e: EditingContext | null) => void; showContext: boolean; setShowContext: (v: boolean) => void;
   panelOpen: boolean; setPanelOpen: (v: boolean) => void;
+  // Related (the knowledge nearest to the block) is closed until asked for; remembered per browser (rule:related-collapsed)
+  relatedOpen: boolean; setRelatedOpen: (v: boolean) => void;
 }
 const PeekCtx = createContext<Ctx | null>(null);
 
@@ -41,6 +43,9 @@ export function PeekProvider({ product, index, kinds, types, children }: { produ
   const [panelOpen, setPanelOpenState] = useState(true);
   useEffect(() => { try { setPanelOpenState(localStorage.getItem('wf-panel') !== '0'); } catch { /* ignore */ } }, []);
   const setPanelOpen = useCallback((v: boolean) => { setPanelOpenState(v); try { localStorage.setItem('wf-panel', v ? '1' : '0'); } catch { /* ignore */ } }, []);
+  const [relatedOpen, setRelatedOpenState] = useState(false);
+  useEffect(() => { try { setRelatedOpenState(localStorage.getItem('wf-related') === '1'); } catch { /* ignore */ } }, []);
+  const setRelatedOpen = useCallback((v: boolean) => { setRelatedOpenState(v); try { localStorage.setItem('wf-related', v ? '1' : '0'); } catch { /* ignore */ } }, []);
   const openId = cursor >= 0 ? stack[cursor]?.id ?? null : null;
   // Opening pushes on top of the current position; unpinned entries above it are dropped, pinned ones stay. From the
   // Context root (a block was selected, or the column was closed) nothing is above: the chips stay and the node
@@ -65,6 +70,6 @@ export function PeekProvider({ product, index, kinds, types, children }: { produ
   // a document's node opens the document itself (whatever the node's kind, rule:page-node-line); any other node its anchor
   const hrefFor = useCallback((id: string) => { const e = index[id]; const r = e?.file ? docRoute(e.file) : null; if (!r) return null; return e.doc ? `/${product}/${r.project}/d/${e.doc}` : `/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(id)}`; }, [index, product]);
   useEffect(() => { const h = (e: KeyboardEvent) => { if (e.key === 'Escape') back(); }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [back]);
-  return <PeekCtx.Provider value={{ product, index, ownKinds, ownTypes, openId, stack, cursor, open, back, go, togglePin, remove, close, focused, select, setFocused, hrefFor, editing, setEditing, showContext, setShowContext, panelOpen, setPanelOpen }}>{children}</PeekCtx.Provider>;
+  return <PeekCtx.Provider value={{ product, index, ownKinds, ownTypes, openId, stack, cursor, open, back, go, togglePin, remove, close, focused, select, setFocused, hrefFor, editing, setEditing, showContext, setShowContext, panelOpen, setPanelOpen, relatedOpen, setRelatedOpen }}>{children}</PeekCtx.Provider>;
 }
 export function usePeek(): Ctx { const c = useContext(PeekCtx); if (!c) throw new Error('PeekProvider missing'); return c; }

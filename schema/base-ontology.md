@@ -20,6 +20,7 @@ type means instances may carry properties the type does not declare without a wa
     status: string?
     owner: string?
     text: text?
+    content: list of block? -(inverse)-> parent
     related-to: list of node? -(inverse)-> related-to
     mentions: list of node? -(inverse)-> mentioned-by
     part-of: list of node? -(inverse)-> has

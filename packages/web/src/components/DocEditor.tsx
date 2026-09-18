@@ -6,7 +6,8 @@ import { useCreateBlockNote, createReactInlineContentSpec, createReactBlockSpec,
 import { SideMenuExtension } from '@blocknote/core/extensions';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
-import { prepare, expand } from '@/lib/import';
+import { expand, importMarkdown } from '@/lib/import';
+import { EditorScope } from './EditorScope';
 import { blocksToMarkdown, type AnyBlock } from '@/lib/serialize';
 import { CARD_KINDS } from '@/lib/kinds';
 import { NodeCard, type CardP, type CardHost } from './NodeCards';
@@ -105,7 +106,7 @@ function RowNode({ p, set, contentRef, block, editor }: { p: { kind: string; slu
   const rowRef = useRef<HTMLDivElement>(null);
   const { index } = usePeek();
   const idOf = (b: AnyBlock) => { const bp = b.props as unknown as { kind: string; slug: string }; return `${bp.kind}:${bp.slug}`; };
-  const peek = () => { const b = withSlug(editor, index, block); if ((b.props as unknown as { slug: string }).slug) window.dispatchEvent(new CustomEvent('wf:select', { detail: idOf(b) })); };
+  const peek = () => { const b = withSlug(editor, index, block); if ((b.props as unknown as { slug: string }).slug) emit('wf:select', rowRef.current, idOf(b)); };
   const id = `${p.kind}:${p.slug}`; const e = index[id];
   const empty = !p.slug && !rowText(block);
   const ex = parseExtra(p.extra);
@@ -148,7 +149,7 @@ function TypeRow({ p, set, contentRef, block, type, editor }: { p: { kind: strin
   const rowRef = useRef<HTMLDivElement>(null);
   const { index } = usePeek();
   const id = `${p.kind}:${p.slug}`;
-  const peek = () => { const b = withSlug(editor, index, block); const bp = b.props as unknown as { kind: string; slug: string }; if (bp.slug) window.dispatchEvent(new CustomEvent('wf:select', { detail: `${bp.kind}:${bp.slug}` })); };
+  const peek = () => { const b = withSlug(editor, index, block); const bp = b.props as unknown as { kind: string; slug: string }; if (bp.slug) emit('wf:select', rowRef.current, `${bp.kind}:${bp.slug}`); };
   const empty = !p.slug && !rowText(block);
   const ex = parseExtra(p.extra);
   const done = DONE_STATUSES.has(p.status);
@@ -207,9 +208,15 @@ function selectBlockOnClick(editor: EditorLike, block: AnyBlock, textEl: HTMLEle
       if (at && at !== id) { try { editor.setTextCursorPosition(id, 'end'); } catch { /* block gone */ } }
     }
     const bp = block.props as unknown as { kind?: string; slug?: string };
-    if (bp.kind && bp.slug) window.dispatchEvent(new CustomEvent('wf:select', { detail: `${bp.kind}:${bp.slug}` }));
+    if (bp.kind && bp.slug) emit('wf:select', e.currentTarget as HTMLElement, `${bp.kind}:${bp.slug}`);
   };
 }
+// A block asks its own editor — the page's or the content editor in the column (rule:content-editor) — through a
+// DOM event that bubbles from the block to the editor's container; window when the block has no element yet.
+function emit(name: 'wf:select' | 'wf:peek', from: HTMLElement | null | undefined, id: string) {
+  (from ?? window).dispatchEvent(new CustomEvent(name, { detail: id, bubbles: true }));
+}
+
 // A row that has text but no slug yet (slugs are assigned when the cursor leaves the row) gets one now, so a link,
 // a send or a peek from the row never says `bug:` with nothing after the colon.
 function withSlug(editor: EditorLike, index: Record<string, unknown>, block: AnyBlock): AnyBlock {
@@ -414,18 +421,31 @@ const NodeBlock = createReactBlockSpec(
 function EditorCard({ p, set, contentRef, block, editor }: { p: CardP; set: (patch: Partial<CardP>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; editor: EditorLike }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const id = `${p.kind}:${p.slug}`;
+  // the blocks under the node fold to the first one (req:wf2.ui.card-preview, rule:card-fold): a style element
+  // zero-heights the rest by the block's id (they stay blocks, and in the file); the caret inside them unfolds
+  const count = block.children?.length ?? 0;
+  const [folded, setFolded] = useState(true);
+  const bn = useBlockNoteEditor();
+  useEditorSelectionChange(() => {
+    if (!folded || count < 2) return;
+    const group = hostRef.current?.closest('.bn-block')?.querySelector(':scope > .bn-block-group');
+    const anchor = typeof document !== 'undefined' ? document.getSelection()?.anchorNode : null;
+    if (group && anchor && group.contains(anchor)) setFolded(false);
+  }, bn);
+  const fold = count ? { count, folded, toggle: () => setFolded(f => !f) } : undefined;
+  const hide = folded && count > 1 ? <style>{`.bn-block-outer[data-id="${String((block as { id?: string }).id)}"] > .bn-block > .bn-block-group > .bn-block-outer:nth-child(n+2) { height: 0; min-height: 0; overflow: hidden; visibility: hidden; margin: 0; }`}</style> : null;
   const host: CardHost = {
     text: cls => <div className={cls} ref={contentRef} />,
     // the pill selects like the rest of the card; the card's text places the caret and the onSelect below does the rest
-    peek: () => { if (p.slug) window.dispatchEvent(new CustomEvent('wf:select', { detail: id })); },
+    peek: () => { if (p.slug) emit('wf:select', hostRef.current, id); },
     copyLink: () => copyBlockLink(block, hostRef.current),
     send: () => sendBlock(block, hostRef.current),
     stop: stopEditorEvents,
     onHeadClick: p.kind === 'question' || p.kind === 'decision' ? undefined : selectBlockOnClick(editor, block, null),
-    onSelect: () => { if (p.slug) window.dispatchEvent(new CustomEvent('wf:select', { detail: id })); },
-    hostRef,
+    onSelect: () => { if (p.slug) emit('wf:select', hostRef.current, id); },
+    hostRef, fold,
   };
-  return <NodeCard p={p} set={set} host={host} />;
+  return <>{hide}<NodeCard p={p} set={set} host={host} /></>;
 }
 
 const schema = BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, node: NodeBlock(), drawing: DrawingBlock(), collection: CollectionBlock(), view: ViewBlock(), embed: EmbedBlock() }, inlineContentSpecs: { ...defaultInlineContentSpecs, tag: Tag, img: InlineImage } });
@@ -498,13 +518,24 @@ function LinkNodePicker({ req, onClose, apply, createDoc }: { req: LinkRequest; 
   );
 }
 
-export default function DocEditor({ product, project, slug, body, ifMatch, fallback }: { product: string; project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode }) {
+// `scope`: the editor edits one node's content (decision:wf2.content-editor-scoped) — the blocks under its defining
+// line in `slug` — loaded and saved through the node's content route instead of the document's; it publishes no
+// editing context, and a click on a child block opens the child in the column (decision:ontology.depth-by-navigation).
+export default function DocEditor({ product, project, slug, body, ifMatch, fallback, scope = null }: { product: string; project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode; scope?: string | null }) {
   const router = useRouter();
   const { open: openPeek, select, setFocused, index, hrefFor, setEditing, setShowContext, ownKinds, ownTypes } = usePeek();
-  // node blocks render inside the editor, so they ask for the peek panel through a window event: wf:peek pushes
-  // the node on the chip stack, wf:select selects it (the Context root shows it; rule:block-select)
-  useEffect(() => { const h = (e: Event) => openPeek((e as CustomEvent<string>).detail); window.addEventListener('wf:peek', h); return () => window.removeEventListener('wf:peek', h); }, [openPeek]);
-  useEffect(() => { const h = (e: Event) => select((e as CustomEvent<string>).detail); window.addEventListener('wf:select', h); return () => window.removeEventListener('wf:select', h); }, [select]);
+  const scoped = scope !== null;
+  // node blocks render inside the editor, so they ask for the column through an event that bubbles to this
+  // container (emit): wf:peek pushes the node on the chip stack, wf:select selects it (the Context root shows it;
+  // rule:block-select) — in a content editor a select opens the child instead, one level deeper
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = rootRef.current; if (!el) return;
+    const peek = (e: Event) => { e.stopPropagation(); openPeek((e as CustomEvent<string>).detail); };
+    const sel = (e: Event) => { e.stopPropagation(); if (scoped) openPeek((e as CustomEvent<string>).detail); else select((e as CustomEvent<string>).detail); };
+    el.addEventListener('wf:peek', peek); el.addEventListener('wf:select', sel);
+    return () => { el.removeEventListener('wf:peek', peek); el.removeEventListener('wf:select', sel); };
+  }, [openPeek, select, scoped]);
   // pasted or dropped images go to the project's docs/assets folder; the block keeps the relative url the markdown uses
   const uploadFile = async (file: File) => {
     const fd = new FormData(); fd.append('file', file, file.name || 'image.png');
@@ -535,7 +566,8 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     }
   };
   const imageInput = useRef<HTMLInputElement>(null);
-  if (typeof window !== 'undefined') { const w = window as unknown as { __wf: unknown; __wfExport: () => string; __wfLink: (id: string) => string }; w.__wf = editor; w.__wfExport = () => blocksToMarkdown(editor.document as unknown as AnyBlock[]); w.__wfLink = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock; return `${location.origin}/${product}/${project}/d/${slug}#${blockAnchor(b)}`; }; } // dev inspection
+  if (typeof window !== 'undefined' && scoped) (window as unknown as { __wfScoped: unknown }).__wfScoped = editor; // dev inspection
+  if (typeof window !== 'undefined' && !scoped) { const w = window as unknown as { __wf: unknown; __wfExport: () => string; __wfLink: (id: string) => string }; w.__wf = editor; w.__wfExport = () => blocksToMarkdown(editor.document as unknown as AnyBlock[]); w.__wfLink = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock; return `${location.origin}/${product}/${project}/d/${slug}#${blockAnchor(b)}`; }; } // dev inspection
   void index;
   const [ready, setReady] = useState(false);
   const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'conflict' | 'error'>('idle');
@@ -558,7 +590,11 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     let block: AnyBlock | undefined;
     try { block = editor.getTextCursorPosition().block as unknown as AnyBlock; } catch { block = undefined; }
     const bid = String((block as { id?: string } | undefined)?.id ?? '');
-    if (bid !== lastBlockId.current) { lastBlockId.current = bid; setFocused(null); if (touched.current && !loading.current && settle(true)) changed(); }
+    // a block change while the editor has no focus (a reload after an outside change, a save from the column's content
+    // editor) is not the person moving the caret: the selected node stays selected (rule:block-select)
+    const active = typeof document !== 'undefined' && !!rootRef.current?.contains(document.activeElement);
+    if (bid !== lastBlockId.current) { lastBlockId.current = bid; if (!scoped && active) setFocused(null); if (touched.current && !loading.current && settle(true)) changed(); }
+    if (scoped) return; // a content editor never drives the Context root: the column shows its node already
     if (!block || !Array.isArray(block.content)) { setEditing(null); return; }
     const items = block.content as { type: string; text?: string; props?: { id?: string }; href?: string; content?: { text?: string }[] }[];
     const text = items.map(i => i.type === 'text' ? i.text ?? '' : i.type === 'link' ? (i.content ?? []).map(c => c.text ?? '').join('') : '').join('');
@@ -578,21 +614,20 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   useEditorChange(publishContext, editor);
   useEffect(() => { const h = () => publishContext(); window.addEventListener('wf:publish', h); return () => window.removeEventListener('wf:publish', h); }); // eslint-disable-line react-hooks/exhaustive-deps
   // The context column is always there on a document page; it leaves with the editor.
-  useEffect(() => { setShowContext(true); return () => { setEditing(null); setShowContext(false); }; }, [setEditing, setShowContext]);
+  useEffect(() => { if (scoped) return; setShowContext(true); return () => { setEditing(null); setShowContext(false); }; }, [setEditing, setShowContext, scoped]);
 
   // ids already used in this product (so a new row never collides)
   const settle = (assignSlugs = false) => { const taken = new Set(Object.keys(index)); for (const b of editor.document as unknown as AnyBlock[]) for (const k of b.children ?? []) if (k.type === 'node') { const p = k.props as unknown as { kind: string; slug: string }; if (p.slug) taken.add(`${p.kind}:${p.slug}`); } return settleCollections(editor as never, taken, assignSlugs); };
   const load = (md: string) => {
     loading.current = true;
     try {
-      const { md: prepared, yaml, drawings, images, views, embeds, tables } = prepare(md);
-      const parsed = editor.tryParseMarkdownToBlocks(prepared) as unknown as AnyBlock[];
-      const blocks = expand(parsed, yaml, drawings, images, views, embeds, tables);
-      editor.replaceBlocks(editor.document, blocks as never);
+      // every level of content goes through the same prepare → parse → expand (req:ontology.content)
+      const blocks = importMarkdown(md, src => editor.tryParseMarkdownToBlocks(src) as unknown as AnyBlock[]);
+      editor.replaceBlocks(editor.document, (blocks.length ? blocks : [{ type: 'paragraph', content: [] }]) as never);
       settle();
       lastExported.current = blocksToMarkdown(editor.document as unknown as AnyBlock[]);
       const shrink = lastExported.current.replace(/\s+/g, '').length / Math.max(1, md.replace(/\s+/g, '').length);
-      if (shrink < 0.9) throw new Error(`the editor could not represent this document faithfully (${Math.round(shrink * 100)}% of the text survived import)`);
+      if (md.trim() && shrink < 0.9) throw new Error(`the editor could not represent this document faithfully (${Math.round(shrink * 100)}% of the text survived import)`);
       setLoadError(null);
     } catch (err) {
       console.error('document import failed', err);
@@ -618,7 +653,9 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
 
   async function save(md: string) {
     setState('saving');
-    const r = await fetch(`/api/${product}/${project}/doc/${slug}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'replace-body', ifMatch: hash.current, body: md }) });
+    const r = scoped
+      ? await fetch(`/api/${product}/node/${encodeURIComponent(scope)}/content`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: md, ifMatch: hash.current }) })
+      : await fetch(`/api/${product}/${project}/doc/${slug}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'replace-body', ifMatch: hash.current, body: md }) });
     const j = await r.json();
     if (!r.ok) { setState(j.error === 'conflict' ? 'conflict' : 'error'); return; }
     hash.current = j.bodyHash ?? hash.current;
@@ -637,7 +674,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       if (norm(md) === norm(lastExported.current)) return;
       // Guard against wiping a document: a save that drops more than half of the text is refused with a notice.
       const before = lastExported.current.replace(/\s+/g, '').length, after = md.replace(/\s+/g, '').length;
-      if (before > 200 && after < before / 2) { setState('error'); setLintMsg('refused: this change would remove more than half of the document; reload if that was not intended'); return; }
+      if (!scoped && before > 200 && after < before / 2) { setState('error'); setLintMsg('refused: this change would remove more than half of the document; reload if that was not intended'); return; }
       lastExported.current = md; save(md);
     }, 700);
   };
@@ -729,7 +766,8 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
 
   if (loadError) return <div className="doc-editor"><p className="notice">Editing is off for this document: {loadError}. The text below is read-only.</p>{fallback}</div>;
   return (
-    <div className="doc-editor" data-product={product} data-project={project} data-doc={slug} onBlur={retag} onFocus={() => { touched.current = true; }}
+    <EditorScope.Provider value={scope}>
+    <div className={`doc-editor ${scoped ? 'scoped' : ''}`} ref={rootRef} data-product={product} data-project={project} data-doc={slug} data-scope={scope ?? undefined} onBlur={retag} onFocus={() => { touched.current = true; }}
       onClick={e => { // a link whose target is a node id opens the peek panel instead of navigating
         const a = (e.target as HTMLElement).closest('a[href]') as HTMLAnchorElement | null;
         const href = a?.getAttribute('href') ?? '';
@@ -755,6 +793,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       {linkReq && <LinkNodePicker req={linkReq} onClose={() => setLinkReq(null)} apply={applyLink} createDoc={createDoc} />}
       {askReq && <AskAgentBox req={askReq} onClose={() => setAskReq(null)} />}
     </div>
+    </EditorScope.Provider>
   );
 }
 const norm = (s: string) => s.replace(/\s+/g, ' ').trim();

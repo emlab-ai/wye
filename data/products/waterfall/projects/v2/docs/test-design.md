@@ -239,6 +239,18 @@ One node per test file. Requirements and rules point here with `requires-tests: 
   file: packages/web/src/lib/node-edit.test.ts
   cases: 5
   covers: patchYamlCard — scalar keys in place or appended, null removes, folded blocks for long or multi-line values, the text key by name
+- id: test:node-content-web
+  file: packages/web/src/lib/node-content.test.ts
+  cases: 7
+  covers: readContent / writeContent — a paragraph node's, a list item's and the last card's content de-indented, a stale line found again, content replaced with the continuation text and the following blocks kept, list content tight under an item and a blank line after paragraph content, content removed, a card's content after its fence and the fence split for a card that is not last, read-then-write changes nothing
+- id: test:import-web
+  file: packages/web/src/lib/import.test.ts
+  cases: 24
+  covers: prepare, escapeAngles, splitCode, protectCode, nodePropsFromChunk, tags; content — liftContent under a named paragraph and a list item with continuation text kept, a card's content on the yaml marker, an indented fence whole, importMarkdown building the tree recursively
+- id: test:serialize-web
+  file: packages/web/src/lib/serialize.test.ts
+  cases: 11
+  covers: inline styles, tags, images, prose and yaml node lines, numbering, tables, code, dividers; content — a node block's children as nested lines with a blank line around paragraph content, content under a paragraph node and after a card's fence with the yaml group split
 - id: test:open-target-web
   file: packages/web/src/lib/open-target.test.ts
   cases: 5
@@ -382,6 +394,27 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     /tmp/wfpw/block-select.mjs, 15 checks passed in Chrome; no page error)
   status: passed
   verifies: [req:wf2.ui.block-select, rule:block-select]
+  last-run: 2026-09-18
+- id: ui-test:node-content
+  file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    a scratch product whose spec nests content in every form — a paragraph node with an indented paragraph, a
+    two-level list and an indented decision card; a task line with a nested question that has a paragraph of its
+    own; a fence of two cards with blocks after it; an embed of the paragraph node. The page editor's tree has the
+    children at every level; the paragraph card's header reads ▸ 3 blocks, only the first child has a height,
+    the toggle unfolds them and arrow keys into a hidden child unfold too; with the caret in a plain paragraph
+    Related is a bar reading "show" and no /context request went out, "show" mounts the panel and runs one search;
+    selecting the task shows its properties and a Content editor holding the question with its paragraph;
+    Enter at the end and typing writes a new item under the task in the file while the question keeps its
+    paragraph; /req makes a new node under the task (blank line, indented, in the graph as the task's child);
+    a click on its card opens it as a chip with an empty Content editor; typing there lands two levels down in
+    the file; ← returns to the task at the root, now 4 blocks, the child's card folded to ▸ 1 block; the page
+    editor reloaded the nesting task → req → paragraph; the embed shows one preview paragraph and ▸ 3 blocks,
+    unfolded all three with the card as its id and title (2026-09-18, session ffab751604:
+    /tmp/wfpw/node-content.mjs, 26 checks passed in Chrome; no page error; table-filter 25/25 and block-select
+    15/15 still pass)
+  status: passed
+  verifies: [req:wf2.ui.node-content, req:wf2.ui.card-preview, req:wf2.ui.related-collapsed, req:ontology.content, rule:content-editor, rule:card-fold, rule:related-collapsed, rule:content-lines]
   last-run: 2026-09-18
 - id: ui-test:tree-menu
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)

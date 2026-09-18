@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { prepare, expand, nodePropsFromChunk, escapeAngles, protectCode, splitCode, BS, PIPE } from './import';
+import { prepare, expand, nodePropsFromChunk, escapeAngles, protectCode, splitCode, liftContent, importMarkdown, BS, PIPE } from './import';
+import type { AnyBlock } from './serialize';
 import { blocksToMarkdown } from './serialize';
 import { ID_RE, cleanId, setKinds } from './ids';
 const t = (text: string) => ({ type: 'text', text, styles: {} });
@@ -217,5 +218,35 @@ describe('embeds (rule:embed-line)', () => {
     const p = prepare('See ![[req:a]] there.\n\n```\n![[req:b]]\n```\n');
     expect(p.embeds).toEqual([]);
     expect(p.md).not.toContain('%%EMBED');
+  });
+});
+
+describe('content (req:ontology.content)', () => {
+  it('lifts the indented blocks under a named paragraph and a list item, keeps continuation text', () => {
+    const contents: string[] = [];
+    const md = liftContent('req:a text of a\nwraps here\n\n  A paragraph inside.\n\n  - child item\n    - grandchild\n\nTop again.\n\n- item\n  lazy continuation\n  - nested\n- next item', contents);
+    expect(md).toBe('req:a text of a\nwraps here %%CONTENT:0%%\n\nTop again.\n\n- item\n  lazy continuation %%CONTENT:1%%\n- next item');
+    expect(contents).toEqual(['A paragraph inside.\n\n- child item\n  - grandchild', '- nested']);
+  });
+  it('lifts a card\'s content after its fence onto the yaml marker', () => {
+    const p = prepare('```yaml\n- id: req:a\n  title: A\n```\n\n  Under the card.\n\n  - rule:b under #proposed\n\nPlain.');
+    expect(p.md).toBe('%%YAML:0%%%%CONTENT:0%%\n\nPlain.');
+    expect(p.contents).toEqual(['Under the card.\n\n- rule:b under #proposed']);
+  });
+  it('keeps an indented fence inside content whole, body included', () => {
+    const contents: string[] = [];
+    liftContent('- task:t item\n\n  ```yaml\n  - id: rule:r\n    statement: s\n  ```\n\nafter', contents);
+    expect(contents).toEqual(['```yaml\n- id: rule:r\n  statement: s\n```']);
+  });
+  it('builds the tree recursively through importMarkdown', () => {
+    // a stand-in for BlockNote's parser: one paragraph per blank-separated chunk, list lines as bullet items
+    const fake = (md: string): AnyBlock[] => md.split(/\n\n+/).filter(Boolean).map(ch => ch.startsWith('- ') ? { type: 'bulletListItem', content: [t(ch.slice(2))] } : { type: 'paragraph', content: [t(ch.replace(/\n/g, ' '))] });
+    const blocks = importMarkdown('req:a Text of a.\n\n  Inside a.\n\n  - task:b Under a\n\n    Under b.\n\n```yaml\n- id: decision:c\n  title: C\n```\n\n  - under c\n', fake);
+    const kinds = (bs: AnyBlock[]): unknown => bs.map(b => [b.type === 'node' ? `${(b.props as { kind: string }).kind}:${(b.props as { slug: string }).slug}` : b.type, b.children ? kinds(b.children) : []]);
+    expect(kinds(blocks)).toEqual([
+      ['req:a', [['paragraph', []], ['task:b', [['paragraph', []]]]]],
+      ['decision:c', [['bulletListItem', []]]],
+    ]);
+    expect((blocks[0].content as { text: string }[])[0].text).toBe('Text of a.');
   });
 });
