@@ -31,7 +31,25 @@ sources:
 
 ## Requirements and rules
 
-What this module must do is written where it was decided — the PRD and the dev design; this document maps the code onto it. Requirements: req:wf2.ui, req:wf2.ui.sidebar, req:wf2.ui.live, req:wf2.ui.phone. Rules the code enforces: rule:app-navigation, rule:documents-tree, rule:document-tree, rule:smart-tags, rule:deep-links, rule:doc-links, rule:live-refresh, rule:new-document, rule:product-layout. Pages: page:web/sidebar, page:web/context-column, page:web/overview, page:web/project, page:web/new-product.
+What this module must do is written where it was decided — the PRD and the dev design; this document maps the code onto it. Requirements: req:wf2.ui, req:wf2.ui.sidebar, req:wf2.ui.live, req:wf2.ui.phone, req:wf2.ui.tree-menu (below). Rules the code enforces: rule:app-navigation, rule:documents-tree, rule:doc-tree-row-stable, rule:tree-menu, rule:document-tree, rule:smart-tags, rule:deep-links, rule:doc-links, rule:live-refresh, rule:new-document, rule:product-layout.
+
+```yaml
+- id: req:wf2.ui.tree-menu
+  title: A tree row has a menu to duplicate or delete the document
+  when: >
+    a person right-clicks a row of the Documents tree, or presses the "⋯" that appears on hover
+  then: >
+    a menu opens at the pointer with Duplicate and Delete. Duplicate makes a copy next to the document — same
+    parent, right after it, "<title> (copy)", every node the document defines re-identified so the copy is a valid
+    page — and opens it. Delete asks first, naming the document and how many sub-documents go with it, then removes
+    the document and everything under it; a person who was on a removed page lands on its parent (else the
+    product), and the tree says how many references from other documents now dangle
+  unless: the confirm is cancelled — nothing changes
+  status: shipped
+  refines: [req:wf2.ui.sidebar]
+  satisfied-by: [component:doc-tree, lib:doc-ops, op:api.docs.duplicate, op:api.docs.delete, rule:tree-menu]
+  verified-by: [ui-test:tree-menu, test:doc-ops]
+``` Pages: page:web/sidebar, page:web/context-column, page:web/overview, page:web/project, page:web/new-product.
 
 ## Pages
 
@@ -87,7 +105,7 @@ React components (`component:` cards). `side` says whether it renders on the ser
   file: packages/web/src/components/DocTree.tsx
   side: client
   purpose: >
-    Docmost-style document tree: chevron for documents with children, a dot for leaves, an emoji icon, the title. Rows can be dragged: onto a row nests the document under it, between rows reorders, a zone under the tree makes it top level; a hover \"+\" adds a child. The row is a module-level component so a drag survives the tree's re-render (rule:doc-tree-row-stable).
+    Docmost-style document tree: chevron for documents with children, a dot for leaves, an emoji icon, the title. Rows can be dragged: onto a row nests the document under it, between rows reorders, a zone under the tree makes it top level; a hover \"+\" adds a child; right-click or the hover \"⋯\" opens the row's menu — Duplicate, Delete (rule:tree-menu). The row is a module-level component so a drag survives the tree's re-render (rule:doc-tree-row-stable).
   part-of: module:app-shell
 - id: component:search
   file: packages/web/src/components/Search.tsx
@@ -194,6 +212,15 @@ Modules under packages/web/src/lib (`lib:` cards): pure logic and server-only IO
   purpose: >
     Graph presets: which kinds and verbs each view shows (Requirements, Mechanics, Data, Drift, Everything).
   part-of: module:app-shell
+- id: lib:doc-ops
+  file: packages/web/src/lib/doc-ops.ts
+  side: shared
+  purpose: >
+    Duplicating and deleting documents from the tree (rule:tree-menu): copySlug (<slug>-copy, -copy-2 …),
+    duplicateMarkdown (the node line, the title and every id the document defines take the copy's suffix — other
+    documents' ids stay), subtree (a document and every document under it — what a delete removes). Pure; tested by
+    test:doc-ops.
+  part-of: module:app-shell
 - id: lib:layout
   file: packages/web/src/lib/layout.ts
   side: shared
@@ -227,5 +254,23 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     Move a document in the tree: sets part-of, moves the file into the parent's project, reorders.
   gate: none (local app)
   source: packages/web/src/app/api
+  part-of: module:app-shell
+- id: op:api.docs.duplicate
+  args: POST /api/<product>/docs/duplicate { id }
+  does: >
+    Copy a document next to itself in the same project: <slug>-copy.md (then -copy-2 …), title "… (copy)", same
+    part-of, order just after the original (+5), every id the document defines suffixed (lib:doc-ops) → { slug,
+    node, href }.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/docs/duplicate/route.ts
+  part-of: module:app-shell
+- id: op:api.docs.delete
+  args: POST /api/<product>/docs/delete { id }
+  does: >
+    Remove a document and every document under it (decision:wf2.tree-delete-subtree) → { removed: ids, dangling:
+    the count of edges from the remaining documents to nodes the removed pages defined, href: the parent page or
+    the product }. Assets are left in place.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/docs/delete/route.ts
   part-of: module:app-shell
 ```

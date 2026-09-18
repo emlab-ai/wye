@@ -421,6 +421,8 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - action:open-inbox:      Inbox — proposed blocks and raw notes awaiting review
     - action:open-sessions:   Agents — every conversation and run, and the runners (the rail and the top bar say "Agents", task:new-917) -(navigates)-> page:web/sessions
     - action:new-document:    + next to Documents creates a document under a parent
+    - action:duplicate-document: right-click or ⋯ on a row → Duplicate: a copy next to the document, opened (rule:tree-menu) -(calls)-> op:api.docs.duplicate
+    - action:delete-document: right-click or ⋯ on a row → Delete: confirm with the sub-document count, the subtree removed (rule:tree-menu) -(calls)-> op:api.docs.delete
   display-rules:
     - menu order: Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inbox, Sessions; then the Documents tree (rule:documents-tree); the rail is collapsible (rule:app-navigation)
     - the rail lists documents, not nodes: root documents → sub-documents; the open document shows its ## outline beneath it
@@ -1242,6 +1244,17 @@ The column's frame: what stays put and what scrolls.
     node leaves the document — the tree's drag and drop did nothing (bug:doc-tree-dnd). The same holds for any
     draggable row in the app.
   source: packages/web/src/components/DocTree.tsx:10; packages/web/src/components/DocTree.tsx:47
+  status: shipped
+- id: rule:tree-menu
+  statement: >
+    Every row of the Documents tree has a context menu — right-click, or the "⋯" shown on hover — with Duplicate and
+    Delete; Escape, a press outside it or a scroll closes it (the close handler checks the event's target: React's
+    own listeners sit on `document` in the App Router, so stopPropagation cannot keep a press inside the menu from
+    reaching a document listener). Duplicate copies the document next to itself with every id it defines
+    re-suffixed (-copy, -copy-2 …) and opens the copy. Delete confirms with the document's title and the number of
+    sub-documents, then removes the whole subtree (decision:wf2.tree-delete-subtree); the tree reports dangling
+    references and moves a person off a removed page to its parent.
+  source: packages/web/src/components/DocTree.tsx#Row; packages/web/src/app/api/[product]/docs/duplicate/route.ts; packages/web/src/app/api/[product]/docs/delete/route.ts; packages/web/src/lib/doc-ops.ts
   status: shipped
 - id: rule:block-links
   statement: >

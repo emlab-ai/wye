@@ -243,6 +243,10 @@ One node per test file. Requirements and rules point here with `requires-tests: 
   file: packages/web/src/lib/open-target.test.ts
   cases: 5
   covers: openTarget — a product/project/doc ref becomes the document path, a #node suffix its anchor, an app URL keeps its path and hash, an unrelated string is refused
+- id: test:doc-ops
+  file: packages/web/src/lib/doc-ops.test.ts
+  cases: 5
+  covers: copySlug — -copy, -copy-2, -copy-3 while taken; duplicateMarkdown — node line, title (plain and quoted, not twice), every defined id suffixed with the copy's suffix (a copy of a copy takes -copy-2), other documents' ids untouched; subtree — depth first
 - id: ui-test:command-palette
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >
@@ -329,6 +333,20 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     /tmp/wfpw/dnd.mjs, 7 checks passed in Chrome; /tmp/wfpw/dnd-remount.mjs is the one-check hypothesis test)
   status: passed
   verifies: [rule:documents-tree, rule:doc-tree-row-stable]
+  last-run: 2026-09-18
+- id: ui-test:tree-menu
+  file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    a scratch product with alpha > beta > gamma and delta (delta's req refines alpha's): right-click on delta
+    opens a menu with Duplicate and Delete, Escape closes it; Duplicate opens delta-copy, listed right after delta,
+    its file has the node line, the req and the task re-suffixed -copy, title "delta (copy)", order 25 and its
+    reference to alpha's module kept; ⋯ on alpha opens the menu, Delete reads "Delete (with 2 below)", the confirm
+    says 'Delete "alpha" and its 2 sub-documents?', cancel keeps every file; from the gamma page, accept: alpha,
+    beta and gamma are gone, delta and its copy stay, the browser lands on /dndtest (no parent), the tree shows the
+    two, the notice reads "2 references from other documents to the deleted pages now dangle" (2026-09-18, session
+    9091132439: /tmp/wfpw/tree-menu.mjs, 12 checks passed in Chrome)
+  status: passed
+  verifies: [req:wf2.ui.tree-menu, rule:tree-menu]
   last-run: 2026-09-18
 - id: ui-test:column-frame
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
