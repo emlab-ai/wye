@@ -9,9 +9,11 @@ import { AttachStrip, useImageAttachments } from './Attachments';
 
 // The one command box (decision:wf2.one-command-box): ⌘P / Ctrl+P opens it with what the person is looking at (the
 // document, the node under the cursor); every "Send to agent" opens it with the block's text, refs and source
-// prefilled (requestSend). What is typed goes to an ACTIVE conversation (a running chat session, the most recent
-// one by default) or starts a new one that plans first (rule:plan-first) — a new conversation needs an agent and a
-// working folder — or is queued for a runner. Images pasted or dropped into the box go along (req:wf2.ui.palette-images).
+// prefilled (requestSend). What is typed starts a NEW conversation by default (rule:clean-slate: a task reads what it
+// needs from Waterfall, not from the last task's context; the agent and the folder are the ones used last) that plans
+// first (rule:plan-first), or goes into an active conversation chosen in "to" — with "clear context first" ticked
+// that conversation's agent restarts from nothing before the message — or is queued for a runner. Images pasted or
+// dropped into the box go along (req:wf2.ui.palette-images).
 export type SendRequest = { text?: string; refs?: string[]; source?: { project?: string; doc?: string; blockId?: string; link?: string } };
 export function requestSend(detail: SendRequest) { window.dispatchEvent(new CustomEvent('wf:send', { detail })); }
 type Live = Session & { live?: boolean };
@@ -27,6 +29,7 @@ export function CommandBox() {
   const [cwd, setCwd] = useState('');
   const [defaults, setDefaults] = useState<{ cwd: string; waterfall: string }>({ cwd: '', waterfall: '' });
   const [plan, setPlan] = useState(true);
+  const [fresh, setFresh] = useState(false); // clear context first, when the target is a live conversation
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const attach = useImageAttachments();
@@ -37,7 +40,7 @@ export function CommandBox() {
   const show = (d: SendRequest) => {
     const ids = d.refs?.length ? d.refs.join(', ') : '';
     setText(d.text ? `${ids ? `Work on ${ids}.\n\n` : ''}${d.text.trim()}` : '');
-    setReq(d); setMsg(null); attach.clear();
+    setReq(d); setMsg(null); setFresh(false); attach.clear();
   };
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -57,9 +60,10 @@ export function CommandBox() {
         const j = await (await fetch(`/api/${product}/sessions`)).json();
         const active = (j.sessions as Live[]).filter(s => s.mode === 'chat' && s.live).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
         setSessions(active); setDefaults(j.defaults ?? { cwd: '', waterfall: '' });
-        setTarget(active[0]?.id ?? 'new'); // the most recent live conversation, else a new one
-        let remembered = ''; try { remembered = localStorage.getItem(`wf-cwd-${product}`) ?? ''; } catch { /* ignore */ }
+        setTarget('new'); // a clean slate by default (rule:clean-slate); the live conversations are an explicit choice
+        let remembered = '', lastAgent = ''; try { remembered = localStorage.getItem(`wf-cwd-${product}`) ?? ''; lastAgent = localStorage.getItem(`wf-agent-${product}`) ?? ''; } catch { /* ignore */ }
         setCwd(c => c || remembered || j.defaults?.cwd || j.defaults?.waterfall || '');
+        if (AGENTS.some(a => a.id === lastAgent)) setAgent(lastAgent);
       } catch { setSessions([]); setTarget('new'); }
     })();
   }, [req, product]);
@@ -71,7 +75,7 @@ export function CommandBox() {
     setBusy(true); setMsg(null);
     const refs = req.refs ?? [];
     if (!isNew) {
-      const r = await fetch(`/api/${product}/sessions/${target}/message`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: instruction, refs, link: req.source?.link, images: attach.images }) });
+      const r = await fetch(`/api/${product}/sessions/${target}/message`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: instruction, refs, link: req.source?.link, images: attach.images, fresh, plan: fresh && plan }) });
       const j = await r.json().catch(() => ({})); setBusy(false);
       if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not send'); return; }
       setReq(null); open(`session:${target}`); return;
@@ -81,7 +85,7 @@ export function CommandBox() {
     const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ agent, instruction, refs, source, mode, cwd: cwd.trim(), plan: mode === 'chat' && plan, images: attach.images }) });
     const j = await r.json().catch(() => ({})); setBusy(false);
     if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not start'); return; }
-    try { localStorage.setItem(`wf-cwd-${product}`, cwd.trim()); } catch { /* ignore */ }
+    try { localStorage.setItem(`wf-cwd-${product}`, cwd.trim()); localStorage.setItem(`wf-agent-${product}`, agent); } catch { /* ignore */ }
     setReq(null); open(`session:${j.id}`);
   };
   const label = (s: Live) => `${AGENTS.find(a => a.id === s.agent)?.label ?? s.agent} · ${s.instruction.split('\n').find(l => l.trim())?.slice(0, 50) ?? s.id}`;
@@ -101,18 +105,25 @@ export function CommandBox() {
           </label>
           {isNew && <select value={agent} onChange={e => setAgent(e.target.value)} title="agent">{AGENTS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}</select>}
         </div>
-        {target === 'new' && (
+        {(target === 'new' || fresh) && (
           <div className="palette-row">
             <label className="palette-plan" title="The agent reads Waterfall, works out what the request touches, writes the plan on a page and asks you before building">
               <input type="checkbox" checked={plan} onChange={e => setPlan(e.target.checked)} /> plan first — understand, propose, confirm, then build
             </label>
           </div>
         )}
+        {!isNew && (
+          <div className="palette-row">
+            <label className="palette-plan" title="Stop that agent and start a fresh one in the same folder before this message: it forgets the conversation so far and reads what it needs from Waterfall">
+              <input type="checkbox" checked={fresh} onChange={e => setFresh(e.target.checked)} /> clear context first — a fresh agent, same folder, for an unrelated task
+            </label>
+          </div>
+        )}
         <div className="palette-row">
           {target === 'new' && <input className="palette-cwd" value={cwd} placeholder={defaults.cwd || 'working folder: the code repository the agent works in'} onChange={e => setCwd(e.target.value)} spellCheck={false} title="working folder" />}
-          {!isNew && <span className="muted palette-note">goes into that conversation as your next message; the agent keeps its context and folder</span>}
+          {!isNew && <span className="muted palette-note">{fresh ? 'restarts that conversation\u2019s agent from nothing, then sends this as its first message' : 'goes into that conversation as your next message; the agent keeps its context and folder'}</span>}
           {target === 'runner' && <span className="muted palette-note">queued until a runner for that agent picks it up</span>}
-          <button className="palette-go" onClick={run} disabled={(!text.trim() && !attach.images.length) || busy}>{busy ? 'Sending…' : !isNew ? 'Send ↵' : target === 'runner' ? 'Queue ↵' : plan ? 'Plan & build ↵' : 'Run ↵'}</button>
+          <button className="palette-go" onClick={run} disabled={(!text.trim() && !attach.images.length) || busy}>{busy ? 'Sending…' : !isNew ? (fresh ? 'Restart & send ↵' : 'Send ↵') : target === 'runner' ? 'Queue ↵' : plan ? 'Plan & build ↵' : 'Run ↵'}</button>
         </div>
         {msg && <p className="bad palette-msg">{msg}</p>}
         <p className="muted palette-hint">⌘P opens this anywhere · Send to agent on any block opens it with the block · the conversation opens in the right column</p>

@@ -520,7 +520,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   component: packages/web/src/app/[product]/sessions/page.tsx; packages/web/src/components/SessionList.tsx; packages/web/src/components/SessionView.tsx; packages/web/src/components/Console.tsx; packages/web/src/components/AskQuestions.tsx
   actions:
     - action:new-conversation: + New conversation starts a chat session with the default agent
-    - action:command-palette:  ⌘P / Ctrl+P anywhere opens the command box (component:command-box — the same one every "Send to agent" opens, decision:wf2.one-command-box) in the middle of the screen; the node under the cursor and the document travel along as refs; what is typed goes to the most recent live conversation, or starts a chat session that plans first (rule:plan-first), or is queued for a runner; images pasted or dropped into the box (thumbnails, ×, up to 8) become the session's files and go with the message (req:wf2.ui.palette-images); the conversation opens in the context column
+    - action:command-palette:  ⌘P / Ctrl+P anywhere opens the command box (component:command-box — the same one every "Send to agent" opens, decision:wf2.one-command-box) in the middle of the screen; the node under the cursor and the document travel along as refs; what is typed starts a chat session that plans first (rule:plan-first) — a clean slate by default, rule:clean-slate — or goes into a live conversation chosen in "to" (with "clear context first" its agent restarts from nothing), or is queued for a runner; images pasted or dropped into the box (thumbnails, ×, up to 8) become the session's files and go with the message (req:wf2.ui.palette-images); the conversation opens in the context column
     - action:open-session:     a row opens the session in the context column: status, agent, instruction, refs, then the console
     - action:send-message:     type (⌘↵) or paste images; sent now or queued while a turn runs (rule:session-queue)
     - action:answer-question:  choose options / type an answer on the agent's question card; Answer returns the choices to the agent, Skip lets it go on (rule:agent-questions)
@@ -1148,14 +1148,43 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     recorded one); the session header does the same; the command box's "to" picker offers exactly these.
   source: packages/web/src/lib/agent-host.ts#liveState; packages/web/src/components/SessionList.tsx#isActive; packages/web/src/app/api/[product]/sessions/route.ts
   status: shipped
-  related-to: [rule:agent-sessions, rule:console-flow]
+  related-to: [rule:agent-sessions, rule:console-flow, rule:idle-stop]
+- id: rule:clean-slate
+  statement: >
+    A request from the command box starts a new conversation by default: the "to" picker opens on "New conversation"
+    with the agent and the working folder the person used last (localStorage `wf-agent-<product>` /
+    `wf-cwd-<product>`), and the live conversations are an explicit choice. A live conversation chosen with
+    "clear context first" ticked is restarted fresh before the message: the host ends its process, forgets
+    `agentSessionId` (and the Codex thread), emits a `note` divider ("context cleared — fresh agent"), and hands the
+    message to a new process as a first message built like a new session's (instruction, refs, link, images, the
+    plan-first section when ticked). The Live entry is reused so the console's subscribers keep receiving events,
+    and the replaced process's close handler updates nothing. Without the tick, and always from the console's own
+    message box, the message goes into the running agent and its context is kept.
+  source: packages/web/src/components/CommandBox.tsx; packages/web/src/lib/agent-host.ts#restartFresh; packages/web/src/app/api/[product]/sessions/[id]/message/route.ts
+  status: shipped
+  verified-by: [ui-test:command-palette]
+  related-to: [rule:agent-sessions, rule:process-is-active, rule:plan-first]
+- id: rule:idle-stop
+  statement: >
+    A claude conversation that is live and idle — no open turn, no queued message — for WF_AGENT_IDLE_MIN minutes
+    (default 30; 0 disables) is stopped by the host: stdin is closed so claude exits 0, the session is marked done
+    with the line "idle for N min — stopped; Resume or a message continues with the same context", and the console
+    shows the exit. Resume and the next message start the process again with `--resume <agentSessionId>`
+    (rule:agent-host), so the context survives — only the process goes. Codex has no resident process and needs
+    nothing. The timer is armed on every `result` event and cleared when a message is written to the agent. A
+    process spawned before this rule shipped keeps its old stdout handler and is never armed: it stops only by hand
+    (rule:agent-host).
+  source: packages/web/src/lib/agent-host.ts#armIdleStop
+  status: shipped
+  related-to: [rule:process-is-active, rule:agent-host]
 - id: rule:agent-sessions
   statement: >
     Any block can be sent to an agent: "Send to agent" sits in every block's drag-handle menu, on node block headers,
     on goal/task table rows and in the right column's node view. It opens the one command box (component:command-box,
     the same ⌘P opens — decision:wf2.one-command-box) with the block text and the ids it defines or links prefilled;
-    the request goes to the most recent live conversation by default, or — with an agent (Claude Code, Codex, the
-    Waterfall clerk), a working folder and plan-first — starts a new one; sending creates
+    the request starts a new conversation by default — with the agent (Claude Code, Codex, the Waterfall clerk) and
+    the working folder used last, and plan-first (rule:clean-slate) — or goes into a live conversation chosen in
+    "to", whose agent restarts from nothing first when "clear context first" is ticked; sending creates
     a session (`data/products/<product>/_sessions/<id>.json`, status queued, gitignored) and opens it in the right
     column, which shows the instruction, refs, status and a log that is polled while the session is queued or
     running. The Agents page lists sessions (active first). Runners update a session with PATCH { status, line,
@@ -1338,6 +1367,40 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   date: 2026-09-17
   status: proposed
   affects: [action:command-palette, component:command-box, rule:agent-sessions, req:wf2.ui.command-palette]
+- id: decision:wf2.clean-slate
+  title: A task starts from a clean slate; a chat keeps its context
+  context: >
+    Waterfall is the memory of every agent: what a task needs is in the documents and the graph, not in the last
+    conversation's context window. Yet the command box (⌘P, every "Send to agent") sends a request into the most
+    recent live conversation by default, so an unrelated task inherits a context full of the previous one — dearer,
+    slower and distracted — while the process behind each conversation stays up for hours holding that context
+    (task:idle-agent-timeout: six idle claude processes in one afternoon). Chatting in a conversation's console is
+    different: there the person is continuing the same work and wants the context kept.
+  choice: >
+    The command box defaults to "New conversation" — a fresh agent in a remembered folder with a remembered agent
+    (localStorage, like the folder today) — and offers the live conversations only as an explicit choice. When a live
+    conversation is chosen, a "clear context first" tick (off by default) restarts its agent from nothing in the same
+    folder before the message: the process is stopped, the agent's own session id is forgotten, the transcript gets a
+    divider note, and the message goes as a first message with the full contract (plan-first when ticked). The
+    console's own message box always keeps the context (no tick there). A live-and-idle conversation is stopped
+    after WF_AGENT_IDLE_MIN minutes without a turn (default 30, 0 disables) with a log line saying so; Resume or the
+    next message brings it back with `--resume`, so nothing is lost — only the process.
+  alternatives: >
+    Default to the latest conversation with the tick on — every task lands in one ever-growing session record and
+    "Produced" / the knowledge strip stop meaning one piece of work; a "Clear context" button in the console — the
+    console is the place where context is wanted, and the tick at send time says what the person means for that
+    request; never stop idle processes — memory and context are held for nothing, since `--resume` restores both.
+  consequences: >
+    rule:clean-slate and rule:idle-stop; component:command-box (default "new", remembered agent, the tick),
+    op:api.sessions.message takes `fresh`, agent-host#startChat reuses the Live entry so subscribers survive a
+    restart and the old process's close handler no longer touches a replaced process; rule:agent-sessions,
+    action:command-palette and decision:wf2.one-command-box's "defaults to the most recent active conversation" are
+    superseded; ui-test:command-palette extended.
+  date: 2026-09-17
+  status: proposed
+  affects: [component:command-box, rule:agent-sessions, action:command-palette, rule:process-is-active, req:wf2.sessions.clean-slate, req:wf2.sessions.idle-stop]
+  related-to: [decision:wf2.one-command-box, task:idle-agent-timeout]
+  session: 64813dfdab
 - id: rule:plan-first
   statement: >
     A session started from the command palette carries `plan: true`, and its first message ends with a plan-first

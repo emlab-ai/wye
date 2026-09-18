@@ -48,11 +48,12 @@ async function mutate<T>(productDir: string, id: string, fn: (s: Session) => T |
   if (!ID.test(id)) return null;
   return withFileLock(file(productDir, id), async () => { const s = await getSession(productDir, id); if (!s) return null; const r = await fn(s); await saveSession(productDir, s); return r; });
 }
-export async function updateSession(productDir: string, id: string, patch: { status?: SessionStatus; line?: string; lines?: string[]; result?: string; runner?: string; agentSessionId?: string; cwd?: string; totalCostUsd?: number }): Promise<Session | null> {
+export async function updateSession(productDir: string, id: string, patch: { status?: SessionStatus; line?: string; lines?: string[]; result?: string; runner?: string; agentSessionId?: string; forgetAgentSession?: boolean; cwd?: string; totalCostUsd?: number }): Promise<Session | null> {
   return mutate(productDir, id, s => {
   const now = new Date().toISOString();
   if (patch.runner) s.runner = patch.runner;
   if (patch.agentSessionId) s.agentSessionId = patch.agentSessionId;
+  if (patch.forgetAgentSession) delete s.agentSessionId; // a fresh restart: the next process must not --resume
   if (patch.cwd) s.cwd = patch.cwd;
   if (patch.totalCostUsd !== undefined) s.totalCostUsd = patch.totalCostUsd;
   if (patch.status && patch.status !== s.status) {

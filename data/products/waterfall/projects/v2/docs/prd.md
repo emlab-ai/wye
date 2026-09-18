@@ -663,6 +663,31 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
   refines: req:wf2.ui.live
   satisfied-by: [action:command-palette, rule:plan-first, op:session.open]
   verified-by: [ui-test:command-palette]
+- id: req:wf2.sessions.clean-slate
+  title: A task starts from a clean slate; a chat keeps its context
+  when: a person sends a request from the command box (⌘P or "Send to agent")
+  then: >
+    the box proposes a new conversation — a fresh agent, in the folder and with the agent used last — so the task
+    reads what it needs from Waterfall, not from the previous task's context; a live conversation can be chosen
+    instead, and then a "clear context first" tick restarts its agent from nothing before the message, in the same
+    folder and the same console
+  unless: >
+    the person writes in a conversation's own message box or leaves the tick off — then the message goes to the
+    running agent and its context is kept
+  status: shipped
+  refines: req:wf2.ui.command-palette
+  satisfied-by: [rule:clean-slate, component:command-box]
+  verified-by: [ui-test:command-palette]
+- id: req:wf2.sessions.idle-stop
+  title: An idle agent does not hold its process for hours
+  when: a live conversation has had no turn and no queued message for the configured quiet time (30 minutes by default)
+  then: >
+    the app stops the agent process, the session says why in its log, and Resume or the next message brings the
+    agent back with the same context
+  unless: the quiet time is set to 0
+  status: shipped
+  refines: req:wf2.ui.live
+  satisfied-by: [rule:idle-stop]
 - id: req:wf2.sessions.knowledge-changes
   title: The session shows which part of the knowledge base it changed
   when: >

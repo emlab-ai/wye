@@ -59,6 +59,16 @@ React components (`component:` cards). `side` says whether it renders on the ser
   purpose: >
     One agent session in the right column: what was sent, its status, and the live log (polled while active).
   part-of: module:app-agents
+- id: component:session-changes
+  file: packages/web/src/components/SessionChanges.tsx
+  side: client
+  purpose: >
+    Everything a session changed in the knowledge base, block by block: per document, the nodes it added, changed
+    or removed (badge, tag, title; a row opens the node in the context column), prose paragraphs folded under
+    "n paragraphs"; filter by change kind and by kind of node. Rendered under the knowledge strip of the session
+    view and as a page of its own, /<product>/sessions/<id>/changes.
+  part-of: module:app-agents
+  status: proposed
 - id: component:session-list
   file: packages/web/src/components/SessionList.tsx
   side: client
@@ -77,10 +87,12 @@ React components (`component:` cards). `side` says whether it renders on the ser
   purpose: >
     The one command box (decision:wf2.one-command-box): ⌘P / Ctrl+P opens it with what the person is looking at
     (the document, the node under the cursor); every "Send to agent" opens it with the block's text, refs and
-    source prefilled (requestSend dispatches a `wf:send` window event). What is typed goes to an active
-    conversation — the "to" picker defaults to the most recent live one — or starts a new conversation (agent,
-    working folder, plan-first tick) or is queued for a runner; images pasted or dropped go along; Enter runs,
-    Shift+Enter breaks a line. Replaced SendToAgent.tsx and CommandPalette.tsx.
+    source prefilled (requestSend dispatches a `wf:send` window event). What is typed starts a new conversation by
+    default (rule:clean-slate: the "to" picker opens on New conversation with the agent and the working folder
+    used last — localStorage wf-agent-/wf-cwd-<product> — and the plan-first tick) or goes into a live
+    conversation chosen in "to" — with "clear context first" ticked the message carries `fresh: true` and the
+    plan-first tick, and that agent restarts from nothing before reading it — or is queued for a runner; images
+    pasted or dropped go along; Enter runs, Shift+Enter breaks a line. Replaced SendToAgent.tsx and CommandPalette.tsx.
   part-of: module:app-agents
 ```
 
@@ -93,7 +105,7 @@ Modules under packages/web/src/lib (`lib:` cards): pure logic and server-only IO
   file: packages/web/src/lib/agent-host.ts
   side: server
   purpose: >
-    The agent host: the app runs Claude Code / Codex as child processes for chat sessions, keeps the conversation open, turns their streaming JSON into ChatEvents, persists them to the session and pushes them to subscribers. Lives on globalThis so dev-server module reloads do not orphan the processes.
+    The agent host: the app runs Claude Code / Codex as child processes for chat sessions, keeps the conversation open, turns their streaming JSON into ChatEvents, persists them to the session and pushes them to subscribers. Lives on globalThis so dev-server module reloads do not orphan the processes. restartFresh swaps a conversation's process for a new one without its context (rule:clean-slate); armIdleStop ends a claude process idle for WF_AGENT_IDLE_MIN minutes (rule:idle-stop).
   part-of: module:app-agents
 - id: lib:agent-prompt
   file: packages/web/src/lib/agent-prompt.ts
@@ -174,7 +186,9 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 - id: op:api.sessions.message
   args: POST /api/<product>/sessions/<id>/message
   does: >
-    Queue a message (text, refs, link, images) for the agent; resumes the agent if it is not running.
+    Queue a message (text, refs, link, images) for the agent; resumes the agent if it is not running. With
+    `fresh: true` the agent restarts from nothing first (agent-host#restartFresh, rule:clean-slate) and gets the
+    message as a first message, plan-first when `plan` is set.
   gate: none (local app)
   source: packages/web/src/app/api
   part-of: module:app-agents
@@ -221,3 +235,89 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   source: packages/web/src/app/api
   part-of: module:app-agents
 ```
+
+## Plan: the blocks a session changed (task:session-knowledge-changes)
+
+What is shipped (req:wf2.sessions.knowledge-changes): the console's turn-done row and the header's knowledge
+strip list the *documents* a session wrote and the *nodes* it changed through the API. What is missing is the
+block level: an agent that edits a document on disk (most do — I did this whole session with heredocs) is credited
+with the document, not with the requirements, decisions and paragraphs it added or changed inside it. The task asks
+for a run id on every such block and a page that lists all of them. The plan: attribute per block by diffing the
+graph at every rebuild (the session id is the run id; the attribution is stored with the session, derived — the
+documents are not rewritten), then show it as a Changes list on the session and as a page.
+
+```yaml
+- id: req:wf2.sessions.block-attribution
+  title: Every block a session adds, changes or removes is attributed to it
+  when: >
+    a document of the product changes on disk (an agent's editor, wf doc write, the app's editor) while one or
+    more sessions are running, and the graph rebuilds
+  then: >
+    the nodes that are new, changed (title, status, body or text) or gone since the previous build — typed blocks
+    and prose paragraphs (block: nodes) alike — are recorded on every running session as `artifacts.blocks`
+    ({ id, change: added | changed | removed, doc, title, at }); a node changed through the API with x-wf-session
+    is recorded on that session only (as today); the turn-done "knowledge" row and the header strip show the
+    blocks (added / changed counts per document) instead of bare document tags
+  unless: >
+    the change is the app's own task-link write (session / produced on a task line), which is never credited;
+    or no session is running — then nothing is recorded, as today
+  status: proposed
+  refines: req:wf2.sessions.knowledge-changes
+  satisfied-by: [lib:artifacts, lib:graph-diff]
+- id: req:wf2.sessions.changes-page
+  title: A session's changes open as one list, per document, block by block
+  when: >
+    a person clicks the knowledge strip of a session (or "n changes" on a session row), or opens
+    /<product>/sessions/<id>/changes, or runs `wf session changes <id>`
+  then: >
+    every block the session added, changed or removed is listed per document with a badge (added / changed /
+    removed), its tag and title; a row opens the node in the context column; prose paragraphs are folded under
+    "n paragraphs" per document; chips filter by change and by kind (req, decision, task, …); the page is derived
+    from the session's artifacts and the current graph — nothing is stored beyond the attribution
+  unless: >
+    the session changed nothing — the strip and the page say so
+  status: proposed
+  refines: req:wf2.sessions.knowledge-changes
+  satisfied-by: [component:session-changes, op:api.sessions.changes]
+- id: decision:wf2.attribution-derived-not-written
+  title: The run id lives with the session, not on every block line
+  context: >
+    task:session-knowledge-changes proposes attaching a run id to every block a session adds or modifies, like a
+    commit hash, and filtering by it. Two places can hold it: the block's own line (`(session: <id>)` in its
+    property group, `session:` on a card) or the session's record.
+  choice: >
+    Attribution is derived — a graph diff at every rebuild, stored on the running sessions' artifacts — and the
+    documents are not rewritten for it. The session id stays the run id; the session's Changes list is the filter.
+    `session:` keeps being written where it already is: on the tasks a session works on (rule:task-artifacts) and
+    on the decisions, questions and requirements an agent writes with a `session:` key itself.
+  alternatives: >
+    Write `(session: <id>)` onto every touched block — git-visible and it survives a deleted session file, but
+    every requirement, rule and paragraph line grows a trailing id per session that touched it, the app's own
+    rewrite would itself be a change to credit, and a person's edit in the editor while an agent runs would be
+    stamped with the agent's id. Can be added later as an explicit "stamp" step if the derived list proves short-lived.
+  consequences: >
+    lib:artifacts gains blocks; the graph is diffed on rebuild (lib:graph-diff, pure, tested); the strip, the
+    turn-done row, the session row and wf session show read the blocks; attribution stays coarse when several
+    sessions run at once (all of them are credited, as for documents today) — the API path with x-wf-session is
+    exact.
+  status: proposed
+  date: 2026-09-17
+  related-to: [rule:task-artifacts, req:wf2.sessions.knowledge-changes, task:session-knowledge-changes]
+- id: question:wf2.attribution-several-sessions
+  q: >
+    When two sessions run at once and one edits a document on disk, both are credited with every block. Is that
+    acceptable for now, or should the app ask agents to write through `wf doc write` (exact credit) and stop
+    crediting disk edits to more than one session?
+  context: >
+    The disk watcher cannot tell which process wrote a file. Today documents are already credited to every running
+    session; block attribution inherits that. Exact credit needs the write to carry the session id (x-wf-session).
+  status: open
+  related-to: [decision:wf2.attribution-derived-not-written, rule:task-artifacts]
+```
+
+Work, in order:
+
+- [ ] task:graph-diff lib:graph-diff — pure diff of two graphs: added / changed / removed defined nodes (typed and block:), with title, doc and change; vitest. Part of req:wf2.sessions.block-attribution.
+- [ ] task:block-attribution The watcher keeps the previous graph per product, diffs after each rebuild and records the blocks on every running session (`artifacts.blocks`, capped); the API node PUT records the node as changed on its session; the app's own task-link writes stay excluded. Part of req:wf2.sessions.block-attribution.
+- [ ] task:session-changes-view component:session-changes under the knowledge strip (the strip shows "+n added · n changed per document" and opens it), the same component on /<product>/sessions/<id>/changes, op:api.sessions.changes (GET …/sessions/<id>/changes: the blocks joined with the current graph), `wf session changes <id>`, and the console's knowledge row with added / changed marks. Part of req:wf2.sessions.changes-page.
+- [ ] task:session-changes-ui-test ui-test:session-changes — a probe session edits a document on disk (one new req, one changed rule, one paragraph); the strip, the changes page and wf session changes list them. Part of req:wf2.sessions.changes-page.

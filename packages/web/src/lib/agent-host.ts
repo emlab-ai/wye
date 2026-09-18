@@ -12,7 +12,7 @@ import { resolveLink, renderResolved } from './resolve';
 import { REPO_ROOT } from './products';
 import { agentSystemPrompt } from './agent-prompt';
 
-type Live = { id: string; productDir: string; agent: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string; known: Set<string>; model?: string; codexUsage?: TurnUsage };
+type Live = { id: string; productDir: string; agent: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string; known: Set<string>; model?: string; codexUsage?: TurnUsage; idle?: ReturnType<typeof setTimeout> };
 const g = globalThis as unknown as { __wfAgentHost?: Map<string, Live> };
 const live = () => (g.__wfAgentHost ??= new Map<string, Live>());
 
@@ -77,15 +77,23 @@ export async function buildPrompt(product: string, s: Session, wfUrl: string, pr
 }
 
 // Start (or resume) the agent process for a chat session and send the first message.
-export async function startChat(productDir: string, product: string, id: string, opts: { wfUrl: string; firstMessage?: string; resume?: boolean }): Promise<Session | null> {
+// `firstMessage` with `images` (file names under the session) replaces the prompt built from the session's own
+// instruction — a fresh restart (restartFresh) sends the new request that way. The Live entry is reused when one
+// exists so the console's subscribers keep receiving events across a restart.
+export async function startChat(productDir: string, product: string, id: string, opts: { wfUrl: string; firstMessage?: string; images?: string[]; resume?: boolean }): Promise<Session | null> {
   const s = await getSession(productDir, id); if (!s) return null;
   if (live().get(id)?.proc) return s;
   const cwd = s.cwd || REPO_ROOT;
-  const l: Live = { id, productDir, agent: s.agent, cwd, proc: null, subs: new Set(), pending: [], flush: null, agentSessionId: s.agentSessionId, turnBusy: false, pumping: false, codexThread: s.agent === 'codex' ? s.agentSessionId : undefined, known: new Set([...(s.artifacts?.docs ?? []), ...(s.artifacts?.nodes ?? [])]) };
+  const l: Live = live().get(id) ?? { id, productDir, agent: s.agent, cwd, proc: null, subs: new Set(), pending: [], flush: null, turnBusy: false, pumping: false, known: new Set() };
+  Object.assign(l, { agent: s.agent, cwd, proc: null, agentSessionId: s.agentSessionId, turnBusy: false, pumping: false, codexThread: s.agent === 'codex' ? s.agentSessionId : undefined, model: undefined, known: new Set([...(s.artifacts?.docs ?? []), ...(s.artifacts?.nodes ?? [])]) });
   live().set(id, l);
+  return startProcess(l, s, product, opts);
+}
+async function startProcess(l: Live, s: Session, product: string, opts: { wfUrl: string; firstMessage?: string; images?: string[]; resume?: boolean }): Promise<Session | null> {
+  const { id, productDir, cwd } = l;
   const first = opts.firstMessage ?? (opts.resume ? undefined : await buildPrompt(product, s, opts.wfUrl, productDir));
   // the request's images go with the first message the way pump sends a queued message's ones
-  const imgs = first && !opts.resume ? await loadImages(productDir, id, s.images ?? []) : [];
+  const imgs = first && !opts.resume ? await loadImages(productDir, id, opts.images ?? s.images ?? []) : [];
   const shown = imgs.map(i => `/api/${product}/sessions/${id}/file/${i.name}`);
   const system = await agentSystemPrompt(product, productDir, opts.wfUrl);
   await updateSession(productDir, id, { status: 'running', runner: `app@${process.pid}`, line: opts.resume ? 'resumed' : 'started in the app', cwd });
@@ -101,9 +109,10 @@ export async function startChat(productDir: string, product: string, id: string,
   l.proc = proc;
   emit(l, { kind: 'note', text: `claude ${opts.resume ? 'resumed' : 'started'} in ${cwd} · Waterfall contract applied as system prompt` });
   let buf = '';
-  proc.stdout.on('data', d => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) onClaudeLine(l, line); } });
-  proc.stderr.on('data', d => { const t = String(d).trim(); if (t) emit(l, { kind: 'stderr', text: t.slice(0, 2000) }); });
-  proc.on('close', code => { reportKnowledge(l, 0); emit(l, { kind: 'exit', code: code ?? -1, text: `claude exited (${code})` }); l.proc = null; getSession(productDir, id).then(cur => { if (cur?.status === 'cancelled') return; return updateSession(productDir, id, { status: code === 0 ? 'done' : 'failed', line: `agent exited with ${code}` }); }).catch(() => {}); });
+  // a process replaced by restartFresh may still write its last lines: they are not this conversation's any more
+  proc.stdout.on('data', d => { if (l.proc !== proc) return; buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) onClaudeLine(l, line); } });
+  proc.stderr.on('data', d => { if (l.proc !== proc) return; const t = String(d).trim(); if (t) emit(l, { kind: 'stderr', text: t.slice(0, 2000) }); });
+  proc.on('close', code => { if (l.proc !== proc) return; clearIdle(l); reportKnowledge(l, 0); emit(l, { kind: 'exit', code: code ?? -1, text: `claude exited (${code})` }); l.proc = null; l.turnBusy = false; getSession(productDir, id).then(cur => { if (cur?.status === 'cancelled') return; return updateSession(productDir, id, { status: code === 0 ? 'done' : 'failed', line: `agent exited with ${code}` }); }).catch(() => {}); });
   proc.stdin.on('error', () => {});
   if (first) { emit(l, { kind: 'user', text: first, images: shown }); writeUser(l, first, imgs); } else setTimeout(() => pump(l), 500); // a resumed agent takes what waited in the queue
   return getSession(productDir, id);
@@ -111,7 +120,7 @@ export async function startChat(productDir: string, product: string, id: string,
 
 function writeUser(l: Live, text: string, images: { mediaType: string; data: string }[] = []) {
   if (!l.proc) return;
-  l.turnBusy = true;
+  l.turnBusy = true; clearIdle(l);
   const content: unknown[] = [{ type: 'text', text }, ...images.map(i => ({ type: 'image', source: { type: 'base64', media_type: i.mediaType, data: i.data } }))];
   l.proc.stdin!.write(JSON.stringify({ type: 'user', message: { role: 'user', content } }) + '\n');
 }
@@ -160,7 +169,7 @@ function onClaudeLine(l: Live, line: string) {
     }
     return;
   }
-  if (type === 'result') { l.turnBusy = false; emit(l, { kind: 'result', text: typeof j.result === 'string' ? j.result : '', costUsd: j.total_cost_usd as number, durationMs: j.duration_ms as number, isError: j.is_error as boolean, usage: claudeUsage(j, l.model) }); if (typeof j.total_cost_usd === 'number') updateSession(l.productDir, l.id, { totalCostUsd: j.total_cost_usd }).catch(() => {}); reportKnowledge(l); pump(l); return; }
+  if (type === 'result') { l.turnBusy = false; armIdleStop(l); emit(l, { kind: 'result', text: typeof j.result === 'string' ? j.result : '', costUsd: j.total_cost_usd as number, durationMs: j.duration_ms as number, isError: j.is_error as boolean, usage: claudeUsage(j, l.model) }); if (typeof j.total_cost_usd === 'number') updateSession(l.productDir, l.id, { totalCostUsd: j.total_cost_usd }).catch(() => {}); reportKnowledge(l); pump(l); return; }
   if (type === 'control_request') {
     const req = j.request as Record<string, unknown>;
     emit(l, { kind: 'permission', requestId: String(j.request_id), name: String(req.tool_name ?? req.subtype ?? 'tool'), input: req.input, text: String(req.description ?? req.subtype ?? '') });
@@ -217,8 +226,49 @@ export function answerPermission(id: string, requestId: string, allow: boolean, 
   emit(l, { kind: 'note', text: `${allow ? 'allowed' : 'denied'} ${requestId}`, requestId, answered: allow ? 'allow' : 'deny', input: allow ? input : undefined });
   return true;
 }
+// Clear context first (rule:clean-slate): end the running process, forget the agent's own session id (and the
+// Codex thread), mark the transcript, and hand the queued request to a fresh process as a first message built like
+// a new session's — instruction, refs, link, images, plan-first when asked.
+export async function restartFresh(productDir: string, product: string, id: string, item: { text: string; refs?: string[]; link?: string; images?: string[] }, opts: { wfUrl: string; plan?: boolean }): Promise<boolean> {
+  const s = await getSession(productDir, id); if (!s) return false;
+  const l = live().get(id); // the old process goes first, so the pump cannot hand it the new message
+  if (l) {
+    clearIdle(l);
+    const old = l.proc; l.proc = null; l.turnBusy = false; l.pumping = false; l.agentSessionId = undefined; l.codexThread = undefined; l.model = undefined;
+    if (old) { old.stdin?.end(); setTimeout(() => old.kill(), 1500); } // its close handler sees l.proc !== old and stays quiet
+    emit(l, { kind: 'note', text: 'context cleared — a fresh agent takes the next message' });
+  }
+  await updateSession(productDir, id, { forgetAgentSession: true, line: 'context cleared' });
+  await enqueue(productDir, id, item);
+  const items = await takeFromQueue(productDir, id); if (!items.length) return false;
+  await notifyQueue(productDir, id);
+  const fresh: Session = { ...s, agentSessionId: undefined, plan: !!opts.plan, instruction: items.map(i => i.text.trim()).filter(Boolean).join('\n\n---\n\n'), refs: [...new Set(items.flatMap(i => i.refs ?? []))], source: { ...(s.source ?? {}), link: items.find(i => i.link)?.link }, images: items.flatMap(i => i.images ?? []), parent: undefined };
+  const first = await buildPrompt(product, fresh, opts.wfUrl, productDir);
+  await startChat(productDir, product, id, { wfUrl: opts.wfUrl, firstMessage: first, images: fresh.images });
+  return true;
+}
+// Idle stop (rule:idle-stop): a live claude process with no open turn and no queued message for WF_AGENT_IDLE_MIN
+// minutes (default 30, 0 disables) is ended — `--resume` brings its context back with the next message or Resume.
+export const IDLE_MIN = (() => { const n = Number(process.env.WF_AGENT_IDLE_MIN ?? '30'); return Number.isFinite(n) && n >= 0 ? n : 30; })();
+function clearIdle(l: Live) { if (l.idle) { clearTimeout(l.idle); l.idle = undefined; } }
+function armIdleStop(l: Live) {
+  clearIdle(l);
+  if (!IDLE_MIN || l.agent === 'codex') return;
+  l.idle = setTimeout(() => {
+    l.idle = undefined;
+    if (!l.proc || l.turnBusy) return;
+    getSession(l.productDir, l.id).then(s => {
+      if ((s?.queue ?? []).some(q => !q.sentAt)) { pump(l); return; } // something waits after all
+      emit(l, { kind: 'note', text: `idle for ${IDLE_MIN} min — stopped; Resume or a message continues with the same context` });
+      updateSession(l.productDir, l.id, { status: 'done', line: `idle for ${IDLE_MIN} min — stopped; Resume or a message continues with the same context` }).catch(() => {});
+      l.proc?.stdin?.end(); const p = l.proc; setTimeout(() => p?.kill(), 1500);
+    }).catch(() => {});
+  }, IDLE_MIN * 60_000);
+  l.idle.unref?.();
+}
 export function stopChat(id: string): boolean {
   const l = live().get(id); if (!l) return false;
+  clearIdle(l);
   if (l.proc) { l.proc.stdin?.end(); setTimeout(() => l.proc?.kill(), 1500); }
   emit(l, { kind: 'note', text: 'stopped by the user' });
   return true;

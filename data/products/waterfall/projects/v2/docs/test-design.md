@@ -255,8 +255,14 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     data URL) with the request; the session lists the saved file, the first user event in the console shows it and
     the agent sees it (2026-09-17, session 6ca1fd641c: the agent described the pasted screenshot without a tool).
     One box: "Send to agent" on a block (a `wf:send` event) opens the same box with "Work on <ids>." and the block
-    text prefilled and the live conversation preselected (button "Send ↵"); switching "to" to New conversation
-    shows the agent, plan-first and folder ("Plan & build ↵"); Escape closes (2026-09-17, session 6ca1fd641c)
+    text prefilled; "to" opens on New conversation with the agent, plan-first and folder ("Plan & build ↵");
+    Escape closes (2026-09-17, session 6ca1fd641c). Clean slate (rule:clean-slate, 2026-09-18, session
+    64813dfdab): with nine live conversations the box still opens on New conversation; choosing a live one shows
+    "Send ↵", the note "keeps its context and folder" and the "clear context first" tick; ticking it shows the
+    plan-first tick too, the note "restarts that conversation's agent from nothing" and "Restart & send ↵". API
+    side on a probe session: a first turn told the agent a secret word; a message with fresh: true got "no idea",
+    a new agentSessionId, the "context cleared" note in the transcript and one claude process for the session; two
+    plain messages after it kept context (BLUE → BLUE).
 - id: ui-test:table-rows
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >
