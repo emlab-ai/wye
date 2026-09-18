@@ -148,6 +148,45 @@ function QuestionNode({ p, set, contentRef, block }: { p: { kind: string; slug: 
   );
 }
 
+// A decision card: context, choice and alternatives are what matters (rule:card-essence); consequences, date, affects
+// and every other key sit in "details" with the id and the yaml, like the question card.
+const DECISION_ESSENCE = ['context', 'choice', 'alternatives'];
+function DecisionNode({ p, set, contentRef, block }: { p: { kind: string; slug: string; status: string; body: string; textKey: string; extra: string; check: string; row: string; form: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock }) {
+  const [details, setDetails] = useState(false);
+  const rows = parseBody(p.body);
+  const get = (k: string) => rows.find(r => r.key === k)?.value ?? '';
+  const id = `${p.kind}:${p.slug}`;
+  const others = rows.filter(r => !['id', 'title', 'status', p.textKey, ...DECISION_ESSENCE].includes(r.key));
+  const hostRef = useRef<HTMLDivElement>(null);
+  return (
+    <div className={`nblock k-decision dnode s-${p.status}`} data-id={id} ref={hostRef}>
+      <div className="nblock-head" contentEditable={false} ref={stopEditorEvents}>
+        <button type="button" className="pill k nblock-peek" style={{ background: 'var(--k-decision)' }} title="Open this decision in the panel" onClick={() => window.dispatchEvent(new CustomEvent('wf:peek', { detail: id }))}>decision</button>
+        <input className="nblock-slug" value={p.slug} spellCheck={false} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />
+        <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{STATUSES.map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
+        <span className="nblock-tools hover-only">
+          <button type="button" className="nblock-send" title="Copy a link to this decision" onClick={() => copyBlockLink(block, hostRef.current)}>⧉</button>
+          <button type="button" className="nblock-send" title="Send this decision to an agent" onClick={() => sendBlock(block, hostRef.current)}>⇢</button>
+          <button type="button" className="nblock-send" onClick={() => setDetails(d => !d)} title="consequences, date, links and the rest">{details ? 'hide details' : 'details'}</button>
+        </span>
+      </div>
+      <div className="qnode-title nblock-text" ref={contentRef} />
+      {DECISION_ESSENCE.filter(k => get(k)).map(k => (
+        <div key={k} className="qnode-section" contentEditable={false} ref={stopEditorEvents}>
+          <label>{k}</label>
+          <textarea className="qnode-ta" value={get(k)} rows={Math.min(12, Math.max(2, Math.ceil(get(k).length / 90)))} onChange={e => set({ body: setBodyField(p.body, k, e.target.value) })} />
+        </div>
+      ))}
+      {details && (
+        <div className="qnode-details" contentEditable={false} ref={stopEditorEvents}>
+          {others.length > 0 && <dl className="nblock-props">{others.map(r => <div key={r.key}><dt>{r.key}</dt><dd>{r.value.includes('\n') ? <pre><Linkified text={r.value} /></pre> : <PropValue value={r.value} />}</dd></div>)}</dl>}
+          <textarea className="nblock-yaml" value={p.body} rows={Math.min(20, p.body.split('\n').length + 1)} onChange={e => set({ body: e.target.value })} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // A goal or task shown as a table row inside a goals/tasks collection: name (editable inline content), status, target,
 // progress, owner. Tracking fields live in the node's trailing property group.
 function RowNode({ p, set, contentRef, block, editor }: { p: { kind: string; slug: string; status: string; extra: string; check: string; row: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; editor: EditorLike }) {
@@ -359,6 +398,7 @@ const NodeBlock = createReactBlockSpec(
       if (p.row && p.row !== 'goal' && p.row !== 'task') return <TypeRowFor p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} editor={ed} />;
       if (p.row) return <RowNode p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} editor={ed} />;
       if (p.kind === 'question' && p.form === 'yaml') return <QuestionNode p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} />;
+      if (p.kind === 'decision' && p.form === 'yaml') return <DecisionNode p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} />;
       return (
         <div className={`nblock k-${p.kind} ${p.check === 'done' || p.status === 'done' ? 'done' : ''}`} data-id={`${p.kind}:${p.slug}`}>
           <div className="nblock-head" contentEditable={false} ref={stopEditorEvents} onClick={selectBlockOnClick(ed, props.block as unknown as AnyBlock, null)}>

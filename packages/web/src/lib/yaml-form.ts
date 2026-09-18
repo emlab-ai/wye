@@ -1,7 +1,7 @@
 // Form ↔ yaml for one node chunk. Pure; used by the card editor (client) and tested with vitest.
 export interface FormField { key: string; value: string; kind: 'text' | 'prose' | 'list' | 'nested' }
 
-const PROSE = new Set(['when', 'then', 'unless', 'statement', 'description', 'purpose', 'context', 'choice', 'consequences', 'intent', 'q', 'note', 'notes']);
+const PROSE = new Set(['when', 'then', 'unless', 'statement', 'description', 'purpose', 'context', 'choice', 'alternatives', 'consequences', 'intent', 'q', 'answer', 'note', 'notes']);
 const LIST = new Set(['satisfied-by', 'verified-by', 'requires-tests', 'refines', 'governed-by', 'gated-by', 'applies-to', 'governs', 'resolves', 'see', 'reads', 'writes', 'calls', 'contradicts', 'submodules', 'documents', 'projects', 'states', 'terminal', 'roles', 'affects']);
 
 // Parse a chunk body into ordered fields. Nested blocks (fields:, transitions:, edges:, actions:, …) stay raw.
@@ -17,7 +17,7 @@ export function bodyToFields(body: string): { id: string; fields: FormField[] } 
       const key = m[1].trim(); const raw = (m[2] ?? '').trim();
       if (key === 'id') { id = raw; cur = null; continue; }
       block = raw === '>' || raw === '|';
-      const kind: FormField['kind'] = PROSE.has(key) ? 'prose' : LIST.has(key) || /^\[.*\]$/.test(raw) ? 'list' : raw === '' && !block ? 'nested' : 'text';
+      const kind: FormField['kind'] = PROSE.has(key) || block ? 'prose' : LIST.has(key) || /^\[.*\]$/.test(raw) ? 'list' : raw === '' && !block ? 'nested' : 'text';
       cur = { key, value: block ? '' : raw, kind };
       continue;
     }

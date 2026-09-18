@@ -1,7 +1,7 @@
 ---
 node: module:app-documents
 type: module
-title: App — documents and editing
+title: Documents and editing
 status: proposed
 owner: unassigned
 last-verified: 2026-09-17
@@ -31,7 +31,7 @@ sources:
 
 ## Requirements and rules
 
-What this module must do is written where it was decided — the PRD and the dev design; this document maps the code onto it. Requirements: req:wf2.ui.node-page, req:wf2.ui.node-page.save, req:wf2.write, req:wf2.write.conflict, req:wf2.write.atomic, req:wf2.write.round-trip, req:wf2.write.validated, req:wf2.ui.annotate-images. Rules the code enforces: rule:single-page-editor, rule:node-cards, rule:prose-nodes, rule:prose-round-trip, rule:card-form, rule:segment-write, rule:if-match, rule:atomic-file-write, rule:per-file-queue, rule:validate-before-write, rule:block-links, rule:mention-menu, rule:todo-tasks, rule:blocknote-prose-only, rule:prose-keys, rule:drawings, rule:image-annotations. Pages: page:web/node.
+What this module must do is written where it was decided — the PRD and the dev design; this document maps the code onto it. Requirements: req:wf2.ui.node-page, req:wf2.ui.node-page.save, req:wf2.write, req:wf2.write.conflict, req:wf2.write.atomic, req:wf2.write.round-trip, req:wf2.write.validated, req:wf2.ui.annotate-images. Rules the code enforces: rule:single-page-editor, rule:node-cards, rule:prose-nodes, rule:prose-round-trip, rule:card-form, rule:segment-write, rule:if-match, rule:atomic-file-write, rule:per-file-queue, rule:validate-before-write, rule:block-links, rule:mention-menu, rule:todo-tasks, rule:blocknote-prose-only, rule:prose-keys, rule:drawings, rule:image-annotations, rule:card-essence. Pages: page:web/node.
 
 ## Components
 
@@ -80,6 +80,73 @@ React components (`component:` cards). `side` says whether it renders on the ser
   purpose: >
     A command box at the selection: what you type goes to an active conversation together with the selected text, the block it sits in, and a link to the page. \"New conversation…\" hands the same payload to the full dialog.
   part-of: module:app-documents
+```
+
+## Cards
+
+A card in the editor shows what the block is *for* and folds the rest. The question card already does this (the question and the answer on the card; id, links, the yaml behind "details"). The decision card still lists every key — context, choice, alternatives, consequences, date, affects, related-to, session — so a decision reads as a form, not as a decision.
+
+```yaml
+- id: decision:wf2.card-essence
+  title: A decision card shows its essence; the rest sits behind "details"
+  context: >
+    A decision card in a document lists every key of the yaml block (context, choice, alternatives, consequences,
+    date, affects, related-to, session, …) as label/value rows, so the choice — the one thing a reader wants —
+    drowns in tracking fields. The question card already separates the two: question and answer on the card,
+    id, links and the yaml behind a "details" toggle (DocEditor#QuestionNode).
+  choice: >
+    The decision card shows the title, then context, choice and alternatives as prose sections, in that order.
+    Every other key (consequences, date, affects, related-to, session and anything else the card carries) moves
+    behind the same "details" toggle the question card has, together with the id and the yaml editor. The
+    kind pill, slug and status stay in the header. Nothing changes in the markdown: the keys are still written
+    and still edges; only the card folds them.
+  alternatives: >
+    Fold only date/affects/session and keep consequences on the card — consequences are part of the ADR, but
+    the person asked for them folded; the choice already says what follows. Fold everything but the choice —
+    context and alternatives explain why, a reader loses the reasoning. Generalise to every yaml card with a
+    per-type "essence" list — no type declares one yet; start with the two kinds that need it and extract the
+    rule when a third appears.
+  consequences: >
+    DocEditor#NodeBlock renders a decision as a DecisionNode (essence sections + details); rule:card-essence
+    replaces the "every other key is shown read-only under the text" behaviour for decisions; the server
+    reader (component:node-card) is unchanged — it is shown only until the editor hydrates.
+  date: 2026-09-18
+  status: proposed
+  affects: [component:doc-editor, rule:card-essence, req:wf2.cards.decision-essence]
+  related-to: [rule:card-form, rule:node-cards]
+  session: 843b0e1f2c
+- id: req:wf2.cards.decision-essence
+  title: A decision card reads as a decision
+  when: a document shows a decision yaml card in the editor
+  then: >
+    the card shows the header (kind, slug, status), the title, and context, choice and alternatives as prose
+    sections; consequences, date, affects, related-to, session and every other key are hidden until "details"
+    is toggled, where they appear as label/value rows above the id and the yaml editor
+  unless: the yaml toggle is open, which replaces the whole body with the raw chunk
+  status: shipped
+  refines: req:wf2.ui.node-page
+  satisfied-by: [rule:card-essence]
+  part-of: module:app-documents
+- id: rule:card-essence
+  statement: >
+    A question card shows q and answer; a decision card shows context, choice and alternatives (in that order,
+    each a section with its key as label, missing keys skipped). Every other key of the card — id, links, dates,
+    tracking fields, undeclared keys — is behind a "details" toggle on the card, off by default, together with
+    the raw yaml editor. Any other yaml card keeps showing all its keys as rows under the text.
+  source: packages/web/src/components/DocEditor.tsx#QuestionNode; packages/web/src/components/DocEditor.tsx#DecisionNode
+  status: shipped
+  related-to: [rule:card-form, rule:node-cards]
+  verified-by: [ui-test:decision-card]
+- id: ui-test:decision-card
+  title: Decision card folds its tracking fields
+  steps: >
+    Open dev-design in Chrome; find the decision:wf2.clean-slate card; it shows the title, context, choice and
+    alternatives and no date/affects/consequences/related-to/session rows; click "details"; the rows appear
+    with the id and the yaml editor; edit choice on the card and reload — the markdown keeps every key in its
+    original order.
+  status: passed
+  verifies: rule:card-essence
+  last-run: 2026-09-18
 ```
 
 ## Libraries

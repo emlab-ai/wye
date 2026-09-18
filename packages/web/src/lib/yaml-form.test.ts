@@ -57,4 +57,12 @@ describe('setBodyField', () => {
     expect(setBodyField(body, 'q', 'Why not?')).toBe('id: question:x\ntitle: T\nq: Why not?\nstatus: open\nrelated-to: [goal:a]');
     expect(setBodyField(setBodyField(body, 'answer', 'x'), 'answer', '')).toBe(body);
   });
+  it('keeps a block scalar under any key (a decision\'s alternatives) when another field is edited', () => {
+    const long = 'a '.repeat(60).trim();
+    const body = `id: decision:x\ntitle: T\ncontext: C\nchoice: X\nalternatives: >\n  ${long}\ndate: 2026-09-18\nstatus: proposed\naffects: [rule:a]`;
+    const out = setBodyField(body, 'choice', 'Y');
+    expect(out).toContain('choice: Y\nalternatives: >\n  ');
+    expect(out).not.toContain(`alternatives: ${long}`);
+    expect(out.endsWith('date: 2026-09-18\nstatus: proposed\naffects: [rule:a]')).toBe(true);
+  });
 });
