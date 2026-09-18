@@ -117,7 +117,9 @@ React components (`component:` cards). `side` says whether it renders on the ser
   file: packages/web/src/components/PeekPanel.tsx
   side: client
   purpose: >
-    How an edge reads from the open node's side.
+    The context column itself: the bar (←, the chip stack, ×) fixed at the top and, under it, the one scroller
+    (`.peek-body`) that shows the open item — a node's card, properties and relations; a document's preview; a type;
+    a session's header and console; or Context mode (rule:column-frame).
   part-of: module:app-shell
 - id: component:peek-graph
   file: packages/web/src/components/PeekGraph.tsx

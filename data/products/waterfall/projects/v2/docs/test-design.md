@@ -305,6 +305,15 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     from the Agents page a row opens the session in the column, "page ↗" navigates to the page with the column
     kept, ‹ in the top bar returns to Agents with the column kept, ⌘] and ⌘[ go forward and back (2026-09-18,
     session efee530d46)
+- id: ui-test:column-frame
+  file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    open a chat session with a long transcript in the context column at 900 px high — the bar (←, chips, ×) and the
+    message box are inside the viewport, the conversation's last row is visible above the box; scroll the column's
+    body to the top — the bar and the box stay where they were and the session header is in view; append an event
+    while scrolled to the bottom — the column follows it; open a long node — the bar stays and the relations scroll
+    (2026-09-18, session 07aa6645ad: /tmp/wfpw/frame.mjs, 14 checks passed in Chrome at 1400×900; the event was a
+    `wf session open`, since a log line is not streamed to the console)
 - id: ui-test:edit-node-flow
   file: packages/web/e2e/edit-node.spec.ts
   scenario: open a project, open a node, edit a prose key and a status, save; assert the file on disk changed, the graph.changed event arrived, and the sidebar dot updated without a reload

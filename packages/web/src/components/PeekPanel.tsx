@@ -49,23 +49,29 @@ export function PeekPanel() {
       <button className="peek-bar-close" onClick={() => { if (showContext) setPanelOpen(false); else close(); }} title="Hide the panel (⌘.)">×</button>
     </div>
   );
+  // The column is a frame (rule:column-frame): the bar stays, .peek-body is the one scroller under it.
   // Context root: the node the cursor is in (its details first), then knowledge related to what is being written
   if (!openId) return (
     <aside className="peek" role="complementary" aria-label="Context">
       {chips}
-      {editing?.nodeId
-        ? <><NodeView id={editing.nodeId} /><div className="peek-bar peek-sub"><strong>Related</strong><span className="muted">knowledge close to what you are writing</span></div><ContextPanel /></>
-        : <><div className="peek-bar"><strong>Context</strong><span className="muted">{editing ? 'for the block you are editing' : 'put the cursor in the text'}</span></div><ContextPanel /></>}
+      <div className="peek-body">
+        {editing?.nodeId
+          ? <><NodeView id={editing.nodeId} /><div className="peek-bar peek-sub"><strong>Related</strong><span className="muted">knowledge close to what you are writing</span></div><ContextPanel /></>
+          : <><div className="peek-bar"><strong>Context</strong><span className="muted">{editing ? 'for the block you are editing' : 'put the cursor in the text'}</span></div><ContextPanel /></>}
+      </div>
     </aside>
   );
+  // a session's message box sticks to the bottom of the scroller, so the body has no padding under it
   if (openId.startsWith('session:')) return (
     <aside className="peek" role="dialog" aria-label={openId}>
       {chips}
-      <div className="peek-bar"><strong>Session</strong><Link href={`/${product}/sessions`}>All sessions</Link></div>
-      <SessionView id={openId.slice('session:'.length)} />
+      <div className="peek-body peek-session">
+        <div className="peek-bar"><strong>Session</strong><Link href={`/${product}/sessions`}>All sessions</Link></div>
+        <SessionView id={openId.slice('session:'.length)} />
+      </div>
     </aside>
   );
-  return <aside className="peek" role="dialog" aria-label={openId}>{chips}<NodeView id={openId} /></aside>;
+  return <aside className="peek" role="dialog" aria-label={openId}>{chips}<div className="peek-body"><NodeView id={openId} /></div></aside>;
 }
 
 // One node in the column: card or editor, what it produced, and what it is connected to (list or graph).

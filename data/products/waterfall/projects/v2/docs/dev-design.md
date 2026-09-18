@@ -493,6 +493,32 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - a document shows a preview (title, status, intro, outline, Open document →) and Connected; a goal or task shows its tracking editor and what is part of it; a type shows its card, editable properties, instances and Connected; a session shows its console
     - Context mode (no item open on a document page) follows the block being edited and shows the knowledge nearest to it (rule:context-panel)
     - field, prop and block nodes never appear in Connected; a document's phrase links are read from its blocks (rule:ontology.hidden-kinds)
+    - the bar at the top and a session's message box at the bottom stay in view; only what is between them scrolls (rule:column-frame)
+```
+
+The column's frame: what stays put and what scrolls.
+
+```yaml
+- id: req:wf2.ui.column-frame
+  title: The context column's bar and message box stay put; only its content scrolls
+  when: the context column shows more than fits — a long node, a session with a long conversation
+  then: >
+    the bar at the top (←, the chips, ×) and, for a session, the message box at the bottom stay in view while the
+    content between them — a node's card and relations, a session's header and conversation — scrolls; a new event
+    keeps the conversation at its end when it was at its end
+  unless: the content fits — nothing scrolls and the message box sits under the conversation
+  status: shipped
+  refines: req:wf2.ui
+  satisfied-by: [component:peek-panel, component:console, rule:column-frame]
+  verified-by: [ui-test:column-frame]
+- id: rule:column-frame
+  statement: >
+    The context column is a flex column: `.peek-nav` (the bar) is fixed at the top, `.peek-body` is the one scroll
+    container under it, and a session's `.console-input` is `position: sticky; bottom: 0` inside it, so the session
+    header and the conversation scroll as one under the bar and above the message box. The console has no height and
+    no scroll of its own; the conversation's stick-to-bottom follows the nearest scroll ancestor.
+  source: packages/web/src/app/globals.css (.peek, .peek-nav, .peek-body, .console, .console-input); packages/web/src/components/Console.tsx
+  status: shipped
 ```
 
 ### page:web/types
