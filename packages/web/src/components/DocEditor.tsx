@@ -9,12 +9,11 @@ import '@blocknote/mantine/style.css';
 import { prepare, expand } from '@/lib/import';
 import { blocksToMarkdown, type AnyBlock } from '@/lib/serialize';
 import { CARD_KINDS } from '@/lib/kinds';
-import { parseBody } from '@/lib/graph';
-import { setBodyField } from '@/lib/yaml-form';
-import { Linkified } from './IdLink';
+import { NodeCard, type CardP, type CardHost } from './NodeCards';
 import { SmartTag } from './SmartTag';
 import { DrawingBlock, newDrawingSlug, sceneFromText, sceneFromImage } from './DrawingBlock';
 import { ViewBlock } from './ViewBlock';
+import { EmbedBlock } from './EmbedBlock';
 import { usePeek, type OwnType } from './PeekProvider';
 import { ID_RE } from '@/lib/ids';
 import { parseExtra, withExtra, GOAL_STATUSES, TASK_STATUSES, STATUSES } from '@/lib/props';
@@ -42,15 +41,6 @@ const InlineImage = createReactInlineContentSpec(
   },
 );
 
-// A yaml flow list "[a, b]" renders as its items; anything else as linkified text.
-function PropValue({ value }: { value: string }) {
-  const m = value.match(/^\[(.*)\]$/s);
-  if (!m) return <Linkified text={value} />;
-  const items = m[1].split(/,\s*(?![^()]*\))/).map(x => x.trim()).filter(Boolean);
-  if (!items.length) return <span className="muted">none</span>;
-  return <span className="list">{items.map((it, i) => <span key={i} className="item"><Linkified text={it} /></span>)}</span>;
-}
-
 // ProseMirror listens natively on the editor root and would treat a click on a header control as a node selection;
 // stop mouse and key events at the header so inputs, selects and checkboxes behave normally.
 function stopEditorEvents(el: HTMLElement | null) {
@@ -72,6 +62,7 @@ function sendBlock(block: AnyBlock, host: HTMLElement | null) {
 // The stable address of a block: node id, heading slug, or a hash of its text (see lib/anchors).
 function blockAnchor(block: AnyBlock): string {
   if (block.type === 'node') { const np = block.props as unknown as { kind: string; slug: string }; return `n-${encodeURIComponent(`${np.kind}:${np.slug}`)}`; }
+  if (block.type === 'embed') return `b-${blockHash(`![[${(block.props as { node?: string }).node ?? ''}]]`)}`; // the graph's paragraph
   const text = rowText(block);
   if (block.type === 'heading') return headingSlug(text);
   return `b-${blockHash(text)}`;
@@ -105,86 +96,6 @@ function SendToAgentItem() {
   const block = useExtensionState(SideMenuExtension, { editor, selector: st => st?.block });
   if (!block) return null;
   return <Components.Generic.Menu.Item className="bn-menu-item" onClick={() => sendBlock(block as unknown as AnyBlock, editor.domElement as HTMLElement | null)}>Send to agent</Components.Generic.Menu.Item>;
-}
-
-// A question card: the question and its answer are what matters; id, status and the other fields sit in "details".
-function QuestionNode({ p, set, contentRef, block }: { p: { kind: string; slug: string; status: string; body: string; textKey: string; extra: string; check: string; row: string; form: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock }) {
-  const [details, setDetails] = useState(false);
-  const rows = parseBody(p.body);
-  const get = (k: string) => rows.find(r => r.key === k)?.value ?? '';
-  const q = get('q'); const answer = get('answer') || get('a');
-  const id = `${p.kind}:${p.slug}`;
-  const others = rows.filter(r => !['id', 'title', 'q', 'answer', 'a', 'status', p.textKey].includes(r.key));
-  const status = p.status || 'open';
-  const hostRef = useRef<HTMLDivElement>(null);
-  return (
-    <div className={`nblock k-question qnode s-${status}`} data-id={id} ref={hostRef}>
-      <div className="qnode-head" contentEditable={false} ref={stopEditorEvents}>
-        <button type="button" className="qnode-mark" title="Open this question in the panel" onClick={() => window.dispatchEvent(new CustomEvent('wf:peek', { detail: id }))}>Q</button>
-        <select className={`status-sel s-${status} ${status === 'open' ? 'hover-only' : ''}`} value={status} onChange={e => set({ status: e.target.value })} title="status">{['open', 'resolved', 'rejected'].map(st => <option key={st} value={st}>{st}</option>)}</select>
-        <span className="qnode-acts hover-only">
-          <button type="button" className="nblock-send" title="Copy a link to this question" onClick={() => copyBlockLink(block, hostRef.current)}>⧉</button>
-          <button type="button" className="nblock-send" title="Send this question to an agent" onClick={() => sendBlock(block, hostRef.current)}>⇢</button>
-          <button type="button" className="nblock-send" onClick={() => setDetails(d => !d)} title="id, links and the rest">{details ? 'hide details' : 'details'}</button>
-        </span>
-      </div>
-      <div className="qnode-title nblock-text" ref={contentRef} />
-      {p.textKey !== 'q' && <div className="qnode-section" contentEditable={false} ref={stopEditorEvents}>
-        <label>question</label>
-        <textarea className="qnode-ta" value={q} rows={Math.min(8, Math.max(2, Math.ceil(q.length / 90)))} placeholder="the question, and why it matters" onChange={e => set({ body: setBodyField(p.body, 'q', e.target.value) })} />
-      </div>}
-      <div className={`qnode-section ${answer ? '' : 'empty'}`} contentEditable={false} ref={stopEditorEvents}>
-        <label>answer</label>
-        <textarea className="qnode-ta" value={answer} rows={Math.min(8, Math.max(2, Math.ceil(answer.length / 90)))} placeholder={status === 'open' ? 'not answered yet — write the answer here, record it as a decision block, then set the status to resolved' : 'no answer recorded'} onChange={e => set({ body: setBodyField(p.body, 'answer', e.target.value) })} />
-      </div>
-      {details && (
-        <div className="qnode-details" contentEditable={false} ref={stopEditorEvents}>
-          <div className="nblock-head"><button type="button" className="pill k nblock-peek" style={{ background: 'var(--k-question)' }} onClick={() => window.dispatchEvent(new CustomEvent('wf:peek', { detail: id }))}>question</button><input className="nblock-slug" value={p.slug} spellCheck={false} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} /></div>
-          {others.length > 0 && <dl className="nblock-props">{others.map(r => <div key={r.key}><dt>{r.key}</dt><dd>{r.value.includes('\n') ? <pre><Linkified text={r.value} /></pre> : <PropValue value={r.value} />}</dd></div>)}</dl>}
-          <textarea className="nblock-yaml" value={p.body} rows={Math.min(20, p.body.split('\n').length + 1)} onChange={e => set({ body: e.target.value })} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// A decision card: context, choice and alternatives are what matters (rule:card-essence); consequences, date, affects
-// and every other key sit in "details" with the id and the yaml, like the question card.
-const DECISION_ESSENCE = ['context', 'choice', 'alternatives'];
-function DecisionNode({ p, set, contentRef, block }: { p: { kind: string; slug: string; status: string; body: string; textKey: string; extra: string; check: string; row: string; form: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock }) {
-  const [details, setDetails] = useState(false);
-  const rows = parseBody(p.body);
-  const get = (k: string) => rows.find(r => r.key === k)?.value ?? '';
-  const id = `${p.kind}:${p.slug}`;
-  const others = rows.filter(r => !['id', 'title', 'status', p.textKey, ...DECISION_ESSENCE].includes(r.key));
-  const hostRef = useRef<HTMLDivElement>(null);
-  return (
-    <div className={`nblock k-decision dnode s-${p.status}`} data-id={id} ref={hostRef}>
-      <div className="nblock-head" contentEditable={false} ref={stopEditorEvents}>
-        <button type="button" className="pill k nblock-peek" style={{ background: 'var(--k-decision)' }} title="Open this decision in the panel" onClick={() => window.dispatchEvent(new CustomEvent('wf:peek', { detail: id }))}>decision</button>
-        <input className="nblock-slug" value={p.slug} spellCheck={false} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />
-        <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{STATUSES.map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
-        <span className="nblock-tools hover-only">
-          <button type="button" className="nblock-send" title="Copy a link to this decision" onClick={() => copyBlockLink(block, hostRef.current)}>⧉</button>
-          <button type="button" className="nblock-send" title="Send this decision to an agent" onClick={() => sendBlock(block, hostRef.current)}>⇢</button>
-          <button type="button" className="nblock-send" onClick={() => setDetails(d => !d)} title="consequences, date, links and the rest">{details ? 'hide details' : 'details'}</button>
-        </span>
-      </div>
-      <div className="qnode-title nblock-text" ref={contentRef} />
-      {DECISION_ESSENCE.filter(k => get(k)).map(k => (
-        <div key={k} className="qnode-section" contentEditable={false} ref={stopEditorEvents}>
-          <label>{k}</label>
-          <textarea className="qnode-ta" value={get(k)} rows={Math.min(12, Math.max(2, Math.ceil(get(k).length / 90)))} onChange={e => set({ body: setBodyField(p.body, k, e.target.value) })} />
-        </div>
-      ))}
-      {details && (
-        <div className="qnode-details" contentEditable={false} ref={stopEditorEvents}>
-          {others.length > 0 && <dl className="nblock-props">{others.map(r => <div key={r.key}><dt>{r.key}</dt><dd>{r.value.includes('\n') ? <pre><Linkified text={r.value} /></pre> : <PropValue value={r.value} />}</dd></div>)}</dl>}
-          <textarea className="nblock-yaml" value={p.body} rows={Math.min(20, p.body.split('\n').length + 1)} onChange={e => set({ body: e.target.value })} />
-        </div>
-      )}
-    </div>
-  );
 }
 
 // A goal or task shown as a table row inside a goals/tasks collection: name (editable inline content), status, target,
@@ -390,51 +301,33 @@ const NodeBlock = createReactBlockSpec(
   {
     render: props => {
       const p = props.block.props as { kind: string; slug: string; status: string; form: string; body: string; extra: string; check: string; textKey: string; row: string };
-      const [showYaml, setShowYaml] = useState(false);
-      // every other key of a yaml node is shown read-only under the text; the yaml toggle edits them
-      const rows = p.form === 'yaml' ? parseBody(p.body).filter(r => r.key !== p.textKey && r.key !== 'status') : [];
       const set = (patch: Partial<typeof p>) => props.editor.updateBlock(props.block, { props: { ...p, ...patch } } as never);
       const ed = props.editor as unknown as EditorLike;
       if (p.row && p.row !== 'goal' && p.row !== 'task') return <TypeRowFor p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} editor={ed} />;
       if (p.row) return <RowNode p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} editor={ed} />;
-      if (p.kind === 'question' && p.form === 'yaml') return <QuestionNode p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} />;
-      if (p.kind === 'decision' && p.form === 'yaml') return <DecisionNode p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} />;
-      return (
-        <div className={`nblock k-${p.kind} ${p.check === 'done' || p.status === 'done' ? 'done' : ''}`} data-id={`${p.kind}:${p.slug}`}>
-          <div className="nblock-head" contentEditable={false} ref={stopEditorEvents} onClick={selectBlockOnClick(ed, props.block as unknown as AnyBlock, null)}>
-            {(p.check || p.kind === 'task') && (
-              <input type="checkbox" className="nblock-check" checked={p.check === 'done' || p.status === 'done'} onChange={e => set({ check: e.target.checked ? 'done' : 'todo', status: e.target.checked ? 'done' : 'open' })} title="done?" />
-            )}
-            <button type="button" className="pill k nblock-peek" style={{ background: `var(--k-${p.kind}, var(--k-other))` }} title="Open this node in the panel"
-                    onClick={() => window.dispatchEvent(new CustomEvent('wf:peek', { detail: `${p.kind}:${p.slug}` }))}>{p.kind}</button>
-            <input className="nblock-slug" value={p.slug} spellCheck={false} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />
-            <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{STATUSES.map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
-            {p.form === 'prose' && <input className={`nblock-extra ${p.extra ? '' : 'hover-only'}`} value={p.extra} placeholder="key: value" onChange={e => set({ extra: e.target.value })} />}
-            <span className="nblock-tools hover-only">
-              {p.form === 'yaml' && <button type="button" className="nblock-send" onClick={() => setShowYaml(v => !v)}>{showYaml ? 'hide yaml' : 'yaml'}</button>}
-              <button type="button" className="nblock-send" title="Copy a link to this node" onClick={e => copyBlockLink(props.block as unknown as AnyBlock, e.currentTarget)}>⧉</button>
-              <button type="button" className="nblock-send" title="Send this node to an agent" onClick={e => sendBlock(props.block as unknown as AnyBlock, e.currentTarget)}>⇢</button>
-            </span>
-          </div>
-          <div className="nblock-text" ref={props.contentRef} />
-          {rows.length > 0 && !showYaml && (
-            <dl className="nblock-props" contentEditable={false} ref={stopEditorEvents}>
-              {rows.map(r => (
-                <div key={r.key}>
-                  <dt>{r.key}</dt>
-                  <dd>{r.value.includes('\n') ? <pre><Linkified text={r.value} /></pre> : <PropValue value={r.value} />}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-          {showYaml && p.form === 'yaml' && <textarea className="nblock-yaml" contentEditable={false} value={p.body} rows={Math.min(24, p.body.split('\n').length + 1)} onChange={e => set({ body: e.target.value })} />}
-        </div>
-      );
+      return <EditorCard p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} editor={ed} />;
     },
   },
 );
 
-const schema = BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, node: NodeBlock(), drawing: DrawingBlock(), collection: CollectionBlock(), view: ViewBlock() }, inlineContentSpecs: { ...defaultInlineContentSpecs, tag: Tag, img: InlineImage } });
+// A card inside the editor: the block's inline content is the text; the header selects the block; links and sends
+// come from the block's place in this document (component:node-cards).
+function EditorCard({ p, set, contentRef, block, editor }: { p: CardP; set: (patch: Partial<CardP>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; editor: EditorLike }) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const id = `${p.kind}:${p.slug}`;
+  const host: CardHost = {
+    text: cls => <div className={cls} ref={contentRef} />,
+    peek: () => window.dispatchEvent(new CustomEvent('wf:peek', { detail: id })),
+    copyLink: () => copyBlockLink(block, hostRef.current),
+    send: () => sendBlock(block, hostRef.current),
+    stop: stopEditorEvents,
+    onHeadClick: p.kind === 'question' || p.kind === 'decision' ? undefined : selectBlockOnClick(editor, block, null),
+    hostRef,
+  };
+  return <NodeCard p={p} set={set} host={host} />;
+}
+
+const schema = BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, node: NodeBlock(), drawing: DrawingBlock(), collection: CollectionBlock(), view: ViewBlock(), embed: EmbedBlock() }, inlineContentSpecs: { ...defaultInlineContentSpecs, tag: Tag, img: InlineImage } });
 
 // Drag-handle menu entry on code blocks: turn an ASCII diagram into an editable drawing.
 function ToDrawingItem({ convert }: { convert: (b: AnyBlock) => void }) {
@@ -589,9 +482,9 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const load = (md: string) => {
     loading.current = true;
     try {
-      const { md: prepared, yaml, drawings, images, views } = prepare(md);
+      const { md: prepared, yaml, drawings, images, views, embeds } = prepare(md);
       const parsed = editor.tryParseMarkdownToBlocks(prepared) as unknown as AnyBlock[];
-      const blocks = expand(parsed, yaml, drawings, images, views);
+      const blocks = expand(parsed, yaml, drawings, images, views, embeds);
       editor.replaceBlocks(editor.document, blocks as never);
       settle();
       lastExported.current = blocksToMarkdown(editor.document as unknown as AnyBlock[]);
@@ -721,6 +614,10 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   }, {
     title: 'Instances view', group: 'Waterfall', subtext: 'a live, filterable list of every node of one type — pages, tasks, ' + (ownTypes[0]?.slug ?? 'decisions') + 's… — nothing is stored but the filters',
     onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'view', props: { slug: ownTypes[0]?.slug ?? 'task', query: '' } } as never); touched.current = true; changed(); },
+  }, {
+    // an embed (req:wf2.embeds.insert): the block opens a picker; the id is set when a node is chosen
+    title: 'Embed a node', group: 'Waterfall', aliases: ['ref', 'embed', 'reference', 'transclude'], subtext: 'show a block from any page here — its card, editable; one source, every embed follows',
+    onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'embed', props: { node: '' } } as never); touched.current = true; },
   }];
   const drawingItems = [
     { title: 'Drawing', group: 'Waterfall', subtext: 'an Excalidraw sketch saved next to the document', onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'drawing', props: { src: `drawings/${newDrawingSlug()}.excalidraw`, title: 'Drawing' } } as never); touched.current = true; changed(); } },

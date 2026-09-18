@@ -14,6 +14,9 @@ sources:
   - packages/web/src/components/NodeCard.tsx
   - packages/web/src/components/DrawingBlock.tsx
   - packages/web/src/components/AskAgent.tsx
+  - packages/web/src/components/NodeCards.tsx
+  - packages/web/src/components/EmbedBlock.tsx
+  - packages/web/src/lib/embed.ts
   - packages/web/src/lib/import.ts
   - packages/web/src/lib/serialize.ts
   - packages/web/src/lib/mdflow.ts
@@ -80,6 +83,15 @@ React components (`component:` cards). `side` says whether it renders on the ser
   purpose: >
     A command box at the selection: what you type goes to an active conversation together with the selected text, the block it sits in, and a link to the page. \"New conversation…\" hands the same payload to the full dialog.
   part-of: module:app-documents
+- id: component:node-cards
+  file: packages/web/src/components/NodeCards.tsx
+  side: client
+  purpose: >
+    The cards a typed block renders as — the plain node block, the question card, the decision card — as one
+    set of components parameterised by a text slot and a host (peek, copy link, send, header click). The document
+    editor puts the block's inline content in the slot; an embed (component:embed-block) puts a text area there.
+    One code path, so the two renderings cannot drift (decision:wf2.embed-renders-source-card).
+  part-of: module:app-documents
 ```
 
 ## Cards
@@ -124,7 +136,8 @@ A card in the editor shows what the block is *for* and folds the rest. The quest
     is toggled, where they appear as label/value rows above the id and the yaml editor
   unless: the yaml toggle is open, which replaces the whole body with the raw chunk
   status: shipped
-  refines: req:wf2.ui.node-page
+  refines: >
+    [req:wf2.ui.node-page]
   satisfied-by: [rule:card-essence]
   part-of: module:app-documents
 - id: rule:card-essence
@@ -133,7 +146,7 @@ A card in the editor shows what the block is *for* and folds the rest. The quest
     each a section with its key as label, missing keys skipped). Every other key of the card — id, links, dates,
     tracking fields, undeclared keys — is behind a "details" toggle on the card, off by default, together with
     the raw yaml editor. Any other yaml card keeps showing all its keys as rows under the text.
-  source: packages/web/src/components/DocEditor.tsx#QuestionNode; packages/web/src/components/DocEditor.tsx#DecisionNode
+  source: packages/web/src/components/NodeCards.tsx#QuestionCard; packages/web/src/components/NodeCards.tsx#DecisionCard
   status: shipped
   related-to: [rule:card-form, rule:node-cards]
   verified-by: [ui-test:decision-card]
@@ -148,6 +161,178 @@ A card in the editor shows what the block is *for* and folds the rest. The quest
   verifies: rule:card-essence
   last-run: 2026-09-18
 ```
+
+## Embeds
+
+A block that lives on one page can be shown on another. Today a reference to a node anywhere outside its document — the session changes page, a list, a rail — is a short tag (`req:wf2.x`), and a person has to open the context column to see what it says. The change: a document can hold a line that *embeds* a node, and the embed renders the node's card exactly as the source page renders it — same header, text, essence sections and details — and is editable in place. The card is not copied: there is one store, the node's defining line or yaml card in its source document (op:node.edit writes it), so a change made in an embed lands in the source and every page that embeds the node shows it. The session changes page (component:session-changes) becomes the first user: every added or changed node is shown as its card, not as a tag.
+
+```yaml
+- id: component:embed-block
+  file: packages/web/src/components/EmbedBlock.tsx
+  side: client
+  purpose: >
+    An embedded node inside a document: a block whose markdown is one line, `![[kind:slug]]`, rendered as the
+    node's card the way its source page renders it (the same card components as component:doc-editor — prose
+    node block, question card, decision card, task with its checkbox). Fetches the node from op:api.node,
+    saves a field through op:node.edit 700 ms after the last keystroke, and refetches on every graph change
+    (`wf:change`), so the source page and every other embed show the edit. Also usable outside the editor
+    (EmbeddedCard) — the session changes page, lists, the context column.
+  part-of: module:app-documents
+- id: decision:wf2.embed-syntax
+  title: An embed is a line `![[kind:slug]]`
+  context: >
+    A document needs a way to say "show that node here" that the graph, the reader, the editor and agents all
+    understand. The editor already has one-line markers: `<!-- view:x -->` for a live table (invisible to the
+    graph) and `![Title](drawings/x.excalidraw)` for a drawing. A node reference must stay a reference — the
+    node keeps its one definition in its source document — and should be visible to the graph as a link from
+    the page to the node.
+  choice: >
+    An embed is a paragraph of its own whose whole text is `![[kind:slug]]` — the transclusion form Obsidian and
+    Logseq readers know. lib/import lifts it to an `embed` block (props: id) before BlockNote parses the
+    markdown; lib/serialize writes it back unchanged. The graph (ctx) needs no change: the line is a paragraph
+    that mentions the node, so the page gets a `mentions` edge to it and `wf resolve` on the paragraph still
+    works. The slash menu item is "Embed a node" (`/ref`, `/embed`), with the same node picker the link button
+    uses (id or title search).
+  alternatives: >
+    A comment line `<!-- ref:kind:slug -->` like the view block — invisible to the graph and to any other
+    reader; agents reading the raw markdown would miss it. A prose line `ref:kind:slug` — `ref` would become a
+    kind and the line a node definition. A yaml card `- id: embed:… of: kind:slug` — an anonymous node for a
+    reference is more than it is.
+  consequences: >
+    lib/import#prepare gains EMBED_LINE next to VIEW_LINE and a %%EMBED:n%% marker; lib/serialize writes
+    `![[id]]`; DocumentReader (the server fallback) renders the line as component:node-card; the anchor of the
+    embed block is the hash of its text like any paragraph.
+  date: 2026-09-18
+  status: proposed
+  affects: [lib:import, lib:serialize, component:document-reader, component:embed-block]
+  related-to: [rule:block-links, req:wf2.instances.view-block]
+  session: 7cfac7ea80
+- id: decision:wf2.embed-renders-source-card
+  title: An embed renders the source card with the source's own components; edits go through op:node.edit
+  context: >
+    "The same way it looks on the original page" means the card components DocEditor renders inside BlockNote
+    (NodeBlock, QuestionNode, DecisionNode, the task line with its checkbox). They take the block's props and a
+    `contentRef` for the inline text, so they cannot be used outside the editor as they are. The context column
+    has its own form (component:node-editor, label/value rows) which looks different on purpose.
+  choice: >
+    The card bodies move out of DocEditor into a shared module (components/NodeCards.tsx) parameterised by a
+    text slot: inside the editor the slot is BlockNote's inline content (contentRef); in an embed it is a plain
+    growing text area bound to the node's text key. Everything else — header with kind pill, status select,
+    essence sections, details toggle, yaml — is the same code, so the two renderings cannot drift. The embed's
+    `set` writes through PUT /api/<product>/node/<id> (status, text, or the yaml body as props) instead of
+    updateBlock; the watcher rebuilds the graph, the source page's editor reloads its body as it already does for
+    any change on disk, and every embed refetches on the `graph` change event. The slug is read-only in an embed:
+    renaming a node is done on its source page, otherwise the embed line would dangle.
+  alternatives: >
+    A nested BlockNote editor per embed with the source block — heavy, and two editors of one document would
+    fight over saves. Copying the block into the embedding document — two definitions of one id, which the graph
+    forbids. Read-only embeds — the person asked for editing in place, and the context column already proves
+    op:node.edit is enough.
+  consequences: >
+    DocEditor shrinks (card bodies move); component:embed-block owns fetching, saving and refetching; a node
+    that is not defined (referenced only) renders as a stub tag with "not defined"; an embed of a node in a
+    goals/tasks table renders as a task/goal card (checkbox, status, tracking fields), not as a table row.
+  date: 2026-09-18
+  status: proposed
+  affects: [component:doc-editor, component:embed-block, component:session-changes, op:node.edit]
+  related-to: [rule:card-form, rule:card-essence, req:wf2.ui.edit-in-context]
+  session: 7cfac7ea80
+- id: req:wf2.embeds.insert
+  title: A person embeds a node from the slash menu
+  when: a person types `/ref` or `/embed` in a document and picks a node by id or title
+  then: >
+    a line `![[kind:slug]]` is inserted at the cursor and rendered as the node's card at once; the document is
+    saved like any other edit
+  unless: the picker is dismissed — nothing is inserted
+  status: shipped
+  refines: req:wf2.ui.node-page
+  satisfied-by: [component:embed-block, decision:wf2.embed-syntax]
+  verified-by: [ui-test:embeds]
+  part-of: module:app-documents
+- id: req:wf2.embeds.render
+  title: An embed shows the node's card as the source page shows it
+  when: a document (in the editor, in the server reader, or any list that embeds nodes) contains `![[kind:slug]]`
+  then: >
+    the node's card is rendered with the same components and layout the source page uses — header (kind pill,
+    slug, status), the text, the question or decision essence sections, details on toggle — with a small
+    "from <document>" line that opens the source block
+  unless: the node is referenced only (not defined) — then a stub tag and "not defined" are shown
+  status: shipped
+  refines: req:wf2.ui.node-page
+  satisfied-by: [component:embed-block, decision:wf2.embed-renders-source-card]
+  verified-by: [ui-test:embeds]
+  part-of: module:app-documents
+- id: req:wf2.embeds.edit-sync
+  title: Editing an embed edits the source, and every view follows
+  when: a person changes the text, the status, a checkbox or an essence field of an embedded card
+  then: >
+    the change is written to the node's defining line or yaml card in its source document 700 ms after the last
+    keystroke (op:node.edit), the graph is rebuilt, and the source page, every other embed of the node and the
+    context column show the new value without a reload
+  unless: the field is the slug — it is read-only in an embed
+  status: shipped
+  refines: req:wf2.ui.edit-in-context
+  satisfied-by: [component:embed-block, op:node.edit]
+  verified-by: [ui-test:embeds, test:web-lib#embed]
+  part-of: module:app-documents
+- id: req:wf2.sessions.changes-cards
+  title: The session changes page shows cards, not tags
+  when: a person opens a session's changes (the fold on the session page or /<product>/sessions/<id>/changes)
+  then: >
+    every added or changed node is shown as its full card (component:embed-block, editable), under its
+    document with the +/~ badge; paragraphs show their text; the change and kind chips still filter
+  unless: the node was removed — it no longer exists, so its row keeps the tag and the title it had
+  status: shipped
+  refines: req:wf2.sessions.changes-page
+  satisfied-by: [component:session-changes, component:embed-block]
+  verified-by: [ui-test:embeds]
+  part-of: module:app-agents
+- id: rule:embed-line
+  statement: >
+    A paragraph whose whole text is `![[kind:slug]]` is an embed of that node. lib/import lifts it to an `embed`
+    block before the markdown parser runs; lib/serialize writes it back as the same line; the graph sees an
+    ordinary paragraph that mentions the node. Nothing of the node is stored in the embedding document.
+  source: packages/web/src/lib/import.ts#EMBED_LINE; packages/web/src/lib/serialize.ts
+  status: shipped
+  verified-by: [test:web-lib#import, ui-test:embeds]
+- id: question:wf2.embed-paragraphs
+  q: >
+    Should a plain paragraph (a `block:<doc>.<hash>` node, addressed by its `#b-` anchor) be embeddable too, or
+    only typed nodes? A paragraph's id changes with its text, so an embed of one would break on the first edit
+    unless the anchor becomes stable.
+  context: >
+    The session changes page lists paragraphs a session added or changed; showing them as text is enough there.
+    Typed nodes are the case the request is about.
+  related-to: [decision:wf2.embed-syntax, rule:block-links]
+  status: open
+- id: ui-test:embeds
+  title: Embed a node, edit it in the embed, see the source change
+  steps: >
+    1. Open a document, type /ref, pick req:wf2.cards.decision-essence — the card appears with its header, title
+    and when/then/unless. 2. Change the status in the embed — the source document (app-documents) shows the new
+    status on its card, the context column too. 3. Open the session changes page of a session that changed a
+    decision — the decision card is shown with context, choice and alternatives, editable. 4. Reload — the
+    markdown of the embedding document holds exactly `![[req:wf2.cards.decision-essence]]`.
+  verifies: [req:wf2.embeds.insert, req:wf2.embeds.render, req:wf2.embeds.edit-sync, req:wf2.sessions.changes-cards]
+  result: >
+    playwright-core with the installed Chrome against a scratch page (embed-probe, removed after): three embeds and
+    a stub rendered with their sections and a "from app-documents" line; the task's checkbox flipped the source
+    line to [x]; a title typed in the embed reached the yaml card in app-documents and the source page's own
+    card, and an API revert came back into the embed; /ref opened the picker, Enter chose the question and the
+    markdown held ![[question:wf2.embed-paragraphs]]; the session changes page showed 19 cards.
+  status: passed
+  last-run: 2026-09-18
+```
+
+Work, in order:
+
+- [x] task:embed-syntax EMBED_LINE in lib/import (lift to %%EMBED:n%%, expand to an `embed` block with `id`), the line back in lib/serialize, tests in import.test.ts and serialize.test.ts. Part of rule:embed-line.
+- [x] task:node-cards-module Move NodeBlock's card bodies (prose node, QuestionNode, DecisionNode, task checkbox) from DocEditor into components/NodeCards.tsx with a text slot instead of contentRef; DocEditor keeps rendering the same. Part of decision:wf2.embed-renders-source-card.
+- [x] task:embed-block components/EmbedBlock.tsx: the BlockNote `embed` block and the standalone EmbeddedCard — fetch op:api.node, render the card with a text area in the slot, save through op:node.edit (debounced), refetch on `wf:change` graph events, "from <document>" line, stub for undefined nodes. Part of req:wf2.embeds.render and req:wf2.embeds.edit-sync.
+- [x] task:embed-slash "Embed a node" slash item (`/ref`, `/embed`) with the node picker; inserts the block. Part of req:wf2.embeds.insert.
+- [x] task:embed-reader DocumentReader renders an embed line as the same EmbeddedCard the editor uses (component:node-card needs the body, which the reader's index does not carry; the card loads on the client and the editor takes over right after). Part of req:wf2.embeds.render.
+- [x] task:session-changes-cards component:session-changes rows become EmbeddedCards (removed rows keep the tag; paragraphs show their text; chips unchanged). Part of req:wf2.sessions.changes-cards.
+- [x] task:embeds-ui-test Run ui-test:embeds in Chrome (playwright-core) and record the result. Part of req:wf2.embeds.edit-sync.
 
 ## Libraries
 
@@ -243,6 +428,14 @@ Modules under packages/web/src/lib (`lib:` cards): pure logic and server-only IO
   side: shared
   purpose: >
     Edit a type: card in its document text: its own props block (name, value type, required, inverse) and scalar keys.
+  part-of: module:app-documents
+- id: lib:embed
+  file: packages/web/src/lib/embed.ts
+  purpose: >
+    An embedded node, pure: the node as op:api.node returns it → the card props component:node-cards renders
+    (cardFromNode: a prose node's trailing group becomes extra, a task gets its checkbox; a yaml card keeps its
+    body and text key), and a card edit → the patch op:node.edit takes (cardPatchToNodePatch: status, the text,
+    the body keys that changed — removed keys as null — and the extra group as props; the slug is ignored).
   part-of: module:app-documents
 - id: lib:kinds
   file: packages/web/src/lib/kinds.ts

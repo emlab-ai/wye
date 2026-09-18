@@ -10,7 +10,7 @@ import { EXTRA_GROUP } from './props';
 const TEXT_KEYS = ['title', 'statement', 'description', 'purpose', 'q', 'text', 'context', 'does', 'intent'];
 const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused|resolved|rejected)\b/;
 
-export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[]; images: { alt: string; url: string }[]; views: { slug: string; query: string }[] }
+export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[]; images: { alt: string; url: string }[]; views: { slug: string; query: string }[]; embeds: string[] }
 
 // A drawing is referenced like an image whose file is an Excalidraw scene: ![Title](drawings/name.excalidraw)
 // A table region: ordinary node lines between <!-- goals --> and <!-- /goals --> (or tasks), or for any type
@@ -21,6 +21,9 @@ export const COLLECTION_CLOSE = /^<!--\s*\/(goals|tasks|table:[a-z][a-z0-9-]*)\s
 export const DRAWING_LINE = /^!\[([^\]]*)\]\((\S+\.excalidraw)\)\s*$/;
 // A view: a live table of a type's instances with filters, one comment line, nothing stored (req:wf2.instances.view-block)
 export const VIEW_LINE = /^<!--\s*view:([a-z][a-z0-9-]*)((?:\s+[^\s>][^>]*?)?)\s*-->\s*$/;
+// An embed: a node from any document shown here as its card, one line `![[kind:slug]]` (rule:embed-line). The
+// graph sees a paragraph that mentions the node; nothing of the node is stored in this document.
+export const EMBED_LINE = /^!\[\[([a-z][a-z0-9-]*:[A-Za-z0-9_][A-Za-z0-9_./#\-]*)\]\]\s*$/;
 // An image inside a paragraph's text — next to words, or on a line that continues a paragraph (a node's
 // screenshot under its line) — is inline content of that paragraph; only an image that is a paragraph of its own
 // is an image block. Lifted to %%IMG:n%% so the markdown parser cannot break the paragraph around it.
@@ -44,20 +47,24 @@ export function prepare(body: string): Prepared {
   const drawings: { title: string; src: string }[] = [];
   const images: { alt: string; url: string }[] = [];
   const views: { slug: string; query: string }[] = [];
+  const embeds: string[] = [];
   const parts: string[] = [];
-  const liftDrawings = (text: string) => text.split('\n').map(l => {
+  const liftDrawings = (text: string) => { let fence = false; return text.split('\n').map(l => {
+    if (/^\s*(```|~~~)/.test(l)) { fence = !fence; return l; }
+    if (fence) return l;
     const m = l.match(DRAWING_LINE); if (m) { drawings.push({ title: m[1], src: m[2] }); return `\n%%DRAWING:${drawings.length - 1}%%\n`; }
     const v = l.match(VIEW_LINE); if (v) { views.push({ slug: v[1], query: v[2].trim() }); return `\n%%VIEW:${views.length - 1}%%\n`; }
+    const e = l.match(EMBED_LINE); if (e) { embeds.push(cleanId(e[1])); return `\n%%EMBED:${embeds.length - 1}%%\n`; }
     const o = l.match(COLLECTION_OPEN); if (o) return `\n%%COLLECTION:${collectionKind(o[1])}%%\n`;
     const c = l.match(COLLECTION_CLOSE); if (c) return `\n%%/COLLECTION%%\n`;
     return l;
-  }).join('\n');
+  }).join('\n'); };
   for (const s of split.segments) {
     if (s.type === 'yaml') { yaml.push(s.chunks.map(c => ({ id: c.id ?? '', body: c.body }))); parts.push(`%%YAML:${yaml.length - 1}%%`); }
     else if (s.type === 'hr') parts.push('%%DIVIDER%%');
     else parts.push(protectCode(escapeAngles(liftLinks(unwrapParagraphs(liftDrawings(liftInlineImages(s.text, images)))))));
   }
-  return { md: parts.join('\n\n'), yaml, drawings, images, views };
+  return { md: parts.join('\n\n'), yaml, drawings, images, views, embeds };
 }
 
 // Split markdown into alternating [text, code, text, code, …] regions: fenced blocks, indented (4-space) blocks
@@ -146,7 +153,7 @@ function topLevel(body: string): Map<string, string> {
 const text = (s: string): InlineText => ({ type: 'text', text: s, styles: {} });
 
 // Expand markers and id-first paragraphs into node/divider blocks, then tag ids everywhere.
-export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Prepared['drawings'] = [], images: Prepared['images'] = [], views: Prepared['views'] = []): AnyBlock[] {
+export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Prepared['drawings'] = [], images: Prepared['images'] = [], views: Prepared['views'] = [], embeds: Prepared['embeds'] = []): AnyBlock[] {
   const out: AnyBlock[] = [];
   let coll: AnyBlock | null = null; // the goals/tasks table being filled; blocks until %%/COLLECTION%% become its rows
   const push = (blk: AnyBlock) => { if (coll) coll.children!.push(blk); else out.push(blk); };
@@ -160,6 +167,8 @@ export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Pre
     if (b.type === 'paragraph' && dm && drawings[Number(dm[1])]) { const dr = drawings[Number(dm[1])]; push({ type: 'drawing', props: { src: dr.src, title: dr.title } }); continue; }
     const vm = first.trim().match(/^%%VIEW:(\d+)%%$/);
     if (b.type === 'paragraph' && vm && views[Number(vm[1])]) { push({ type: 'view', props: { ...views[Number(vm[1])] } }); continue; }
+    const em = first.trim().match(/^%%EMBED:(\d+)%%$/);
+    if (b.type === 'paragraph' && em && embeds[Number(em[1])]) { push({ type: 'embed', props: { node: embeds[Number(em[1])] } }); continue; }
     const ym = first.trim().match(/^%%YAML:(\d+)%%$/);
     if (b.type === 'paragraph' && ym) {
       for (const chunk of yaml[Number(ym[1])] ?? []) {
@@ -171,7 +180,7 @@ export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Pre
     }
     const pn = proseNode(b, yaml, drawings);
     if (pn) { if (coll) pn.props = { ...pn.props, row: (coll.props as { kind: string }).kind }; push(withLinks(pn)); continue; }
-    push(withLinks(b.children?.length ? { ...b, children: expand(b.children, yaml, drawings, images, views) } : b));
+    push(withLinks(b.children?.length ? { ...b, children: expand(b.children, yaml, drawings, images, views, embeds) } : b));
   }
   return (tagifyBlocks(out as never[]) as AnyBlock[]).map(b => unescapeBlock(imagifyBlock(b, images)));
 }

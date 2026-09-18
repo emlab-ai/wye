@@ -180,3 +180,21 @@ describe('expand', () => {
     expect(blocksToMarkdown(expand(parsed, p.yaml))).toBe(src);
   });
 });
+
+describe('embeds (rule:embed-line)', () => {
+  it('turns a ![[kind:slug]] line into an embed block and writes it back unchanged', () => {
+    const src = 'Intro.\n\n![[req:wf2.cards.decision-essence]]\n\nAfter.\n';
+    const p = prepare(src);
+    expect(p.md).toContain('%%EMBED:0%%');
+    expect(p.embeds).toEqual(['req:wf2.cards.decision-essence']);
+    const blocks = expand(p.md.split(/\n\n+/).map(x => ({ type: 'paragraph', content: [t(x.trim())] })), p.yaml, p.drawings, p.images, p.views, p.embeds);
+    expect(blocks.map(b => b.type)).toEqual(['paragraph', 'embed', 'paragraph']);
+    expect(blocks[1].props).toEqual({ node: 'req:wf2.cards.decision-essence' });
+    expect(blocksToMarkdown(blocks)).toBe('Intro.\n\n![[req:wf2.cards.decision-essence]]\n\nAfter.\n');
+  });
+  it('leaves ![[…]] inside a sentence alone and ignores it inside code', () => {
+    const p = prepare('See ![[req:a]] there.\n\n```\n![[req:b]]\n```\n');
+    expect(p.embeds).toEqual([]);
+    expect(p.md).not.toContain('%%EMBED');
+  });
+});

@@ -3,15 +3,17 @@ import { useEffect, useState } from 'react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import { StatusPill } from './Pills';
+import { EmbeddedCard } from './EmbedBlock';
 import { countsLine, type ChangeGroup, type ChangeRow } from '@/lib/session-changes';
 
 type Data = { counts: { added: number; changed: number; removed: number; prose: number }; groups: ChangeGroup[] };
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');
 
 
-// Everything a session changed in the knowledge base, block by block, per document: badge, tag, title; a row opens
-// the node in the context column; paragraphs folded; chips filter by change and by kind. Fetches op:api.sessions.changes
-// and refetches on every graph change while the session runs.
+// Everything a session changed in the knowledge base, block by block, per document: every added or changed node as
+// its full card (component:embed-block — editable, the source follows; req:wf2.sessions.changes-cards), a removed
+// node as its tag and last title; paragraphs folded; chips filter by change and by kind. Fetches
+// op:api.sessions.changes and refetches on every graph change while the session runs.
 export function SessionChanges({ product, id, initial, live }: { product: string; id: string; initial?: Data; live?: boolean }) {
   const { open } = usePeek();
   const [data, setData] = useState<Data | null>(initial ?? null);
@@ -48,7 +50,11 @@ export function SessionChanges({ product, id, initial, live }: { product: string
         <section key={g.doc} className="schanges-doc">
           <h5><SmartTag id={g.doc} /><small className="muted">{countsLine({ added: g.rows.filter(r => r.change === 'added').length, changed: g.rows.filter(r => r.change === 'changed').length, removed: g.rows.filter(r => r.change === 'removed').length, prose: 0 })}</small></h5>
           <ul className="schanges-list">
-            {g.rows.map(r => (
+            {g.rows.map(r => r.exists && r.change !== 'removed' ? (
+              <li key={r.id} className={`schange schange-card ch-${r.change}`}>
+                <EmbeddedCard id={r.id} badge={<span className={`badge ch-${r.change}`} title={r.change}>{r.change === 'added' ? '+' : '~'}</span>} />
+              </li>
+            ) : (
               <li key={r.id} className={`schange ch-${r.change} ${r.exists ? '' : 'gone'}`} onClick={() => r.exists && open(r.id)} role={r.exists ? 'button' : undefined} title={r.exists ? 'open in the context column' : 'no longer in the documents'}>
                 <span className={`badge ch-${r.change}`}>{r.change === 'added' ? '+' : r.change === 'changed' ? '~' : '−'}</span>
                 <SmartTag id={r.id} />{r.status && <StatusPill status={r.status} />}
