@@ -5,7 +5,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { usePeek } from './PeekProvider';
 import { useRouter } from 'next/navigation';
-import type { ChatEvent, Session } from '@/lib/session-types';
+import { queueSummary, type ChatEvent, type QueueView, type Session } from '@/lib/session-types';
+import { QueueList } from './QueueList';
 import { AttachStrip, useImageAttachments } from './Attachments';
 import { SmartTag } from './SmartTag';
 
@@ -19,7 +20,8 @@ export function Console({ session, onStatus, onKnowledge }: { session: Session; 
   const [busy, setBusy] = useState(false);
   const attach = useImageAttachments(); const images = attach.images;
   const [showThinking, setShowThinking] = useState(false);
-  const [queue, setQueue] = useState<{ pending: { id: string; text: string; addedAt: string }[]; batch: 'one' | 'all' }>({ pending: [], batch: 'one' });
+  const [queue, setQueue] = useState<QueueView>({ items: [], batch: 'one' });
+  const [fresh, setFresh] = useState(false); const [plan, setPlan] = useState(false); // clear context before this message (req:wf2.sessions.fresh-in-queue)
   const bottom = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const id = session.id;
@@ -45,8 +47,8 @@ export function Console({ session, onStatus, onKnowledge }: { session: Session; 
   // images from the clipboard (or dropped files) ride along with the message (useImageAttachments)
   const send = async () => {
     const t = text.trim(); if (!t && !images.length) return;
-    setBusy(true); setText(''); const imgs = attach.take();
-    const r = await fetch(`/api/${product}/sessions/${id}/message`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: t, images: imgs }) });
+    setBusy(true); setText(''); const imgs = attach.take(); const f = fresh; setFresh(false);
+    const r = await fetch(`/api/${product}/sessions/${id}/message`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: t, images: imgs, fresh: f, plan: f && plan }) });
     setBusy(false); if (!r.ok) setEvents(evs => [...evs, { t: new Date().toISOString(), kind: 'stderr', text: 'could not send the message' }]); else setLive(true);
   };
   const control = (body: object) => fetch(`/api/${product}/sessions/${id}/control`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -66,11 +68,11 @@ export function Console({ session, onStatus, onKnowledge }: { session: Session; 
           {live ? <button className="mini" onClick={() => control({ action: 'stop' })}>Stop</button> : <button className="mini" onClick={() => control({ action: 'resume' }).then(() => setLive(true))}>Resume</button>}
         </span>
       </div>
-      {queue.pending.length > 0 && (
+      {queue.items.some(q => q.state === 'waiting' || q.state === 'working') && (
         <div className="console-queue">
-          <div className="console-queue-head"><b>Queue</b> <span className="muted">{queue.pending.length} waiting · sent {queue.batch === 'all' ? 'all at once' : 'one at a time'} when the agent is idle</span>
+          <div className="console-queue-head"><b>Queue</b> <span className="muted">{queueSummary(queue.items)} · sent {queue.batch === 'all' ? 'all at once' : 'one at a time'} when the agent is idle</span>
             <span className="seg small"><button className={queue.batch === 'one' ? 'on' : ''} onClick={() => control({ action: 'batch', batch: 'one' })}>one</button><button className={queue.batch === 'all' ? 'on' : ''} onClick={() => control({ action: 'batch', batch: 'all' })}>batch</button></span></div>
-          <ol>{queue.pending.map(q => <li key={q.id}><span>{q.text.split('\n').find(l => l.trim())?.slice(0, 120)}</span><button className="peek-chip-x" title="Remove from the queue" onClick={() => control({ action: 'unqueue', itemId: q.id })}>×</button></li>)}</ol>
+          <QueueList items={queue.items} control={control} />
         </div>
       )}
       <div className="console-log" onScroll={e => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40; }}>
@@ -85,7 +87,12 @@ export function Console({ session, onStatus, onKnowledge }: { session: Session; 
         <AttachStrip images={images} remove={attach.remove} />
         <div className="console-row">
           <textarea value={text} rows={2} placeholder={live ? (turnOpen ? 'Queue the next message… (⌘↵; paste images too)' : 'Reply to the agent… (⌘↵ to send; paste images too)') : 'Type to resume the agent…'} onChange={e => setText(e.target.value)} onPaste={attach.onPaste} onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); send(); } }} />
-          <button className="pri" type="submit" disabled={busy || (!text.trim() && !images.length)}>Send</button>
+          <button className="pri" type="submit" disabled={busy || (!text.trim() && !images.length)}>{fresh ? 'Restart & send' : 'Send'}</button>
+        </div>
+        <div className="console-fresh">
+          <label className="console-opt" title="Before this message the agent restarts from nothing in the same folder — after the current turn when one is open — and reads what it needs from Waterfall"><input type="checkbox" checked={fresh} onChange={e => setFresh(e.target.checked)} /> clear context first</label>
+          {fresh && <label className="console-opt" title="The agent understands, writes the plan on a page and asks before building"><input type="checkbox" checked={plan} onChange={e => setPlan(e.target.checked)} /> plan first</label>}
+          {fresh && <span className="muted">{turnOpen ? 'the current turn finishes, then a fresh agent takes this' : 'a fresh agent takes this as its first message'}</span>}
         </div>
       </form>
     </div>

@@ -2,21 +2,24 @@
 // open, turns their streaming JSON into ChatEvents, persists them to the session and pushes them to subscribers.
 // Lives on globalThis so dev-server module reloads do not orphan the processes.
 import { spawn, type ChildProcess } from 'node:child_process';
-import type { TurnUsage } from './session-types';
-import { getSession, updateSession, appendTranscript, enqueue, takeFromQueue, queueMessage, imageLines, filesDir } from './sessions';
+import { getSession, updateSession, appendTranscript, enqueue, takeFromQueue, markTurnEnd, queueMessage, imageLines, filesDir } from './sessions';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { ChatEvent, Session } from './session-types';
+import { queueView, type ChatEvent, type QueueItem, type QueueView, type Session, type TurnUsage } from './session-types';
 import { loadScope } from './scope';
 import { resolveLink, renderResolved } from './resolve';
 import { REPO_ROOT } from './products';
 import { agentSystemPrompt } from './agent-prompt';
 
-type Live = { id: string; productDir: string; agent: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string; known: Set<string>; model?: string; codexUsage?: TurnUsage; idle?: ReturnType<typeof setTimeout> };
+// `turn`: the queue items handed to the open turn — stamped done / failed when it ends (decision:wf2.queue-item-state);
+// `product` / `wfUrl` let the pump build a first message when a fresh item comes up (rule:clean-slate); `stopped`: the
+// person ended the process, so its exit must not rewrite the recorded status.
+type Live = { id: string; productDir: string; product: string; wfUrl: string; agent: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string; known: Set<string>; model?: string; codexUsage?: TurnUsage; idle?: ReturnType<typeof setTimeout>; turn: string[]; stopped?: boolean };
 const g = globalThis as unknown as { __wfAgentHost?: Map<string, Live> };
 const live = () => (g.__wfAgentHost ??= new Map<string, Live>());
 
-export function isLive(id: string): boolean { const l = live().get(id); return !!l && (!!l.proc || l.agent === 'codex'); }
+// a stopped process counts as gone at once, before its exit lands — the row leaves Active on the next paint
+export function isLive(id: string): boolean { const l = live().get(id); return !!l && !l.stopped && (!!l.proc || l.agent === 'codex'); }
 // What the process behind a session is doing: live (alive, whatever its recorded status) and busy (a turn is open)
 export function liveState(id: string): { live: boolean; busy: boolean } { const l = live().get(id); return { live: isLive(id), busy: !!l && (l.turnBusy || !!(l.agent === 'codex' && l.proc)) }; }
 export function liveIds(): string[] { return [...live().keys()]; }
@@ -28,10 +31,10 @@ function emit(l: Live, e: Omit<ChatEvent, 't'> & { t?: string }) {
   if (!l.flush) l.flush = setTimeout(() => { const batch = l.pending; l.pending = []; l.flush = null; appendTranscript(l.productDir, l.id, batch).catch(() => {}); }, 400);
 }
 
-export type QueueListener = (q: { pending: { id: string; text: string; addedAt: string }[]; batch: 'one' | 'all' }) => void;
+export type QueueListener = (q: QueueView) => void;
 const queueSubs = (globalThis as unknown as { __wfQueueSubs?: Map<string, Set<QueueListener>> }).__wfQueueSubs ??= new Map();
 export function subscribeQueue(id: string, fn: QueueListener): () => void { if (!queueSubs.has(id)) queueSubs.set(id, new Set()); queueSubs.get(id)!.add(fn); return () => { queueSubs.get(id)?.delete(fn); }; }
-export async function notifyQueue(productDir: string, id: string) { const s = await getSession(productDir, id); if (!s) return; const q = { pending: (s.queue ?? []).filter(x => !x.sentAt).map(x => ({ id: x.id, text: x.text, addedAt: x.addedAt })), batch: s.batch ?? 'one' as const }; for (const fn of queueSubs.get(id) ?? []) { try { fn(q); } catch { /* gone */ } } }
+export async function notifyQueue(productDir: string, id: string) { const s = await getSession(productDir, id); if (!s) return; const q = queueView(s.queue, s.batch); for (const fn of queueSubs.get(id) ?? []) { try { fn(q); } catch { /* gone */ } } }
 
 export function subscribe(id: string, fn: (e: ChatEvent) => void): () => void {
   const l = live().get(id); if (!l) return () => {};
@@ -84,8 +87,8 @@ export async function startChat(productDir: string, product: string, id: string,
   const s = await getSession(productDir, id); if (!s) return null;
   if (live().get(id)?.proc) return s;
   const cwd = s.cwd || REPO_ROOT;
-  const l: Live = live().get(id) ?? { id, productDir, agent: s.agent, cwd, proc: null, subs: new Set(), pending: [], flush: null, turnBusy: false, pumping: false, known: new Set() };
-  Object.assign(l, { agent: s.agent, cwd, proc: null, agentSessionId: s.agentSessionId, turnBusy: false, pumping: false, codexThread: s.agent === 'codex' ? s.agentSessionId : undefined, model: undefined, known: new Set([...(s.artifacts?.docs ?? []), ...(s.artifacts?.nodes ?? []), ...(s.artifacts?.blocks ?? []).flatMap(b => [b.id, `${b.id}@${b.at}`])]) });
+  const l: Live = live().get(id) ?? { id, productDir, product, wfUrl: opts.wfUrl, agent: s.agent, cwd, proc: null, subs: new Set(), pending: [], flush: null, turnBusy: false, pumping: false, known: new Set(), turn: [] };
+  Object.assign(l, { product, wfUrl: opts.wfUrl, agent: s.agent, cwd, proc: null, stopped: false, agentSessionId: s.agentSessionId, turnBusy: false, pumping: false, codexThread: s.agent === 'codex' ? s.agentSessionId : undefined, model: undefined, known: new Set([...(s.artifacts?.docs ?? []), ...(s.artifacts?.nodes ?? []), ...(s.artifacts?.blocks ?? []).flatMap(b => [b.id, `${b.id}@${b.at}`])]) });
   live().set(id, l);
   return startProcess(l, s, product, opts);
 }
@@ -112,7 +115,7 @@ async function startProcess(l: Live, s: Session, product: string, opts: { wfUrl:
   // a process replaced by restartFresh may still write its last lines: they are not this conversation's any more
   proc.stdout.on('data', d => { if (l.proc !== proc) return; buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) onClaudeLine(l, line); } });
   proc.stderr.on('data', d => { if (l.proc !== proc) return; const t = String(d).trim(); if (t) emit(l, { kind: 'stderr', text: t.slice(0, 2000) }); });
-  proc.on('close', code => { if (l.proc !== proc) return; clearIdle(l); reportKnowledge(l, 0); emit(l, { kind: 'exit', code: code ?? -1, text: `claude exited (${code})` }); l.proc = null; l.turnBusy = false; getSession(productDir, id).then(cur => { if (cur?.status === 'cancelled') return; return updateSession(productDir, id, { status: code === 0 ? 'done' : 'failed', line: `agent exited with ${code}` }); }).catch(() => {}); });
+  proc.on('close', code => { if (l.proc !== proc) return; clearIdle(l); reportKnowledge(l, 0); emit(l, { kind: 'exit', code: code ?? -1, text: `claude exited (${code})` }); l.proc = null; endTurn(l, l.turnBusy ? { error: `agent exited with ${code} during the turn` } : undefined); l.turnBusy = false; if (l.stopped) return; getSession(productDir, id).then(cur => { if (cur?.status === 'cancelled') return; return updateSession(productDir, id, { status: code === 0 ? 'done' : 'failed', line: `agent exited with ${code}` }); }).catch(() => {}); });
   proc.stdin.on('error', () => {});
   if (first) { emit(l, { kind: 'user', text: first, images: shown }); writeUser(l, first, imgs); } else setTimeout(() => pump(l), 500); // a resumed agent takes what waited in the queue
   return getSession(productDir, id);
@@ -169,7 +172,7 @@ function onClaudeLine(l: Live, line: string) {
     }
     return;
   }
-  if (type === 'result') { l.turnBusy = false; armIdleStop(l); emit(l, { kind: 'result', text: typeof j.result === 'string' ? j.result : '', costUsd: j.total_cost_usd as number, durationMs: j.duration_ms as number, isError: j.is_error as boolean, usage: claudeUsage(j, l.model) }); if (typeof j.total_cost_usd === 'number') updateSession(l.productDir, l.id, { totalCostUsd: j.total_cost_usd }).catch(() => {}); reportKnowledge(l); pump(l); return; }
+  if (type === 'result') { l.turnBusy = false; endTurn(l, j.is_error ? { error: 'the turn ended with an error' } : undefined); armIdleStop(l); emit(l, { kind: 'result', text: typeof j.result === 'string' ? j.result : '', costUsd: j.total_cost_usd as number, durationMs: j.duration_ms as number, isError: j.is_error as boolean, usage: claudeUsage(j, l.model) }); if (typeof j.total_cost_usd === 'number') updateSession(l.productDir, l.id, { totalCostUsd: j.total_cost_usd }).catch(() => {}); reportKnowledge(l); pump(l); return; }
   if (type === 'control_request') {
     const req = j.request as Record<string, unknown>;
     emit(l, { kind: 'permission', requestId: String(j.request_id), name: String(req.tool_name ?? req.subtype ?? 'tool'), input: req.input, text: String(req.description ?? req.subtype ?? '') });
@@ -180,7 +183,7 @@ function onClaudeLine(l: Live, line: string) {
 
 // Every message goes through the persistent queue; the pump hands the next item (or the whole batch) to the agent
 // as soon as it is idle. Items wait across restarts: a resumed agent takes them.
-export async function sendMessage(productDir: string, id: string, item: { text: string; refs?: string[]; link?: string; images?: string[] }): Promise<{ position: number; live: boolean }> {
+export async function sendMessage(productDir: string, id: string, item: Omit<QueueItem, 'id' | 'addedAt'>): Promise<{ position: number; live: boolean }> {
   const r = await enqueue(productDir, id, item);
   await notifyQueue(productDir, id);
   const l = live().get(id);
@@ -188,13 +191,15 @@ export async function sendMessage(productDir: string, id: string, item: { text: 
   return { position: r?.position ?? 0, live: !!l };
 }
 export function pump(l: Live) {
-  if (l.pumping || l.turnBusy) return;
+  if (l.pumping || l.turnBusy || l.stopped) return;
   const running = l.agent === 'codex' ? true : !!l.proc;
   if (!running) return;
   l.pumping = true;
   takeFromQueue(l.productDir, l.id).then(items => {
     l.pumping = false;
     if (!items.length) return;
+    l.turn = items.map(i => i.id);
+    if (items[0].fresh) { restartFresh(l.productDir, l.product ?? path.basename(l.productDir), l.id, items, { wfUrl: l.wfUrl ?? process.env.WF_URL ?? 'http://localhost:3456' }).catch(() => {}); return; } // the context goes before this item (rule:clean-slate)
     notifyQueue(l.productDir, l.id).catch(() => {});
     const text = queueMessage(items);
     const names = items.flatMap(i => i.images ?? []);
@@ -232,12 +237,13 @@ export function answerPermission(id: string, requestId: string, allow: boolean, 
   emit(l, { kind: 'note', text: `${allow ? 'allowed' : 'denied'} ${requestId}`, requestId, answered: allow ? 'allow' : 'deny', input: allow ? input : undefined });
   return true;
 }
-// Clear context first (rule:clean-slate): end the running process, forget the agent's own session id (and the
-// Codex thread), mark the transcript, and hand the queued request to a fresh process as a first message built like
-// a new session's — instruction, refs, link, images, plan-first when asked.
-export async function restartFresh(productDir: string, product: string, id: string, item: { text: string; refs?: string[]; link?: string; images?: string[] }, opts: { wfUrl: string; plan?: boolean }): Promise<boolean> {
-  const s = await getSession(productDir, id); if (!s) return false;
-  const l = live().get(id); // the old process goes first, so the pump cannot hand it the new message
+// A fresh item comes up (rule:clean-slate, req:wf2.sessions.fresh-in-queue): end the process if one is up (the
+// pump only gets here when no turn is open, so nothing in progress is cut), forget the agent's own session id (and
+// the Codex thread), mark the transcript, and hand the items — already taken from the queue — to a new process as
+// a first message built like a new session's: instruction, refs, link, images, plan-first when the item asks.
+export async function restartFresh(productDir: string, product: string, id: string, items: QueueItem[], opts: { wfUrl: string }): Promise<boolean> {
+  const s = await getSession(productDir, id); if (!s || !items.length) return false;
+  const l = live().get(id);
   if (l) {
     clearIdle(l);
     const old = l.proc; l.proc = null; l.turnBusy = false; l.pumping = false; l.agentSessionId = undefined; l.codexThread = undefined; l.model = undefined;
@@ -245,13 +251,17 @@ export async function restartFresh(productDir: string, product: string, id: stri
     emit(l, { kind: 'note', text: 'context cleared — a fresh agent takes the next message' });
   }
   await updateSession(productDir, id, { forgetAgentSession: true, line: 'context cleared' });
-  await enqueue(productDir, id, item);
-  const items = await takeFromQueue(productDir, id); if (!items.length) return false;
   await notifyQueue(productDir, id);
-  const fresh: Session = { ...s, agentSessionId: undefined, plan: !!opts.plan, instruction: items.map(i => i.text.trim()).filter(Boolean).join('\n\n---\n\n'), refs: [...new Set(items.flatMap(i => i.refs ?? []))], source: { ...(s.source ?? {}), link: items.find(i => i.link)?.link }, images: items.flatMap(i => i.images ?? []), parent: undefined };
+  const fresh: Session = { ...s, agentSessionId: undefined, plan: !!items[0].plan, instruction: items.map(i => i.text.trim()).filter(Boolean).join('\n\n---\n\n'), refs: [...new Set(items.flatMap(i => i.refs ?? []))], source: { ...(s.source ?? {}), link: items.find(i => i.link)?.link }, images: items.flatMap(i => i.images ?? []), parent: undefined };
   const first = await buildPrompt(product, fresh, opts.wfUrl, productDir);
   await startChat(productDir, product, id, { wfUrl: opts.wfUrl, firstMessage: first, images: fresh.images });
+  const nl = live().get(id); if (nl) nl.turn = items.map(i => i.id); // the first message is this item's turn
   return true;
+}
+// The open turn ended: stamp its items and forget them.
+function endTurn(l: Live, fail?: { error: string }) {
+  const ids = l.turn ?? []; l.turn = []; if (!ids.length) return; // an entry from before this shipped has no turn
+  markTurnEnd(l.productDir, l.id, ids, fail).then(() => notifyQueue(l.productDir, l.id)).catch(() => {});
 }
 // Idle stop (rule:idle-stop): a live claude process with no open turn and no queued message for WF_AGENT_IDLE_MIN
 // minutes (default 30, 0 disables) is ended — `--resume` brings its context back with the next message or Resume.
@@ -272,13 +282,17 @@ function armIdleStop(l: Live) {
   }, IDLE_MIN * 60_000);
   l.idle.unref?.();
 }
-export function stopChat(id: string): boolean {
+// Stop ends the process; the recorded status is the caller's business (Stop: done, the context comes back with
+// Resume; Close: cancelled — req:wf2.sessions.stop-from-list), so the exit handler leaves it alone.
+export function stopChat(id: string, note = 'stopped by the user — Resume or a message continues with the same context'): boolean {
   const l = live().get(id); if (!l) return false;
-  clearIdle(l);
-  if (l.proc) { l.proc.stdin?.end(); setTimeout(() => l.proc?.kill(), 1500); }
-  emit(l, { kind: 'note', text: 'stopped by the user' });
+  clearIdle(l); l.stopped = true;
+  if (l.proc) { l.proc.stdin?.end(); const p = l.proc; setTimeout(() => p.kill(), 1500); }
+  emit(l, { kind: 'note', text: note });
   return true;
 }
+// Live conversations with no open turn: what "Stop idle" ends.
+export function idleIds(): string[] { return [...live().values()].filter(l => isLive(l.id) && !l.turnBusy).map(l => l.id); }
 
 // Codex: one `codex exec --json` process per turn; later turns resume the thread.
 function codexTurn(l: Live, cwd: string, text: string, fromQueue = false, imagePaths: string[] = []) {
@@ -290,7 +304,7 @@ function codexTurn(l: Live, cwd: string, text: string, fromQueue = false, imageP
   let buf = '';
   proc.stdout.on('data', d => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) onCodexLine(l, line); } });
   proc.stderr.on('data', d => { const t = String(d).trim(); if (t && !/^warning:/i.test(t)) emit(l, { kind: 'stderr', text: t.slice(0, 2000) }); });
-  proc.on('close', code => { l.proc = null; l.turnBusy = false; emit(l, { kind: 'result', text: '', code: code ?? -1, isError: code !== 0, usage: l.codexUsage }); l.codexUsage = undefined; if (code !== 0) updateSession(l.productDir, l.id, { line: `codex turn exited with ${code}` }).catch(() => {}); reportKnowledge(l); pump(l); });
+  proc.on('close', code => { l.proc = null; l.turnBusy = false; endTurn(l, code !== 0 ? { error: `codex turn exited with ${code}` } : undefined); emit(l, { kind: 'result', text: '', code: code ?? -1, isError: code !== 0, usage: l.codexUsage }); l.codexUsage = undefined; if (code !== 0) updateSession(l.productDir, l.id, { line: `codex turn exited with ${code}` }).catch(() => {}); reportKnowledge(l); pump(l); });
 }
 function onCodexLine(l: Live, line: string) {
   let j: Record<string, unknown>; try { j = JSON.parse(line); } catch { emit(l, { kind: 'stderr', text: line.slice(0, 500) }); return; }

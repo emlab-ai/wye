@@ -121,7 +121,7 @@ export function CommandBox() {
         )}
         <div className="palette-row">
           {target === 'new' && <input className="palette-cwd" value={cwd} placeholder={defaults.cwd || 'working folder: the code repository the agent works in'} onChange={e => setCwd(e.target.value)} spellCheck={false} title="working folder" />}
-          {!isNew && <span className="muted palette-note">{fresh ? 'restarts that conversation\u2019s agent from nothing, then sends this as its first message' : 'goes into that conversation as your next message; the agent keeps its context and folder'}</span>}
+          {!isNew && <span className="muted palette-note">{fresh ? 'restarts that conversation\u2019s agent from nothing — after its current turn when one is open — then sends this as its first message' : 'goes into that conversation as your next message; the agent keeps its context and folder'}</span>}
           {target === 'runner' && <span className="muted palette-note">queued until a runner for that agent picks it up</span>}
           <button className="palette-go" onClick={run} disabled={(!text.trim() && !attach.images.length) || busy}>{busy ? 'Sending…' : !isNew ? (fresh ? 'Restart & send ↵' : 'Send ↵') : target === 'runner' ? 'Queue ↵' : plan ? 'Plan & build ↵' : 'Run ↵'}</button>
         </div>

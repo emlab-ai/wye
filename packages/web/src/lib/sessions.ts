@@ -7,7 +7,7 @@ import { randomBytes } from 'node:crypto';
 import { withFileLock } from './write';
 import { dedupeUserEvents } from './transcript';
 
-import { AGENTS, type ChatEvent, type QueueItem, type Runner, type Session, type SessionSource, type SessionStatus } from './session-types';
+import { AGENTS, nextTake, type ChatEvent, type QueueItem, type Runner, type Session, type SessionSource, type SessionStatus } from './session-types';
 export { AGENTS } from './session-types';
 export type { ChatEvent, QueueItem, Runner, Session, SessionSource, SessionStatus } from './session-types';
 
@@ -110,27 +110,43 @@ export async function appendTranscript(productDir: string, id: string, events: C
 
 // The persistent per-session queue. Items keep their sentAt so the history shows what went in when; unsent items
 // are the pending ones.
-const pending = (s: Session) => (s.queue ?? []).filter(q => !q.sentAt);
 export async function enqueue(productDir: string, id: string, item: Omit<QueueItem, 'id' | 'addedAt'>): Promise<{ item: QueueItem; position: number } | null> {
   return mutate(productDir, id, s => {
     const q: QueueItem = { id: randomBytes(4).toString('hex'), addedAt: new Date().toISOString(), ...item };
     s.queue = [...(s.queue ?? []), q].slice(-200); s.updatedAt = q.addedAt;
-    return { item: q, position: pending(s).length };
+    return { item: q, position: (s.queue ?? []).filter(x => !x.sentAt).length };
   });
 }
-// Take what should go to the agent next: one item, or every pending item as a batch; marks them sent.
+// Take what should go to the agent next: one item, or every pending item as a batch — a fresh item alone
+// (nextTake, req:wf2.sessions.fresh-in-queue); marks them sent.
 export async function takeFromQueue(productDir: string, id: string): Promise<QueueItem[]> {
   return (await mutate(productDir, id, s => {
-    const items = pending(s); if (!items.length) return [];
-    const take = s.batch === 'all' ? items : items.slice(0, 1);
+    const take = nextTake(s.queue ?? [], s.batch); if (!take.length) return [];
     const now = new Date().toISOString();
     for (const t of take) t.sentAt = now;
     s.updatedAt = now;
     return take;
   })) ?? [];
 }
+// The turn the items opened has ended (decision:wf2.queue-item-state): stamp them done, or failed with the reason.
+export async function markTurnEnd(productDir: string, id: string, itemIds: string[], fail?: { error: string }): Promise<void> {
+  if (!itemIds.length) return;
+  await mutate(productDir, id, s => {
+    const now = new Date().toISOString();
+    for (const q of s.queue ?? []) if (itemIds.includes(q.id) && q.sentAt && !q.doneAt && !q.failedAt) { if (fail) { q.failedAt = now; q.error = fail.error; } else q.doneAt = now; }
+    s.updatedAt = now;
+  });
+}
 export async function removeFromQueue(productDir: string, id: string, itemId: string): Promise<boolean> {
   return (await mutate(productDir, id, s => { const before = s.queue?.length ?? 0; s.queue = (s.queue ?? []).filter(q => q.id !== itemId || q.sentAt); return (s.queue?.length ?? 0) !== before; })) ?? false;
+}
+// Close drops everything still waiting; returns how many items went.
+export async function dropPending(productDir: string, id: string): Promise<number> {
+  return (await mutate(productDir, id, s => { const before = s.queue?.length ?? 0; s.queue = (s.queue ?? []).filter(q => q.sentAt); return before - (s.queue?.length ?? 0); })) ?? 0;
+}
+// The fresh mark of a waiting item can change until the item is handed over.
+export async function setItemFresh(productDir: string, id: string, itemId: string, fresh: boolean): Promise<boolean> {
+  return (await mutate(productDir, id, s => { const q = (s.queue ?? []).find(x => x.id === itemId && !x.sentAt); if (!q) return false; if (fresh) q.fresh = true; else { delete q.fresh; delete q.plan; } return true; })) ?? false;
 }
 export async function setBatch(productDir: string, id: string, batch: 'one' | 'all'): Promise<void> {
   await mutate(productDir, id, s => { s.batch = batch; });

@@ -1,5 +1,6 @@
 import { getProduct } from '@/lib/products';
 import { getSession } from '@/lib/sessions';
+import { queueView } from '@/lib/session-types';
 import { subscribe, subscribeQueue, isLive } from '@/lib/agent-host';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +16,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ product:
   const stream = new ReadableStream({
     start(ctrl) {
       const send = (name: string, data: unknown) => { try { ctrl.enqueue(enc.encode(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`)); } catch { /* closed */ } };
-      send('snapshot', { status: s.status, live: isLive(id), transcript: s.transcript ?? [], queue: { pending: (s.queue ?? []).filter(q => !q.sentAt).map(q => ({ id: q.id, text: q.text, addedAt: q.addedAt })), batch: s.batch ?? 'one' } });
+      send('snapshot', { status: s.status, live: isLive(id), transcript: s.transcript ?? [], queue: queueView(s.queue, s.batch) });
       const u1 = subscribe(id, e => send('event', e)); const u2 = subscribeQueue(id, q => send('queue', q)); unsub = () => { u1(); u2(); };
       ping = setInterval(() => send('ping', { live: isLive(id) }), 15000);
       req.signal.addEventListener('abort', () => { unsub(); if (ping) clearInterval(ping); try { ctrl.close(); } catch { /* closed */ } });

@@ -528,7 +528,8 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - action:expand-activity:  open a folded "n steps" row to read every tool call and result
     - action:see-usage:        the console bar shows the context size (the last call's prompt, as a share of the model's window) and the tokens the session spent so far (read, including cache, and written) — each turn's result event carries its usage (agent-host#claudeUsage; Codex: in/out only), the console adds them up (task:new-441)
     - action:see-knowledge:    after each turn a "knowledge" row lists the blocks the turn added (+), changed (~) or removed (−) as tags plus a paragraph count (lib:artifacts, rule:block-attribution), and the header keeps a live "knowledge" strip of everything the session changed with +n ~n n¶ counts, a ↗ to page:web/session-changes and a "changes" fold (req:wf2.sessions.knowledge-changes, req:wf2.sessions.changes-page)
-    - action:stop-resume:      Stop the agent; Resume restarts it on the same conversation (rule:agent-host)
+    - action:stop-resume:      Stop the agent (console bar, or on hover on an Agents row: the process ends, the context comes back with Resume or a message); Close on an active row ends the process, drops the waiting items and cancels the conversation; "Stop idle (n)" in the header stops every live conversation with no open turn and nothing waiting (req:wf2.sessions.stop-from-list); Resume restarts the agent on the same conversation (rule:agent-host)
+    - action:see-queue:        under a row's instruction, the conversation's queue with each item's state — working, waiting (fresh/keep toggle, remove), done folded — and a summary (req:wf2.sessions.queue-on-agents); the console's queue panel shows the same, and its message box has a "clear context first" tick that is honoured when the item's turn comes (req:wf2.sessions.fresh-in-queue)
     - action:hand-off:         continue the work under another agent (rule:agent-sessions)
   display-rules:
     - Runners online and working; Active / All filters; a row shows status, first line of the instruction, agent, mode, folder, age and refs
@@ -1153,16 +1154,21 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   statement: >
     A request from the command box starts a new conversation by default: the "to" picker opens on "New conversation"
     with the agent and the working folder the person used last (localStorage `wf-agent-<product>` /
-    `wf-cwd-<product>`), and the live conversations are an explicit choice. A live conversation chosen with
-    "clear context first" ticked is restarted fresh before the message: the host ends its process, forgets
-    `agentSessionId` (and the Codex thread), emits a `note` divider ("context cleared — fresh agent"), and hands the
-    message to a new process as a first message built like a new session's (instruction, refs, link, images, the
-    plan-first section when ticked). The Live entry is reused so the console's subscribers keep receiving events,
-    and the replaced process's close handler updates nothing. Without the tick, and always from the console's own
-    message box, the message goes into the running agent and its context is kept.
-  source: packages/web/src/components/CommandBox.tsx; packages/web/src/lib/agent-host.ts#restartFresh; packages/web/src/app/api/[product]/sessions/[id]/message/route.ts
+    `wf-cwd-<product>`), and the live conversations are an explicit choice. "Clear context first" — a tick in the
+    command box when a live conversation is chosen, and in the console's own message box — rides on the queued
+    item as `fresh` (with `plan`) and is honoured when the item's turn comes (decision:wf2.fresh-is-a-queue-property):
+    the pump, finding a fresh item at the head of the queue with no turn open, ends the process, forgets
+    `agentSessionId` (and the Codex thread), emits a `note` divider ("context cleared — a fresh agent takes the next
+    message") and hands the item to a new process as a first message built like a new session's (instruction, refs,
+    link, images, the plan-first section when asked). An idle agent restarts at once; a busy one finishes its open
+    turn first — nothing in progress is cut. When no process is up, the message route starts the fresh one directly
+    instead of resuming the old context. The Live entry is reused so the console's subscribers keep receiving
+    events, and the replaced process's close handler updates nothing. A waiting item's fresh mark can be toggled
+    from the queue list (control `item`). Without the tick the message goes into the running agent and its context
+    is kept.
+  source: packages/web/src/components/CommandBox.tsx; packages/web/src/components/Console.tsx; packages/web/src/lib/agent-host.ts#pump; packages/web/src/lib/agent-host.ts#restartFresh; packages/web/src/app/api/[product]/sessions/[id]/message/route.ts
   status: shipped
-  verified-by: [ui-test:command-palette]
+  verified-by: [ui-test:command-palette, ui-test:agents-queue]
   related-to: [rule:agent-sessions, rule:process-is-active, rule:plan-first]
 - id: rule:idle-stop
   statement: >
@@ -1234,7 +1240,11 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     exit), persists them to the session transcript and streams them to the UI over server-sent events. The console
     in the right column shows the transcript live (rule:console-flow), renders the agent's questions as forms and
     other permission requests as Allow/Deny cards (rule:agent-questions), offers Stop, and Resume (which restarts
-    Claude Code with --resume and its own session id). Sending a message while a turn runs queues it. The host
+    Claude Code with --resume and its own session id). Stop (console or Agents row) ends the process and records
+    the session done with "stopped by the user — Resume or a message continues with the same context"; Close
+    (Agents row) ends the process, drops the waiting items and records cancelled — a cancelled conversation does not
+    resume on a plain message, only on a fresh one or Resume (req:wf2.sessions.stop-from-list). A stopped process
+    counts as gone at once (`Live.stopped`: isLive false, the pump quiet, the exit handler leaves the status alone). Sending a message while a turn runs queues it. The host
     lives on globalThis so dev reloads do not orphan processes; agents die with the server, and the desktop app owns
     the server. The host does not ask Claude to replay user messages (no --replay-user-messages) and the transcript
     drops a user event that repeats the previous one before the turn ended (dedupeUserEvents), because a turn has
@@ -1245,12 +1255,18 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
 - id: rule:session-queue
   statement: >
     Every message to a chat session goes through the session's persistent queue (items with id, text, refs, link,
-    addedAt, sentAt in the session file). The host hands the next item to the agent as soon as it is idle — one item
-    per turn, or every pending item joined into one message when the session's batch mode is "all" — and a resumed
-    agent takes what waited. The console shows the pending items with a remove button and the one/batch toggle.
-    All session mutations (queue, transcript, status, log) run under the session file's lock with unique temp
-    names, because concurrent read-modify-write cycles corrupted a file once.
-  source: packages/web/src/lib/sessions.ts#enqueue; packages/web/src/lib/agent-host.ts#pump
+    images, fresh, plan, addedAt, sentAt, doneAt, failedAt, error in the session file). The host hands the next item
+    to the agent as soon as it is idle — one item per turn, or every pending item joined into one message when the
+    session's batch mode is "all", but a fresh item always alone (nextTake: a batch stops before it) — and a
+    resumed agent takes what waited. An item's state is derived from its stamps (queueState: waiting → working →
+    done | failed, decision:wf2.queue-item-state): the host remembers the ids it handed to the open turn
+    (`Live.turn`) and stamps them on the turn's `result` (failed when is_error), on a process exit during the turn
+    (failed, "agent exited with N during the turn") and on a Codex turn's close. The console's queue panel and the
+    Agents row show every item with its state (component:queue-list): working first, waiting in order — each with
+    its fresh/keep toggle and a remove button — the finished ones folded under "n done"; the summary reads
+    "1 working · 2 waiting · 5 done". All session mutations (queue, transcript, status, log) run under the session
+    file's lock with unique temp names, because concurrent read-modify-write cycles corrupted a file once.
+  source: packages/web/src/lib/sessions.ts#enqueue; packages/web/src/lib/sessions.ts#markTurnEnd; packages/web/src/lib/session-types.ts#nextTake; packages/web/src/lib/agent-host.ts#pump; packages/web/src/components/QueueList.tsx
   status: shipped
 - id: rule:subagents-in-console
   statement: >

@@ -45,7 +45,9 @@ React components (`component:` cards). `side` says whether it renders on the ser
     The live conversation with an agent: every event of the transcript, streamed over SSE, plus a message box.
     Rows are full width, without a time column (task:new-954): an event's time appears at the row's right edge
     only while it is hovered (`.ev time`, globals.css). A `knowledge` event renders as a row of tags and is
-    reported up (onKnowledge) so the session header's knowledge strip grows live.
+    reported up (onKnowledge) so the session header's knowledge strip grows live. The queue panel (component:queue-list)
+    shows every item with its state while something is working or waiting; the message box has a "clear context
+    first" tick (plan-first under it) that rides on the queued item (req:wf2.sessions.fresh-in-queue).
   part-of: module:app-agents
 - id: component:ask-questions
   file: packages/web/src/components/AskQuestions.tsx
@@ -74,7 +76,18 @@ React components (`component:` cards). `side` says whether it renders on the ser
   file: packages/web/src/components/SessionList.tsx
   side: client
   purpose: >
-    All agent sessions of a product, active first; polls while any is active. A row opens the session in the right column.
+    All agent sessions of a product, active first; polls while any is active. A row opens the session in the right
+    column and shows its queue with states (component:queue-list, req:wf2.sessions.queue-on-agents); on hover it
+    offers Stop (live rows) and Close (active rows), the header "Stop idle (n)" (req:wf2.sessions.stop-from-list);
+    row actions refetch the list at once and never open the conversation.
+  part-of: module:app-agents
+- id: component:queue-list
+  file: packages/web/src/components/QueueList.tsx
+  side: client
+  purpose: >
+    A conversation's queue with the state of every item (decision:wf2.queue-item-state): the working item first,
+    the waiting ones in order — each with its fresh/keep toggle (control `item`) and a remove button — and the
+    finished ones folded under "n done". Rendered in the console's queue panel and under an Agents row.
   part-of: module:app-agents
 - id: component:produced
   file: packages/web/src/components/Produced.tsx
@@ -92,7 +105,8 @@ React components (`component:` cards). `side` says whether it renders on the ser
     default (rule:clean-slate: the "to" picker opens on New conversation with the agent and the working folder
     used last — localStorage wf-agent-/wf-cwd-<product> — and the plan-first tick) or goes into a live
     conversation chosen in "to" — with "clear context first" ticked the message carries `fresh: true` and the
-    plan-first tick, and that agent restarts from nothing before reading it — or is queued for a runner; images
+    plan-first tick, and that agent restarts from nothing before reading it, after its open turn when one runs
+    (req:wf2.sessions.fresh-in-queue) — or is queued for a runner; images
     pasted or dropped go along; Enter runs, Shift+Enter breaks a line. Replaced SendToAgent.tsx and CommandPalette.tsx.
   part-of: module:app-agents
 ```
@@ -106,7 +120,7 @@ Modules under packages/web/src/lib (`lib:` cards): pure logic and server-only IO
   file: packages/web/src/lib/agent-host.ts
   side: server
   purpose: >
-    The agent host: the app runs Claude Code / Codex as child processes for chat sessions, keeps the conversation open, turns their streaming JSON into ChatEvents, persists them to the session and pushes them to subscribers. Lives on globalThis so dev-server module reloads do not orphan the processes. restartFresh swaps a conversation's process for a new one without its context (rule:clean-slate); armIdleStop ends a claude process idle for WF_AGENT_IDLE_MIN minutes (rule:idle-stop).
+    The agent host: the app runs Claude Code / Codex as child processes for chat sessions, keeps the conversation open, turns their streaming JSON into ChatEvents, persists them to the session and pushes them to subscribers. Lives on globalThis so dev-server module reloads do not orphan the processes. The pump hands queue items to the idle agent and, on a fresh item, calls restartFresh, which swaps the conversation's process for a new one without its context (rule:clean-slate); `Live.turn` remembers the handed items and the turn's end stamps them done / failed (rule:session-queue); armIdleStop ends a claude process idle for WF_AGENT_IDLE_MIN minutes (rule:idle-stop); stopChat ends a process for Stop / Close and marks the entry stopped so it counts as gone at once.
   part-of: module:app-agents
 - id: lib:agent-prompt
   file: packages/web/src/lib/agent-prompt.ts
@@ -139,7 +153,8 @@ Modules under packages/web/src/lib (`lib:` cards): pure logic and server-only IO
   file: packages/web/src/lib/session-types.ts
   side: shared
   purpose: >
-    Shared (browser-safe) session types and the agents that can be chosen.
+    Shared (browser-safe) session types and the agents that can be chosen; the pure queue helpers — queueState,
+    queueSummary, queueView, nextTake (a batch splits at a fresh item) — tested in session-types.test.ts.
   part-of: module:app-agents
 - id: lib:transcript
   file: packages/web/src/lib/transcript.ts
@@ -202,9 +217,10 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 - id: op:api.sessions.message
   args: POST /api/<product>/sessions/<id>/message
   does: >
-    Queue a message (text, refs, link, images) for the agent; resumes the agent if it is not running. With
-    `fresh: true` the agent restarts from nothing first (agent-host#restartFresh, rule:clean-slate) and gets the
-    message as a first message, plan-first when `plan` is set.
+    Queue a message (text, refs, link, images, fresh, plan) for the agent; resumes the agent if it is not running
+    — or, when the head of the queue is a fresh item, starts a new agent with it (agent-host#restartFresh). `fresh`
+    rides on the item and is honoured when its turn comes (rule:clean-slate): at once when the agent is idle, after
+    the open turn when it is busy; plan-first in that first message when `plan` is set.
   gate: none (local app)
   source: packages/web/src/app/api
   part-of: module:app-agents
@@ -226,7 +242,9 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 - id: op:api.sessions.control
   args: POST /api/<product>/sessions/<id>/control
   does: >
-    stop, resume, permission (answer a request, including AskUserQuestion answers), batch one|all, unqueue.
+    stop (the process ends, the session is done; Resume or a message brings the context back), close (the process
+    ends, the waiting items are dropped, the session is cancelled), resume, permission (answer a request, including
+    AskUserQuestion answers), batch one|all, unqueue, item (set or clear the fresh mark of a waiting item).
   gate: none (local app)
   source: packages/web/src/app/api
   part-of: module:app-agents
@@ -369,3 +387,148 @@ Work, in order:
 - [x] task:session-changes-view component:session-changes under the knowledge strip (the strip shows "+n added · n changed per document" and opens it), the same component on /<product>/sessions/<id>/changes, op:api.sessions.changes (GET …/sessions/<id>/changes: the blocks joined with the current graph), `wf session changes <id>`, and the console's knowledge row with added / changed marks. Part of req:wf2.sessions.changes-page. (session: 53f99bfd98)
 - [x] task:session-changes-ui-test ui-test:session-changes — a probe session edits a document on disk (one new req, one changed rule, one paragraph); the strip, the changes page and wf session changes list them. Part of req:wf2.sessions.changes-page. (run by hand with playwright-core, 2026-09-18; in CI when task:ui-tests-in-ci lands)
 
+## Plan: stop an agent, see its queue, clear context in the queue (session 181e88ad1f)
+
+What is there today: the Agents page (component:session-list) lists conversations with a `working` / `live` pill,
+but the only way to end an agent is the Stop button inside its console, one conversation at a time. A conversation's
+queue (rule:session-queue) is visible only in the console, and only the items still waiting — once an item is
+handed to the agent it disappears, so nothing says which tasks an agent got, which one it is on and which are
+done. And "clear context first" (rule:clean-slate) acts *now*: `restartFresh` kills the running process even when
+a turn is open, so ticking it while the agent is busy on the previous task cuts that task short instead of
+clearing the context between the two tasks.
+
+The plan: stop and close from the list; every queue item keeps its life (waiting → working → done | failed) and
+the row shows the queue with those states; `fresh` becomes a property of the queue item, honoured when the item's
+turn comes.
+
+```yaml
+- id: req:wf2.sessions.stop-from-list
+  title: An agent can be stopped or closed from the Agents page
+  when: a person hovers a conversation row on the Agents page
+  then: >
+    a live row offers Stop — the process ends, the context survives (`--resume` brings it back, as rule:idle-stop)
+    and the row leaves Active; every active row offers Close — the process ends if there is one, the pending queue
+    items are dropped, the session is recorded as cancelled and the row leaves Active (it stays under All); the
+    page header offers "Stop idle (n)" that stops every live conversation with no open turn and nothing queued; a
+    row's action never opens the conversation
+  unless: the row is a runner's session (mode run) — it has no process here; Close alone applies
+  status: shipped
+  refines: req:wf2.ui.live
+  satisfied-by: [component:session-list, op:api.sessions.control]
+  verified-by: [ui-test:agents-queue]
+- id: req:wf2.sessions.queue-on-agents
+  title: Each agent row shows the tasks it got and where each one stands
+  when: a conversation has received one or more messages through its queue
+  then: >
+    the row shows the queue under the instruction: each item's first line with a state — waiting (not handed to
+    the agent yet), working (the turn it opened is running), done (that turn ended), failed (the turn ended with an
+    error or the process exited during it) — the working item first, then the waiting ones in order, the done ones
+    folded under "n done"; a waiting item can be removed and the row's summary says "1 working · 2 waiting · 5 done";
+    the console's queue panel shows the same states, so both views read one record
+  unless: the conversation never used its queue — the row shows only the instruction, as today
+  status: shipped
+  refines: req:wf2.ui.live
+  satisfied-by: [component:session-list, component:console, lib:sessions, lib:agent-host]
+  verified-by: [ui-test:agents-queue]
+- id: req:wf2.sessions.fresh-in-queue
+  title: Clear context applies when the task's turn comes, not when it is queued
+  when: a person queues a message for a conversation with "clear context first" ticked (command box, or the console's message box)
+  then: >
+    the item is queued carrying `fresh` (and the plan-first choice); when the agent is idle it restarts from
+    nothing at once and gets the item as its first message (as rule:clean-slate today); when a turn is open, that
+    turn finishes first — then the host restarts the agent from nothing and hands it the item; the queue shows the
+    item with a "fresh" mark, and the mark can be toggled on a waiting item; a fresh item is always handed alone,
+    even in batch mode (items queued before it go in their own batch first)
+  unless: the tick is off — the item goes into the running agent with its context kept, as today
+  status: shipped
+  refines: req:wf2.sessions.clean-slate
+  satisfied-by: [lib:agent-host, lib:sessions, component:command-box, component:console, op:api.sessions.message, op:api.sessions.control]
+  verified-by: [ui-test:agents-queue]
+- id: decision:wf2.fresh-is-a-queue-property
+  title: "Clear context" is a property of the queued item, honoured by the pump
+  context: >
+    rule:clean-slate implemented "clear context first" as an immediate restart: the message route calls
+    `restartFresh`, which ends the running process, before enqueueing. With an idle agent that is what the person
+    means. With a busy agent it ends the task in progress — the person wanted the *next* task to start clean, not
+    the current one to stop. decision:wf2.clean-slate also kept the tick out of the console's own message box,
+    reasoning that the console is where context is wanted; but the console is also where the person queues the
+    next task while watching the current one.
+  choice: >
+    `fresh` (and `plan`) live on the QueueItem. The message route only enqueues; the pump, when the next item to
+    hand over is fresh, does what restartFresh did — ends the process, forgets the agent's session id, writes the
+    "context cleared" note — and starts a new process with that item as its first message. Idle agent: immediate,
+    as before. Busy agent: after the open turn's `result`. The tick appears in the console's message box too,
+    off by default, and a waiting item's fresh mark can be toggled from the queue list. Batch mode splits at a
+    fresh item.
+  alternatives: >
+    Keep the immediate restart and only disable the tick while the agent is busy — the person cannot express
+    "clean slate for the next task" at all; a separate "restart when idle" action next to Stop — two controls for
+    one intent; keep the tick out of the console — the person has to open ⌘P and pick the conversation in "to"
+    to say what a tick next to the message box could say.
+  consequences: >
+    rule:clean-slate is refined (the restart moves from the route to the pump; the console box gets the tick);
+    decision:wf2.clean-slate's "no tick in the console" is superseded; QueueItem gains fresh, plan, state fields
+    (rule:session-queue refined); op:api.sessions.message keeps `fresh` / `plan` but enqueues them;
+    op:api.sessions.control gains `item` (set fresh on a waiting item), `close` and `stop` stays.
+  date: 2026-09-18
+  status: proposed
+  affects: [rule:clean-slate, rule:session-queue, component:command-box, component:console, op:api.sessions.message, op:api.sessions.control, lib:agent-host]
+  related-to: [decision:wf2.clean-slate, req:wf2.sessions.fresh-in-queue]
+  session: 181e88ad1f
+- id: decision:wf2.queue-item-state
+  title: A queue item keeps its state on the session record; the turn end marks it
+  context: >
+    Items today carry `addedAt` and `sentAt`; nothing records that the turn an item opened has ended, so no view can
+    say "done" or "failed" per task. The transcript has the `result` events, but joining items to results by time
+    is brittle (a batch is one turn; a fresh restart is a turn without an item).
+  choice: >
+    The host remembers the ids of the items it handed to the open turn (`Live.turn`); on `result` it stamps them
+    `doneAt` (or `failedAt` when `is_error`), on a process exit during a turn `failedAt` with the exit code as
+    `error`; Codex the same on its process close. The states in the UI are derived: waiting = no sentAt, working =
+    sentAt and neither doneAt nor failedAt, done, failed. The list API already returns the queue; the console's
+    `queue` SSE event carries every item with its state instead of the pending ones only.
+  alternatives: >
+    Derive done from the transcript (result events after sentAt) — brittle, see context; keep a separate per-item
+    status field written by hand — the same thing with more ways to drift.
+  consequences: >
+    QueueItem { …, fresh?, plan?, doneAt?, failedAt?, error? }; sessions#markTurnEnd; notifyQueue sends all items;
+    Console and SessionList read the same shape (a shared `queueState(item)` in lib/session-types).
+  date: 2026-09-18
+  status: proposed
+  affects: [lib:sessions, lib:session-types, lib:agent-host, component:console, component:session-list, rule:session-queue]
+  related-to: [req:wf2.sessions.queue-on-agents]
+  session: 181e88ad1f
+- id: question:wf2.close-keeps-record
+  q: >
+    Close marks the conversation cancelled and keeps it under All (the transcript and its Produced stay readable).
+    Should Close also hide it from All — an archive — or delete the session file?
+  context: >
+    "Close / kill" can mean end the process (Stop), end the work (Close → cancelled) or make the record go away.
+    The plan does the first two; a deletion would also drop the session's artifacts credits on tasks
+    (rule:task-artifacts). The default is to keep the record.
+  status: open
+  related-to: [req:wf2.sessions.stop-from-list]
+- id: ui-test:agents-queue
+  title: Stop and Close from the Agents page; queue states; fresh honoured after the open turn
+  steps: >
+    1. Start a probe conversation (secret word in turn one). While its turn runs, queue two messages from the
+    console: the first plain, the second with "clear context first" ticked. The Agents row shows 1 working ·
+    2 waiting; the second waiting item has the fresh mark. 2. The first turn ends: the row shows the first queued
+    item working, the transcript has no "context cleared" note yet. 3. That turn ends: the note appears, a new
+    process starts, the fresh item is its first message; asked for the secret word the agent does not know it;
+    the row shows 2 done · 1 working. 4. Stop on a live idle row ends its process; the row leaves Active; Resume
+    from the console brings it back with the context. 5. Close on a busy row: the process ends, the waiting items
+    are gone, the recorded status is cancelled, the row is under All only. 6. "Stop idle (n)" stops every live idle
+    conversation and nothing else.
+  covers: [req:wf2.sessions.stop-from-list, req:wf2.sessions.queue-on-agents, req:wf2.sessions.fresh-in-queue]
+  status: passed
+  result: run by hand with playwright-core (Chrome) on 2026-09-18 against probes 146c8dff62 and bb8ea7cbd2: fresh item waited for the open turn, then 'context cleared' and 'no idea'; items stamped done; Stop → exit 0, status done, resume kept the context; Close → 1 waiting item dropped, the working one failed 'exited with 143', status cancelled; the Agents row showed 1 working · 2 waiting with FRESH/KEEP toggles, Stop/Close on hover, 'Stop idle (2)'; the console panel showed the states and the fresh tick
+```
+
+Work, in order:
+
+- [x] task:queue-item-state QueueItem gains `fresh`, `plan`, `doneAt`, `failedAt`, `error`; `Live.turn` remembers the handed item ids; the host stamps them on `result` (done / failed by is_error) and on a process exit mid-turn; Codex on its close; `notifyQueue` / the stream snapshot send every item with its derived state (`queueState` in lib/session-types, pure, tested). Part of req:wf2.sessions.queue-on-agents; follows decision:wf2.queue-item-state. (session: 181e88ad1f)
+- [x] task:fresh-at-take-time The message route enqueues `fresh` / `plan` on the item instead of calling restartFresh; the pump restarts the agent from nothing when the next item is fresh (idle: at once; busy: after the open turn's result) and hands it as a first message built like a new session's; batch mode splits at a fresh item; the console's message box gets the "clear context first" tick (off by default); control `item` toggles fresh on a waiting item. rule:clean-slate and rule:session-queue refined, op:api.sessions.message and op:api.sessions.control refined. Part of req:wf2.sessions.fresh-in-queue; follows decision:wf2.fresh-is-a-queue-property. (session: 181e88ad1f)
+- [x] task:agents-queue-rows component:session-list shows each row's queue: working item, waiting items (with remove and the fresh mark), done items folded, a "n working · n waiting · n done" summary; component:console's queue panel shows the same states. Part of req:wf2.sessions.queue-on-agents. (session: 181e88ad1f)
+- [x] task:agent-stop-from-list Stop (live rows) and Close (active rows) on hover in component:session-list, "Stop idle (n)" in the header; control action `close` = stopChat + drop pending items + status cancelled; row actions do not open the conversation. Part of req:wf2.sessions.stop-from-list. (session: 181e88ad1f)
+- [x] task:agents-queue-ui-test Run ui-test:agents-queue in Chrome (playwright-core) and record the result on the rules. Part of req:wf2.sessions.stop-from-list. (session: 181e88ad1f)
