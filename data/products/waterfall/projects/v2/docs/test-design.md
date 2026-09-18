@@ -412,6 +412,17 @@ One node per test file. Requirements and rules point here with `requires-tests: 
   status: passed
   verifies: [req:wf2.ui.plans-folder, rule:plans-folder]
   last-run: 2026-09-18
+- id: ui-test:rail-split
+  file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    at 1400×700 with the Plans folder open: the menu pane is 420px of the rail's 700 (60%) and scrolls its content,
+    the Documents tree shows below the splitter; a drag of the splitter up by 120px makes the pane 300px, the value
+    is in localStorage and survives a reload; a drag to the bottom edge is clamped so the Documents pane keeps
+    ~100px; a double-click on the splitter returns the pane to 420px and clears the stored value (2026-09-18,
+    session 48c8885cd2: /tmp/wfpw/rail-split.mjs, 7 checks passed in Chrome; plans-folder 16/16 still passes)
+  status: passed
+  verifies: [req:wf2.ui.rail-split, rule:rail-split]
+  last-run: 2026-09-18
 - id: ui-test:column-frame
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >

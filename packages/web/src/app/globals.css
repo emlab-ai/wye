@@ -365,7 +365,11 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .rail-menu a:hover, .rail-menu button:hover { background: var(--sunk); } .rail-menu .on { background: var(--sunk); }
 .rail-menu i { width: 18px; text-align: center; font-style: normal; color: var(--muted); }
 .rail-search { padding: 4px 14px 8px; }
-.rail-pages-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px 4px; margin-top: 8px; border-top: 1px solid var(--line); font: 500 12px var(--font-b); color: var(--muted); }
+.rail-pages-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 16px 4px; font: 500 12px var(--font-b); color: var(--muted); }
+/* the rail's two panes (rule:rail-split): the menu pane grows to its content up to 60% until the person sets its height; the splitter between them drags */
+.rail-top { flex: 0 1 auto; max-height: 60%; min-height: 96px; overflow-y: auto; }
+.rail-split { flex: none; height: 9px; margin: 2px 0 0; cursor: row-resize; position: relative; } .rail-split::after { content: ''; position: absolute; left: 0; right: 0; top: 4px; height: 1px; background: var(--line); transition: background .15s, height .15s; } .rail-split:hover::after, body.resizing-y .rail-split::after { background: var(--accent); height: 2px; }
+body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y iframe { pointer-events: none; }
 .rail-pages-head button { background: none; border: 1px solid var(--line-2); border-radius: 5px; width: 22px; height: 22px; color: var(--ink-2); cursor: pointer; }
 .pg-tree, .pg-tree ul { list-style: none; margin: 0; padding: 0; }
 .pg-row { display: flex; align-items: center; gap: 4px; padding-right: 8px; border-radius: 8px; margin: 1px 6px; }

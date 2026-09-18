@@ -425,7 +425,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
     - action:duplicate-document: right-click or ⋯ on a row → Duplicate: a copy next to the document, opened (rule:tree-menu) -(calls)-> op:api.docs.duplicate
     - action:delete-document: right-click or ⋯ on a row → Delete: confirm with the sub-document count, the subtree removed (rule:tree-menu) -(calls)-> op:api.docs.delete
   display-rules:
-    - menu order: Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inbox, Agents, Plans (a folder: the plan documents newest first, the open one marked, collapsed state remembered — rule:plans-folder); then the Documents tree (rule:documents-tree); the rail is collapsible (rule:app-navigation)
+    - menu order: Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inbox, Agents, Plans (a folder: the plan documents newest first, the open one marked, collapsed state remembered — rule:plans-folder); a horizontal splitter (rule:rail-split); then the Documents tree (rule:documents-tree); the rail is collapsible (rule:app-navigation)
     - the rail lists documents, not nodes: root documents → sub-documents; the open document shows its ## outline beneath it
     - counts and lists refresh on graph, inbox and session change events (rule:live-refresh)
 ```
@@ -1339,6 +1339,18 @@ Selecting a block: what a click on any part of a typed block does to the column.
   status: shipped
   verified-by: [ui-test:plans-folder]
   related-to: [rule:documents-tree, rule:plan-doc]
+- id: rule:rail-split
+  statement: >
+    The rail is two panes — `.rail-top` (menu, search, the Plans folder) and the Documents pane — with `.rail-split`
+    between them. Untouched, the top pane is `flex: 0 1 auto; max-height: 60%` and scrolls, so Documents always
+    shows; a drag sets its flex-basis in px from the drag's delta (mousedown height + pointer travel, clamped so
+    each pane keeps MIN_PANE = 96px, the splitter counted), stored in localStorage `wf-rail-split` from a ref at
+    mouseup (never from a state updater — a double-click's reset would be overwritten by the queued write); a
+    double-click clears both. `body.resizing-y` disables selection while dragging.
+  source: packages/web/src/components/Rail.tsx#onSplit; packages/web/src/app/globals.css
+  status: shipped
+  related-to: [rule:app-navigation, rule:plans-folder]
+  verified-by: [ui-test:rail-split]
 - id: rule:block-links
   statement: >
     Every block has a stable link: `<web>/<product>/<project>/d/<doc>#<anchor>` where the anchor is `n-<id>` for a

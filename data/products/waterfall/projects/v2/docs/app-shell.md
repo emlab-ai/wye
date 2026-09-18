@@ -31,7 +31,7 @@ sources:
 
 ## Requirements and rules
 
-What this module must do is written where it was decided — the PRD and the dev design; this document maps the code onto it. Requirements: req:wf2.ui, req:wf2.ui.sidebar, req:wf2.ui.live, req:wf2.ui.phone, req:wf2.ui.tree-menu, req:wf2.ui.plans-folder (below). Rules the code enforces: rule:app-navigation, rule:documents-tree, rule:doc-tree-row-stable, rule:tree-menu, rule:document-tree, rule:smart-tags, rule:deep-links, rule:doc-links, rule:live-refresh, rule:new-document, rule:product-layout.
+What this module must do is written where it was decided — the PRD and the dev design; this document maps the code onto it. Requirements: req:wf2.ui, req:wf2.ui.sidebar, req:wf2.ui.live, req:wf2.ui.phone, req:wf2.ui.tree-menu, req:wf2.ui.plans-folder, req:wf2.ui.rail-split (below). Rules the code enforces: rule:app-navigation, rule:documents-tree, rule:doc-tree-row-stable, rule:tree-menu, rule:document-tree, rule:smart-tags, rule:deep-links, rule:doc-links, rule:live-refresh, rule:new-document, rule:product-layout.
 
 ```yaml
 - id: req:wf2.ui.tree-menu
@@ -66,6 +66,22 @@ What this module must do is written where it was decided — the PRD and the dev
   satisfied-by: [component:rail, component:plan-folder, page:web/plans, rule:plans-folder]
   verified-by: [ui-test:plans-folder]
   status: shipped
+- id: req:wf2.ui.rail-split
+  title: The rail's menu and Documents sections share its height through a draggable horizontal splitter
+  when: >
+    the rail is open
+  then: >
+    the menu (Overview … Agents, the Plans folder) is one pane and Documents the other, a horizontal splitter
+    between them; by default the menu pane takes what its content needs up to 60% of the rail and scrolls beyond
+    that, so Documents is always visible; dragging the splitter sets the menu pane's height (each pane keeps at
+    least a few rows), the height is remembered per browser, and a double-click on the splitter returns to the
+    default
+  unless: the phone layout — the rail is a stacked list and the splitter is not shown
+  status: shipped
+  refines: [req:wf2.ui.sidebar]
+  related-to: [req:wf2.ui.plans-folder, rule:app-navigation]
+  satisfied-by: [component:rail, rule:rail-split]
+  verified-by: [ui-test:rail-split]
 ``` Pages: page:web/sidebar, page:web/context-column, page:web/overview, page:web/project, page:web/new-product.
 
 ## Pages
@@ -117,7 +133,7 @@ React components (`component:` cards). `side` says whether it renders on the ser
   purpose: >
     The left rail: product switcher, menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inbox, Agents) ending
     with the Plans system folder (component:plan-folder — the plan documents the product layout took out of the tree,
-    rule:plans-folder), then every project's documents as one tree (component:doc-tree).
+    rule:plans-folder), a horizontal splitter (rule:rail-split), then every project's documents as one tree (component:doc-tree).
   part-of: module:app-shell
 - id: component:plan-folder
   file: packages/web/src/components/PlanFolder.tsx

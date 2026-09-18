@@ -1,11 +1,13 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { DocTree, type TreeItem } from './DocTree';
 import { Search } from './Search';
 import { NewDoc } from './NewDoc';
 import { PlanFolder, type PlanItem } from './PlanFolder';
+
+const MIN_PANE = 96; // the least a pane keeps when the splitter is dragged: a few rows
 
 export type RailProject = { slug: string; title: string; icon: string; kind: string; status: string; main: string; roots: TreeItem[]; docs: { slug: string; title: string }[] };
 
@@ -20,8 +22,24 @@ export function Rail({ products, product, projects, plans, headings }: { product
   const docs = projects.flatMap(p => p.docs.map(d => ({ ...d, project: p.slug })));
   const base = `/${product.slug}`;
   const item = (href: string, label: string, icon: string) => <li><Link href={href} className={path === href ? 'on' : ''}><i>{icon}</i>{label}</Link></li>;
+  // the menu pane and the Documents pane share the rail's height: the menu pane takes what it needs (up to ~60%)
+  // until the person drags the splitter between them, from then on the height they set, remembered per browser
+  const nav = useRef<HTMLElement>(null); const top = useRef<HTMLDivElement>(null); const split = useRef<HTMLDivElement>(null);
+  const [topH, setTopH] = useState<number | null>(null); const topRef = useRef<number | null>(null);
+  const setTop = (h: number | null) => { topRef.current = h; setTopH(h); };
+  useEffect(() => { try { const v = Number(localStorage.getItem('wf-rail-split')); if (v) setTop(v); } catch { /* ignore */ } }, []);
+  // the menu pane may take everything but the splitter and a few rows of Documents
+  const clampTop = useCallback((h: number) => { const r = nav.current?.getBoundingClientRect(), t = top.current?.getBoundingClientRect(); if (!r || !t) return h; const splitH = split.current?.getBoundingClientRect().height ?? 9; return Math.max(MIN_PANE, Math.min(h, r.bottom - t.top - splitH - 2 - MIN_PANE)); }, []);
+  const onSplit = (e: React.MouseEvent) => {
+    e.preventDefault(); document.body.classList.add('resizing-y');
+    const y0 = e.clientY, h0 = top.current?.getBoundingClientRect().height ?? 0;
+    const move = (ev: MouseEvent) => setTop(clampTop(h0 + ev.clientY - y0));
+    const up = () => { document.body.classList.remove('resizing-y'); window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); try { if (topRef.current) localStorage.setItem('wf-rail-split', String(Math.round(topRef.current))); } catch { /* ignore */ } };
+    window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+  };
+  const resetSplit = () => { setTop(null); try { localStorage.removeItem('wf-rail-split'); } catch { /* ignore */ } };
   return (
-    <nav className="rail">
+    <nav className="rail" ref={nav}>
       <div className="rail-ws"><span className="rail-ws-mark">W</span><span className="rail-ws-name">Waterfall</span><button className="rail-close" onClick={() => window.dispatchEvent(new CustomEvent('wf:rail', { detail: 'toggle' }))} title="Close the sidebar (⌘\\)" aria-label="Close sidebar">«</button></div>
       <div className="rail-space">
         <span className="rail-space-mark">{product.icon || product.title.slice(0, 2).toUpperCase()}</span>
@@ -30,6 +48,7 @@ export function Rail({ products, product, projects, plans, headings }: { product
           <option value="__new">+ New product…</option>
         </select>
       </div>
+      <div className="rail-top" ref={top} style={topH ? { flex: `0 0 ${topH}px`, maxHeight: 'none' } : undefined}>
       <ul className="rail-menu">
         {item(base, 'Overview', '⌂')}
         <li><button onClick={() => setShowSearch(v => !v)} className={showSearch ? 'on' : ''}><i>⌕</i>Search</button></li>
@@ -44,6 +63,8 @@ export function Rail({ products, product, projects, plans, headings }: { product
         <PlanFolder product={product.slug} plans={plans} />
       </ul>
       {showSearch && <div className="rail-search"><Search product={product.slug} projects={projects.map(p => ({ slug: p.slug, docs: p.docs }))} headings={headings} /></div>}
+      </div>
+      <div className="rail-split" ref={split} role="separator" aria-orientation="horizontal" title="Drag to resize; double-click to reset" onMouseDown={onSplit} onDoubleClick={resetSplit} />
       <div className="rail-pages-head"><span>Documents</span><button onClick={() => setNewIn(newIn === '' ? null : '')} title="New document">+</button></div>
       {newIn !== null && <NewDoc product={product.slug} project={docs.find(d => d.slug === newIn)?.project ?? projects[0]?.slug ?? ''} projects={projects.map(p => ({ slug: p.slug, title: p.title }))} docs={docs} defaultParent={newIn} open onClose={() => setNewIn(null)} />}
       <div className="rail-body">
