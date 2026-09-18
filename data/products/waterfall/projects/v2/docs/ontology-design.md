@@ -159,6 +159,44 @@ Today a paragraph without an id is an anchored block (rule:block-links) that bel
 
 Cost: a graph of 3 344 lines becomes roughly 1 500 more nodes. The parser is linear; the web index is a Map; `ctx packet` and search already filter by kind. The viewer's `data.js` grows — the site build should drop `block:` nodes unless asked. This is the phase with the least value per line of code, which is why it is last.
 
+### The graph editor: where the UI has to get to
+
+The graph already says it (req:ontology.blocks): a document is a node, every block in it is a node, a typed block is a node with properties and edges, and `has` makes the document → heading → block tree a node tree. The editor does not show it yet — a block reads as a node only through its tag or pill, and a plain paragraph has no way to be opened at all. The goal below names the destination; the tasks under it are the steps, each shipping on its own. plan:plan-still-bad-now-need-click-tag does the first (req:wf2.ui.block-select).
+
+```yaml
+- id: goal:ontology.graph-editor
+  title: The document is a graph editor
+  description: >
+    Every block of a document behaves as the node it is: a click on any part of it selects it and the context column
+    shows the node — its properties, its edges, what is under it; a plain paragraph is a block node with the same
+    treatment; any node can carry child nodes — a comment, a question, a decision, an instance of any type — written
+    under it in the document and shown under it in the column; links between nodes are edges the person can follow and
+    make from either side. Reading and writing stay markdown: the tree is what the parser already builds.
+  status: proposed
+  owner: unassigned
+  part-of: module:ontology-design
+  depends-on: [req:ontology.blocks, req:wf2.ui.node-page]
+- id: question:ontology.child-nodes
+  title: How is a child node — a comment on a block — written in the markdown?
+  q: >
+    A comment on a paragraph or a typed block is a node the parent `has`. Is it a nested list item under the parent
+    (`  - comment:x …`, the form the parser already treats as a child of a list item — but a paragraph has no nested
+    items), a yaml card with `on: block:<doc>.<hash>` anywhere in the document, or a sidecar the document does not
+    show? The answer decides what the editor draws under a block and what an agent writes.
+  context: >
+    goal:ontology.graph-editor — "any node can have child nodes, like comments"; the person's request on
+    plan:plan-still-bad-now-need-click-tag. Nested list items are the only child form the parser has today
+    (req:ontology.blocks); a comment type does not exist yet (type:comment would extend type:node with `on: ref node
+    -(inverse)-> comments` and `by`).
+  status: open
+  related-to: [goal:ontology.graph-editor, req:ontology.blocks, type:block]
+```
+
+- [x] task:ontology.block-select A click anywhere on a typed block — card, row, embed, text included — selects it and the context column shows the node (req:wf2.ui.block-select, rule:block-select). Part of goal:ontology.graph-editor; done by plan:plan-still-bad-now-need-click-tag. (session: 367dedec3c)
+- [ ] task:ontology.paragraph-select A click in a plain paragraph selects its block node: the Context root shows block:<doc>.<hash> — its heading, its links, what it has — instead of only the knowledge nearest to its text. Part of goal:ontology.graph-editor; depends on task:ontology.block-peek and task:ontology.block-select.
+- [ ] task:ontology.child-nodes-design Decide the markdown form of a child node (question:ontology.child-nodes), declare type:comment in the base ontology (a ref to the node it is on with inverse comments, an author, a date) and make the parser attach it to its parent with has. Part of goal:ontology.graph-editor; depends on question:ontology.child-nodes.
+- [ ] task:ontology.children-in-column The context column shows what a node `has` — its child nodes: comments, nested items, the blocks under a heading — as a Children group of expandable cards (rule:connected-cards), and "+ comment" writes a child under the block. Part of goal:ontology.graph-editor; depends on task:ontology.child-nodes-design.
+
 ### Where types live and how the parser finds them
 
 - `data/products/<product>/ontology/base-ontology.md` — copied from Waterfall's `schema/` on product creation, or referenced; it defines the fourteen base types and the verbs with their inverses. Replaces `schema/kinds.yaml` as the source of truth; `kinds.yaml` is generated from it during the transition so skills and prompts that read it keep working.

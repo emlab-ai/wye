@@ -104,7 +104,7 @@ function RowNode({ p, set, contentRef, block, editor }: { p: { kind: string; slu
   const rowRef = useRef<HTMLDivElement>(null);
   const { index } = usePeek();
   const idOf = (b: AnyBlock) => { const bp = b.props as unknown as { kind: string; slug: string }; return `${bp.kind}:${bp.slug}`; };
-  const peek = () => { const b = withSlug(editor, index, block); if ((b.props as unknown as { slug: string }).slug) window.dispatchEvent(new CustomEvent('wf:peek', { detail: idOf(b) })); };
+  const peek = () => { const b = withSlug(editor, index, block); if ((b.props as unknown as { slug: string }).slug) window.dispatchEvent(new CustomEvent('wf:select', { detail: idOf(b) })); };
   const id = `${p.kind}:${p.slug}`; const e = index[id];
   const empty = !p.slug && !rowText(block);
   const ex = parseExtra(p.extra);
@@ -147,7 +147,7 @@ function TypeRow({ p, set, contentRef, block, type, editor }: { p: { kind: strin
   const rowRef = useRef<HTMLDivElement>(null);
   const { index } = usePeek();
   const id = `${p.kind}:${p.slug}`;
-  const peek = () => { const b = withSlug(editor, index, block); const bp = b.props as unknown as { kind: string; slug: string }; if (bp.slug) window.dispatchEvent(new CustomEvent('wf:peek', { detail: `${bp.kind}:${bp.slug}` })); };
+  const peek = () => { const b = withSlug(editor, index, block); const bp = b.props as unknown as { kind: string; slug: string }; if (bp.slug) window.dispatchEvent(new CustomEvent('wf:select', { detail: `${bp.kind}:${bp.slug}` })); };
   const empty = !p.slug && !rowText(block);
   const ex = parseExtra(p.extra);
   const done = DONE_STATUSES.has(p.status);
@@ -187,12 +187,18 @@ const typeGrid = (t: OwnType) => `minmax(200px, 1fr) 100px${t.cols.map(c => c.ty
 // background) puts the editor cursor in that block without taking focus from the control, so the context column
 // shows the node — the same as clicking its text (bug:when-i-select-a).
 type EditorLike = { setTextCursorPosition: (id: string, at: 'start' | 'end') => void; getBlock: (id: string) => unknown; document: unknown; updateBlock: (b: unknown, u: unknown) => void; insertBlocks: (blocks: unknown[], ref: string, placement: 'before' | 'after') => unknown; removeBlocks: (ids: string[]) => unknown };
+// A click anywhere on the block — its text too — also selects its node: the context column comes to its Context
+// root and shows it, whatever it showed before (rule:block-select). A tag or link inside the block navigates instead.
 function selectBlockOnClick(editor: EditorLike, block: AnyBlock, textEl: HTMLElement | null) {
   return (e: React.MouseEvent) => {
-    if (textEl && textEl.contains(e.target as Node)) return; // clicking the text places the caret itself
-    try { editor.setTextCursorPosition(String((block as { id?: string }).id), 'end'); } catch { /* block gone */ }
-    // the cursor may already be in this block (no selection change fires): ask the editor to publish the context anyway
-    window.dispatchEvent(new CustomEvent('wf:publish'));
+    if ((e.target as Element).closest('a')) return;
+    if (!textEl || !textEl.contains(e.target as Node)) { // clicking the text places the caret itself
+      try { editor.setTextCursorPosition(String((block as { id?: string }).id), 'end'); } catch { /* block gone */ }
+      // the cursor may already be in this block (no selection change fires): ask the editor to publish the context anyway
+      window.dispatchEvent(new CustomEvent('wf:publish'));
+    }
+    const bp = block.props as unknown as { kind?: string; slug?: string };
+    if (bp.kind && bp.slug) window.dispatchEvent(new CustomEvent('wf:select', { detail: `${bp.kind}:${bp.slug}` }));
   };
 }
 // A row that has text but no slug yet (slugs are assigned when the cursor leaves the row) gets one now, so a link,
@@ -318,11 +324,13 @@ function EditorCard({ p, set, contentRef, block, editor }: { p: CardP; set: (pat
   const id = `${p.kind}:${p.slug}`;
   const host: CardHost = {
     text: cls => <div className={cls} ref={contentRef} />,
-    peek: () => window.dispatchEvent(new CustomEvent('wf:peek', { detail: id })),
+    // the pill selects like the rest of the card; the card's text places the caret and the onSelect below does the rest
+    peek: () => { if (p.slug) window.dispatchEvent(new CustomEvent('wf:select', { detail: id })); },
     copyLink: () => copyBlockLink(block, hostRef.current),
     send: () => sendBlock(block, hostRef.current),
     stop: stopEditorEvents,
     onHeadClick: p.kind === 'question' || p.kind === 'decision' ? undefined : selectBlockOnClick(editor, block, null),
+    onSelect: () => { if (p.slug) window.dispatchEvent(new CustomEvent('wf:select', { detail: id })); },
     hostRef,
   };
   return <NodeCard p={p} set={set} host={host} />;
@@ -400,9 +408,11 @@ function LinkNodePicker({ req, onClose, apply, createDoc }: { req: LinkRequest; 
 
 export default function DocEditor({ product, project, slug, body, ifMatch, fallback }: { product: string; project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode }) {
   const router = useRouter();
-  const { open: openPeek, index, hrefFor, setEditing, setShowContext, ownKinds, ownTypes } = usePeek();
-  // node blocks render inside the editor, so they ask for the peek panel through a window event
+  const { open: openPeek, select, setFocused, index, hrefFor, setEditing, setShowContext, ownKinds, ownTypes } = usePeek();
+  // node blocks render inside the editor, so they ask for the peek panel through a window event: wf:peek pushes
+  // the node on the chip stack, wf:select selects it (the Context root shows it; rule:block-select)
   useEffect(() => { const h = (e: Event) => openPeek((e as CustomEvent<string>).detail); window.addEventListener('wf:peek', h); return () => window.removeEventListener('wf:peek', h); }, [openPeek]);
+  useEffect(() => { const h = (e: Event) => select((e as CustomEvent<string>).detail); window.addEventListener('wf:select', h); return () => window.removeEventListener('wf:select', h); }, [select]);
   // pasted or dropped images go to the project's docs/assets folder; the block keeps the relative url the markdown uses
   const uploadFile = async (file: File) => {
     const fd = new FormData(); fd.append('file', file, file.name || 'image.png');
@@ -456,7 +466,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     let block: AnyBlock | undefined;
     try { block = editor.getTextCursorPosition().block as unknown as AnyBlock; } catch { block = undefined; }
     const bid = String((block as { id?: string } | undefined)?.id ?? '');
-    if (bid !== lastBlockId.current) { lastBlockId.current = bid; if (touched.current && !loading.current && settle(true)) changed(); }
+    if (bid !== lastBlockId.current) { lastBlockId.current = bid; setFocused(null); if (touched.current && !loading.current && settle(true)) changed(); }
     if (!block || !Array.isArray(block.content)) { setEditing(null); return; }
     const items = block.content as { type: string; text?: string; props?: { id?: string }; href?: string; content?: { text?: string }[] }[];
     const text = items.map(i => i.type === 'text' ? i.text ?? '' : i.type === 'link' ? (i.content ?? []).map(c => c.text ?? '').join('') : '').join('');
@@ -483,9 +493,9 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const load = (md: string) => {
     loading.current = true;
     try {
-      const { md: prepared, yaml, drawings, images, views, embeds } = prepare(md);
+      const { md: prepared, yaml, drawings, images, views, embeds, tables } = prepare(md);
       const parsed = editor.tryParseMarkdownToBlocks(prepared) as unknown as AnyBlock[];
-      const blocks = expand(parsed, yaml, drawings, images, views, embeds);
+      const blocks = expand(parsed, yaml, drawings, images, views, embeds, tables);
       editor.replaceBlocks(editor.document, blocks as never);
       settle();
       lastExported.current = blocksToMarkdown(editor.document as unknown as AnyBlock[]);

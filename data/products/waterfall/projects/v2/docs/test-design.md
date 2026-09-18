@@ -351,6 +351,22 @@ One node per test file. Requirements and rules point here with `requires-tests: 
   status: passed
   verifies: [req:wf2.ui.connected-cards, rule:connected-cards]
   last-run: 2026-09-18
+- id: ui-test:block-select
+  file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    a scratch product with a prose rule card, a yaml req card whose text carries a tag, an embed of the other
+    document's rule and a goals/tasks table; a tag in the prose pushes the req bs.select (a chip, current); a click on
+    the rule card's text brings the column to its Context root showing the rule bs.rows with Related under it, the
+    chip stays in the bar and none is current; the chip reopens the req; a click on the yaml card's property rows
+    selects it; a tag inside the card still pushes the rule bs.rows as a chip; a click in the embed's text area selects
+    the other rule bs.other with no Related; a click on a task row's status cell selects the task bs.one and on another row's text
+    bs.two; the card's pill and the embed's pill select without adding a chip; two arrow-downs from the rule
+    card move the root to the req card (the caret takes over); in the column, opening the req's Satisfied-by row as
+    a card and clicking its text area keeps the req bs.select open (2026-09-18, session 367dedec3c:
+    /tmp/wfpw/block-select.mjs, 15 checks passed in Chrome; no page error)
+  status: passed
+  verifies: [req:wf2.ui.block-select, rule:block-select]
+  last-run: 2026-09-18
 - id: ui-test:tree-menu
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >

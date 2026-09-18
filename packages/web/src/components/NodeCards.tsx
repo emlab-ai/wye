@@ -17,6 +17,7 @@ export type CardHost = {
   send: () => void;
   stop?: (el: HTMLElement | null) => void;     // the editor stops its own mouse/key handling at the header
   onHeadClick?: (e: React.MouseEvent) => void; // the editor selects the block when its header is clicked
+  onSelect?: () => void;                       // a click anywhere on the card selects its node (rule:block-select)
   hostRef?: RefObject<HTMLDivElement | null>;
   slugReadOnly?: boolean;                      // an embed never renames the node (its line would dangle)
   extraClass?: string;
@@ -29,6 +30,13 @@ export function PropValue({ value }: { value: string }) {
   const items = m[1].split(/,\s*(?![^()]*\))/).map(x => x.trim()).filter(Boolean);
   if (!items.length) return <span className="muted">none</span>;
   return <span className="list">{items.map((it, i) => <span key={i} className="item"><Linkified text={it} /></span>)}</span>;
+}
+
+// The card's click handler: any part of the card selects the node — except a tag or link inside it, which
+// navigates on its own.
+function selectOn(host: CardHost) {
+  if (!host.onSelect) return undefined;
+  return (e: React.MouseEvent) => { if ((e.target as Element).closest('a')) return; host.onSelect!(); };
 }
 
 const PropRows = ({ rows, stop }: { rows: { key: string; value: string }[]; stop?: CardHost['stop'] }) => (
@@ -48,7 +56,7 @@ export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<Car
   const [showYaml, setShowYaml] = useState(false);
   const rows = p.form === 'yaml' ? parseBody(p.body).filter(r => r.key !== p.textKey && r.key !== 'status') : [];
   return (
-    <div className={`nblock k-${p.kind} ${p.check === 'done' || p.status === 'done' ? 'done' : ''} ${host.extraClass ?? ''}`} data-id={`${p.kind}:${p.slug}`} ref={host.hostRef}>
+    <div className={`nblock k-${p.kind} ${p.check === 'done' || p.status === 'done' ? 'done' : ''} ${host.extraClass ?? ''}`} data-id={`${p.kind}:${p.slug}`} ref={host.hostRef} onClick={selectOn(host)}>
       <div className="nblock-head" contentEditable={false} ref={host.stop} onClick={host.onHeadClick}>
         {(p.check || p.kind === 'task') && (
           <input type="checkbox" className="nblock-check" checked={p.check === 'done' || p.status === 'done'} onChange={e => set({ check: e.target.checked ? 'done' : 'todo', status: e.target.checked ? 'done' : 'open' })} title="done?" />
@@ -80,7 +88,7 @@ export function QuestionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
   const others = rows.filter(r => !['id', 'title', 'q', 'answer', 'a', 'status', p.textKey].includes(r.key));
   const status = p.status || 'open';
   return (
-    <div className={`nblock k-question qnode s-${status} ${host.extraClass ?? ''}`} data-id={id} ref={host.hostRef}>
+    <div className={`nblock k-question qnode s-${status} ${host.extraClass ?? ''}`} data-id={id} ref={host.hostRef} onClick={selectOn(host)}>
       <div className="qnode-head" contentEditable={false} ref={host.stop} onClick={host.onHeadClick}>
         <button type="button" className="qnode-mark" title="Open this question in the panel" onClick={host.peek}>Q</button>
         <select className={`status-sel s-${status} ${status === 'open' ? 'hover-only' : ''}`} value={status} onChange={e => set({ status: e.target.value })} title="status">{['open', 'resolved', 'rejected'].map(st => <option key={st} value={st}>{st}</option>)}</select>
@@ -120,7 +128,7 @@ export function DecisionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
   const id = `${p.kind}:${p.slug}`;
   const others = rows.filter(r => !['id', 'title', 'status', p.textKey, ...DECISION_ESSENCE].includes(r.key));
   return (
-    <div className={`nblock k-decision dnode s-${p.status} ${host.extraClass ?? ''}`} data-id={id} ref={host.hostRef}>
+    <div className={`nblock k-decision dnode s-${p.status} ${host.extraClass ?? ''}`} data-id={id} ref={host.hostRef} onClick={selectOn(host)}>
       <div className="nblock-head" contentEditable={false} ref={host.stop} onClick={host.onHeadClick}>
         <button type="button" className="pill k nblock-peek" style={{ background: 'var(--k-decision)' }} title="Open this decision in the panel" onClick={host.peek}>decision</button>
         <input className="nblock-slug" value={p.slug} spellCheck={false} readOnly={host.slugReadOnly} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />

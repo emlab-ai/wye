@@ -16,7 +16,7 @@ import type { NodePatch } from '@/lib/node-edit';
 // keystroke, patches merged), the watcher rebuilds the graph, and every embed refetches on the graph change event.
 // The slug is read-only: renaming a node happens on its source page.
 export function EmbeddedCard({ id, badge, className, inEditor }: { id: string; badge?: React.ReactNode; className?: string; inEditor?: boolean }) {
-  const { product, index, hrefFor, open } = usePeek();
+  const { product, index, hrefFor, open, select } = usePeek();
   const [p, setP] = useState<CardP | null>(null);
   // the text slot keeps its own draft: the body's parsed value is trimmed, which would eat a space just typed
   const [text, setText] = useState('');
@@ -73,13 +73,14 @@ export function EmbeddedCard({ id, badge, className, inEditor }: { id: string; b
   if (!p) return <div className={`embed ${className ?? ''}`} contentEditable={false}>{badge}<SmartTag id={id} /><span className="muted small">loading…</span></div>;
   const host: CardHost = {
     text: cls => <textarea className={`${cls} embed-text`} value={text} rows={1} spellCheck={false} onChange={ev => { setText(ev.target.value); set({ body: setBodyField(p.body, p.textKey, ev.target.value) }); }} />,
-    peek: () => open(id),
+    // in a document the pill selects like the rest of the card (rule:block-select, the .embed click below); in the column it pushes
+    peek: () => inEditor ? select(id) : open(id),
     copyLink: async () => { const url = `${location.origin}${hrefFor(id) ?? ''}`; try { await navigator.clipboard.writeText(url); } catch { /* clipboard unavailable */ } },
     send: () => requestSend({ text, refs: [id], source: { link: `${location.origin}${hrefFor(id) ?? ''}` } }),
     hostRef, slugReadOnly: true, extraClass: 'embedded',
   };
   return (
-    <div className={`embed ${className ?? ''} ${state}`} contentEditable={false} ref={inEditor ? stop : undefined}>
+    <div className={`embed ${className ?? ''} ${state}`} contentEditable={false} ref={inEditor ? stop : undefined} onClick={inEditor ? e => { if (!(e.target as Element).closest('a')) select(id); } : undefined}>
       <div className="embed-from muted small">{badge}<span>from </span>{hrefFor(id) ? <Link href={hrefFor(id)!}>{from}</Link> : <span>{from}</span>}{state === 'saving' && <span> · saving…</span>}{state === 'error' && <span className="bad"> · save failed</span>}</div>
       <NodeCard p={p} set={set} host={host} />
     </div>

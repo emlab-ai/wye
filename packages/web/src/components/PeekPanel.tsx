@@ -28,7 +28,7 @@ const OUT: Record<string, string> = { refines: 'Refines', 'satisfied-by': 'Satis
 const INC: Record<string, string> = { refines: 'Refined by', 'satisfied-by': 'Satisfies', 'verified-by': 'Verifies', 'depends-on': 'Needed by', 'part-of': 'Contains', 'related-to': 'Related from', 'governed-by': 'Governs', 'gated-by': 'Gates', has: 'Belongs to', refs: 'Referenced by', contradicts: 'Contradicted by', resolves: 'Resolved by', 'applies-to': 'Applied by', 'has-action': 'Action of', navigates: 'Reached from', reads: 'Read by', writes: 'Written by', produced: 'Produced by' };
 
 export function PeekPanel() {
-  const { product, index, openId, stack, cursor, go, back, togglePin, remove, close, showContext, editing, setPanelOpen } = usePeek();
+  const { product, index, openId, stack, cursor, go, back, togglePin, remove, close, showContext, editing, focused, setPanelOpen } = usePeek();
   if (!openId && !showContext && !stack.length) return null;
   const chips = (
     <div className="peek-nav">
@@ -51,13 +51,15 @@ export function PeekPanel() {
     </div>
   );
   // The column is a frame (rule:column-frame): the bar stays, .peek-body is the one scroller under it.
-  // Context root: the node the cursor is in (its details first), then knowledge related to what is being written
+  // Context root: the node a click selected, else the node the cursor is in (its details first), then knowledge
+  // related to what is being written — only when the caret is in that block (an embed's selection has no caret)
+  const rootId = focused ?? editing?.nodeId;
   if (!openId) return (
     <aside className="peek" role="complementary" aria-label="Context">
       {chips}
       <div className="peek-body">
-        {editing?.nodeId
-          ? <><NodeView id={editing.nodeId} /><div className="peek-bar peek-sub"><strong>Related</strong><span className="muted">knowledge close to what you are writing</span></div><ContextPanel /></>
+        {rootId
+          ? <><NodeView id={rootId} />{(!focused || focused === editing?.nodeId) && <><div className="peek-bar peek-sub"><strong>Related</strong><span className="muted">knowledge close to what you are writing</span></div><ContextPanel /></>}</>
           : <><div className="peek-bar"><strong>Context</strong><span className="muted">{editing ? 'for the block you are editing' : 'put the cursor in the text'}</span></div><ContextPanel /></>}
       </div>
     </aside>

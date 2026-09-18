@@ -484,6 +484,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   reads: [op:graph.get, op:graph.neighbors]
   actions:
     - action:open-item:        a tag, a list row or a graph node pushes the item on the column's chip stack; ← goes back, 📍 pins a chip so it survives, × removes it
+    - action:select-block:     a click anywhere on a typed block of the document selects it: the Context root shows the node (rule:block-select); tags inside the block still push
     - action:go-to-definition: jump to the node's block in its document -(navigates)-> page:web/node
     - action:show-in-graph:    open the graph focused on the node -(navigates)-> page:web/graph
     - action:send-to-agent:    send the node (id, title, link) to an active session or a new one (rule:agent-sessions)
@@ -493,6 +494,7 @@ The clerk's private tools (not exposed to callers): `propose_delta(ops)` and `re
   display-rules:
     - a node shows its card, then (typed nodes) Properties — effective properties with placeholders and the inverses read from the other side — then Connected as a list grouped by relation (incoming relations labelled by their inverse name) or as a graph 1–2 hops out
     - a Connected or tracking row expands in place into the node's embedded card; a group heading expands or collapses all of its rows (rule:connected-cards)
+    - in a document, a click anywhere on a typed block — card, table row or embed, its text included — selects it: the column comes to its Context root and shows that node (rule:block-select)
     - a document shows a preview (title, status, intro, outline, Open document →) and Connected; a goal or task shows its tracking editor and what is part of it; a type shows its card, editable properties, instances and Connected; a session shows its console
     - Context mode (no item open on a document page) follows the block being edited and shows the knowledge nearest to it (rule:context-panel)
     - field, prop and block nodes never appear in Connected; a document's phrase links are read from its blocks (rule:ontology.hidden-kinds)
@@ -550,6 +552,43 @@ Connected rows as cards: what a related or child node looks like when opened in 
     (`.rel-all`) that adds or removes all of the group's defined ids; the set is state of the node view, so it
     resets with the open node and survives the card's own refetch after an edit.
   source: packages/web/src/components/PeekPanel.tsx#RelRow; packages/web/src/app/globals.css#rels
+  status: shipped
+```
+
+Selecting a block: what a click on any part of a typed block does to the column.
+
+```yaml
+- id: req:wf2.ui.block-select
+  title: A click anywhere on a block shows its node in the context column
+  when: >
+    a person clicks any part of a typed block in a document — a card's text, its properties, its header, a
+    table row's cell, an embedded card's text area — whatever the column shows at that moment (a session, another
+    node, the Context root)
+  then: >
+    the block is selected: the column comes back to its Context root and shows that node's details (the same
+    view a tag opens), followed by the knowledge related to the block when the editor's caret is in it; the chips
+    already open stay in the bar so the session or node the person was looking at is one click away
+  unless: >
+    the click lands on a tag or a link inside the block — those still push what they name; or on a plain
+    paragraph — the root follows the caret as before (task:ontology.block-peek makes a paragraph's block node
+    openable the same way)
+  status: shipped
+  refines: req:wf2.ui.node-page
+  satisfied-by: [component:peek-panel, component:node-cards, component:embed-block, rule:block-select]
+  verified-by: [ui-test:block-select]
+- id: rule:block-select
+  statement: >
+    `PeekProvider` keeps `focused` (the node a click selected) next to the chip stack; `select(id)` sets it,
+    moves the cursor to the Context root (-1) and shows the column. The Context root renders `focused ??
+    editing.nodeId`. Every typed block of a document calls `select` from a click handler on its outermost
+    element (`.nblock` for cards, `.nrow` for rows, `.embed` for embeds) unless the click's target is inside
+    an `a` (a tag or link); the kind pill does the same in a document, so no part of a block behaves
+    differently. The editor's `publishContext` clears `focused` when the caret moves to another block, so
+    keyboard movement takes over from the last click. In the context column an embedded card never selects
+    (a click in its text area is an edit, not navigation); its pill and tags push as before. `open` from the root
+    (cursor -1) keeps every chip and appends — nothing is "above" the root — so a session read before a block
+    click survives the next tag click.
+  source: packages/web/src/components/PeekProvider.tsx#select; packages/web/src/components/NodeCards.tsx#selectOn; packages/web/src/components/EmbedBlock.tsx; packages/web/src/components/DocEditor.tsx#selectBlockOnClick
   status: shipped
 ```
 
