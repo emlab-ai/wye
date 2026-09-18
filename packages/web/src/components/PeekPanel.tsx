@@ -98,40 +98,49 @@ function NodeView({ id }: { id: string }) {
   const rows = { index, opened, toggle };
   const entry = index[id];
   const def = hrefFor(id);
+  const kind = id.split(':')[0];
+  const linkCount = d ? [...d.relations.out, ...d.relations.inc].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0) : 0;
+  // the header: kind and id on the left (the type it belongs to after them), icon actions on the right — the way
+  // Notion and Asana put a page's tools in one quiet row instead of a line of links
+  const head = (
+    <header className="node-head">
+      <div className="node-ident">
+        <span className="node-kind" style={{ '--k': `var(--k-${kind}, var(--k-other))` } as React.CSSProperties}><i />{kind}</span>
+        <code className="node-id" title="click to copy the id" onClick={() => { navigator.clipboard?.writeText(id).catch(() => {}); }}>{id.slice(kind.length + 1)}</code>
+        {d?.type && !d.self && d.type.slug !== kind && <Link className="node-type" href={`/${product}/types/${d.type.slug}`} title="the type this node belongs to">{d.type.slug}</Link>}
+        {!entry?.defined && !id.startsWith('type:') && <span className="muted node-stub">referenced only</span>}
+      </div>
+      <div className="node-tools" role="toolbar" aria-label="Node actions">
+        {entry?.doc && def && <Link href={def.replace(/#.*$/, '')} className="tool" title="Open the document">↗</Link>}
+        {!entry?.doc && def && <Link href={def} className="tool" title="Go to the definition in its document" onClick={() => go(-1)}>↗</Link>}
+        {id.startsWith('type:') && <Link href={`/${product}/types/${id.slice(5)}`} className="tool" title="Open the type page">↗</Link>}
+        <Link href={`/${product}/graph?focus=${encodeURIComponent(id)}&preset=Mechanics`} className="tool" title="Show in the graph">⌬</Link>
+        <button className="tool" title="Send to an agent" onClick={() => requestSend({ refs: [id], text: d ? nodeText(d.node.body) || entry?.title : entry?.title })}>⇢</button>
+      </div>
+    </header>
+  );
   if (entry?.doc && def) return (
     <>
-      <div className="peek-bar">
-        <Link href={def.replace(/#.*$/, '')} className="pri-link">Open document →</Link>
-        <Link href={`/${product}/graph?focus=${encodeURIComponent(id)}&preset=Mechanics`}>Show in graph</Link>
-        <button className="linkish" onClick={() => requestSend({ refs: [id], text: entry.title })}>Send to agent</button>
-      </div>
+      {head}
       <DocPeek id={id} href={def.replace(/#.*$/, '')} />
-      {d && <><div className="peek-views"><h4>Connected <span className="muted">{[...d.relations.out, ...d.relations.inc].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0)}</span></h4></div><Relations out={d.relations.out} inc={d.relations.inc} rows={rows} inverses={d.inverses} /></>}
+      {d && <><div className="peek-views"><h4>Links <span className="muted">{linkCount}</span></h4></div><Relations out={d.relations.out} inc={d.relations.inc} rows={rows} inverses={d.inverses} /></>}
     </>
   );
   return (
     <>
-      <div className="peek-bar">
-        {id.startsWith('type:') && <Link href={`/${product}/types/${id.slice(5)}`} className="pri-link">Open type page →</Link>}
-        {def ? <Link href={def} onClick={() => go(-1)}>Go to definition</Link> : id.startsWith('type:') ? null : <span className="muted">{entry?.defined ? '…' : 'referenced only, no definition'}</span>}
-        <Link href={`/${product}/graph?focus=${encodeURIComponent(id)}&preset=Mechanics`}>Show in graph</Link>
-        <button className="linkish" onClick={() => requestSend({ refs: [id], text: d ? nodeText(d.node.body) : entry?.title })}>Send to agent</button>
-      </div>
+      {head}
       {d && d.self && <TypeView type={d.self} instances={d.instances ?? []} index={index} product={product} onSaved={() => setTick(t => t + 1)} />}
       {d && d.self ? null : d && d.node.defined && d.type
-        ? <><NodeEditor key={id} id={id} body={d.node.body} form={d.node.form ?? 'yaml'} type={d.type} props={d.props ?? []} entry={entry} onSaved={() => setTick(t => t + 1)} />
+        ? <><NodeEditor key={id} id={id} body={d.node.body} form={d.node.form ?? 'yaml'} type={d.type} props={d.props ?? []} entry={entry} relations={d.relations.out} onSaved={() => setTick(t => t + 1)} />
           {entry && (entry.kind === 'goal' || entry.kind === 'task') && <Tracking entry={entry} rows={rows} inc={d.relations.inc} />}</>
         : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
       {d && d.type && d.props && d.relations.inc.some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={d.relations.inc} inverses={d.inverses ?? {}} product={product} />}
       {d && !d.self && d.node.defined && <NodeContent id={id} />}
       {d && (
         <div className="peek-views">
-          <h4>Connected <span className="muted">{[...d.relations.out, ...d.relations.inc].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0)}</span></h4>
-          <div className="seg" role="tablist">
-            <button role="tab" aria-selected={view === 'list'} className={view === 'list' ? 'on' : ''} onClick={() => setView('list')}>List</button>
-            <button role="tab" aria-selected={view === 'graph'} className={view === 'graph' ? 'on' : ''} onClick={() => setView('graph')}>Graph</button>
-          </div>
-          {view === 'graph' && <div className="seg small" title="how many hops from this node"><button className={depth === 1 ? 'on' : ''} onClick={() => setDepth(1)}>1 hop</button><button className={depth === 2 ? 'on' : ''} onClick={() => setDepth(2)}>2 hops</button></div>}
+          <h4>Links <span className="muted">{linkCount}</span></h4>
+          {view === 'graph' && <span className="seg small" title="how many hops from this node"><button className={depth === 1 ? 'on' : ''} onClick={() => setDepth(1)}>1 hop</button><button className={depth === 2 ? 'on' : ''} onClick={() => setDepth(2)}>2 hops</button></span>}
+          <button className={`tool ${view === 'graph' ? 'on' : ''}`} onClick={() => setView(v => v === 'list' ? 'graph' : 'list')} title={view === 'graph' ? 'Show as a list' : 'Show as a graph'} aria-pressed={view === 'graph'}>⌬</button>
         </div>
       )}
       {d && view === 'list' && <Relations out={d.relations.out} inc={d.relations.inc} rows={rows} inverses={d.inverses} />}
@@ -174,7 +183,7 @@ function NodeContent({ id }: { id: string }) {
   const body = c.text.trim() ? c.text.trim() + (c.content.trim() ? '\n\n' + c.content : '\n') : c.content;
   return (
     <section className="content">
-      <h4>Content <span className="muted">{c.children.length ? `the text, then ${c.children.length} block${c.children.length === 1 ? '' : 's'}` : 'the text; Enter, then type or / for a block under it'}</span></h4>
+      <h4>Content{c.children.length > 0 && <span className="muted">{c.children.length} block{c.children.length === 1 ? '' : 's'}</span>}</h4>
       <div className="content-editor"><DocEditor key={id} product={product} project={c.project} slug={c.doc} body={body} ifMatch={c.bodyHash} scope={id} /></div>
     </section>
   );
@@ -210,7 +219,8 @@ function RelHead({ label, ids, rows, count }: { label: string; ids: string[]; ro
 function Relations({ out, inc, rows, inverses = {} }: { out: [string, string[]][]; inc: [string, string[]][]; rows: Rows; inverses?: Record<string, string> }) {
   // generated 'mentions' edges (a node's text naming a field) are noise next to real relations; an incoming edge
   // reads by its inverse name (the ontology's, else the built-in label)
-  const groups = [...out.filter(([v]) => v !== 'mentions').map(([v, ids]) => ({ key: 'o' + v, label: OUT[v] ?? `${v} →`, ids })), ...inc.filter(([v]) => v !== 'mentions').map(([v, ids]) => ({ key: 'i' + v, label: INC[v] ?? (inverses[v] ? inverses[v] : `← ${v}`), ids }))];
+  const words = (v: string) => v.replace(/-/g, ' ').replace(/^./, c => c.toUpperCase());
+  const groups = [...out.filter(([v]) => v !== 'mentions').map(([v, ids]) => ({ key: 'o' + v, label: OUT[v] ?? words(v), ids })), ...inc.filter(([v]) => v !== 'mentions').map(([v, ids]) => ({ key: 'i' + v, label: INC[v] ?? (inverses[v] ? words(inverses[v]) : `${words(v)} · from`), ids }))];
   const total = groups.reduce((n, g) => n + g.ids.length, 0);
   const rank = (id: string) => { const k = KIND_ORDER.indexOf(id.split(':')[0]); return k < 0 ? 99 : k; };
   if (!total) return <p className="muted rels-empty">Nothing links to or from this node yet.</p>;
@@ -234,7 +244,7 @@ function Properties({ type, props, inc, inverses, product }: { type: TypeDef; pr
   const ids = (v: string) => v.replace(/^\[|\]$/g, '').split(/,\s*/).map(x => x.trim()).filter(Boolean);
   return (
     <section className="props">
-      <h4>{shown.length ? 'Properties' : 'Linked from'} <span className="muted"><Link href={`/${product}/types/${type.slug}`}>type:{type.slug}</Link></span></h4>
+      <h4>{shown.length ? 'Properties' : 'Linked from'}</h4>
       <dl className="strip">
         {shown.map(p => (
           <div key={p.name} className={p.value ? '' : 'empty'}>
@@ -242,7 +252,7 @@ function Properties({ type, props, inc, inverses, product }: { type: TypeDef; pr
             <dd>{p.value ? (p.ref ? <span className="list">{ids(p.value).map(x => <span key={x} className="item">{/^[a-z][a-z0-9-]*:/.test(x) ? <SmartTag id={x} /> : x}</span>)}</span> : p.value) : <span className="muted">{p.ref ? `${p.many ? 'list of' : 'ref'} ${p.ref}` : p.type}{p.required ? ' · required' : ''}</span>}</dd>
           </div>))}
         {back.length > 0 && <div className="divider"><dt /><dd /></div>}
-        {back.map(b => <div key={b.name} className="inverse"><dt title="inverse: not written here, derived from the other side">{b.name}</dt><dd><span className="list">{b.ids.map(id => <span key={id} className="item"><SmartTag id={id} /></span>)}</span></dd></div>)}
+        {back.map(b => <div key={b.name} className="inverse"><dt title="inverse: not written here, derived from the other side">{b.name.replace(/-/g, ' ')}</dt><dd><span className="list">{b.ids.map(id => <span key={id} className="item"><SmartTag id={id} /></span>)}</span></dd></div>)}
       </dl>
     </section>
   );

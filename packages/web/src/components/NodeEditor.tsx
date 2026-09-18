@@ -1,10 +1,8 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
-import { KindPill } from './Pills';
 import { ProgressBar } from './Progress';
 import { Linkified } from './IdLink';
 import { parseBody } from '@/lib/graph';
@@ -29,7 +27,7 @@ const glyph = (f: Field) => f.name === 'status' ? '◔' : f.type === 'progress' 
 // checkbox, ref → an id with that type's instances suggested), the keys the card carries, and for goals and tasks
 // their tracking fields; empty optional ones fold under "n more properties". Every change saves to the defining
 // line or the yaml card and rebuilds the graph (op:node.edit).
-export function NodeEditor({ id, body, form, type, props, entry, onSaved }: { id: string; body: string; form: string; type: TypeDef | null; props: NodeProp[]; entry?: IndexEntry; onSaved: () => void }) {
+export function NodeEditor({ id, body, form, type, props, entry, relations = [], onSaved }: { id: string; body: string; form: string; type: TypeDef | null; props: NodeProp[]; entry?: IndexEntry; relations?: [string, string[]][]; onSaved: () => void }) {
   const { product, index } = usePeek(); const router = useRouter();
   const kind = id.split(':')[0]; const prose = form === 'prose';
   const rows = parseBody(body);
@@ -80,10 +78,13 @@ export function NodeEditor({ id, body, form, type, props, entry, onSaved }: { id
     if (f.type === 'progress') return (
       <span className="ne-progress"><ProgressBar value={v ? Number(v) : computed} width={110} /><input className="ne-in ne-pct" value={v} placeholder={computed !== undefined ? `${computed}%` : '—'} onChange={e => setVal(f.name, e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={enterBlurs} onBlur={() => commit(f)} />{entry?.parts && <em className="muted">{entry.parts.done} of {entry.parts.total} parts done</em>}</span>);
     if (f.type === 'text') return <textarea className="ne-in ne-text" rows={Math.min(10, Math.max(1, Math.ceil(v.length / 55) + v.split('\n').length - 1))} value={v} placeholder="Empty" onChange={e => setVal(f.name, e.target.value)} onBlur={() => commit(f)} disabled={prose && f.from !== 'type:node'} title={prose && f.from !== 'type:node' ? 'a prose line holds single-line values; open the document for a long text' : ''} />;
+    // a relation the text carries ("part of wf2.ui") reads as its tags too; the field only writes an explicit value
+    const derived = f.ref && !v.trim() ? (relations.find(([verb]) => verb === f.name)?.[1] ?? []) : [];
     if (f.ref && !f.many && f.ref !== 'node') {
       const opts = suggest(f);
       return (
-        <span className="ne-ref">
+        <span className={`ne-ref ${derived.length ? 'has-tags' : ''}`}>
+          {derived.length > 0 && <span className="list">{derived.map(x => <span key={x} className="item"><SmartTag id={x} /></span>)}</span>}
           <select className="ne-select" value={v} onChange={e => { setVal(f.name, e.target.value); save({ props: { [f.name]: e.target.value || null } }); }}>
             <option value="">Empty</option>
             {v && !opts.some(o => o.id === v) && <option value={v}>{v}</option>}
@@ -92,16 +93,17 @@ export function NodeEditor({ id, body, form, type, props, entry, onSaved }: { id
           {v && /^[a-z][a-z0-9-]*:/.test(v) && <SmartTag id={v} />}
         </span>);
     }
+    // a relation reads as its tags (Notion-style); the raw id field shows on hover or focus, after them
+    const tagIds = f.ref && v.trim() ? v.replace(/^\[|\]$/g, '').split(/,\s*/).filter(x => /^[a-z][a-z0-9-]*:/.test(x)) : derived;
     return (
-      <span className="ne-ref">
-        <input className="ne-in" list={f.ref ? `wf-ref-${f.ref}` : undefined} value={v} placeholder={f.ref ? `${f.ref}:…, …` : 'Empty'} onChange={e => setVal(f.name, e.target.value)} onKeyDown={enterBlurs} onBlur={() => commit(f)} />
+      <span className={`ne-ref ${tagIds.length ? 'has-tags' : ''}`}>
+        {tagIds.length > 0 && <span className="list">{tagIds.map(x => <span key={x} className="item"><SmartTag id={x} /></span>)}</span>}
+        <input className="ne-in" list={f.ref ? `wf-ref-${f.ref}` : undefined} value={v} placeholder={f.ref ? `${f.ref}:…, …` : 'Empty'} onChange={e => setVal(f.name, e.target.value)} onKeyDown={enterBlurs} onBlur={() => commit(f)} aria-label={f.name} />
         {f.ref && <datalist id={`wf-ref-${f.ref}`}>{suggest(f).map(o => <option key={o.id} value={o.id}>{o.title}</option>)}</datalist>}
-        {f.ref && v.trim() && <span className="list">{v.replace(/^\[|\]$/g, '').split(/,\s*/).filter(x => /^[a-z][a-z0-9-]*:/.test(x)).map(x => <span key={x} className="item"><SmartTag id={x} /></span>)}</span>}
       </span>);
   };
   return (
     <section className="ne" id={`n-${id}`}>
-      <div className="ne-kind"><KindPill kind={kind} /><code className="cid">{id}</code></div>
       <dl className="ne-props">
         <div><dt><i>◔</i>status</dt><dd>
           <select className={`ne-select status-sel s-${status}`} value={status} onChange={e => save({ status: e.target.value })}>
@@ -114,7 +116,7 @@ export function NodeEditor({ id, body, form, type, props, entry, onSaved }: { id
           </div>))}
         {hidden.length > 0 && <div className="ne-more"><dt /><dd><button className="linkish" onClick={() => setMore(m => !m)}>{more ? '▾ hide empty properties' : `▸ ${hidden.length} more propert${hidden.length === 1 ? 'y' : 'ies'}`}</button></dd></div>}
       </dl>
-      <p className="track-state">{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved to the document' : state === 'error' ? `save failed: ${msg}` : <>saves to {prose ? 'the defining line' : 'the yaml card'} in the document{type && <> · <Link href={`/${product}/types/${type.slug}`}>type:{type.slug}</Link></>}</>}</p>
+      {state !== 'idle' && <p className={`track-state ${state}`} role="status">{state === 'saving' ? 'Saving…' : state === 'saved' ? `Saved to ${prose ? 'the line' : 'the card'} in the document` : `Could not save: ${msg}`}</p>}
     </section>
   );
 }
