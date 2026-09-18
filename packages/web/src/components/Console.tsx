@@ -118,7 +118,11 @@ function Event({ e, answered, answers, showThinking, answer }: { e: ChatEvent; a
     case 'init': return <div className="ev ev-note">{time}<span className="muted">{e.text}{e.cwd ? ` · ${e.cwd}` : ''}</span></div>;
     case 'note': return e.requestId ? null : <div className="ev ev-note">{time}<span className="muted">{e.text}</span></div>;
     case 'log': return <div className="ev ev-note ev-log">{time}<span className="muted"><i>log</i> {e.text}</span></div>;
-    case 'knowledge': return <div className="ev ev-note ev-know">{time}<span className="muted"><i>knowledge</i></span><span className="tags">{(e.refs ?? []).map(r => <SmartTag key={r} id={r} />)}</span></div>;
+    case 'knowledge': { // each tag carries its change (+ added, ~ changed, − removed) when block attribution knows it
+      const ch = new Map((e.changes ?? []).map(c => [c.id, c.change]));
+      const prose = (e.changes ?? []).filter(c => c.id.startsWith('block:')).length;
+      return <div className="ev ev-note ev-know">{time}<span className="muted"><i>knowledge</i></span><span className="tags">{(e.refs ?? []).map(r => <span key={r} className={ch.has(r) ? `ch-${ch.get(r)}` : ''}><SmartTag id={r} /></span>)}{prose > 0 && <small className="muted">{prose} paragraph{prose === 1 ? '' : 's'}</small>}</span></div>;
+    }
     case 'open': return <div className="ev ev-note ev-log">{time}<span className="muted"><i>opened</i> <a href={e.text}>{e.text}</a></span></div>;
     case 'summary': return <div className="ev ev-summary">{time}<div className="ev-body"><span className="ev-summary-tag">session summary</span><ReactMarkdown remarkPlugins={[remarkGfm]}>{e.text ?? ''}</ReactMarkdown></div></div>;
     case 'stderr': return <div className="ev ev-stderr">{time}<pre className="ev-pre">{e.text}</pre></div>;

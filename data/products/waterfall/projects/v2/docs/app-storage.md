@@ -46,7 +46,7 @@ Modules under packages/web/src/lib (`lib:` cards): pure logic and server-only IO
   file: packages/web/src/lib/artifacts.ts
   side: server
   purpose: >
-    What a session produced: documents written while it ran (from the disk watcher), nodes it changed (from the node API), and inbox items it filed (they carry the session id themselves). Running sessions of a product are credited with document changes; the tasks a session works on get `session:` and `produced:` links so t
+    What a session produced: documents written while it ran (from the disk watcher), nodes it changed (from the node API), the blocks it added / changed / removed (from the graph diff at each rebuild, rule:block-attribution) and inbox items it filed (they carry the session id themselves). Running sessions of a product are credited with document changes; the tasks a session works on get `session:` and `produced:` links so t
   part-of: module:app-storage
 ```
 

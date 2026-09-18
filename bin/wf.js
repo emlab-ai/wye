@@ -15,6 +15,7 @@
 //   wf inbox list --product p [--all]    what is waiting for review
 //   wf session list --product p [--all]  sessions (active first); runners online
 //   wf session show <id> --product p     one session with its log (--full for everything)
+//   wf session changes <id>              every block the session added / changed / removed, per document (--json)
 //   wf session create --product p --agent a "<instruction>" [--ref id ...] [--link url]
 //   wf session log <id> --product p "<line>" | (stdin)   append to the log
 //   wf session done|fail <id> --product p ["result"]     finish a session
@@ -174,6 +175,12 @@ const commands = {
     if (sub === 'take') { const runner = flags.runner || `interactive-${os.hostname().split('.')[0]}`; await api('PATCH', `/api/${p}/sessions/${id}`, { status: 'running', runner, line: `taken over interactively (${runner})` }); return out(`session ${id} running under ${runner}`); }
     if (sub === 'open') { const target = pos[3] || die('wf session open <id> <product/project/doc[#node] | url>'); const j = await api('PATCH', `/api/${p}/sessions/${id}`, { open: target }); return out(flags.json ? j : `opened ${j.path}${j.live ? '' : ' (no live console — logged only)'}`); }
     if (sub === 'cancel') { await api('PATCH', `/api/${p}/sessions/${id}`, { status: 'cancelled' }); return out(`session ${id} cancelled`); }
+    if (sub === 'changes') { // every block the session added, changed or removed, per document
+      const j = await api('GET', `/api/${p}/sessions/${id}/changes`); if (flags.json) return out(j);
+      const c = j.counts; console.log(`session ${j.id}  ${j.status}  ${[c.added && `+${c.added} added`, c.changed && `${c.changed} changed`, c.removed && `${c.removed} removed`, c.prose && `${c.prose} paragraph(s)`].filter(Boolean).join(' · ') || 'no changes'}`);
+      for (const g of j.groups) { console.log(`\n${g.doc}`); for (const r of g.rows) console.log(`  ${r.change === 'added' ? '+' : r.change === 'changed' ? '~' : '-'} ${r.id}${r.status ? ' #' + r.status : ''}${r.exists ? '' : ' (gone)'}  ${r.text !== r.id ? r.text.slice(0, 100) : ''}`); if (g.prose.length) console.log(`  … ${g.prose.length} paragraph(s)`); }
+      return;
+    }
     if (sub === 'handoff') { const j = await api('POST', `/api/${p}/sessions/${id}/handoff`, { agent: flags.agent || die('--agent required'), note: pos[3] || '' }); return out(flags.json ? j : `session ${j.id} queued for ${j.agent}, continuing ${id}`); }
     die(`unknown session command: ${sub}`);
   },

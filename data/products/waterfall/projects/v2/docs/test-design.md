@@ -198,6 +198,7 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     - presets: Requirements, Mechanics, Drift, focus override, Everything
     - layout: every node positioned, children right of the focus, tree edges vs cross-links, forest without focus
     - doc: splitDocument (frontmatter, markdown/yaml segments, chunking on id lines), outline, documentTree (roots, main, byFile), linkedDocuments (excludes containment), nodeIndex, docSlug
+    - graph-diff: added / changed / removed defined nodes with their document, status change counts, task-link writes ignored, undefined ignored; mergeBlocks (added+changed, added+removed, changed+removed)
     - instance-table: columns per property kind, rows with values and document, relations for a bare kind; parseFilters / filtersToQuery; search, status, property and list-cell filters; group by column / status / doc; sort asc / desc; parseViewQuery / viewQuery (quoted values)
     - remark-tags: ids in text and inline code become tag links, trailing punctuation stays text, test #method kept in label, existing links untouched
     - write: replaceSegment (exact span, conflict, bad index), replaceChunk (list re-indent), appendChunk, insertYamlAfterSegment, patchFrontmatter
@@ -285,6 +286,14 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     — two view blocks with those rows and filters; click a chip in the bug view — the line on disk becomes
     `<!-- view:bug status=done -->`; switch the header picker — the line names the new type with no query
     (2026-09-17, session 53f99bfd98)
+- id: ui-test:session-changes
+  file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    create a session and take it (running); create a document, append a paragraph and a req line on disk, set a
+    task's status through the API — `wf session changes <id>` lists +req, the paragraph and ~task per document;
+    /sessions/<id>/changes shows the counts in the heading, the change and kind chips narrow the list, a row opens
+    the node in the context column; the session in the context column shows +n ~n n¶ ↗ on the knowledge strip
+    and the same list in the "changes" fold (2026-09-18, session 53f99bfd98)
 - id: ui-test:edit-node-flow
   file: packages/web/e2e/edit-node.spec.ts
   scenario: open a project, open a node, edit a prose key and a status, save; assert the file on disk changed, the graph.changed event arrived, and the sidebar dot updated without a reload

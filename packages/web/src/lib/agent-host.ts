@@ -85,7 +85,7 @@ export async function startChat(productDir: string, product: string, id: string,
   if (live().get(id)?.proc) return s;
   const cwd = s.cwd || REPO_ROOT;
   const l: Live = live().get(id) ?? { id, productDir, agent: s.agent, cwd, proc: null, subs: new Set(), pending: [], flush: null, turnBusy: false, pumping: false, known: new Set() };
-  Object.assign(l, { agent: s.agent, cwd, proc: null, agentSessionId: s.agentSessionId, turnBusy: false, pumping: false, codexThread: s.agent === 'codex' ? s.agentSessionId : undefined, model: undefined, known: new Set([...(s.artifacts?.docs ?? []), ...(s.artifacts?.nodes ?? [])]) });
+  Object.assign(l, { agent: s.agent, cwd, proc: null, agentSessionId: s.agentSessionId, turnBusy: false, pumping: false, codexThread: s.agent === 'codex' ? s.agentSessionId : undefined, model: undefined, known: new Set([...(s.artifacts?.docs ?? []), ...(s.artifacts?.nodes ?? []), ...(s.artifacts?.blocks ?? []).flatMap(b => [b.id, `${b.id}@${b.at}`])]) });
   live().set(id, l);
   return startProcess(l, s, product, opts);
 }
@@ -211,10 +211,16 @@ export function pump(l: Live) {
 function reportKnowledge(l: Live, delay = 1200) {
   setTimeout(() => {
     getSession(l.productDir, l.id).then(s => {
-      const fresh = [...(s?.artifacts?.docs ?? []), ...(s?.artifacts?.nodes ?? [])].filter(x => !l.known.has(x));
-      if (!fresh.length) return;
+      // blocks first (typed ones as tags; paragraphs counted), then documents and nodes not yet shown
+      const blocks = (s?.artifacts?.blocks ?? []).filter(b => !l.known.has(`${b.id}@${b.at}`));
+      const typed = blocks.filter(b => !b.id.startsWith('block:'));
+      const fresh = [...new Set([...typed.map(b => b.id), ...(s?.artifacts?.docs ?? []), ...(s?.artifacts?.nodes ?? [])])].filter(x => !l.known.has(x));
+      if (!fresh.length && !blocks.length) return;
       for (const x of fresh) l.known.add(x);
-      emit(l, { kind: 'knowledge', refs: fresh, text: `knowledge: ${fresh.join(', ')}` });
+      for (const b of blocks) l.known.add(`${b.id}@${b.at}`);
+      const n = (c: string) => blocks.filter(b => b.change === c).length;
+      const counts = [n('added') && `+${n('added')} added`, n('changed') && `${n('changed')} changed`, n('removed') && `${n('removed')} removed`].filter(Boolean).join(' · ');
+      emit(l, { kind: 'knowledge', refs: fresh, text: `knowledge: ${counts || fresh.join(', ')}`, changes: blocks.map(b => ({ id: b.id, change: b.change })) });
     }).catch(() => {});
   }, delay);
 }

@@ -47,6 +47,7 @@ wf session show <id> --product <p>        # instruction, refs, log so far, resul
 wf session log <id> --product <p> "<what you did / found>"   # progress lines people watch live
 wf session done <id> --product <p> "<result summary>"       # or: wf session fail <id> "<why>"
 wf session handoff <id> --product <p> --agent codex "<note>"  # continue under another agent
+wf session changes <id> --product <p>     # every block the session added / changed / removed, per document
 ```
 
 The runner marks the session done when you exit with 0; your final stdout is the result. Log as you go: the log is

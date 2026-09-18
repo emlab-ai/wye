@@ -3,6 +3,7 @@
 // credited with document changes; the tasks a session works on get `session:` and `produced:` links so the task's
 // panel can show everything that came out of it.
 import { getSession, listSessions, saveSession } from './sessions';
+import type { BlockChange } from './session-types';
 import { withFileLock } from './write';
 import { loadScope } from './scope';
 import { editNode } from './node-edit';
@@ -10,13 +11,34 @@ import path from 'node:path';
 
 const docModule = (rel: string) => { const m = rel.match(/^projects\/[^/]+\/docs\/([^/]+)\.md$/); return m ? `module:${m[1]}` : null; };
 
-async function mutateArtifacts(productDir: string, id: string, fn: (a: { docs: string[]; nodes: string[] }) => void): Promise<void> {
+type Artifacts = { docs: string[]; nodes: string[]; blocks?: BlockChange[] };
+// one entry per block: a later change of the same block replaces the earlier one (added then changed stays added;
+// added then removed disappears; the timestamp is the latest)
+export function mergeBlocks(cur: BlockChange[], more: BlockChange[]): BlockChange[] {
+  const m = new Map(cur.map(b => [b.id, b]));
+  for (const b of more) {
+    const o = m.get(b.id);
+    if (!o) { m.set(b.id, b); continue; }
+    if (o.change === 'added' && b.change === 'removed') { m.delete(b.id); continue; }
+    m.set(b.id, { ...b, change: o.change === 'added' && b.change === 'changed' ? 'added' : b.change });
+  }
+  return [...m.values()].slice(-2000);
+}
+async function mutateArtifacts(productDir: string, id: string, fn: (a: Artifacts) => void): Promise<void> {
   const f = path.join(productDir, '_sessions', `${id}.json`);
-  await withFileLock(f, async () => { const s = await getSession(productDir, id); if (!s) return; const a = s.artifacts ?? { docs: [], nodes: [] }; fn(a); s.artifacts = { docs: [...new Set(a.docs)].slice(-200), nodes: [...new Set(a.nodes)].slice(-500) }; await saveSession(productDir, s); });
+  await withFileLock(f, async () => { const s = await getSession(productDir, id); if (!s) return; const a: Artifacts = s.artifacts ?? { docs: [], nodes: [] }; fn(a); s.artifacts = { docs: [...new Set(a.docs)].slice(-200), nodes: [...new Set(a.nodes)].slice(-500), ...(a.blocks?.length ? { blocks: a.blocks } : {}) }; await saveSession(productDir, s); });
 }
 
-export async function recordArtifact(productDir: string, sessionId: string, what: { doc?: string; node?: string }): Promise<void> {
-  await mutateArtifacts(productDir, sessionId, a => { if (what.doc) a.docs.push(what.doc); if (what.node) a.nodes.push(what.node); });
+export async function recordArtifact(productDir: string, sessionId: string, what: { doc?: string; node?: string; blocks?: BlockChange[] }): Promise<void> {
+  await mutateArtifacts(productDir, sessionId, a => { if (what.doc) a.docs.push(what.doc); if (what.node) a.nodes.push(what.node); if (what.blocks?.length) a.blocks = mergeBlocks(a.blocks ?? [], what.blocks); });
+}
+
+// The graph rebuilt after documents changed on disk: every running session is credited with the blocks that are
+// new, changed or gone (the app's own task-link writes are already invisible to the diff).
+export async function creditBlockChanges(productDir: string, changes: BlockChange[]): Promise<void> {
+  if (!changes.length) return;
+  const running = (await listSessions(productDir)).filter(s => s.status === 'running');
+  for (const s of running) await recordArtifact(productDir, s.id, { blocks: changes });
 }
 
 // A document changed on disk: credit every running session of the product and link their tasks. Called by the

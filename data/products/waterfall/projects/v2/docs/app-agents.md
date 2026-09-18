@@ -57,7 +57,9 @@ React components (`component:` cards). `side` says whether it renders on the ser
   file: packages/web/src/components/SessionView.tsx
   side: client
   purpose: >
-    One agent session in the right column: what was sent, its status, and the live log (polled while active).
+    One agent session in the right column: what was sent, its status, and the live log (polled while active). The
+    knowledge strip counts the blocks it changed (+added ~changed −removed ¶paragraphs, ↗ the changes page) and a
+    "changes" fold under it holds component:session-changes.
   part-of: module:app-agents
 - id: component:session-changes
   file: packages/web/src/components/SessionChanges.tsx
@@ -68,7 +70,6 @@ React components (`component:` cards). `side` says whether it renders on the ser
     "n paragraphs"; filter by change kind and by kind of node. Rendered under the knowledge strip of the session
     view and as a page of its own, /<product>/sessions/<id>/changes.
   part-of: module:app-agents
-  status: proposed
 - id: component:session-list
   file: packages/web/src/components/SessionList.tsx
   side: client
@@ -112,6 +113,21 @@ Modules under packages/web/src/lib (`lib:` cards): pure logic and server-only IO
   side: server
   purpose: >
     The system prompt every agent started by Waterfall receives: the shared contract (prompts/agent-system.md) plus the product's own instructions (data/products/<product>/_agent.md) when present.
+  part-of: module:app-agents
+- id: lib:graph-diff
+  file: packages/web/src/lib/graph-diff.ts
+  side: shared
+  purpose: >
+    What changed between two builds of the graph: defined nodes (typed blocks and block: paragraphs) that are new,
+    changed (title, status, body — the app's own session / produced task links ignored) or gone, each with its
+    document. Pure; tested by test:web-lib#graph-diff.
+  part-of: module:app-agents
+- id: lib:session-changes
+  file: packages/web/src/lib/session-changes.ts
+  side: shared
+  purpose: >
+    A session's block attribution joined with the current graph (kind, status now, still exists) and grouped per
+    document, prose paragraphs apart; counts and the counts line. Derived, never stored.
   part-of: module:app-agents
 - id: lib:sessions
   file: packages/web/src/lib/sessions.ts
@@ -199,6 +215,14 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   gate: none (local app)
   source: packages/web/src/app/api
   part-of: module:app-agents
+- id: op:api.sessions.changes
+  args: GET /api/<product>/sessions/<id>/changes
+  does: >
+    Every block the session added, changed or removed, per document, joined with the current graph; counts. Read
+    by component:session-changes, the changes page and `wf session changes`.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/sessions/[id]/changes/route.ts
+  part-of: module:app-agents
 - id: op:api.sessions.control
   args: POST /api/<product>/sessions/<id>/control
   does: >
@@ -261,9 +285,10 @@ documents are not rewritten), then show it as a Changes list on the session and 
   unless: >
     the change is the app's own task-link write (session / produced on a task line), which is never credited;
     or no session is running — then nothing is recorded, as today
-  status: proposed
+  status: shipped
   refines: req:wf2.sessions.knowledge-changes
-  satisfied-by: [lib:artifacts, lib:graph-diff]
+  satisfied-by: [lib:artifacts, lib:graph-diff, rule:block-attribution]
+  verified-by: [test:web-lib#graph-diff, ui-test:session-changes]
 - id: req:wf2.sessions.changes-page
   title: A session's changes open as one list, per document, block by block
   when: >
@@ -276,9 +301,31 @@ documents are not rewritten), then show it as a Changes list on the session and 
     from the session's artifacts and the current graph — nothing is stored beyond the attribution
   unless: >
     the session changed nothing — the strip and the page say so
-  status: proposed
+  status: shipped
   refines: req:wf2.sessions.knowledge-changes
-  satisfied-by: [component:session-changes, op:api.sessions.changes]
+  satisfied-by: [component:session-changes, page:web/session-changes, op:api.sessions.changes]
+  verified-by: [ui-test:session-changes]
+- id: page:web/session-changes
+  route: /<product>/sessions/<id>/changes
+  component: packages/web/src/app/[product]/sessions/[id]/changes/page.tsx; packages/web/src/components/SessionChanges.tsx
+  purpose: >
+    A session's changes as a page: every block it added, changed or removed, per document, with the change and kind
+    filters; live while the session runs.
+  part-of: module:app-agents
+- id: rule:block-attribution
+  statement: >
+    Attribution is per block and derived. The watcher keeps the graph as it last saw it; after every rebuild it
+    diffs that against the new build (lib:graph-diff) and records the added / changed / removed nodes — typed blocks
+    and block: paragraphs — as `artifacts.blocks` on every session whose recorded status is running (mergeBlocks:
+    one entry per block; added then changed stays added, added then removed disappears). A node PUT with
+    x-wf-session records the block as changed on that session at once. The app's own task-link writes (session,
+    produced) are invisible to the diff. The console's knowledge row marks each tag + ~ − and counts paragraphs;
+    the session strip shows +n ~n −n n¶ and links the changes page. No document is rewritten for attribution
+    (decision:wf2.attribution-derived-not-written).
+  source: packages/web/src/lib/watch.ts; packages/web/src/lib/graph-diff.ts; packages/web/src/lib/artifacts.ts#mergeBlocks; packages/web/src/app/api/[product]/node/[id]/route.ts; packages/web/src/lib/agent-host.ts#reportKnowledge
+  status: shipped
+  verified-by: [test:web-lib#graph-diff, ui-test:session-changes]
+  related-to: [rule:task-artifacts, req:wf2.sessions.block-attribution]
 - id: decision:wf2.attribution-derived-not-written
   title: The run id lives with the session, not on every block line
   context: >
@@ -317,7 +364,8 @@ documents are not rewritten), then show it as a Changes list on the session and 
 
 Work, in order:
 
-- [ ] task:graph-diff lib:graph-diff — pure diff of two graphs: added / changed / removed defined nodes (typed and block:), with title, doc and change; vitest. Part of req:wf2.sessions.block-attribution.
-- [ ] task:block-attribution The watcher keeps the previous graph per product, diffs after each rebuild and records the blocks on every running session (`artifacts.blocks`, capped); the API node PUT records the node as changed on its session; the app's own task-link writes stay excluded. Part of req:wf2.sessions.block-attribution.
-- [ ] task:session-changes-view component:session-changes under the knowledge strip (the strip shows "+n added · n changed per document" and opens it), the same component on /<product>/sessions/<id>/changes, op:api.sessions.changes (GET …/sessions/<id>/changes: the blocks joined with the current graph), `wf session changes <id>`, and the console's knowledge row with added / changed marks. Part of req:wf2.sessions.changes-page.
-- [ ] task:session-changes-ui-test ui-test:session-changes — a probe session edits a document on disk (one new req, one changed rule, one paragraph); the strip, the changes page and wf session changes list them. Part of req:wf2.sessions.changes-page.
+- [x] task:graph-diff lib:graph-diff — pure diff of two graphs: added / changed / removed defined nodes (typed and block:), with title, doc and change; vitest. Part of req:wf2.sessions.block-attribution. (session: 53f99bfd98)
+- [x] task:block-attribution The watcher keeps the previous graph per product, diffs after each rebuild and records the blocks on every running session (`artifacts.blocks`, capped); the API node PUT records the node as changed on its session; the app's own task-link writes stay excluded. Part of req:wf2.sessions.block-attribution. (session: 53f99bfd98)
+- [x] task:session-changes-view component:session-changes under the knowledge strip (the strip shows "+n added · n changed per document" and opens it), the same component on /<product>/sessions/<id>/changes, op:api.sessions.changes (GET …/sessions/<id>/changes: the blocks joined with the current graph), `wf session changes <id>`, and the console's knowledge row with added / changed marks. Part of req:wf2.sessions.changes-page. (session: 53f99bfd98)
+- [x] task:session-changes-ui-test ui-test:session-changes — a probe session edits a document on disk (one new req, one changed rule, one paragraph); the strip, the changes page and wf session changes list them. Part of req:wf2.sessions.changes-page. (run by hand with playwright-core, 2026-09-18; in CI when task:ui-tests-in-ci lands)
+

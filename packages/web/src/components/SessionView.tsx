@@ -6,6 +6,7 @@ import type { Session } from '@/lib/session-types';
 import { AGENTS } from '@/lib/session-types';
 import { Console } from './Console';
 import { shownStatus } from './SessionList';
+import { SessionChanges } from './SessionChanges';
 
 export const agentLabel = (id: string) => AGENTS.find(a => a.id === id)?.label ?? id;
 export const when = (iso: string) => { const d = new Date(iso); const m = (Date.now() - d.getTime()) / 60000; return m < 1 ? 'just now' : m < 60 ? `${Math.round(m)} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : d.toLocaleDateString(); };
@@ -38,6 +39,10 @@ export function SessionView({ id }: { id: string }) {
   if (!s) return <p className="notice">Session {id} not found.</p>;
   const active = s.status === 'queued' || s.status === 'running';
   const knowledge = [...new Set([...(s.artifacts?.docs ?? []), ...(s.artifacts?.nodes ?? []), ...known])];
+  // the blocks the session changed (block attribution): counts in the strip, the list in a fold under it
+  const blocks = s.artifacts?.blocks ?? [];
+  const bc = { added: blocks.filter(b => b.change === 'added' && !b.id.startsWith('block:')).length, changed: blocks.filter(b => b.change === 'changed' && !b.id.startsWith('block:')).length, removed: blocks.filter(b => b.change === 'removed' && !b.id.startsWith('block:')).length, prose: blocks.filter(b => b.id.startsWith('block:')).length };
+  const bcLine = [bc.added && `+${bc.added}`, bc.changed && `~${bc.changed}`, bc.removed && `−${bc.removed}`, bc.prose && `${bc.prose}¶`].filter(Boolean).join(' ');
   return (
     <div className="session">
       <div className="session-head">
@@ -59,7 +64,8 @@ export function SessionView({ id }: { id: string }) {
         </div>
       )}
       {s.refs.length > 0 && <div className="tags session-refs">{s.refs.map(r => <SmartTag key={r} id={r} />)}</div>}
-      {knowledge.length > 0 && <div className="tags session-know" title="documents and nodes this session changed"><small className="muted">knowledge</small>{knowledge.map(r => <SmartTag key={r} id={r} />)}</div>}
+      {knowledge.length > 0 && <div className="tags session-know" title="documents and nodes this session changed"><small className="muted">knowledge</small>{knowledge.map(r => <SmartTag key={r} id={r} />)}{(blocks.length > 0 || known.length > 0) && <a className="know-open muted small" href={`/${product}/sessions/${id}/changes`} title="every block this session changed, as a page">{bcLine || 'changes'} ↗</a>}</div>}
+      {(blocks.length > 0 || known.length > 0) && <details className="session-changes-fold"><summary>changes {bcLine && <span className="muted">{bcLine}</span>}</summary><SessionChanges product={product} id={id} live={active || s.mode === 'chat'} /></details>}
       {s.mode === 'chat' ? <details className="session-instr-fold"><summary className="muted">instruction</summary><pre className="session-instruction">{s.instruction}</pre></details> : <pre className="session-instruction">{s.instruction}</pre>}
       {s.source?.doc && <p className="muted session-src">from {s.source.project ? `${s.source.project} / ` : ''}{s.source.doc}</p>}
       {s.mode === 'chat' && <Console session={s} onStatus={st => setS(x => x ? { ...x, status: st as Session['status'] } : x)} onKnowledge={onKnowledge} />}

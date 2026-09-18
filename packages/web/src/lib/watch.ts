@@ -4,14 +4,19 @@
 import { watch, type FSWatcher } from 'node:fs';
 import path from 'node:path';
 import { rebuild } from './write';
-import { creditDocumentChange } from './artifacts';
+import { creditDocumentChange, creditBlockChanges } from './artifacts';
+import { loadGraph } from './load';
+import { diffGraphs } from './graph-diff';
+import type { GraphData } from './graph';
 
 type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'other'; file: string }) => void;
 // bump when the watcher callback changes: dev reloads keep globalThis, so an old watcher would keep running old code
-const VERSION = 2;
-type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>> };
+const VERSION = 4;
+// lastGraph: the graph as this watcher last saw it, so a rebuild can be diffed even when the API already rebuilt
+// (editNode writes the file and rebuilds before the watcher's timer fires)
+type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>>; lastGraph: Map<string, GraphData> };
 const g = globalThis as unknown as { __wfWatch?: State };
-const st = (): State => (g.__wfWatch ??= { watchers: new Map(), subs: new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map() });
+const st = (): State => (g.__wfWatch ??= { watchers: new Map(), subs: new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map(), lastGraph: new Map() });
 
 function classify(rel: string): 'doc' | 'inbox' | 'session' | 'graph' | 'other' {
   if (rel.startsWith('_build/')) return 'graph';
@@ -25,7 +30,7 @@ export function ensureWatch(productDir: string) {
   const s = st();
   if (s.version !== VERSION) { // fresh state for the new code, keeping the SSE subscribers
     for (const w of s.watchers.values()) { try { w.close(); } catch { /* closed */ } }
-    g.__wfWatch = { version: VERSION, watchers: new Map(), subs: s.subs ?? new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map() };
+    g.__wfWatch = { version: VERSION, watchers: new Map(), subs: s.subs ?? new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map(), lastGraph: new Map() };
     return ensureWatch(productDir);
   }
   if (s.watchers.has(productDir)) return;
@@ -43,13 +48,22 @@ export function ensureWatch(productDir: string) {
         s.rebuildTimer.set(productDir, setTimeout(async () => {
           s.rebuildTimer.delete(productDir); if (s.rebuilding.has(productDir)) return; s.rebuilding.add(productDir);
           const docs = [...(s.changedDocs.get(productDir) ?? [])]; s.changedDocs.get(productDir)?.clear();
-          try { await rebuild(productDir); for (const d of docs) await creditDocumentChange(productDir, path.basename(productDir), d).catch(() => {}); } finally { s.rebuilding.delete(productDir); }
+          const graphPath = path.join(productDir, '_build/graph.json');
+          const before = s.lastGraph.get(productDir) ?? await loadGraph(graphPath).catch(() => null);
+          try {
+            await rebuild(productDir);
+            // block-level attribution: what changed since the graph this watcher last saw goes to every running session
+            const after = await loadGraph(graphPath).catch(() => null);
+            if (after) { s.lastGraph.set(productDir, after); if (before) await creditBlockChanges(productDir, diffGraphs(before, after, new Date().toISOString())).catch(() => {}); }
+            for (const d of docs) await creditDocumentChange(productDir, path.basename(productDir), d).catch(() => {});
+          } finally { s.rebuilding.delete(productDir); }
         }, 400));
       }
       for (const fn of s.subs.get(productDir) ?? []) { try { fn({ kind, file: rel }); } catch { /* gone */ } }
     });
     w.on('error', () => { s.watchers.delete(productDir); });
     s.watchers.set(productDir, w);
+    loadGraph(path.join(productDir, '_build/graph.json')).then(gr => { if (!s.lastGraph.has(productDir)) s.lastGraph.set(productDir, gr); }).catch(() => {});
   } catch { /* platform without recursive watch */ }
 }
 
