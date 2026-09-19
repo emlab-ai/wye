@@ -511,3 +511,44 @@ One node per test file. Requirements and rules point here with `requires-tests: 
 | e2e | 4 flows | Playwright | 4 |
 
 **Untested surfaces (by design, for now):** the hosted path (token enforcement, Postgres, git sync); the clerk's prompt quality beyond the 12 recorded pairs; visual layout of the mind map (no screenshot tests); the skills and the AGENTS snippet (process, verified by reading); install and monorepo tooling.
+
+## Memory: the verdict-pass benchmark
+
+decision:memory.benchmark: before the write-time verdict pass (decision:memory.write-time-verdict) is on by default, its recall and precision are measured on the product's own contradictions — `node test/verdict-bench.js` (replays `test/fixtures/verdict-bench.json`; `WATERFALL_LIVE=1` asks the model for pairs the record lacks). Positives: every drift row with two defined sides (12 pairs on 2026-09-19); negatives: 30 same-kind pairs sharing a neighbour, not in a drift row, a fixed sample.
+
+```yaml
+- id: test:verdict-bench
+  file: test/verdict-bench.js
+  count: 12 positive + 30 negative pairs
+- id: test:memory
+  file: test/memory.js
+  count: bitemporal, current-by-construction, constraint packet, shapes, forgetting, verdict pairs and lines
+- id: test:verdicts
+  file: packages/web/src/lib/verdicts.test.ts
+  count: 4
+- id: test:packet
+  file: packages/web/src/lib/packet.test.ts
+  count: 8
+```
+
+| judge | recall (drift pairs → contradicts) | by conflict | precision (neighbour pairs left alone) |
+|---|---|---|---|
+| claude-haiku-4-5-20251001 @ prompt 6d31662f | 17 % (2 of 12) | static 1, dynamic 1, missed 10 | 100 % (30 of 30) |
+
+What the misses say: the pilot's drift rows record a description against reality ("v0.1 says a delta file, v2 has no such file"; "the viewer is static, the web app fetches"), not two texts that cannot both hold — the judge reads `entity:delta` and `req:wf.pipeline` as a definition and the process that uses it and answers *refines*. The judge is strict, as the prompt asks; it flags nothing that is not a contradiction. So the benchmark's positive set is the weak side, not the judge: a text-vs-text set is needed before recall means anything.
+
+```yaml
+- id: question:memory.benchmark-positives
+  title: Where does a text-vs-text positive set for the verdict pass come from?
+  q: >
+    Ten of the twelve drift pairs are doc-versus-reality drift, which the judge rightly does not call a contradiction
+    between the two texts. Should the benchmark keep the drift rows and accept a low ceiling, take only the rows whose
+    `what` names two statements (a hand-picked subset), or grow a positive set from the contradiction: nodes people
+    confirm in the Inbox over time (the pass's own output, reviewed)?
+  context: >
+    decision:memory.benchmark makes the number a precondition for switching the pass on by default; with the drift set
+    the number cannot rise above ~20 % whatever the model. The Inbox-confirmed set would be the honest one and grows
+    with use.
+  status: open
+  related-to: [decision:memory.benchmark, decision:memory.write-time-verdict, test:verdict-bench]
+```

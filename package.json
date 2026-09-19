@@ -11,7 +11,7 @@
         "packages/*"
     ],
     "scripts": {
-        "test": "node test/smoke.js && node test/prose.js && node test/ontology.js && node test/blocks.js && node test/page-node.js && node test/memory.js && npm run test --workspace=packages/web",
+        "test": "node test/smoke.js && node test/prose.js && node test/ontology.js && node test/blocks.js && node test/page-node.js && node test/memory.js && node test/verdict-bench.js && npm run test --workspace=packages/web",
         "dev": "npm run dev --workspace=packages/web",
         "desktop": "WF_DEV=1 electron packages/desktop",
         "desktop:prod": "npm run build --workspace=packages/web && electron packages/desktop"
