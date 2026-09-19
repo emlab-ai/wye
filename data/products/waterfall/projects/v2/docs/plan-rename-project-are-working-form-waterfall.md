@@ -53,12 +53,34 @@ req:wf.self, rule:agent-contract.
 
 question:waterfall.rename-slug Should the product slug and folder move too — `data/products/waterfall` → `data/products/wye`, `product:waterfall` → `product:wye`, URLs `/waterfall/…` → `/wye/…`, and the `waterfall-*` skill names? It rewrites every link and node reference and the installed skills; the running app and this session live on the old slug. part of plan:plan-rename-project-are-working-form-waterfall #open
 
-question:waterfall.public-repo-data The target repo is public and the repo tracks `data/products/yessensei` (YesSensei's PRD, tech design, source docs — 30 files) next to Waterfall's own knowledge. Push it as is, drop yessensei from the repo first, or make the repo private? Once pushed it is public history. part of plan:plan-rename-project-are-working-form-waterfall #open
+```yaml
+- id: decision:waterfall.strip-yessensei-before-push
+  title: Strip data/products/yessensei from history before the first push to the public repo
+  context: >
+    emlab-ai/wye is public; the repo history tracks YesSensei's knowledge (data/products/yessensei) next to Wye's own.
+    Pushing as is publishes it for good.
+  choice: >
+    Rewrite the history with git filter-repo to drop data/products/yessensei, keep the folder on disk and ignore it
+    in data/products/.gitignore, then push main. Alex chose this in chat on 2026-09-19.
+  alternatives: >
+    Make the repo private and push as is — rejected, the repo is meant to be public. Push as is — rejected, it leaks.
+  consequences: >
+    Local main is rewritten (every commit id changes); yessensei's knowledge is no longer versioned anywhere until it
+    gets a repo of its own (task:waterfall.yessensei-own-repo). Nobody else has a clone, so no one is disrupted.
+  date: 2026-09-19
+  status: proposed
+  resolves: question:waterfall.public-repo-data
+  part-of: plan:plan-rename-project-are-working-form-waterfall
+```
+
+question:waterfall.public-repo-data The target repo is public and the repo tracks `data/products/yessensei` (YesSensei's PRD, tech design, source docs — 30 files) next to Waterfall's own knowledge. Push it as is, drop yessensei from the repo first, or make the repo private? Once pushed it is public history. part of plan:plan-rename-project-are-working-form-waterfall #resolved
 
 ## Tasks
 
-- [ ] task:waterfall.rename-code Rename the package names and every user-facing "Waterfall" to Wye in the code, README, prompts and skills; tests green. part of plan:plan-rename-project-are-working-form-waterfall
+- [x] task:waterfall.rename-code Rename the package names and every user-facing "Waterfall" to Wye in the code, README, prompts and skills; tests green. part of plan:plan-rename-project-are-working-form-waterfall (session: f92e5b9b59)
+- [ ] task:waterfall.strip-yessensei Rewrite history to drop data/products/yessensei, keep it on disk and ignored. part of plan:plan-rename-project-are-working-form-waterfall
 - [ ] task:waterfall.rename-remote Add origin https://github.com/emlab-ai/wye and push main (after question:waterfall.public-repo-data). part of plan:plan-rename-project-are-working-form-waterfall
+- [ ] task:waterfall.yessensei-own-repo Give YesSensei's knowledge a home of its own (its repo or a WATERFALLDATA folder) — after the strip it is only on disk, unversioned. part of plan:plan-rename-project-are-working-form-waterfall
 - [ ] task:waterfall.rename-slug Move the product slug, folder, URLs and skill names to wye once question:waterfall.rename-slug is answered. part of plan:plan-rename-project-are-working-form-waterfall
 - [ ] task:waterfall.rename-folder Rename the checkout ~/Projects/waterfall → ~/Projects/wye and re-run install.sh (skill links, ctx path); the app's cwd and the memory folder follow the path. part of plan:plan-rename-project-are-working-form-waterfall
 
