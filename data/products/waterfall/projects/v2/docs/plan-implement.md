@@ -101,6 +101,14 @@ Order follows dependencies: the bitemporal properties and type:constraint first 
 - [x] task:memory.impl.consolidate consolidation on session done: candidates from the transcript diffed against produced blocks, misses filed with evidence. part of plan:plan-implement (task: memory.consolidate, session: 9f3d83809b)
 - [x] task:memory.impl.lint-deep `ctx check --deep` over same-kind pairs sharing a neighbour. part of plan:plan-implement (task: memory.lint-deep, session: 9f3d83809b)
 
+Follow-ups this session left:
+
+- [ ] task:memory.impl.idle-consolidation Consolidate a chat that went idle for a day, not only one that ended with `wf session done` (decision:memory.consolidate-sessions names both). part of plan:plan-implement, part of goal:memory.validated-asks
+- [ ] task:memory.impl.supersession-chain Show the supersession chain on the node card and the Decisions timeline (superseded greyed, a link to the superseder — the relations show `superseded-by` today, nothing more). part of plan:plan-implement (decision:memory.bitemporal)
+- [ ] task:memory.impl.benchmark-positives Build the text-vs-text positive set for test:verdict-bench once question:memory.benchmark-positives is answered; re-run live per model and prompt hash. part of plan:plan-implement (decision:memory.benchmark)
+- [ ] task:memory.impl.switch-on Set `verdicts: on` and `consolidate: on` in waterfall's _product.md when the benchmark's numbers are good enough (the person's call — flag:verdicts, flag:consolidate). part of plan:plan-implement
+- [ ] task:memory.impl.consolidated-blocks-in-changes Credit the blocks consolidation files to the session that produced them (rule:task-artifacts) so they show under its Produced and the plan's Result. part of plan:plan-implement
+
 ## Result
 
 _Written by the app when the session ends: the summary and the blocks this plan produced._
