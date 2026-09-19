@@ -48,13 +48,33 @@ Order follows dependencies: the bitemporal properties and type:constraint first 
   affects: [decision:memory.write-time-verdict, decision:memory.consolidate-sessions]
 ```
 
+```yaml
+- id: decision:memory.statuses-stay-with-the-person
+  title: The decision-status pass adds supersedes links; approving the 60 proposed decisions stays with the person
+  context: >
+    task:memory.decision-statuses asked for a status on the 43 status-less decisions. By the time this session ran
+    every decision carried one (60 proposed, 23 approved). What remained was supersession named in prose:
+    decision:wf2.plan-is-a-document says it supersedes decision:wf2.session-page-derived.
+  choice: >
+    `supersedes:` is written where the prose says so (one case); the proposed decisions are left for the person to
+    approve in the Inbox — an agent deciding which decisions the code "follows" would be the agent approving
+    decisions, which constraint:wf2.person-approves forbids. Approving a decision that names `supersedes:` retires
+    the old one in the same act.
+  alternatives: mark every decision the code visibly implements approved (fast, but approval is the person's act).
+  consequences: the Inbox keeps 60 proposed decisions to approve; superseded ones drop out of retrieval as they are approved.
+  date: 2026-09-19
+  status: proposed
+  part-of: plan:plan-implement
+  affects: [task:memory.decision-statuses]
+```
+
 ## Tasks
 
-- [ ] task:memory.impl.bitemporal since, until, superseded-by / supersedes, by, evidence on type:node; statuses superseded and retired; parser fills until and superseded-by from supersedes; `isCurrent` in lib/graph.js and packages/web graph.ts; op:api.context, ctx packet and search skip ended nodes unless --as-of / --all. part of plan:plan-implement, part of goal:memory.validated-asks (task:memory.bitemporal-props)
-- [ ] task:memory.impl.constraint-type type:constraint and type:lesson in the base ontology; `## Constitution` in the agent system prompt; a Constitution view. part of plan:plan-implement (task:memory.constraint-type)
-- [ ] task:memory.impl.packet the constraint packet: lib/graph.js#constraints, `ctx constraints --task`, packages/web packet.ts, op:api.packet, `wf packet --for`, `## Constraints in force` in buildPrompt. part of plan:plan-implement (task:memory.constraint-packet)
-- [ ] task:memory.impl.shapes `shapes:` on type cards read by the parser and enforced by ctx check; the two hardcoded checks move to the base ontology. part of plan:plan-implement (task:memory.shapes)
-- [ ] task:memory.impl.forgetting archived-for-retrieval: done plans and closed sessions leave op:api.context, the packet and search unless --all. part of plan:plan-implement (task:memory.forgetting)
+- [x] task:memory.impl.bitemporal since, until, superseded-by / supersedes, by, evidence on type:node; statuses superseded and retired; parser fills until and superseded-by from supersedes; `isCurrent` in lib/graph.js and packages/web graph.ts; op:api.context, ctx packet and search skip ended nodes unless --as-of / --all. part of plan:plan-implement, part of goal:memory.validated-asks (task: memory.bitemporal-props, session: 9f3d83809b)
+- [x] task:memory.impl.constraint-type type:constraint and type:lesson in the base ontology; `## Constitution` in the agent system prompt; a Constitution view. part of plan:plan-implement (task: memory.constraint-type, session: 9f3d83809b)
+- [x] task:memory.impl.packet the constraint packet: lib/graph.js#constraints, `ctx constraints --task`, packages/web packet.ts, op:api.packet, `wf packet --for`, `## Constraints in force` in buildPrompt. part of plan:plan-implement (task: memory.constraint-packet, session: 9f3d83809b)
+- [x] task:memory.impl.shapes `shapes:` on type cards read by the parser and enforced by ctx check; the two hardcoded checks move to the base ontology. part of plan:plan-implement (task: memory.shapes, session: 9f3d83809b)
+- [x] task:memory.impl.forgetting archived-for-retrieval: done plans and closed sessions leave op:api.context, the packet and search unless --all. part of plan:plan-implement (task: memory.forgetting, session: 9f3d83809b)
 - [ ] task:memory.impl.decision-statuses statuses on the status-less decisions in waterfall's documents. part of plan:plan-implement (task:memory.decision-statuses)
 - [ ] task:memory.impl.verdicts the write-time verdict pass: lib/judge.js, pair classification on rebuild diff, verdict blocks, contradiction: nodes, Inbox rows. part of plan:plan-implement (task:memory.verdict-pass)
 - [ ] task:memory.impl.benchmark the hide-one-edge regression over the contradicts edges, behind WATERFALL_LIVE=1. part of plan:plan-implement (task:memory.benchmark)

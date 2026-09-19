@@ -991,6 +991,7 @@ part-of: module:app-agents
     the changes page only. Refined the same day by decision:wf2.plans-folder (the parent is the project's Plans
     page, not the source document) and decision:wf2.plan-per-request (every request, not only plan-first ones).
   status: proposed
+  supersedes: decision:wf2.session-page-derived
   date: 2026-09-18
   related-to: [decision:wf2.plan-is-a-page, decision:wf2.session-page-derived, rule:plan-first, rule:embed-line, decision:wf2.plans-folder, decision:wf2.plan-per-request]
   session: 672f4fdf3d
