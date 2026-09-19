@@ -12,6 +12,7 @@ import { REPO_ROOT } from './products';
 import { agentSystemPrompt } from './agent-prompt';
 import { createPlanDoc, closePlanDoc } from './plan-docs';
 import { firstUserEvent } from './transcript';
+import { packetFor } from './packet';
 
 // `turn`: the queue items handed to the open turn — stamped done / failed when it ends (decision:wf2.queue-item-state);
 // `product` / `wfUrl` let the pump build a first message when a fresh item comes up (rule:clean-slate); `stopped`: the
@@ -74,8 +75,21 @@ export function openInSession(id: string, path: string): boolean {
   return true;
 }
 
-// The first message: the instruction plus every ref and the source link resolved to text, and how to talk back.
-// With `productDir` the request's images (store:session-files) are listed by absolute path under the instruction.
+// The constraints in force for a request (decision:memory.constraint-packet, req:memory.intake-packet): computed by
+// the app from the refs and the instruction, put in front of the agent — validation that does not depend on the agent
+// remembering to look. Never blocks the start: a failure becomes one line saying so.
+export async function constraintsSection(scope: Awaited<ReturnType<typeof loadScope>>, s: Session): Promise<string> {
+  if (!scope) return '';
+  if (!scope.graph.nodes.length) return '\n## Constraints in force\n_The product has no graph yet — nothing governs this request; write what you learn as blocks._';
+  try {
+    const { markdown } = await packetFor(scope, s.instruction, [...(s.source?.link ? [s.source.link] : []), ...s.refs], { budget: 10000 });
+    return `\n## Constraints in force\n${markdown}\n\nThe same for any text, mid-session: \`wf packet --for "<text>" [--ref id]\`.`;
+  } catch (e) { return `\n## Constraints in force\n_Could not compute the constraint packet (${e instanceof Error ? e.message : e}); run \`wf packet --for "<the request>"\` yourself before you change anything._`; }
+}
+
+// The first message: the instruction plus every ref and the source link resolved to text, the constraints in force,
+// and how to talk back. With `productDir` the request's images (store:session-files) are listed by absolute path
+// under the instruction.
 export async function buildPrompt(product: string, s: Session, wfUrl: string, productDir?: string): Promise<string> {
   const scope = await loadScope(product);
   const paths = productDir && s.images?.length ? s.images.map(n => path.join(filesDir(productDir, s.id), n)) : [];
@@ -86,6 +100,7 @@ export async function buildPrompt(product: string, s: Session, wfUrl: string, pr
     try { const j = await resolveLink(scope, ref); ctx.push(j ? renderResolved(ref, j) : `- ${ref}: not found`); } catch (e) { ctx.push(`- ${ref}: could not resolve (${e instanceof Error ? e.message : e})`); }
   }
   if (ctx.length) parts.push(`\n## Context\n${ctx.join('\n\n')}`);
+  parts.push(await constraintsSection(scope, s));
   if (s.parent) parts.push(`\nThis session continues session ${s.parent}; its log and result are in the instruction above.`);
   parts.push(planDocNote(s.planDoc));
   if (s.plan) parts.push(planFirst(s.planDoc));

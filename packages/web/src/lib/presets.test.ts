@@ -31,8 +31,12 @@ describe('visibleSubgraph', () => {
     const v = visibleSubgraph(g, idx, 'Drift', null);
     expect(v.nodes.map(x => x.id).sort()).toEqual(['drift:m.1', 'rule:r']);
   });
-  it('focus overrides the preset with a 2-hop structural neighbourhood', () => {
+  it('focus overrides the preset with the directly linked structural neighbourhood', () => {
     const v = visibleSubgraph(g, idx, 'Requirements', 'rule:r');
+    expect(v.nodes.map(x => x.id).sort()).toEqual(['drift:m.1', 'req:a', 'rule:r']);
+  });
+  it('focus widens to more hops when asked', () => {
+    const v = visibleSubgraph(g, idx, 'Requirements', 'rule:r', 2);
     expect(v.nodes.map(x => x.id).sort()).toEqual(['drift:m.1', 'req:a', 'req:a.b', 'rule:r']);
   });
   it('Everything includes mentions', () => {

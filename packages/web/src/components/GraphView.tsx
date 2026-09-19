@@ -1,29 +1,45 @@
 'use client';
-import { useMemo, useState, useCallback, useEffect } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { ReactFlow, Background, Controls, MiniMap, Position, useNodesState, useEdgesState, type Node, type Edge, type NodeMouseHandler } from '@xyflow/react';
+import { ReactFlow, Background, Controls, MiniMap, Handle, Position, useNodesState, useEdgesState, type Node, type Edge, type NodeChange, type NodeMouseHandler, type NodeProps, type ReactFlowInstance } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { layoutMindMap, NODE_H, NODE_W } from '@/lib/layout';
-import { PRESETS, type PresetName } from '@/lib/presets';
+import { layoutMindMap, type Size } from '@/lib/layout';
+import type { PresetName } from '@/lib/presets';
 import type { GraphEdge } from '@/lib/graph';
-import { parseBody } from '@/lib/graph';
+import { EmbeddedCard } from './EmbedBlock';
 
 type LiteNode = { id: string; kind: string; title: string; status: string; defined: boolean };
-type Summary = { title: string; kind: string; status: string; defined: boolean; body: string };
-interface Props { product: string; preset: PresetName; focus: string | null; nodes: LiteNode[]; edges: GraphEdge[]; summaries: Record<string, Summary> }
+interface Props { product: string; preset: PresetName; focus: string | null; nodes: LiteNode[]; edges: GraphEdge[] }
 
-export function GraphView({ product, preset, focus, nodes, edges, summaries }: Props) {
+// A card's box before it is measured: the layout starts from this and settles on the real size.
+const CARD_W = 360, CARD_H = 120;
+
+// A node on the canvas is the same editable card the document editor embeds (EmbeddedCard): every field saves in
+// place through op:node.edit. The card's "from" line is the drag grip, so its inputs keep their own mouse.
+function CardNode({ id, data }: NodeProps<Node<{ focus: boolean }>>) {
+  return (
+    <div className={`gnode ${data.focus ? 'focus' : ''}`}>
+      <Handle type="target" position={Position.Left} />
+      <EmbeddedCard id={id} />
+      <Handle type="source" position={Position.Right} />
+    </div>
+  );
+}
+const NODE_TYPES = { card: CardNode };
+
+// The graph shows the focused node and what links to it directly, as editable cards; nothing floats over the
+// canvas. A double click on a card's frame focuses the graph on it.
+export function GraphView({ product, preset, focus, nodes, edges }: Props) {
   const router = useRouter();
-  const [selected, setSelected] = useState<string | null>(focus);
+  const rf = useRef<ReactFlowInstance | null>(null);
+  // the cards' measured boxes (React Flow observes them): the layout re-runs as they load and grow
+  const [sizes, setSizes] = useState<Map<string, Size>>(() => new Map());
   const computed = useMemo(() => {
     const full = nodes.map(n => ({ ...n, section: '', subsection: '', body: '', file: '', line: 0 }));
-    const { positions, treeEdges } = layoutMindMap(full, edges, focus);
+    const { positions, treeEdges } = layoutMindMap(full, edges, focus, sizes);
     const rfNodes: Node[] = nodes.map(n => ({
-      id: n.id, position: positions.get(n.id)!, data: { label: n.kind === 'req' ? n.id.slice(4) : n.id },
-      style: { width: NODE_W, height: NODE_H, fontSize: 11, fontFamily: 'var(--font-m)', borderRadius: 8, padding: '6px 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        background: n.defined ? `var(--k-${n.kind}, var(--k-other))` : 'var(--surface)', color: n.defined ? '#fff' : 'var(--ink)',
-        border: `${n.id === selected ? 3 : 1.5}px ${n.defined ? 'solid' : 'dashed'} ${n.id === selected ? 'var(--accent)' : n.status === 'proposed' ? 'var(--muted)' : n.status === 'question' || n.status === 'drift' ? 'var(--bad)' : `var(--k-${n.kind}, var(--k-other))`}` },
+      id: n.id, type: 'card', position: positions.get(n.id)!, data: { focus: n.id === focus }, dragHandle: '.embed-from',
+      style: { width: sizes.get(n.id)?.width ?? CARD_W },
       sourcePosition: Position.Right, targetPosition: Position.Left,
     }));
     const rfEdges: Edge[] = edges.map(e => {
@@ -34,44 +50,42 @@ export function GraphView({ product, preset, focus, nodes, edges, summaries }: P
         labelStyle: { fontSize: 9, fill: 'var(--muted)' }, labelBgStyle: { fill: 'var(--ground)' } };
     });
     return { rfNodes, rfEdges };
-  }, [nodes, edges, focus, selected]);
-  // React Flow needs to own node state to record measured sizes; re-seed it whenever the computed graph changes.
+  }, [nodes, edges, focus, sizes]);
+  // React Flow needs to own node state to record measured sizes; re-seed it whenever the computed graph changes,
+  // keeping what it measured so the view can fit the cards at once.
   const [rfNodes, setNodes, onNodesChange] = useNodesState(computed.rfNodes);
   const [rfEdges, setEdges, onEdgesChange] = useEdgesState(computed.rfEdges);
-  useEffect(() => { setNodes(computed.rfNodes); setEdges(computed.rfEdges); }, [computed, setNodes, setEdges]);
-
-  const onNodeClick: NodeMouseHandler = useCallback((_, n) => setSelected(n.id), []);
-  const onNodeDoubleClick: NodeMouseHandler = useCallback((_, n) => router.push(`/${product}/graph?focus=${encodeURIComponent(n.id)}&preset=${preset}`), [router, product, preset]);
-  const sel = selected ? summaries[selected] : null;
+  useEffect(() => {
+    setNodes(prev => { const m = new Map(prev.map(n => [n.id, n.measured])); return computed.rfNodes.map(n => ({ ...n, measured: m.get(n.id) })); });
+    setEdges(computed.rfEdges);
+    const t = setTimeout(() => rf.current?.fitView({ padding: 0.15 }), 50); return () => clearTimeout(t);
+  }, [computed, setNodes, setEdges]);
+  const onChange = useCallback((changes: NodeChange[]) => {
+    onNodesChange(changes);
+    setSizes(prev => {
+      let next: Map<string, Size> | null = null;
+      for (const c of changes) {
+        if (c.type !== 'dimensions' || !c.dimensions) continue;
+        const { width, height } = c.dimensions, old = prev.get(c.id);
+        if (old && Math.abs(old.width - width) < 1 && Math.abs(old.height - height) < 1) continue;
+        (next ??= new Map(prev)).set(c.id, { width, height });
+      }
+      return next ?? prev;
+    });
+  }, [onNodesChange]);
+  const onNodeDoubleClick: NodeMouseHandler = useCallback((e, n) => {
+    if ((e.target as Element).closest('input, textarea, select, button, a')) return; // a double click in a field selects a word
+    router.push(`/${product}/graph?focus=${encodeURIComponent(n.id)}&preset=${preset}`);
+  }, [router, product, preset]);
 
   return (
     <div className="gwrap">
-      <div className="gbar">
-        {(Object.keys(PRESETS) as PresetName[]).map(p => (
-          <Link key={p} href={`/${product}/graph?preset=${p}`} className={`chip ${p === preset && !focus ? 'on' : ''}`}>{p}</Link>
-        ))}
-        {focus && <span className="chip on">focus: {focus} <Link href={`/${product}/graph?preset=${preset}`}>×</Link></span>}
-        <span className="cnt">{nodes.length} nodes · {edges.length} edges</span>
-      </div>
       <div className="gcanvas">
-        <ReactFlow nodes={rfNodes} edges={rfEdges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onNodeClick={onNodeClick} onNodeDoubleClick={onNodeDoubleClick} fitView minZoom={0.1} nodesDraggable nodesConnectable={false}>
+        <ReactFlow nodes={rfNodes} edges={rfEdges} nodeTypes={NODE_TYPES} onInit={i => { rf.current = i; }} onNodesChange={onChange} onEdgesChange={onEdgesChange} onNodeDoubleClick={onNodeDoubleClick} fitView fitViewOptions={{ padding: 0.15 }} minZoom={0.1} nodesDraggable nodesConnectable={false} proOptions={{ hideAttribution: true }}>
           <Background gap={24} />
-          <Controls />
+          <Controls showInteractive={false} />
           {nodes.length > 40 && <MiniMap pannable zoomable />}
         </ReactFlow>
-        {sel && selected && (
-          <aside className="gpanel">
-            <div className="pills"><span className="pill k" style={{ background: `var(--k-${sel.kind}, var(--k-other))` }}>{sel.kind}</span>{sel.status && <span className={`pill s ${sel.status}`}>{sel.status}</span>}</div>
-            <h3>{sel.title || selected}</h3>
-            <code>{selected}</code>
-            <div className="gp-acts">
-              <Link href={`/${product}/n/${encodeURIComponent(selected)}`}>Open page</Link>
-              <Link href={`/${product}/graph?focus=${encodeURIComponent(selected)}&preset=${preset}`}>Focus here</Link>
-              <button onClick={() => setSelected(null)}>Close</button>
-            </div>
-            <dl className="props small">{parseBody(sel.body).slice(0, 8).map(r => <div key={r.key} className="prop"><dt>{r.key}</dt><dd><pre>{r.value}</pre></dd></div>)}</dl>
-          </aside>
-        )}
       </div>
     </div>
   );

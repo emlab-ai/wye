@@ -8,6 +8,8 @@
 //   ctx search <terms...> [--all | --as-of <date>]   (superseded, rejected and retired nodes are hidden by default)
 //   ctx impact <id>                everything that depends on the node
 //   ctx packet --task "<text>" [--budget N]   a token-budgeted slice for an agent
+//   ctx constraints --task "<text>" [--ref id,id] [--budget N] [--json]   what governs a request: every rule, constraint, gate,
+//                                  approved decision, goal and open question within two hops of the seeds, complete
 //   ctx check [--repo dir] [--strict]          lint the graph; exit 1 on errors
 //   ctx stats
 //   ctx reqs [--status s]          requirement tree with status
@@ -96,6 +98,18 @@ switch (cmd) {
     case 'packet': {
         const g = load(); const task = opt('task') || positional.join(' ') || die('packet --task "<text>"');
         process.stdout.write(g.packet(String(task), { budget: +opt('budget', 6000), seeds: +opt('seeds', 6), all: argv.includes('--all'), asOf: opt('as-of', null) }));
+        break;
+    }
+    case 'constraints': {
+        // the constraint packet for a text and/or seed ids: what governs it, complete (decision:memory.constraint-packet)
+        const g = load(); const task = opt('task') || opt('for') || ''; const refs = String(opt('ref', '') || '').split(',').filter(Boolean).map(r => resolveOne(g, r));
+        if (!task && !refs.length) die('constraints --task "<text>" [--ref id,id] [--budget N] [--all | --as-of d]');
+        const all = argv.includes('--all'), asOf = opt('as-of', null);
+        const seeds = refs.concat(task ? g.search(String(task), { limit: +opt('seeds', 6), all, asOf }).map(h => h.n.id) : []);
+        const c = g.constraints([...new Set(seeds)], { all, asOf });
+        if (argv.includes('--json')) { console.log(JSON.stringify({ seeds: c.seeds, hidden: c.hidden, questions: c.questions.map(n => n.id), byKind: Object.fromEntries(Object.entries(c.byKind).map(([k, l]) => [k, l.map(n => ({ id: n.id, status: n.status, hops: c.hops.get(n.id) }))])) }, null, 2)); break; }
+        console.log(`# Constraints in force: ${task || refs.join(', ')}\n`);
+        console.log(g.renderConstraints(c, { budget: +opt('budget', 10000) }));
         break;
     }
     case 'check': {

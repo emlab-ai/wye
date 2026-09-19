@@ -11,7 +11,7 @@ export const PRESETS: Record<PresetName, { kinds: string[]; verbs: string[] | nu
   Everything: { kinds: ALL_KINDS, verbs: null },
 };
 
-export function visibleSubgraph(g: GraphData, idx: GraphIndex, preset: PresetName, focus: string | null, depth = 2): { nodes: GraphNode[]; edges: GraphEdge[] } {
+export function visibleSubgraph(g: GraphData, idx: GraphIndex, preset: PresetName, focus: string | null, depth = 1): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const P = PRESETS[preset];
   let ids: Set<string>;
   if (focus && idx.byId.has(focus)) {

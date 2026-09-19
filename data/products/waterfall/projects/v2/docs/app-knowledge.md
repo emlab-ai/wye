@@ -248,11 +248,26 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   source: packages/web/src/app/api/[product]/view/[slug]/route.ts
   part-of: module:app-knowledge
 - id: op:api.context
-  args: POST /api/<product>/context
+  args: POST /api/<product>/context { text, limit?, all?, asOf? }
   does: >
-    Knowledge closest to a piece of text: local semantic + keyword ranking → hits with scores and snippets.
+    Knowledge closest to a piece of text: local semantic + keyword ranking → hits with scores and snippets. Superseded,
+    rejected and retired nodes leave the ranking by construction and are counted in `hidden` unless `all` or `asOf`
+    (req:memory.current-by-construction).
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/context/route.ts; packages/web/src/lib/semantic.ts#search
+  part-of: module:app-knowledge
+- id: op:api.packet
+  args: POST /api/<product>/packet { text?, refs?, budget?, all?, asOf? }
+  does: >
+    The constraint packet (decision:memory.constraint-packet, req:memory.intake-packet): what governs a request. Seeds
+    are the refs (ids or links) plus the semantic hits for the text; from them every rule, constraint, gate, lesson,
+    goal and approved decision within two hops over governs, gated-by, affects, refines, part-of, depends-on and
+    scope, plus every open question on those nodes — complete, ended nodes out by construction; rendered as markdown
+    with the budget shared across kinds. `wf packet --for "<text>" [--ref id]` calls it; buildPrompt puts it in every
+    first message under "Constraints in force"; `ctx constraints --task` is the offline twin.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/packet/route.ts; packages/web/src/lib/packet.ts; lib/graph.js#constraints; bin/wf.js
+  status: shipped
   part-of: module:app-knowledge
 - id: op:api.inbox
   args: GET | POST /api/<product>/inbox and /inbox/<name>

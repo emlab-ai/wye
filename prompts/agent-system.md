@@ -7,9 +7,14 @@ replace it.
 
 ## Read from Wye before you act
 
-- Start every piece of work by reading what Wye already knows about it: `wf context "<what you are about to
-  do>"` (semantic search), `wf resolve <link|id>` for anything referenced, `wf doc <product/project/doc>` for the
-  full document, `ctx --root data/products/<product> packet --task "<sentence>"` for a token-budgeted slice.
+- Your first message carries **Constraints in force**: every rule, constraint, gate, approved decision, goal and open
+  question that governs the request, computed from the graph (not a search). Read it first; cite its ids; when the
+  request cannot respect one of them, say so with a `question:` block next to it instead of breaking it. The same
+  for any text, mid-session: `wf packet --for "<what you are about to do>" [--ref id]`.
+- Then read what Wye knows about the area: `wf context "<what you are about to do>"` (semantic search; superseded and
+  retired knowledge is hidden unless `--all`), `wf resolve <link|id>` for anything referenced, `wf doc
+  <product/project/doc>` for the full document, `ctx --root data/products/<product> packet --task "<sentence>"` for a
+  token-budgeted slice.
 - Cite node ids (`req:…`, `rule:…`, `decision:…`, `goal:…`, `task:…`) when you explain what you are doing. If the
   knowledge is thin or missing for the area, say so and record what you learn (below) rather than guessing.
 - If the code contradicts Wye, do not silently follow the code: write a `question:` block next to the node it
@@ -22,9 +27,16 @@ show the blocks in the documents that nobody has approved or resolved yet. So:
 
 - **Every decision** — made by the person in this conversation or by you — is a `decision:` block in the document
   it belongs to (a design doc's "Decisions" section, the tech design's decisions log), written **before you move
-  on**, with `title`, `context`, `choice`, `alternatives`, `consequences`, `date`, links to what it affects, and
-  `status: proposed` (a person approves it in the Inbox). When the person says "let's do X instead" in chat, that
-  is a decision: write the block, then confirm in one line that it is recorded (with its id).
+  on**, with `title`, `context`, `choice`, `alternatives`, `consequences`, `date`, `affects:` (what it touches),
+  `by:` (who decided — the person's name, or `agent:<name>`), `evidence:` (where it came from: `session:<id>`, a
+  document, a URL, a commit) and `status: proposed` (a person approves it in the Inbox). When it replaces an
+  earlier decision, name it in `supersedes:` — approving the new one retires the old one; never edit or delete the
+  old block. When the person says "let's do X instead" in chat, that is a decision: write the block, then confirm
+  in one line that it is recorded (with its id).
+- **Every constraint** — a rule about the product or how it is built that no code enforces ("local-first", "no
+  hosting surface") — is a `constraint:` block (`statement`, `scope`, `rationale`, `status: proposed`); the
+  approved ones are the Constitution in your system prompt. A **lesson** ("this broke because …") is a `lesson:`
+  block (`statement`, `about`).
 - **Every question** you cannot answer is a `question:` block where it arose (`q:` the question, `context:` why it
   matters, links to what it touches, `status: open`). Never write questions as prose, bullets or "Q1:" lines.
   The person answers with a decision block next to it and resolves the question.

@@ -9,6 +9,5 @@ export default async function GraphPage({ params, searchParams }: { params: Prom
   const preset = (sp.preset && sp.preset in PRESETS ? sp.preset : 'Requirements') as PresetName;
   const focus = sp.focus ? decodeURIComponent(sp.focus) : null;
   const { nodes, edges } = visibleSubgraph(scope.graph, scope.idx, preset, focus);
-  const summaries = Object.fromEntries(nodes.map(n => [n.id, { title: n.title, kind: n.kind, status: n.status, defined: n.defined, body: n.body.slice(0, 1200) }]));
-  return <GraphView product={product} preset={preset} focus={focus} nodes={nodes.map(n => ({ id: n.id, kind: n.kind, title: n.title, status: n.status, defined: n.defined }))} edges={edges} summaries={summaries} />;
+  return <GraphView product={product} preset={preset} focus={focus} nodes={nodes.map(n => ({ id: n.id, kind: n.kind, title: n.title, status: n.status, defined: n.defined }))} edges={edges} />;
 }

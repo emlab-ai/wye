@@ -11,6 +11,8 @@
 //   wf node set <id> --product p [--status s] [--text t] [--set key=value ...] [--unset key ...]
 //   wf node content <id> [--product p]   the blocks under the node (its content) as markdown; --file f | stdin replaces it
 //   wf context "<text>" --product p [--all | --as-of d]   knowledge closest to a text (local semantic search; ended nodes hidden)
+//   wf packet --for "<text>" [--ref id ...] --product p [--budget N] [--all | --as-of d]   the constraints in force for a text:
+//        every rule, constraint, gate, approved decision, goal and open question within two hops of what it touches, complete
 //   wf type add <slug> --product p [--extends parent] [--purpose "…"] [--doc product/project/doc]   a proposed type card
 //   wf inbox add --product p --title "…" [--ref id ...] (body on stdin)   a raw note (pasted material) for later filing;
 //        decisions, questions, requirements and rules are blocks in the documents, not inbox items
@@ -142,6 +144,14 @@ const commands = {
     if (flags.doc) { const d = docRef(flags.doc); body.doc = `data/products/${d.product}/projects/${d.project}/docs/${d.doc}.md`; body.project = d.project; } // the route wants the repo-relative file
     const j = await api('POST', `/api/${p}/types`, body);
     return out(flags.json ? j : `type:${slug} added to ${j.file} (proposed — properties: wf node set or the type page ${WF_URL}/${p}/types/${slug})`);
+  },
+  async packet() {
+    // the constraint packet (op:api.packet): what governs a text and/or ids — complete, not a top-k; ended nodes hidden
+    const text = flags.for !== undefined ? String(flags.for) : (pos[1] || (await readStdin()));
+    const refs = list(flags.ref); if (!text.trim() && !refs.length) die('wf packet --for "<text>" [--ref id ...] [--budget N] [--all | --as-of d]');
+    const j = await api('POST', `/api/${product()}/packet`, { text, refs, budget: flags.budget ? Number(flags.budget) : undefined, all: !!flags.all, asOf: flags['as-of'] || undefined });
+    if (flags.json) return out(j);
+    console.log(`# Constraints in force: ${text.trim().slice(0, 80) || refs.join(', ')}\n\n${j.markdown}`);
   },
   async context() {
     const text = pos[1] || (await readStdin()); const j = await api('POST', `/api/${product()}/context`, { text, limit: Number(flags.limit || 10), all: !!flags.all, asOf: flags['as-of'] || undefined });

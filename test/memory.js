@@ -92,4 +92,16 @@ assert.ok(g.search('pricing', { all: true }).some(h => h.n.id === 'decision:shop
 assert.ok(g.search('pricing', { asOf: '2026-03-01' }).some(h => h.n.id === 'decision:shop.old-pricing'), '--as-of shows what held then');
 assert.ok(!g.packet('pricing').includes('## decision:shop.old-pricing'), 'packet skips ended nodes');
 
+// --- the constraint packet: structural, complete, current by construction (decision:memory.constraint-packet)
+const c = g.constraints(['entity:shop.price']);
+const ids = Object.values(c.byKind).flat().map(n => n.id);
+assert.ok(ids.includes('rule:shop.no-negative') && ids.includes('constraint:shop.local-first') && ids.includes('decision:shop.gross-pricing') && ids.includes('goal:shop.launch'), 'rule, constraint, decision, goal within two hops: ' + ids);
+assert.ok(!ids.includes('decision:shop.old-pricing') && !ids.includes('constraint:shop.old'), 'superseded and retired left out');
+assert.ok(c.hidden >= 3, 'ended nodes reached through the document are counted: ' + c.hidden);
+assert.deepStrictEqual(c.questions.map(q => q.id), ['question:shop.rounding'], 'open question on the seed, not the resolved one');
+const pk = g.renderConstraints(c);
+assert.ok(pk.includes('- rule:shop.no-negative — A price is never negative (source: lib/price.js:12)'), pk);
+assert.ok(pk.indexOf('### Constraints') < pk.indexOf('### Rules') && pk.indexOf('### Rules') < pk.indexOf('### Decisions'));
+assert.ok(g.constraints(['entity:shop.price'], { all: true }).byKind.decision.some(n => n.id === 'decision:shop.old-pricing'), '--all brings the old decision back');
+
 console.log('memory: ok');
