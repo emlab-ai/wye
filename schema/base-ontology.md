@@ -20,6 +20,12 @@ type means instances may carry properties the type does not declare without a wa
     status: string?
     owner: string?
     text: text?
+    since: date?                                      # valid time: from when the node holds (decision:memory.bitemporal)
+    until: date?                                      # valid time: when it stopped holding; filled by the parser when superseded
+    by: string?                                       # who wrote it — a person, or agent:<name>
+    session: string?                                  # the session(s) that wrote or completed it
+    evidence: list of string?                         # where it came from: session:<id>#<n>, a document, a URL, a commit (decision:memory.evidence)
+    supersedes: list of node? -(inverse)-> superseded-by
     content: list of block? -(inverse)-> parent
     related-to: list of node? -(inverse)-> related-to
     mentions: list of node? -(inverse)-> mentioned-by
@@ -173,7 +179,9 @@ type means instances may carry properties the type does not declare without a wa
     context: text?
 - id: type:decision
   extends: type:node
-  purpose: an ADR — context, alternatives, choice, consequences; proposed until a person approves it
+  purpose: >
+    an ADR — context, alternatives, choice, consequences; proposed until a person approves it; superseded when a later
+    decision names it in `supersedes:` (the parser fills its `until` and `superseded-by`)
   open: true
   props:
     date: date?
@@ -182,6 +190,49 @@ type means instances may carry properties the type does not declare without a wa
     alternatives: text?
     consequences: text?
     governs: list of node? -(inverse)-> governed-by
+    affects: list of node? -(inverse)-> affected-by
+- id: type:constraint
+  extends: type:node
+  purpose: >
+    a rule about the product or how it is built that no code enforces — "local-first", "markdown is canonical";
+    the approved ones are the constitution every agent prompt carries (decision:memory.constraint-type)
+  open: true
+  props:
+    statement: text
+    scope: list of node? -(inverse)-> constrained-by
+    rationale: ref decision? -(inverse)-> rationale-for
+- id: type:lesson
+  extends: type:node
+  purpose: >
+    procedural memory — "this broke because …", "here we always …" — learned in a session and kept for the next one;
+    the constraint packet carries it when its scope reaches the request (decision:memory.consolidate-sessions)
+  open: true
+  props:
+    statement: text
+    about: list of node? -(inverse)-> lessons
+- id: type:contradiction
+  extends: type:node
+  purpose: >
+    two nodes that cannot both hold — found by the verdict pass or written by hand; open until a person supersedes one
+    side, refines the other or dismisses it with a reason (decision:memory.write-time-verdict)
+  open: true
+  props:
+    between: list of node? -(inverse)-> contradicted-in
+    conflict: enum [static, dynamic, conditional]?
+    reason: text?
+    resolution: text?
+- id: type:verdict
+  extends: type:node
+  purpose: >
+    the verdict pass's classification of one pair — duplicate, refines, consistent or contradicts — with its reason,
+    model and prompt hash so it can be replayed; generated once and kept as content of the node it judged
+  open: true
+  props:
+    pair: list of node?
+    kind: enum [duplicate, refines, consistent, contradicts]?
+    reason: text?
+    model: string?
+    prompt: string?
 - id: type:goal
   extends: type:node
   purpose: what the product or a project sets out to achieve

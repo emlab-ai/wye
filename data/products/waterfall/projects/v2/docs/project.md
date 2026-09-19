@@ -12,6 +12,7 @@ sources:
   - docs/superpowers/specs/2026-09-14-web-ui-documents-first-design.md   # the reader: documents first, cards, smart tags, peek panel
   - docs/context-graph/waterfall.md                              # v0.1 self-description; v2 refines and resolves parts of it
   - schema/kinds.yaml
+order: 70
 ---
 
 # Waterfall v2 — project
@@ -84,6 +85,54 @@ Each phase is its own implementation plan. Exit criteria are requirements in the
 | 1 — core + server + CLI | monorepo, TypeScript port, writer, SQLite schema, HTTP + MCP with every tool, tasks and decisions stored (clerk skipped), ctx as client, skills rewritten | req:wf2.store, req:wf2.serve, req:wf2.write, req:wf2.api, req:wf2.tasks, req:wf2.decisions, req:wf2.cli |
 | 2 — web UI | sidebar, node page, graph view, tasks, decisions, contradictions (structural only), live updates | req:wf2.ui, req:wf2.contradictions.structural |
 | 3 — clerk + contradictions | clerk runtime, delta propose/apply/reject, semantic findings, strict check | req:wf2.clerk, req:wf2.contradictions |
+
+---
+
+## C. Constitution
+
+The product's constraints (decision:memory.constraint-type): rules about Wye or how it is built that no code enforces. Approved ones go verbatim into every agent's system prompt and into the constraint packet of every request; they used to live in the spec's non-goals, the agent contract's prose and the person's memory notes.
+
+```yaml
+- id: constraint:wf2.local-first
+  statement: >
+    Wye runs on the person's machine over the files of this repo. No hosting surface in v2: no multi-user auth, no
+    remote git sync, no automatic commits. Schema and API may carry the fields for it, unused.
+  scope: [module:wf2, req:wf2.serve]
+  status: proposed
+  by: alex
+  evidence: [docs/superpowers/specs/2026-09-14-waterfall-v2-design.md]
+- id: constraint:wf2.text-canonical
+  statement: >
+    Text files in git are canonical: a product's knowledge is its markdown documents; nothing is stored apart that the
+    documents do not say, and git is the rollback.
+  scope: [rule:markdown-canonical, module:wf2]
+  status: proposed
+  by: alex
+- id: constraint:wf2.person-approves
+  statement: >
+    Nothing resolves a contradiction, retires a decision or deletes memory without a person: agents, the verdict pass
+    and the consolidation run propose blocks; a person approves, resolves or dismisses them in the Inbox.
+  scope: [rule:inbox-review, req:wf2.clerk, decision:memory.write-time-verdict]
+  status: proposed
+  by: alex
+- id: constraint:wf2.blocks-not-prose
+  statement: >
+    Decisions, questions, requirements, rules, constraints and tasks are typed blocks in the document they belong to —
+    never prose, bullets or chat. A follow-up that exists only in a message is lost.
+  scope: [rule:agent-contract]
+  status: proposed
+  by: alex
+- id: constraint:wf2.one-defining-place
+  statement: Every id is defined in exactly one place; every other occurrence is a reference. Ids are stable; a rename rewrites the references.
+  scope: [rule:page-node-line, module:ontology-design]
+  status: proposed
+  by: alex
+- id: constraint:wf2.main-branch
+  statement: While Wye is a prototype, work is committed straight to main — no feature branches, no merge menus.
+  scope: [module:wf2]
+  status: proposed
+  by: alex
+```
 
 ---
 

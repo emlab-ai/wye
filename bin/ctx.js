@@ -5,7 +5,7 @@
 //   ctx site  [files...] [--out d] build the phone-friendly viewer (index.html + data.js) ready to publish
 //   ctx get <id>                   one node with all edges
 //   ctx neighbors <id> [-d N] [--kinds a,b] [--structural]
-//   ctx search <terms...>
+//   ctx search <terms...> [--all | --as-of <date>]   (superseded, rejected and retired nodes are hidden by default)
 //   ctx impact <id>                everything that depends on the node
 //   ctx packet --task "<text>" [--budget N]   a token-budgeted slice for an agent
 //   ctx check [--repo dir] [--strict]          lint the graph; exit 1 on errors
@@ -19,7 +19,7 @@ const { Graph } = require('../lib/graph');
 const argv = process.argv.slice(2);
 const cmd = argv[0];
 const opt = (name, def) => { const i = argv.indexOf('--' + name); if (i === -1) return def; const v = argv[i + 1]; return v === undefined || v.startsWith('--') ? true : v; };
-const positional = argv.slice(1).filter((a, i, arr) => !a.startsWith('-') && !(arr[i - 1] && arr[i - 1].startsWith('--') && !['--strict', '--structural', '--json'].includes(arr[i - 1])));
+const positional = argv.slice(1).filter((a, i, arr) => !a.startsWith('-') && !(arr[i - 1] && arr[i - 1].startsWith('--') && !['--strict', '--structural', '--json', '--all', '--deep'].includes(arr[i - 1])));
 const ROOT = opt('root', process.env.CTX_ROOT || (require('fs').existsSync('data/products/waterfall') ? 'data/products/waterfall' : 'docs/context-graph'));
 const BUILD = path.join(ROOT, '_build');
 const graphFile = opt('graph', path.join(BUILD, 'graph.json'));
@@ -80,7 +80,9 @@ switch (cmd) {
     }
     case 'search': {
         const g = load(); const term = positional.join(' ') || die('search <terms>');
-        for (const { n, s } of g.search(term, { limit: +opt('limit', 25) })) console.log(`${s.toFixed(1).padStart(5)}  ${n.id}${n.status ? ' [' + n.status + ']' : ''} — ${n.title}`);
+        const hits = g.search(term, { limit: +opt('limit', 25), all: argv.includes('--all'), asOf: opt('as-of', null) });
+        for (const { n, s } of hits) console.log(`${s.toFixed(1).padStart(5)}  ${n.id}${n.status ? ' [' + n.status + ']' : ''} — ${n.title}`);
+        if (hits.hidden) console.log(`(${hits.hidden} superseded / retired hidden — --all or --as-of <date> shows them)`);
         break;
     }
     case 'impact': {
@@ -93,7 +95,7 @@ switch (cmd) {
     }
     case 'packet': {
         const g = load(); const task = opt('task') || positional.join(' ') || die('packet --task "<text>"');
-        process.stdout.write(g.packet(String(task), { budget: +opt('budget', 6000), seeds: +opt('seeds', 6) }));
+        process.stdout.write(g.packet(String(task), { budget: +opt('budget', 6000), seeds: +opt('seeds', 6), all: argv.includes('--all'), asOf: opt('as-of', null) }));
         break;
     }
     case 'check': {

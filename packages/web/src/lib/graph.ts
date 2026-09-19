@@ -1,4 +1,4 @@
-export interface GraphNode { id: string; kind: string; title: string; status: string; section: string; subsection: string; body: string; defined: boolean; file: string; line: number; owner?: string; form?: 'prose' | 'yaml' | 'block' }
+export interface GraphNode { id: string; kind: string; title: string; status: string; section: string; subsection: string; body: string; defined: boolean; file: string; line: number; owner?: string; form?: 'prose' | 'yaml' | 'block'; since?: string; until?: string; by?: string; supersededBy?: string }
 export interface GraphEdge { from: string; to: string; verb: string; generated?: boolean }
 export interface GraphModule { id: string; title: string; file: string; verified: string; sourceRoots: string[] }
 // ontology (lib/parse.js pass 1): a property of a type, effective on the type (own or inherited from `from`)
@@ -12,6 +12,17 @@ export interface ModuleGroup { module: GraphNode; file: string; sections: { titl
 export const STRUCTURAL = new Set(['refines', 'satisfied-by', 'verified-by', 'governed-by', 'gated-by', 'has', 'refs', 'owns', 'calls', 'has-action', 'reads', 'writes', 'navigates', 'triggers', 'set-by', 'embedded-in', 'typed-as', 'contradicts', 'owned-by', 'applies-to', 'governs', 'edge-to', 'resolves', 'depends-on', 'adds', 'changes', 'part-of', 'related-to', 'produced']);
 // generated or anonymous nodes: they exist for addressing and links and stay out of lists, rails, search and the index
 export const HIDDEN_KINDS = new Set(['field', 'prop', 'block']);
+// Valid time (decision:memory.bitemporal, req:memory.current-by-construction — the twin of lib/graph.js#isCurrent): a
+// node is current unless its status ended it, a later node superseded it, or its `until` has passed / `since` not come.
+export const ENDED = new Set(['superseded', 'rejected', 'retired']);
+export function isCurrent(n: Pick<GraphNode, 'status' | 'since' | 'until' | 'supersededBy'>, asOf?: string | null): boolean {
+  if (asOf) { if (n.until && n.until <= asOf) return false; if (n.since && n.since > asOf) return false; return !ENDED.has(n.status) || !!(n.until && n.until > asOf); }
+  if (ENDED.has(n.status) || n.supersededBy) return false;
+  const now = new Date().toISOString().slice(0, 10);
+  if (n.until && n.until <= now) return false;
+  if (n.since && n.since > now) return false;
+  return true;
+}
 export const PROSE_KEYS = new Set(['purpose', 'note', 'notes', 'statement', 'description', 'context', 'consequences', 'intent', 'q', 'text']);
 
 export function indexGraph(g: GraphData): GraphIndex {

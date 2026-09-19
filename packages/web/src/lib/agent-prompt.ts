@@ -4,6 +4,9 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { REPO_ROOT } from './products';
 import { readdir } from 'node:fs/promises';
+import { loadGraph } from './load';
+import { indexGraph } from './graph';
+import { constitutionSection } from './constitution';
 
 export async function agentSystemPrompt(product: string, productDir: string, wfUrl: string): Promise<string> {
   let base = '';
@@ -15,5 +18,8 @@ export async function agentSystemPrompt(product: string, productDir: string, wfU
   const plans: string[] = [];
   try { for (const proj of await readdir(path.join(productDir, 'projects'))) { try { const files = await readdir(path.join(productDir, 'projects', proj, 'docs')); const plan = files.find(f => f === 'plan.md') ?? files.find(f => /plan/i.test(f) && !/^plans?[-.]/i.test(f)); if (plan) plans.push(`- project \`${proj}\`: ${path.join(REPO_ROOT, 'data/products', product, 'projects', proj, 'docs', plan)}`); } catch { /* no docs */ } } } catch { /* no projects */ }
   const env = `\n\n## This product\n- product: \`${product}\` (WF_PRODUCT=${product}); Wye repo: ${REPO_ROOT}; app: ${wfUrl}\n- documents: ${REPO_ROOT}/data/products/${product}/projects/<project>/docs/*.md; graph check: \`ctx --root data/products/${product} check\` (run from ${REPO_ROOT})\n- the \`wf\` CLI is on PATH (WF_URL=${wfUrl})${plans.length ? `\n- plan documents (follow-ups go here as task lines):\n${plans.join('\n')}` : ''}`;
-  return base.trim() + env + (own.trim() ? `\n\n## Product instructions\n${own.trim()}` : '') + '\n';
+  // the constitution (decision:memory.constraint-type): the product's approved constraints, verbatim, in every prompt
+  let constitution = '';
+  try { const g = await loadGraph(path.join(productDir, '_build/graph.json')); constitution = constitutionSection(g, indexGraph(g)); } catch { /* no graph yet */ }
+  return base.trim() + env + constitution + (own.trim() ? `\n\n## Product instructions\n${own.trim()}` : '') + '\n';
 }

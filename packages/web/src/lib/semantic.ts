@@ -6,7 +6,7 @@ import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import type { GraphData, GraphNode } from './graph';
-import { HIDDEN_KINDS } from './graph';
+import { HIDDEN_KINDS, isCurrent } from './graph';
 import { parseBody } from './graph';
 import { REPO_ROOT } from './products';
 
@@ -16,6 +16,8 @@ const PROSE_KEYS = ['text', 'title', 'statement', 'description', 'when', 'then',
 type Entry = { id: string; hash: string; vec: number[] };
 type Cache = { model: string; entries: Record<string, Entry> };
 export type Hit = { id: string; score: number; semantic: number; keyword: number; snippet: string };
+// hits plus how many ended nodes (superseded, rejected, retired, past `until`) the filter kept out
+export type Hits = Hit[] & { hidden?: number };
 
 let embedder: Promise<(texts: string[]) => Promise<number[][]>> | null = null;
 function getEmbedder() {
@@ -79,21 +81,26 @@ function keywordScore(words: string[], text: string, id: string): number {
   return hit / words.length;
 }
 
-// Rank nodes for a piece of text. `exclude` drops the node being edited and ids already linked from it.
-export async function search(productDir: string, graph: GraphData, q: string, opts: { limit?: number; exclude?: string[] } = {}): Promise<Hit[]> {
+// Rank nodes for a piece of text. `exclude` drops the node being edited and ids already linked from it. Ended nodes
+// leave the ranking by construction (req:memory.current-by-construction) unless `all` or `asOf` asks for them; the
+// result's `hidden` says how many.
+export async function search(productDir: string, graph: GraphData, q: string, opts: { limit?: number; exclude?: string[]; all?: boolean; asOf?: string | null } = {}): Promise<Hits> {
   const query = q.replace(/\s+/g, ' ').trim();
   if (query.length < 3) return [];
   const idx = await getIndex(productDir, graph);
   const [qv] = await (await getEmbedder())([query.slice(0, 1500)]);
   const words = keywords(query);
   const ex = new Set(opts.exclude ?? []);
-  const hits: Hit[] = [];
+  const hits: Hits = []; let hidden = 0;
   for (const n of idx.nodes) {
     if (ex.has(n.id)) continue;
+    if (!opts.all && !isCurrent(n, opts.asOf)) { hidden++; continue; }
     const v = idx.vecs.get(n.id)!; let dot = 0; for (let i = 0; i < v.length; i++) dot += v[i] * qv[i];
     const kw = keywordScore(words, idx.texts.get(n.id)!, n.id);
     const score = 0.7 * dot + 0.3 * Math.min(1, kw);
     hits.push({ id: n.id, score, semantic: dot, keyword: kw, snippet: idx.texts.get(n.id)!.slice(0, 160) });
   }
-  return hits.sort((a, b) => b.score - a.score).slice(0, opts.limit ?? 12);
+  const out: Hits = hits.sort((a, b) => b.score - a.score).slice(0, opts.limit ?? 12);
+  out.hidden = hidden;
+  return out;
 }

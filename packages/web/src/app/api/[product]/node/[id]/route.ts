@@ -40,6 +40,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
   if (session && id.startsWith('task:') && patch.status === 'done') patch.props = { ...(patch.props ?? {}), session: addToken((scope.idx.byId.get(id)?.body.match(/^session:\s*(.+)$/m)?.[1] ?? ''), session) };
   const r = await editNode(scope, id, patch);
   if (!r.ok) return NextResponse.json({ error: r.error, message: r.message }, { status: r.error === 'not_found' ? 404 : 422 });
+  // approving a node that names what it supersedes retires the old ones in the same act (decision:memory.bitemporal)
+  if (patch.status === 'approved') for (const e of scope.idx.out.get(id) ?? []) if (e.verb === 'supersedes' && scope.idx.byId.get(e.to)?.defined) await editNode(scope, e.to, { status: 'superseded' }).catch(() => undefined);
   if (session) { const n = scope.idx.byId.get(id); recordArtifact(scope.product.dir, session, { node: id, blocks: [{ id, change: 'changed', doc: n ? docIdOf(scope.graph, n.file) ?? '' : '', title: n?.title ?? id, at: new Date().toISOString() }] }).catch(() => {}); }
   return NextResponse.json({ ok: true, line: r.line, file: r.file });
 }

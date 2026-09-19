@@ -10,7 +10,7 @@
 //   wf node <id> [--product p]           a node with its relations
 //   wf node set <id> --product p [--status s] [--text t] [--set key=value ...] [--unset key ...]
 //   wf node content <id> [--product p]   the blocks under the node (its content) as markdown; --file f | stdin replaces it
-//   wf context "<text>" --product p      knowledge closest to a text (local semantic search)
+//   wf context "<text>" --product p [--all | --as-of d]   knowledge closest to a text (local semantic search; ended nodes hidden)
 //   wf type add <slug> --product p [--extends parent] [--purpose "…"] [--doc product/project/doc]   a proposed type card
 //   wf inbox add --product p --title "…" [--ref id ...] (body on stdin)   a raw note (pasted material) for later filing;
 //        decisions, questions, requirements and rules are blocks in the documents, not inbox items
@@ -144,9 +144,10 @@ const commands = {
     return out(flags.json ? j : `type:${slug} added to ${j.file} (proposed — properties: wf node set or the type page ${WF_URL}/${p}/types/${slug})`);
   },
   async context() {
-    const text = pos[1] || (await readStdin()); const j = await api('POST', `/api/${product()}/context`, { text, limit: Number(flags.limit || 10) });
+    const text = pos[1] || (await readStdin()); const j = await api('POST', `/api/${product()}/context`, { text, limit: Number(flags.limit || 10), all: !!flags.all, asOf: flags['as-of'] || undefined });
     if (flags.json) return out(j);
     for (const h of j.hits) console.log(`${Math.round(h.score * 100).toString().padStart(3)}%  ${h.id}  ${h.snippet.slice(0, 100)}`);
+    if (j.hidden) console.log(`(${j.hidden} superseded / retired hidden — --all or --as-of <date> shows them)`);
   },
   async inbox() {
     const p = product();

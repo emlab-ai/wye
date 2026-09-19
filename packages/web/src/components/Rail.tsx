@@ -11,7 +11,7 @@ const MIN_PANE = 96; // the least a pane keeps when the splitter is dragged: a f
 
 export type RailProject = { slug: string; title: string; icon: string; kind: string; status: string; main: string; roots: TreeItem[]; docs: { slug: string; title: string }[] };
 
-// The left rail: product switcher, menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inbox, Agents,
+// The left rail: product switcher, menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Constitution, Questions, Inbox, Agents,
 // then the Plans system folder — component:plan-folder), then every project's documents as one tree.
 export function Rail({ products, product, projects, plans, headings }: { products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; plans: PlanItem[]; headings: { doc: string; slug: string; text: string }[] }) {
   const path = usePathname(); const router = useRouter();
@@ -57,6 +57,7 @@ export function Rail({ products, product, projects, plans, headings }: { product
         {item(`${base}/knowledge`, 'Knowledge', '◈')}
         {item(`${base}/types`, 'Types', '⬡')}
         {item(`${base}/graph`, 'Graph', '⌬')}
+        {item(`${base}/constitution`, 'Constitution', '§')}
         {item(`${base}/questions`, 'Questions', '?')}
         {item(`${base}/inbox`, 'Inbox', '⇩')}
         {item(`${base}/sessions`, 'Agents', '⚡')}
