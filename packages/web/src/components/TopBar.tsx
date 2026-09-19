@@ -81,7 +81,7 @@ export function TopBar({ product, docs }: { product: { slug: string; title: stri
   const parts = path.split('/').filter(Boolean); // [product, ...]
   const crumbs: { href: string; label: string; icon?: string }[] = [{ href: `/${product.slug}`, label: product.title, icon: product.icon || '◆' }];
   let doc: DocMeta | undefined; let edited = '';
-  if (parts[1] === 'sessions' && parts[2]) { crumbs.push({ href: `/${product.slug}/sessions`, label: PAGES.sessions }, { href: `/${product.slug}/sessions/${parts[2]}`, label: `session ${parts[2].slice(0, 6)}` }); if (parts[3]) crumbs.push({ href: path, label: parts[3] }); }
+  if (parts[1] === 'sessions' && parts[2]) { crumbs.push({ href: `/${product.slug}/sessions`, label: PAGES.sessions }, { href: path, label: `session ${parts[2].slice(0, 6)}${parts[3] === 'changes' ? ' · changes' : ''}`, icon: '⚡' }); }
   else if (parts[1] === 'types' && parts[2]) crumbs.push({ href: `/${product.slug}/types`, label: PAGES.types }, { href: path, label: parts[2] });
   else if (parts[1] && PAGES[parts[1]]) crumbs.push({ href: `/${product.slug}/${parts[1]}`, label: PAGES[parts[1]] });
   else if (parts[1] === 'knowledge' && parts[2]) crumbs.push({ href: `/${product.slug}/knowledge`, label: 'Knowledge' }, { href: path, label: parts[2] });

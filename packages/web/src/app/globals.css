@@ -46,17 +46,14 @@ code, pre { font-family: var(--font-m); }
 
 /* ===== graph page ===== */
 .gwrap { display: flex; flex-direction: column; height: 100dvh; }
-.gbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--surface); }
-.gbar .chip { text-decoration: none; color: var(--ink-2); cursor: pointer; }
-.gbar .chip.on { background: var(--ink); color: var(--ground); border-color: var(--ink); }
-.gbar .chip.on a { color: var(--ground); margin-left: 6px; text-decoration: none; }
-.gbar .cnt { margin-left: auto; font: 11px var(--font-m); color: var(--muted); }
 .gcanvas { flex: 1; min-height: 0; position: relative; background: var(--ground); }
-.gpanel { position: absolute; right: 12px; top: 12px; width: min(380px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow-y: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: 0 8px 30px rgba(0,0,0,.15); z-index: 5; }
-.gpanel h3 { margin: 6px 0 2px; font-size: 15px; } .gpanel code { font-size: 11px; color: var(--muted); word-break: break-all; }
-.gp-acts { display: flex; gap: 10px; margin: 8px 0; font-size: 13px; } .gp-acts button { background: none; border: 0; color: var(--accent); cursor: pointer; font: inherit; padding: 0; }
 .props.small { margin: 6px 0 0; padding: 8px 10px; grid-template-columns: 90px 1fr; font-size: 12px; }
-.react-flow__node { cursor: pointer; }
+.react-flow__node { cursor: default; }
+/* the graph's cards (req:wf2.ui.graph-cards): the editor's embedded card on the canvas, one solid box so the edges stop at it; the "from" line is the drag grip */
+.gnode { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 4px 18px rgba(0,0,0,.18); } .gnode.focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), 0 4px 18px rgba(0,0,0,.18); }
+.gnode .embed { margin: 0; } .gnode .embed-from { padding: 6px 12px 0; cursor: grab; } .gnode .embed-from:active { cursor: grabbing; }
+.gnode .nblock { background: transparent; border: 0; border-radius: 0; margin: 0; padding: 4px 12px 10px; } .gnode .nblock:hover, .gnode .nblock:focus-within { background: var(--sunk); border-radius: 0 0 10px 10px; }
+.gnode .react-flow__handle { width: 6px; height: 6px; background: var(--line-2); border: 0; }
 
 /* ===== smart tags, cards, peek panel ===== */
 .tag { display: inline-flex; align-items: center; gap: 5px; padding: 0 7px 0 5px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface); font: 500 12px/1.7 var(--font-m); color: var(--ink); text-decoration: none; vertical-align: baseline; white-space: nowrap; max-width: 100%; }
@@ -545,7 +542,7 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .pf-empty { padding: 4px 8px 4px 36px; font-size: 13px; }
 
 /* the content editor in the column (req:wf2.ui.node-content): the page's editor, compact, scoped to one node */
-.content { margin: 18px 0 4px; } .content h4 { margin: 0 0 4px; }
+.peek .content { margin: 18px 0 4px; } .peek .content h4 { margin: 0 0 4px; }
 .content-editor { border: 1px solid var(--line); border-radius: 8px; background: var(--paper, transparent); }
 .content-editor .doc-editor { margin: 0; } .content-editor .doc-editor-bar { padding: 0 10px; min-height: 0; font-size: 11px; position: absolute; right: 0; top: -20px; } .content-editor .doc-editor-bar .save-state.idle { display: none; } .content-editor { position: relative; } .content-editor .bn-editor { padding-inline: 10px; padding-block: 6px; min-height: 40px; font-size: 14px; }
 /* a card's fold (req:wf2.ui.card-preview): the count of blocks under the node in its header; an embed's preview under the text */
@@ -573,3 +570,6 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .tab.pinned { padding-right: 6px; }
 .peek-chip-x { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 12px; padding: 0 3px; } .peek-chip-x:hover { color: var(--bad); }
 @media (prefers-reduced-motion: reduce) { .tab-x, .tab-pin { transition: none; } }
+
+/* a conversation as a page: the same session view, the page's width, the message box stuck to the bottom of the content column */
+.session-page { max-width: 960px; } .session-page .console { margin-top: 12px; }

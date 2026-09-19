@@ -2,6 +2,7 @@
 import { PlanList } from './PlanList';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePeek } from './PeekProvider';
+import { useRouter } from 'next/navigation';
 import { SmartTag } from './SmartTag';
 import { agentLabel, when } from './SessionView';
 import { requestSend } from './CommandBox';
@@ -15,14 +16,14 @@ import { docTitles, plainAppLinks } from '@/lib/app-link';
 // instruction it shows the queue with each item's state (req:wf2.sessions.queue-on-agents); on hover it offers Stop
 // (live rows: the process ends, the context survives) and Close (active rows: cancelled, waiting items dropped), and
 // the header "Stop idle (n)" ends every live conversation with no open turn and nothing waiting
-// (req:wf2.sessions.stop-from-list).
+// (req:wf2.sessions.stop-from-list). A row opens the conversation as a page of its own (a tab), not in the column.
 export const isActive = (s: Session) => s.status === 'queued' || s.status === 'running' || !!s.live;
 // the pill a conversation shows: what its process is doing when it has one, its recorded status otherwise
 export const shownStatus = (s: Session) => s.busy ? 'working' : s.live ? 'live' : s.status;
 // live, no open turn, nothing waiting: what "Stop idle" ends
 export const isIdle = (s: Session) => !!s.live && !s.busy && !(s.queue ?? []).some(q => !q.sentAt);
 export function SessionList({ product, initial, initialRunners }: { product: string; initial: Session[]; initialRunners: Runner[] }) {
-  const { open, openId, index } = usePeek();
+  const { openId, index } = usePeek(); const router = useRouter();
   const [origin, setOrigin] = useState(''); useEffect(() => { setOrigin(window.location.origin); }, []);
   const titles = docTitles(index);
   const [sessions, setSessions] = useState(initial);
@@ -50,7 +51,7 @@ export function SessionList({ product, initial, initialRunners }: { product: str
       <div className="runners">
         <h4>Agents <span className="muted">{working} working · {idle} live and idle · {runners.length} runner{runners.length === 1 ? '' : 's'} online</span><span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>{idleOnes.length > 0 && <button className="mini" title="End the process of every live conversation that has no open turn and nothing waiting; their context comes back with Resume or a message" onClick={stopIdle}>Stop idle ({idleOnes.length})</button>}<button className="mini" onClick={() => requestSend({})}>+ New conversation</button></span></h4>
         {runners.length
-          ? <ul>{runners.map(r => <li key={r.name}><span className={`rdot ${r.busy ? 'busy' : ''}`} /><strong>{r.name}</strong><span className="muted">{agentLabel(r.agent)} · {r.host}{r.cwd ? ' · ' + r.cwd.replace(/^\/Users\/[^/]+/, '~') : ''}</span>{r.busy ? <button className="linkish" onClick={() => open(`session:${r.busy}`)}>on session {r.busy.slice(0, 6)}</button> : <span className="muted">idle</span>}</li>)}</ul>
+          ? <ul>{runners.map(r => <li key={r.name}><span className={`rdot ${r.busy ? 'busy' : ''}`} /><strong>{r.name}</strong><span className="muted">{agentLabel(r.agent)} · {r.host}{r.cwd ? ' · ' + r.cwd.replace(/^\/Users\/[^/]+/, '~') : ''}</span>{r.busy ? <button className="linkish" onClick={() => router.push(`/${product}/sessions/${r.busy}/chat`)}>on session {r.busy.slice(0, 6)}</button> : <span className="muted">idle</span>}</li>)}</ul>
           : <p className="muted">No runner is connected. Start one next to the code it should work on:<br /><code>wf agent listen --product {product} --agent claude-code</code> (or <code>--agent codex</code>). It picks up queued work for that agent and streams its output here.</p>}
       </div>
       <div className="track-tools"><div className="chips">
@@ -60,7 +61,7 @@ export function SessionList({ product, initial, initialRunners }: { product: str
       {!shown.length && <p className="muted">{filter === 'active' ? 'No agent is active. ⌘P or Send to agent on any block starts one.' : 'No agents have worked here yet.'}</p>}
       <ul className="session-rows">
         {shown.map(s => (
-          <li key={s.id} className={`session-row ${openId === `session:${s.id}` ? 'on' : ''}`} onClick={() => open(`session:${s.id}`)}>
+          <li key={s.id} className={`session-row ${openId === `session:${s.id}` ? 'on' : ''}`} onClick={() => router.push(`/${product}/sessions/${s.id}/chat`)}>
             <span className={`pill s ${shownStatus(s)}`} title={s.live ? `process up · recorded status: ${s.status}` : s.status}>{shownStatus(s)}</span>
             <div className="session-row-main">
               <div className="session-row-title">{plainAppLinks(s.instruction.split('\n').find(l => l.trim()) ?? '(no instruction)', origin, titles)}</div>
