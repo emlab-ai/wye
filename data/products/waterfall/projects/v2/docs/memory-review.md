@@ -293,6 +293,10 @@ The type as it would be declared in `schema/base-ontology.md` once approved (a `
   part-of: goal:memory.validated-asks
 ```
 
+  verdict:e0f217651378 contradicts req:wf2.contradictions — A requires contradictions to stay open until resolved; B archives plans (excluding them from default retrieval unless --all), but contradictions are findings, not listed as knowledge blocks that stay visible, risking hidden unresolved contradictions (kind: contradicts, conflict: conditional, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:wf2.contradictions decision:memory.forgetting)
+
+  contradiction:waterfall.e0f217651378 decision:memory.forgetting contradicts req:wf2.contradictions — A requires contradictions to stay open until resolved; B archives plans (excluding them from default retrieval unless --all), but contradictions are findings, not listed as knowledge blocks that stay visible, risking hidden unresolved contradictions #open (between: decision:memory.forgetting req:wf2.contradictions, conflict: conditional)
+
 ### 6. Evidence on every claim, shapes in the ontology, and a benchmark
 
 ```yaml
@@ -423,8 +427,8 @@ Three things decide whether it works, and they are the questions below: what liv
 - [x] task:memory.decision-statuses Give the 43 status-less decisions a status (approved where the code follows them, superseded where a later one replaced them) and `supersedes` where the prose says so. Part of goal:memory.validated-asks. (session: 9f3d83809b)
 - [x] task:memory.constraint-type Declare type:constraint in the base ontology, move the product's constraints out of _agent.md and the spec's non-goals into constraint: blocks, add the Constitution view and the `## Constitution` section of the agent prompt. Part of goal:memory.validated-asks (decision:memory.constraint-type). (session: 9f3d83809b)
 - [x] task:memory.verdict-pass The write-time verdict pass on new or changed decision / req / rule / constraint blocks: pair classification with reasons, verdict blocks with model and prompt hash, contradiction: nodes with kind and lifecycle, Inbox rows with verdicts and the supersede / refine / dismiss choice on approval. Part of goal:memory.validated-asks (decision:memory.write-time-verdict). (session: 9f3d83809b)
-- [ ] task:memory.benchmark The hide-one-edge regression over the 78 contradicts edges: recall and precision per conflict kind, recorded verdicts for CI, live behind WATERFALL_LIVE=1. Part of goal:memory.validated-asks (decision:memory.benchmark). Before task:memory.verdict-pass is on by default.
-- [ ] task:memory.consolidate The consolidation run on session done: candidates from the transcript, diff against produced blocks, misses filed as proposed blocks with evidence in the plan document; type:lesson. Part of goal:memory.validated-asks (decision:memory.consolidate-sessions).
+- [x] task:memory.benchmark The hide-one-edge regression over the 78 contradicts edges: recall and precision per conflict kind, recorded verdicts for CI, live behind WATERFALL_LIVE=1. Part of goal:memory.validated-asks (decision:memory.benchmark). Before task:memory.verdict-pass is on by default. (session: 9f3d83809b)
+- [x] task:memory.consolidate The consolidation run on session done: candidates from the transcript, diff against produced blocks, misses filed as proposed blocks with evidence in the plan document; type:lesson. Part of goal:memory.validated-asks (decision:memory.consolidate-sessions). (session: 9f3d83809b)
 - [x] task:memory.forgetting Archived-for-retrieval state for done plans and closed sessions; retrieval, packet and search skip them unless --all; the rail folds them. Part of goal:memory.validated-asks (decision:memory.forgetting). (session: 9f3d83809b)
 - [x] task:memory.shapes `shapes:` on type cards read by the parser and enforced by ctx check; move the two hardcoded checks into the base ontology. Part of goal:memory.validated-asks (decision:memory.shapes). (session: 9f3d83809b)
 - [x] task:memory.lint-deep `ctx check --deep`: the verdict pass over every same-kind pair that shares a neighbour, on demand (Karpathy's lint --deep), reporting new contradictions. Part of goal:memory.validated-asks. (session: 9f3d83809b)
