@@ -153,7 +153,7 @@ onSessionEnd(async (productDir, s) => {
   if (!s.planDoc) return;
   if (s.role === 'librarian') { await librarianLeft(productDir, s).catch(() => undefined); return; }
   await finishPlanDoc(productDir, s);
-});
+}, 'plan-docs');
 async function librarianLeft(productDir: string, s: Session): Promise<void> {
   const at = await planDocFile(s.product, s.planDoc!); if (!at) return;
   let md: string; try { md = await readFile(at.file, 'utf8'); } catch { return; }

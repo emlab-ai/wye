@@ -50,9 +50,15 @@ async function mutate<T>(productDir: string, id: string, fn: (s: Session) => T |
 }
 // Hooks run once a session reaches done / failed / cancelled (the plan document's result, rule:plan-doc); after the
 // record is saved, outside the file lock.
-export type EndHook = (productDir: string, s: Session) => Promise<void>;
+export type EndHook = ((productDir: string, s: Session) => Promise<void>) & { key?: string };
 const endHooks: EndHook[] = (globalThis as unknown as { __wfEndHooks?: EndHook[] }).__wfEndHooks ??= [];
-export function onSessionEnd(fn: EndHook): void { if (!endHooks.includes(fn)) endHooks.push(fn); }
+// every hook is keyed now: an unkeyed one is a dev reload's leftover from an older module, dropped on load
+for (let i = endHooks.length - 1; i >= 0; i--) if (!endHooks[i].key) endHooks.splice(i, 1);
+// `key` names the hook so a dev reload's fresh module replaces its old registration instead of adding a second
+export function onSessionEnd(fn: EndHook, key?: string): void {
+  if (key) { fn.key = key; const i = endHooks.findIndex(h => h.key === key); if (i >= 0) { endHooks[i] = fn; return; } }
+  if (!endHooks.includes(fn)) endHooks.push(fn);
+}
 
 export async function updateSession(productDir: string, id: string, patch: { status?: SessionStatus; line?: string; lines?: string[]; result?: string; runner?: string; agentSessionId?: string; forgetAgentSession?: boolean; cwd?: string; totalCostUsd?: number }): Promise<Session | null> {
   let ended = false;

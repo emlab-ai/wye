@@ -71,7 +71,8 @@ export function patchYamlCard(md: string, id: string, patch: NodePatch): { md: s
   let end = start + 1; while (end < lines.length && lines[end].startsWith(indent) && !/^\s*-\s*id:/.test(lines[end]) && lines[end].trim() && !lines[end].startsWith('```')) end++;
   const keyAt = (key: string) => lines.findIndex((l, k) => k > start && k < end && new RegExp('^' + indent + key + ':').test(l));
   const blockEnd = (i: number) => { let j = i + 1; while (j < end && lines[j].startsWith(indent + ' ')) j++; return j; };
-  const render = (key: string, value: string) => /\n|: |^[-'"[{&*!|>%@`#]/.test(value) || value.length > 100
+  // an inline list `[a, b]` stays inline whatever its length; anything yaml would misread or that runs long is folded
+  const render = (key: string, value: string) => !(/^\[[^\n]*\]$/.test(value)) && (/\n|: |^[-'"[{&*!|>%@`#]/.test(value) || value.length > 100)
     ? [`${indent}${key}: >`, ...value.split('\n').map(l => l.trim() ? `${indent}  ${l.trim()}` : '')].filter((l, i, a) => l || (i > 0 && i < a.length - 1))
     : [`${indent}${key}: ${value}`];
   const setKey = (key: string, value: string | null) => {

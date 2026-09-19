@@ -123,4 +123,4 @@ onSessionEnd(async (productDir, s) => {
   if (!(await consolidateEnabled(productDir))) return;
   const product = path.basename(productDir);
   void consolidateSession(productDir, product, s).then(r => updateSession(productDir, s.id, { line: r.filed.length ? `consolidation: ${r.filed.length} block(s) the conversation decided but nobody wrote — filed as proposed on ${r.doc}: ${r.filed.join(', ')}` : `consolidation: ${r.candidates.length ? 'everything the conversation decided was written' : 'nothing to consolidate'}` })).catch(e => updateSession(productDir, s.id, { line: `consolidation failed: ${e instanceof Error ? e.message : e}` }));
-});
+}, 'consolidate');

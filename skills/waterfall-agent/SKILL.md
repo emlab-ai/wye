@@ -26,6 +26,10 @@ wf resolve <link|id>            # a link to a block, node, heading or document �
 wf doc <product/project/doc>    # a whole document (markdown)
 wf node <id>                    # one node with its body and edges (kind:slug, e.g. req:offline.g4)
 wf context "<text>"             # the knowledge closest to a piece of text (local semantic search; superseded / retired / archived hidden, --all shows them)
+wf work list [--unassigned | --mine <name> | --goal <id>]   # the Work view: every task with its state and worker — what is planned or in progress
+wf impact <id> --after "<new text>"   # before editing an approved node: what the edit reaches and what each reached node needs
+                                #   (unaffected | update | rework | contradicts | ask); every edit keeps its old value as a change record
+wf explain <id | "text">        # one librarian turn: the current state around a node or a text, with the nodes as tags
 ctx --root data/products/<product> packet --task "<sentence>"   # a token-budgeted slice of the graph (offline)
 ```
 
@@ -38,6 +42,9 @@ A link like `…/yessensei/offline/d/prd#n-goal%3Aoffline.g2` points at a node; 
   (decisions, requirements, rules, constraints, lessons) or `status: open` (questions); the Inbox page lists what waits
   for approval. A decision carries `by:` (who decided), `evidence:` (session:<id>, a document, a URL) and, when it
   replaces an earlier one, `supersedes:` — approving it retires the old one; never edit or delete the old block.
+- Work: `wf work add "<text>" [--part-of <id>] [--ready]` writes a task line (under the node, else the plan's Backlog)
+  for a follow-up; `wf propose <product/project/doc> --plan <plan ref>` (a yaml card on stdin) writes one proposed
+  block into its home document and embeds it on a plan's Definition; `wf plan <plan ref>` shows a plan's Definition.
 - Raw notes without a document: `wf inbox add --type note --title "…"` (pasted conversations, meeting notes).
 - Whatever is indented two spaces under a node's line is its content: blocks of any kind, each a node with content
   of its own, to any depth (a sub-task is a task line indented under its task; no heading needed). A document shows

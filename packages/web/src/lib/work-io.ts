@@ -105,7 +105,7 @@ onSessionEnd(async (productDir, s) => {
   const n = scope.idx.byId.get(s.task); if (!n?.defined || n.status === 'done') return;
   await editNode(scope, s.task, { status: s.status === 'done' ? 'review' : 'todo' }).catch(() => undefined);
   void productDir;
-});
+}, 'work-io');
 
 // Where a captured task goes (req:exec.capture): under the node it was captured from when there is one, else the
 // project's plan document (`plan.md`, the follow-ups home) under "## Backlog", appended.

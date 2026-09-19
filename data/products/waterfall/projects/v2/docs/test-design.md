@@ -208,7 +208,11 @@ One node per test file. Requirements and rules point here with `requires-tests: 
     - mdflow: unwrapParagraphs keeps lists, tables, code, headings, rules and hard breaks; tagifyInline splits text on ids, keeps punctuation, turns code-only ids into tags, recurses into links and table cells, leaves code blocks alone
     - serialize: inline styles, tags and links; prose and yaml node lines (text key and status rewritten in place, comments kept); headings, lists, tables, code, dividers, merged yaml groups
     - import: prepare lifts yaml blocks, rules and id links into markers and escapes tag-like angle brackets; expand turns markers into divider and node blocks, id-first paragraphs into prose nodes, link markers into links; round trip through the serializer
-  count: 57
+    - work: workItems derives queued / working / stalled / held / unassigned / done from the sessions on a task, nests a plan's tasks under its request task and sub-tasks under their task, priority then document order; filterWork (done hidden, mine, goal, plan, search keeps a matching child's parent), groupWork (review first), workCounts, nextReady, assignRefusal
+    - changes: nodeValue (text key apart from status and properties), changedKeys, tracking-only, recordsFromDiff (pending for an agent or an approved node, accepted for tracking-only and a person's own proposed block, none for paragraphs), revertPatch (title as a property, removed keys null), changedSince; diff: wordDiff
+    - plan-doc (execution): the request task line with worker, session and part-of; an assigned task embedded instead; requestTaskStatusOnEnd; definitionIds (top-level embeds, cards, prose lines; verdicts and indented content ignored), withDefinition (idempotent, creates the section before Plan), definitionState (a task agreed once it is work; open contradictions on agreed blocks), planStatusFromDefinition
+    - node-line: the #ready mark beside the status, review
+  count: 71
 ```
 
 ### Web components (vitest + React Testing Library)
@@ -523,6 +527,9 @@ decision:memory.benchmark: before the write-time verdict pass (decision:memory.w
 - id: test:memory
   file: test/memory.js
   count: bitemporal, current-by-construction, constraint packet, shapes, forgetting, verdict pairs and lines
+- id: test:impact
+  file: test/impact.js
+  count: structural candidates with paths and decay (refined-by, satisfied-by, contains, affected-by, related-from, mentioned-by), verbatim repeat, the judged run through test/fake-impact.js (update with new text, rework, contradicts, ask, unaffected; batches; cache; budget)
 - id: test:verdicts
   file: packages/web/src/lib/verdicts.test.ts
   count: 4
@@ -551,4 +558,97 @@ What the misses say: the pilot's drift rows record a description against reality
     with use.
   status: open
   related-to: [decision:memory.benchmark, decision:memory.write-time-verdict, test:verdict-bench]
+```
+
+## Execution: work, changes, impact, the librarian (module:prd-execution)
+
+Verified 2026-09-19 (session de966d3bd9) in Chrome with playwright-core against the dev server, on a scratch product
+the script creates and removes — /tmp/wfpw/exec.mjs, 42 checks — and, for the librarian's turns, live on a second
+scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
+
+```yaml
+- id: ui-test:work-view
+  file: (run by hand with playwright-core against the dev server — /tmp/wfpw/exec.mjs; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    a scratch product with four task lines (one with part-of a goal, one #ready blocked-by the first, one #ready with
+    priority 2, one done): the Work page grouped by status shows the three open rows with the priority-2 task first,
+    every state unassigned, the ready and blocked marks; "done work" adds the fourth row and lands in the URL
+    (done=1); ?group=goal groups under the goal; the search narrows to one row; /tasks redirects to /work
+    (2026-09-19: 7 checks passed)
+  status: passed
+  verifies: [req:exec.work-view, req:exec.work-states, req:exec.human-work, rule:work-state, rule:work-nesting]
+  last-run: 2026-09-19
+- id: ui-test:work-assign
+  file: (run by hand with playwright-core — /tmp/wfpw/exec.mjs)
+  scenario: >
+    the Assign dialog lists claude-code, codex, the runner pool and the product's people; a person as worker writes
+    `worker: bo` on the line and the row shows held · bo; a blocked task and a done task are refused with the reason;
+    the runner pool with a note makes a queued run session whose refs carry the task and its document and whose plan
+    embeds the task; the row reads queued, the ready mark spent, in progress; a runner's claim turns it working; a
+    second assign is refused with 409; the session ending moves the task to #review and the task panel shows the
+    result; a capture writes a task line under the goal; work/next answers nothing (one blocked, one taken)
+    (2026-09-19: 15 checks passed)
+  status: passed
+  verifies: [req:exec.dispatch, req:exec.request-is-a-task, req:exec.done-comes-back, req:exec.capture, req:exec.ready-for-runners, rule:assign-refusal, rule:capture-home, rule:take-ready]
+  last-run: 2026-09-19
+- id: ui-test:change-review
+  file: (run by hand with playwright-core — /tmp/wfpw/exec.mjs)
+  scenario: >
+    an edit of an approved requirement's `then` through the node API becomes a pending change record with before and
+    after, changed = then, by person; with impact: manual the record carries the structural candidates (the refining
+    sub-requirement with path refined-by, the satisfying rule) and no verdicts; a status-only edit is recorded
+    accepted and not listed; the Inbox's Changes group shows the word diff (one → two) and the impact set with paths;
+    the node's header shows the changed badge with the old value; Revert writes the old value back, marks the record
+    reverted and saves the revert as an accepted change with revertOf; a second edit's record is accepted with
+    acceptedBy (2026-09-19: 9 checks passed). The judged run — update patches applied from the card, an ask landing
+    as a question block, a rework as a task — was verified live with claude-haiku on a second scratch product
+    (session de966d3bd9): three candidates judged update / update / ask, Apply wrote the proposed text and recorded it.
+  status: passed
+  verifies: [req:exec.change-kept, req:exec.change-review, req:exec.change-validated, req:exec.impact-set, req:exec.impact-patch, req:exec.impact-sub-items, rule:change-record, rule:change-review, rule:impact-candidates, rule:impact-run, rule:impact-apply]
+  last-run: 2026-09-19
+- id: ui-test:ask-wye
+  file: (run by hand with playwright-core — /tmp/wfpw/exec.mjs; the librarian's turns live)
+  scenario: >
+    ⌘P on a document page with nothing selected defaults to Ask Wye; POST sessions with role librarian makes a chat
+    session in the Wye repo with a plan whose status is defining, role librarian and a Definition section; wf propose
+    with the session header writes a requirement card into the PRD and embeds it on the plan, and a decision with no
+    document lands on the plan under Definition marked home: none yet; the plan reads 2 blocks, 0 agreed; approving
+    both makes the plan defined (2026-09-19: 7 checks passed). Live (a second scratch product, the real claude): the
+    librarian read the context, the seed nodes, the Work view and the PRD, logged what it found, asked three
+    questions along who / when / then as one form with the assumed reading first, and on the answers proposed two
+    requirements and a question into the PRD, four decisions (three by alex, one its own) and two tasks on the plan,
+    ran wf verdicts, replied with the list and the verdicts and noticed a pre-existing gap between an approved
+    requirement and its shipped rule; it never edited a file.
+  status: passed
+  verifies: [req:exec.ask-wye, req:exec.wye-context, req:exec.wye-explains, req:exec.wye-asks, req:exec.wye-proposes, req:exec.plan-defined, req:exec.definition-tracked, rule:librarian-tools, rule:definition]
+  last-run: 2026-09-19
+- id: ui-test:build-plan
+  file: (run by hand with playwright-core — /tmp/wfpw/exec.mjs)
+  scenario: >
+    the defined plan's request task row says "defined" and offers build; the Build dialog to the runner pool makes a
+    run session whose instruction carries "## Definition of …" with every block's status and text, on the same plan
+    (planDoc unchanged, status building); the session ending writes the Result with "Against the Definition" and a
+    line per block (implemented / changed / left) (2026-09-19: 4 checks passed)
+  status: passed
+  verifies: [req:exec.build-from-definition, rule:build]
+  last-run: 2026-09-19
+- id: ui-test:explain
+  file: (run by hand — `wf explain <a requirement> --product scratchx`, 2026-09-19)
+  scenario: >
+    one librarian turn on a requirement of the scratch product: 13 s with claude-sonnet-5; the answer explained the
+    current state with the nodes as tags — the approved requirement against its shipped one-step rule, the refining
+    sub-requirement as target not current, the four decisions on saved cards and the dismissed duplicate, the
+    resolved CVC question — and named the open retry question and the missing rule / task on the two-step split as
+    the thin spot; nothing written
+  status: passed
+  verifies: [req:exec.explain-anywhere, op:api.explain]
+  last-run: 2026-09-19
+- id: test:librarian
+  file: (no recorded replay yet — task:exec.librarian-replay; the turns above were verified live)
+  description: >
+    The librarian's turns on a recorded conversation: explains with tags, asks only unfilled slots, proposes into home
+    documents, never edits code. Today the evidence is the live run on ui-test:ask-wye; a replay needs a recorded
+    transcript and a fake host, which task:exec.librarian-replay adds.
+  status: proposed
+  verifies: [req:exec.wye-explains, req:exec.wye-asks, req:exec.wye-proposes]
 ```

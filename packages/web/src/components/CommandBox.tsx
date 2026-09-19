@@ -63,7 +63,7 @@ export function CommandBox() {
         setSessions(active); setDefaults(j.defaults ?? { cwd: '', waterfall: '' });
         // a clean slate by default (rule:clean-slate); with nothing selected, Ask Wye — define first (req:exec.ask-wye);
         // a block or node sent to an agent starts a worker conversation
-        setTarget(req.refs?.length || req.text ? 'new' : 'wye');
+        setTarget(req.text || (req.refs ?? []).some(r => !r.startsWith('module:')) ? 'new' : 'wye');
         let remembered = '', lastAgent = ''; try { remembered = localStorage.getItem(`wf-cwd-${product}`) ?? ''; lastAgent = localStorage.getItem(`wf-agent-${product}`) ?? ''; } catch { /* ignore */ }
         setCwd(c => c || remembered || j.defaults?.cwd || j.defaults?.waterfall || '');
         if (AGENTS.some(a => a.id === lastAgent)) setAgent(lastAgent);
