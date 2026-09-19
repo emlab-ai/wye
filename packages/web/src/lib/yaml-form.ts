@@ -66,3 +66,12 @@ export function setBodyField(body: string, key: string, value: string): string {
   else { const at = fields.findIndex(f => f.key === 'status'); const f = { key, value, kind: 'prose' as const }; if (at >= 0) fields.splice(at, 0, f); else fields.push(f); }
   return fieldsToBody(id, fields);
 }
+
+// Whether two prose values are the same text once stored: fieldsToBody trims and folds a value into a `>` scalar
+// and parseBody folds it back, so a value typed in a card ("ab ", "a\nb") comes back as "ab", "a b". A card's
+// text area compares with this before taking the stored value over what is being typed, or the trailing space
+// the person just typed would vanish on the next render.
+export function sameProse(a: string, b: string): boolean {
+  const fold = (s: string) => s.replace(/\s+/g, ' ').trim();
+  return fold(a) === fold(b);
+}

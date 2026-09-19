@@ -248,16 +248,25 @@ A card in the editor shows what the block is *for* and folds the rest. The quest
     they stay blocks and in the file, and the arrow keys skip them; the editor's own selection (not the DOM's —
     a programmatic caret lands before the DOM follows) inside one of them shows them ("▾ n blocks") and leaving
     folds again. An embedded card gets the node's content from op:node.edit's GET (`content`) only to count its
-    blocks (`contentBlocks`); there is no preview under the card.
+    blocks (`contentBlocks`); there is no preview under the card. The one exception is a question: its content is
+    its answer (decision:wf2.answer-is-content), so `useFold` never folds it and the blocks render under the card
+    (styled as the answer section in globals.css); the card carries `host.answer` instead of a fold chip.
   source: packages/web/src/components/NodeCards.tsx:31 (FoldToggle); packages/web/src/components/DocEditor.tsx:426 (EditorCard); packages/web/src/components/EmbedBlock.tsx
   status: shipped
 - id: rule:card-essence
   statement: >
-    A question card shows q and answer; a decision card shows context, choice and alternatives (in that order,
-    each a section with its key as label, missing keys skipped). Every other key of the card — id, links, dates,
-    tracking fields, undeclared keys — is behind a "details" toggle on the card, off by default, together with
-    the raw yaml editor. Any other yaml card keeps showing all its keys as rows under the text.
-  source: packages/web/src/components/NodeCards.tsx#QuestionCard; packages/web/src/components/NodeCards.tsx#DecisionCard
+    A question card shows q and its answer; the answer is the question's content (decision:wf2.answer-is-content)
+    — in the editor the blocks under the question block render under the card as its "answer" section (never
+    folded), an unanswered question shows a placeholder that inserts the first block and puts the caret in it
+    (`host.answer.start`), an embedded card shows a chip "n blocks — open" that opens the node instead
+    (`host.answer.open`); there is no `answer:` key. A decision card shows context, choice and alternatives (in
+    that order, each a section with its key as label, missing keys skipped). Every prose section is a `ProseArea`:
+    its text stays local while typed and the stored value replaces it only when the two differ beyond folding
+    (`sameProse`), since the yaml round-trip trims and folds and would drop the space just typed. Every other key
+    of the card — id, links, dates, tracking fields, undeclared keys — is behind a "details" toggle on the card,
+    off by default, together with the raw yaml editor. Any other yaml card keeps showing all its keys as rows
+    under the text.
+  source: packages/web/src/components/NodeCards.tsx#QuestionCard; packages/web/src/components/NodeCards.tsx#DecisionCard; packages/web/src/components/NodeCards.tsx#ProseArea; packages/web/src/lib/yaml-form.ts#sameProse
   status: shipped
   related-to: [rule:card-form, rule:node-cards]
   verified-by: [ui-test:decision-card]

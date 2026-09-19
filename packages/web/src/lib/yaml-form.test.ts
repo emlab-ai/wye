@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { bodyToFields, fieldsToBody, setBodyField } from './yaml-form';
+import { bodyToFields, fieldsToBody, setBodyField, sameProse } from './yaml-form';
+import { parseBody } from './graph';
 
 const body = `id: req:m.a
 title: A
@@ -64,5 +65,16 @@ describe('setBodyField', () => {
     expect(out).toContain('choice: Y\nalternatives: >\n  ');
     expect(out).not.toContain(`alternatives: ${long}`);
     expect(out.endsWith('date: 2026-09-18\nstatus: proposed\naffects: [rule:a]')).toBe(true);
+  });
+});
+
+describe('sameProse', () => {
+  it('the round-trip drops a trailing space, so an input keeps its own text while the stored value matches folded', () => {
+    const body = 'id: question:x\nq: Why?\nstatus: open';
+    expect(parseBody(setBodyField(body, 'q', 'ab ')).find(r => r.key === 'q')?.value).toBe('ab'); // what the card gets back
+    expect(sameProse('ab ', 'ab')).toBe(true);
+    expect(sameProse('a\nb', 'a b')).toBe(true);
+    expect(sameProse('ab', 'abc')).toBe(false);
+    expect(sameProse('', 'x')).toBe(false);
   });
 });

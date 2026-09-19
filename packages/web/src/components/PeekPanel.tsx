@@ -17,6 +17,7 @@ import { ProgressBar } from './Progress';
 import { Produced } from './Produced';
 import { TaskWork } from './TaskWork';
 import { ChangedBadge } from './ChangedBadge';
+import { ExplainCard } from './ExplainCard';
 import { DocPeek } from './DocPeek';
 import { EmbeddedCard } from './EmbedBlock';
 import { TypeView } from './TypeView';
@@ -134,6 +135,7 @@ function NodeView({ id }: { id: string }) {
         : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
       {d && d.type && d.props && d.relations.inc.some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={d.relations.inc} inverses={d.inverses ?? {}} product={product} />}
       {d && !d.self && d.node.defined && <NodeContent id={id} />}
+      {d && !d.self && d.node.defined && <ExplainCard key={`explain-${id}`} id={id} />}
       {d && (
         <div className="peek-views">
           <h4>Links <span className="muted">{linkCount}</span></h4>
@@ -181,7 +183,7 @@ function NodeContent({ id }: { id: string }) {
   const body = c.text.trim() ? c.text.trim() + (c.content.trim() ? '\n\n' + c.content : '\n') : c.content;
   return (
     <section className="content">
-      <h4>Content{c.children.length > 0 && <span className="muted">{c.children.length} block{c.children.length === 1 ? '' : 's'}</span>}</h4>
+      <h4>Content{c.children.length > 0 && <span className="muted">{c.children.length} block{c.children.length === 1 ? '' : 's'}</span>}{id.startsWith('question:') && <span className="muted" title="a question's content is its answer; a decision block under it resolves it">— the answer</span>}</h4>
       <div className="content-editor"><DocEditor key={id} product={product} project={c.project} slug={c.doc} body={body} ifMatch={c.bodyHash} scope={id} /></div>
     </section>
   );

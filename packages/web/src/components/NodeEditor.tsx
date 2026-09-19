@@ -37,7 +37,8 @@ export function NodeEditor({ id, body, form, type, props, entry, relations = [],
   const titleKey = rows.some(r => r.key === 'title') ? 'title' : textKey;
   const status = get('status').split(/\s+#/)[0].trim() || entry?.status || '';
   // the type's properties; the root type's (related-to, depends-on, …) only when the node fills one in
-  const declared: Field[] = props.filter(p => (p.from !== 'type:node' || (p.value && p.name !== textKey)) && !HIDDEN.has(p.name) && p.name !== titleKey).map(p => ({ name: p.name, type: p.type, ref: p.ref, many: p.many, enum: p.enum, required: p.required, from: p.from, value: p.value }));
+  // the text key is the text field above (or the title), never a second row — type:question declares q itself
+  const declared: Field[] = props.filter(p => (p.from !== 'type:node' || p.value) && p.name !== textKey && !HIDDEN.has(p.name) && p.name !== titleKey).map(p => ({ name: p.name, type: p.type, ref: p.ref, many: p.many, enum: p.enum, required: p.required, from: p.from, value: p.value }));
   const track: Field[] = (TRACK[kind] ?? []).filter(t => !declared.some(d => d.name === t.name)).map(t => ({ name: t.name, type: t.type.startsWith('ref ') ? 'ref' : t.type, ref: t.type.startsWith('ref ') ? t.type.slice(4) : null, many: false, enum: null, required: false, from: 'tracking', value: get(t.name) }));
   const carried: Field[] = rows.filter(r => !HIDDEN.has(r.key) && r.key !== titleKey && r.key !== textKey && !declared.some(p => p.name === r.key) && !track.some(t => t.name === r.key)).map(r => ({ name: r.key, type: r.prose || r.value.includes('\n') ? 'text' : 'string', ref: null, many: false, enum: null, required: false, from: '', value: r.value }));
   const textField: Field[] = titleKey !== textKey ? [{ name: textKey, type: 'text', ref: null, many: false, enum: null, required: false, from: 'type:node', value: get(textKey) }] : [];

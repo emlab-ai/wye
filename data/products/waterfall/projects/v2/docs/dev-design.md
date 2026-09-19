@@ -634,7 +634,8 @@ A node's details: properties, content, and what a card shows of it.
     whole content is shown and edited
   unless: >
     the editor's caret is inside one of the node's blocks on the page (a drag, a programmatic selection): they show
-    while it is there, so nothing is typed blind, and fold again when it leaves
+    while it is there, so nothing is typed blind, and fold again when it leaves; or the node is a question, whose
+    content is its answer (decision:wf2.answer-is-content) and shows under the card
   status: shipped
   refines: req:wf2.ui.connected-cards
   depends-on: req:ontology.content

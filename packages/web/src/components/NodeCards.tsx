@@ -1,7 +1,7 @@
 'use client';
-import { useState, type ReactNode, type RefObject } from 'react';
+import { useEffect, useState, type ReactNode, type RefObject } from 'react';
 import { parseBody } from '@/lib/graph';
-import { setBodyField } from '@/lib/yaml-form';
+import { sameProse, setBodyField } from '@/lib/yaml-form';
 import { STATUSES } from '@/lib/props';
 import { Linkified } from './IdLink';
 
@@ -24,6 +24,10 @@ export type CardHost = {
   // the node's content stays out of the card (req:wf2.ui.card-preview): the header carries the count as a chip
   // that opens the details; `folded` is false only while the editor's caret is inside the blocks
   fold?: { count: number; folded: boolean; open: () => void };
+  // a question's answer is its content (decision:wf2.answer-is-content): how many blocks it has; in the editor
+  // `start` inserts the first one and puts the caret there (the blocks render under the card); elsewhere `open`
+  // shows the node's details, where the content editor is
+  answer?: { count: number; start?: () => void; open: () => void };
 };
 
 // The chip in a card's header: how many blocks the node has under it; a click opens the node's details, where the
@@ -47,6 +51,15 @@ export function PropValue({ value }: { value: string }) {
 function selectOn(host: CardHost) {
   if (!host.onSelect) return undefined;
   return (e: React.MouseEvent) => { if ((e.target as Element).closest('a')) return; host.onSelect!(); };
+}
+
+// A prose key's text area. Its text is local while typed: the stored value comes back trimmed and folded
+// (sameProse), so taking it over the input on every render would drop the space the person just typed; a change
+// from elsewhere (another editor, an agent) still replaces the text when it differs beyond folding.
+function ProseArea({ value, onChange, className, ...rest }: { value: string; onChange: (v: string) => void } & Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'value' | 'onChange'>) {
+  const [text, setText] = useState(value);
+  useEffect(() => { setText(t => sameProse(t, value) ? t : value); }, [value]);
+  return <textarea className={`qnode-ta ${className ?? ''}`} value={text} rows={Math.min(12, Math.max(2, Math.ceil(text.length / 90) + text.split('\n').length - 1))} onChange={e => { setText(e.target.value); onChange(e.target.value); }} {...rest} />;
 }
 
 const PropRows = ({ rows, stop }: { rows: { key: string; value: string }[]; stop?: CardHost['stop'] }) => (
@@ -94,10 +107,11 @@ export function QuestionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
   const [details, setDetails] = useState(false);
   const rows = parseBody(p.body);
   const get = (k: string) => rows.find(r => r.key === k)?.value ?? '';
-  const q = get('q'); const answer = get('answer') || get('a');
+  const q = get('q');
   const id = `${p.kind}:${p.slug}`;
-  const others = rows.filter(r => !['id', 'title', 'q', 'answer', 'a', 'status', p.textKey].includes(r.key));
+  const others = rows.filter(r => !['id', 'title', 'q', 'status', p.textKey].includes(r.key));
   const status = p.status || 'open';
+  const a = host.answer;
   return (
     <div className={`nblock k-question qnode s-${status} ${host.extraClass ?? ''}`} data-id={id} ref={host.hostRef} onClick={selectOn(host)}>
       <div className="qnode-head" contentEditable={false} ref={host.stop} onClick={host.onHeadClick}>
@@ -113,12 +127,16 @@ export function QuestionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
       {host.text('qnode-title nblock-text')}
       {p.textKey !== 'q' && <div className="qnode-section" contentEditable={false} ref={host.stop}>
         <label>question</label>
-        <textarea className="qnode-ta" value={q} rows={Math.min(8, Math.max(2, Math.ceil(q.length / 90)))} placeholder="the question, and why it matters" onChange={e => set({ body: setBodyField(p.body, 'q', e.target.value) })} />
+        <ProseArea value={q} placeholder="the question, and why it matters" onChange={v => set({ body: setBodyField(p.body, 'q', v) })} />
       </div>}
-      <div className={`qnode-section ${answer ? '' : 'empty'}`} contentEditable={false} ref={host.stop}>
+      {/* the answer is the question's content (decision:wf2.answer-is-content): in the editor the blocks render under
+          the card and this section only shows while there are none; elsewhere it opens the details */}
+      {a && (a.count === 0 || !a.start) && <div className={`qnode-section qnode-answer ${a.count ? '' : 'empty'}`} contentEditable={false} ref={host.stop}>
         <label>answer</label>
-        <textarea className="qnode-ta" value={answer} rows={Math.min(8, Math.max(2, Math.ceil(answer.length / 90)))} placeholder={status === 'open' ? 'not answered yet — write the answer here, record it as a decision block, then set the status to resolved' : 'no answer recorded'} onChange={e => set({ body: setBodyField(p.body, 'answer', e.target.value) })} />
-      </div>
+        {a.count === 0
+          ? <button type="button" className="qnode-ta qnode-answer-start" onClick={a.start ?? a.open}>{status === 'open' ? 'not answered yet — write the answer here; a decision block resolves it, then set the status to resolved' : 'no answer recorded'}</button>
+          : <button type="button" className="qnode-ta qnode-answer-open" onClick={a.open}>{a.count} block{a.count === 1 ? '' : 's'} — open</button>}
+      </div>}
       {details && (
         <div className="qnode-details" contentEditable={false} ref={host.stop}>
           <div className="nblock-head"><button type="button" className="pill k nblock-peek" style={{ background: 'var(--k-question)' }} onClick={host.peek}>question</button><input className="nblock-slug" value={p.slug} spellCheck={false} readOnly={host.slugReadOnly} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} /></div>
@@ -156,7 +174,7 @@ export function DecisionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
       {DECISION_ESSENCE.filter(k => get(k)).map(k => (
         <div key={k} className="qnode-section" contentEditable={false} ref={host.stop}>
           <label>{k}</label>
-          <textarea className="qnode-ta" value={get(k)} rows={Math.min(12, Math.max(2, Math.ceil(get(k).length / 90)))} onChange={e => set({ body: setBodyField(p.body, k, e.target.value) })} />
+          <ProseArea value={get(k)} onChange={v => set({ body: setBodyField(p.body, k, v) })} />
         </div>
       ))}
       {details && (

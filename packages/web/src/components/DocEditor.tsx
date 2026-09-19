@@ -427,19 +427,20 @@ const NodeBlock = createReactBlockSpec(
 // A card or a row shows none of the blocks under its node (req:wf2.ui.card-preview, rule:card-fold): a style element
 // zero-heights them by the block's id (they stay blocks, and in the file) and a chip opens the details; the caret
 // inside them (arrow keys) shows them while it is there.
-function useFold(block: AnyBlock, open: () => void) {
+// A question never folds: its content is its answer (decision:wf2.answer-is-content), shown under the card.
+function useFold(block: AnyBlock, open: () => void, never = false) {
   const count = block.children?.length ?? 0;
-  const [folded, setFolded] = useState(true);
+  const [folded, setFolded] = useState(!never);
   const bn = useBlockNoteEditor();
   useEditorSelectionChange(() => {
-    if (!count) return;
+    if (!count || never) return;
     // the editor's own selection, not the DOM's: a programmatic caret lands in the block before the DOM follows
     let cur: string | undefined; try { cur = (bn.getTextCursorPosition().block as { id?: string }).id; } catch { cur = undefined; }
     const under = (bs: AnyBlock[] | undefined): boolean => !!bs?.some(b => (b as { id?: string }).id === cur || under(b.children));
     setFolded(!(cur && under(block.children)));
   }, bn);
-  const fold = count ? { count, folded, open } : undefined;
-  const hide = folded && count ? <style>{`.bn-block-outer[data-id="${String((block as { id?: string }).id)}"] > .bn-block > .bn-block-group > .bn-block-outer { height: 0; min-height: 0; overflow: hidden; visibility: hidden; margin: 0; }`}</style> : null;
+  const fold = count && !never ? { count, folded, open } : undefined;
+  const hide = folded && count && !never ? <style>{`.bn-block-outer[data-id="${String((block as { id?: string }).id)}"] > .bn-block > .bn-block-group > .bn-block-outer { height: 0; min-height: 0; overflow: hidden; visibility: hidden; margin: 0; }`}</style> : null;
   return { fold, hide };
 }
 
@@ -454,7 +455,20 @@ function RowFold({ fold }: { fold?: { count: number; folded: boolean; open: () =
 function EditorCard({ p, set, contentRef, block, editor }: { p: CardP; set: (patch: Partial<CardP>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; editor: EditorLike }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const id = `${p.kind}:${p.slug}`;
-  const { fold, hide } = useFold(block, () => { if (p.slug) emit('wf:select', hostRef.current, id); });
+  const open = () => { if (p.slug) emit('wf:select', hostRef.current, id); };
+  const { fold, hide } = useFold(block, open, p.kind === 'question');
+  const bn = useBlockNoteEditor();
+  const bid = String((block as { id?: string }).id);
+  // a question's answer count follows the editor, not the render's block: the placeholder goes as soon as the first
+  // block is there (the node view is not re-rendered for a change in its children)
+  const [answered, setAnswered] = useState(block.children?.length ?? 0);
+  useEditorChange(() => { if (p.kind === 'question') setAnswered(((editor.getBlock(bid) as AnyBlock | undefined)?.children ?? []).length); }, bn);
+  // the first block of a question's answer: an empty paragraph under the question, the caret in it
+  const startAnswer = () => {
+    editor.updateBlock(block, { children: [{ type: 'paragraph', content: [] }] });
+    const first = ((editor.getBlock(bid) as { children?: { id: string }[] } | undefined)?.children ?? [])[0];
+    if (first) { editor.setTextCursorPosition(first.id, 'start'); bn.focus(); }
+  };
   const host: CardHost = {
     text: cls => <div className={cls} ref={contentRef} />,
     // the pill selects like the rest of the card; the card's text places the caret and the onSelect below does the rest
@@ -463,8 +477,9 @@ function EditorCard({ p, set, contentRef, block, editor }: { p: CardP; set: (pat
     send: () => sendBlock(block, hostRef.current),
     stop: stopEditorEvents,
     onHeadClick: p.kind === 'question' || p.kind === 'decision' ? undefined : selectBlockOnClick(editor, block, null),
-    onSelect: () => { if (p.slug) emit('wf:select', hostRef.current, id); },
+    onSelect: open,
     hostRef, fold,
+    answer: p.kind === 'question' ? { count: answered, start: startAnswer, open } : undefined,
   };
   return <>{hide}<NodeCard p={p} set={set} host={host} /></>;
 }

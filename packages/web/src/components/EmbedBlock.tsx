@@ -86,6 +86,8 @@ export function EmbeddedCard({ id, badge, className, inEditor }: { id: string; b
     send: () => requestSend({ text, refs: [id], source: { link: `${location.origin}${hrefFor(id) ?? ''}` } }),
     hostRef, slugReadOnly: true, extraClass: 'embedded',
     fold: content ? { count: contentBlocks(content).length, folded: true, open: () => select(id) } : undefined,
+    // an embedded question shows how many blocks its answer has and opens the node for them (decision:wf2.answer-is-content)
+    answer: p.kind === 'question' ? { count: content ? contentBlocks(content).length : 0, open: () => inEditor ? select(id) : open(id) } : undefined,
   };
   return (
     <div className={`embed ${className ?? ''} ${state}`} contentEditable={false} ref={inEditor ? stop : undefined} onClick={inEditor ? e => { if (!(e.target as Element).closest('a')) select(id); } : undefined}>
