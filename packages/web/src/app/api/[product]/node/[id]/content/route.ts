@@ -24,18 +24,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ product
   const md = await readFile(hit.abs, 'utf8');
   const content = readContent(md, id, hit.node.line, hit.node.form ?? 'yaml');
   if (content === null) return NextResponse.json({ error: 'invalid', message: `${id} has no content in its document (${hit.node.form ?? 'yaml'} form)` }, { status: 422 });
-  // the child ids in document order: the node's own `has` edges, block nodes included; a typed node under an
-  // anonymous block of the content (a heading, a paragraph) counts as a child too, so a "Subtasks" heading
-  // written above the task lines does not hide them from the node
-  const children: string[] = [];
-  const walk = (from: string, depth: number) => {
-    for (const e of hit.scope.idx.out.get(from) ?? []) {
-      if (e.verb !== 'has' || e.generated) continue;
-      children.push(e.to);
-      if (e.to.startsWith('block:') && depth > 0) walk(e.to, depth - 1);
-    }
-  };
-  walk(id, 4);
+  // the child ids in document order: the node's own `has` edges, block nodes included
+  const children = (hit.scope.idx.out.get(id) ?? []).filter(e => e.verb === 'has' && !e.generated).map(e => e.to);
   const route = docRoute(hit.node.file);
   // the node's text comes first: in the column it is the first block of the content editor (decision:wf2.text-is-first-block)
   return NextResponse.json({ id, file: hit.node.file, project: route?.project ?? '', doc: route?.doc ?? '', text: nodeText(hit.node.body), content, children, bodyHash: hashOf(bodyOf(md)) });

@@ -449,29 +449,6 @@ function RowFold({ fold }: { fold?: { count: number; folded: boolean; open: () =
   return <button type="button" className={`nblock-fold nrow-fold ${fold.folded ? 'folded' : ''}`} contentEditable={false} title="Open the item: its content is in the details" onMouseDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); fold.open(); }}>{fold.folded ? '▸' : '▾'} {fold.count}</button>;
 }
 
-// In a content editor (one node's blocks, decision:wf2.content-editor-scoped) the typed blocks at the top level —
-// the node's children of a kind: subtasks, questions, decisions — are listed by the column under the editor, so the
-// editor hides them (zero height, still blocks, still in the file); the one holding the caret shows while it does.
-function HideTypedChildren() {
-  const bn = useBlockNoteEditor();
-  const [ids, setIds] = useState<string[]>([]);
-  const compute = () => {
-    // the caret counts only while the editor has the focus: a loaded document leaves ProseMirror's selection at its end
-    let cur: string | undefined; try { cur = bn.isFocused() ? (bn.getTextCursorPosition().block as { id?: string }).id : undefined; } catch { cur = undefined; }
-    const under = (b: AnyBlock): boolean => (b as { id?: string }).id === cur || !!b.children?.some(under);
-    // typed blocks at the top level or under an anonymous block (a heading above the subtasks); a typed block's
-    // own children fold with it
-    const next: string[] = [];
-    const scan = (bs: AnyBlock[]) => { for (const b of bs) { if (b.type === 'node' && (b.props as { slug?: string }).slug) { if (!under(b)) next.push(String((b as { id?: string }).id)); } else if (b.children?.length) scan(b.children); } };
-    scan(bn.document as unknown as AnyBlock[]);
-    setIds(prev => prev.length === next.length && prev.every((x, i) => x === next[i]) ? prev : next);
-  };
-  useEditorChange(compute, bn); useEditorSelectionChange(compute, bn);
-  useEffect(() => { compute(); const el = bn.domElement; el?.addEventListener('focusin', compute); el?.addEventListener('focusout', compute); return () => { el?.removeEventListener('focusin', compute); el?.removeEventListener('focusout', compute); }; }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!ids.length) return null;
-  return <style>{ids.map(id => `.bn-block-outer[data-id="${id}"]`).join(', ') + ' { height: 0; min-height: 0; overflow: hidden; visibility: hidden; margin: 0; }'}</style>;
-}
-
 // A card inside the editor: the block's inline content is the text; the header selects the block; links and sends
 // come from the block's place in this document (component:node-cards).
 function EditorCard({ p, set, contentRef, block, editor }: { p: CardP; set: (patch: Partial<CardP>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; editor: EditorLike }) {
@@ -825,7 +802,6 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       }}>
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false}>
-        {scoped && <HideTypedChildren />}
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><AnnotateItem annotate={imageToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
         <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /><AskAgentButton onRequest={r => setAskReq({ ...r, doc: slug, project, pageLink: `${location.origin}/${product}/${project}/d/${slug}`, refs: [...new Set([...r.refs, `module:${slug}`])] })} /></FormattingToolbar>} />
         <SuggestionMenuController triggerCharacter="/" getItems={async q => {

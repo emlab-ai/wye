@@ -57,9 +57,8 @@ goal:<x>` under the matching section; the plan's path is given below), or in the
 the person asked you to work there. Refer to them by id in your summary ("next: task:ontology.spike"). Questions
 you cannot answer are `question:` blocks; answers you get from the person are `decision:` blocks.
 - Ids look like `kind:product.slug`; links in text become edges ("part of goal:x", "depends on entity:y").
-- A subtask is a task line indented two spaces under its parent task — nothing else: no "Subtasks" heading, no
-  bullet in between. Anything indented under a node is that node's content (notes, then its subtasks, questions,
-  decisions), to any depth; the app lists the typed ones by kind and folds them in the document.
+- Anything indented two spaces under a node's line is that node's content — blocks of any kind, each a node with
+  content of its own, to any depth. A sub-task is a task line indented under its task; no heading is needed.
 
 ## Before you finish
 
