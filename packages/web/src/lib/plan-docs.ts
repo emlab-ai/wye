@@ -6,9 +6,12 @@ import path from 'node:path';
 import { REPO_ROOT, type Project } from './products';
 import { loadScope } from './scope';
 import { docRoute, projectTree } from './doc';
-import { rebuild, writeAtomic } from './write';
+import { rebuild, writeAtomic, withFileLock } from './write';
 import { onSessionEnd, setPlanDoc, addRefs } from './sessions';
-import { fromLine, getFrontmatter, planDocBody, planSlug, plansPageId, planStatusOnEnd, planTitle, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, type PlanEndStatus } from './plan-doc';
+import { fromLine, getFrontmatter, planDocBody, planSlug, plansPageId, planStatusOnEnd, planTitle, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, withDefinition, definitionIds, definitionState, planStatusFromDefinition, type PlanEndStatus, type DefinitionState } from './plan-doc';
+import type { Scope } from './scope';
+import { createRequire } from 'node:module';
+import { listChanges } from './changes';
 import { patchProseNode } from './node-edit';
 import { parseNodeLine } from './node-line';
 export { plansPageId };
@@ -70,7 +73,7 @@ export async function createPlanDoc(productDir: string, product: string, s: Sess
   // the request task is part of the goal or node the request was sent from (req:exec.request-is-a-task): the first
   // ref that is not the document itself, a session or a plan
   const partOf = s.refs.find(r => /^[a-z-]+:/.test(r) && r !== sourceDoc?.id && !/^(session|plan|module|block):/.test(r));
-  const md = planDocBody(tpl, { slug, title: planTitle(s.instruction), date: now.slice(0, 10), session: s.id, agent: s.agent, started: now, parent: plansPage, request: s.instruction, from: fromLine(s, sourceDoc?.id), partOf, task: s.task });
+  const md = planDocBody(tpl, { slug, title: planTitle(s.instruction), date: now.slice(0, 10), session: s.id, agent: s.agent, started: now, parent: plansPage, request: s.instruction, from: fromLine(s, sourceDoc?.id), partOf, task: s.task, role: s.role });
   await writeAtomic(path.join(project.docsDir, `${slug}.md`), md);
   await rebuild(productDir);
   const ref = `${product}/${project.slug}/${slug}`;
@@ -106,7 +109,14 @@ export async function finishPlanDoc(productDir: string, s: Session, opts: { stat
   let md: string; try { md = await readFile(at.file, 'utf8'); } catch { return false; }
   const finished = opts.finished ?? s.finishedAt ?? new Date().toISOString();
   const status = opts.status ?? planStatusOnEnd(s.status);
-  const body = resultSection({ ...s, status: status as Session['status'], result: opts.summary ?? s.result }, { started: getFrontmatter(md, 'started'), finished, exclude: [`plan:${at.slug}`, plansPageId(at.project)] });
+  let body = resultSection({ ...s, status: status as Session['status'], result: opts.summary ?? s.result }, { started: getFrontmatter(md, 'started'), finished, exclude: [`plan:${at.slug}`, plansPageId(at.project)] });
+  // what was built against each block of the Definition (req:exec.build-from-definition): its status now, and whether this session changed it
+  const defIds = definitionIds(md);
+  if (defIds.length && s.role !== 'librarian') {
+    const scope = await loadScope(s.product);
+    const touched = new Set((s.artifacts?.blocks ?? []).map(b => b.id));
+    body += `\n\nAgainst the Definition:\n\n${defIds.map(id => { const n = scope?.idx.byId.get(id); const st = n?.status ?? 'missing'; const how = !n ? 'missing' : touched.has(id) ? 'changed' : ['shipped', 'done', 'approved', 'resolved'].includes(st) ? 'implemented' : 'left'; return `- ${how} ${id}${st ? ` #${st}` : ''}`; }).join('\n')}`;
+  }
   md = setFrontmatter(setFrontmatter(withResult(md, body), 'status', status), 'finished', finished);
   // the request task follows (req:exec.request-is-a-task): review for a person to check, done stays done
   const cur = requestTaskStatus(md, at.slug); if (cur !== undefined) md = withRequestTaskStatus(md, at.slug, requestTaskStatusOnEnd(cur, status));
@@ -136,5 +146,88 @@ export async function closePlanDoc(productDir: string, s: Session): Promise<void
   await finishPlanDoc(productDir, s, { status: 'cancelled', summary: `_Left unfinished — a new request replaced it on ${new Date().toISOString().slice(0, 10)}._` });
 }
 
-// registered once the module is loaded (lib/agent-host imports it): every ended session finishes its plan document
-onSessionEnd(async (productDir, s) => { if (s.planDoc) await finishPlanDoc(productDir, s); });
+// registered once the module is loaded (lib/agent-host imports it): every ended session finishes its plan document —
+// except a librarian's (decision:exec.plan-lifecycle): the plan it defined outlives the conversation, stays defining
+// or defined, and is finished by the session that builds it; its request task goes to review for the person
+onSessionEnd(async (productDir, s) => {
+  if (!s.planDoc) return;
+  if (s.role === 'librarian') { await librarianLeft(productDir, s).catch(() => undefined); return; }
+  await finishPlanDoc(productDir, s);
+});
+async function librarianLeft(productDir: string, s: Session): Promise<void> {
+  const at = await planDocFile(s.product, s.planDoc!); if (!at) return;
+  let md: string; try { md = await readFile(at.file, 'utf8'); } catch { return; }
+  const cur = requestTaskStatus(md, at.slug); if (cur === undefined || cur === 'done') return;
+  await writeAtomic(at.file, withRequestTaskStatus(md, at.slug, 'review'));
+  await rebuild(productDir);
+}
+
+// ---- the Definition (req:exec.definition-tracked, req:exec.plan-defined)
+
+export async function readPlanDoc(product: string, ref: string): Promise<{ file: string; md: string; slug: string; project: string } | null> {
+  const at = await planDocFile(product, ref); if (!at) return null;
+  try { return { ...at, md: await readFile(at.file, 'utf8') }; } catch { return null; }
+}
+// Embed ids under the plan's Definition (idempotent); rebuilds when something was added.
+export async function embedInDefinition(productDir: string, product: string, ref: string, ids: string[]): Promise<number> {
+  const at = await planDocFile(product, ref); if (!at || !ids.length) return 0;
+  let added = 0;
+  await withFileLock(at.file, async () => {
+    let md: string; try { md = await readFile(at.file, 'utf8'); } catch { return; }
+    const before = definitionIds(md).length; const next = withDefinition(md, ids); added = definitionIds(next).length - before;
+    if (next !== md) await writeAtomic(at.file, next);
+  });
+  if (added) await rebuild(productDir);
+  return added;
+}
+// The state of a plan's Definition from the graph: each embedded block's status and the open contradictions on it.
+export function planDefinition(scope: Scope, md: string): DefinitionState {
+  const ids = definitionIds(md);
+  return definitionState(ids, id => {
+    const n = scope.idx.byId.get(id); if (!n?.defined) return null;
+    const open = (scope.idx.out.get(id) ?? []).filter(e => e.verb === 'has').map(e => scope.idx.byId.get(e.to)).filter(c => c?.kind === 'contradiction' && !['resolved', 'dismissed', 'rejected', 'done'].includes(c.status)).map(c => c!.id);
+    return { status: n.status, openContradictions: open };
+  });
+}
+// defining ↔ defined as the Definition's blocks are agreed or change (decision:exec.plan-lifecycle). Called after a
+// rebuild for every plan in one of those states; writes the frontmatter only when the status moves.
+export async function refreshPlanStatuses(scope: Scope): Promise<string[]> {
+  const moved: string[] = [];
+  for (const n of scope.graph.nodes) {
+    if (n.kind !== 'plan' || !n.defined || !['defining', 'defined'].includes(n.status)) continue;
+    const file = path.join(REPO_ROOT, n.file);
+    let md: string; try { md = await readFile(file, 'utf8'); } catch { continue; }
+    const next = planStatusFromDefinition(n.status, planDefinition(scope, md));
+    if (next === n.status) continue;
+    await writeAtomic(file, setFrontmatter(md, 'status', next)); moved.push(`${n.id} → ${next}`);
+  }
+  if (moved.length) await rebuild(scope.product.dir);
+  return moved;
+}
+// Every typed block a librarian session added or changed goes into its plan's Definition (req:exec.definition-tracked).
+const KNOWLEDGE = /^(req|decision|constraint|question|rule|lesson|task|goal|entity):/;
+// Only blocks the session itself wrote (its claim on the write — wf propose, wf node set, wf doc write with the
+// session header) — never what another session or the person wrote meanwhile (question:wf2.attribution-several-sessions).
+export async function trackDefinitions(scope: Scope, sessions: Session[], changes: { id: string; change: string; session?: string }[]): Promise<void> {
+  for (const s of sessions) {
+    if (s.role !== 'librarian' || !s.planDoc || s.status !== 'running') continue;
+    const slug = s.planDoc.split('/')[2];
+    const ids = changes.filter(c => c.change !== 'removed' && KNOWLEDGE.test(c.id) && c.session === s.id && c.id !== `task:${slug}` && !scope.graph.nodes.some(n => n.id === c.id && n.file.endsWith(`/${slug}.md`))).map(c => c.id);
+    if (ids.length) await embedInDefinition(scope.product.dir, scope.product.slug, s.planDoc, ids).catch(() => 0);
+  }
+}
+
+// The Definition as a worker's context (req:exec.build-from-definition): every block's id, status and text, the
+// change records of the plan's sessions with before and after; the constraint packet rides in the first message.
+export async function definitionContext(scope: Scope, ref: string): Promise<{ text: string; state: DefinitionState; unagreed: string[] } | null> {
+  const plan = await readPlanDoc(scope.product.slug, ref); if (!plan) return null;
+  const d = planDefinition(scope, plan.md);
+  const { nodeText } = createRequire(path.join(REPO_ROOT, 'package.json'))('./lib/judge.js') as { nodeText: (n: unknown) => string };
+  const lines = d.items.map(it => { const n = scope.idx.byId.get(it.id); return `- ${it.id}${it.status ? ` #${it.status}` : ''}${it.agreed ? '' : ' (not agreed)'}: ${n ? nodeText(n) : '(missing)'}`; });
+  const sessions = (getFrontmatter(plan.md, 'session') ?? '').split(/\s+/).filter(Boolean);
+  const changes = (await listChanges(scope.product.dir, { listed: true })).filter(c => c.session && sessions.includes(c.session));
+  const edits = changes.map(c => `- ${c.node} (${c.state}): ${c.changed.join(', ')} — before: ${valueLine(c.before)} → after: ${valueLine(c.after)}`);
+  const text = [`## Definition of ${ref} (${d.total} block${d.total === 1 ? '' : 's'}, ${d.agreed} agreed, ${d.open} open)`, ...lines, ...(edits.length ? ['', 'Edits of existing nodes made while defining:', ...edits] : []), '', 'Build what the agreed blocks say; where a block is not agreed, say so and ask before building on it. When done, mark the requirements you shipped (`wf node set req:… --status shipped`) and the tasks done, and list what was built against each block.'].join('\n');
+  return { text, state: d, unagreed: d.items.filter(i => !i.agreed).map(i => i.id) };
+}
+const valueLine = (v: { text: string; status: string; props: Record<string, string> }) => [v.text, ...Object.entries(v.props).filter(([k]) => ['when', 'then', 'unless', 'statement', 'choice'].includes(k)).map(([k, x]) => `${k}: ${x}`)].filter(Boolean).join(' · ').slice(0, 400);

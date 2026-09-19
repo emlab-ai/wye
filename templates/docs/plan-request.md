@@ -9,6 +9,7 @@ session: {{session}}
 agent: {{agent}}
 started: {{started}}
 task: {{task}}
+role: {{role}}
 part-of: {{parent}}
 ---
 
@@ -23,6 +24,10 @@ part-of: {{parent}}
 ## Context
 
 _What the agent found — modules, documents, nodes and code the request touches — as tags and embeds._
+
+## Definition
+
+_The blocks this request proposes — requirements, decisions, constraints, questions, tasks, edits of existing nodes — defined in their home documents and embedded here; the plan is defined when every one is agreed._
 
 ## Plan
 

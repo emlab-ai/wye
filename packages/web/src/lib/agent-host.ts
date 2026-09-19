@@ -68,6 +68,17 @@ This request came with "plan first" on. The plan is a page the person and you wo
 6. Build: only after Proceed — re-read the plan document once more (the person may have changed it), then code and tests for what it says, then statuses (\`wf node set task:… --status done\`, reqs shipped) and \`wf session done <session id> "<summary>"\` — the summary and the blocks you changed land under "Result" on the plan document.`;
 }
 
+// The librarian's plan note (decision:exec.plan-lifecycle): the plan is defining; what the conversation proposes
+// lands in its Definition; the person builds it later from that page.
+export function librarianPlanNote(planDoc?: string): string {
+  if (!planDoc) return '\n## The plan document\nNo plan document could be created for this request; propose blocks into the documents where they belong and list them in your reply.';
+  const slug = planDoc.split('/')[2];
+  return `\n## The plan document\nThis request's plan is \`${planDoc}\` (node \`plan:${slug}\`, status defining). Its **Definition** section is the set of blocks this conversation proposes — every \`wf propose --plan ${planDoc}\` embeds there, and blocks or edits you make with your session id are embedded too. The person reads it live. When every block in it is agreed the plan is defined and any worker can build it from that page later (Build on the plan); you do not build. Under **Context** you may add what you found (tags \`kind:slug\`, embeds \`![[kind:slug]]\`) with \`wf doc write\` — never touch other sections.`;
+}
+export function librarianProtocol(): string {
+  return `\n## This conversation\nYou are the librarian (prompts/librarian-system.md): explain the current state first, with the nodes as tags; ask at most three questions at a time, only for what the requirement shape leaves open (when / then / unless) or a constraint in force makes ambiguous, with the reading you would assume as the first option; then propose the definition as blocks with \`wf propose\` and report their verdicts (\`wf verdicts\`). Say plainly when the request is already satisfied, partly, or contradicts a constraint or decision. Never edit code or files; never approve.`;
+}
+
 // `wf session open`: navigate the person to a page. Only a chat session with a live console can move the browser;
 // the session log keeps the line either way.
 export function openInSession(id: string, path: string): boolean {
@@ -104,6 +115,12 @@ export async function buildPrompt(product: string, s: Session, wfUrl: string, pr
   if (ctx.length) parts.push(`\n## Context\n${ctx.join('\n\n')}`);
   parts.push(await constraintsSection(scope, s));
   if (s.parent) parts.push(`\nThis session continues session ${s.parent}; its log and result are in the instruction above.`);
+  if (s.role === 'librarian') {
+    // the librarian (decision:exec.wye-is-a-role): its plan, its protocol, its reads — no code, no folder
+    parts.push(librarianPlanNote(s.planDoc), librarianProtocol());
+    parts.push(`\n## How to work\n- The Wye CLI is \`wf\` (WF_URL=${wfUrl}, WF_PRODUCT=${product}). Read: \`wf packet --for "<text>"\`, \`wf context "<text>"\`, \`wf resolve <link|id>\`, \`wf node <id>\`, \`wf doc <product/project/doc>\`, \`wf work list\`, \`wf impact <id> --after "<text>"\`. Propose: \`wf propose <product/project/doc> --plan ${s.planDoc ?? '<plan ref>'}\` with a yaml card on stdin (\`--file f\` works too). Report: \`wf session log ${s.id} "<line>"\`, \`wf verdicts <id …>\`, \`wf plan ${s.planDoc ?? '<plan ref>'}\`; end with \`wf session done ${s.id} "<summary>"\`.\n- The person replies here; their answers to your questions are decisions — record them as \`decision:\` blocks (by: the person, evidence: session:${s.id}) with \`wf propose\`.`);
+    return parts.join('\n');
+  }
   parts.push(planDocNote(s.planDoc));
   if (s.plan) parts.push(planFirst(s.planDoc));
   parts.push(`\n## How to work\n- The Wye CLI is \`wf\` (WF_URL=${wfUrl}, WF_PRODUCT=${product}). Read: \`wf resolve <link|id>\`, \`wf doc <product/project/doc>\`, \`wf node <id>\`, \`wf context "<text>"\`. Write: \`wf node set <id> --status s --set key=value\`, \`wf doc write <product/project/doc> --file f\`.\n- Product documents live under ${REPO_ROOT}/data/products/${product}/projects/<project>/docs/ (markdown; a line that starts with an id defines that node; keep ids stable). Run \`ctx --root data/products/${product} check\` from ${REPO_ROOT} after editing them.\n- This is a conversation: the person can reply here. Ask when something is unclear; say plainly what you changed.`);
@@ -132,7 +149,7 @@ async function startProcess(l: Live, s: Session, product: string, opts: { wfUrl:
   // the request's images go with the first message the way pump sends a queued message's ones
   const imgs = first && !opts.resume ? await loadImages(productDir, id, opts.images ?? s.images ?? []) : [];
   const shown = imgs.map(i => `/api/${product}/sessions/${id}/file/${i.name}`);
-  const system = await agentSystemPrompt(product, productDir, opts.wfUrl);
+  const system = await agentSystemPrompt(product, productDir, opts.wfUrl, s.role ?? 'worker');
   await updateSession(productDir, id, { status: 'running', runner: `app@${process.pid}`, line: opts.resume ? 'resumed' : 'started in the app', cwd });
   if (s.agent === 'codex') {
     // codex exec has no system-prompt flag: the contract opens the first turn
@@ -141,10 +158,12 @@ async function startProcess(l: Live, s: Session, product: string, opts: { wfUrl:
     return getSession(productDir, id);
   }
   const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--permission-prompt-tool', 'stdio', '--forward-subagent-text', '--append-system-prompt', system, '--add-dir', REPO_ROOT];
+  // the librarian's closed tool set (decision:exec.librarian-on-the-host): wf reads and proposals, reading files, questions — no edits, no shell, no git
+  if (s.role === 'librarian') args.push('--allowedTools', 'Bash(wf:*)', 'Read', 'Grep', 'Glob', '--disallowedTools', 'Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash(git:*)', 'Bash(rm:*)', 'Bash(npm:*)', 'Bash(node:*)', 'Agent', 'Task');
   if (opts.resume && s.agentSessionId) args.push('--resume', s.agentSessionId);
   const proc = spawn('claude', args, { cwd, env: { ...process.env, WF_URL: opts.wfUrl, WF_PRODUCT: product, WF_SESSION: id } });
   l.proc = proc;
-  emit(l, { kind: 'note', text: `claude ${opts.resume ? 'resumed' : 'started'} in ${cwd} · Wye contract applied as system prompt` });
+  emit(l, { kind: 'note', text: `claude ${opts.resume ? 'resumed' : 'started'} in ${cwd} · ${s.role === 'librarian' ? 'the librarian: reads and proposes, no code' : 'Wye contract applied as system prompt'}` });
   let buf = '';
   // a process replaced by restartFresh may still write its last lines: they are not this conversation's any more
   proc.stdout.on('data', d => { if (l.proc !== proc) return; buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) onClaudeLine(l, line); } });

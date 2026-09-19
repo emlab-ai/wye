@@ -14,5 +14,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   if (!text.trim() && !refs.length) return NextResponse.json({ error: 'empty', message: 'text or refs required' }, { status: 400 });
   if (!scope.graph.nodes.length) return NextResponse.json({ markdown: '_The product has no graph yet._', seeds: [], hidden: 0, counts: {}, questions: [] });
   const { markdown, packet } = await packetFor(scope, text, refs, { budget: Math.min(60000, body.budget ?? 10000), all: !!body.all, asOf: body.asOf ?? null });
-  return NextResponse.json({ markdown, seeds: packet.seeds, hidden: packet.hidden, counts: Object.fromEntries(Object.entries(packet.byKind).map(([k, l]) => [k, l.length])), questions: packet.questions.map(q => q.id) });
+  // `nodes`: every node of the packet with its kind and status, for the Context card (req:exec.wye-context)
+  const nodes = [...Object.values(packet.byKind).flat(), ...packet.questions].map(n => ({ id: n.id, kind: n.kind, status: n.status, title: n.title }));
+  return NextResponse.json({ markdown, seeds: packet.seeds, hidden: packet.hidden, counts: Object.fromEntries(Object.entries(packet.byKind).map(([k, l]) => [k, l.length])), questions: packet.questions.map(q => q.id), nodes });
 }

@@ -29,6 +29,11 @@
 //   wf session handoff <id> --product p --agent a ["note"]  continue it under another agent
 //   wf session open <id> --product p <product/project/doc[#node] | url>   navigate the person's browser to a page
 //   wf session take <id> --product p       mark it running under you (interactive pick-up, e.g. /wf-restore)
+//   wf propose [<product/project/doc>] --plan <product/project/plan-x> --product p (a yaml card with `- id: kind:slug` on stdin or --file f)
+//        one proposed block into the document where its kind lives, embedded on the plan's Definition; without a
+//        document it is defined on the plan under Definition (decision:exec.definition-home-fallback)
+//   wf plan <product/project/plan-x> [--status defining|defined|building|done|cancelled]   the plan's status and Definition
+//   wf explain <id | "text"> --product p   the current state of the product around a node or a text (the librarian, one turn)
 //   wf work list --product p [--unassigned | --mine <name> | --goal <id> | --plan <id>] [--done]   every task with its state
 //   wf work add "<text>" --product p [--part-of <id>] [--ready]   a task line on the backlog (under the node when --part-of names one)
 //   wf work next --product p [--goal <id>]   the oldest ready, unblocked, unassigned task
@@ -238,6 +243,33 @@ const commands = {
     }
     if (sub === 'handoff') { const j = await api('POST', `/api/${p}/sessions/${id}/handoff`, { agent: flags.agent || die('--agent required'), note: pos[3] || '' }); return out(flags.json ? j : `session ${j.id} queued for ${j.agent}, continuing ${id}`); }
     die(`unknown session command: ${sub}`);
+  },
+  async propose() {
+    // one proposed block (op:api.propose): the card on stdin or --file; the home document first, else the plan
+    const p = product(); const doc = pos[1] && !pos[1].startsWith('--') ? pos[1] : '';
+    const card = flags.file ? fs.readFileSync(flags.file, 'utf8') : await readStdin();
+    if (!card.trim()) die('wf propose [<product/project/doc>] --plan <product/project/plan-x>  (the yaml card on stdin or --file f)');
+    if (!doc && !flags.plan) die('--plan <product/project/plan-x> is required when no document is given');
+    const body = { card, plan: flags.plan || undefined, doc: doc ? (() => { const d = docRef(doc); return `${d.product}/${d.project}/${d.doc}`; })() : undefined };
+    const j = await api('POST', `/api/${p}/propose`, body);
+    return out(flags.json ? j : `${j.id} proposed in ${j.file}${j.plan ? ` — embedded on ${j.plan}'s Definition` : ''}${doc ? '' : ' (no home document yet: on the plan under Definition)'}`);
+  },
+  async plan() {
+    const ref = pos[1] || die('wf plan <product/project/plan-x> [--status s]'); const d = docRef(ref); const p = d.product;
+    const r = `${d.product}/${d.project}/${d.doc}`;
+    if (flags.status) { const j = await api('PATCH', `/api/${p}/plan`, { ref: r, status: flags.status }); return out(flags.json ? j : `${r}: status ${j.status}`); }
+    const j = await api('GET', `/api/${p}/plan?ref=${encodeURIComponent(r)}`); if (flags.json) return out(j);
+    const df = j.definition;
+    console.log(`${j.node}  ${j.status}${j.role === 'librarian' ? '  (librarian)' : ''}${j.task ? '  task ' + j.task : ''}  session ${j.session}`);
+    console.log(`definition: ${df.total} block(s), ${df.agreed} agreed, ${df.open} open${df.missing ? `, ${df.missing} missing` : ''}${df.contradicted.length ? `, contradicted: ${df.contradicted.join(', ')}` : ''} — ${df.defined ? 'defined' : 'not yet defined'}`);
+    for (const it of df.items) console.log(`  ${it.agreed ? '✓' : it.missing ? '?' : '·'} ${it.id}${it.status ? ' #' + it.status : ''}`);
+  },
+  async explain() {
+    // one librarian turn on a node or a text (req:exec.explain-anywhere, op:api.explain): the current state, nothing proposed
+    const what = pos[1] || (await readStdin()); if (!what.trim()) die('wf explain <id | "text">');
+    const j = await api('POST', `/api/${product()}/explain`, /^[a-z-]+:[A-Za-z0-9_.\-]+$/.test(what.trim()) ? { id: what.trim() } : { text: what });
+    if (flags.json) return out(j);
+    console.log(j.explanation);
   },
   async work() {
     // the Work view for agents (req:exec.backlog-for-agents): list, add, next, assign — op:api.work

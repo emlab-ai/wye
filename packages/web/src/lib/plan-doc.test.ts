@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { planSlug, planTitle, planDocBody, fromLine, resultSection, withResult, setFrontmatter, getFrontmatter, plansOf, planStatusOnEnd, requestTaskStatusOnEnd } from './plan-doc';
+import { planSlug, planTitle, planDocBody, fromLine, resultSection, withResult, setFrontmatter, getFrontmatter, plansOf, planStatusOnEnd, requestTaskStatusOnEnd, definitionIds, withDefinition, definitionState, planStatusFromDefinition } from './plan-doc';
 
 const TPL = readFileSync(path.join(__dirname, '../../../../templates/docs/plan-request.md'), 'utf8');
 const vars = { slug: 'plan-page-link-session', title: 'page link on the session', date: '2026-09-18', session: 'abc123', agent: 'claude-code', parent: 'module:app-agents', started: '2026-09-18T12:00:00.000Z', request: 'page link on the session, it looks good\n\n## but\nshould be a plan', from: '_from: module:app-agents · refs: req:x_' };
@@ -118,5 +118,31 @@ describe('setFrontmatter', () => {
     const md = setFrontmatter(planDocBody(TPL, vars), 'status', 'done');
     expect(md).toMatch(/^---\n[\s\S]*?\nstatus: done\n/);
     expect(setFrontmatter(md, 'finished', '2026-09-18')).toMatch(/\nfinished: 2026-09-18\n---/);
+  });
+});
+
+describe('the Definition (decision:exec.plan-lifecycle, req:exec.plan-defined)', () => {
+  const md = `---\nnode: plan:plan-x\ntype: plan\nstatus: defining\n---\n\n# x\n\n## Context\n\nstuff\n\n## Definition\n\n_intro_\n\n![[req:a.one]]\n\n\`\`\`yaml\n- id: decision:a.d\n  title: D\n  status: proposed\n\`\`\`\n\n- [ ] task:a.t Do it #proposed\n\n## Plan\n\nmore\n`;
+  it('reads embedded, card and prose ids under Definition and embeds new ones once', () => {
+    expect(definitionIds(md)).toEqual(['req:a.one', 'decision:a.d', 'task:a.t']);
+    const next = withDefinition(md, ['req:a.one', 'question:a.q']);
+    expect(definitionIds(next)).toEqual(['req:a.one', 'decision:a.d', 'task:a.t', 'question:a.q']);
+    expect(next).toContain('- [ ] task:a.t Do it #proposed\n\n![[question:a.q]]\n\n## Plan');
+    expect(withDefinition(next, ['question:a.q'])).toBe(next);
+    const noSection = withDefinition('---\nnode: plan:p\n---\n\n## Context\n\nc\n\n## Plan\n\np\n', ['req:z']);
+    expect(noSection).toContain('## Context\n\nc\n\n## Definition\n\n![[req:z]]\n\n## Plan');
+  });
+  it('is defined when every block is agreed — a task once it is work — and no open contradiction touches one', () => {
+    const lookup = (m: Record<string, { status: string; openContradictions: string[] }>) => (id: string) => m[id] ?? null;
+    const ids = definitionIds(md);
+    expect(definitionState(ids, lookup({ 'req:a.one': { status: 'approved', openContradictions: [] }, 'decision:a.d': { status: 'proposed', openContradictions: [] }, 'task:a.t': { status: 'proposed', openContradictions: [] } }))).toMatchObject({ total: 3, agreed: 1, open: 2, defined: false });
+    const all = lookup({ 'req:a.one': { status: 'approved', openContradictions: [] }, 'decision:a.d': { status: 'approved', openContradictions: [] }, 'task:a.t': { status: 'open', openContradictions: [] } });
+    expect(definitionState(ids, all).defined).toBe(true);
+    expect(planStatusFromDefinition('defining', definitionState(ids, all))).toBe('defined');
+    const contra = lookup({ 'req:a.one': { status: 'approved', openContradictions: ['contradiction:x'] }, 'decision:a.d': { status: 'approved', openContradictions: [] }, 'task:a.t': { status: 'open', openContradictions: [] } });
+    expect(definitionState(ids, contra)).toMatchObject({ defined: false, contradicted: ['req:a.one'] });
+    expect(planStatusFromDefinition('defined', definitionState(ids, contra))).toBe('defining');
+    expect(planStatusFromDefinition('building', definitionState(ids, contra))).toBe('building');
+    expect(definitionState(['req:gone'], () => null)).toMatchObject({ missing: 1, defined: false });
   });
 });

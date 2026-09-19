@@ -29,7 +29,7 @@ export function planTitle(request: string): string {
 
 // partOf: what the request task is part of (req:exec.request-is-a-task) — the goal or node it was sent from;
 // task: the task the session was assigned (req:exec.dispatch) — embedded on the plan instead of a new request task
-export type PlanDocVars = { slug: string; title: string; date: string; session: string; agent: string; started: string; parent: string; request: string; from: string; partOf?: string; task?: string };
+export type PlanDocVars = { slug: string; title: string; date: string; session: string; agent: string; started: string; parent: string; request: string; from: string; partOf?: string; task?: string; role?: 'worker' | 'librarian' };
 
 // The request task (req:exec.request-is-a-task, decision:exec.task-is-the-unit): `task:<plan-slug>` on the plan
 // document — the request itself as a work item, on the Work view from the first second.
@@ -42,9 +42,11 @@ export function planDocBody(template: string, v: PlanDocVars): string {
   // the request task's text can carry no parenthesis or hashtag: they would read as its properties or status
   const taskTitle = v.title.replace(/[()#]/g, ' ').replace(/\s+/g, ' ').trim();
   const requestTask = v.task ? `![[${v.task}]]` : `- [ ] ${requestTaskId(v.slug)} ${taskTitle} #in-progress (worker: ${v.agent}, session: ${v.session}${v.partOf ? `, part-of: ${v.partOf}` : ''})`;
-  let out = template.replace(/\{\{(slug|title|date|session|agent|started|parent|request|from|task|requesttask)\}\}/g, (_, k: string) => k === 'request' ? request : k === 'requesttask' ? requestTask : v[k as keyof PlanDocVars] ?? '');
+  let out = template.replace(/\{\{(slug|title|date|session|agent|started|parent|request|from|task|requesttask|role)\}\}/g, (_, k: string) => k === 'request' ? request : k === 'requesttask' ? requestTask : k === 'role' ? (v.role === 'librarian' ? 'librarian' : '') : v[k as keyof PlanDocVars] ?? '');
   if (!v.parent) out = out.replace(/^part-of: \n/m, '');
   if (!v.task) out = out.replace(/^task: \n/m, '');
+  if (v.role !== 'librarian') out = out.replace(/^role: \n/m, '');
+  else out = out.replace(/^status: proposed$/m, 'status: defining'); // a librarian is on it (decision:exec.plan-lifecycle)
   if (!v.from) out = out.replace(/\n{3,}## Context/, '\n\n## Context');
   return out;
 }
@@ -139,4 +141,57 @@ export function setFrontmatter(md: string, key: string, value: string): string {
   const re = new RegExp(`^${key}:.*$`, 'm');
   const body = re.test(fm[1]) ? fm[1].replace(re, `${key}: ${value}`) : `${fm[1]}\n${key}: ${value}`;
   return `---\n${body}\n---${md.slice(fm[0].length)}`;
+}
+
+// ---- the Definition (decision:exec.plan-lifecycle, req:exec.plan-defined, req:exec.definition-tracked)
+
+// The ids in a plan's Definition section: embedded (`![[id]]`), defined as a card (`- id: x`) or as a prose line.
+export function definitionIds(md: string): string[] {
+  const sec = sectionBody(md, 'Definition'); if (sec === null) return [];
+  const ids: string[] = [];
+  // top-level lines only: what is indented under a block is that block's content (its verdicts, its sub-items)
+  for (const l of sec.split('\n')) {
+    const m = l.match(/^!\[\[([a-z-]+:[A-Za-z0-9_.\-]+)\]\]/) ?? l.match(/^-\s+id:\s*([a-z-]+:[A-Za-z0-9_.\-]+)\s*$/) ?? l.match(/^(?:[-*+]\s+(?:\[[ xX]\]\s+)?)?([a-z-]+:[A-Za-z0-9_.\-]+)\s/);
+    if (m && !/^(verdict|contradiction|block):/.test(m[1]) && !ids.includes(m[1])) ids.push(m[1]);
+  }
+  return ids;
+}
+export function sectionBody(md: string, heading: string): string | null {
+  const m = md.match(new RegExp(`^## ${heading}[^\\n]*\\n`, 'm')); if (!m || m.index === undefined) return null;
+  const start = m.index + m[0].length; const rest = md.slice(start); const next = rest.search(/^## /m);
+  return next === -1 ? rest : rest.slice(0, next);
+}
+// Embed ids under Definition that are not there yet (the section is added after Context when missing).
+export function withDefinition(md: string, ids: string[]): string {
+  const have = new Set(definitionIds(md));
+  const fresh = ids.filter(id => !have.has(id)); if (!fresh.length) return md;
+  const lines = fresh.map(id => `![[${id}]]`).join('\n\n');
+  const m = md.match(/^## Definition[^\n]*\n/m);
+  if (!m || m.index === undefined) {
+    const plan = md.match(/^## Plan[^\n]*\n/m);
+    const block = `## Definition\n\n${lines}\n\n`;
+    return plan && plan.index !== undefined ? `${md.slice(0, plan.index)}${block}${md.slice(plan.index)}` : `${md.replace(/\s+$/, '')}\n\n${block}`;
+  }
+  const start = m.index + m[0].length; const rest = md.slice(start); const next = rest.search(/^## /m);
+  const end = next === -1 ? md.length : start + next;
+  const body = md.slice(start, end).replace(/\s+$/, '');
+  return `${md.slice(0, start)}${body}\n\n${lines}\n${next === -1 ? '' : '\n'}${md.slice(end)}`;
+}
+// Whether a Definition is agreed: every block approved, resolved, rejected or done, and no open contradiction on an
+// approved one. `nodes` gives each id's status and the ids of open contradictions touching it.
+export const AGREED = new Set(['approved', 'resolved', 'rejected', 'dismissed', 'done', 'shipped', 'accepted', 'superseded', 'retired', 'answered', 'complete', 'active']);
+export type DefinitionState = { total: number; agreed: number; open: number; missing: number; contradicted: string[]; defined: boolean; items: { id: string; status: string; agreed: boolean; missing?: boolean }[] };
+export function definitionState(ids: string[], lookup: (id: string) => { status: string; openContradictions: string[] } | null): DefinitionState {
+  // a task is agreed once it is work (todo, open, in progress, done) rather than a proposal
+  const ok = (id: string, status: string) => id.startsWith('task:') ? !['proposed', 'draft', 'rejected'].includes(status) : AGREED.has(status);
+  const items = ids.map(id => { const n = lookup(id); if (!n) return { id, status: '', agreed: false, missing: true }; return { id, status: n.status, agreed: ok(id, n.status) }; });
+  const contradicted = ids.filter(id => { const n = lookup(id); return n && ok(id, n.status) && n.openContradictions.length; });
+  const agreed = items.filter(i => i.agreed).length; const missing = items.filter(i => i.missing).length;
+  return { total: items.length, agreed, open: items.length - agreed - missing, missing, contradicted, defined: items.length > 0 && agreed === items.length && !contradicted.length, items };
+}
+// The plan's next status from its Definition (decision:exec.plan-lifecycle): defining ↔ defined; other statuses stay.
+export function planStatusFromDefinition(status: string, d: DefinitionState): string {
+  if (status === 'defining' && d.defined) return 'defined';
+  if (status === 'defined' && !d.defined) return 'defining';
+  return status;
 }

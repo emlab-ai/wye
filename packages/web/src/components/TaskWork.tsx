@@ -19,11 +19,17 @@ export function TaskWork({ id }: { id: string }) {
   const { product, open } = usePeek();
   const [me] = useMe();
   const [d, setD] = useState<Detail | null>(null);
-  const [assigning, setAssigning] = useState(false);
+  const [assigning, setAssigning] = useState<false | 'assign' | 'build'>(false);
+  // a plan's request task carries the plan's Definition (decision:exec.plan-lifecycle): its state, and Build
+  const [plan, setPlan] = useState<{ ref: string; status: string; role: string; definition: { total: number; agreed: number; open: number; missing: number; contradicted: string[]; defined: boolean; items: { id: string; status: string; agreed: boolean }[] } } | null>(null);
   const [tick, setTick] = useState(0);
   useEffect(() => {
     let live = true;
-    fetch(`/api/${product}/work?id=${encodeURIComponent(id)}`).then(r => r.ok ? r.json() : null).then(j => { if (live) setD(j); });
+    fetch(`/api/${product}/work?id=${encodeURIComponent(id)}`).then(r => r.ok ? r.json() : null).then((j: Detail | null) => {
+      if (!live) return; setD(j);
+      const it = j?.item; const doc = it?.doc;
+      if (it?.requestTask && it.plan && doc) fetch(`/api/${product}/plan?ref=${encodeURIComponent(`${product}/${doc.project}/${doc.slug}`)}`).then(r => r.ok ? r.json() : null).then(p => { if (live && p) setPlan(p); }).catch(() => {});
+    });
     const onChange = () => setTick(t => t + 1);
     window.addEventListener('wf:change', onChange);
     return () => { live = false; window.removeEventListener('wf:change', onChange); };
@@ -45,10 +51,19 @@ export function TaskWork({ id }: { id: string }) {
         {item.ready && <span className="pill ready">ready</span>}
         {item.blocked && <span className="pill blocked-by" title={`blocked by ${item.blockedBy.join(', ')}`}>⛔ blocked</span>}
         <span className="taskwork-acts">
-          {item.status !== 'done' && <button className="linkish" onClick={() => setAssigning(true)}>Assign</button>}
+          {plan && item.status !== 'done' && item.state !== 'working' && item.state !== 'queued' && <button className="linkish" onClick={() => setAssigning('build')} title="Assign the request with the plan's Definition as context">Build</button>}
+          {item.status !== 'done' && <button className="linkish" onClick={() => setAssigning('assign')}>Assign</button>}
           {item.status !== 'done' && <button className="linkish" onClick={markDone} title={me ? `done, by ${me}` : 'done'}>✓ done</button>}
         </span>
       </div>
+      {plan && (
+        <div className="taskwork-def">
+          <small>plan {plan.status}{plan.role === 'librarian' ? ' · defined with Wye' : ''}</small>
+          <span className={`pill s ${plan.definition.defined ? 'done' : plan.definition.total ? 'in-progress' : 'proposed'}`}>{plan.definition.defined ? 'defined' : plan.definition.total ? `${plan.definition.agreed}/${plan.definition.total} agreed` : 'no definition yet'}</span>
+          {plan.definition.contradicted.length > 0 && <span className="pill s blocked" title={plan.definition.contradicted.join(', ')}>contradicted</span>}
+          {plan.definition.items.length > 0 && <div className="tags">{plan.definition.items.map(it => <span key={it.id} className="ctxcard-item"><SmartTag id={it.id} />{it.status && <StatusPill status={it.status} />}</span>)}</div>}
+        </div>
+      )}
       {last && (last.status === 'done' || last.status === 'failed' || last.status === 'cancelled') && (
         <div className="taskwork-result">
           <div className="taskwork-head"><small>result</small><button className="linkish" onClick={() => open(`session:${last.id}`)}>session {last.id.slice(0, 6)}</button><StatusPill status={last.status} /><span className="muted">{agentLabel(last.agent)} · {when(last.finishedAt ?? last.createdAt)}</span></div>
@@ -62,7 +77,7 @@ export function TaskWork({ id }: { id: string }) {
           )}
         </div>
       )}
-      {assigning && <Assign product={product} item={item} people={[]} me={me} onClose={() => setAssigning(false)} onDone={s => { setAssigning(false); setTick(t => t + 1); if (s) open(`session:${s}`); }} />}
+      {assigning && <Assign product={product} item={item} people={[]} me={me} build={assigning === 'build' && plan ? plan.ref : undefined} unagreed={assigning === 'build' && plan ? plan.definition.items.filter(i => !i.agreed).map(i => i.id) : undefined} onClose={() => setAssigning(false)} onDone={s => { setAssigning(false); setTick(t => t + 1); if (s) open(`session:${s}`); }} />}
     </section>
   );
 }

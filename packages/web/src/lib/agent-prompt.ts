@@ -8,9 +8,13 @@ import { loadGraph } from './load';
 import { indexGraph } from './graph';
 import { constitutionSection } from './constitution';
 
-export async function agentSystemPrompt(product: string, productDir: string, wfUrl: string): Promise<string> {
+// role librarian (decision:exec.wye-is-a-role, decision:exec.librarian-on-the-host): prompts/librarian-system.md —
+// read Wye, explain, ask along the requirement shape, propose blocks; never code — with the same product section and
+// constitution. The tool allow-list that goes with it is in agent-host.
+export async function agentSystemPrompt(product: string, productDir: string, wfUrl: string, role: 'worker' | 'librarian' = 'worker'): Promise<string> {
   let base = '';
-  try { base = await readFile(path.join(REPO_ROOT, 'prompts/agent-system.md'), 'utf8'); } catch { base = '# Wye contract\nWye is the source of truth for product knowledge. Read it before acting (`wf context`, `wf resolve`) and record every decision, requirement, rule and task back into it.'; }
+  const file = role === 'librarian' ? 'prompts/librarian-system.md' : 'prompts/agent-system.md';
+  try { base = await readFile(path.join(REPO_ROOT, file), 'utf8'); } catch { base = '# Wye contract\nWye is the source of truth for product knowledge. Read it before acting (`wf context`, `wf resolve`) and record every decision, requirement, rule and task back into it.'; }
   let own = '';
   try { own = await readFile(path.join(productDir, '_agent.md'), 'utf8'); } catch { /* none */ }
   // every project's plan document (`plan.md`, else the one file named plan-ish that is not a request's `plan-<slug>.md`

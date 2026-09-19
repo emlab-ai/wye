@@ -20,6 +20,7 @@ export type WorkItem = {
   partOf: string[];                                           // goals, requirements, nodes it serves (not plans)
   sessions: { id: string; status: SessionStatus; agent: string; live?: boolean; busy?: boolean; result?: string }[];
   change?: string; by?: string; archived: boolean; produced: number;
+  definition?: { total: number; agreed: number; open: number; defined: boolean; contradicted: number }; // the plan's Definition (set by work-io)
   children: WorkItem[];
 };
 

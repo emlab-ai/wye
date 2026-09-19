@@ -9,6 +9,7 @@ import { Console } from './Console';
 import { TranscriptMarkdown, keepBreaks } from './TranscriptMarkdown';
 import { shownStatus } from './SessionList';
 import { SessionChanges } from './SessionChanges';
+import { ContextCard } from './ContextCard';
 
 export const agentLabel = (id: string) => AGENTS.find(a => a.id === id)?.label ?? id;
 export const when = (iso: string) => { const d = new Date(iso); const m = (Date.now() - d.getTime()) / 60000; return m < 1 ? 'just now' : m < 60 ? `${Math.round(m)} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : d.toLocaleDateString(); };
@@ -49,13 +50,15 @@ export function SessionView({ id }: { id: string }) {
     <div className="session">
       <div className="session-head">
         <span className={`pill s ${shownStatus(s)} session-status`} title={s.live ? `process up · recorded status: ${s.status}` : s.status}>{shownStatus(s)}</span>
-        <strong>{agentLabel(s.agent)}</strong>{s.mode === 'chat' && <span className="pill">chat</span>}
+        <strong>{s.role === 'librarian' ? 'Wye' : agentLabel(s.agent)}</strong>{s.role === 'librarian' ? <span className="pill" title="the librarian: reads, explains, proposes — never code">defining</span> : s.mode === 'chat' && <span className="pill">chat</span>}
         <span className="muted">{when(s.createdAt)}</span>
         <span className="session-acts">
           <button className="mini" onClick={() => setHandoff(h => h ? null : { agent: AGENTS.find(a => a.id !== s.agent)?.id ?? s.agent, note: '' })} title="Continue this work under another agent">Hand off…</button>
           {active && <button className="mini" onClick={() => patch({ status: 'cancelled' })}>Cancel</button>}
         </span>
       </div>
+      {/* a librarian conversation (decision:exec.wye-is-a-role): the knowledge around the request at the top, for the whole conversation (req:exec.wye-context) */}
+      {s.role === 'librarian' && <ContextCard key={s.id} text={s.instruction} refs={s.refs} known={knowledge} />}
       {/* the work items of this worker, the current plan marked; the page they link to is where the tasks and the result are */}
       {(s.plans?.length ?? 0) > 0 && <div className="session-plans"><small className="muted">work</small><PlanList session={s} plans={s.plans!} compact /></div>}
       {(s.runner || s.cwd) && <p className="muted session-src">{s.cwd && <>folder <code>{s.cwd.replace(/^\/Users\/[^/]+/, '~')}</code>{s.runner ? ' · ' : ''}</>}{s.runner && <>runner {s.runner}</>}{s.startedAt ? ` · started ${when(s.startedAt)}` : ''}{s.finishedAt ? ` · finished ${when(s.finishedAt)}` : ''}</p>}

@@ -4,9 +4,10 @@
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { loadScope, type Scope } from './scope';
-import { listSessions, createSession, updateSession, onSessionEnd, AGENTS, getSession } from './sessions';
+import { listSessions, createSession, updateSession, onSessionEnd, AGENTS, getSession, setPlanDoc } from './sessions';
 import { liveState, startChat } from './agent-host';
-import { createPlanDoc } from './plan-docs';
+import { createPlanDoc, adoptPlanDoc, readPlanDoc, definitionContext, planDefinition } from './plan-docs';
+import { setFrontmatter, definitionIds } from './plan-doc';
 import { editNode } from './node-edit';
 import { docIdOf, docRoute } from './doc';
 import { REPO_ROOT } from './products';
@@ -22,6 +23,13 @@ const AGENT_IDS = new Set(AGENTS.map(a => a.id));
 export async function loadWork(scope: Scope): Promise<{ items: WorkItem[]; people: string[]; agents: { id: string; label: string }[] }> {
   const sessions: WorkSession[] = (await listSessions(scope.product.dir)).map(s => ({ id: s.id, status: s.status, agent: s.agent, refs: s.refs, createdAt: s.createdAt, updatedAt: s.updatedAt, finishedAt: s.finishedAt, result: s.result, planDoc: s.planDoc, artifacts: s.artifacts, ...(s.mode === 'chat' ? liveState(s.id) : {}) }));
   const items = workItems(scope.graph, scope.idx, sessions);
+  // a plan with a Definition (decision:exec.plan-lifecycle): its counts on the request task's row and the plan group
+  const defs = new Map<string, WorkItem['definition']>();
+  for (const n of scope.graph.nodes) {
+    if (n.kind !== 'plan' || !n.defined || !['defining', 'defined', 'building', 'proposed'].includes(n.status)) continue;
+    try { const md = await readFile(path.join(REPO_ROOT, n.file), 'utf8'); if (!definitionIds(md).length) continue; const d = planDefinition(scope, md); defs.set(n.id, { total: d.total, agreed: d.agreed, open: d.open, defined: d.defined, contradicted: d.contradicted.length }); } catch { /* unreadable */ }
+  }
+  if (defs.size) { const walk = (r: WorkItem) => { if (r.plan && defs.has(r.plan.id)) r.definition = defs.get(r.plan.id); r.children.forEach(walk); }; items.forEach(walk); }
   // people: the product file's list, plus every name that holds or owns a task
   const seen = new Set(scope.product.meta.people ?? []);
   const walk = (r: WorkItem) => { if (r.worker && !AGENT_IDS.has(r.worker) && r.worker !== RUNNER_POOL) seen.add(r.worker); r.children.forEach(walk); }; items.forEach(walk);
@@ -44,7 +52,9 @@ function taskInstruction(scope: Scope, item: WorkItem, note?: string): string {
   return parts.join('\n\n');
 }
 
-export type AssignInput = { worker: string; note?: string; plan?: boolean; cwd?: string; force?: boolean; by?: string; wfUrl: string; agent?: string };
+// build: the task is a plan's request task and the plan's Definition goes with it (req:exec.build-from-definition):
+// the session works on that plan (no new plan document), the plan moves to building
+export type AssignInput = { worker: string; note?: string; plan?: boolean; cwd?: string; force?: boolean; by?: string; wfUrl: string; agent?: string; build?: string };
 export type AssignResult = { ok: true; worker: string; session?: string; mode?: 'chat' | 'run' } | { ok: false; error: 'not_found' | 'refused' | 'held' | 'invalid'; message: string };
 
 // Assign (req:exec.dispatch): a person gets `worker:`; an agent gets a session with the task, its document and what
@@ -60,7 +70,9 @@ export async function assignTask(scope: Scope, id: string, input: AssignInput): 
     const r = await editNode(scope, id, { props: { worker } });
     return r.ok ? { ok: true, worker } : { ok: false, error: 'invalid', message: r.message };
   }
-  if ((item.state === 'queued' || item.state === 'working') && !input.force) return { ok: false, error: 'held', message: `${item.worker ?? 'a worker'} holds it (${item.state}) — assign again to re-queue` };
+  // held by a librarian defining it (decision:exec.wye-is-a-role): Build hands the request to a builder anyway
+  const heldByLibrarian = input.build && item.sessions.length > 0 && (await Promise.all(item.sessions.map(x => getSession(scope.product.dir, x.id)))).every(x => !x || x.role === 'librarian' || !['queued', 'running'].includes(x.status));
+  if ((item.state === 'queued' || item.state === 'working') && !input.force && !heldByLibrarian) return { ok: false, error: 'held', message: `${item.worker ?? 'a worker'} holds it (${item.state}) — assign again to re-queue` };
   const node = scope.idx.byId.get(id)!;
   const r = docRoute(node.file);
   const docNode = docIdOf(scope.graph, node.file);
@@ -70,8 +82,16 @@ export async function assignTask(scope: Scope, id: string, input: AssignInput): 
   const agent = worker === RUNNER_POOL ? (input.agent && AGENT_IDS.has(input.agent) ? input.agent : 'claude-code') : worker;
   let cwd = input.cwd?.trim() || scope.product.meta.repo || REPO_ROOT;
   if (mode === 'chat') { try { if (!(await stat(cwd)).isDirectory()) throw new Error(); } catch { cwd = REPO_ROOT; } }
-  const s = await createSession(scope.product.dir, scope.product.slug, { agent, instruction: taskInstruction(scope, item, input.note), refs, source, mode, cwd, plan: !!input.plan, task: id });
-  s.planDoc = (await createPlanDoc(scope.product.dir, scope.product.slug, s)) ?? undefined;
+  let instruction = taskInstruction(scope, item, input.note);
+  const def = input.build ? await definitionContext(scope, input.build) : null;
+  if (def) instruction = `${instruction}\n\n${def.text}`;
+  const s = await createSession(scope.product.dir, scope.product.slug, { agent, instruction, refs, source, mode, cwd, plan: !!input.plan && !def, task: id });
+  if (def && input.build) {
+    // Build: the session continues the plan that holds the Definition (rule:plan-doc, decision:exec.plan-lifecycle)
+    await setPlanDoc(scope.product.dir, s.id, input.build, `builds ${input.build} from its Definition`); s.planDoc = input.build;
+    await adoptPlanDoc(scope.product.dir, { ...s, planDoc: input.build });
+    const plan = await readPlanDoc(scope.product.slug, input.build); if (plan) { await writeAtomic(plan.file, setFrontmatter(plan.md, 'status', 'building')); await rebuild(scope.product.dir); }
+  } else s.planDoc = (await createPlanDoc(scope.product.dir, scope.product.slug, s)) ?? undefined;
   // taken: in progress, the worker and the session on the line, the ready mark spent
   await editNode(scope, id, { status: 'in-progress', props: { worker: agent, session: [...new Set([...item.sessions.map(x => x.id), s.id])].join(' '), ready: null } });
   if (mode === 'chat') await startChat(scope.product.dir, scope.product.slug, s.id, { wfUrl: input.wfUrl });
