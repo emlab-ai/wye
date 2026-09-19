@@ -3,7 +3,9 @@ export interface GraphEdge { from: string; to: string; verb: string; generated?:
 export interface GraphModule { id: string; title: string; file: string; verified: string; sourceRoots: string[] }
 // ontology (lib/parse.js pass 1): a property of a type, effective on the type (own or inherited from `from`)
 export interface PropDef { name: string; from: string; type: string; ref: string | null; many: boolean; required: boolean; inverse: string | null; enum: string[] | null }
-export interface TypeDef { id: string; slug: string; extends: string | null; chain: string[]; open: boolean; purpose: string; home: string; props: PropDef[]; file: string; line: number }
+// a shape (decision:memory.shapes): a check ctx enforces on the type's instances, declared on the type card
+export interface ShapeDef { from: string; text: string; level: 'warning' | 'error'; status?: string; all?: string[][]; prop?: string; refStatus?: string }
+export interface TypeDef { id: string; slug: string; extends: string | null; chain: string[]; open: boolean; purpose: string; home: string; props: PropDef[]; shapes?: ShapeDef[]; file: string; line: number }
 export interface GraphData { generatedAt: string; modules: GraphModule[]; files: string[]; nodes: GraphNode[]; edges: GraphEdge[]; fieldIndex: Record<string, string>; kinds?: string[]; types?: TypeDef[]; inverses?: Record<string, string>; problems?: { level: 'error' | 'warning'; msg: string }[] }
 export interface GraphIndex { byId: Map<string, GraphNode>; out: Map<string, GraphEdge[]>; inc: Map<string, GraphEdge[]> }
 export interface BodyRow { key: string; value: string; prose: boolean }

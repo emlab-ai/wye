@@ -104,4 +104,64 @@ assert.ok(pk.includes('- rule:shop.no-negative — A price is never negative (so
 assert.ok(pk.indexOf('### Constraints') < pk.indexOf('### Rules') && pk.indexOf('### Rules') < pk.indexOf('### Decisions'));
 assert.ok(g.constraints(['entity:shop.price'], { all: true }).byKind.decision.some(n => n.id === 'decision:shop.old-pricing'), '--all brings the old decision back');
 
+// --- shapes (decision:memory.shapes): declared on the type card, enforced by check in the type's words
+const shaped = `---
+node: module:shapes
+title: Shapes
+---
+
+# Shapes
+
+\`\`\`yaml
+- id: type:policy
+  extends: type:node
+  props:
+    statement: text?
+    source: string?
+    owner: string?
+    approved-by: ref node?
+  shapes:
+    * requires statement as error
+    approved requires source | owner
+    approved-by refs status approved
+    nonsense line here
+- id: policy:ok
+  statement: fine
+  status: approved
+  owner: alex
+- id: policy:no-statement
+  status: draft
+- id: policy:approved-bare
+  statement: has no source nor owner
+  status: approved
+  approved-by: policy:draft-one
+- id: policy:draft-one
+  statement: a draft
+  status: draft
+- id: decision:shapes.gone
+  title: superseded without a successor
+  status: superseded
+- id: rule:shapes.no-source
+  statement: a rule without a source
+\`\`\`
+
+policy:prose-bare Prose instance without a statement key #approved
+`;
+fs.writeFileSync(path.join(dir, 'shapes.md'), shaped);
+const g2 = new Graph(parseFiles([path.join(dir, 'shapes.md')]));
+const t = g2.types.get('type:policy');
+assert.strictEqual(t.shapes.filter(sh => sh.from === 'type:policy').length, 3, 'three shapes read on the type');
+assert.ok(t.shapes.some(sh => sh.from === 'type:node'), 'shapes inherit along extends');
+const r = g2.check({ repo: dir });
+const all = r.errors.concat(r.warnings).join('\n');
+assert.ok(r.errors.some(e => /policy:no-statement: policy has no statement/.test(e)), 'as error → error: ' + all);
+assert.ok(r.warnings.some(w => /policy:approved-bare: approved policy has no source or owner/.test(w)), 'alternatives: ' + all);
+assert.ok(r.warnings.some(w => /policy:approved-bare: approved-by → policy:draft-one is draft, not approved/.test(w)), 'refs status: ' + all);
+assert.ok(!/policy:ok/.test(all), 'a conforming instance passes');
+assert.ok(r.warnings.some(w => /policy:prose-bare: policy has no statement/.test(w)) && !r.errors.some(e => /policy:prose-bare/.test(e)), 'a prose node only warns');
+assert.ok(r.warnings.some(w => /decision:shapes.gone: superseded decision has no superseded-by or until/.test(w)), 'base shape on type:node: ' + all);
+assert.ok(r.errors.some(e => /rule:shapes.no-source: rule has no source/.test(e)), 'the rule check now comes from the base ontology');
+assert.ok(r.warnings.some(w => /shape not understood/.test(w)));
+assert.ok(g2.check({ repo: dir, strict: true }).errors.some(e => /approved-bare: approved policy/.test(e)), '--strict makes shapes errors');
+
 console.log('memory: ok');

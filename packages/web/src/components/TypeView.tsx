@@ -73,6 +73,11 @@ export function TypeView({ type, instances, index, product, onSaved }: { type: T
           </div>)}
         <p className="muted small">…and what every node has: title, status, owner, text and the generic links. <Link href={`/${product}/types/${type.slug}`}>Open type page →</Link></p>
       </section>
+      {(type.shapes ?? []).length > 0 && (
+        <section className="props">
+          <h4>Shapes <span className="muted">what <code>ctx check</code> enforces on a {type.slug}</span></h4>
+          <ul className="shape-list">{(type.shapes ?? []).map((sh, i) => <li key={i}><code>{sh.text}</code>{sh.from !== type.id && <span className="muted"> · from <Link href={`/${product}/types/${sh.from.slice(5)}`}>{sh.from.slice(5)}</Link></span>}</li>)}</ul>
+        </section>)}
 
       <div className="peek-views"><h4>Instances <span className="muted">{instances.length}</span></h4></div>
       {instances.length ? (

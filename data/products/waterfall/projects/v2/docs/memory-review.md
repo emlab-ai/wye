@@ -104,9 +104,10 @@ Markdown as canonical (rule:markdown-canonical), git as rollback, types as nodes
     approved decision, goal and open question reachable from the seeds within two hops, complete and current — and the
     agent can ask for the same packet for any text with `wf packet --for`
   unless: the product has no graph yet, in which case the message says so
-  status: approved
+  status: shipped
   refines: req:wf2.api.packet-task
   satisfied-by: [op:api.packet]
+  verified-by: [test:memory#packet, test:packet]
   part-of: goal:memory.validated-asks
 ```
 
@@ -143,8 +144,9 @@ Markdown as canonical (rule:markdown-canonical), git as rollback, types as nodes
     Superseded, rejected and retired knowledge leaves current retrieval, should move legacy knowledge to archive
   when: any retrieval runs — op:api.context, ctx packet, the constraint packet, the peek panel's relations
   then: nodes whose `until` has passed or whose status is superseded, rejected or retired are left out and counted ("3 superseded hidden"), and `--as-of` / `--all` brings them back
-  status: approved
+  status: shipped
   satisfied-by: [op:api.context, op:api.packet]
+  verified-by: [test:memory#current]
   part-of: goal:memory.validated-asks
 ```
 
@@ -414,10 +416,10 @@ Three things decide whether it works, and they are the questions below: what liv
 ## Work
 
 <!-- tasks -->
-- [ ] task:memory.constraint-packet Build the constraint packet (op:api.packet, `wf packet --for`) and put it in the first message under "Constraints in force"; two hops over governs, gated-by, affects, refines, part-of, depends-on from refs + semantic seeds; superseded filtered. Part of goal:memory.validated-asks (decision:memory.constraint-packet).
-- [ ] task:memory.bitemporal-props Add since, until, superseded-by, by, session, evidence to type:node; statuses superseded and retired; parser fills until / superseded-by from `supersedes`; retrieval and the packet skip ended nodes unless --as-of or --all. Part of goal:memory.validated-asks (decision:memory.bitemporal, decision:memory.evidence).
+- [x] task:memory.constraint-packet Build the constraint packet (op:api.packet, `wf packet --for`) and put it in the first message under "Constraints in force"; two hops over governs, gated-by, affects, refines, part-of, depends-on from refs + semantic seeds; superseded filtered. Part of goal:memory.validated-asks (decision:memory.constraint-packet). (session: 9f3d83809b)
+- [x] task:memory.bitemporal-props Add since, until, superseded-by, by, session, evidence to type:node; statuses superseded and retired; parser fills until / superseded-by from `supersedes`; retrieval and the packet skip ended nodes unless --as-of or --all. Part of goal:memory.validated-asks (decision:memory.bitemporal, decision:memory.evidence). (session: 9f3d83809b)
 - [ ] task:memory.decision-statuses Give the 43 status-less decisions a status (approved where the code follows them, superseded where a later one replaced them) and `supersedes` where the prose says so. Part of goal:memory.validated-asks.
-- [ ] task:memory.constraint-type Declare type:constraint in the base ontology, move the product's constraints out of _agent.md and the spec's non-goals into constraint: blocks, add the Constitution view and the `## Constitution` section of the agent prompt. Part of goal:memory.validated-asks (decision:memory.constraint-type).
+- [x] task:memory.constraint-type Declare type:constraint in the base ontology, move the product's constraints out of _agent.md and the spec's non-goals into constraint: blocks, add the Constitution view and the `## Constitution` section of the agent prompt. Part of goal:memory.validated-asks (decision:memory.constraint-type). (session: 9f3d83809b)
 - [ ] task:memory.verdict-pass The write-time verdict pass on new or changed decision / req / rule / constraint blocks: pair classification with reasons, verdict blocks with model and prompt hash, contradiction: nodes with kind and lifecycle, Inbox rows with verdicts and the supersede / refine / dismiss choice on approval. Part of goal:memory.validated-asks (decision:memory.write-time-verdict).
 - [ ] task:memory.benchmark The hide-one-edge regression over the 78 contradicts edges: recall and precision per conflict kind, recorded verdicts for CI, live behind WATERFALL_LIVE=1. Part of goal:memory.validated-asks (decision:memory.benchmark). Before task:memory.verdict-pass is on by default.
 - [ ] task:memory.consolidate The consolidation run on session done: candidates from the transcript, diff against produced blocks, misses filed as proposed blocks with evidence in the plan document; type:lesson. Part of goal:memory.validated-asks (decision:memory.consolidate-sessions).

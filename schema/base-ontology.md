@@ -4,6 +4,12 @@ The types every product starts with. Each base kind of the graph is a `type:` ca
 types in any of its documents (by convention `ontology.md`) with the same card form. `lib/parse.js` reads this file
 first (pass 1), then the product's documents, so the set of kinds is open: an instance of `type:team` is `team:<slug>`.
 
+A `shapes:` block lists the checks `ctx check` enforces on the type's instances, in the type's own words
+(decision:memory.shapes): `<status or *> requires <prop>[, <prop>] [| <alternative>] [as error]` — an instance in that
+status has the property (a body key or an outgoing edge of that name; commas mean all, `|` any of); `<prop> refs
+status <s>` — what the property points at has that status. A shape warns; `as error` or `ctx check --strict` makes it
+an error; a prose node only ever warns. Shapes accumulate along `extends`.
+
 A property line is `name: <value type>[?] [-(inverse)-> <name>]`. Value types: `string`, `text`, `number`, `date`,
 `month`, `bool`, `enum [a, b]`, `ref <type>`, `list of <type>` (or `list of string`). A trailing `?` marks the
 property optional; without it `ctx check` warns when an instance lacks it. `ref`/`list of` properties are edges
@@ -35,6 +41,8 @@ type means instances may carry properties the type does not declare without a wa
     see: list of node? -(inverse)-> seen-from
     resolves: list of node? -(inverse)-> resolved-by
     produced: list of node? -(inverse)-> produced-by
+  shapes:
+    superseded requires superseded-by | until
 - id: type:product
   extends: type:node
   purpose: a thing being built; groups projects
@@ -62,6 +70,8 @@ type means instances may carry properties the type does not declare without a wa
     refines: list of req? -(inverse)-> refined-by
     satisfied-by: list of node? -(inverse)-> satisfies
     verified-by: list of node? -(inverse)-> verifies
+  shapes:
+    shipped requires verified-by
 - id: type:rule
   extends: type:node
   purpose: an invariant, constraint, validation or policy — how a behaviour is guaranteed
@@ -72,6 +82,8 @@ type means instances may carry properties the type does not declare without a wa
     note: text?
     verified-by: list of node? -(inverse)-> verifies
     governs: list of node? -(inverse)-> governed-by
+  shapes:
+    * requires source as error
 - id: type:entity
   extends: type:node
   purpose: a persisted thing
@@ -201,6 +213,8 @@ type means instances may carry properties the type does not declare without a wa
     statement: text
     scope: list of node? -(inverse)-> constrained-by
     rationale: ref decision? -(inverse)-> rationale-for
+  shapes:
+    approved requires rationale | owner | by
 - id: type:lesson
   extends: type:node
   purpose: >
