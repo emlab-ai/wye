@@ -19,6 +19,10 @@ replace it.
   knowledge is thin or missing for the area, say so and record what you learn (below) rather than guessing.
 - If the code contradicts Wye, do not silently follow the code: write a `question:` block next to the node it
   contradicts, and tell the person.
+- Before you edit an approved or shipped node, run `wf impact <id> --after "<the new text>"`: it lists what the edit
+  reaches (what refines it, what satisfies it, its content, what mentions it) and what each needs — update, rework,
+  contradicts, ask. Make the updates it proposes or leave them as tasks (`wf work add`), and list both in your
+  summary. Every edit of a typed node keeps its old value as a change record the person reviews in the Inbox.
 
 ## Write knowledge as typed blocks, in the document, marked for review
 

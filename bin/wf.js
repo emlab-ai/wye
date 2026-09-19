@@ -11,6 +11,8 @@
 //   wf node set <id> --product p [--status s] [--text t] [--set key=value ...] [--unset key ...]
 //   wf node content <id> [--product p]   the blocks under the node (its content) as markdown; --file f | stdin replaces it
 //   wf verdicts <id ...> --product p     classify nodes against their neighbours now (duplicate | refines | consistent | contradicts)
+//   wf impact <id> --after "<new text>" --product p [--no-judge] [--json]   what an edit would reach and what each reached node
+//        needs (unaffected | update | rework | contradicts | ask) — run it before editing an approved node; nothing is written
 //   wf context "<text>" --product p [--all | --as-of d]   knowledge closest to a text (local semantic search; ended nodes hidden)
 //   wf packet --for "<text>" [--ref id ...] --product p [--budget N] [--all | --as-of d]   the constraints in force for a text:
 //        every rule, constraint, gate, approved decision, goal and open question within two hops of what it touches, complete
@@ -167,6 +169,17 @@ const commands = {
     const order = { contradicts: 0, duplicate: 1, refines: 2, consistent: 3 };
     for (const v of [...j.verdicts].sort((x, y) => order[x.kind] - order[y.kind])) console.log(`${v.kind.padEnd(11)} ${v.b} ↔ ${v.a}${v.conflict ? ' [' + v.conflict + ']' : ''} — ${v.reason}${v.cached ? '  (cached)' : ''}`);
     console.log(`${j.judged} pair(s) judged, ${j.written} line(s) written under the node(s)`);
+  },
+  async impact() {
+    // the impact set of a hypothetical edit (op:api.impact, req:exec.impact-for-agents): candidates with paths, then verdicts
+    const id = pos[1] || die('wf impact <id> --after "<new text>"'); const after = flags.after !== undefined ? String(flags.after) : (await readStdin());
+    if (!after.trim()) die('--after "<new text>" (or the new text on stdin) is required');
+    const j = await api('POST', `/api/${product()}/impact`, { id, after, judge: !flags['no-judge'] });
+    if (flags.json) return out(j);
+    const order = { contradicts: 0, rework: 1, update: 2, ask: 3, unaffected: 4, undefined: 5 };
+    console.log(`# impact of an edit to ${id}: ${j.candidates.length} candidate(s)\n`);
+    for (const c of [...j.candidates].sort((a, b) => order[a.verdict] - order[b.verdict])) console.log(`${(c.verdict || 'unjudged').padEnd(11)} ${c.id}  ${c.via === 'text' ? 'by text' : c.path}${c.reason ? ' — ' + c.reason : ''}${c.update && c.update.text ? '\n            proposed: ' + c.update.text : ''}${c.question ? '\n            question: ' + c.question : ''}`);
+    if (j.candidates.some(c => c.verdict && c.verdict !== 'unaffected')) console.log('\nList the updates you make and the tasks you leave (wf work add) in your summary.');
   },
   async context() {
     const text = pos[1] || (await readStdin()); const j = await api('POST', `/api/${product()}/context`, { text, limit: Number(flags.limit || 10), all: !!flags.all, asOf: flags['as-of'] || undefined });

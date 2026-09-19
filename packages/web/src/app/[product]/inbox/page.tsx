@@ -8,6 +8,7 @@ import { InboxList } from '@/components/InboxList';
 import { ReviewList } from '@/components/ReviewList';
 import { ChangeList, type ChangeView } from '@/components/ChangeList';
 import { listChanges, changedSince } from '@/lib/changes';
+import type { ImpactSet } from '@/lib/impact-run';
 
 // The inbox is a review view over the documents: decisions, requirements, rules and goals still `proposed`, and
 // open questions — written in place by agents and people, approved or resolved here. Raw notes (pasted material
@@ -28,7 +29,7 @@ export default async function InboxPage({ params, searchParams }: { params: Prom
   const changes: ChangeView[] = only ? [] : (await listChanges(scope.product.dir, { state: 'pending', listed: true })).map(c => {
     const n = scope.idx.byId.get(c.node);
     const v = n ? attachVerdicts([{ id: c.node, kind: c.kind, title: n.title, text: '', status: n.status, file: n.file, project: '', doc: '', href: '', line: n.line, refs: [], fields: {} }], scope.graph, scope.idx, log, false)[0].verdicts : undefined;
-    return { ...c, stale: changedSince(c, n), exists: !!n?.defined, verdicts: v };
+    return { ...c, impact: c.impact as ImpactSet | undefined, stale: changedSince(c, n), exists: !!n?.defined, verdicts: v };
   });
   return (
     <div className="page page-wide">

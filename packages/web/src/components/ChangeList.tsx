@@ -7,8 +7,10 @@ import { StatusPill, KindPill } from './Pills';
 import { wordDiff } from '@/lib/diff';
 import type { ChangeRecord } from '@/lib/changes';
 import type { ItemVerdict } from '@/lib/review';
+import type { ImpactSet } from '@/lib/impact-run';
+import { ImpactCard } from './ImpactCard';
 
-export type ChangeView = ChangeRecord & { stale: boolean; exists: boolean; verdicts?: ItemVerdict[] };
+export type ChangeView = Omit<ChangeRecord, 'impact'> & { stale: boolean; exists: boolean; verdicts?: ItemVerdict[]; impact?: ImpactSet };
 const FRAME = ['part-of', 'refines', 'satisfied-by', 'governs', 'affects', 'scope', 'when', 'then', 'unless'];
 
 export function DiffText({ a, b }: { a: string; b: string }) {
@@ -56,6 +58,7 @@ export function ChangeList({ product, changes, me }: { product: string; changes:
                 <div className="change-row frame"><dt>unchanged</dt><dd className="muted">{[`status ${c.after.status || '—'}`, ...FRAME.filter(k => !c.changed.includes(k) && c.after.props[k]).map(k => `${k}: ${c.after.props[k].slice(0, 80)}`)].join(' · ')}</dd></div>
               </dl>
               {(c.verdicts ?? []).length > 0 && <ul className="change-verdicts">{c.verdicts!.map((v, i) => <li key={i} className={`verdict ${v.kind}`}><b>{v.kind}</b> <SmartTag id={v.other} /> <span className="muted">{v.reason}</span>{v.open && <span className="pill s question">open</span>}</li>)}</ul>}
+              <ImpactCard product={product} changeId={c.id} impact={c.impact} me={me} />
               <div className="sec-actions review-acts">
                 <button className="pri" disabled={busy === c.id || blocked} title={blocked ? 'an open contradicts / duplicate verdict on the new value — supersede, refine or dismiss it on the block first' : 'keep the new value; the record closes'} onClick={() => act(c, 'accept')}>Accept</button>
                 <button disabled={busy === c.id || !c.exists} title="write the old value back through the writer; recorded as a change of its own" onClick={() => act(c, 'revert', c.stale && confirm('The node changed since this record. Write the old value back anyway?'))}>Revert</button>

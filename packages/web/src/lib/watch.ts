@@ -15,7 +15,7 @@ import { listSessions } from './sessions';
 
 type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other'; file: string }) => void;
 // bump when the watcher callback changes: dev reloads keep globalThis, so an old watcher would keep running old code
-const VERSION = 6;
+const VERSION = 8;
 // lastGraph: the graph as this watcher last saw it, so a rebuild can be diffed even when the API already rebuilt
 // (editNode writes the file and rebuilds before the watcher's timer fires)
 type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>>; lastGraph: Map<string, GraphData> };

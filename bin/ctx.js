@@ -6,7 +6,10 @@
 //   ctx get <id>                   one node with all edges
 //   ctx neighbors <id> [-d N] [--kinds a,b] [--structural]
 //   ctx search <terms...> [--all | --as-of <date>]   (superseded, rejected and retired nodes are hidden by default)
-//   ctx impact <id>                everything that depends on the node
+//   ctx impact <id> [--explain] [--semantic] [--after "<new text>"] [--json]
+//        everything that depends on the node; --explain: the candidates an edit reaches with the path and weight
+//        (req:exec.impact-set); --semantic adds the search hits structure did not reach; --after judges each
+//        candidate against the change through the model (unaffected | update | rework | contradicts | ask)
 //   ctx packet --task "<text>" [--budget N]   a token-budgeted slice for an agent
 //   ctx constraints --task "<text>" [--ref id,id] [--budget N] [--json]   what governs a request: every rule, constraint, gate,
 //                                  approved decision, goal and open question within two hops of the seeds, complete
@@ -22,7 +25,7 @@ const { Graph } = require('../lib/graph');
 const argv = process.argv.slice(2);
 const cmd = argv[0];
 const opt = (name, def) => { const i = argv.indexOf('--' + name); if (i === -1) return def; const v = argv[i + 1]; return v === undefined || v.startsWith('--') ? true : v; };
-const positional = argv.slice(1).filter((a, i, arr) => !a.startsWith('-') && !(arr[i - 1] && arr[i - 1].startsWith('--') && !['--strict', '--structural', '--json', '--all', '--deep'].includes(arr[i - 1])));
+const positional = argv.slice(1).filter((a, i, arr) => !a.startsWith('-') && !(arr[i - 1] && arr[i - 1].startsWith('--') && !['--strict', '--structural', '--json', '--all', '--deep', '--explain', '--semantic'].includes(arr[i - 1])));
 const ROOT = opt('root', process.env.CTX_ROOT || (require('fs').existsSync('data/products/waterfall') ? 'data/products/waterfall' : 'docs/context-graph'));
 const BUILD = path.join(ROOT, '_build');
 const graphFile = opt('graph', path.join(BUILD, 'graph.json'));
@@ -90,6 +93,23 @@ switch (cmd) {
     }
     case 'impact': {
         const g = load(); const id = resolveOne(g, positional[0] || die('impact <id>'));
+        if (opt('explain') || opt('semantic') || opt('after')) {
+            // the impact set of an edit (req:exec.impact-for-agents): structural candidates with paths, the text
+            // hits structure missed, and — with --after — the model's verdict per candidate
+            const impact = require('../lib/impact');
+            const n = g.node(id); const { nodeText } = require('../lib/judge');
+            const cands = impact.structuralCandidates(g, id, { hops: +opt('d', 2) });
+            if (opt('semantic')) { const have = new Set(cands.map(c => c.id)); for (const h of g.search(opt('after') || nodeText(n), { limit: 10 })) if (!have.has(h.n.id) && h.n.id !== id && h.n.kind !== 'block') cands.push({ id: h.n.id, kind: h.n.kind, title: h.n.title, status: h.n.status, distance: 0, weight: 0, path: '', via: 'text', text: nodeText(h.n) }); }
+            const print = verdicts => {
+                if (opt('json')) return console.log(JSON.stringify({ id, candidates: cands.map((c, i) => ({ ...c, verdict: verdicts ? verdicts[i] : undefined })) }, null, 2));
+                console.log(`# impact of an edit to ${id}: ${cands.length} candidate(s)\n`);
+                for (const [i, c] of cands.entries()) { const v = verdicts && verdicts[i]; console.log(`- ${c.id} [${c.kind}] ${c.via === 'text' ? 'by text' : `${c.path} (${c.weight})`}${v ? ` → ${v.verdict}${v.reason ? ': ' + v.reason : ''}${v.update && v.update.text ? '\n    proposed: ' + v.update.text : ''}${v.question ? '\n    question: ' + v.question : ''}` : ''}`); }
+            };
+            if (!opt('after')) { print(null); break; }
+            const change = { node: id, kind: n.kind, before: nodeText(n), after: opt('after') };
+            impact.judgeImpact(change, cands, { cacheFile: path.join(BUILD, 'impact.json'), budget: { candidates: +opt('budget', 20), calls: 3 }, log: m => console.error('ctx: ' + m) }).then(print).catch(e => die(e.message));
+            break;
+        }
         const dist = g.impact(id, +opt('d', 3));
         const byKind = {}; for (const [nid, d] of dist) (byKind[g.node(nid).kind] = byKind[g.node(nid).kind] || []).push([nid, d]);
         console.log(`# impact of ${id}: ${dist.size} dependent node(s)\n`);
