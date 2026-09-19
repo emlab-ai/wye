@@ -34,6 +34,9 @@ A link like `…/yessensei/offline/d/prd#n-goal%3Aoffline.g2` points at a node; 
 - New knowledge → typed blocks in the document (yaml card or id-first prose line) with `status: proposed`
   (decisions, requirements, rules) or `status: open` (questions); the Inbox page lists what waits for approval.
 - Raw notes without a document: `wf inbox add --type note --title "…"` (pasted conversations, meeting notes).
+- A subtask is a task line indented two spaces under its parent task (`  - [ ] task:x.step …`), no "Subtasks"
+  heading; whatever is indented under a node is its content, to any depth — the app folds it in the document and
+  lists the typed children (subtasks, questions, decisions) by kind in the node's details.
 - Statuses and tracking fields of existing nodes: `wf node set <id> --status done --set owner=alex --set due=2026-10`
   (edits the defining line in place; `--unset key` removes a property; the graph rebuilds).
 - Editing the documents themselves (`wf doc write`, or the markdown under `data/products/<product>/projects/<project>/docs/`)

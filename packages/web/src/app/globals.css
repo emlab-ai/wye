@@ -557,6 +557,16 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .content-editor .doc-editor { margin: 0; } .content-editor .doc-editor-bar { padding: 0 10px; min-height: 0; font-size: 11px; position: absolute; right: 0; top: -20px; } .content-editor .doc-editor-bar .save-state.idle { display: none; } .content-editor { position: relative; } .content-editor .bn-editor { padding-inline: 10px; padding-block: 6px; min-height: 40px; font-size: 14px; }
 /* a card's fold (req:wf2.ui.card-preview): the count of blocks under the node in its header; an embed's preview under the text */
 .nblock-fold { border: 1px solid var(--line); background: transparent; color: var(--ink-2); font: 11px var(--font-m); border-radius: 10px; padding: 0 7px; line-height: 17px; cursor: pointer; white-space: nowrap; } .nblock-fold:hover { border-color: var(--ink-2); } .nblock-fold.folded { color: var(--muted); }
+.nrow-fold { flex: none; align-self: center; margin-left: 4px; }
 .related-bar .related-toggle { margin-left: auto; }
 /* the first block of a node's Content is the node's text (decision:wf2.text-is-first-block): it reads as the title */
 .content-editor .bn-editor > .bn-block-group > .bn-block-outer:first-child .bn-inline-content { font-size: 16px; font-weight: 600; line-height: 1.35; }
+
+/* a node's children by kind under its content (Subtasks, Questions, …): one quiet row each, a click opens the child */
+.kids section { margin: 14px 0 0; } .kids h4 { margin: 0 0 4px; } .kids ul { list-style: none; margin: 0; padding: 0; }
+.kids li { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 2px 4px; border-radius: 6px; font-size: 13px; } .kids li:hover { background: var(--bg-2); }
+.kids li.done .kid-title { color: var(--muted); text-decoration: line-through; }
+.kids .kid-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; margin: 0 4px; }
+.kids .kid-title { flex: 1; min-width: 0; text-align: left; background: none; border: 0; padding: 0; color: var(--ink); font: inherit; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .kids .kid-title:hover { text-decoration: underline; }
+.kids .kid-add { color: var(--muted); } .kids .kid-add:hover { background: none; } .kids .kid-plus { width: 16px; text-align: center; flex: none; }
+.kids .kid-add input { flex: 1; min-width: 0; background: none; border: 0; padding: 4px 0; color: var(--ink); font: inherit; outline: none; } .kids .kid-add input::placeholder { color: var(--muted); }

@@ -136,6 +136,16 @@ const bid = t => 'block:cnt.' + blockHash(t);
 const forms = bid('## Forms');
 assert.strictEqual(g2.node('req:cnt.para').body.split('\n')[1], 'text: A paragraph node whose text wraps onto a continuation line.', 'continuation lines stay the text');
 assert(out2(forms).includes('has>req:cnt.para'), 'the named paragraph is the heading\'s block');
+// a table region's marker comment sits right before its first row: the row still opens a container for its content
+{
+  const md3 = '---\nnode: module:tbl\ntitle: T\n---\n\n# T\n\n<!-- table:task -->\n- [ ] task:tbl.row A row with content\n\n  # Subtasks\n\n  - [ ] task:tbl.sub A subtask\n<!-- /table:task -->\n';
+  const f3 = path.join(dir, 'tbl.md'); fs.writeFileSync(f3, md3);
+  const g3 = new Graph(parseFiles([f3]));
+  const out3 = id => (g3.out.get(id) || []).filter(e => !e.generated).map(e => e.verb + '>' + e.to).sort();
+  assert(out3('task:tbl.row').includes('has>task:tbl.sub'), 'the subtask under a table row is the row\'s content: ' + out3('task:tbl.row'));
+  assert(out3('task:tbl.row').includes('has>block:tbl.' + blockHash('# Subtasks')), 'an indented heading is a block of the row\'s content');
+  assert(!g3.data.nodes.some(n => /table:task/.test(n.title || '')), 'the marker comment is not a block');
+}
 assert(out2('req:cnt.para').includes('has>' + bid('A paragraph inside the node.')), 'an indented paragraph after a blank line is the node\'s content: ' + out2('req:cnt.para'));
 assert(out2('req:cnt.para').includes('has>' + bid('a list item inside the node')), 'an indented list item is the node\'s content');
 assert(out2(bid('a list item inside the node')).includes('has>' + bid('two levels down')), 'nesting continues inside the content');

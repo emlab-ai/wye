@@ -116,12 +116,16 @@ function RowNode({ p, set, contentRef, block, editor }: { p: { kind: string; slu
   const explicit = ex.progress ? Number(ex.progress) : undefined;
   const progress = explicit ?? (done ? 100 : e?.progress);
   const setStatus = (st: string) => set(p.kind === 'task' ? { status: st, check: st === 'done' ? 'done' : 'todo' } : { status: st });
+  // a row shows only its own text; the blocks under it (subtasks, notes) are in the details (rule:card-fold)
+  const { fold, hide } = useFold(block, peek);
   return (
     <div className={`nrow k-${p.kind} ${done ? 'done' : ''} ${empty ? 'empty' : ''}`} data-id={id} ref={rowRef} onClick={selectBlockOnClick(editor, block, rowRef.current?.querySelector('.nrow-text') ?? null)}>
+      {hide}
       <div className="nrow-cell nrow-name">
         {p.kind === 'task' && <input type="checkbox" className="nblock-check" checked={done} onChange={ev => setStatus(ev.target.checked ? 'done' : 'todo')} title="done?" onMouseDown={ev => ev.stopPropagation()} />}
         <button type="button" className="nrow-open" contentEditable={false} title={id} onMouseDown={ev => ev.stopPropagation()} onClick={peek}><i style={{ background: `var(--k-${p.kind}, var(--k-other))` }} /></button>
         <div className="nrow-text" ref={contentRef} data-placeholder={`New ${p.kind}…`} />
+        <RowFold fold={fold} />
         <button type="button" className="nrow-send" contentEditable={false} title="Copy link" onMouseDown={ev => ev.stopPropagation()} onClick={() => copyBlockLink(withSlug(editor, index, block), rowRef.current)}>⧉</button>
         <button type="button" className="nrow-send" contentEditable={false} title="Send to agent" onMouseDown={ev => ev.stopPropagation()} onClick={() => sendBlock(withSlug(editor, index, block), rowRef.current)}>⇢</button>
       </div>
@@ -154,11 +158,14 @@ function TypeRow({ p, set, contentRef, block, type, editor }: { p: { kind: strin
   const empty = !p.slug && !rowText(block);
   const ex = parseExtra(p.extra);
   const done = DONE_STATUSES.has(p.status);
+  const { fold, hide } = useFold(block, peek);
   return (
     <div className={`nrow nrow-type k-${p.kind} ${done ? 'done' : ''} ${empty ? 'empty' : ''}`} data-id={id} ref={rowRef} style={{ gridTemplateColumns: typeGrid(type) }} onClick={selectBlockOnClick(editor, block, rowRef.current?.querySelector('.nrow-text') ?? null)}>
+      {hide}
       <div className="nrow-cell nrow-name">
         <button type="button" className="nrow-open" contentEditable={false} title={id} onMouseDown={ev => ev.stopPropagation()} onClick={peek}><i style={{ background: `var(--k-${p.kind}, var(--k-other))` }} /></button>
         <div className="nrow-text" ref={contentRef} data-placeholder={`New ${p.kind}…`} />
+        <RowFold fold={fold} />
         <button type="button" className="nrow-send" contentEditable={false} title="Copy link" onMouseDown={ev => ev.stopPropagation()} onClick={() => copyBlockLink(withSlug(editor, index, block), rowRef.current)}>⧉</button>
         <button type="button" className="nrow-send" contentEditable={false} title="Send to agent" onMouseDown={ev => ev.stopPropagation()} onClick={() => sendBlock(withSlug(editor, index, block), rowRef.current)}>⇢</button>
       </div>
@@ -417,14 +424,10 @@ const NodeBlock = createReactBlockSpec(
   },
 );
 
-// A card inside the editor: the block's inline content is the text; the header selects the block; links and sends
-// come from the block's place in this document (component:node-cards).
-function EditorCard({ p, set, contentRef, block, editor }: { p: CardP; set: (patch: Partial<CardP>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; editor: EditorLike }) {
-  const hostRef = useRef<HTMLDivElement>(null);
-  const id = `${p.kind}:${p.slug}`;
-  // the card shows none of the blocks under the node (req:wf2.ui.card-preview, rule:card-fold): a style element
-  // zero-heights them by the block's id (they stay blocks, and in the file) and the header's chip opens the details;
-  // the caret inside them (arrow keys) shows them while it is there
+// A card or a row shows none of the blocks under its node (req:wf2.ui.card-preview, rule:card-fold): a style element
+// zero-heights them by the block's id (they stay blocks, and in the file) and a chip opens the details; the caret
+// inside them (arrow keys) shows them while it is there.
+function useFold(block: AnyBlock, open: () => void) {
   const count = block.children?.length ?? 0;
   const [folded, setFolded] = useState(true);
   const bn = useBlockNoteEditor();
@@ -435,8 +438,46 @@ function EditorCard({ p, set, contentRef, block, editor }: { p: CardP; set: (pat
     const under = (bs: AnyBlock[] | undefined): boolean => !!bs?.some(b => (b as { id?: string }).id === cur || under(b.children));
     setFolded(!(cur && under(block.children)));
   }, bn);
-  const fold = count ? { count, folded, open: () => { if (p.slug) emit('wf:select', hostRef.current, id); } } : undefined;
+  const fold = count ? { count, folded, open } : undefined;
   const hide = folded && count ? <style>{`.bn-block-outer[data-id="${String((block as { id?: string }).id)}"] > .bn-block > .bn-block-group > .bn-block-outer { height: 0; min-height: 0; overflow: hidden; visibility: hidden; margin: 0; }`}</style> : null;
+  return { fold, hide };
+}
+
+// The chip a folded row carries: how many blocks sit under it; a click opens the item's details.
+function RowFold({ fold }: { fold?: { count: number; folded: boolean; open: () => void } }) {
+  if (!fold) return null;
+  return <button type="button" className={`nblock-fold nrow-fold ${fold.folded ? 'folded' : ''}`} contentEditable={false} title="Open the item: its content is in the details" onMouseDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); fold.open(); }}>{fold.folded ? '▸' : '▾'} {fold.count}</button>;
+}
+
+// In a content editor (one node's blocks, decision:wf2.content-editor-scoped) the typed blocks at the top level —
+// the node's children of a kind: subtasks, questions, decisions — are listed by the column under the editor, so the
+// editor hides them (zero height, still blocks, still in the file); the one holding the caret shows while it does.
+function HideTypedChildren() {
+  const bn = useBlockNoteEditor();
+  const [ids, setIds] = useState<string[]>([]);
+  const compute = () => {
+    // the caret counts only while the editor has the focus: a loaded document leaves ProseMirror's selection at its end
+    let cur: string | undefined; try { cur = bn.isFocused() ? (bn.getTextCursorPosition().block as { id?: string }).id : undefined; } catch { cur = undefined; }
+    const under = (b: AnyBlock): boolean => (b as { id?: string }).id === cur || !!b.children?.some(under);
+    // typed blocks at the top level or under an anonymous block (a heading above the subtasks); a typed block's
+    // own children fold with it
+    const next: string[] = [];
+    const scan = (bs: AnyBlock[]) => { for (const b of bs) { if (b.type === 'node' && (b.props as { slug?: string }).slug) { if (!under(b)) next.push(String((b as { id?: string }).id)); } else if (b.children?.length) scan(b.children); } };
+    scan(bn.document as unknown as AnyBlock[]);
+    setIds(prev => prev.length === next.length && prev.every((x, i) => x === next[i]) ? prev : next);
+  };
+  useEditorChange(compute, bn); useEditorSelectionChange(compute, bn);
+  useEffect(() => { compute(); const el = bn.domElement; el?.addEventListener('focusin', compute); el?.addEventListener('focusout', compute); return () => { el?.removeEventListener('focusin', compute); el?.removeEventListener('focusout', compute); }; }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!ids.length) return null;
+  return <style>{ids.map(id => `.bn-block-outer[data-id="${id}"]`).join(', ') + ' { height: 0; min-height: 0; overflow: hidden; visibility: hidden; margin: 0; }'}</style>;
+}
+
+// A card inside the editor: the block's inline content is the text; the header selects the block; links and sends
+// come from the block's place in this document (component:node-cards).
+function EditorCard({ p, set, contentRef, block, editor }: { p: CardP; set: (patch: Partial<CardP>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; editor: EditorLike }) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const id = `${p.kind}:${p.slug}`;
+  const { fold, hide } = useFold(block, () => { if (p.slug) emit('wf:select', hostRef.current, id); });
   const host: CardHost = {
     text: cls => <div className={cls} ref={contentRef} />,
     // the pill selects like the rest of the card; the card's text places the caret and the onSelect below does the rest
@@ -784,6 +825,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       }}>
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false}>
+        {scoped && <HideTypedChildren />}
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><AnnotateItem annotate={imageToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
         <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /><AskAgentButton onRequest={r => setAskReq({ ...r, doc: slug, project, pageLink: `${location.origin}/${product}/${project}/d/${slug}`, refs: [...new Set([...r.refs, `module:${slug}`])] })} /></FormattingToolbar>} />
         <SuggestionMenuController triggerCharacter="/" getItems={async q => {

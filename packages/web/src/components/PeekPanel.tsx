@@ -99,7 +99,7 @@ function NodeView({ id }: { id: string }) {
   const entry = index[id];
   const def = hrefFor(id);
   const kind = id.split(':')[0];
-  const linkCount = d ? [...d.relations.out, ...d.relations.inc].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0) : 0;
+  const linkCount = d ? [...d.relations.out.filter(([v]) => v !== 'has'), ...d.relations.inc].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0) : 0;
   // the header: kind and id on the left (the type it belongs to after them), icon actions on the right — the way
   // Notion and Asana put a page's tools in one quiet row instead of a line of links
   const head = (
@@ -182,10 +182,64 @@ function NodeContent({ id }: { id: string }) {
   // the node's text is the first block, its content follows (decision:wf2.text-is-first-block)
   const body = c.text.trim() ? c.text.trim() + (c.content.trim() ? '\n\n' + c.content : '\n') : c.content;
   return (
-    <section className="content">
-      <h4>Content{c.children.length > 0 && <span className="muted">{c.children.length} block{c.children.length === 1 ? '' : 's'}</span>}</h4>
-      <div className="content-editor"><DocEditor key={id} product={product} project={c.project} slug={c.doc} body={body} ifMatch={c.bodyHash} scope={id} /></div>
-    </section>
+    <>
+      <section className="content">
+        <h4>Content</h4>
+        <div className="content-editor"><DocEditor key={id} product={product} project={c.project} slug={c.doc} body={body} ifMatch={c.bodyHash} scope={id} /></div>
+      </section>
+      <Children id={id} ids={c.children} content={c.content} bodyHash={c.bodyHash} onChanged={() => setVersion(v => v + 1)} />
+    </>
+  );
+}
+
+// The typed blocks under the node — its subtasks, questions, decisions — as sections by kind, Asana's task pane:
+// the editor above hides these blocks, so each is one row here (its own status, a click opens it one level deeper,
+// ← comes back: decision:ontology.depth-by-navigation) and a task section ends with a row that adds one.
+const KID_LABEL: Record<string, string> = { task: 'Subtasks', goal: 'Sub-goals', question: 'Questions', decision: 'Decisions', req: 'Requirements', rule: 'Rules', bug: 'Bugs' };
+const KID_ORDER = ['task', 'goal', 'bug', 'question', 'decision', 'req', 'rule'];
+function Children({ id, ids, content, bodyHash, onChanged }: { id: string; ids: string[]; content: string; bodyHash: string; onChanged: () => void }) {
+  const { product, index, open } = usePeek();
+  const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
+  const kids = ids.filter(k => !k.startsWith('block:') && index[k]);
+  const groups = new Map<string, string[]>();
+  for (const k of kids) { const kind = k.split(':')[0]; groups.set(kind, [...(groups.get(kind) ?? []), k]); }
+  const canAdd = id.startsWith('task:') || id.startsWith('goal:') || id.startsWith('bug:');
+  if (canAdd && !groups.has('task')) groups.set('task', []);
+  const rank = (k: string) => { const i = KID_ORDER.indexOf(k); return i < 0 ? 99 : i; };
+  const words = (k: string) => k.replace(/-/g, ' ').replace(/^./, ch => ch.toUpperCase()) + 's';
+  const setStatus = async (kid: string, status: string) => {
+    await fetch(`/api/${product}/node/${encodeURIComponent(kid)}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status }) });
+  };
+  // a new subtask: a task line appended to the node's content, its slug from the first words like a table row's
+  const add = async () => {
+    const text = draft.trim(); if (!text || busy) return;
+    const base = text.toLowerCase().split(/\s+/).slice(0, 4).join('-').replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'task';
+    let slug = base; for (let n = 2; index[`task:${slug}`]; n++) slug = `${base}-${n}`;
+    setBusy(true);
+    const next = (content.trimEnd() ? content.trimEnd() + '\n' : '') + `- [ ] task:${slug} ${text}\n`;
+    const r = await fetch(`/api/${product}/node/${encodeURIComponent(id)}/content`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: next, ifMatch: bodyHash }) });
+    setBusy(false);
+    if (r.ok) { setDraft(''); onChanged(); }
+  };
+  if (!groups.size) return null;
+  return (
+    <div className="kids">
+      {[...groups].sort((a, b) => rank(a[0]) - rank(b[0])).map(([kind, list]) => (
+        <section key={kind}>
+          <h4>{KID_LABEL[kind] ?? words(kind)}{list.length > 0 && <span className="muted">{list.length}</span>}</h4>
+          <ul>
+            {list.map(k => { const e = index[k]; const done = e.status === 'done' || e.status === 'complete'; return (
+              <li key={k} className={done ? 'done' : ''}>
+                {kind === 'task' ? <input type="checkbox" className="nblock-check" checked={done} onChange={ev => setStatus(k, ev.target.checked ? 'done' : 'open')} title="done?" /> : <i className="kid-dot" style={{ background: `var(--k-${kind}, var(--k-other))` }} />}
+                <button className="kid-title" onClick={() => open(k)} title={k}>{plain(e.title ?? k)}</button>
+                {e.status && kind !== 'task' && <StatusPill status={e.status} />}
+              </li>); })}
+            {kind === 'task' && canAdd && <li className="kid-add"><span className="kid-plus">+</span><input value={draft} placeholder="Add a subtask…" disabled={busy} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void add(); } }} onBlur={() => { if (draft.trim()) void add(); }} /></li>}
+          </ul>
+        </section>
+      ))}
+    </div>
   );
 }
 
@@ -220,7 +274,8 @@ function Relations({ out, inc, rows, inverses = {} }: { out: [string, string[]][
   // generated 'mentions' edges (a node's text naming a field) are noise next to real relations; an incoming edge
   // reads by its inverse name (the ontology's, else the built-in label)
   const words = (v: string) => v.replace(/-/g, ' ').replace(/^./, c => c.toUpperCase());
-  const groups = [...out.filter(([v]) => v !== 'mentions').map(([v, ids]) => ({ key: 'o' + v, label: OUT[v] ?? words(v), ids })), ...inc.filter(([v]) => v !== 'mentions').map(([v, ids]) => ({ key: 'i' + v, label: INC[v] ?? (inverses[v] ? words(inverses[v]) : `${words(v)} · from`), ids }))];
+  // a node's own content (has) is listed as its children, not as links
+  const groups = [...out.filter(([v]) => v !== 'mentions' && v !== 'has').map(([v, ids]) => ({ key: 'o' + v, label: OUT[v] ?? words(v), ids })), ...inc.filter(([v]) => v !== 'mentions').map(([v, ids]) => ({ key: 'i' + v, label: INC[v] ?? (inverses[v] ? words(inverses[v]) : `${words(v)} · from`), ids }))];
   const total = groups.reduce((n, g) => n + g.ids.length, 0);
   const rank = (id: string) => { const k = KIND_ORDER.indexOf(id.split(':')[0]); return k < 0 ? 99 : k; };
   if (!total) return <p className="muted rels-empty">Nothing links to or from this node yet.</p>;
