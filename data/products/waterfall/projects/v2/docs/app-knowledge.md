@@ -281,6 +281,17 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   source: packages/web/src/app/api/[product]/verdicts/route.ts; packages/web/src/lib/verdicts.ts; lib/judge.js; lib/graph.js#verdictPairs; packages/web/src/lib/watch.ts
   status: shipped
   part-of: module:app-knowledge
+- id: lib:consolidate
+  purpose: >
+    Consolidation at session end (decision:memory.consolidate-sessions): on a done session the transcript (the person's
+    and the agent's words, numbered) goes to the model once with the blocks the session wrote; what was decided,
+    constrained, asked or learned and not written comes back as candidates and is filed under the plan document's Plan
+    section as proposed decision: / constraint: / lesson: cards and open question: cards, each with `by:` and
+    `evidence: [session:<id>#<n>]`. Behind flag:consolidate; the session log says what was filed.
+  file: packages/web/src/lib/consolidate.ts
+  side: server
+  status: shipped
+  part-of: module:app-knowledge
 - id: op:api.inbox
   args: GET | POST /api/<product>/inbox and /inbox/<name>
   does: >

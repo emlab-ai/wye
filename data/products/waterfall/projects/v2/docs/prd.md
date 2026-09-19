@@ -50,6 +50,15 @@ submodules: [store, serve, write, api, tasks, decisions, clerk, contradictions, 
 - id: flag:trusted-agents
   scope: server config      # list of agent names allowed through gate:delta-apply
   source: packages/server/src/config.ts
+- id: flag:verdicts
+  scope: product            # `verdicts: on` in <product>/_product.md, or WF_VERDICTS=1 — the write-time verdict pass runs after every rebuild (decision:memory.write-time-verdict); off until decision:memory.benchmark says so
+  source: packages/web/src/lib/verdicts.ts#verdictsEnabled
+- id: flag:consolidate
+  scope: product            # `consolidate: on` in _product.md, or WF_CONSOLIDATE=1 — a done session's transcript is consolidated into proposed blocks on its plan (decision:memory.consolidate-sessions)
+  source: packages/web/src/lib/consolidate.ts#consolidateEnabled
+- id: flag:judge-model
+  scope: env                # WF_JUDGE_MODEL (default claude-haiku-4-5-20251001) — the model the judge and the consolidation call through `claude -p`; WF_JUDGE_CMD replaces the CLI with any command that reads the prompt on stdin
+  source: lib/judge.js
 ```
 
 ### R.1 Store — artifacts in markdown, the churn stream in a database

@@ -13,6 +13,7 @@ import { agentSystemPrompt } from './agent-prompt';
 import { createPlanDoc, closePlanDoc } from './plan-docs';
 import { firstUserEvent } from './transcript';
 import { packetFor } from './packet';
+import './consolidate';   // registers the session-end consolidation hook (decision:memory.consolidate-sessions)
 
 // `turn`: the queue items handed to the open turn — stamped done / failed when it ends (decision:wf2.queue-item-state);
 // `product` / `wfUrl` let the pump build a first message when a fresh item comes up (rule:clean-slate); `stopped`: the
