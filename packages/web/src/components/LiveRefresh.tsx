@@ -14,7 +14,7 @@ export function LiveRefresh({ product }: { product: string }) {
       const j = JSON.parse((e as MessageEvent).data) as { kinds: string[]; files: string[] };
       // documents trigger a rebuild whose graph.json change arrives next; refresh once on the graph (or straight
       // away for inbox/session changes) so lists and the rail show the new state
-      if (j.kinds.includes('graph') || j.kinds.includes('inbox') || j.kinds.includes('session')) {
+      if (j.kinds.includes('graph') || j.kinds.includes('inbox') || j.kinds.includes('session') || j.kinds.includes('change')) {
         if (timer.current) clearTimeout(timer.current);
         timer.current = setTimeout(() => { router.refresh(); }, 250);
       }

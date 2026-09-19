@@ -2,3 +2,4 @@ _build/
 _sessions/
 # YesSensei knowledge stays local — this repo is public (decision:waterfall.strip-yessensei-before-push)
 yessensei/
+_changes/

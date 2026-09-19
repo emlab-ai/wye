@@ -6,6 +6,7 @@
 import type { GraphData, GraphIndex, GraphNode } from './graph';
 import { isCurrent, parseBody } from './graph';
 import type { Scope } from './scope';
+import { listChanges } from './changes';
 import { search } from './semantic';
 import { resolveLink } from './resolve';
 import { docIdOf } from './doc';
@@ -87,5 +88,13 @@ export async function seedsFor(scope: Scope, text: string, refs: string[], opts:
 export async function packetFor(scope: Scope, text: string, refs: string[], opts: { budget?: number; all?: boolean; asOf?: string | null } = {}): Promise<{ markdown: string; packet: Packet }> {
   const seeds = await seedsFor(scope, text, refs, opts);
   const packet = constraintsFor(scope.graph, scope.idx, seeds, opts);
-  return { markdown: renderPacket(packet, opts), packet };
+  let markdown = renderPacket(packet, opts);
+  // nodes in the packet with an edit nobody accepted yet (decision:exec.change-record): a worker reading them knows
+  try {
+    const pending = await listChanges(scope.product.dir, { state: 'pending', listed: true });
+    const ids = new Set([...Object.values(packet.byKind).flat(), ...packet.questions].map(n => n.id));
+    const hit = pending.filter(c => ids.has(c.node));
+    if (hit.length) markdown += `\n\n_Changed, pending review (the value above is the new one; the old value is on the change record): ${[...new Set(hit.map(c => `${c.node} (${c.by})`))].join(', ')}._`;
+  } catch { /* no change store */ }
+  return { markdown, packet };
 }

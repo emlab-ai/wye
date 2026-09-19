@@ -16,6 +16,7 @@ import { KIND_ORDER } from '@/lib/knowledge';
 import { ProgressBar } from './Progress';
 import { Produced } from './Produced';
 import { TaskWork } from './TaskWork';
+import { ChangedBadge } from './ChangedBadge';
 import { DocPeek } from './DocPeek';
 import { EmbeddedCard } from './EmbedBlock';
 import { TypeView } from './TypeView';
@@ -103,6 +104,7 @@ function NodeView({ id }: { id: string }) {
         <code className="node-id" title="click to copy the id" onClick={() => { navigator.clipboard?.writeText(id).catch(() => {}); }}>{id.slice(kind.length + 1)}</code>
         {d?.type && !d.self && d.type.slug !== kind && <Link className="node-type" href={`/${product}/types/${d.type.slug}`} title="the type this node belongs to">{d.type.slug}</Link>}
         {!entry?.defined && !id.startsWith('type:') && <span className="muted node-stub">referenced only</span>}
+        {entry?.defined && <ChangedBadge key={`chg-${id}`} id={id} />}
       </div>
       <div className="node-tools" role="toolbar" aria-label="Node actions">
         {entry?.doc && def && <Link href={def.replace(/#.*$/, '')} className="tool" title="Open the document">↗</Link>}

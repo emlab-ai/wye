@@ -2,6 +2,7 @@
 // its defining line as markdown of their own, with the child ids in order and the document's hash; PUT replaces
 // them under that hash (rule:if-match), rebuilds the graph and runs the check (rule:validate-before-write).
 import { NextResponse } from 'next/server';
+import { claimWrite } from '@/lib/changes';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { loadScope } from '@/lib/scope';
@@ -35,6 +36,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
   const { product, id: raw } = await params; const id = decodeURIComponent(raw);
   const hit = await locate(product, id); if (!hit) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const body = (await req.json()) as { content: string; text?: string; ifMatch?: string };
+  claimWrite(id, { session: req.headers.get('x-wf-session') ?? undefined, by: req.headers.get('x-wf-by') ?? undefined }); // change records name the writer (lib/changes)
   if (typeof body.content !== 'string') return NextResponse.json({ error: 'invalid', message: 'content must be a string' }, { status: 422 });
   const session = req.headers.get('x-wf-session') ?? undefined;
   return withFileLock(hit.abs, async () => {

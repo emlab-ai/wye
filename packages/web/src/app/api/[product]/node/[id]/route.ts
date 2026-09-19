@@ -9,6 +9,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { REPO_ROOT } from '@/lib/products';
 import { readContent } from '@/lib/node-content';
+import { claimWrite } from '@/lib/changes';
 
 export async function GET(req: Request, { params }: { params: Promise<{ product: string; id: string }> }) {
   const { product, id: raw } = await params; const id = decodeURIComponent(raw);
@@ -37,6 +38,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const patch = (await req.json()) as NodePatch;
   const session = req.headers.get('x-wf-session') ?? undefined;
+  claimWrite(id, { session, by: req.headers.get('x-wf-by') ?? (patch.props?.by as string | undefined) ?? undefined }); // the change record names the writer (lib/changes)
   if (session && id.startsWith('task:') && patch.status === 'done') patch.props = { ...(patch.props ?? {}), session: addToken((scope.idx.byId.get(id)?.body.match(/^session:\s*(.+)$/m)?.[1] ?? ''), session) };
   const r = await editNode(scope, id, patch);
   if (!r.ok) return NextResponse.json({ error: r.error, message: r.message }, { status: r.error === 'not_found' ? 404 : 422 });

@@ -9,20 +9,24 @@ import { loadGraph } from './load';
 import { diffGraphs } from './graph-diff';
 import type { GraphData } from './graph';
 import { scheduleVerdicts } from './verdicts';
+import { recordChanges, takeClaim } from './changes';
+import { scheduleImpact } from './impact-run';
+import { listSessions } from './sessions';
 
-type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'other'; file: string }) => void;
+type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other'; file: string }) => void;
 // bump when the watcher callback changes: dev reloads keep globalThis, so an old watcher would keep running old code
-const VERSION = 5;
+const VERSION = 6;
 // lastGraph: the graph as this watcher last saw it, so a rebuild can be diffed even when the API already rebuilt
 // (editNode writes the file and rebuilds before the watcher's timer fires)
 type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>>; lastGraph: Map<string, GraphData> };
 const g = globalThis as unknown as { __wfWatch?: State };
 const st = (): State => (g.__wfWatch ??= { watchers: new Map(), subs: new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map(), lastGraph: new Map() });
 
-function classify(rel: string): 'doc' | 'inbox' | 'session' | 'graph' | 'other' {
+function classify(rel: string): 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other' {
   if (rel.startsWith('_build/')) return 'graph';
   if (rel.startsWith('inbox/')) return 'inbox';
   if (rel.startsWith('_sessions/')) return 'session';
+  if (rel.startsWith('_changes/')) return 'change';
   if (/^projects\/[^/]+\/docs\/.+\.md$/.test(rel) || /^projects\/[^/]+\/_project\.md$/.test(rel) || rel === '_product.md') return 'doc';
   return 'other';
 }
@@ -60,6 +64,12 @@ export function ensureWatch(productDir: string) {
               if (before) {
                 const changes = diffGraphs(before, after, new Date().toISOString());
                 await creditBlockChanges(productDir, changes).catch(() => {});
+                // change records (decision:exec.changes-from-the-rebuild-diff): the old and new value of every edited
+                // typed node, credited to the writer that claimed it, else to the one running session, else "person"
+                const running = (await listSessions(productDir).catch(() => [])).filter(x => x.status === 'running');
+                const who = (id: string, file: string) => { const c = takeClaim(id, file); if (c) return { by: c.by, session: c.session, silent: c.silent }; return running.length === 1 ? { by: `agent:${running[0].id}`, session: running[0].id } : { by: 'person' }; };
+                const records = await recordChanges(productDir, path.basename(productDir), before, after, changes, who).catch(e => { console.log(`[wf] changes: ${e instanceof Error ? e.message : e}`); return []; });
+                if (records.length) scheduleImpact(productDir, path.basename(productDir), records, m => console.log(`[wf] ${m}`));
                 // the write-time verdict pass (decision:memory.write-time-verdict): new or changed knowledge is classified
                 // against its neighbours; runs detached, writes its lines under the nodes, which the watcher then picks up
                 scheduleVerdicts(productDir, path.basename(productDir), changes, m => console.log(`[wf] ${m}`));

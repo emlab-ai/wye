@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { claimWrite } from '@/lib/changes';
 import path from 'node:path';
 import { loadScope, treeFor } from '@/lib/scope';
 import { loadMarkdown } from '@/lib/load';
@@ -36,6 +37,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
   const hit = await locate(product, project, slug); if (!hit) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const body = (await req.json()) as Op;
   const session = req.headers.get('x-wf-session'); if (session) recordArtifact(hit.scope.product.dir, session, { doc: hit.d.module.id }).catch(() => {});
+  claimWrite(hit.d.file, { session: session ?? undefined, by: req.headers.get('x-wf-by') ?? undefined }); // who edits this document (change records, lib/changes)
   const md = await loadMarkdown(REPO_ROOT, hit.d.file);
   if (body.op === 'retype') return retype(hit.scope, hit.d.file, md, body.type);
   let r: WriteResult;
