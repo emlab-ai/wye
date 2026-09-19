@@ -1,18 +1,18 @@
 ---
 name: waterfall-agent
-description: How an agent works with Waterfall through the wf CLI — resolve a Waterfall link (http://…/<product>/<project>/d/<doc>#…) or node id to its text, read and write documents and nodes, search product knowledge, and report progress on a session. Use whenever a message, task or prompt contains a Waterfall link, a node id like req:x / task:y / goal:z, a session id, or asks to update the PRD, plan, tech design or knowledge of a product kept in Waterfall.
+description: How an agent works with Wye through the wf CLI — resolve a Wye link (http://…/<product>/<project>/d/<doc>#…) or node id to its text, read and write documents and nodes, search product knowledge, and report progress on a session. Use whenever a message, task or prompt contains a Wye link, a node id like req:x / task:y / goal:z, a session id, or asks to update the PRD, plan, tech design or knowledge of a product kept in Wye.
 ---
 
-# Working in Waterfall
+# Working in Wye
 
-The full contract is `prompts/agent-system.md` in the Waterfall repo (also served at `$WF_URL/api/<product>/agent-prompt`).
-The short version: read Waterfall before you act, and **write every decision — the person's or yours — as a
+The full contract is `prompts/agent-system.md` in the Wye repo (also served at `$WF_URL/api/<product>/agent-prompt`).
+The short version: read Wye before you act, and **write every decision — the person's or yours — as a
 `decision:` block (status proposed) in the document it belongs to before moving on**; every open question as a
 `question:` block where it arose; requirements as `req:` blocks, rules as `rule:` blocks, work as `task:` lines.
 Never as prose. The Inbox and Questions views are the review of those blocks. Statuses of existing nodes may be
 set directly (`wf node set`); `wf inbox add` is only for raw notes without a document.
 
-Waterfall keeps a product's knowledge (goals, requirements, rules, decisions, entities, tasks) as markdown documents
+Wye keeps a product's knowledge (goals, requirements, rules, decisions, entities, tasks) as markdown documents
 with a graph on top, and a web app that people and agents share. `wf` is the CLI; it talks to the running web app
 (`WF_URL`, default http://localhost:3456). `WF_PRODUCT` names the product when a link does not.
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-// wf — the agent's door into Waterfall. Talks to the running web app (WF_URL, default http://localhost:3456).
+// wf — the agent's door into Wye. Talks to the running web app (WF_URL, default http://localhost:3456).
 //
 //   wf resolve <link|id>                 what a link points at: document, node, block or section (text included)
 //   wf doc <product/project/doc>         a document's markdown body
@@ -226,7 +226,7 @@ const commands = {
       const log = lines => api('PATCH', `/api/${p}/sessions/${s.id}`, { lines }).catch(() => {});
       let prompt;
       try { prompt = await buildPrompt(p, s); } catch (e) { await api('PATCH', `/api/${p}/sessions/${s.id}`, { status: 'failed', line: `could not build the prompt: ${e.message}` }); busy = null; continue; }
-      // the Waterfall contract: claude takes it as an appended system prompt, other agents get it on top of the prompt
+      // the Wye contract: claude takes it as an appended system prompt, other agents get it on top of the prompt
       let system = ''; try { system = await (await fetch(`${WF_URL}/api/${p}/agent-prompt`)).text(); } catch { /* no contract available */ }
       let fullCmd = cmd; let fullPrompt = prompt;
       if (system && agent === 'claude-code') { const f = path.join(os.tmpdir(), `wf-system-${s.id}.md`); fs.writeFileSync(f, system); fullCmd = `${cmd} --append-system-prompt-file "${f}" --add-dir "${flags['waterfall-root'] || process.env.WF_ROOT || process.cwd()}"`; }
@@ -246,7 +246,7 @@ const commands = {
 // talk back. Kept plain so any CLI agent can take it on stdin.
 async function buildPrompt(p, s) {
   const parts = [];
-  parts.push(`You are working on the product "${p}" in Waterfall (a knowledge base of requirements, rules, decisions, goals and tasks kept as markdown; a web app at ${WF_URL}). Session ${s.id}.`);
+  parts.push(`You are working on the product "${p}" in Wye (a knowledge base of requirements, rules, decisions, goals and tasks kept as markdown; a web app at ${WF_URL}). Session ${s.id}.`);
   parts.push(`\n## Instruction\n${s.instruction}${await fetchImages(p, s)}`);
   const ctx = [];
   const seen = new Set();
@@ -256,7 +256,7 @@ async function buildPrompt(p, s) {
   }
   if (ctx.length) parts.push(`\n## Context\n${ctx.join('\n\n')}`);
   if (s.parent) parts.push(`\nThis session continues session ${s.parent}; its log and result are in the instruction above. Pick up where it stopped.`);
-  parts.push(`\n## How to work\n- The Waterfall CLI is \`wf\` (WF_URL=${WF_URL}, WF_PRODUCT=${p}). Read: \`wf resolve <link|id>\`, \`wf doc <product/project/doc>\`, \`wf node <id>\`, \`wf context "<text>"\`. Write: \`wf node set <id> --status s --set key=value\`, \`wf node content <id> --file f\` (the blocks under a node), \`wf doc write <product/project/doc> --file f\` (whole body). \`ctx\` queries the graph offline (\`ctx --root data/products/${p} search …\`).\n- Documents are markdown under data/products/${p}/projects/<project>/docs/. Nodes are lines that start with an id (\`req:x …\`, \`- [ ] task:y …\`) or yaml blocks; keep ids stable.\n- Report progress with \`wf session log ${s.id} "<line>"\` and finish with \`wf session done ${s.id} "<result>"\` (or \`wf session fail\`). The runner marks the session done when you exit, so a final summary on stdout is enough.\n- If the work belongs to another agent, \`wf session handoff ${s.id} --agent <codex|claude-code> "<note>"\`.`);
+  parts.push(`\n## How to work\n- The Wye CLI is \`wf\` (WF_URL=${WF_URL}, WF_PRODUCT=${p}). Read: \`wf resolve <link|id>\`, \`wf doc <product/project/doc>\`, \`wf node <id>\`, \`wf context "<text>"\`. Write: \`wf node set <id> --status s --set key=value\`, \`wf node content <id> --file f\` (the blocks under a node), \`wf doc write <product/project/doc> --file f\` (whole body). \`ctx\` queries the graph offline (\`ctx --root data/products/${p} search …\`).\n- Documents are markdown under data/products/${p}/projects/<project>/docs/. Nodes are lines that start with an id (\`req:x …\`, \`- [ ] task:y …\`) or yaml blocks; keep ids stable.\n- Report progress with \`wf session log ${s.id} "<line>"\` and finish with \`wf session done ${s.id} "<result>"\` (or \`wf session fail\`). The runner marks the session done when you exit, so a final summary on stdout is enough.\n- If the work belongs to another agent, \`wf session handoff ${s.id} --agent <codex|claude-code> "<note>"\`.`);
   return parts.join('\n');
 }
 // The request's images (pasted into the command box) are the session's files in the app; a runner fetches them

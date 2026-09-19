@@ -45,7 +45,7 @@ describe('appLinkLabel', () => {
   });
   it('a session, the root and a page', () => {
     expect(appLinkLabel(appLink('http://localhost:3456/waterfall/sessions/64813dfdab', origin)!, titles)).toEqual({ text: 'session 64813dfdab' });
-    expect(appLinkLabel(appLink('http://localhost:3456', origin)!, titles)).toEqual({ text: 'Waterfall' });
+    expect(appLinkLabel(appLink('http://localhost:3456', origin)!, titles)).toEqual({ text: 'Wye' });
     expect(appLinkLabel(appLink('http://localhost:3456/waterfall/types/team', origin)!, titles)).toEqual({ text: 'types/team' });
   });
 });

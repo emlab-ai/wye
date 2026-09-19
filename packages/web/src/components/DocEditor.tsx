@@ -739,7 +739,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   };
   // base kinds, then the product's own types (its type: cards) — an instance is a prose line `team:slug …`
   const nodeItems = [...CARD_KINDS, ...ownKinds].map(kind => ({
-    title: `${kind} block`, group: 'Waterfall', subtext: `a new ${kind} written as prose`,
+    title: `${kind} block`, group: 'Wye', subtext: `a new ${kind} written as prose`,
     onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'node', props: { kind, slug: `new-${Math.floor(Math.random() * 900 + 100)}`, form: 'prose', textKey: 'text', check: kind === 'task' ? 'todo' : '', status: kind === 'task' ? 'open' : '' } } as never); },
   }));
 
@@ -772,19 +772,19 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const insertCollection = (kind: string) => { insertOrUpdateBlockForSlashMenu(editor, { type: 'collection', props: { kind }, children: [emptyRow(kind)] } as never); setTimeout(() => settle(), 0); touched.current = true; changed(); };
   // one Table block: goals, tasks or any of the product's types — the type is picked in the table's header
   const collectionItems = [{
-    title: 'Data table', group: 'Waterfall', subtext: `a table of goals, tasks${ownTypes.length ? ', ' + ownTypes.map(t => t.slug + 's').join(', ') : ''} — pick the type in its header; rows are nodes`,
+    title: 'Data table', group: 'Wye', subtext: `a table of goals, tasks${ownTypes.length ? ', ' + ownTypes.map(t => t.slug + 's').join(', ') : ''} — pick the type in its header; rows are nodes`,
     onItemClick: () => insertCollection('task'),
   }, {
-    title: 'Instances view', group: 'Waterfall', subtext: 'a live, filterable list of every node of one type — pages, tasks, ' + (ownTypes[0]?.slug ?? 'decisions') + 's… — nothing is stored but the filters',
+    title: 'Instances view', group: 'Wye', subtext: 'a live, filterable list of every node of one type — pages, tasks, ' + (ownTypes[0]?.slug ?? 'decisions') + 's… — nothing is stored but the filters',
     onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'view', props: { slug: ownTypes[0]?.slug ?? 'task', query: '' } } as never); touched.current = true; changed(); },
   }, {
     // an embed (req:wf2.embeds.insert): the block opens a picker; the id is set when a node is chosen
-    title: 'Embed a node', group: 'Waterfall', aliases: ['ref', 'embed', 'reference', 'transclude'], subtext: 'show a block from any page here — its card, editable; one source, every embed follows',
+    title: 'Embed a node', group: 'Wye', aliases: ['ref', 'embed', 'reference', 'transclude'], subtext: 'show a block from any page here — its card, editable; one source, every embed follows',
     onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'embed', props: { node: '' } } as never); touched.current = true; },
   }];
   const drawingItems = [
-    { title: 'Drawing', group: 'Waterfall', subtext: 'an Excalidraw sketch saved next to the document', onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'drawing', props: { src: `drawings/${newDrawingSlug()}.excalidraw`, title: 'Drawing' } } as never); touched.current = true; changed(); } },
-    { title: 'Code block → drawing', group: 'Waterfall', subtext: 'turn this ASCII diagram into an editable drawing', onItemClick: () => codeToDrawing(editor.getTextCursorPosition().block as unknown as AnyBlock) },
+    { title: 'Drawing', group: 'Wye', subtext: 'an Excalidraw sketch saved next to the document', onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'drawing', props: { src: `drawings/${newDrawingSlug()}.excalidraw`, title: 'Drawing' } } as never); touched.current = true; changed(); } },
+    { title: 'Code block → drawing', group: 'Wye', subtext: 'turn this ASCII diagram into an editable drawing', onItemClick: () => codeToDrawing(editor.getTextCursorPosition().block as unknown as AnyBlock) },
   ];
 
   if (loadError) return <div className="doc-editor"><p className="notice">Editing is off for this document: {loadError}. The text below is read-only.</p>{fallback}</div>;
@@ -807,7 +807,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
         <SuggestionMenuController triggerCharacter="/" getItems={async q => {
           // "Image in this block": a file picked from disk goes into the current node block's text (paste does the same)
           let inNode = false; try { inNode = (editor.getTextCursorPosition().block as unknown as AnyBlock).type === 'node'; } catch { /* no cursor */ }
-          const imageItems = inNode ? [{ title: 'Image in this block', group: 'Waterfall', subtext: 'a screenshot inside this bug / task / requirement, as part of its text', onItemClick: () => imageInput.current?.click() }] : [];
+          const imageItems = inNode ? [{ title: 'Image in this block', group: 'Wye', subtext: 'a screenshot inside this bug / task / requirement, as part of its text', onItemClick: () => imageInput.current?.click() }] : [];
           return filterSuggestionItems([...getDefaultReactSlashMenuItems(editor), ...imageItems, ...nodeItems, ...collectionItems, ...drawingItems], q);
         }} />
         <SuggestionMenuController triggerCharacter="@" minQueryLength={1} getItems={async q => mentionItems(q)} />

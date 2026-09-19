@@ -1,4 +1,4 @@
-# waterfall
+# wye
 
 Product context graph: describe a system **without code** as requirements, entities, state machines, operations,
 pages/actions, rules, gates and tests — in markdown that is also a graph. Query it from the terminal, lint it in CI,
@@ -19,7 +19,7 @@ data/products/<product>/inbox/                            dropped notes, convers
 data/products/<product>/_build/graph.json                 the product's knowledge, built from every page
 ```
 
-Waterfall's own product lives in `data/products/waterfall`; `ctx` defaults to it.
+Wye's own product lives in `data/products/waterfall`; `ctx` defaults to it.
 
 ## Install
 
@@ -89,7 +89,7 @@ test/smoke.js         parses the pilot and asserts the graph shape
 
 ## Desktop app
 
-`npm run desktop` opens Waterfall in its own window (Electron). The app starts the web server if none is running
+`npm run desktop` opens Wye in its own window (Electron). The app starts the web server if none is running
 on port 3456 and quits it on exit. Agents started from the app (Send to agent → "Conversation in the app") run as
 child processes of that server: Claude Code over its streaming JSON protocol, Codex through `codex exec --json`.
 The right column shows the conversation live; you reply from there. `npm run desktop:prod` builds the web app first

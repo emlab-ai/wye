@@ -44,7 +44,7 @@ export type SessionPlan = { ref: string; node: string; title: string; status: st
 export type TurnUsage = { in: number; out: number; context?: number; window?: number }
 // One thing that happened in a chat session, normalised across agents. `raw` keeps the agent's own event (trimmed).
 // prompt: on the first `user` event, the full message the agent received when it is more than `text` — the request
-// wrapped in the Waterfall preamble (req:wf2.console.first-message-is-the-request); the console shows it behind a fold
+// wrapped in the Wye preamble (req:wf2.console.first-message-is-the-request); the console shows it behind a fold
 export type ChatEvent = { t: string; kind: 'init' | 'user' | 'assistant' | 'thinking' | 'tool_use' | 'tool_result' | 'result' | 'permission' | 'stderr' | 'exit' | 'note' | 'log' | 'summary' | 'open' | 'knowledge'; text?: string; prompt?: string; refs?: string[]; usage?: TurnUsage; name?: string; input?: unknown; output?: string; isError?: boolean; toolUseId?: string; requestId?: string; answered?: 'allow' | 'deny'; model?: string; cwd?: string; costUsd?: number; durationMs?: number; code?: number; parent?: string; images?: string[]; changes?: { id: string; change: BlockChange['change'] }[] }
 // A runner is a process that executes sessions for one agent (wf agent listen); it heartbeats every few seconds.
 export interface Runner { name: string; agent: string; host: string; pid: number; cwd: string; startedAt: string; seenAt: string; busy?: string }
@@ -52,5 +52,5 @@ export interface Runner { name: string; agent: string; host: string; pid: number
 export const AGENTS = [
   { id: 'claude-code', label: 'Claude Code' },
   { id: 'codex', label: 'Codex' },
-  { id: 'clerk', label: 'Waterfall clerk (knowledge only)' },
+  { id: 'clerk', label: 'Wye clerk (knowledge only)' },
 ];

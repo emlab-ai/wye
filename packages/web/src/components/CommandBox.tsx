@@ -11,7 +11,7 @@ import { AttachStrip, useImageAttachments } from './Attachments';
 // The one command box (decision:wf2.one-command-box): ⌘P / Ctrl+P opens it with what the person is looking at (the
 // document, the node under the cursor); every "Send to agent" opens it with the block's text, refs and source
 // prefilled (requestSend). What is typed starts a NEW conversation by default (rule:clean-slate: a task reads what it
-// needs from Waterfall, not from the last task's context; the agent and the folder are the ones used last) that plans
+// needs from Wye, not from the last task's context; the agent and the folder are the ones used last) that plans
 // first (rule:plan-first), or goes into an active conversation chosen in "to" — with "clear context first" ticked
 // that conversation's agent restarts from nothing before the message — or is queued for a runner. Images pasted or
 // dropped into the box go along (req:wf2.ui.palette-images).
@@ -108,14 +108,14 @@ export function CommandBox() {
         </div>
         {(target === 'new' || fresh) && (
           <div className="palette-row">
-            <label className="palette-plan" title="The agent reads Waterfall, works out what the request touches, writes the plan on a page and asks you before building">
+            <label className="palette-plan" title="The agent reads Wye, works out what the request touches, writes the plan on a page and asks you before building">
               <input type="checkbox" checked={plan} onChange={e => setPlan(e.target.checked)} /> plan first — understand, propose, confirm, then build
             </label>
           </div>
         )}
         {!isNew && (
           <div className="palette-row">
-            <label className="palette-plan" title="Stop that agent and start a fresh one in the same folder before this message: it forgets the conversation so far and reads what it needs from Waterfall">
+            <label className="palette-plan" title="Stop that agent and start a fresh one in the same folder before this message: it forgets the conversation so far and reads what it needs from Wye">
               <input type="checkbox" checked={fresh} onChange={e => setFresh(e.target.checked)} /> clear context first — a fresh agent, same folder, for an unrelated task
             </label>
           </div>

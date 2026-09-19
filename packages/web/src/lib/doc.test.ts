@@ -87,7 +87,7 @@ const g: GraphData = {
 describe('documentTree', () => {
   it('builds roots from module has-edges and picks the main root', () => {
     const t = documentTree(g);
-    // siblings without an order: sort by title (Old < Waterfall)
+    // siblings without an order: sort by title (Old < Wye)
     expect(t.roots.map(r => r.slug)).toEqual(['old', 'project']);
     expect(t.roots[1].children.map(c => c.slug)).toEqual(['prd']);
     expect(t.main?.slug).toBe('project');

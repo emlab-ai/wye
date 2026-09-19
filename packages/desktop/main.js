@@ -1,4 +1,4 @@
-// Waterfall desktop. The Electron main process owns the app server (Next.js) as a child process, waits until it
+// Wye desktop. The Electron main process owns the app server (Next.js) as a child process, waits until it
 // answers, and opens the window on it. Agent processes (Claude Code, Codex) are children of that server, so they
 // live and die with the app. Closing the last window quits and takes the server and every agent with it.
 'use strict';
@@ -7,7 +7,7 @@ const { spawn } = require('node:child_process');
 const path = require('node:path');
 const http = require('node:http');
 
-const ROOT = path.resolve(__dirname, '../..');           // the waterfall repo
+const ROOT = path.resolve(__dirname, '../..');           // the wye repo
 const PORT = Number(process.env.WF_PORT || 3456);
 const URL_ = `http://localhost:${PORT}`;
 const DEV = !!process.env.WF_DEV;
@@ -25,14 +25,14 @@ async function startServer() {
   const log = fs.openSync(path.join(ROOT, '.cache/desktop-web.log'), 'a');
   console.log(`[desktop] starting the web server (${DEV ? 'dev' : 'production'}); log: .cache/desktop-web.log`);
   server = spawn('npm', args, { cwd: ROOT, env: { ...process.env, PORT: String(PORT), BROWSER: 'none' }, stdio: ['ignore', log, log], detached: true });
-  server.on('exit', code => { server = null; if (!quitting) dialog.showErrorBox('Waterfall', `The app server stopped (exit ${code}). See .cache/desktop-web.log`); });
+  server.on('exit', code => { server = null; if (!quitting) dialog.showErrorBox('Wye', `The app server stopped (exit ${code}). See .cache/desktop-web.log`); });
   for (let i = 0; i < 120; i++) { if (await ping()) return; await new Promise(r => setTimeout(r, 500)); }
   throw new Error(`the app server did not answer on ${URL_}`);
 }
 
 function createWindow() {
   // standard OS title bar and window controls on every platform
-  win = new BrowserWindow({ width: 1500, height: 960, minWidth: 900, minHeight: 600, title: 'Waterfall', backgroundColor: '#141614', webPreferences: { contextIsolation: true, nodeIntegration: false } });
+  win = new BrowserWindow({ width: 1500, height: 960, minWidth: 900, minHeight: 600, title: 'Wye', backgroundColor: '#141614', webPreferences: { contextIsolation: true, nodeIntegration: false } });
   win.loadURL(URL_);
   win.webContents.setWindowOpenHandler(({ url }) => { if (url.startsWith(URL_)) return { action: 'allow' }; shell.openExternal(url); return { action: 'deny' }; });
   // a click on a foreign link (a transcript, a document) opens the system browser; the window stays on the app (rule:app-link)
@@ -55,8 +55,8 @@ function buildMenu() {
 function createTray() {
   const icon = nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAOUlEQVQ4T2NkYGD4z0ABYBzVQBBQLYCIAgwMDP8ZGBgYGRkZ/zMwMEA8Q2gYGBhAgBHmBQYGBgYAeF0EBTz0X1UAAAAASUVORK5CYII=');
   tray = new Tray(icon.resize({ width: 16, height: 16 }));
-  tray.setToolTip('Waterfall');
-  tray.setContextMenu(Menu.buildFromTemplate([{ label: 'Open Waterfall', click: () => { if (win) win.show(); else createWindow(); } }, { label: 'Sessions', click: () => { if (!win) createWindow(); win.loadURL(URL_ + '/'); } }, { type: 'separator' }, { role: 'quit' }]));
+  tray.setToolTip('Wye');
+  tray.setContextMenu(Menu.buildFromTemplate([{ label: 'Open Wye', click: () => { if (win) win.show(); else createWindow(); } }, { label: 'Sessions', click: () => { if (!win) createWindow(); win.loadURL(URL_ + '/'); } }, { type: 'separator' }, { role: 'quit' }]));
 }
 
 // Hot reload. The page itself hot-reloads through Next.js Fast Refresh (the window loads the dev server). The
@@ -76,7 +76,7 @@ function watchSelf() {
 app.whenReady().then(async () => {
   buildMenu();
   if (DEV) watchSelf();
-  try { await startServer(); } catch (e) { dialog.showErrorBox('Waterfall', e.message); app.quit(); return; }
+  try { await startServer(); } catch (e) { dialog.showErrorBox('Wye', e.message); app.quit(); return; }
   createWindow(); createTray();
   app.on('activate', () => { if (!win) createWindow(); });
 });

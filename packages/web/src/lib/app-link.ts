@@ -3,7 +3,7 @@ import type { IndexEntry } from './doc';
 // (window.location.origin at render time); localhost and 127.0.0.1 on the same port count as the app too, since the
 // agent's WF_URL is whatever host its request came in on and the desktop always loads localhost. A foreign URL, a
 // relative path or a hash link is null. The label (appLinkLabel) comes from the path: a document's title when the
-// graph knows it, else its slug; the node id from the `#n-` anchor; `session <id>`; `Waterfall` for the root.
+// graph knows it, else its slug; the node id from the `#n-` anchor; `session <id>`; `Wye` for the root.
 export type AppLink = { kind: 'root' | 'doc' | 'node' | 'session' | 'page'; path: string; hash: string; product?: string; project?: string; doc?: string; node?: string; session?: string };
 
 const LOCAL = new Set(['localhost', '127.0.0.1']);
@@ -31,7 +31,7 @@ export function appLink(href: string, origin: string): AppLink | null {
 // `titles`: document title by slug (docTitles).
 export function appLinkLabel(l: AppLink, titles: Record<string, string>): { text: string; node?: string } {
   switch (l.kind) {
-    case 'root': return { text: 'Waterfall' };
+    case 'root': return { text: 'Wye' };
     case 'session': return { text: `session ${l.session}` };
     case 'doc': case 'node': { const text = titles[l.doc!] ?? l.doc!; return l.node ? { text, node: l.node } : { text }; }
     default: return { text: l.path.split('/').filter(Boolean).slice(1).join('/') || l.path };

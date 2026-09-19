@@ -1,5 +1,5 @@
 {
-    "name": "waterfall",
+    "name": "wye",
     "version": "0.2.0",
     "description": "Product context graph: describe a system as requirements, entities, rules, ops and pages in markdown; query it as a graph; browse and edit it in a web app.",
     "private": true,

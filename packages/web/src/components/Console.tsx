@@ -106,7 +106,7 @@ export function Console({ session, onStatus, onKnowledge }: { session: Session; 
           <button className="pri" type="submit" disabled={busy || (!text.trim() && !images.length)}>{fresh ? 'Restart & send' : 'Send'}</button>
         </div>
         <div className="console-fresh">
-          <label className="console-opt" title="Before this message the agent restarts from nothing in the same folder — after the current turn when one is open — and reads what it needs from Waterfall"><input type="checkbox" checked={fresh} onChange={e => setFresh(e.target.checked)} /> clear context first</label>
+          <label className="console-opt" title="Before this message the agent restarts from nothing in the same folder — after the current turn when one is open — and reads what it needs from Wye"><input type="checkbox" checked={fresh} onChange={e => setFresh(e.target.checked)} /> clear context first</label>
           {fresh && <label className="console-opt" title="The agent understands, writes the plan on a page and asks before building"><input type="checkbox" checked={plan} onChange={e => setPlan(e.target.checked)} /> plan first</label>}
           {fresh && <span className="muted">{turnOpen ? 'the current turn finishes, then a fresh agent takes this' : 'a fresh agent takes this as its first message'}</span>}
         </div>
@@ -121,7 +121,7 @@ function Event({ e, answered, answers, showThinking, answer }: { e: ChatEvent; a
   const time = <time dateTime={e.t} title={e.t}>{e.t.slice(11, 19)}</time>; // hidden until the row is hovered
   switch (e.kind) {
     case 'user': return <div className="ev ev-user">{time}<div className="ev-body"><TranscriptMarkdown>{e.text ?? ''}</TranscriptMarkdown>{e.images && e.images.length > 0 && <div className="ev-images">{e.images.map(u => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="attachment" /></a>)}</div>}
-      {/* the first message's Waterfall wrapper is the agent's, not the person's words: folded (req:wf2.console.first-message-is-the-request) */}
+      {/* the first message's Wye wrapper is the agent's, not the person's words: folded (req:wf2.console.first-message-is-the-request) */}
       {e.prompt && e.prompt !== e.text && <details className="ev-prompt"><summary>what the agent received</summary><TranscriptMarkdown>{e.prompt}</TranscriptMarkdown></details>}</div></div>;
     case 'assistant': return <div className="ev ev-assistant">{time}<div className="ev-body"><TranscriptMarkdown>{e.text ?? ''}</TranscriptMarkdown></div></div>;
     case 'thinking': return showThinking ? <div className="ev ev-thinking">{time}<div className="ev-body">{e.text}</div></div> : null;

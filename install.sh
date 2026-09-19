@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Links the ctx CLI and the waterfall skills so any repo (and any Claude Code session) can use them.
+# Links the ctx CLI and the wye skills so any repo (and any Claude Code session) can use them.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BIN="${HOME}/.local/bin"

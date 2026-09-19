@@ -79,7 +79,7 @@ export function openInSession(id: string, path: string): boolean {
 export async function buildPrompt(product: string, s: Session, wfUrl: string, productDir?: string): Promise<string> {
   const scope = await loadScope(product);
   const paths = productDir && s.images?.length ? s.images.map(n => path.join(filesDir(productDir, s.id), n)) : [];
-  const parts = [`You are working on the product "${product}" in Waterfall (requirements, rules, decisions, goals and tasks kept as markdown; the app at ${wfUrl} shows this conversation live). Session ${s.id}.`, `\n## Instruction\n${s.instruction}${imageLines(paths)}`];
+  const parts = [`You are working on the product "${product}" in Wye (requirements, rules, decisions, goals and tasks kept as markdown; the app at ${wfUrl} shows this conversation live). Session ${s.id}.`, `\n## Instruction\n${s.instruction}${imageLines(paths)}`];
   const ctx: string[] = []; const seen = new Set<string>();
   for (const ref of [...(s.source?.link ? [s.source.link] : []), ...s.refs]) {
     if (seen.has(ref) || !scope) continue; seen.add(ref);
@@ -89,7 +89,7 @@ export async function buildPrompt(product: string, s: Session, wfUrl: string, pr
   if (s.parent) parts.push(`\nThis session continues session ${s.parent}; its log and result are in the instruction above.`);
   parts.push(planDocNote(s.planDoc));
   if (s.plan) parts.push(planFirst(s.planDoc));
-  parts.push(`\n## How to work\n- The Waterfall CLI is \`wf\` (WF_URL=${wfUrl}, WF_PRODUCT=${product}). Read: \`wf resolve <link|id>\`, \`wf doc <product/project/doc>\`, \`wf node <id>\`, \`wf context "<text>"\`. Write: \`wf node set <id> --status s --set key=value\`, \`wf doc write <product/project/doc> --file f\`.\n- Product documents live under ${REPO_ROOT}/data/products/${product}/projects/<project>/docs/ (markdown; a line that starts with an id defines that node; keep ids stable). Run \`ctx --root data/products/${product} check\` from ${REPO_ROOT} after editing them.\n- This is a conversation: the person can reply here. Ask when something is unclear; say plainly what you changed.`);
+  parts.push(`\n## How to work\n- The Wye CLI is \`wf\` (WF_URL=${wfUrl}, WF_PRODUCT=${product}). Read: \`wf resolve <link|id>\`, \`wf doc <product/project/doc>\`, \`wf node <id>\`, \`wf context "<text>"\`. Write: \`wf node set <id> --status s --set key=value\`, \`wf doc write <product/project/doc> --file f\`.\n- Product documents live under ${REPO_ROOT}/data/products/${product}/projects/<project>/docs/ (markdown; a line that starts with an id defines that node; keep ids stable). Run \`ctx --root data/products/${product} check\` from ${REPO_ROOT} after editing them.\n- This is a conversation: the person can reply here. Ask when something is unclear; say plainly what you changed.`);
   return parts.join('\n');
 }
 
@@ -127,7 +127,7 @@ async function startProcess(l: Live, s: Session, product: string, opts: { wfUrl:
   if (opts.resume && s.agentSessionId) args.push('--resume', s.agentSessionId);
   const proc = spawn('claude', args, { cwd, env: { ...process.env, WF_URL: opts.wfUrl, WF_PRODUCT: product, WF_SESSION: id } });
   l.proc = proc;
-  emit(l, { kind: 'note', text: `claude ${opts.resume ? 'resumed' : 'started'} in ${cwd} · Waterfall contract applied as system prompt` });
+  emit(l, { kind: 'note', text: `claude ${opts.resume ? 'resumed' : 'started'} in ${cwd} · Wye contract applied as system prompt` });
   let buf = '';
   // a process replaced by restartFresh may still write its last lines: they are not this conversation's any more
   proc.stdout.on('data', d => { if (l.proc !== proc) return; buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) onClaudeLine(l, line); } });
@@ -249,7 +249,7 @@ function reportKnowledge(l: Live, delay = 1200) {
 export function pumpSession(id: string) { const l = live().get(id); if (l) pump(l); }
 export function answerPermission(id: string, requestId: string, allow: boolean, input?: unknown): boolean {
   const l = live().get(id); if (!l?.proc) return false;
-  const response = allow ? { behavior: 'allow', updatedInput: input ?? {} } : { behavior: 'deny', message: 'denied by the user in Waterfall' };
+  const response = allow ? { behavior: 'allow', updatedInput: input ?? {} } : { behavior: 'deny', message: 'denied by the user in Wye' };
   l.proc.stdin!.write(JSON.stringify({ type: 'control_response', response: { subtype: 'success', request_id: requestId, response } }) + '\n');
   emit(l, { kind: 'note', text: `${allow ? 'allowed' : 'denied'} ${requestId}`, requestId, answered: allow ? 'allow' : 'deny', input: allow ? input : undefined });
   return true;

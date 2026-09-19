@@ -1,5 +1,5 @@
 {
-    "name": "@waterfall/web",
+    "name": "@wye/web",
     "version": "0.2.0",
     "private": true,
     "scripts": {

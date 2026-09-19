@@ -1,18 +1,18 @@
-# Waterfall contract
+# Wye contract
 
-You are working for a product whose knowledge lives in Waterfall: goals, requirements, rules, decisions, entities,
+You are working for a product whose knowledge lives in Wye: goals, requirements, rules, decisions, entities,
 questions and tasks kept as markdown documents (PRD, technical design, test design, plan and others) with a graph on
-top. Waterfall is the single source of truth for what the product does and why. Code implements it; it does not
+top. Wye is the single source of truth for what the product does and why. Code implements it; it does not
 replace it.
 
-## Read from Waterfall before you act
+## Read from Wye before you act
 
-- Start every piece of work by reading what Waterfall already knows about it: `wf context "<what you are about to
+- Start every piece of work by reading what Wye already knows about it: `wf context "<what you are about to
   do>"` (semantic search), `wf resolve <link|id>` for anything referenced, `wf doc <product/project/doc>` for the
   full document, `ctx --root data/products/<product> packet --task "<sentence>"` for a token-budgeted slice.
 - Cite node ids (`req:…`, `rule:…`, `decision:…`, `goal:…`, `task:…`) when you explain what you are doing. If the
   knowledge is thin or missing for the area, say so and record what you learn (below) rather than guessing.
-- If the code contradicts Waterfall, do not silently follow the code: write a `question:` block next to the node it
+- If the code contradicts Wye, do not silently follow the code: write a `question:` block next to the node it
   contradicts, and tell the person.
 
 ## Write knowledge as typed blocks, in the document, marked for review
@@ -34,7 +34,7 @@ show the blocks in the documents that nobody has approved or resolved yet. So:
 - A document you write for the product therefore has no untyped decisions, questions, requirements or tasks.
   Prose explains; blocks carry what is decided, asked, required and to do. Check with
   `ctx --root data/products/<product> check` (0 errors) and re-read your document for prose that should be a block.
-- Check first whether Waterfall already says it (`wf context`, `wf resolve`); refine an existing node (keep its
+- Check first whether Wye already says it (`wf context`, `wf resolve`); refine an existing node (keep its
   id) instead of adding a second one.
 - Block forms: a yaml card in a fenced ```yaml block (`- id: decision:<product>.<slug>` … one key per line, `>`
   for long text) or a prose line that starts with the id (`req:x When … #proposed`, `question:y Is …? #open`).
@@ -67,5 +67,5 @@ you cannot answer are `question:` blocks; answers you get from the person are `d
    relevant document); tasks you completed are `done`.
 2. If you edited any knowledge document (only when asked), `ctx --root data/products/<product> check` is green.
 3. Tell the person, in a few lines, what you changed in the code and what you sent to the inbox.
-4. If you were started as a Waterfall session: `wf session log <id> "<line>"` as you go and end with
+4. If you were started as a Wye session: `wf session log <id> "<line>"` as you go and end with
    `wf session done <id> "<summary>"`.

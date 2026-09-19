@@ -13,7 +13,7 @@ sources:
 
 # <Module Name> — product context graph
 
-Node kinds, verbs and statuses are defined in the waterfall schema (`schema/kinds.yaml`). Every heading that
+Node kinds, verbs and statuses are defined in the wye schema (`schema/kinds.yaml`). Every heading that
 starts with `kind:slug` is a node; every `-(verb)->` line and every typed key (`satisfied-by:`, `verified-by:`, …) is an edge.
 
 ---

@@ -1,11 +1,11 @@
 ---
 name: wf-restore
-description: Restore and continue a Waterfall agent session by id — /wf-restore <session-id> [--product <p>]. Loads the session's instruction, referenced context, log and result, then continues the work from where the previous agent stopped, logging progress back to the same session.
+description: Restore and continue a Wye agent session by id — /wf-restore <session-id> [--product <p>]. Loads the session's instruction, referenced context, log and result, then continues the work from where the previous agent stopped, logging progress back to the same session.
 ---
 
 # /wf-restore <session-id>
 
-Pick up a Waterfall session in this conversation (transfer of work from another agent or a runner).
+Pick up a Wye session in this conversation (transfer of work from another agent or a runner).
 
 1. Load it: `wf session show <id> --product <p> --full` (`WF_PRODUCT` or `--product`; if unknown, try
    `wf session list --product <p> --all` for each product under `data/products/`).

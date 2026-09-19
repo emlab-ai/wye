@@ -10,7 +10,7 @@ import { SmartTag } from './SmartTag';
 
 // The one markdown renderer for conversation and session text (rule:app-link): GFM, every kind:slug id a tag, and
 // a link into this app shown as what it points at — `TODO › task:x` (the tag opens the peek), `session <id>`,
-// `Waterfall` — navigating client-side so the right column keeps its stack; any other link leaves the app in a
+// `Wye` — navigating client-side so the right column keeps its stack; any other link leaves the app in a
 // new tab (the desktop opens it in the system browser). The app's origin is read from the page, never hard-wired.
 export function TranscriptMarkdown({ children }: { children: string }) {
   const { index } = usePeek();
