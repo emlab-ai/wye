@@ -157,7 +157,7 @@ const commands = {
     const text = pos[1] || (await readStdin()); const j = await api('POST', `/api/${product()}/context`, { text, limit: Number(flags.limit || 10), all: !!flags.all, asOf: flags['as-of'] || undefined });
     if (flags.json) return out(j);
     for (const h of j.hits) console.log(`${Math.round(h.score * 100).toString().padStart(3)}%  ${h.id}  ${h.snippet.slice(0, 100)}`);
-    if (j.hidden) console.log(`(${j.hidden} superseded / retired hidden — --all or --as-of <date> shows them)`);
+    if (j.hidden) console.log(`(${j.hidden} superseded / retired / archived hidden — --all or --as-of <date> shows them)`);
   },
   async inbox() {
     const p = product();

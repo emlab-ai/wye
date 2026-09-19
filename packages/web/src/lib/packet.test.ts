@@ -50,7 +50,7 @@ describe('constraint packet', () => {
     const md = renderPacket(c);
     expect(md.indexOf('### Constraints')).toBeLessThan(md.indexOf('### Rules'));
     expect(md).toContain('- rule:no-negative [shipped] — A price is never negative (source: lib/price.js:12)');
-    expect(md).toContain('1 superseded / retired hidden');
+    expect(md).toContain('1 superseded / retired / archived hidden');
   });
   it('shares a small budget across kinds instead of spending it on the first', () => {
     const md = renderPacket(c, { budget: 420 });

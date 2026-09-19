@@ -164,4 +164,38 @@ assert.ok(r.errors.some(e => /rule:shapes.no-source: rule has no source/.test(e)
 assert.ok(r.warnings.some(w => /shape not understood/.test(w)));
 assert.ok(g2.check({ repo: dir, strict: true }).errors.some(e => /approved-bare: approved policy/.test(e)), '--strict makes shapes errors');
 
+// --- forgetting (decision:memory.forgetting): a plan that is done is archived for retrieval; its knowledge is not
+const donePlan = `---
+node: plan:plan-old
+type: plan
+title: an old request
+status: done
+session: abc
+---
+
+# an old request
+
+## Tasks
+
+- [x] task:old.one Rename the pricing field part of plan:plan-old
+- [x] task:old.two Ship the pricing page part of plan:plan-old
+
+## Plan
+
+\`\`\`yaml
+- id: decision:old.pricing-field
+  title: The pricing field is called amount
+  status: approved
+\`\`\`
+`;
+const livePlan = donePlan.replace('plan:plan-old', 'plan:plan-live').replace('status: done', 'status: running').replace(/plan:plan-old/g, 'plan:plan-live').replace(/task:old/g, 'task:live').replace('- [x] task:live.two', '- [ ] task:live.two').replace('decision:old.pricing-field', 'decision:live.pricing-field');
+fs.writeFileSync(path.join(dir, 'plan-old.md'), donePlan); fs.writeFileSync(path.join(dir, 'plan-live.md'), livePlan);
+const g3 = new Graph(parseFiles([path.join(dir, 'plan-old.md'), path.join(dir, 'plan-live.md')]));
+assert.ok(g3.node('plan:plan-old').archived && g3.node('task:old.one').archived, 'a done plan and its tasks are archived');
+assert.ok(!g3.node('decision:old.pricing-field').archived, 'the knowledge in it is not');
+assert.ok(!g3.node('plan:plan-live').archived && !g3.node('task:live.two').archived, 'a live plan is not');
+assert.ok(!g3.search('pricing').some(h => h.n.id === 'task:old.one') && g3.search('pricing').some(h => h.n.id === 'task:live.two'), 'archived tasks leave search');
+assert.ok(g3.search('pricing').some(h => h.n.id === 'decision:old.pricing-field'), 'the decision stays');
+assert.ok(g3.search('pricing', { all: true }).some(h => h.n.id === 'task:old.one'), '--all shows archived');
+
 console.log('memory: ok');

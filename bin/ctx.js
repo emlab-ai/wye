@@ -84,7 +84,7 @@ switch (cmd) {
         const g = load(); const term = positional.join(' ') || die('search <terms>');
         const hits = g.search(term, { limit: +opt('limit', 25), all: argv.includes('--all'), asOf: opt('as-of', null) });
         for (const { n, s } of hits) console.log(`${s.toFixed(1).padStart(5)}  ${n.id}${n.status ? ' [' + n.status + ']' : ''} — ${n.title}`);
-        if (hits.hidden) console.log(`(${hits.hidden} superseded / retired hidden — --all or --as-of <date> shows them)`);
+        if (hits.hidden) console.log(`(${hits.hidden} superseded / retired / archived hidden — --all or --as-of <date> shows them)`);
         break;
     }
     case 'impact': {

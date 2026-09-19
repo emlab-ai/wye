@@ -1,4 +1,4 @@
-export interface GraphNode { id: string; kind: string; title: string; status: string; section: string; subsection: string; body: string; defined: boolean; file: string; line: number; owner?: string; form?: 'prose' | 'yaml' | 'block'; since?: string; until?: string; by?: string; supersededBy?: string }
+export interface GraphNode { id: string; kind: string; title: string; status: string; section: string; subsection: string; body: string; defined: boolean; file: string; line: number; owner?: string; form?: 'prose' | 'yaml' | 'block'; since?: string; until?: string; by?: string; supersededBy?: string; archived?: boolean }
 export interface GraphEdge { from: string; to: string; verb: string; generated?: boolean }
 export interface GraphModule { id: string; title: string; file: string; verified: string; sourceRoots: string[] }
 // ontology (lib/parse.js pass 1): a property of a type, effective on the type (own or inherited from `from`)

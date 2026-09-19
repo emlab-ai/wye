@@ -540,6 +540,12 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .rail-menu .pf-row.on .pg-link { background: var(--sunk); font-weight: 600; }
 .pf-row .pg-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pf-empty { padding: 4px 8px 4px 36px; font-size: 13px; }
+/* plans that ended fold under "done" (decision:memory.forgetting) */
+.pf-done { list-style: none; }
+.pf-done-head { display: flex; align-items: center; gap: 6px; padding: 3px 8px 3px 36px; background: none; border: 0; color: var(--muted); font-size: 12px; cursor: pointer; width: 100%; text-align: left; }
+.pf-done-head:hover { color: var(--ink); }
+.pf-done-head small { opacity: .7; }
+.pf-done .pf-row .pg-link { opacity: .7; }
 
 /* the content editor in the column (req:wf2.ui.node-content): the page's editor, compact, scoped to one node */
 .peek .content { margin: 18px 0 4px; } .peek .content h4 { margin: 0 0 4px; }

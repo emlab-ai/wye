@@ -94,7 +94,7 @@ export async function search(productDir: string, graph: GraphData, q: string, op
   const hits: Hits = []; let hidden = 0;
   for (const n of idx.nodes) {
     if (ex.has(n.id)) continue;
-    if (!opts.all && !isCurrent(n, opts.asOf)) { hidden++; continue; }
+    if (!opts.all && (!isCurrent(n, opts.asOf) || n.archived)) { hidden++; continue; }   // ended, or in a plan that is done (decision:memory.forgetting)
     const v = idx.vecs.get(n.id)!; let dot = 0; for (let i = 0; i < v.length; i++) dot += v[i] * qv[i];
     const kw = keywordScore(words, idx.texts.get(n.id)!, n.id);
     const score = 0.7 * dot + 0.3 * Math.min(1, kw);

@@ -35,7 +35,7 @@ export function constraintsFor(g: GraphData, idx: GraphIndex, seedIds: string[],
   const reached = [...dist.keys()].map(id => idx.byId.get(id)!).filter(n => n && keep(n));
   // a constraint with no scope binds everything: in the packet whether or not the traversal reached it
   for (const n of g.nodes) if (n.kind === 'constraint' && n.defined && n.status === 'approved' && !dist.has(n.id) && !(idx.out.get(n.id) ?? []).some(e => e.verb === 'scope')) { dist.set(n.id, hops); reached.push(n); }
-  const current = opts.all ? reached : reached.filter(n => isCurrent(n, opts.asOf));
+  const current = opts.all ? reached : reached.filter(n => isCurrent(n, opts.asOf) && !n.archived);
   const hidden = reached.length - current.length;
   const kept = new Set(current.map(n => n.id));
   const open = (n: GraphNode) => n.kind === 'question' && n.defined && ['', 'open', 'question'].includes(n.status);
@@ -62,7 +62,7 @@ export function renderPacket(c: Packet, opts: { budget?: number } = {}): string 
   const groups: [string, GraphNode[]][] = (Object.entries(c.byKind) as [string, GraphNode[]][]).concat(c.questions.length ? [['question', c.questions]] : []).sort((a, b) => (ORDER.indexOf(a[0]) + 1 || 99) - (ORDER.indexOf(b[0]) + 1 || 99));
   const total = groups.reduce((a, [, l]) => a + l.length, 0);
   if (!total) return `_No rules, constraints, decisions or goals govern this yet (seeds: ${c.seeds.join(', ') || 'none'})._`;
-  const head = `_Computed from the seeds (${c.seeds.join(', ')}) over governs, gated-by, affects, refines, part-of, depends-on and scope, two hops; complete, not a top-k. ${c.hidden ? c.hidden + ' superseded / retired hidden. ' : ''}Cite these ids; when the request cannot respect one, say so with a question: block next to it._`;
+  const head = `_Computed from the seeds (${c.seeds.join(', ')}) over governs, gated-by, affects, refines, part-of, depends-on and scope, two hops; complete, not a top-k. ${c.hidden ? c.hidden + ' superseded / retired / archived hidden. ' : ''}Cite these ids; when the request cannot respect one, say so with a question: block next to it._`;
   const lines = groups.map(([k, l]) => ({ k, n: l.length, lines: l.map(constraintLine), shown: 0 }));
   let left = budget - head.length; const share = Math.floor(left / lines.length);
   for (const g of lines) { let used = 0; while (g.shown < g.lines.length && used + g.lines[g.shown].length <= share) { used += g.lines[g.shown].length; g.shown++; } left -= used; }
