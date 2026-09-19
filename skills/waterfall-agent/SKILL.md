@@ -19,10 +19,13 @@ with a graph on top, and a web app that people and agents share. `wf` is the CLI
 ## Read first
 
 ```bash
+wf packet --for "<text>" [--ref id]   # the constraints in force for what you are about to do: every rule, constraint, gate,
+                                #   approved decision, goal and open question within two hops, complete (your first message carries it)
+wf verdicts <id ...>            # how a block you wrote relates to its neighbours: duplicate | refines | consistent | contradicts
 wf resolve <link|id>            # a link to a block, node, heading or document → its text and relations
 wf doc <product/project/doc>    # a whole document (markdown)
 wf node <id>                    # one node with its body and edges (kind:slug, e.g. req:offline.g4)
-wf context "<text>"             # the knowledge closest to a piece of text (local semantic search)
+wf context "<text>"             # the knowledge closest to a piece of text (local semantic search; superseded / retired / archived hidden, --all shows them)
 ctx --root data/products/<product> packet --task "<sentence>"   # a token-budgeted slice of the graph (offline)
 ```
 
@@ -32,7 +35,9 @@ A link like `…/yessensei/offline/d/prd#n-goal%3Aoffline.g2` points at a node; 
 ## Write back
 
 - New knowledge → typed blocks in the document (yaml card or id-first prose line) with `status: proposed`
-  (decisions, requirements, rules) or `status: open` (questions); the Inbox page lists what waits for approval.
+  (decisions, requirements, rules, constraints, lessons) or `status: open` (questions); the Inbox page lists what waits
+  for approval. A decision carries `by:` (who decided), `evidence:` (session:<id>, a document, a URL) and, when it
+  replaces an earlier one, `supersedes:` — approving it retires the old one; never edit or delete the old block.
 - Raw notes without a document: `wf inbox add --type note --title "…"` (pasted conversations, meeting notes).
 - Whatever is indented two spaces under a node's line is its content: blocks of any kind, each a node with content
   of its own, to any depth (a sub-task is a task line indented under its task; no heading needed). A document shows

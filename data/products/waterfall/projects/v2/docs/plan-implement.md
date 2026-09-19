@@ -96,10 +96,10 @@ Order follows dependencies: the bitemporal properties and type:constraint first 
 - [x] task:memory.impl.shapes `shapes:` on type cards read by the parser and enforced by ctx check; the two hardcoded checks move to the base ontology. part of plan:plan-implement (task: memory.shapes, session: 9f3d83809b)
 - [x] task:memory.impl.forgetting archived-for-retrieval: done plans and closed sessions leave op:api.context, the packet and search unless --all. part of plan:plan-implement (task: memory.forgetting, session: 9f3d83809b)
 - [x] task:memory.impl.decision-statuses statuses on the status-less decisions in waterfall's documents. part of plan:plan-implement (task: memory.decision-statuses, session: 9f3d83809b)
-- [ ] task:memory.impl.verdicts the write-time verdict pass: lib/judge.js, pair classification on rebuild diff, verdict blocks, contradiction: nodes, Inbox rows. part of plan:plan-implement (task:memory.verdict-pass)
-- [ ] task:memory.impl.benchmark the hide-one-edge regression over the contradicts edges, behind WATERFALL_LIVE=1. part of plan:plan-implement (task:memory.benchmark)
-- [ ] task:memory.impl.consolidate consolidation on session done: candidates from the transcript diffed against produced blocks, misses filed with evidence. part of plan:plan-implement (task:memory.consolidate)
-- [ ] task:memory.impl.lint-deep `ctx check --deep` over same-kind pairs sharing a neighbour. part of plan:plan-implement (task:memory.lint-deep)
+- [x] task:memory.impl.verdicts the write-time verdict pass: lib/judge.js, pair classification on rebuild diff, verdict blocks, contradiction: nodes, Inbox rows. part of plan:plan-implement (task: memory.verdict-pass, session: 9f3d83809b)
+- [x] task:memory.impl.benchmark the hide-one-edge regression over the contradicts edges, behind WATERFALL_LIVE=1. part of plan:plan-implement (task: memory.benchmark, session: 9f3d83809b)
+- [x] task:memory.impl.consolidate consolidation on session done: candidates from the transcript diffed against produced blocks, misses filed with evidence. part of plan:plan-implement (task: memory.consolidate, session: 9f3d83809b)
+- [x] task:memory.impl.lint-deep `ctx check --deep` over same-kind pairs sharing a neighbour. part of plan:plan-implement (task: memory.lint-deep, session: 9f3d83809b)
 
 ## Result
 
