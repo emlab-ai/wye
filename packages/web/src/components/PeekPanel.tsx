@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { usePeek } from './PeekProvider';
 import { NodeCard } from './NodeCard';
 import { NodeEditor } from './NodeEditor';
+import { TabStrip, type Tab } from './Tabs';
 import { SmartTag } from './SmartTag';
 import { StatusPill } from './Pills';
 import { KIND_ORDER } from '@/lib/knowledge';
@@ -30,27 +31,19 @@ const OUT: Record<string, string> = { refines: 'Refines', 'satisfied-by': 'Satis
 const INC: Record<string, string> = { refines: 'Refined by', 'satisfied-by': 'Satisfies', 'verified-by': 'Verifies', 'depends-on': 'Needed by', 'part-of': 'Contains', 'related-to': 'Related from', 'governed-by': 'Governs', 'gated-by': 'Gates', has: 'Belongs to', refs: 'Referenced by', contradicts: 'Contradicted by', resolves: 'Resolved by', 'applies-to': 'Applied by', 'has-action': 'Action of', navigates: 'Reached from', reads: 'Read by', writes: 'Written by', produced: 'Produced by' };
 
 export function PeekPanel() {
-  const { product, index, openId, stack, cursor, go, back, togglePin, remove, close, showContext, editing, focused, setPanelOpen, relatedOpen, setRelatedOpen } = usePeek();
+  const { product, index, openId, stack, cursor, go, back, togglePin, remove, showContext, editing, focused, setPanelOpen, relatedOpen, setRelatedOpen } = usePeek();
   if (!openId && !showContext && !stack.length) return null;
+  // the column's tabs (req:wf2.ui.tabs): Context first on document pages, then every node or session opened
+  const tabs: Tab[] = [
+    ...(showContext ? [{ key: '', label: 'Context', icon: '◈', title: 'Follows the block you are editing', fixed: true }] : []),
+    ...stack.map((e, i) => { const en = index[e.id]; const kind = e.id.split(':')[0]; return { key: `${i}:${e.id}`, label: kind === 'session' ? `session ${e.id.slice(8, 14)}` : (en?.title ? plain(en.title) : e.id.replace(/^req:/, '')), icon: <i className="tab-dot" style={{ background: `var(--k-${kind}, var(--k-other))` }} />, title: e.id, pinned: e.pinned }; }),
+  ];
+  const at = (key: string) => Number(key.split(':')[0]);
   const chips = (
-    <div className="peek-nav">
-      <button className="peek-back" onClick={back} disabled={cursor < 0} title="Back (Esc)">←</button>
-      <div className="peek-chips">
-        {showContext && <button className={`chip ${cursor < 0 ? 'on' : ''}`} onClick={() => go(-1)} title="Follows the block you are editing">◈ Context</button>}
-        {stack.map((e, i) => {
-          const en = index[e.id]; const kind = e.id.split(':')[0];
-          const label = kind === 'session' ? `session ${e.id.slice(8, 14)}` : e.id.replace(/^req:/, '');
-          return (
-            <span key={e.id + i} className={`chip peek-chip k-${kind} ${i === cursor ? 'on' : ''} ${e.pinned ? 'pinned' : ''}`} title={en?.title || e.id}>
-              <button className="peek-chip-go" onClick={() => go(i)}><i style={{ background: `var(--k-${kind}, var(--k-other))` }} />{label}</button>
-              <button className="peek-chip-pin" onClick={() => togglePin(i)} title={e.pinned ? 'Unpin' : 'Pin: keep this item in the bar'}>{e.pinned ? '📌' : '📍'}</button>
-              {e.pinned || <button className="peek-chip-x" onClick={() => remove(i)} title="Remove">×</button>}
-            </span>
-          );
-        })}
-      </div>
-      <button className="peek-bar-close" onClick={() => { if (showContext) setPanelOpen(false); else close(); }} title="Hide the panel (⌘.)">×</button>
-    </div>
+    <TabStrip label="Open in the context column" tabs={tabs} active={cursor < 0 ? '' : `${cursor}:${stack[cursor]?.id}`}
+      onPick={k => go(k === '' ? -1 : at(k))} onClose={k => { if (k !== '') remove(at(k)); }} onPin={k => { if (k !== '') togglePin(at(k)); }}
+      before={<button className="peek-back" onClick={back} disabled={cursor < 0} title="Back (Esc)">←</button>}
+      after={<button className="peek-bar-close" onClick={() => setPanelOpen(false)} title="Hide the panel (⌘.)">×</button>} />
   );
   // The column is a frame (rule:column-frame): the bar stays, .peek-body is the one scroller under it.
   // Context root: the node a click selected, else the node the cursor is in (its details first), then knowledge

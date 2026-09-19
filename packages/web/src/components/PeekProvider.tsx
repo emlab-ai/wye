@@ -37,6 +37,11 @@ export function PeekProvider({ product, index, kinds, types, children }: { produ
   // One state object so pushes, pops and pins stay consistent: `cursor` indexes `stack`; -1 is the Context root.
   const [nav, setNav] = useState<{ stack: StackEntry[]; cursor: number }>({ stack: [], cursor: -1 });
   const { stack, cursor } = nav;
+  // the column's tabs survive a reload, per product in this browser (req:wf2.ui.tabs); the last one is open again
+  const navKey = `wf-peek:${product}`;
+  const [navLoaded, setNavLoaded] = useState(false);
+  useEffect(() => { try { const v = JSON.parse(localStorage.getItem(navKey) ?? 'null'); if (Array.isArray(v)) { const st = v.filter((e: StackEntry) => e && typeof e.id === 'string' && index[e.id]).map((e: StackEntry) => ({ id: e.id, pinned: !!e.pinned })); setNav({ stack: st, cursor: st.length - 1 }); } } catch { /* ignore */ } setNavLoaded(true); }, [navKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (navLoaded) { try { localStorage.setItem(navKey, JSON.stringify(stack)); } catch { /* ignore */ } } }, [stack, navKey, navLoaded]);
   const [editing, setEditing] = useState<EditingContext | null>(null);
   const [showContext, setShowContext] = useState(false);
   // the right column can be hidden altogether; opening a node brings it back. Remembered per browser.
@@ -47,15 +52,14 @@ export function PeekProvider({ product, index, kinds, types, children }: { produ
   useEffect(() => { try { setRelatedOpenState(localStorage.getItem('wf-related') === '1'); } catch { /* ignore */ } }, []);
   const setRelatedOpen = useCallback((v: boolean) => { setRelatedOpenState(v); try { localStorage.setItem('wf-related', v ? '1' : '0'); } catch { /* ignore */ } }, []);
   const openId = cursor >= 0 ? stack[cursor]?.id ?? null : null;
-  // Opening pushes on top of the current position; unpinned entries above it are dropped, pinned ones stay. From the
-  // Context root (a block was selected, or the column was closed) nothing is above: the chips stay and the node
-  // joins them, so a session read before a block click is still one click away (rule:block-select).
+  // Opening is a tab (req:wf2.ui.tabs): the node's tab when it is open already, else a new tab right after the
+  // current one — nothing is dropped, so what was read before stays one click away (rule:block-select).
   const open = useCallback((id: string) => { if (id) setPanelOpen(true); setNav(n => {
     if (!id) return { ...n, cursor: -1 };
-    const kept = n.cursor < 0 ? n.stack : n.stack.filter((e, i) => i <= n.cursor || e.pinned);
-    const existing = kept.findIndex(e => e.id === id);
-    if (existing >= 0) return { stack: kept, cursor: existing };
-    return { stack: [...kept, { id, pinned: false }], cursor: kept.length };
+    const existing = n.stack.findIndex(e => e.id === id);
+    if (existing >= 0) return { stack: n.stack, cursor: existing };
+    const at = n.cursor < 0 ? n.stack.length : n.cursor + 1;
+    return { stack: [...n.stack.slice(0, at), { id, pinned: false }, ...n.stack.slice(at)], cursor: at };
   }); }, [setPanelOpen]);
   // Selecting a block (a click anywhere on it) is not navigation: nothing is pushed, the column comes back to its
   // Context root and shows the node; the chips stay so what was open is one click away.
@@ -64,9 +68,9 @@ export function PeekProvider({ product, index, kinds, types, children }: { produ
   const back = useCallback(() => setNav(n => ({ ...n, cursor: Math.max(-1, n.cursor - 1) })), []);
   const go = useCallback((i: number) => setNav(n => ({ ...n, cursor: Math.min(i, n.stack.length - 1) })), []);
   const togglePin = useCallback((i: number) => setNav(n => ({ ...n, stack: n.stack.map((e, k) => k === i ? { ...e, pinned: !e.pinned } : e) })), []);
-  const remove = useCallback((i: number) => setNav(n => ({ stack: n.stack.filter((_, k) => k !== i), cursor: n.cursor >= i ? n.cursor - 1 : n.cursor })), []);
-  // Close: on document pages fall back to the Context root; elsewhere clear the column entirely.
-  const close = useCallback(() => setNav(n => showContext ? { ...n, cursor: -1 } : { stack: n.stack.filter(e => e.pinned), cursor: -1 }), [showContext]);
+  const remove = useCallback((i: number) => setNav(n => { const stack = n.stack.filter((_, k) => k !== i); const cursor = n.cursor === i ? Math.min(i, stack.length - 1) : n.cursor > i ? n.cursor - 1 : n.cursor; return { stack, cursor }; }), []);
+  // Close: back to the Context root; the tabs stay (the column's × hides the column, its tabs with it).
+  const close = useCallback(() => setNav(n => ({ ...n, cursor: -1 })), []);
   // a document's node opens the document itself (whatever the node's kind, rule:page-node-line); any other node its anchor
   const hrefFor = useCallback((id: string) => { const e = index[id]; const r = e?.file ? docRoute(e.file) : null; if (!r) return null; return e.doc ? `/${product}/${r.project}/d/${e.doc}` : `/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(id)}`; }, [index, product]);
   useEffect(() => { const h = (e: KeyboardEvent) => { if (e.key === 'Escape') back(); }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [back]);

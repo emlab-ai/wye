@@ -96,14 +96,7 @@ code, pre { font-family: var(--font-m); }
 .ctx-link { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 3px 9px; font: 600 11px var(--font-m); cursor: pointer; } .ctx-link:hover { filter: brightness(1.1); }
 .ctx-text { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 4px 0 0; color: var(--ink-2); font: 13px/1.4 inherit; cursor: pointer; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; } .ctx-text:hover { color: var(--ink); }
 .ctx-toggle { background: none; border: 1px solid var(--line-2); border-radius: 6px; padding: 2px 9px; font: 500 11px var(--font-m); color: var(--ink-2); cursor: pointer; } .ctx-toggle.on { background: var(--ink); color: var(--ground); border-color: var(--ink); }
-.peek-nav { flex: none; display: flex; align-items: flex-start; gap: 6px; margin: 0 0 10px; padding: 12px 16px 8px; border-bottom: 1px solid var(--line); }
-.peek-back { flex: none; background: none; border: 1px solid var(--line-2); border-radius: 6px; width: 28px; height: 26px; color: var(--ink); cursor: pointer; font: inherit; } .peek-back:disabled { opacity: .35; cursor: default; }
-.peek-chips { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; min-width: 0; }
-.peek-chips .chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 8px; font: 500 11px var(--font-m); color: var(--ink-2); background: none; cursor: pointer; max-width: 100%; }
-.peek-chips .chip.on { background: var(--ink); color: var(--ground); border-color: var(--ink); } .peek-chips .chip.pinned { border-style: solid; border-color: var(--accent); }
-.peek-chip { padding: 0 4px 0 0 !important; } .peek-chip-go { display: inline-flex; align-items: center; gap: 5px; background: none; border: 0; color: inherit; font: inherit; padding: 2px 4px 2px 8px; cursor: pointer; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .peek-chip-go i { width: 7px; height: 7px; border-radius: 50%; flex: none; }
-.peek-chip-pin, .peek-chip-x { background: none; border: 0; color: inherit; cursor: pointer; font-size: 10px; padding: 0 3px; opacity: .55; line-height: 1; } .peek-chip-pin:hover, .peek-chip-x:hover { opacity: 1; } .peek-chip.pinned .peek-chip-pin { opacity: 1; }
-.peek-bar-close { margin-left: auto; background: none; border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 10px; color: var(--ink); cursor: pointer; font: inherit; }
+.peek-back, .peek-bar-close { flex: none; align-self: center; background: none; border: 0; border-radius: 6px; width: 28px; height: 26px; margin: 0 4px; color: var(--ink-2); cursor: pointer; font: 14px/1 var(--font-b); } .peek-back:hover, .peek-bar-close:hover { background: var(--sunk); color: var(--ink); } .peek-back:disabled { opacity: .35; cursor: default; background: none; }
 .pbar { display: inline-block; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; vertical-align: middle; } .pbar i { display: block; height: 100%; background: var(--ok); border-radius: 3px; transition: width .2s; } .pbar.unknown { background: repeating-linear-gradient(90deg, var(--line) 0 4px, transparent 4px 8px); }
 .collection { margin: 6px 0 0; width: 100%; } .collection-add { margin-left: auto; background: none; border: 1px dashed var(--line-2); border-radius: 6px; padding: 1px 8px; color: var(--muted); cursor: pointer; font: 11px var(--font-m); text-transform: none; letter-spacing: 0; } .collection-add:hover { color: var(--ink); border-color: var(--ink-2); }
 .nrow { display: grid; width: 100%; min-width: min-content; flex: 1; grid-template-columns: minmax(200px, 1fr) 100px 72px 104px 74px; gap: 6px; align-items: center; padding: 4px 6px; border-bottom: 1px solid var(--line); }
@@ -562,3 +555,21 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 /* the first block of a node's Content is the node's text (decision:wf2.text-is-first-block): it reads as the title */
 .content-editor .bn-editor > .bn-block-group > .bn-block-outer:first-child .bn-inline-content { font-size: 16px; font-weight: 600; line-height: 1.35; }
 
+
+/* tabs (req:wf2.ui.tabs): one strip above the content and one above the context column, editor style — the open
+   tab on the ground with an accent line on top, the rest sunk; × and the pin appear on hover */
+.topframe { position: sticky; top: 0; z-index: 20; background: var(--ground); } .topframe .topbar { position: static; height: 36px; }
+.tabstrip { display: flex; align-items: stretch; height: 36px; background: var(--sunk); border-bottom: 1px solid var(--line); flex: none; }
+.tabstrip > .topbar-btn { align-self: center; margin: 0 4px; }
+.tabs { display: flex; flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; } .tabs::-webkit-scrollbar { display: none; }
+.tab { position: relative; display: flex; align-items: center; gap: 6px; flex: none; max-width: 200px; min-width: 0; padding: 0 8px 0 12px; border-right: 1px solid var(--line); color: var(--ink-2); font: 500 12px/1 var(--font-b); cursor: pointer; user-select: none; outline: none; }
+.tab:hover { color: var(--ink); background: color-mix(in oklab, var(--ground) 50%, var(--sunk)); } .tab:focus-visible { box-shadow: inset 0 0 0 1px var(--accent); }
+.tab.on { color: var(--ink); background: var(--ground); } .tab.on::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--accent); }
+.tab.on::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: var(--ground); }
+.tab-icon { flex: none; font-size: 12px; line-height: 1; display: inline-flex; align-items: center; } .tab-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.tab-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab-x, .tab-pin { flex: none; width: 18px; height: 18px; border: 0; border-radius: 4px; background: none; color: var(--muted); cursor: pointer; font: 14px/1 var(--font-b); padding: 0; display: inline-flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s; }
+.tab-pin { font-size: 12px; } .tab:hover .tab-x, .tab:hover .tab-pin, .tab.on .tab-x, .tab-pin.pinned { opacity: 1; } .tab-x:hover, .tab-pin:hover { background: var(--line); color: var(--ink); } .tab-pin.pinned { color: var(--accent); }
+.tab.pinned { padding-right: 6px; }
+.peek-chip-x { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 12px; padding: 0 3px; } .peek-chip-x:hover { color: var(--bad); }
+@media (prefers-reduced-motion: reduce) { .tab-x, .tab-pin { transition: none; } }
