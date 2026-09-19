@@ -27,14 +27,24 @@ export function planTitle(request: string): string {
   return plain.length > 90 ? `${plain.slice(0, 89).replace(/\s+\S*$/, '')}…` : plain || 'request';
 }
 
-export type PlanDocVars = { slug: string; title: string; date: string; session: string; agent: string; started: string; parent: string; request: string; from: string };
+// partOf: what the request task is part of (req:exec.request-is-a-task) — the goal or node it was sent from;
+// task: the task the session was assigned (req:exec.dispatch) — embedded on the plan instead of a new request task
+export type PlanDocVars = { slug: string; title: string; date: string; session: string; agent: string; started: string; parent: string; request: string; from: string; partOf?: string; task?: string };
+
+// The request task (req:exec.request-is-a-task, decision:exec.task-is-the-unit): `task:<plan-slug>` on the plan
+// document — the request itself as a work item, on the Work view from the first second.
+export const requestTaskId = (slug: string) => `task:${slug}`;
 
 // Fill the template. A request is quoted line by line so its own headings and blocks stay prose; `from` is the
 // line that names where the request came from (document, node, refs) as tags — empty when nothing is known.
 export function planDocBody(template: string, v: PlanDocVars): string {
   const request = v.request.trim().split('\n').map(l => `> ${l}`).join('\n');
-  let out = template.replace(/\{\{(slug|title|date|session|agent|started|parent|request|from)\}\}/g, (_, k: keyof PlanDocVars) => k === 'request' ? request : v[k]);
+  // the request task's text can carry no parenthesis or hashtag: they would read as its properties or status
+  const taskTitle = v.title.replace(/[()#]/g, ' ').replace(/\s+/g, ' ').trim();
+  const requestTask = v.task ? `![[${v.task}]]` : `- [ ] ${requestTaskId(v.slug)} ${taskTitle} #in-progress (worker: ${v.agent}, session: ${v.session}${v.partOf ? `, part-of: ${v.partOf}` : ''})`;
+  let out = template.replace(/\{\{(slug|title|date|session|agent|started|parent|request|from|task|requesttask)\}\}/g, (_, k: string) => k === 'request' ? request : k === 'requesttask' ? requestTask : v[k as keyof PlanDocVars] ?? '');
   if (!v.parent) out = out.replace(/^part-of: \n/m, '');
+  if (!v.task) out = out.replace(/^task: \n/m, '');
   if (!v.from) out = out.replace(/\n{3,}## Context/, '\n\n## Context');
   return out;
 }
@@ -84,6 +94,13 @@ export function withResult(md: string, body: string): string {
   const next = rest.search(/^## /m);
   const end = next === -1 ? md.length : start + next;
   return `${md.slice(0, start)}\n${body}\n${next === -1 ? '' : '\n'}${md.slice(end)}`;
+}
+
+// The request task when its plan ends (req:exec.request-is-a-task): review when the agent did not mark it done —
+// a person checks — and done stays done; a cancelled or failed plan leaves it open (todo) for the next worker.
+export function requestTaskStatusOnEnd(taskStatus: string, planStatus: PlanEndStatus): string {
+  if (taskStatus === 'done') return 'done';
+  return planStatus === 'done' ? 'review' : 'todo';
 }
 
 // The plan's status when its session ends (or a fresh request replaces it while it runs): done / failed /

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { planSlug, planTitle, planDocBody, fromLine, resultSection, withResult, setFrontmatter, getFrontmatter, plansOf, planStatusOnEnd } from './plan-doc';
+import { planSlug, planTitle, planDocBody, fromLine, resultSection, withResult, setFrontmatter, getFrontmatter, plansOf, planStatusOnEnd, requestTaskStatusOnEnd } from './plan-doc';
 
 const TPL = readFileSync(path.join(__dirname, '../../../../templates/docs/plan-request.md'), 'utf8');
 const vars = { slug: 'plan-page-link-session', title: 'page link on the session', date: '2026-09-18', session: 'abc123', agent: 'claude-code', parent: 'module:app-agents', started: '2026-09-18T12:00:00.000Z', request: 'page link on the session, it looks good\n\n## but\nshould be a plan', from: '_from: module:app-agents · refs: req:x_' };
@@ -27,6 +27,17 @@ describe('planDocBody', () => {
     expect(md).toContain('## Request\n\n> page link on the session, it looks good\n> \n> ## but\n> should be a plan\n\n_from: module:app-agents · refs: req:x_\n\n## Context');
     for (const h of ['## Context', '## Plan', '## Tasks', '## Result']) expect(md).toContain(h);
     expect(md).toContain('part of plan:plan-page-link-session');
+  });
+  it('writes the request as a task line under Tasks with the worker and the session (req:exec.request-is-a-task)', () => {
+    const md = planDocBody(TPL, { ...vars, title: 'Fix (the) #thing', partOf: 'goal:g1' });
+    expect(md).toContain('- [ ] task:plan-page-link-session Fix the thing #in-progress (worker: claude-code, session: abc123, part-of: goal:g1)');
+    expect(planDocBody(TPL, vars)).toContain('- [ ] task:plan-page-link-session page link on the session #in-progress (worker: claude-code, session: abc123)\n');
+    expect(planDocBody(TPL, { ...vars, task: 'task:x.y' })).toContain('## Tasks\n\n_`- [ ] task:` lines, `part of plan:plan-page-link-session`; their check state is what is in progress._\n\n![[task:x.y]]\n');
+    expect(planDocBody(TPL, { ...vars, task: 'task:x.y' })).toContain('started: 2026-09-18T12:00:00.000Z\ntask: task:x.y\npart-of:');
+    expect(planDocBody(TPL, vars)).not.toMatch(/^task:/m);
+    expect(requestTaskStatusOnEnd('in-progress', 'done')).toBe('review');
+    expect(requestTaskStatusOnEnd('done', 'done')).toBe('done');
+    expect(requestTaskStatusOnEnd('in-progress', 'cancelled')).toBe('todo');
   });
   it('drops part-of and the from line when there is nothing to say', () => {
     const md = planDocBody(TPL, { ...vars, parent: '', from: '' });

@@ -16,3 +16,14 @@ describe('node lines', () => {
     expect(patchNodeLine('plain text', { status: 'x' })).toBeNull();
   });
 });
+
+describe('the ready mark and the review status (decision:exec.backlog-is-unassigned-work, decision:exec.task-is-the-unit)', () => {
+  it('reads #ready as a mark beside the status and writes it back', () => {
+    const n = parseNodeLine('- [ ] task:a Do it #ready (worker: alex)')!;
+    expect(n.status).toBe('open'); expect(n.ready).toBe(true); expect(n.text).toBe('Do it');
+    expect(formatNodeLine(n)).toBe('- [ ] task:a Do it #ready (worker: alex)');
+    expect(patchNodeLine('- [ ] task:a Do it', { props: { ready: 'true' } })).toBe('- [ ] task:a Do it #ready');
+    expect(patchNodeLine('- [ ] task:a Do it #ready', { props: { ready: null } })).toBe('- [ ] task:a Do it');
+    expect(patchNodeLine('- [ ] task:a Do it #ready', { status: 'review' })).toBe('- [ ] task:a Do it #review #ready');
+  });
+});

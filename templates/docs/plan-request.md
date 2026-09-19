@@ -8,6 +8,7 @@ last-verified: {{date}}
 session: {{session}}
 agent: {{agent}}
 started: {{started}}
+task: {{task}}
 part-of: {{parent}}
 ---
 
@@ -30,6 +31,8 @@ _What was understood; questions as `question:` blocks, decisions as `decision:` 
 ## Tasks
 
 _`- [ ] task:` lines, `part of plan:{{slug}}`; their check state is what is in progress._
+
+{{requesttask}}
 
 ## Result
 

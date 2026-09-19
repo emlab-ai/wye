@@ -7,8 +7,10 @@ import { REPO_ROOT, type Project } from './products';
 import { loadScope } from './scope';
 import { docRoute, projectTree } from './doc';
 import { rebuild, writeAtomic } from './write';
-import { onSessionEnd, setPlanDoc } from './sessions';
-import { fromLine, getFrontmatter, planDocBody, planSlug, plansPageId, planStatusOnEnd, planTitle, resultSection, setFrontmatter, withResult, type PlanEndStatus } from './plan-doc';
+import { onSessionEnd, setPlanDoc, addRefs } from './sessions';
+import { fromLine, getFrontmatter, planDocBody, planSlug, plansPageId, planStatusOnEnd, planTitle, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, type PlanEndStatus } from './plan-doc';
+import { patchProseNode } from './node-edit';
+import { parseNodeLine } from './node-line';
 export { plansPageId };
 import type { Session } from './session-types';
 
@@ -65,12 +67,28 @@ export async function createPlanDoc(productDir: string, product: string, s: Sess
   const slug = planSlug(s.instruction, taken);
   const tpl = await readFile(TEMPLATE, 'utf8');
   const now = new Date().toISOString();
-  const md = planDocBody(tpl, { slug, title: planTitle(s.instruction), date: now.slice(0, 10), session: s.id, agent: s.agent, started: now, parent: plansPage, request: s.instruction, from: fromLine(s, sourceDoc?.id) });
+  // the request task is part of the goal or node the request was sent from (req:exec.request-is-a-task): the first
+  // ref that is not the document itself, a session or a plan
+  const partOf = s.refs.find(r => /^[a-z-]+:/.test(r) && r !== sourceDoc?.id && !/^(session|plan|module|block):/.test(r));
+  const md = planDocBody(tpl, { slug, title: planTitle(s.instruction), date: now.slice(0, 10), session: s.id, agent: s.agent, started: now, parent: plansPage, request: s.instruction, from: fromLine(s, sourceDoc?.id), partOf, task: s.task });
   await writeAtomic(path.join(project.docsDir, `${slug}.md`), md);
   await rebuild(productDir);
   const ref = `${product}/${project.slug}/${slug}`;
   await setPlanDoc(productDir, s.id, ref, `plan document ${ref}`);
+  if (!s.task) await addRefs(productDir, s.id, [requestTaskId(slug)]); // the session's refs carry the request task
   return ref;
+}
+
+// Set the request task's status on the plan document's text (pure over the markdown): the line is found by id.
+export function withRequestTaskStatus(md: string, slug: string, status: string): string {
+  const id = requestTaskId(slug);
+  const i = md.split('\n').findIndex(l => parseNodeLine(l)?.id === id); if (i < 0) return md;
+  return patchProseNode(md, id, i + 1, { status }).md;
+}
+export function requestTaskStatus(md: string, slug: string): string | undefined {
+  const id = requestTaskId(slug);
+  for (const l of md.split('\n')) { const n = parseNodeLine(l); if (n?.id === id) return n.status; }
+  return undefined;
 }
 
 async function planDocFile(product: string, ref: string): Promise<{ file: string; project: string; slug: string } | null> {
@@ -90,6 +108,8 @@ export async function finishPlanDoc(productDir: string, s: Session, opts: { stat
   const status = opts.status ?? planStatusOnEnd(s.status);
   const body = resultSection({ ...s, status: status as Session['status'], result: opts.summary ?? s.result }, { started: getFrontmatter(md, 'started'), finished, exclude: [`plan:${at.slug}`, plansPageId(at.project)] });
   md = setFrontmatter(setFrontmatter(withResult(md, body), 'status', status), 'finished', finished);
+  // the request task follows (req:exec.request-is-a-task): review for a person to check, done stays done
+  const cur = requestTaskStatus(md, at.slug); if (cur !== undefined) md = withRequestTaskStatus(md, at.slug, requestTaskStatusOnEnd(cur, status));
   await writeAtomic(at.file, md);
   await rebuild(productDir);
   return true;

@@ -15,6 +15,7 @@ import { StatusPill } from './Pills';
 import { KIND_ORDER } from '@/lib/knowledge';
 import { ProgressBar } from './Progress';
 import { Produced } from './Produced';
+import { TaskWork } from './TaskWork';
 import { DocPeek } from './DocPeek';
 import { EmbeddedCard } from './EmbedBlock';
 import { TypeView } from './TypeView';
@@ -125,7 +126,8 @@ function NodeView({ id }: { id: string }) {
       {d && d.self && <TypeView type={d.self} instances={d.instances ?? []} index={index} product={product} onSaved={() => setTick(t => t + 1)} />}
       {d && d.self ? null : d && d.node.defined && d.type
         ? <><NodeEditor key={id} id={id} body={d.node.body} form={d.node.form ?? 'yaml'} type={d.type} props={d.props ?? []} entry={entry} relations={d.relations.out} onSaved={() => setTick(t => t + 1)} />
-          {entry && (entry.kind === 'goal' || entry.kind === 'task') && <Tracking entry={entry} rows={rows} inc={d.relations.inc} />}</>
+          {entry && (entry.kind === 'goal' || entry.kind === 'task') && <Tracking entry={entry} rows={rows} inc={d.relations.inc} />}
+          {entry && entry.kind === 'task' && <TaskWork key={`work-${id}`} id={id} />}</>
         : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
       {d && d.type && d.props && d.relations.inc.some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={d.relations.inc} inverses={d.inverses ?? {}} product={product} />}
       {d && !d.self && d.node.defined && <NodeContent id={id} />}

@@ -53,7 +53,7 @@ export function Rail({ products, product, projects, plans, headings }: { product
         {item(base, 'Overview', '⌂')}
         <li><button onClick={() => setShowSearch(v => !v)} className={showSearch ? 'on' : ''}><i>⌕</i>Search</button></li>
         {item(`${base}/goals`, 'Goals', '◎')}
-        {item(`${base}/tasks`, 'Tasks', '☑')}
+        {item(`${base}/work`, 'Work', '☑')}
         {item(`${base}/knowledge`, 'Knowledge', '◈')}
         {item(`${base}/types`, 'Types', '⬡')}
         {item(`${base}/graph`, 'Graph', '⌬')}

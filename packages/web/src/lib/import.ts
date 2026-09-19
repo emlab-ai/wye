@@ -8,7 +8,7 @@ import { collectionKind, type AnyBlock, type NodeProps } from './serialize';
 import { EXTRA_GROUP } from './props';
 
 const TEXT_KEYS = ['title', 'statement', 'description', 'purpose', 'q', 'text', 'context', 'does', 'intent'];
-const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused|resolved|rejected)\b/;
+const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|review|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused|resolved|rejected|superseded|retired|dismissed|defining|defined|building|cancelled|failed)\b/;
 
 export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[]; images: { alt: string; url: string }[]; views: { slug: string; query: string }[]; embeds: string[]; tables: string[]; contents: string[] }
 // How `expand` parses a block's lifted content: the whole pipeline again (prepare → BlockNote → expand), see importMarkdown

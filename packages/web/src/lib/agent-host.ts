@@ -50,7 +50,7 @@ export function subscribe(id: string, fn: (e: ChatEvent) => void): () => void {
 export function planDocNote(planDoc?: string): string {
   if (!planDoc) return '\n## The plan document\nNo plan document could be created for this request; write the plan and its tasks on the subject\'s page instead.';
   const [product, project, slug] = planDoc.split('/');
-  return `\n## The plan document\nThis request's plan document is \`${planDoc}\` (node \`plan:${slug}\`, file data/products/${product}/projects/${project}/docs/${slug}.md, under the project's Plans page). The app created it with the request under "Request" and empty Context / Plan / Tasks / Result sections. Keep the work there: what you found under **Context** (tags \`kind:slug\`, embeds \`![[kind:slug]]\`), what you decided or cannot answer under **Plan** (\`decision:\` and \`question:\` blocks), the work as \`- [ ] task:<product>.<slug> … part of plan:${slug}\` lines under **Tasks** — tick them with \`wf node set task:… --status done\` as you go, that is what the person watches. The app writes **Result** (your \`wf session done\` summary and the blocks this plan produced) when the session ends.`;
+  return `\n## The plan document\nThis request's plan document is \`${planDoc}\` (node \`plan:${slug}\`, file data/products/${product}/projects/${project}/docs/${slug}.md, under the project's Plans page). The app created it with the request under "Request", empty Context / Plan / Result sections and, under Tasks, the request itself as a task line (\`task:${slug}\`, in progress, your name as worker — the Work view lists it; the app moves it to review when this session ends, or leave it done with \`wf node set task:${slug} --status done\`). Keep the work there: what you found under **Context** (tags \`kind:slug\`, embeds \`![[kind:slug]]\`), what you decided or cannot answer under **Plan** (\`decision:\` and \`question:\` blocks), the work as \`- [ ] task:<product>.<slug> … part of plan:${slug}\` lines under **Tasks** — tick them with \`wf node set task:… --status done\` as you go, that is what the person watches. The app writes **Result** (your \`wf session done\` summary and the blocks this plan produced) when the session ends.`;
 }
 
 // Plan-first protocol (rule:plan-first): a request with "plan first" on is understood and proposed on its plan
@@ -96,8 +96,9 @@ export async function buildPrompt(product: string, s: Session, wfUrl: string, pr
   const paths = productDir && s.images?.length ? s.images.map(n => path.join(filesDir(productDir, s.id), n)) : [];
   const parts = [`You are working on the product "${product}" in Wye (requirements, rules, decisions, goals and tasks kept as markdown; the app at ${wfUrl} shows this conversation live). Session ${s.id}.`, `\n## Instruction\n${s.instruction}${imageLines(paths)}`];
   const ctx: string[] = []; const seen = new Set<string>();
+  const requestTask = s.planDoc ? `task:${s.planDoc.split('/')[2]}` : '';
   for (const ref of [...(s.source?.link ? [s.source.link] : []), ...s.refs]) {
-    if (seen.has(ref) || !scope) continue; seen.add(ref);
+    if (seen.has(ref) || !scope || ref === requestTask) continue; seen.add(ref); // the request task is the request itself
     try { const j = await resolveLink(scope, ref); ctx.push(j ? renderResolved(ref, j) : `- ${ref}: not found`); } catch (e) { ctx.push(`- ${ref}: could not resolve (${e instanceof Error ? e.message : e})`); }
   }
   if (ctx.length) parts.push(`\n## Context\n${ctx.join('\n\n')}`);

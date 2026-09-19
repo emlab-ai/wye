@@ -589,3 +589,27 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .verdict-choice { margin: 6px 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font-size: 13px; }
 .verdict-choice p { margin: 0 0 6px; }
 .verdict-choice input { flex: 1; min-width: 160px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+
+/* ---- Work view (req:exec.work-view): the task grid, the derived state, the assign dialog */
+.work .trow.wrow { grid-template-columns: minmax(0, 1fr) 96px 84px 150px 100px 150px; }
+.work-tools-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; } .work-me { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; } .work-me input { width: 120px; max-width: 120px; padding: 5px 8px; font: 12px var(--font-m); }
+.wstate { font: 500 11px var(--font-m); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); } .wstate.working { color: var(--accent); } .wstate.queued { color: var(--warn); } .wstate.stalled { color: var(--bad); } .wstate.held { color: var(--ink-2); }
+.wstate.working::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 5px; animation: wf-pulse 1.4s infinite; }
+@keyframes wf-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+.pill.ready { color: var(--ok); border-color: var(--ok); font-size: 10px; } .pill.blocked-by { color: var(--bad); border-color: transparent; font-size: 11px; padding: 0 2px; }
+.pill.s.review { color: var(--accent); border-color: var(--accent); } .pill.s.todo { color: var(--muted); } .pill.s.stalled { color: var(--bad); border-color: var(--bad); }
+.work .tdoc { gap: 4px; } .work .tsend { font: 11px var(--font-m); text-transform: uppercase; letter-spacing: .04em; } .work .tsend[disabled] { visibility: hidden; }
+.track-tools .chip.st-working { color: var(--accent); } .track-tools .chip.st-stalled { color: var(--bad); } .track-tools .chip.st-queued { color: var(--warn); } .track-tools .chip.s-review { color: var(--accent); }
+.modal.assign .assign-title { margin: -4px 0 12px; font-size: 13px; } .assign-row { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; } .assign-row select, .assign-row input { font: inherit; padding: 5px 8px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--surface); color: var(--ink); min-width: 0; } .assign-row select { flex: 1; }
+.assign-note { width: 100%; font: inherit; padding: 7px 10px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: var(--ink); resize: vertical; margin: 0 0 8px; box-sizing: border-box; }
+.modal.assign .palette-plan { display: block; margin: 0 0 8px; font-size: 13px; } .modal.assign .palette-cwd { width: 100%; box-sizing: border-box; margin: 0 0 8px; }
+.modal.assign .small { font-size: 12px; margin: 0 0 8px; }
+@container (max-width: 820px) { .work .trow.wrow { grid-template-columns: minmax(0, 1fr) 90px 72px 120px 80px 96px; } }
+.work .tname .pill { flex: none; } .work .ttitle { flex: 1 1 80px; }
+@container (max-width: 640px) { .work .trow.wrow { grid-template-columns: minmax(0, 1fr) 84px 88px 96px; } .work .tdoc, .work .towner, .work .tid { display: none; } .work .wstate::after { content: attr(data-worker); text-transform: none; letter-spacing: 0; display: block; color: var(--ink-2); font-size: 10px; } }
+@container (max-width: 480px) { .work .trow.wrow { grid-template-columns: minmax(0, 1fr) 80px 88px; } .work .tgoal { display: none; } }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; } .modal-actions button { font: inherit; padding: 6px 12px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: var(--ink); cursor: pointer; } .modal-actions button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); } .modal-actions button[disabled] { opacity: .5; cursor: default; }
+.taskwork { margin: 8px 0 0; } .taskwork-acts { margin-left: auto; display: inline-flex; gap: 10px; } .taskwork-acts .linkish { font-size: 12px; text-decoration: none; }
+.taskwork-result { padding: 8px 12px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); margin: 6px 0 0; font-size: 13px; } .taskwork-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .taskwork-head small, .taskwork-blocks small { font: 600 10px var(--font-m); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.taskwork-summary { margin: 6px 0; white-space: pre-wrap; color: var(--ink-2); max-height: 160px; overflow: auto; } .taskwork-blocks ul { list-style: none; margin: 4px 0; padding: 0; } .taskwork-blocks li { display: flex; align-items: center; gap: 6px; padding: 2px 0; } .taskwork-blocks li.gone { opacity: .5; } .taskwork-review { font-size: 12px; font-weight: 600; }
+.work .tid { max-width: 30%; }

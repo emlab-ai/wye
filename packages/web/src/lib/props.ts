@@ -15,5 +15,8 @@ export function withExtra(extra: string, key: string, value: string): string {
 }
 export const GOAL_STATUSES = ['proposed', 'on-track', 'at-risk', 'off-track', 'paused', 'complete', 'non-goal'];
 // every status the parser knows (lib/parse.js STATUS_TAG), for nodes of any other kind
-export const STATUSES = ['', 'proposed', 'approved', 'unverified', 'api-only', 'shipped', 'deprecated', 'question', 'open', 'in-progress', 'blocked', 'done', 'non-goal', 'draft', 'active', 'complete', 'on-track', 'at-risk', 'off-track', 'paused', 'resolved', 'rejected', 'superseded', 'retired', 'dismissed'];
-export const TASK_STATUSES = ['todo', 'open', 'in-progress', 'blocked', 'done'];
+export const STATUSES = ['', 'proposed', 'approved', 'unverified', 'api-only', 'shipped', 'deprecated', 'question', 'open', 'in-progress', 'blocked', 'done', 'non-goal', 'draft', 'active', 'complete', 'on-track', 'at-risk', 'off-track', 'paused', 'resolved', 'rejected', 'superseded', 'retired', 'dismissed', 'review', 'defining', 'defined', 'building', 'cancelled', 'failed'];
+// review: an agent finished and a person checks (decision:exec.task-is-the-unit)
+export const TASK_STATUSES = ['todo', 'open', 'in-progress', 'blocked', 'review', 'done'];
+// a plan's life (decision:exec.plan-lifecycle): defining while a librarian is on it, defined when its Definition is agreed, building while a worker holds its request task
+export const PLAN_STATUSES = ['proposed', 'defining', 'defined', 'building', 'done', 'cancelled', 'failed'];
