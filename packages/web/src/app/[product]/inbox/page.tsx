@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import { loadScope } from '@/lib/scope';
 import { listInboxItems } from '@/lib/inbox';
-import { reviewQueue } from '@/lib/review';
+import { reviewQueue, attachVerdicts } from '@/lib/review';
+import { verdictLog, verdictsEnabled } from '@/lib/verdicts';
 import { InboxNote } from '@/components/InboxNote';
 import { InboxList } from '@/components/InboxList';
 import { ReviewList } from '@/components/ReviewList';
@@ -12,7 +13,8 @@ import { ReviewList } from '@/components/ReviewList';
 export default async function InboxPage({ params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const scope = await loadScope(product); if (!scope) notFound();
-  const queue = reviewQueue(product, scope.graph, scope.idx);
+  // each proposed block with its verdicts (decision:memory.write-time-verdict): what the judge said about it and its neighbours
+  const queue = attachVerdicts(reviewQueue(product, scope.graph, scope.idx), scope.graph, scope.idx, await verdictLog(scope.product.dir), await verdictsEnabled(scope.product.dir));
   const notes = (await listInboxItems(scope.product.dir)).filter(i => i.status === 'new' || i.type === 'note');
   return (
     <div className="page page-wide">

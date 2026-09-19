@@ -579,3 +579,13 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 
 /* a conversation as a page: the same session view, the page's width, the message box stuck to the bottom of the content column */
 .session-page { max-width: 960px; } .session-page .console { margin-top: 12px; }
+
+/* verdicts on an inbox item (decision:memory.write-time-verdict) */
+.verdicts { margin: 4px 0 2px; font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
+.verdicts .verdict { margin: 0; padding: 3px 8px; border-left: 3px solid var(--line); border-radius: 4px; background: var(--sunk); }
+.verdicts .verdict.v-contradicts, .verdicts .verdict.v-duplicate { border-left-color: #d9534f; }
+.verdicts .verdict.v-refines { border-left-color: #5b9bd5; }
+.verdicts .verdict:not(.open) { opacity: .75; }
+.verdict-choice { margin: 6px 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font-size: 13px; }
+.verdict-choice p { margin: 0 0 6px; }
+.verdict-choice input { flex: 1; min-width: 160px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }

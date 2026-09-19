@@ -8,10 +8,11 @@ import { creditDocumentChange, creditBlockChanges } from './artifacts';
 import { loadGraph } from './load';
 import { diffGraphs } from './graph-diff';
 import type { GraphData } from './graph';
+import { scheduleVerdicts } from './verdicts';
 
 type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'other'; file: string }) => void;
 // bump when the watcher callback changes: dev reloads keep globalThis, so an old watcher would keep running old code
-const VERSION = 4;
+const VERSION = 5;
 // lastGraph: the graph as this watcher last saw it, so a rebuild can be diffed even when the API already rebuilt
 // (editNode writes the file and rebuilds before the watcher's timer fires)
 type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>>; lastGraph: Map<string, GraphData> };
@@ -54,7 +55,16 @@ export function ensureWatch(productDir: string) {
             await rebuild(productDir);
             // block-level attribution: what changed since the graph this watcher last saw goes to every running session
             const after = await loadGraph(graphPath).catch(() => null);
-            if (after) { s.lastGraph.set(productDir, after); if (before) await creditBlockChanges(productDir, diffGraphs(before, after, new Date().toISOString())).catch(() => {}); }
+            if (after) {
+              s.lastGraph.set(productDir, after);
+              if (before) {
+                const changes = diffGraphs(before, after, new Date().toISOString());
+                await creditBlockChanges(productDir, changes).catch(() => {});
+                // the write-time verdict pass (decision:memory.write-time-verdict): new or changed knowledge is classified
+                // against its neighbours; runs detached, writes its lines under the nodes, which the watcher then picks up
+                scheduleVerdicts(productDir, path.basename(productDir), changes, m => console.log(`[wf] ${m}`));
+              }
+            }
             for (const d of docs) await creditDocumentChange(productDir, path.basename(productDir), d).catch(() => {});
           } finally { s.rebuilding.delete(productDir); }
         }, 400));

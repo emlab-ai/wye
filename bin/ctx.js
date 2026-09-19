@@ -10,7 +10,8 @@
 //   ctx packet --task "<text>" [--budget N]   a token-budgeted slice for an agent
 //   ctx constraints --task "<text>" [--ref id,id] [--budget N] [--json]   what governs a request: every rule, constraint, gate,
 //                                  approved decision, goal and open question within two hops of the seeds, complete
-//   ctx check [--repo dir] [--strict]          lint the graph; exit 1 on errors
+//   ctx check [--repo dir] [--strict] [--deep]   lint the graph; exit 1 on errors; --deep judges same-kind pairs for contradictions
+//   ctx verdicts <id...> [--json]  classify a node against its neighbours (duplicate | refines | consistent | contradicts)
 //   ctx stats
 //   ctx reqs [--status s]          requirement tree with status
 const fs = require('fs');
@@ -112,11 +113,42 @@ switch (cmd) {
         console.log(g.renderConstraints(c, { budget: +opt('budget', 10000) }));
         break;
     }
+    case 'verdicts': {
+        // the verdict pass for given nodes (decision:memory.write-time-verdict): pairs against their neighbours, judged
+        // and cached in _build/verdicts.json; prints every verdict, contradictions first. --json for the app.
+        const g = load(); const ids = positional.map(id => resolveOne(g, id)); if (!ids.length) die('verdicts <id...> [--limit N] [--budget-pairs N] [--budget-calls N] [--json]');
+        const { judgePairs } = require('../lib/judge');
+        const pairs = g.verdictPairs(ids, { limit: +opt('limit', 12) });
+        judgePairs(pairs, { cacheFile: path.join(BUILD, 'verdicts.json'), budget: { pairs: +opt('budget-pairs', 40), calls: +opt('budget-calls', 6) }, log: m => console.error('ctx: ' + m) }).then(vs => {
+            if (argv.includes('--json')) { console.log(JSON.stringify(vs, null, 1)); return; }
+            const order = { contradicts: 0, duplicate: 1, refines: 2, consistent: 3 };
+            const done = vs.filter(Boolean).sort((x, y) => order[x.kind] - order[y.kind]);
+            for (const v of done) console.log(`${v.kind.padEnd(11)} ${v.b} ↔ ${v.a}${v.conflict ? ' [' + v.conflict + ']' : ''} — ${v.reason}${v.cached ? '  (cached)' : ''}`);
+            const pending = vs.filter(v => !v).length; if (pending) console.log(`(${pending} pair(s) not yet classified — budget)`);
+            if (!vs.length) console.log('no neighbours to classify against');
+        });
+        break;
+    }
     case 'check': {
         const g = load(); const r = g.check({ repo: path.resolve(opt('repo', '.')), strict: argv.includes('--strict') });
         for (const w of r.warnings) console.log('warn  ' + w);
         for (const e of r.errors) console.log('ERROR ' + e);
         console.log(`\n${r.errors.length} error(s), ${r.warnings.length} warning(s)`);
+        if (argv.includes('--deep')) {
+            // --deep (task:memory.lint-deep): the verdict pass over every same-kind pair that shares a neighbour; new
+            // contradictions are reported, never written — write them with `ctx verdicts` / the app
+            const { judgePairs } = require('../lib/judge');
+            const pairs = g.deepPairs({ limit: +opt('limit', 400) });
+            console.log(`\ndeep: ${pairs.length} same-kind pair(s) sharing a neighbour`);
+            judgePairs(pairs, { cacheFile: path.join(BUILD, 'verdicts.json'), budget: { pairs: +opt('budget-pairs', 60), calls: +opt('budget-calls', 8) }, log: m => console.error('ctx: ' + m) }).then(vs => {
+                const found = vs.filter(v => v && (v.kind === 'contradicts' || v.kind === 'duplicate'));
+                for (const v of found) console.log(`${v.kind.toUpperCase()} ${v.a} ↔ ${v.b}${v.conflict ? ' [' + v.conflict + ']' : ''} — ${v.reason}`);
+                const pending = vs.filter(v => !v).length;
+                console.log(`\ndeep: ${found.length} contradiction(s) / duplicate(s) in ${vs.filter(Boolean).length} judged pair(s)${pending ? `, ${pending} not reached (budget — run again)` : ''}`);
+                process.exit(r.ok && !found.length ? 0 : 1);
+            });
+            break;
+        }
         process.exit(r.ok ? 0 : 1);
     }
     case 'stats': { console.log(JSON.stringify(load().stats(), null, 2)); break; }

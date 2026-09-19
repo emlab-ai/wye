@@ -192,9 +192,10 @@ Markdown as canonical (rule:markdown-canonical), git as rollback, types as nodes
     refines, consistent, contradicts, with a reason); contradicts and duplicate open a contradiction node; the Inbox
     row lists them and approval with an open contradicts verdict asks for supersede / refine / dismiss-with-reason
   unless: the product has verdicts switched off, or the pass's budget for this rebuild is spent (then the row says "not yet classified")
-  status: approved
+  status: shipped
   refines: req:wf2.contradictions.semantic
   satisfied-by: [op:api.verdicts]
+  verified-by: [test:verdicts, test:memory#verdicts]
   part-of: goal:memory.validated-asks
 ```
 
@@ -418,13 +419,13 @@ Three things decide whether it works, and they are the questions below: what liv
 <!-- tasks -->
 - [x] task:memory.constraint-packet Build the constraint packet (op:api.packet, `wf packet --for`) and put it in the first message under "Constraints in force"; two hops over governs, gated-by, affects, refines, part-of, depends-on from refs + semantic seeds; superseded filtered. Part of goal:memory.validated-asks (decision:memory.constraint-packet). (session: 9f3d83809b)
 - [x] task:memory.bitemporal-props Add since, until, superseded-by, by, session, evidence to type:node; statuses superseded and retired; parser fills until / superseded-by from `supersedes`; retrieval and the packet skip ended nodes unless --as-of or --all. Part of goal:memory.validated-asks (decision:memory.bitemporal, decision:memory.evidence). (session: 9f3d83809b)
-- [ ] task:memory.decision-statuses Give the 43 status-less decisions a status (approved where the code follows them, superseded where a later one replaced them) and `supersedes` where the prose says so. Part of goal:memory.validated-asks.
+- [x] task:memory.decision-statuses Give the 43 status-less decisions a status (approved where the code follows them, superseded where a later one replaced them) and `supersedes` where the prose says so. Part of goal:memory.validated-asks. (session: 9f3d83809b)
 - [x] task:memory.constraint-type Declare type:constraint in the base ontology, move the product's constraints out of _agent.md and the spec's non-goals into constraint: blocks, add the Constitution view and the `## Constitution` section of the agent prompt. Part of goal:memory.validated-asks (decision:memory.constraint-type). (session: 9f3d83809b)
 - [ ] task:memory.verdict-pass The write-time verdict pass on new or changed decision / req / rule / constraint blocks: pair classification with reasons, verdict blocks with model and prompt hash, contradiction: nodes with kind and lifecycle, Inbox rows with verdicts and the supersede / refine / dismiss choice on approval. Part of goal:memory.validated-asks (decision:memory.write-time-verdict).
 - [ ] task:memory.benchmark The hide-one-edge regression over the 78 contradicts edges: recall and precision per conflict kind, recorded verdicts for CI, live behind WATERFALL_LIVE=1. Part of goal:memory.validated-asks (decision:memory.benchmark). Before task:memory.verdict-pass is on by default.
 - [ ] task:memory.consolidate The consolidation run on session done: candidates from the transcript, diff against produced blocks, misses filed as proposed blocks with evidence in the plan document; type:lesson. Part of goal:memory.validated-asks (decision:memory.consolidate-sessions).
-- [ ] task:memory.forgetting Archived-for-retrieval state for done plans and closed sessions; retrieval, packet and search skip them unless --all; the rail folds them. Part of goal:memory.validated-asks (decision:memory.forgetting).
-- [ ] task:memory.shapes `shapes:` on type cards read by the parser and enforced by ctx check; move the two hardcoded checks into the base ontology. Part of goal:memory.validated-asks (decision:memory.shapes).
+- [x] task:memory.forgetting Archived-for-retrieval state for done plans and closed sessions; retrieval, packet and search skip them unless --all; the rail folds them. Part of goal:memory.validated-asks (decision:memory.forgetting). (session: 9f3d83809b)
+- [x] task:memory.shapes `shapes:` on type cards read by the parser and enforced by ctx check; move the two hardcoded checks into the base ontology. Part of goal:memory.validated-asks (decision:memory.shapes). (session: 9f3d83809b)
 - [ ] task:memory.lint-deep `ctx check --deep`: the verdict pass over every same-kind pair that shares a neighbour, on demand (Karpathy's lint --deep), reporting new contradictions. Part of goal:memory.validated-asks.
 - [ ] task:memory.code-source-spike The comment pass of the parser over source-roots for one language (TypeScript, `//` and `/** */`), read-only, on Wye's own packages/web: entity, op, rule, component, lib nodes defined beside their code; one-defining-place check; the web app shows them with file and line. Part of goal:memory.validated-asks (decision:memory.code-source). Answer question:memory.code-source.kinds and question:memory.code-source.writes first.
 - [ ] task:memory.code-drift With code-defined entities: compare declared fields with the class or type next to the comment and report drift. Part of goal:memory.validated-asks. After task:memory.code-source-spike.

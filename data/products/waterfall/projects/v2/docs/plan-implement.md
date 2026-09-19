@@ -68,6 +68,26 @@ Order follows dependencies: the bitemporal properties and type:constraint first 
   affects: [task:memory.decision-statuses]
 ```
 
+```yaml
+- id: decision:memory.consistent-verdicts-in-the-log
+  title: Only verdicts that are not "consistent" are written under the node; consistent ones stay in the judge log
+  context: >
+    decision:memory.write-time-verdict says the verdicts are written on the new node as content blocks. A new decision is
+    judged against up to twelve neighbours plus every approved constraint; most verdicts are "consistent". Twelve
+    "consistent" lines under every new block would bury the block and churn every document on every rebuild.
+  choice: >
+    duplicate, refines and contradicts verdicts are written under the node (verdict: line; contradicts and duplicate
+    also open a contradiction: line); consistent verdicts are kept only in _build/verdicts.json — the replayable judge
+    log with model and prompt hash — and the Inbox row says "checked against n neighbours". `ctx verdicts <id>` and
+    `wf verdicts <id>` print all of them.
+  alternatives: write every verdict (noise, churn); write none and keep everything in the log (the document no longer says what was found).
+  consequences: documents carry only what a person must look at; the full log stays replayable; the verdict pass never edits a node's own text.
+  date: 2026-09-19
+  status: proposed
+  part-of: plan:plan-implement
+  affects: [decision:memory.write-time-verdict, req:memory.verdicts]
+```
+
 ## Tasks
 
 - [x] task:memory.impl.bitemporal since, until, superseded-by / supersedes, by, evidence on type:node; statuses superseded and retired; parser fills until and superseded-by from supersedes; `isCurrent` in lib/graph.js and packages/web graph.ts; op:api.context, ctx packet and search skip ended nodes unless --as-of / --all. part of plan:plan-implement, part of goal:memory.validated-asks (task: memory.bitemporal-props, session: 9f3d83809b)
@@ -75,7 +95,7 @@ Order follows dependencies: the bitemporal properties and type:constraint first 
 - [x] task:memory.impl.packet the constraint packet: lib/graph.js#constraints, `ctx constraints --task`, packages/web packet.ts, op:api.packet, `wf packet --for`, `## Constraints in force` in buildPrompt. part of plan:plan-implement (task: memory.constraint-packet, session: 9f3d83809b)
 - [x] task:memory.impl.shapes `shapes:` on type cards read by the parser and enforced by ctx check; the two hardcoded checks move to the base ontology. part of plan:plan-implement (task: memory.shapes, session: 9f3d83809b)
 - [x] task:memory.impl.forgetting archived-for-retrieval: done plans and closed sessions leave op:api.context, the packet and search unless --all. part of plan:plan-implement (task: memory.forgetting, session: 9f3d83809b)
-- [ ] task:memory.impl.decision-statuses statuses on the status-less decisions in waterfall's documents. part of plan:plan-implement (task:memory.decision-statuses)
+- [x] task:memory.impl.decision-statuses statuses on the status-less decisions in waterfall's documents. part of plan:plan-implement (task: memory.decision-statuses, session: 9f3d83809b)
 - [ ] task:memory.impl.verdicts the write-time verdict pass: lib/judge.js, pair classification on rebuild diff, verdict blocks, contradiction: nodes, Inbox rows. part of plan:plan-implement (task:memory.verdict-pass)
 - [ ] task:memory.impl.benchmark the hide-one-edge regression over the contradicts edges, behind WATERFALL_LIVE=1. part of plan:plan-implement (task:memory.benchmark)
 - [ ] task:memory.impl.consolidate consolidation on session done: candidates from the transcript diffed against produced blocks, misses filed with evidence. part of plan:plan-implement (task:memory.consolidate)

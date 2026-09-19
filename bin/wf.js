@@ -10,6 +10,7 @@
 //   wf node <id> [--product p]           a node with its relations
 //   wf node set <id> --product p [--status s] [--text t] [--set key=value ...] [--unset key ...]
 //   wf node content <id> [--product p]   the blocks under the node (its content) as markdown; --file f | stdin replaces it
+//   wf verdicts <id ...> --product p     classify nodes against their neighbours now (duplicate | refines | consistent | contradicts)
 //   wf context "<text>" --product p [--all | --as-of d]   knowledge closest to a text (local semantic search; ended nodes hidden)
 //   wf packet --for "<text>" [--ref id ...] --product p [--budget N] [--all | --as-of d]   the constraints in force for a text:
 //        every rule, constraint, gate, approved decision, goal and open question within two hops of what it touches, complete
@@ -152,6 +153,15 @@ const commands = {
     const j = await api('POST', `/api/${product()}/packet`, { text, refs, budget: flags.budget ? Number(flags.budget) : undefined, all: !!flags.all, asOf: flags['as-of'] || undefined });
     if (flags.json) return out(j);
     console.log(`# Constraints in force: ${text.trim().slice(0, 80) || refs.join(', ')}\n\n${j.markdown}`);
+  },
+  async verdicts() {
+    // the verdict pass for nodes, now (op:api.verdicts): how each relates to its neighbours; non-consistent verdicts land under the node
+    const ids = pos.slice(1); if (!ids.length) die('wf verdicts <id ...> [--json]');
+    const j = await api('POST', `/api/${product()}/verdicts`, { ids });
+    if (flags.json) return out(j);
+    const order = { contradicts: 0, duplicate: 1, refines: 2, consistent: 3 };
+    for (const v of [...j.verdicts].sort((x, y) => order[x.kind] - order[y.kind])) console.log(`${v.kind.padEnd(11)} ${v.b} ↔ ${v.a}${v.conflict ? ' [' + v.conflict + ']' : ''} — ${v.reason}${v.cached ? '  (cached)' : ''}`);
+    console.log(`${j.judged} pair(s) judged, ${j.written} line(s) written under the node(s)`);
   },
   async context() {
     const text = pos[1] || (await readStdin()); const j = await api('POST', `/api/${product()}/context`, { text, limit: Number(flags.limit || 10), all: !!flags.all, asOf: flags['as-of'] || undefined });

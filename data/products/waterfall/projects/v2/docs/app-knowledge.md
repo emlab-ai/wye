@@ -269,6 +269,18 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   source: packages/web/src/app/api/[product]/packet/route.ts; packages/web/src/lib/packet.ts; lib/graph.js#constraints; bin/wf.js
   status: shipped
   part-of: module:app-knowledge
+- id: op:api.verdicts
+  args: GET | POST /api/<product>/verdicts { ids, budget? }
+  does: >
+    The verdict pass (decision:memory.write-time-verdict, req:memory.verdicts): GET the judge log; POST classifies the
+    given decision / req / rule / constraint nodes against their neighbours now — the same pass the watcher runs after
+    a rebuild when `verdicts: on` is set in _product.md. Verdicts that are not "consistent" are written under the node as
+    verdict: lines and, for contradicts / duplicate, an open contradiction: line; consistent ones stay in the log
+    (_build/verdicts.json, keyed by pair, with model and prompt hash). `wf verdicts <id>` calls it.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/verdicts/route.ts; packages/web/src/lib/verdicts.ts; lib/judge.js; lib/graph.js#verdictPairs; packages/web/src/lib/watch.ts
+  status: shipped
+  part-of: module:app-knowledge
 - id: op:api.inbox
   args: GET | POST /api/<product>/inbox and /inbox/<name>
   does: >

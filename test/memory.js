@@ -198,4 +198,80 @@ assert.ok(!g3.search('pricing').some(h => h.n.id === 'task:old.one') && g3.searc
 assert.ok(g3.search('pricing').some(h => h.n.id === 'decision:old.pricing-field'), 'the decision stays');
 assert.ok(g3.search('pricing', { all: true }).some(h => h.n.id === 'task:old.one'), '--all shows archived');
 
-console.log('memory: ok');
+// --- the verdict pass (decision:memory.write-time-verdict): pairs against neighbours, judged, cached, lines for the document
+(async () => {
+    const { judgePairs, verdictLines, promptHash } = require('../lib/judge');
+    process.env.WF_JUDGE_CMD = 'node ' + path.join(__dirname, 'fake-judge.js');
+    const judged = `---
+node: module:pay
+title: Pay
+---
+
+# Pay
+
+\`\`\`yaml
+- id: entity:pay.price
+  description: a price
+- id: decision:pay.net
+  title: Prices are stored net CONTRA
+  status: approved
+  date: 2026-01-01
+  affects: [entity:pay.price]
+- id: decision:pay.gross
+  title: Prices are stored gross CONTRA LATER
+  status: proposed
+  date: 2026-05-01
+  affects: [entity:pay.price]
+- id: decision:pay.gross-copy
+  title: Prices are stored gross SAME
+  status: proposed
+  affects: [entity:pay.price]
+- id: rule:pay.rounding
+  statement: Half-up rounding NARROW
+  source: lib/pay.js:3
+  governs: [entity:pay.price]
+- id: constraint:pay.local
+  statement: Every write lands locally first
+  status: approved
+- id: decision:pay.far
+  title: Unrelated, three hops away
+  status: approved
+\`\`\`
+`;
+    fs.writeFileSync(path.join(dir, 'pay.md'), judged);
+    const g4 = new Graph(parseFiles([path.join(dir, 'pay.md')]));
+    const pairs = g4.verdictPairs(['decision:pay.gross']);
+    const as = pairs.map(p => p.a.id);
+    assert.ok(as.includes('decision:pay.net') && as.includes('rule:pay.rounding') && as.includes('decision:pay.gross-copy'), 'same-kind neighbours within two hops: ' + as);
+    assert.ok(as.includes('constraint:pay.local'), 'every approved constraint is a pair');
+    assert.ok(!as.includes('decision:pay.far') && !as.includes('entity:pay.price'), 'not entities, not far nodes');
+    assert.ok(pairs.every(p => p.b.id === 'decision:pay.gross'), 'B is the judged node');
+    const cacheFile = path.join(dir, '_build', 'verdicts.json');
+    const vs = await judgePairs(pairs, { cacheFile, model: 'fake' });
+    const by = Object.fromEntries(vs.map(v => [v.a, v]));
+    assert.strictEqual(by['decision:pay.net'].kind, 'contradicts'); assert.strictEqual(by['decision:pay.net'].conflict, 'dynamic');
+    assert.strictEqual(by['decision:pay.gross-copy'].kind, 'consistent', 'SAME only on one side → consistent');
+    assert.strictEqual(by['constraint:pay.local'].kind, 'consistent');
+    assert.ok(vs.every(v => v.model === 'fake' && v.prompt === promptHash() && v.cached === false), 'model and prompt hash recorded');
+    const again = await judgePairs(pairs, { cacheFile, model: 'fake' });
+    assert.ok(again.every(v => v.cached), 'the same pair is never asked twice');
+    const budgeted = await judgePairs(g4.verdictPairs(['decision:pay.gross-copy']), { cacheFile, model: 'fake', budget: { pairs: 1, calls: 1 } });
+    assert.strictEqual(budgeted.filter(Boolean).length, 1, 'budget: one new pair judged, the rest null');
+    const lines = verdictLines(by['decision:pay.net'], { product: 'pay' });
+    assert.strictEqual(lines.length, 2, 'a contradicts verdict writes the verdict and an open contradiction');
+    assert.ok(/^verdict:[0-9a-f]{12} contradicts decision:pay.net — .* \(kind: contradicts, conflict: dynamic, model: fake, prompt: [0-9a-f]{8}, pair: decision:pay.net decision:pay.gross\)$/.test(lines[0]), lines[0]);
+    assert.ok(/^contradiction:pay\.[0-9a-f]{12} decision:pay.gross contradicts decision:pay.net — .* #open \(between: decision:pay.gross decision:pay.net, conflict: dynamic/.test(lines[1]), lines[1]);
+    assert.deepStrictEqual(verdictLines(by['constraint:pay.local']), [], 'consistent writes nothing');
+    // the lines parse back as nodes with the right kinds, status and edges
+    fs.writeFileSync(path.join(dir, 'pay.md'), judged.replace('  date: 2026-05-01\n  affects: [entity:pay.price]\n- id: decision:pay.gross-copy', '  date: 2026-05-01\n  affects: [entity:pay.price]\n- id: decision:pay.gross-copy') + '\n' + lines.map(l => l).join('\n\n') + '\n');
+    const g5 = new Graph(parseFiles([path.join(dir, 'pay.md')]));
+    const contra = g5.data.nodes.find(n => n.kind === 'contradiction');
+    assert.ok(contra && contra.status === 'open', 'contradiction node open');
+    assert.ok(g5.data.edges.some(e => e.from === contra.id && e.verb === 'between' && e.to === 'decision:pay.net'), 'between edges');
+    assert.ok(g5.data.nodes.some(n => n.kind === 'verdict' && n.defined));
+    // deep pairs: same-kind pairs sharing a neighbour
+    const deep = g4.deepPairs();
+    assert.ok(deep.some(p => [p.a.id, p.b.id].sort().join() === 'decision:pay.gross,decision:pay.net'), 'net and gross share entity:pay.price');
+    assert.ok(!deep.some(p => p.a.kind !== p.b.kind), 'same kind only');
+    console.log('memory: ok');
+})().catch(e => { console.error(e); process.exit(1); });
