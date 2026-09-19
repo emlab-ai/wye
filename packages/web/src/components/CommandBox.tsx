@@ -89,12 +89,24 @@ export function CommandBox() {
     try { localStorage.setItem(`wf-cwd-${product}`, cwd.trim()); localStorage.setItem(`wf-agent-${product}`, agent); } catch { /* ignore */ }
     setReq(null); open(`session:${j.id}`);
   };
+  // Later (req:exec.capture, decision:exec.backlog-is-unassigned-work): the text becomes a task line — under the node
+  // it was opened on, else on the project's plan document — unassigned, on the Work view at once; nothing is sent.
+  const later = async () => {
+    const instruction = text.trim(); if (!instruction || busy) return;
+    setBusy(true); setMsg(null);
+    let me = ''; try { me = localStorage.getItem('wf-me') ?? ''; } catch { /* ignore */ }
+    const partOf = (req.refs ?? []).find(r => !/^(module|plan|block|session):/.test(r));
+    const r = await fetch(`/api/${product}/work`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: instruction, partOf, project: req.source?.project, by: me || undefined }) });
+    const j = await r.json().catch(() => ({})); setBusy(false);
+    if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not capture'); return; }
+    setReq(null); open(j.id);
+  };
   const label = (s: Live) => `${AGENTS.find(a => a.id === s.agent)?.label ?? s.agent} · ${s.instruction.split('\n').find(l => l.trim())?.slice(0, 50) ?? s.id}`;
   const refs = req.refs ?? [];
   return createPortal(
     <div className="modal-back palette-back" onMouseDown={e => { if (e.target === e.currentTarget) setReq(null); }}>
       <div className="modal palette" role="dialog" aria-label="Command" onDragOver={attach.onDragOver} onDrop={attach.onDrop}>
-        <textarea ref={box} className="palette-in" value={text} rows={text.split('\n').length > 3 ? 6 : 3} placeholder={isNew ? 'What should the agent do? — fix …, build …, change … (Enter to run, Shift+Enter for a new line; paste a screenshot too)' : 'Your next message to that conversation (Enter to send, Shift+Enter for a new line; paste a screenshot too)'} onChange={e => setText(e.target.value)} onPaste={attach.onPaste} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); run(); } }} disabled={busy} />
+        <textarea ref={box} className="palette-in" value={text} rows={text.split('\n').length > 3 ? 6 : 3} placeholder={isNew ? 'What should the agent do? — fix …, build …, change … (Enter to run, Shift+Enter for a new line; paste a screenshot too)' : 'Your next message to that conversation (Enter to send, Shift+Enter for a new line; paste a screenshot too)'} onChange={e => setText(e.target.value)} onPaste={attach.onPaste} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (e.altKey) later(); else run(); } }} disabled={busy} />
         <AttachStrip images={attach.images} remove={attach.remove} />
         {refs.length > 0 && <div className="palette-ctx"><span className="muted">with</span>{refs.map(id => <SmartTag key={id} id={id} />)}{req.source?.blockId && <span className="muted">· this block</span>}</div>}
         <div className="palette-row">
@@ -124,10 +136,11 @@ export function CommandBox() {
           {target === 'new' && <input className="palette-cwd" value={cwd} placeholder={defaults.cwd || 'working folder: the code repository the agent works in'} onChange={e => setCwd(e.target.value)} spellCheck={false} title="working folder" />}
           {!isNew && <span className="muted palette-note">{fresh ? 'restarts that conversation\u2019s agent from nothing — after its current turn when one is open — then sends this as its first message' : 'goes into that conversation as your next message; the agent keeps its context and folder'}</span>}
           {target === 'runner' && <span className="muted palette-note">queued until a runner for that agent picks it up</span>}
+          {isNew && <button className="palette-later" onClick={later} disabled={!text.trim() || busy} title="Keep it as a task on the backlog — unassigned, on the Work view — without sending it to anyone (⌥↵)">Later</button>}
           <button className="palette-go" onClick={run} disabled={(!text.trim() && !attach.images.length) || busy}>{busy ? 'Sending…' : !isNew ? (fresh ? 'Restart & send ↵' : 'Send ↵') : target === 'runner' ? 'Queue ↵' : plan ? 'Plan & build ↵' : 'Run ↵'}</button>
         </div>
         {msg && <p className="bad palette-msg">{msg}</p>}
-        <p className="muted palette-hint">⌘P opens this anywhere · Send to agent on any block opens it with the block · the conversation opens in the right column</p>
+        <p className="muted palette-hint">⌘P opens this anywhere · Send to agent on any block opens it with the block · the conversation opens in the right column · Later (⌥↵) keeps it as a task for anyone</p>
       </div>
     </div>, document.body);
 }

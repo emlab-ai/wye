@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { captureTask } from '@/lib/work-io';
+import { markFiled } from '@/lib/inbox';
 import { loadScope } from '@/lib/scope';
 import { dismissItem, fileItem, listInboxItems, suggestFiling } from '@/lib/inbox';
 import { documentTree, docRoute } from '@/lib/doc';
@@ -23,6 +25,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     if (!b.id || !/^[a-z-]+:[A-Za-z0-9_.\-]+$/.test(b.id)) return NextResponse.json({ error: 'invalid', message: 'a node id like decision:offline.x is required' }, { status: 422 });
     if (scope.idx.byId.get(b.id)?.defined) return NextResponse.json({ error: 'conflict', message: `${b.id} already exists` }, { status: 409 });
     return NextResponse.json({ ok: true, ...(await fileItem(scope.product.dir, product, item, { file: d.file, id: b.id })) });
+  }
+  // a note filed as work (req:exec.capture): a task line on the backlog, the note marked filed to it
+  if (b.action === 'task') {
+    const text = [item.title, item.body].filter(Boolean).join(' — ').slice(0, 300);
+    const r = await captureTask(scope, { text, partOf: item.refs[0], by: item.from, project: b.project });
+    if (!r.ok) return NextResponse.json({ error: 'invalid', message: r.message }, { status: 422 });
+    await markFiled(scope.product.dir, item.name, { file: r.file, node: r.id });
+    return NextResponse.json({ ok: true, id: r.id, file: r.file });
   }
   return NextResponse.json({ error: 'invalid', message: 'unknown action' }, { status: 422 });
 }

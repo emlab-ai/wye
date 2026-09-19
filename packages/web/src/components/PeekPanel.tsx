@@ -110,6 +110,7 @@ function NodeView({ id }: { id: string }) {
         {id.startsWith('type:') && <Link href={`/${product}/types/${id.slice(5)}`} className="tool" title="Open the type page">↗</Link>}
         <Link href={`/${product}/graph?focus=${encodeURIComponent(id)}&preset=Mechanics`} className="tool" title="Show in the graph">⌬</Link>
         <button className="tool" title="Send to an agent" onClick={() => requestSend({ refs: [id], text: d ? nodeText(d.node.body) || entry?.title : entry?.title })}>⇢</button>
+        <button className="tool" title="Capture a task about this for later (unassigned, on the Work view)" onClick={() => requestSend({ refs: [id], text: '' })}>＋</button>
       </div>
     </header>
   );

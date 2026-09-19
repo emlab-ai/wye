@@ -27,8 +27,13 @@
 //   wf session handoff <id> --product p --agent a ["note"]  continue it under another agent
 //   wf session open <id> --product p <product/project/doc[#node] | url>   navigate the person's browser to a page
 //   wf session take <id> --product p       mark it running under you (interactive pick-up, e.g. /wf-restore)
-//   wf agent listen --product p --agent claude-code|codex [--cmd "<command>"] [--name n] [--once]
-//        pick up queued sessions for that agent, run the command with the prompt on stdin, stream output to the log
+//   wf work list --product p [--unassigned | --mine <name> | --goal <id> | --plan <id>] [--done]   every task with its state
+//   wf work add "<text>" --product p [--part-of <id>] [--ready]   a task line on the backlog (under the node when --part-of names one)
+//   wf work next --product p [--goal <id>]   the oldest ready, unblocked, unassigned task
+//   wf work assign <task> --worker <person|claude-code|codex|runner> --product p [--note "…"] [--plan] [--force]
+//   wf agent listen --product p --agent claude-code|codex [--cmd "<command>"] [--name n] [--once] [--take-ready [--goal <id>]]
+//        pick up queued sessions for that agent, run the command with the prompt on stdin, stream output to the log;
+//        --take-ready also claims the oldest #ready unblocked unassigned task when nothing is queued
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -221,6 +226,34 @@ const commands = {
     if (sub === 'handoff') { const j = await api('POST', `/api/${p}/sessions/${id}/handoff`, { agent: flags.agent || die('--agent required'), note: pos[3] || '' }); return out(flags.json ? j : `session ${j.id} queued for ${j.agent}, continuing ${id}`); }
     die(`unknown session command: ${sub}`);
   },
+  async work() {
+    // the Work view for agents (req:exec.backlog-for-agents): list, add, next, assign — op:api.work
+    const p = product(); const sub = pos[1] || 'list';
+    if (sub === 'list') {
+      const j = await api('GET', `/api/${p}/work`); if (flags.json) return out(j);
+      const flat = []; const walk = (r, d) => { flat.push([r, d]); for (const c of r.children) walk(c, d + 1); }; for (const r of j.items) walk(r, 0);
+      const rows = flat.filter(([r]) => (flags.done || r.status !== 'done') && (!flags.unassigned || r.state === 'unassigned') && (!flags.mine || r.worker === flags.mine) && (!flags.goal || r.partOf.includes(flags.goal)) && (!flags.plan || (r.plan && r.plan.id === flags.plan)));
+      for (const [r, d] of rows) console.log(`${'  '.repeat(d)}${r.id.padEnd(40 - d * 2)} ${r.status.padEnd(12)} ${r.state.padEnd(11)}${r.ready ? ' #ready' : '       '} ${(r.worker || '—').padEnd(12)} ${r.plan ? r.plan.id : (r.partOf[0] || '')}  ${r.title.slice(0, 60)}`);
+      if (!rows.length) console.log('no work matches');
+      return;
+    }
+    if (sub === 'add') {
+      const text = pos[2] || (await readStdin()); if (!text.trim()) die('wf work add "<text>" [--part-of <id>] [--ready]');
+      const j = await api('POST', `/api/${p}/work`, { text, partOf: flags['part-of'] || undefined, project: flags.project || undefined, ready: !!flags.ready, by: flags.by || (process.env.WF_SESSION ? `agent:${process.env.WF_SESSION}` : 'agent') });
+      return out(flags.json ? j : `${j.id} added to ${j.file} (unassigned${flags.ready ? ', ready' : ''})`);
+    }
+    if (sub === 'next') {
+      const j = await api('GET', `/api/${p}/work/next${flags.goal ? `?goal=${encodeURIComponent(flags.goal)}` : ''}`); if (flags.json) return out(j);
+      if (j.off) return console.log('auto-take is off for this product (_product.md: auto-take: off)');
+      return console.log(j.task ? `${j.task.id}  ${j.task.title}${j.task.plan ? `  (${j.task.plan.id})` : ''}` : 'no ready, unblocked, unassigned task');
+    }
+    if (sub === 'assign') {
+      const id = pos[2] || die('wf work assign <task> --worker <name>');
+      const j = await api('POST', `/api/${p}/work/assign`, { id, worker: flags.worker || die('--worker required'), note: flags.note || '', plan: !!flags.plan, force: !!flags.force, by: flags.by || undefined });
+      return out(flags.json ? j : `${id} → ${j.worker}${j.session ? ` (session ${j.session}, ${j.mode})` : ''}`);
+    }
+    die(`unknown work command: ${sub}`);
+  },
   async agent() {
     if (pos[1] !== 'listen') die('wf agent listen --product p --agent a [--cmd "…"] [--name n] [--once]');
     const p = product(); const agent = flags.agent || 'claude-code';
@@ -241,6 +274,11 @@ const commands = {
     for (;;) {
       let s = null;
       try { s = await api('POST', `/api/${p}/sessions/claim`, { agent, runner: name }); } catch (e) { console.error('claim failed:', e.message); }
+      // nothing queued: with --take-ready, the oldest #ready unblocked unassigned task is taken as an assignment
+      // (req:exec.ready-for-runners) — a queued run session for this agent, claimed the same way
+      if (!s && flags['take-ready']) {
+        try { const t = await api('POST', `/api/${p}/work/next`, { agent, runner: name, goal: flags.goal || undefined }); if (t && t.session) { console.log(`▶ took ${t.task} from the backlog`); s = await api('POST', `/api/${p}/sessions/claim`, { agent, runner: name }); } } catch (e) { console.error('take-ready failed:', e.message); }
+      }
       if (!s) { await new Promise(r => setTimeout(r, 3000)); continue; } // --once: exit after the first session, but wait for it
       busy = s.id; await beat();
       console.log(`▶ session ${s.id}: ${s.instruction.split('\n')[0].slice(0, 100)}`);
@@ -276,6 +314,8 @@ async function buildPrompt(p, s) {
     try { const j = await api('GET', `/api/${p}/resolve?link=${encodeURIComponent(ref)}`); ctx.push(renderResolved(ref, j)); } catch (e) { ctx.push(`- ${ref}: could not resolve (${e.message})`); }
   }
   if (ctx.length) parts.push(`\n## Context\n${ctx.join('\n\n')}`);
+  // the constraints in force (req:memory.intake-packet), computed by the app; never blocks the start
+  try { const pk = await api('POST', `/api/${p}/packet`, { text: s.instruction, refs: s.refs, budget: 10000 }); if (pk && pk.markdown) parts.push(`\n## Constraints in force\n${pk.markdown}\n\nThe same for any text, mid-session: \`wf packet --for "<text>" [--ref id]\`.`); } catch (e) { parts.push(`\n## Constraints in force\n_Could not compute the constraint packet (${e.message}); run \`wf packet --for "<the request>"\` before you change anything._`); }
   if (s.parent) parts.push(`\nThis session continues session ${s.parent}; its log and result are in the instruction above. Pick up where it stopped.`);
   parts.push(`\n## How to work\n- The Wye CLI is \`wf\` (WF_URL=${WF_URL}, WF_PRODUCT=${p}). Read: \`wf resolve <link|id>\`, \`wf doc <product/project/doc>\`, \`wf node <id>\`, \`wf context "<text>"\`. Write: \`wf node set <id> --status s --set key=value\`, \`wf node content <id> --file f\` (the blocks under a node), \`wf doc write <product/project/doc> --file f\` (whole body). \`ctx\` queries the graph offline (\`ctx --root data/products/${p} search …\`).\n- Documents are markdown under data/products/${p}/projects/<project>/docs/. Nodes are lines that start with an id (\`req:x …\`, \`- [ ] task:y …\`) or yaml blocks; keep ids stable.\n- Report progress with \`wf session log ${s.id} "<line>"\` and finish with \`wf session done ${s.id} "<result>"\` (or \`wf session fail\`). The runner marks the session done when you exit, so a final summary on stdout is enough.\n- If the work belongs to another agent, \`wf session handoff ${s.id} --agent <codex|claude-code> "<note>"\`.`);
   return parts.join('\n');
@@ -313,6 +353,6 @@ function runCommand(cmd, prompt, log, cwd, productEnv, sessionId) {
 
 (async () => {
   const c = commands[pos[0]];
-  if (!c) { console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(2, 19).map(l => l.replace(/^\/\/ ?/, '')).join('\n')); process.exit(pos[0] ? 1 : 0); }
+  if (!c) { console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(2, 40).filter(l => l.startsWith('//')).map(l => l.replace(/^\/\/ ?/, '')).join('\n')); process.exit(pos[0] ? 1 : 0); }
   try { await c(); } catch (e) { die(e.message); }
 })();

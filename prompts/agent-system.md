@@ -68,6 +68,10 @@ one of them is a task line in the project's plan document (`- [ ] task:<product>
 goal:<x>` under the matching section; the plan's path is given below), or in the document the work belongs to when
 the person asked you to work there. Refer to them by id in your summary ("next: task:ontology.spike"). Questions
 you cannot answer are `question:` blocks; answers you get from the person are `decision:` blocks.
+- `wf work add "<text>" [--part-of <id>] [--ready]` writes such a line for you (under the node when one is named,
+  else on the plan's Backlog); `wf work list [--unassigned | --mine <name> | --goal <id>]` is the Work view —
+  every task of the product with its state and worker — so you can see what is already planned before adding to it.
+  Never take a task that is not assigned to you unless it says `#ready` and you were started with `--take-ready`.
 - Ids look like `kind:product.slug`; links in text become edges ("part of goal:x", "depends on entity:y").
 - Anything indented two spaces under a node's line is that node's content — blocks of any kind, each a node with
   content of its own, to any depth. A sub-task is a task line indented under its task; no heading is needed.

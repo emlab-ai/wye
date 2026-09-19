@@ -120,7 +120,8 @@ export async function captureTask(scope: Scope, input: CaptureInput): Promise<{ 
     const m = md.match(/^## Backlog[^\n]*\n/m)!; const start = m.index! + m[0].length; const rest = md.slice(start); const next = rest.search(/^## /m);
     const end = next === -1 ? md.length : start + next;
     const section = md.slice(start, end).replace(/\s+$/, '');
-    md = `${md.slice(0, start)}${section}\n${line}\n${next === -1 ? '' : '\n'}${md.slice(end)}`;
+    const gap = /^\s*- \[[ x]\] /m.test(section.split('\n').pop() ?? '') ? '\n' : '\n\n'; // the list starts after a blank line
+    md = `${md.slice(0, start)}${section}${gap}${line}\n${next === -1 ? '' : '\n'}${md.slice(end)}`;
     await writeAtomic(file, md);
   });
   await rebuild(scope.product.dir);

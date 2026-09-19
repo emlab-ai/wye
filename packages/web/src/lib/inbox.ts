@@ -60,6 +60,7 @@ async function patchHead(productDir: string, name: string, patch: Record<string,
   await writeAtomic(f, '---\n' + out.join('\n') + '\n---\n' + md.slice(fm[0].length));
 }
 export async function dismissItem(productDir: string, name: string): Promise<void> { await patchHead(productDir, name, { status: 'dismissed' }); }
+export async function markFiled(productDir: string, name: string, to: { file: string; node: string }): Promise<void> { await patchHead(productDir, name, { status: 'filed', 'filed-to': to.file, node: to.node }); }
 
 // Which document should an item go to, and as which node? The closest existing knowledge decides the document
 // (the one most of the top hits live in); the item's type decides the kind; the id comes from the title.
