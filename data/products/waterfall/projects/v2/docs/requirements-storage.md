@@ -1,7 +1,7 @@
 ---
 node: module:req-storage
 type: module
-title: Requirements — Storage and serving
+title: Storage and serving
 status: proposed
 owner: alex
 last-verified: 2026-09-20
@@ -9,13 +9,14 @@ part-of: module:wf2-prd
 order: 21
 ---
 
-# Requirements — Storage and serving
+# Storage and serving
 
 What Wye must do here, as behaviours a person can observe: when <trigger>, <outcome>, unless <exception>. How it is done is on the Systems page of the same name (Systems › Storage and serving); what a person sees on the Experience pages. Open questions wait at the end.
 
-<!-- view:req -->
 
 ## Requirements
+
+<!-- list:req -->
 
 ```yaml
 - id: req:wf2.store.products
@@ -38,3 +39,5 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   refines: req:wf2.ui
 
 ```
+
+<!-- /list:req -->

@@ -13,9 +13,10 @@ order: 22
 
 Every page of the app by area: its route, what it shows, its actions. The table is the graph; the cards are the definition.
 
-<!-- view:page -->
 
 ## Agents and sessions
+
+<!-- list:page -->
 
 ```yaml
 - id: page:web/session-changes
@@ -68,7 +69,11 @@ Every page of the app by area: its route, what it shows, its actions. The table 
   description: One paragraph stating the same contract for agents that do not load skills.
 ```
 
+<!-- /list:page -->
+
 ## Documents and editing
+
+<!-- list:page -->
 
 ```yaml
 - id: page:web/node
@@ -118,7 +123,11 @@ Every page of the app by area: its route, what it shows, its actions. The table 
     - the bar at the top and a session's message box at the bottom stay in view; only what is between them scrolls (rule:column-frame)
 ```
 
+<!-- /list:page -->
+
 ## Graph core and CLI
+
+<!-- list:page -->
 
 ```yaml
 - id: page:skill/describe-module
@@ -135,7 +144,11 @@ Every page of the app by area: its route, what it shows, its actions. The table 
   description: The agent contract — packet before code, impact before change, delta before build, check before done, what goes where.
 ```
 
+<!-- /list:page -->
+
 ## Knowledge and search
+
+<!-- list:page -->
 
 ```yaml
 - id: page:web/goals
@@ -192,7 +205,11 @@ Every page of the app by area: its route, what it shows, its actions. The table 
     - a type page: crumbs along the extends chain; properties (own and inherited, the root type's folded into one line); subtypes; every instance as component:instance-table — a column per property, search, status chips, a filter per enum / ref / bool property, group by, sort, all in the URL (req:ontology.type-page, req:wf2.instances.filter)
 ```
 
+<!-- /list:page -->
+
 ## Memory
+
+<!-- list:page -->
 
 ```yaml
 - id: page:web/decisions
@@ -219,7 +236,11 @@ Every page of the app by area: its route, what it shows, its actions. The table 
     - both sides show their text (node body or decision choice); kind badge structural / semantic; explanation below
 ```
 
+<!-- /list:page -->
+
 ## Shell and navigation
+
+<!-- list:page -->
 
 ```yaml
 - id: page:web/overview
@@ -274,7 +295,11 @@ Every page of the app by area: its route, what it shows, its actions. The table 
     - counts and lists refresh on graph, inbox and session change events (rule:live-refresh)
 ```
 
+<!-- /list:page -->
+
 ## The static viewer
+
+<!-- list:page -->
 
 ```yaml
 - id: page:viewer/reqs
@@ -328,7 +353,11 @@ Every page of the app by area: its route, what it shows, its actions. The table 
     - neighbours grouped by verb, outgoing then incoming, sorted req → rule → op → page → action → entity → field … (:447-449)
 ```
 
+<!-- /list:page -->
+
 ## Work, changes and impact
+
+<!-- list:page -->
 
 ```yaml
 - id: page:web/work
@@ -353,3 +382,5 @@ Every page of the app by area: its route, what it shows, its actions. The table 
   display-rules:
     - columns follow value:task-status; a move that state:task-lifecycle forbids snaps back with the reason
 ```
+
+<!-- /list:page -->

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
+import { EmbeddedCard } from './EmbedBlock';
 import { StatusPill } from './Pills';
 import { Linkified } from './IdLink';
 import { assetBase, docRoute } from '@/lib/doc';
@@ -14,7 +15,7 @@ const items = (v: string) => v.replace(/^\[|\]$/g, '').split(',').map(s => s.tri
 // Every instance of one type (or node of one kind) as a filterable table: search, status chips with counts, a chip
 // row per enum / bool column, a select per ref column, group by, sort by column. The filter state is the caller's:
 // a page keeps it in the URL (urlState), a view block in its key=value line (onChange).
-export function InstanceTable({ product, table, initial, urlState, onChange, readOnly }: { product: string; table: Table; initial?: Filters; urlState?: boolean; onChange?: (f: Filters) => void; readOnly?: boolean }) {
+export function InstanceTable({ product, table, initial, urlState, onChange, readOnly, as = 'table' }: { product: string; table: Table; initial?: Filters; urlState?: boolean; onChange?: (f: Filters) => void; as?: 'table' | 'list'; readOnly?: boolean }) {
   const { open, openId, index } = usePeek();
   const [f, setF] = useState<Filters>(initial ?? EMPTY_FILTERS);
   useEffect(() => { setF(initial ?? EMPTY_FILTERS); }, [initial]);
@@ -72,6 +73,17 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
           </div>) : null; })}
         {active && <div className="chips"><span className="muted small">{rows.length} of {table.rows.length}</span><button className="linkish" onClick={() => set({ ...EMPTY_FILTERS, group: f.group, sort: f.sort })}>clear filters</button></div>}
       </div>
+      {as === 'list' ? (
+        // the block form (rule:view-block, req:wf2.instances.view-as-blocks): every instance as its own card, editable in place
+        <div className="ilist">
+          {(groups ?? [['', rows]] as [string, InstanceRow[]][]).map(([k, rs]) => (
+            <div key={k} className="ilist-group">
+              {k && <div className="ilist-group-head">{k.startsWith(k.split(':')[0] + ':') && index[k] ? label(k) : k} <small className="muted">{rs.length}</small></div>}
+              {rs.map(r => <EmbeddedCard key={r.id} id={r.id} className="ilist-item" />)}
+            </div>))}
+          {!rows.length && <p className="muted">No {table.slug}s match.</p>}
+        </div>
+      ) : (
       <div className="ttable"><table className="type-instances itable-grid">
         <thead><tr>
           <th onClick={() => sortOn('title')} className="sortable">id{arrow('title')}</th>
@@ -85,7 +97,7 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
             : rows.map(r => <Row key={r.id} r={r} />)}
           {!rows.length && <tr><td colSpan={span} className="muted">No {table.slug}s match.</td></tr>}
         </tbody>
-      </table></div>
+      </table></div>)}
     </div>
   );
 }

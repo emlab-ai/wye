@@ -1,7 +1,7 @@
 ---
 node: module:req-shell
 type: module
-title: Requirements — Shell and navigation
+title: Shell and navigation
 status: proposed
 owner: alex
 last-verified: 2026-09-20
@@ -9,13 +9,14 @@ part-of: module:wf2-prd
 order: 20
 ---
 
-# Requirements — Shell and navigation
+# Shell and navigation
 
 What Wye must do here, as behaviours a person can observe: when <trigger>, <outcome>, unless <exception>. How it is done is on the Systems page of the same name (Systems › Shell and navigation); what a person sees on the Experience pages. Open questions wait at the end.
 
-<!-- view:req -->
 
 ## Requirements
+
+<!-- list:req -->
 
 ```yaml
 - id: req:wf2.ui.tree-menu
@@ -86,3 +87,5 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   see: req:wf.view
   refines: req:wf2.ui
 ```
+
+<!-- /list:req -->

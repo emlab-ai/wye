@@ -1,7 +1,7 @@
 ---
 node: module:req-documents
 type: module
-title: Requirements — Documents and editing
+title: Documents and editing
 status: proposed
 owner: alex
 last-verified: 2026-09-20
@@ -9,13 +9,13 @@ part-of: module:wf2-prd
 order: 13
 ---
 
-# Requirements — Documents and editing
+# Documents and editing
 
 What Wye must do here, as behaviours a person can observe: when <trigger>, <outcome>, unless <exception>. How it is done is on the Systems page of the same name (Systems › Documents and editing); what a person sees on the Experience pages. Open questions wait at the end.
 
-<!-- view:req -->
-
 ## Requirements
+
+<!-- list:req -->
 
 ```yaml
 - id: req:wf2.editor.table-scroll
@@ -51,7 +51,9 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   verified-by: [ui-test:table-filter, test:web-lib#import]
   part-of: module:req-documents
 - id: req:wf2.editor.list-block
-  title: A data list shows one kind of block as ordinary blocks, filtered from the top, and a new block is one of the same kind
+  title: >
+    A data list shows one kind of block as ordinary blocks, filtered from the top, and a new block is one of the
+    same kind
   when: >
     the person inserts a Data list (slash menu) or switches a data table to its list view, picks the kind (tasks,
     goals, or a type the product declares) and reads or writes in it
@@ -199,7 +201,6 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   status: proposed
   satisfied-by: [op:graph.patch, rule:patch-in-place, rule:edge-serialisation]
   requires-tests: [test:core-writer#patch-body, test:core-writer#patch-preserves-neighbours]
-
 - id: req:wf2.write.create
   title: A new node lands in the right section
   when: graph.create is called with a module, kind, slug and body
@@ -208,7 +209,6 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   satisfied-by: [op:graph.create, rule:section-map]
   requires-tests: [test:core-writer#create-in-section, test:core-writer#create-adds-heading]
   refines: req:wf2.write
-
 - id: req:wf2.write.conflict
   title: A stale write is refused
   when: the ifMatch hash differs from the node's current body hash
@@ -217,7 +217,6 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   satisfied-by: [rule:if-match, value:error-code]
   requires-tests: [test:core-writer#conflict]
   refines: req:wf2.write
-
 - id: req:wf2.write.validated
   title: A write that would break the graph never reaches disk
   when: the patched file is re-parsed in memory before writing
@@ -226,7 +225,6 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   satisfied-by: [rule:validate-before-write, rule:stub-targets-warn]
   requires-tests: [test:core-writer#reject-parse-error, test:core-writer#reject-lint-error, test:core-writer#stub-target-warns]
   refines: req:wf2.write
-
 - id: req:wf2.write.atomic
   title: Files are never half-written and writes never race
   when: two writes target the same file
@@ -235,7 +233,6 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   satisfied-by: [rule:atomic-file-write, rule:per-file-queue]
   requires-tests: [test:core-writer#concurrent-writes-serialised]
   refines: req:wf2.write
-
 - id: req:wf2.write.single-path
   title: The file is the only way into the graph
   when: the UI, an agent, or a delta changes a node
@@ -244,7 +241,6 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   satisfied-by: [rule:markdown-canonical]
   requires-tests: [test:server-services#ui-write-is-file-write]
   refines: req:wf2.write
-
 - id: req:wf2.write.round-trip
   title: A write changes nothing but what it says
   when: a file is parsed, patched and parsed again
@@ -262,9 +258,9 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   satisfied-by: [page:web/sidebar, page:web/node, rule:deep-links]
   requires-tests: [test:web-components#sidebar-tree, ui-test:deep-link]
   see: req:wf.view
-
 - id: req:wf2.ui.node-page
-  title: A document is one editable page where any block can be a typed node and any word can link to anything
+  title: >
+    A document is one editable page where any block can be a typed node and any word can link to anything
   when: a document is opened
   then: it is a single editor; prose, headings, lists, tables and code are ordinary blocks; each node is a typed block with kind, slug and status; a paragraph that starts with an id (`req:<slug> When …`) becomes a requirement; any phrase can be linked to any node and the graph records the relation (verb inferred from the words before it, else related-to); every id is a tag whose click opens a peek panel with the node's card, relations and Go to definition
   status: unverified
@@ -273,7 +269,6 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   requires-tests: [test:web-components#node-page-properties, test:web-components#node-page-prose-editor]
   see: req:wf.view.sheet
   refines: req:wf2.ui
-
 - id: req:wf2.ui.edit-in-context
   title: A node's text and properties are edited on its card in the context column
   when: a node of any kind is open in the context column — from a table row, a block, a tag, or search
@@ -296,7 +291,6 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   satisfied-by: [page:web/node, rule:segment-write, rule:prose-round-trip, op:graph.patch, rule:if-match]
   requires-tests: [ui-test:edit-node-flow, test:web-components#conflict-diff]
   refines: req:wf2.ui.node-page
-
 - id: req:wf2.ui.image-in-block
   title: A screenshot is part of the bug it belongs to
   when: a person pastes an image (or picks "Image in this block") while writing a bug, task or any node block
@@ -338,7 +332,12 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   verified-by: [ui-test:command-palette]
 ```
 
+- req:document-opened-in-the Document opened in the editor, but deleted outside, must show tab, with content showing page not found #proposed
+<!-- /list:req -->
+
 ## Open questions
+
+<!-- list:question -->
 
 ```yaml
 - id: question:wf2.embed-paragraphs
@@ -362,3 +361,5 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   status: open
   related-to: [decision:wf2.page-node-typed, req:ontology.type-page]
 ```
+
+<!-- /list:question -->

@@ -1,7 +1,7 @@
 ---
 node: module:req-memory
 type: module
-title: Requirements — Memory
+title: Memory
 status: proposed
 owner: alex
 last-verified: 2026-09-20
@@ -9,13 +9,14 @@ part-of: module:wf2-prd
 order: 18
 ---
 
-# Requirements — Memory
+# Memory
 
 What Wye must do here, as behaviours a person can observe: when <trigger>, <outcome>, unless <exception>. How it is done is on the Systems page of the same name (Systems › Memory); what a person sees on the Experience pages. Open questions wait at the end.
 
-<!-- view:req -->
 
 ## Requirements
+
+<!-- list:req -->
 
 ```yaml
 - id: req:memory.intake-packet
@@ -153,7 +154,11 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
 ```
 
+<!-- /list:req -->
+
 ## Open questions
+
+<!-- list:question -->
 
 ```yaml
 - id: question:memory.eval-judge
@@ -188,3 +193,5 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   status: open
   related-to: [decision:memory.code-source, rule:atomic-file-write]
 ```
+
+<!-- /list:question -->

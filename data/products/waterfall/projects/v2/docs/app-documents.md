@@ -62,6 +62,8 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
 ## Rules
 
+<!-- list:rule -->
+
 ```yaml
 - id: rule:list-view
   statement: >
@@ -71,7 +73,11 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     a table; the filters ride on the marker either way (rule:table-filter). settleCollections keeps one empty child
     of the kind at the end and turns a paragraph made by Enter into a node of the kind, in the block's view. The
     header's toggle rewrites every child's `row` prop and the block's view; the type picker and the filter toggle
-    are the same as the table's. The slash menu offers "Data list" next to "Data table".
+    are the same as the table's. The slash menu offers "Data list" next to "Data table". Yaml cards are rows too:
+    consecutive cards inside a region share one fence on the way out (childrenLines), a card with content ends its
+    fence, so a definition page's requirements, rules, decisions or components sit inside a `<!-- list:<kind> -->`
+    region — filtered from the top, a new block one of the same kind — which is what a view is for: grouping and
+    filtering the page's own blocks and making the next one easy to add (2026-09-20).
   source: packages/web/src/lib/import.ts#COLLECTION_OPEN; packages/web/src/lib/serialize.ts#collectionMarker; packages/web/src/components/DocEditor.tsx#CollectionBlock; packages/web/src/components/DocEditor.tsx#settleCollections
   status: shipped
   verified-by: [test:web-lib#import]
@@ -385,7 +391,11 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   requires-tests: [test:web-components#node-page-properties]
 ```
 
+<!-- /list:rule -->
+
 ## Decisions
+
+<!-- list:decision -->
 
 ```yaml
 - id: decision:wf2.card-essence
@@ -559,7 +569,11 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   date: 2026-09-16
 ```
 
+<!-- /list:decision -->
+
 ## Libraries
+
+<!-- list:lib -->
 
 ```yaml
 - id: lib:import
@@ -673,3 +687,5 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     Per-kind skeletons for new cards, from the required/recommended keys in schema/kinds.yaml.
   part-of: module:app-documents
 ```
+
+<!-- /list:lib -->

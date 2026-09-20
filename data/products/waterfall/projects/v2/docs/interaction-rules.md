@@ -15,6 +15,8 @@ What the interface guarantees, by area — click, fold, drag, select, review car
 
 ## Agents and sessions
 
+<!-- list:rule -->
+
 ```yaml
 - id: rule:history-nav
   statement: >
@@ -81,7 +83,11 @@ What the interface guarantees, by area — click, fold, drag, select, review car
   status: proposed
 ```
 
+<!-- /list:rule -->
+
 ## Documents and editing
+
+<!-- list:rule -->
 
 ```yaml
 - id: rule:table-scroll
@@ -148,7 +154,11 @@ What the interface guarantees, by area — click, fold, drag, select, review car
   requires-tests: [test:web-components#node-page-prose-editor]
 ```
 
+<!-- /list:rule -->
+
 ## Knowledge and search
+
+<!-- list:rule -->
 
 ```yaml
 - id: rule:questions-view
@@ -160,7 +170,11 @@ What the interface guarantees, by area — click, fold, drag, select, review car
   status: shipped
 ```
 
+<!-- /list:rule -->
+
 ## Shell and navigation
+
+<!-- list:rule -->
 
 ```yaml
 - id: rule:table-rows
@@ -206,3 +220,5 @@ What the interface guarantees, by area — click, fold, drag, select, review car
   status: unverified
   requires-tests: [ui-test:deep-link]
 ```
+
+<!-- /list:rule -->

@@ -15,6 +15,8 @@ order: 26
 
 ## Requirements
 
+<!-- list:req -->
+
 ```yaml
 - id: req:wf.view
   title: The whole graph is readable on a phone without a server
@@ -63,3 +65,5 @@ order: 26
   satisfied-by: [page:viewer/read, rule:field-mentions-index]
   refines: req:wf.view
 ```
+
+<!-- /list:req -->

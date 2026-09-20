@@ -1,7 +1,7 @@
 ---
 node: module:req-graph
 type: module
-title: Requirements — Graph core and CLI
+title: Graph core and CLI
 status: proposed
 owner: alex
 last-verified: 2026-09-20
@@ -9,13 +9,14 @@ part-of: module:wf2-prd
 order: 22
 ---
 
-# Requirements — Graph core and CLI
+# Graph core and CLI
 
 What Wye must do here, as behaviours a person can observe: when <trigger>, <outcome>, unless <exception>. How it is done is on the Systems page of the same name (Systems › Graph core and CLI); what a person sees on the Experience pages. Open questions wait at the end.
 
-<!-- view:req -->
 
 ## Requirements
+
+<!-- list:req -->
 
 ```yaml
 - id: req:wf.describe
@@ -159,7 +160,11 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   refines: req:wf.query
 ```
 
+<!-- /list:req -->
+
 ## Open questions
+
+<!-- list:question -->
 
 ```yaml
 - id: question:wf.granularity
@@ -175,3 +180,5 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 - id: question:wf.cross-repo
   q: Waterfall's own graph lives in its repo and YesSensei's in its repo. Should a graph be able to reference nodes in another repo's graph (module:yessensei-pos here is a stub)?
 ```
+
+<!-- /list:question -->

@@ -13,9 +13,10 @@ order: 33
 
 Where everything lives on disk: markdown is canonical, everything under _build is derived, sessions and changes are operational records.
 
-<!-- view:store -->
 
 ## Stores
+
+<!-- list:store -->
 
 ```yaml
 - id: store:product-file
@@ -109,3 +110,5 @@ Where everything lives on disk: markdown is canonical, everything under _build i
     _sessions/, git-ignored; the documents stay canonical (constraint:wf2.text-canonical).
   part-of: module:stores
 ```
+
+<!-- /list:store -->

@@ -15,6 +15,8 @@ Definition — the librarian
 
 ## Decisions
 
+<!-- list:decision -->
+
 ```yaml
 - id: decision:exec.wye-is-a-role
   title: Wye is a session role — the librarian — with the clerk's guardrails, not a new runtime
@@ -122,3 +124,5 @@ Definition — the librarian
   affects: [type:plan, rule:plan-doc, lib:plan-doc, req:exec.dispatch]
   part-of: goal:exec.define-first
 ```
+
+<!-- /list:decision -->

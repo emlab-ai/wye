@@ -1,7 +1,7 @@
 ---
 node: module:req-work
 type: module
-title: Requirements — Work, changes and impact
+title: Work, changes and impact
 status: proposed
 owner: alex
 last-verified: 2026-09-20
@@ -9,13 +9,14 @@ part-of: module:wf2-prd
 order: 15
 ---
 
-# Requirements — Work, changes and impact
+# Work, changes and impact
 
 What Wye must do here, as behaviours a person can observe: when <trigger>, <outcome>, unless <exception>. How it is done is on the Systems page of the same name (Systems › Work, changes and impact); what a person sees on the Experience pages. Open questions wait at the end.
 
-<!-- view:req -->
 
 ## Requirements
+
+<!-- list:req -->
 
 ```yaml
 - id: req:exec.work-view
@@ -289,7 +290,11 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
 ```
 
+<!-- /list:req -->
+
 ## Open questions
+
+<!-- list:question -->
 
 ```yaml
 - id: question:exec.auto-dispatch
@@ -335,3 +340,5 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   status: open
   related-to: [decision:exec.impact-run, decision:memory.benchmark]
 ```
+
+<!-- /list:question -->

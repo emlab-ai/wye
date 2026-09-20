@@ -167,6 +167,36 @@ Built in the page's order (decision:memory.eval-build-scope): the `wye eval` fam
   context: the eval sizes module:benchmarks asks for (three passes, 500-pair samples, five runs per arm) are gated by this more than by cost.
   status: open
   by: agent:claude-code
+- id: question:memory.eval-page-or-cards
+  q: >
+    The person asked (2026-09-20, while the build ran) to keep page:web/eval at its route with no rail entry, reached
+    from the Evaluation project's Results page; the same day's commit 881041e proposed constraint:wf2.no-custom-pages
+    (every screen is a document of existing blocks) and task:memory.eval-cards (the page removed). Both are done —
+    the page is at /waterfall/eval and the runs are cards on module:eval-runs. Which one stays: the page (then the
+    constraint needs an exception for it) or the cards alone (then the page, op:api.eval and the Trends tab go)?
+  context: the tier-3 weekly numbers and the blind mark exist only on the page today (task:memory.eval-weekly-numbers); the cards carry everything else.
+  status: resolved
+  by: agent:claude-code
+  resolved-by: decision:memory.eval-cards-not-a-page
+- id: decision:memory.eval-cards-not-a-page
+  title: The Evaluation is cards of the evaluation project's types shown by the existing table and view blocks; the page is deleted
+  context: >
+    Three instructions during the build: no rail entry; keep the page at its route; then — the page is a custom UI and
+    that is not how Wye works. constraint:wf2.no-custom-pages says it: every screen is a document of existing blocks,
+    a new kind of data is a new type.
+  choice: >
+    page:web/eval, op:api.eval, EvalView.tsx and eval-io.ts are deleted (they were never committed); the types
+    eval-run / eval-score / eval-pair / eval-public in the evaluation project's ontology are the data, `wye eval`
+    writes every run as their cards into docs/runs.md (rule:eval-cards) and regenerates it, results.md shows them
+    with `<!-- view:… -->` blocks; `_build/eval/*.json` stays the raw record. The blind mark is the eval-pair card's
+    `mark` property or `wye eval compare --pair --mark`; the tier-3 weekly numbers are a follow-up as cards of a type.
+  alternatives: keep the page beside the cards (two views of one thing, one of them custom); a page for the trends only.
+  consequences: question:memory.eval-page-or-cards is resolved; req:memory.eval-page's mechanism is module:eval-runs, module:eval-results and the view block.
+  date: 2026-09-20
+  status: proposed
+  by: alex
+  evidence: [session:9f29fa036e]
+  affects: [req:memory.eval-page, constraint:wf2.no-custom-pages]
 - id: question:memory.reqpairs-source
   q: >
     Where do the WorldVista / UAV / PURE / OpenCOSS pair files come from? The papers' repositories (Malik et al.
@@ -190,7 +220,7 @@ _`- [ ] task:` lines, `part of plan:plan-build`; their check state is what is in
 - [ ] task:memory.eval-weekly-numbers Tier 3's weekly product numbers (req:memory.eval-page as it was: sessions, share citing a node, contradictions at write time vs later, Inbox accept / revert, bounced tasks, should-have-known questions, request → defined → done) as cards of a type of the Evaluation project, written by `wye eval weekly`, shown by a view block; the computation existed on the removed page and was dropped with it. Part of plan:plan-build, part of goal:memory.validated-asks.
 - [ ] task:memory.eval-consolidation-labels The consolidation suite's second set: eval/own/consolidation-labels.json where the person marks which misses (listed in the results file) were real decisions the prompt should have found; the suite reports recall over that set beside the strict one. Part of plan:plan-build, part of goal:memory.validated-asks.
 - [ ] task:memory.eval-mab-in-their-harness Run wye_adapter.py inside MemoryAgentBench's own harness (conda env, GPT-4o-mini reader) on factconsolidation_sh_32k so the number is on their footing; the standalone runner's 6k number is the first one. Part of plan:plan-build, part of goal:memory.validated-asks.
-- [ ] task:plan-build build it #in-progress (worker: claude-code, session: a95bf7bbe0 9f29fa036e, produced: module:app module:memory-review module:benchmarks plan:plan-build-2 module:app-work module:prd-execution module:todo module:zz-list-test module:app-documents plan:plan-reply-single-word-pong-nothing-else plan:plan-reply-single-word-pong-nothing-else-2 plan:plan-have-lot-docs-now-about-wye module:wf2-dev module:wf2 module:wf2-prd module:eval-results module:eval-ontology module:app-agents module:eval-runs module:users-and-jobs module:constitution module:experience module:app-shell module:pages module:components module:interaction-rules module:domain module:entities module:stores module:api module:quality module:decisions module:req-documents module:req-knowledge module:req-work module:req-definition module:req-agents module:req-memory module:req-ontology module:req-shell module:req-storage module:req-graph module:req-viewer module:app-knowledge module:librarian module:memory module:ontology-engine module:shell-engine module:app-storage module:app-graph module:viewer module:wf2-test module:ontology module:research module:ontology-design module:archive module:waterfall module:archive-prd module:session-notes module:wf2-plan module:req-wye module:archive-project plan:plan-rename-project-are-working-form-waterfall)
+- [ ] task:plan-build build it #in-progress (worker: claude-code, session: a95bf7bbe0 9f29fa036e, produced: module:app module:memory-review module:benchmarks plan:plan-build-2 module:app-work module:prd-execution module:todo module:zz-list-test module:app-documents plan:plan-reply-single-word-pong-nothing-else plan:plan-reply-single-word-pong-nothing-else-2 plan:plan-have-lot-docs-now-about-wye module:wf2-dev module:wf2 module:wf2-prd module:eval-results module:eval-ontology module:app-agents module:eval-runs module:users-and-jobs module:constitution module:experience module:app-shell module:pages module:components module:interaction-rules module:domain module:entities module:stores module:api module:quality module:decisions module:req-documents module:req-knowledge module:req-work module:req-definition module:req-agents module:req-memory module:req-ontology module:req-shell module:req-storage module:req-graph module:req-viewer module:app-knowledge module:librarian module:memory module:ontology-engine module:shell-engine module:app-storage module:app-graph module:viewer module:wf2-test module:ontology module:research module:ontology-design module:archive module:waterfall module:archive-prd module:session-notes module:wf2-plan module:req-wye module:archive-project plan:plan-rename-project-are-working-form-waterfall plan:plan-work-req-document-opened-document-opened)
 
 ## Result
 

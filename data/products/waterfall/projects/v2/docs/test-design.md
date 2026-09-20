@@ -28,7 +28,6 @@ The tests, by area.
   runner: vitest for core, server, clerk, cli and web components; Playwright for ui-tests; `pnpm test` runs everything but the live clerk smoke (flag:live-clerk)
 ```
 
-<!-- view:test -->
 
 
 

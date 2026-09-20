@@ -13,9 +13,10 @@ order: 12
 
 The constraints in force — rules about the product and how it is built that no code enforces. Approved ones go into every worker's prompt.
 
-<!-- view:constraint -->
 
 ## Constraints
+
+<!-- list:constraint -->
 
 ```yaml
 - id: constraint:wf2.local-first
@@ -58,3 +59,5 @@ The constraints in force — rules about the product and how it is built that no
   status: proposed
   by: alex
 ```
+
+<!-- /list:constraint -->

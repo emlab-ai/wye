@@ -15,6 +15,8 @@ Shell and navigation
 
 ## Decisions
 
+<!-- list:decision -->
+
 ```yaml
 - id: decision:wf2.one-table-block
   title: One Data table block with a type picker in its header, not one slash item per type
@@ -63,7 +65,11 @@ Shell and navigation
   affects: [action:command-palette, component:command-box, rule:agent-sessions, req:wf2.ui.command-palette]
 ```
 
+<!-- /list:decision -->
+
 ## Libraries
+
+<!-- list:lib -->
 
 ```yaml
 - id: lib:scope
@@ -112,3 +118,5 @@ Shell and navigation
     Every visible edge ranks the layout so non-tree presets (Drift, Data) still spread into layers; only refines/has are marked as tree edges for styling. refines points child → parent; has points parent → child; both are ranked parent → child. Other verbs rank from → to.
   part-of: module:shell-engine
 ```
+
+<!-- /list:lib -->

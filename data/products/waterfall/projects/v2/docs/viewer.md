@@ -15,6 +15,8 @@ The static viewer
 
 ## Rules
 
+<!-- list:rule -->
+
 ```yaml
 - id: rule:graph-presets
   statement: Requirements shows req nodes and refines edges only; Mechanics shows req/rule/entity/op/page/action/state/flag/gate with structural verbs; Data shows entity/field/value/flag/state with has/typed-as/refs/owns/embedded-in; Drift shows only nodes touching a drift node with contradicts edges; Everything shows all kinds and verbs. Focus overrides presets with a two-hop neighbourhood of one node.
@@ -31,3 +33,5 @@ The static viewer
   source: viewer/index.html:203-205
   verified-by: []
 ```
+
+<!-- /list:rule -->

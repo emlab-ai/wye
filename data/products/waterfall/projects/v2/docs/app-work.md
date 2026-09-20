@@ -39,6 +39,8 @@ enforces.
 
 ## Rules
 
+<!-- list:rule -->
+
 ```yaml
 - id: rule:work-state
   statement: >
@@ -262,7 +264,11 @@ enforces.
   verified-by: [test:prose]
 ```
 
+<!-- /list:rule -->
+
 ## Decisions
+
+<!-- list:decision -->
 
 ```yaml
 - id: decision:wf2.plan-first-is-a-prompt
@@ -450,7 +456,11 @@ enforces.
   part-of: goal:exec.work-and-impact
 ```
 
+<!-- /list:decision -->
+
 ## Libraries
+
+<!-- list:lib -->
 
 ```yaml
 - id: lib:review-summary
@@ -504,6 +514,8 @@ enforces.
   purpose: one librarian turn (req:exec.explain-anywhere) — the packet and the context around a node or a text to the model (WF_EXPLAIN_MODEL, default claude-sonnet-5) with the librarian's brief; the answer with the ids it names as refs
   part-of: module:app-work
 ```
+
+<!-- /list:lib -->
 
 ## Flags and gates
 

@@ -15,6 +15,8 @@ Memory
 
 ## Decisions
 
+<!-- list:decision -->
+
 ```yaml
 - id: decision:memory.constraint-packet
   title: >
@@ -462,3 +464,5 @@ Memory
   verdict:436617b81803 refines decision:memory.evaluation — A prescribes a three-tier evaluation framework with a prerequisite (tier-1 exists before features switch on); B specifies the concrete first step (live runs on haiku with committed recordings). (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:memory.evaluation decision:memory.eval-first-live-runs)
 
   verdict:9b9be5768617 refines req:memory.eval-benchmarks — A requires benchmarks with specific metrics and tolerance-based failure; B specifies how to implement the first instance (live runs on haiku with recordings). (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:memory.eval-benchmarks decision:memory.eval-first-live-runs)
+
+<!-- /list:decision -->

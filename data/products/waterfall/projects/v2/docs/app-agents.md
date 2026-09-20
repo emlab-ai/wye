@@ -43,6 +43,8 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
 ## Rules
 
+<!-- list:rule -->
+
 ```yaml
 - id: rule:block-attribution
   statement: >
@@ -239,7 +241,11 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   status: shipped
 ```
 
+<!-- /list:rule -->
+
 ## Decisions
+
+<!-- list:decision -->
 
 ```yaml
 - id: decision:wf2.cli-is-wye
@@ -448,7 +454,11 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   date: 2026-09-16
 ```
 
+<!-- /list:decision -->
+
 ## Libraries
+
+<!-- list:lib -->
 
 ```yaml
 - id: lib:agent-host
@@ -540,3 +550,5 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     Plans page, create, finish, close, adopt — is lib/plan-docs.ts.
   part-of: module:app-agents
 ```
+
+<!-- /list:lib -->

@@ -1,7 +1,7 @@
 ---
 node: module:req-ontology
 type: module
-title: Requirements — Ontology
+title: Ontology
 status: proposed
 owner: alex
 last-verified: 2026-09-20
@@ -9,13 +9,14 @@ part-of: module:wf2-prd
 order: 19
 ---
 
-# Requirements — Ontology
+# Ontology
 
 What Wye must do here, as behaviours a person can observe: when <trigger>, <outcome>, unless <exception>. How it is done is on the Systems page of the same name (Systems › Ontology); what a person sees on the Experience pages. Open questions wait at the end.
 
-<!-- view:req -->
 
 ## Requirements
+
+<!-- list:req -->
 
 ```yaml
 - id: req:ontology.content
@@ -114,7 +115,11 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   depends-on: rule:block-links
 ```
 
+<!-- /list:req -->
+
 ## Open questions
+
+<!-- list:question -->
 
 ```yaml
 - id: question:ontology.child-nodes
@@ -162,3 +167,5 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   related-to: [module:ontology-design,rule:block-links]
   session: 7cbfbe5976
 ```
+
+<!-- /list:question -->

@@ -13,9 +13,10 @@ order: 49
 
 Every operation the UI, the wye CLI and agents call, by area; the CLI commands are the same operations from a shell.
 
-<!-- view:op -->
 
 ## Agents and sessions
+
+<!-- list:op -->
 
 ```yaml
 - id: op:api.resolve
@@ -127,7 +128,11 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/sessions/[id]/route.ts; packages/web/src/lib/agent-host.ts#openInSession; packages/web/src/lib/open-target.ts; packages/web/src/components/Console.tsx; bin/wf.js#session
 ```
 
+<!-- /list:op -->
+
 ## Documents and editing
+
+<!-- list:op -->
 
 ```yaml
 - id: op:api.docs.create
@@ -189,7 +194,11 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/node/[id]/content/route.ts; packages/web/src/lib/node-content.ts; bin/wf.js (node content)
 ```
 
+<!-- /list:op -->
+
 ## Knowledge and search
+
+<!-- list:op -->
 
 ```yaml
 - id: op:api.node
@@ -257,7 +266,11 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   part-of: module:api
 ```
 
+<!-- /list:op -->
+
 ## Ontology
+
+<!-- list:op -->
 
 ```yaml
 - id: op:types.create
@@ -280,7 +293,11 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/types/[slug]/route.ts; packages/web/src/lib/instances.ts; packages/web/src/lib/type-edit.ts
 ```
 
+<!-- /list:op -->
+
 ## Shell and navigation
+
+<!-- list:op -->
 
 ```yaml
 - id: op:api.products.create
@@ -324,7 +341,11 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   part-of: module:api
 ```
 
+<!-- /list:op -->
+
 ## Storage and serving
+
+<!-- list:op -->
 
 ```yaml
 - id: op:api.events
@@ -336,7 +357,11 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   part-of: module:api
 ```
 
+<!-- /list:op -->
+
 ## Work, changes and impact
+
+<!-- list:op -->
 
 ```yaml
 - id: op:api.work
@@ -406,3 +431,5 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   status: shipped
   part-of: module:api
 ```
+
+<!-- /list:op -->

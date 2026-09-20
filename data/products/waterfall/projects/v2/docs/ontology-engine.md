@@ -15,6 +15,8 @@ Ontology
 
 ## Rules
 
+<!-- list:rule -->
+
 ```yaml
 - id: rule:type-tables
   statement: >
@@ -82,7 +84,11 @@ Ontology
   status: proposed
 ```
 
+<!-- /list:rule -->
+
 ## Decisions
+
+<!-- list:decision -->
 
 ```yaml
 - id: decision:wf2.typed-blocks-in-documents
@@ -352,3 +358,5 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
   related-to: [module:ontology-design, decision:ontology.types-are-cards]
   session: 94ac3cf3e0
 ```
+
+<!-- /list:decision -->

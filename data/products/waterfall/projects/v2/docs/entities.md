@@ -13,9 +13,10 @@ order: 32
 
 The things Wye keeps and the states they move through.
 
-<!-- view:entity -->
 
 ## Entities
+
+<!-- list:entity -->
 
 entity:product 
 
@@ -128,7 +129,11 @@ entity:product
     files:   List<path>          # union of source: paths of included nodes
 ```
 
+<!-- /list:entity -->
+
 ## State machines
+
+<!-- list:state -->
 
 ```yaml
 - id: state:task-lifecycle
@@ -189,3 +194,5 @@ entity:product
   transitions:
     - untested -> tested : a verified-by edge exists     # viewer/index.html:262-270, bin/ctx.js:100-108, lib/graph.js:116
 ```
+
+<!-- /list:state -->

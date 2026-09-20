@@ -28,6 +28,8 @@ What this module must do is written where it was decided — the PRD and the dev
 
 ## Rules
 
+<!-- list:rule -->
+
 ```yaml
 - id: rule:node-detection
   statement: A node is created from (a) `id: kind:slug` or `- id: kind:slug` inside a ```yaml block, split on `---` lines; (b) any id in a `### ` heading; (c) a table row whose first cell contains an id, unless the header row matches op|id|test node|enum|#|edge|policy|option|your req|test|tool; (d) a numbered row of a section whose heading contains "drift" or "contradiction".
@@ -146,7 +148,11 @@ What this module must do is written where it was decided — the PRD and the dev
   verified-by: []
 ```
 
+<!-- /list:rule -->
+
 ## Libraries
+
+<!-- list:lib -->
 
 ```yaml
 - id: lib:core.parse
@@ -168,6 +174,8 @@ What this module must do is written where it was decided — the PRD and the dev
     The ctx CLI: build, site, get, neighbors, search, impact, packet, check, stats, reqs — the offline way to read and lint a product graph.
   part-of: module:app-graph
 ```
+
+<!-- /list:lib -->
 
 ## Flags and gates
 

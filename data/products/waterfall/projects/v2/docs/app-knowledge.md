@@ -45,6 +45,8 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
 ## Rules
 
+<!-- list:rule -->
+
 ```yaml
 - id: rule:view-block
   statement: >
@@ -90,7 +92,11 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   requires-tests: [test:web-components#graph-layout]
 ```
 
+<!-- /list:rule -->
+
 ## Decisions
+
+<!-- list:decision -->
 
 ```yaml
 - id: decision:wf2.one-instance-table
@@ -132,7 +138,11 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   session: 53f99bfd98
 ```
 
+<!-- /list:decision -->
+
 ## Libraries
+
+<!-- list:lib -->
 
 ```yaml
 - id: lib:graph
@@ -193,3 +203,5 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   status: shipped
   part-of: module:app-knowledge
 ```
+
+<!-- /list:lib -->

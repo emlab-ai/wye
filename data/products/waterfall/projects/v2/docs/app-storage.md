@@ -35,6 +35,8 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
 ## Rules
 
+<!-- list:rule -->
+
 ```yaml
 - id: rule:question-decision-nodes
   statement: >
@@ -62,7 +64,11 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
 ```
 
+<!-- /list:rule -->
+
 ## Libraries
+
+<!-- list:lib -->
 
 ```yaml
 - id: lib:products
@@ -90,3 +96,5 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     The Electron main process: owns the Next.js server as a child, waits until it answers, opens the window; agents are children of the server so everything dies together.
   part-of: module:app-storage
 ```
+
+<!-- /list:lib -->

@@ -57,13 +57,19 @@ a view. Ids never change.
 
 ## Goals
 
+<!-- list:goal -->
+
 <!-- view:goal -->
+
+<!-- /list:goal -->
 
 ## Constitution
 
 <!-- view:constraint status=approved -->
 
 ## Product-level decisions
+
+<!-- list:decision -->
 
 ```yaml
 - id: decision:wf2.definition-layers
@@ -358,6 +364,8 @@ a view. Ids never change.
   verdict:4f0788d0dce8 refines decision:waterfall.rename-scope — B adds specificity to A's rename decision by detailing that definition page titles must say Wye (not Waterfall v2) while maintaining A's constraint to keep the product slug unchanged. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:waterfall.rename-scope decision:wf2.definition-leftovers)
 
   verdict:128894926465 refines constraint:wf2.one-defining-place — B applies and details A's constraint about stable ids by showing concretely that ids and product slug remain unchanged despite the Wye rename, exemplifying A's principle of id stability. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: constraint:wf2.one-defining-place decision:wf2.definition-leftovers)
+
+<!-- /list:decision -->
 
 ## Gates
 

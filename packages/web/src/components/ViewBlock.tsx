@@ -23,7 +23,11 @@ export const ViewBlock = createReactBlockSpec(
   { type: 'view', propSchema: { slug: { default: 'task' }, query: { default: '' } }, content: 'none' },
   {
     render: props => {
-      const { slug, query } = props.block.props as { slug: string; query: string };
+      const { slug, query: rawQuery } = props.block.props as { slug: string; query: string };
+      // `as=table` on the line asks for the table; the block form is the default (req:wf2.instances.view-as-blocks)
+      const asTable = /(^|\s)as=table(\s|$)/.test(rawQuery);
+      const query = rawQuery.replace(/(^|\s)as=(table|list)(?=\s|$)/, '').trim();
+      const withAs = (q: string) => [q, asTable ? 'as=table' : ''].filter(Boolean).join(' ');
       const { product, ownTypes } = usePeek();
       const [table, setTable] = useState<Table | null>(null);
       const [err, setErr] = useState('');
@@ -40,7 +44,8 @@ export const ViewBlock = createReactBlockSpec(
       }, [product, slug, version]);
       const options = [...ownTypes.map(t => t.slug), ...BASE_VIEW_KINDS.filter(k => !ownTypes.some(t => t.slug === k))]; if (!options.includes(slug)) options.push(slug);
       const initial = table ? parseViewQuery(query, table.columns.map(c => c.name)) : undefined;
-      const onChange = (f: Filters) => { const q = viewQuery(f); if (q !== query) props.editor.updateBlock(props.block, { props: { query: q } } as never); };
+      const onChange = (f: Filters) => { const q = viewQuery(f); if (q !== query) props.editor.updateBlock(props.block, { props: { query: withAs(q) } } as never); };
+      const setAs = (t: boolean) => props.editor.updateBlock(props.block, { props: { query: [query, t ? 'as=table' : ''].filter(Boolean).join(' ') } } as never);
       return (
         <div className="view-block" contentEditable={false} ref={stop}>
           <div className="view-head">
@@ -49,9 +54,10 @@ export const ViewBlock = createReactBlockSpec(
               {options.map(o => <option key={o} value={o}>{o}</option>)}
             </select>
             {table && <span className="muted small">{table.rows.length} {table.typed ? '' : '· not a declared type'}</span>}
+            <button type="button" className="collection-view-toggle" title={asTable ? 'show as blocks' : 'show as a table'} onClick={() => setAs(!asTable)}>{asTable ? '☰ blocks' : '▤ table'}</button>
             {err && <span className="bad">{err}</span>}
           </div>
-          {table && initial && <InstanceTable product={product} table={table} initial={initial} onChange={onChange} readOnly />}
+          {table && initial && <InstanceTable product={product} table={table} initial={initial} onChange={onChange} as={asTable ? 'table' : 'list'} readOnly />}
           {table && !table.rows.length && <p className="muted small">No {slug}s yet.</p>}
         </div>
       );

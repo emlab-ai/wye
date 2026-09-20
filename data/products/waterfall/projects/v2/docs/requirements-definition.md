@@ -1,7 +1,7 @@
 ---
 node: module:req-definition
 type: module
-title: Requirements — Definition — the librarian
+title: Definition — the librarian
 status: proposed
 owner: alex
 last-verified: 2026-09-20
@@ -9,13 +9,14 @@ part-of: module:wf2-prd
 order: 16
 ---
 
-# Requirements — Definition — the librarian
+# Definition — the librarian
 
 What Wye must do here, as behaviours a person can observe: when <trigger>, <outcome>, unless <exception>. How it is done is on the Systems page of the same name (Systems › Definition — the librarian); what a person sees on the Experience pages. Open questions wait at the end.
 
-<!-- view:req -->
 
 ## Requirements
+
+<!-- list:req -->
 
 ```yaml
 - id: req:exec.ask-wye
@@ -135,7 +136,11 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   verified-by: [ui-test:explain]
 ```
 
+<!-- /list:req -->
+
 ## Open questions
+
+<!-- list:question -->
 
 ```yaml
 - id: question:exec.wye-model
@@ -157,3 +162,5 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   status: open
   related-to: [req:exec.wye-proposes, rule:embed-line]
 ```
+
+<!-- /list:question -->

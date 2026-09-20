@@ -121,7 +121,12 @@ export function blocksToMarkdown(blocks: AnyBlock[]): string {
         blank(); push(`<!-- ${ck}${cp.query?.trim() ? ' ' + cp.query.trim() : ''} -->`); // the filters ride on the opening marker (rule:table-filter)
         // the editor keeps an empty row at the end for typing the next item; rows without text are not written
         const rows = (b.children ?? []).filter(c => c.type !== 'node' || (inlineToMarkdown(c.content as Inline[]).trim() && (c.props as unknown as NodeProps).slug));
-        push(...childrenLines(rows.map(c => c.type === 'node' && !(c.props as unknown as NodeProps).check && !(c.props as unknown as NodeProps).list ? { ...c, props: { ...c.props, list: 'bullet' } } : c), 0));
+        const body = childrenLines(rows.map(c => c.type === 'node' && (c.props as unknown as NodeProps).form !== 'yaml' && !(c.props as unknown as NodeProps).check && !(c.props as unknown as NodeProps).list ? { ...c, props: { ...c.props, list: 'bullet' } } : c), 0);
+        // a list region of cards keeps a blank line after its opening marker and before its closing one
+        if (body.length && body[0].startsWith('```')) push('');
+        while (body.length && body[body.length - 1] === '') body.pop();
+        push(...body);
+        if (body.length && body[body.length - 1] === '```') push('');
         push(`<!-- /${ck} -->`); blank(); break;
       }
       case 'drawing': { const dp = b.props as { src?: string; title?: string }; blank(); push(`![${dp.title ?? ''}](${dp.src ?? ''})`); blank(); break; }
@@ -159,7 +164,24 @@ const isItem = (l: string) => /^\s*([-*+]|\d+[.)])\s/.test(l);
 function childrenLines(children: AnyBlock[] | undefined, depth: number): string[] {
   const pad = '  '.repeat(depth);
   const lines: string[] = []; let n = 0;
-  for (const c of children ?? []) {
+  const kids = children ?? [];
+  for (let i = 0; i < kids.length; i++) {
+    const c = kids[i];
+    // yaml cards inside a list region (rule:list-view): consecutive cards share one fence, as at the top level; a card
+    // with content ends its fence and its content follows, indented
+    if (c.type === 'node' && (c.props as unknown as NodeProps).form === 'yaml') {
+      const group: AnyBlock[] = [];
+      while (i < kids.length && kids[i].type === 'node' && (kids[i].props as unknown as NodeProps).form === 'yaml') { group.push(kids[i++]); if (group[group.length - 1].children?.length) break; }
+      i--;
+      if (lines.length && lines[lines.length - 1] !== '') lines.push('');
+      lines.push(pad + '```yaml');
+      for (const nb of group) nodeToMarkdown(nb.props as unknown as NodeProps, inlineToMarkdown(nb.content as Inline[])).forEach((l, k) => lines.push(pad + (k === 0 ? '- ' : '  ') + l));
+      lines.push(pad + '```');
+      const last = group[group.length - 1];
+      if (last.children?.length) { lines.push(''); lines.push(...contentLines(last.children).filter((l, k) => k > 0 || l !== '').map(l => l ? pad + l : l)); }
+      lines.push('');
+      continue;
+    }
     const numbered = c.type === 'numberedListItem' || (c.type === 'node' && (c.props as unknown as NodeProps).list === 'number');
     n = numbered ? n + 1 : 0;
     if (c.type.endsWith('ListItem')) lines.push(...listLines(c, depth, n), ...contentLines(c.children).map(l => l ? pad + l : l));

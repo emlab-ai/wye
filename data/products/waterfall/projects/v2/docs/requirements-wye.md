@@ -15,6 +15,8 @@ order: 25
 
 ## Requirements
 
+<!-- list:req -->
+
 ```yaml
 - id: req:wf2.self
   title: v2 is built through its own graph
@@ -85,7 +87,11 @@ order: 25
   satisfied-by: [decision:wf2.definition-leftovers]
 ```
 
+<!-- /list:req -->
+
 ## Open questions
+
+<!-- list:question -->
 
 - question:wf2.tasks-in-markdown Tasks live in documents as task nodes rather than in the database the spec planned; the database can index them later. Is that the final answer? Related to decision:wf2.tasks-replace-delta-files.
 
@@ -132,3 +138,5 @@ order: 25
     Default model for the clerk — the mid tier for cost, or the top tier for classification quality on
     contradictions? flag:clerk-model makes it configurable; the default is the open choice.
 ```
+
+<!-- /list:question -->

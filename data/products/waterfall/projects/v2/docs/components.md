@@ -13,9 +13,10 @@ order: 23
 
 The editor's blocks and the components the pages are made of, by area.
 
-<!-- view:component -->
 
 ## Agents and sessions
+
+<!-- list:component -->
 
 ```yaml
 - id: component:console
@@ -127,7 +128,11 @@ The editor's blocks and the components the pages are made of, by area.
   part-of: module:components
 ```
 
+<!-- /list:component -->
+
 ## Documents and editing
+
+<!-- list:component -->
 
 ```yaml
 - id: component:doc-editor
@@ -213,7 +218,11 @@ The editor's blocks and the components the pages are made of, by area.
   part-of: module:components
 ```
 
+<!-- /list:component -->
+
 ## Knowledge and search
+
+<!-- list:component -->
 
 ```yaml
 - id: component:track-list
@@ -313,7 +322,11 @@ The editor's blocks and the components the pages are made of, by area.
   part-of: module:components
 ```
 
+<!-- /list:component -->
+
 ## Shell and navigation
+
+<!-- list:component -->
 
 ```yaml
 - id: component:shell
@@ -423,7 +436,11 @@ The editor's blocks and the components the pages are made of, by area.
   part-of: module:components
 ```
 
+<!-- /list:component -->
+
 ## Work, changes and impact
+
+<!-- list:component -->
 
 ```yaml
 - id: component:work-list
@@ -459,3 +476,5 @@ The editor's blocks and the components the pages are made of, by area.
   purpose: the "changed" badge on a node's header while a change record on it is pending; the old value on hover, a link to the Inbox
   part-of: module:components
 ```
+
+<!-- /list:component -->

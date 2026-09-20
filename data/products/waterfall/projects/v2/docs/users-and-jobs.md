@@ -13,9 +13,10 @@ order: 11
 
 Who Wye is for and what they come to do; the goals the product sets out to reach.
 
-<!-- view:goal -->
 
 ## Goals
+
+<!-- list:goal -->
 
 ```yaml
 - id: goal:memory.validated-asks
@@ -67,3 +68,5 @@ Who Wye is for and what they come to do; the goals the product sets out to reach
   part-of: module:users-and-jobs
   depends-on: [goal:memory.validated-asks, goal:exec.work-and-impact, req:wf2.clerk]
 ```
+
+<!-- /list:goal -->

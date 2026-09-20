@@ -1,7 +1,7 @@
 ---
 node: module:req-knowledge
 type: module
-title: Requirements — Knowledge and search
+title: Knowledge and search
 status: proposed
 owner: alex
 last-verified: 2026-09-20
@@ -9,13 +9,14 @@ part-of: module:wf2-prd
 order: 14
 ---
 
-# Requirements — Knowledge and search
+# Knowledge and search
 
 What Wye must do here, as behaviours a person can observe: when <trigger>, <outcome>, unless <exception>. How it is done is on the Systems page of the same name (Systems › Knowledge and search); what a person sees on the Experience pages. Open questions wait at the end.
 
-<!-- view:req -->
 
 ## Requirements
+
+<!-- list:req -->
 
 ```yaml
 - id: req:wf2.instances.filter
@@ -36,6 +37,18 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   satisfied-by: [component:instance-table, page:web/types, page:web/knowledge]
   verified-by: [test:web-lib#instance-table, ui-test:instance-table]
   part-of: req:ontology.type-page
+- id: req:wf2.instances.view-as-blocks
+  title: An instances view shows its instances as blocks unless asked for a table
+  when: a document holds an instances view (`<!-- view:<type> -->`) of any type
+  then: >
+    every instance that passes the filters is shown as its own block — the same card its page shows, editable in
+    place — under the view's filter bar and groups; `as=table` on the line, or the header's toggle, gives the table
+  status: shipped
+  refines: req:wf2.instances.view-block
+  satisfied-by: [component:view-block, component:instance-table, component:embed-block]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-knowledge
 - id: req:wf2.instances.view-block
   title: A document holds a live view of a type's instances
   when: >
@@ -73,7 +86,11 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
 ```
 
+<!-- /list:req -->
+
 ## Open questions
+
+<!-- list:question -->
 
 ```yaml
 - id: question:wf2.view-block-now
@@ -87,3 +104,5 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   status: resolved
   related-to: [req:wf2.instances.view-block, task:new-453]
 ```
+
+<!-- /list:question -->

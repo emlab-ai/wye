@@ -1,7 +1,7 @@
 ---
 node: module:req-agents
 type: module
-title: Requirements — Agents and sessions
+title: Agents and sessions
 status: proposed
 owner: alex
 last-verified: 2026-09-20
@@ -9,13 +9,14 @@ part-of: module:wf2-prd
 order: 17
 ---
 
-# Requirements — Agents and sessions
+# Agents and sessions
 
 What Wye must do here, as behaviours a person can observe: when <trigger>, <outcome>, unless <exception>. How it is done is on the Systems page of the same name (Systems › Agents and sessions); what a person sees on the Experience pages. Open questions wait at the end.
 
-<!-- view:req -->
 
 ## Requirements
+
+<!-- list:req -->
 
 ```yaml
 - id: req:wf2.sessions.block-attribution
@@ -492,7 +493,11 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   note: this file is the first step; nothing enforces the rest yet (req:wf.pipeline)
 ```
 
+<!-- /list:req -->
+
 ## Open questions
+
+<!-- list:question -->
 
 ```yaml
 - id: question:wf2.attribution-several-sessions
@@ -563,3 +568,5 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   status: open
   related-to: [req:wf2.sessions.plan-doc]
 ```
+
+<!-- /list:question -->

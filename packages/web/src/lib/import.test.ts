@@ -263,6 +263,14 @@ describe('list regions (rule:list-view)', () => {
     expect((coll.children ?? []).map(c => (c.props as { row?: string }).row)).toEqual(['', '']);
     expect(blocksToMarkdown(blocks)).toBe(src);
   });
+  it('yaml cards inside a list region come back as cards and write back fenced (rule:list-view)', () => {
+    const fake = (md: string): AnyBlock[] => md.split(/\n\n+/).filter(Boolean).map(ch => ch.startsWith('- ') ? { type: 'bulletListItem', content: [t(ch.slice(2))] } : { type: 'paragraph', content: [t(ch.replace(/\n/g, ' '))] }) as AnyBlock[];
+    const src = 'Intro.\n\n<!-- list:req -->\n\n```yaml\n- id: req:a.one\n  title: One\n  when: x\n  then: y\n  status: proposed\n- id: req:a.two\n  title: Two\n  status: shipped\n```\n\n<!-- /list:req -->\n\nAfter.\n';
+    const blocks = importMarkdown(src, fake);
+    const coll = blocks.find(b => b.type === 'collection')!;
+    expect((coll.children ?? []).map(c => (c.props as { form: string }).form)).toEqual(['yaml', 'yaml']);
+    expect(blocksToMarkdown(blocks)).toBe(src);
+  });
   it('a list block with no filters writes <!-- list:goal --> and reads back in list view', () => {
     expect(blocksToMarkdown([{ type: 'collection', props: { kind: 'goal', query: '', view: 'list' }, children: [] }])).toBe('<!-- list:goal -->\n<!-- /list:goal -->\n');
     const p = prepare('<!-- list:goal -->\n<!-- /list:goal -->\n');
