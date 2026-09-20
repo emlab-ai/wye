@@ -567,10 +567,21 @@ function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEveryw
   const [q, setQ] = useState(req.text.trim());
   const [busy, setBusy] = useState(false);
   const [type, setType] = useState(ownTypes[0]?.slug ?? 'entity');
+  const box = useRef<HTMLDivElement>(null);
+  // closes like any popup: Escape wherever the focus is, a click outside it, its × — React's root is the document,
+  // so the outside test is on the target, not on propagation (see app-router-document-listeners)
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    const down = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) onClose(); };
+    window.addEventListener('keydown', key, true); document.addEventListener('mousedown', down, true);
+    return () => { window.removeEventListener('keydown', key, true); document.removeEventListener('mousedown', down, true); };
+  }, [onClose]);
   // after a link: every other plain occurrence of the phrase, per document, and the offer to link them all
   const [after, setAfter] = useState<{ id: string; text: string; docs: { doc: string; project: string; title: string; count: number }[]; count: number; done?: number; went?: Made['doc'] } | null>(null);
   const hits = useMemo(() => { const n = q.trim().toLowerCase(); if (!n) return []; return Object.values(index).filter(e => e.id.toLowerCase().includes(n) || e.title.toLowerCase().includes(n)).slice(0, 8); }, [q, index]);
   const types = [...ownTypes.map(t => t.slug), ...['entity', 'value', 'person', 'team', 'goal', 'req', 'decision', 'question', 'task'].filter(k => !ownTypes.some(t => t.slug === k))];
+  // "city: London" typed into the search picks the type and keeps the name
+  const typed = q.match(/^([a-z][a-z-]*):\s*(.+)$/); const name = (typed && types.includes(typed[1]) ? typed[2] : q).trim(); const kind = typed && types.includes(typed[1]) ? typed[1] : type;
   const linked = async (id: string, went?: Made['doc']) => {
     apply(id);
     // the rest of the product: where the same words are still plain
@@ -580,8 +591,8 @@ function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEveryw
     if (went) { setAfter({ id, text, docs: [], count: 0, done: 0, went }); setTimeout(onClose, 2400); return; }
     onClose();
   };
-  const create = async () => { setBusy(true); const id = await createDoc(q.trim()); setBusy(false); if (id) linked(id); };
-  const createTyped = async () => { setBusy(true); const made = await createNode(type, q.trim()); setBusy(false); if (made) linked(made.id, made.doc); };
+  const create = async () => { setBusy(true); const id = await createDoc(name); setBusy(false); if (id) linked(id); };
+  const createTyped = async () => { if (!name) return; setBusy(true); const made = await createNode(kind, name); setBusy(false); if (made) linked(made.id, made.doc); };
   const all = async () => { if (!after) return; setBusy(true); const n = await linkEverywhere(after.text, after.id, after.docs.map(d => `${d.project}/${d.doc}`)); setBusy(false); setAfter({ ...after, done: n }); setTimeout(onClose, 1600); };
   if (after) return (
     <div className="linknode" style={{ left: Math.min(req.x, window.innerWidth - 360), top: req.y }}>
@@ -594,13 +605,13 @@ function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEveryw
     </div>
   );
   return (
-    <div className="linknode" style={{ left: Math.min(req.x, window.innerWidth - 360), top: req.y }}>
-      <div className="linknode-sel">link “{req.text || '…'}” to</div>
-      <input autoFocus value={q} placeholder="search id or title, or a new document title…" onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { if (hits[0]) linked(hits[0].id); else if (q.trim()) createTyped(); } if (e.key === 'Escape') onClose(); }} />
+    <div className="linknode" ref={box} style={{ left: Math.min(req.x, window.innerWidth - 360), top: req.y }}>
+      <div className="linknode-sel">link “{req.text || '…'}” to<button className="linknode-x" onMouseDown={e => { e.preventDefault(); onClose(); }} title="Close (Esc)" aria-label="Close">×</button></div>
+      <input autoFocus value={q} placeholder="search id or title — or type “city: London” to make one…" onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { if (hits[0] && !typed) linked(hits[0].id); else if (name) createTyped(); } if (e.key === 'Escape') onClose(); }} />
       <ul>
-        {hits.map(h => <li key={h.id}><button onMouseDown={e => { e.preventDefault(); linked(h.id); }}><span>{h.id}</span><small>{h.title}</small></button></li>)}
-        {q.trim() && <li className="linknode-new"><button className="create" disabled={busy} onMouseDown={e => { e.preventDefault(); createTyped(); }}><span>+ new <b>{type}</b> “{q.trim()}”</span><small>{type}:{q.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')} in {ownTypes.some(t => t.slug === type) ? `the ${type} collection document` : 'this document'}, and this word becomes its tag</small></button><select value={type} onMouseDown={e => e.stopPropagation()} onChange={e => setType(e.target.value)} title="the type of the new node">{types.map(t => <option key={t} value={t}>{t}</option>)}</select></li>}
-        {q.trim() && <li><button className="create" disabled={busy} onMouseDown={e => { e.preventDefault(); create(); }}><span>+ new document “{q.trim()}”</span><small>creates a page under this one and links to it</small></button></li>}
+        {!typed && hits.map(h => <li key={h.id}><button onMouseDown={e => { e.preventDefault(); linked(h.id); }}><span>{h.id}</span><small>{h.title}</small></button></li>)}
+        {name && <li className="linknode-new"><select value={kind} onMouseDown={e => e.stopPropagation()} onChange={e => { setType(e.target.value); if (typed) setQ(name); }} title="the type of the new node">{types.map(t => <option key={t} value={t}>{t}</option>)}</select><button className="create" disabled={busy} onMouseDown={e => { e.preventDefault(); createTyped(); }}><span>+ new <b>{kind}:{name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}</b> “{name}”</span><small>{ownTypes.some(t => t.slug === kind) ? `a row in the ${kind} collection document` : 'a card in this document'}; this word becomes its tag</small></button></li>}
+        {name && <li><button className="create" disabled={busy} onMouseDown={e => { e.preventDefault(); create(); }}><span>+ new document “{name}”</span><small>creates a page under this one and links to it</small></button></li>}
       </ul>
     </div>
   );
