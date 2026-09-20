@@ -56,6 +56,14 @@ export function TaskWork({ id }: { id: string }) {
           {item.status !== 'done' && <button className="linkish" onClick={markDone} title={me ? `done, by ${me}` : 'done'}>✓ done</button>}
         </span>
       </div>
+      {last && (last.status === 'running' || last.status === 'queued') && (
+        // assigned and under way (req:exec.dispatch): who holds it, since when, the execution plan and the conversation
+        <div className="taskwork-assigned">
+          <small>{last.status === 'queued' ? 'queued for' : 'assigned to'}</small> <b>{agentLabel(last.agent)}</b> <span className="muted">· {when(last.createdAt)}</span>
+          {last.planDoc && <a className="taskwork-plan" href={`/${product}/${last.planDoc.split('/').slice(1).join('/d/')}`} title={last.planDoc}>execution plan ↗</a>}
+          <button className="linkish" onClick={() => open(`session:${last.id}`)}>conversation {last.id.slice(0, 6)}</button>
+        </div>
+      )}
       {plan && (
         <div className="taskwork-def">
           <small>plan {plan.status}{plan.role === 'librarian' ? ' · defined with Wye' : ''}</small>
@@ -66,7 +74,7 @@ export function TaskWork({ id }: { id: string }) {
       )}
       {last && (last.status === 'done' || last.status === 'failed' || last.status === 'cancelled') && (
         <div className="taskwork-result">
-          <div className="taskwork-head"><small>result</small><button className="linkish" onClick={() => open(`session:${last.id}`)}>session {last.id.slice(0, 6)}</button><StatusPill status={last.status} /><span className="muted">{agentLabel(last.agent)} · {when(last.finishedAt ?? last.createdAt)}</span></div>
+          <div className="taskwork-head"><small>result</small><button className="linkish" onClick={() => open(`session:${last.id}`)}>session {last.id.slice(0, 6)}</button>{last.planDoc && <a className="linkish" href={`/${product}/${last.planDoc.split('/').slice(1).join('/d/')}`}>plan ↗</a>}<StatusPill status={last.status} /><span className="muted">{agentLabel(last.agent)} · {when(last.finishedAt ?? last.createdAt)}</span></div>
           <p className="taskwork-summary">{(last.result ?? '').trim() || <em className="muted">no summary</em>}</p>
           {blocks.length > 0 && (
             <div className="taskwork-blocks">

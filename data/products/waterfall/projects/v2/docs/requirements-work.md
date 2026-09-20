@@ -19,6 +19,16 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 <!-- list:req -->
 
 ```yaml
+- id: req:exec.assigned-visible
+  title: An assigned task says who holds it and links to its execution plan
+  when: a task has been assigned or built and its session is queued or running
+  then: the task's Work section shows the worker, since when, a link to the execution plan the assignment created and the conversation; a finished session's result links to its plan too
+  status: shipped
+  refines: req:exec.dispatch
+  satisfied-by: [component:task-work]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-work
 - id: req:exec.work-view
   title: One Work view lists every task of the product, whoever holds it
   when: the Work entry opens (/<product>/work; the Tasks entry becomes it)
