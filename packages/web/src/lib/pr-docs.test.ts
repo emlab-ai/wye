@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { approvePr, cancelPr, reopenPr, readPrDoc, prReadiness } from './pr-docs';
+import { approvePr, cancelPr, reopenPr, readPrDoc, prReadiness, createPrDoc } from './pr-docs';
+import type { Session } from './session-types';
 import { rebuild } from './write'; import { DATA_ROOT } from './products'; import { loadScope } from './scope';
 
 // approval (decision:wf2.pr-approval-is-the-persons-click): the person's click sets approved with who and when;
@@ -29,5 +30,15 @@ describe('pr approval', () => {
     await cancelPr(dir, product, `${product}/p/pr-a`);
     const gone = await readFile(path.join(dir, 'projects/p/docs/pr-a.md'), 'utf8');
     expect(gone).toMatch(/^status: cancelled$/m); expect(gone).toMatch(/^finished: /m);
+  });
+  it('a PR is born refining under a librarian and building under a worker (decision:wf2.pr-lifecycle)', async () => {
+    const base = { id: 'l1', product, agent: 'claude-code', status: 'running', refs: [], source: {}, instruction: 'make the checkout round half-up', log: [], createdAt: '', updatedAt: '' } as unknown as Session;
+    const ref = await createPrDoc(dir, product, { ...base, role: 'librarian' });
+    expect(ref).toBe(`${product}/p/pr-make-checkout-round-half-up`);
+    const md = await readFile(path.join(dir, 'projects/p/docs/pr-make-checkout-round-half-up.md'), 'utf8');
+    expect(md).toMatch(/^type: pr$/m); expect(md).toMatch(/^status: refining$/m); expect(md).toMatch(/^part-of: module:p-prs$/m); expect(md).toContain('## Impact');
+    const ref2 = await createPrDoc(dir, product, { ...base, id: 'w1', instruction: 'make the checkout round half-up' });
+    expect(ref2).toBe(`${product}/p/pr-make-checkout-round-half-up-2`);
+    expect(await readFile(path.join(dir, 'projects/p/docs/pr-make-checkout-round-half-up-2.md'), 'utf8')).toMatch(/^status: building$/m);
   });
 });
