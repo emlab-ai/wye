@@ -595,6 +595,14 @@ The editor's blocks and the components the pages are made of, by area.
     (no header comment)
   status: proposed
   part-of: module:components
+- id: component:settings-agents
+  file: packages/web/src/components/SettingsAgents.tsx
+  side: client
+  purpose: >
+    The dispatcher's knobs (decision&#58;wf2.pr-scheduler): how many approved PRs build at once, and which agent
+    builds.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

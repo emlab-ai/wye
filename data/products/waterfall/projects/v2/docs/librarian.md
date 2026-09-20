@@ -176,6 +176,34 @@ Definition — the librarian
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
   part-of: goal:exec.define-first
+- id: decision:wf2.pr-scheduler
+  title: Approved PRs are built by the app — a dispatcher, N parallel runners, no two overlapping scopes at once
+  context: >
+    Under D1 an approved PR waited for a manual Build; alex approved #27 and asked why nothing started. The spec's
+    second deliverable: the app runs the builds itself, several at once when they cannot collide.
+  choice: >
+    A PR's scope (lib:pr-scope) is its Definition ids, the ids its request tags and what lib/impact's structural
+    candidates reach from them (two hops, weight ≥ 0.5) — written to the page as `scope` with `scope-of` (the hash
+    of the Definition ids) after intake and whenever the Definition moves; readiness's impact check is that
+    freshness. The dispatcher (lib:dispatch) runs on approve, on every session end and every 30 s: the PRs building
+    (status building with a queued or live worker session; a stale one goes back to approved), the free slots
+    (Settings › Agents, parallel runners, default 1), and the approved PRs in approval order — each whose scope does
+    not overlap a building PR's starts through assignTask(build) with the Definition as context; the rest wait with
+    the reason on the head and in the PRs folder (overlaps #12 (ids) / no free slot). No head-of-line blocking.
+    Build now stays as the manual override. External wye runner processes keep taking backlog tasks; they do not
+    take PRs.
+  alternatives: >
+    External runners only — rejected: nothing would run unless a runner was started by hand. Scope by document or
+    module — rejected as too coarse for a first cut; the ids can be widened later.
+  consequences: >
+    The build agent runs in the product's repo — the same working tree a person may be editing; two builds never
+    share a scope but may share files. lib:settings gains agents; op:api.pr gains rescope and the waiting reason.
+  date: 2026-09-20
+  status: approved
+  affects: [req:wf2.pr, lib:dispatch, lib:pr-scope, lib:settings, op:api.pr, component:pr-head, component:pr-folder]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
 - id: decision:wf2.cmd-modes
   title: ⌘P has two modes — PR (a request page with a refining session) and Ad-hoc (a conversation, no page)
   context: >

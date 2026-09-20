@@ -186,18 +186,19 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   then: >
     a PR page is created under the project's PRs page (pr:<slug>, Request / Context / Definition / Impact / Tasks /
     Result) and a librarian refines it in the column — fills Context, proposes the Definition blocks in their home
-    documents, asks its questions on the page — until the readiness list on the PR's head is green (definition ·
-    agreed · impact · no contradiction · tasks); the person approves it there (Approve — with what is unagreed named
-    when the list is not green — Cancel, Reopen; wye pr approve from the CLI), and an approved PR is built by a
-    worker from its Definition; the rail's PRs folder shows every PR grouped refining · approved · building, the
+    documents, asks its questions on the page as question cards the person answers there — until the readiness
+    list on the PR's head is green (definition · agreed · impact · no contradiction · tasks); the person approves it
+    there (Approve — with what is unagreed named when the list is not green — Cancel, Reopen; wye pr approve from
+    the CLI), and an approved PR is built by the app: a worker starts on it as soon as a slot is free (Settings ›
+    Agents, parallel runners) and no building PR shares its scope (decision:wf2.pr-scheduler); the rail's PRs folder shows every PR grouped refining · approved · building, the
     ended ones under done; ad-hoc — the other ⌘P mode — is a conversation with a coding agent and makes no page
   unless: >
     the person cancels the PR — then it is cancelled and its refining session stopped; or the librarian leaves
     before approval — then the PR is a draft again
   status: shipped
   refines: req:wf2.sessions.plan-doc
-  satisfied-by: [type:pr, lib:pr-doc, lib:pr-docs, lib:pr-sessions, op:api.pr, op:api.sessions, component:pr-head, component:pr-folder, component:pr-list, component:command-box, page:web/prs, rule:pr-doc, rule:prs-folder]
-  verified-by: [test:web-lib#pr-doc, test:web-lib#pr-docs, test:plans-to-prs, ui-test:pr]
+  satisfied-by: [type:pr, lib:pr-doc, lib:pr-docs, lib:pr-sessions, lib:pr-intake, lib:pr-questions, lib:pr-scope, lib:dispatch, op:api.pr, op:api.sessions, component:pr-head, component:pr-folder, component:pr-list, component:command-box, component:settings-agents, page:web/prs, rule:pr-doc, rule:prs-folder]
+  verified-by: [test:web-lib#pr-doc, test:web-lib#pr-docs, test:web-lib#pr-scope, test:web-lib#dispatch, test:web-lib#pr-questions, test:web-lib#pr-intake, test:plans-to-prs, test:prs-number, ui-test:pr]
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
   part-of: module:req-agents

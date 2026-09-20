@@ -189,6 +189,53 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     of the agent host (which imports it).
   status: proposed
   part-of: module:app-storage
+- id: lib:dispatch
+  file: packages/web/src/lib/dispatch.ts
+  side: server
+  purpose: >
+    The dispatcher (decision&#58;wf2.pr-scheduler): approved PRs are built by the app itself. Whenever a PR is
+    approved, a session ends, or the tick fires, each product is looked at: the PRs building (status building with a
+    live or queued session on them — a stale one goes back to approved), the free slots (Settings › Agents, parallel
+    runners minus the building), and the approved PRs in approval order; every one whose scope does not overlap a
+    building PR's gets a worker session through assignTask(... build) — the Definition as its context — until the
+    slots are spent. A PR that has to wait knows why (the head and the PRs folder show it). pickNext is pure.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:pr-intake
+  file: packages/web/src/lib/pr-intake.ts
+  side: server
+  purpose: >
+    Intake (decision&#58;wf2.pr-intake): the moment a PR page exists, the app reads the product for it — before the
+    librarian starts. One model call gives a real title and the request restated as what the person wants; the
+    constraint packet and the semantic search give what it touches and what is in force; lib/impact's structural
+    candidates give what the change reaches. Written into the page (title, Context, Impact) and put in front of the
+    librarian as its first message's "What Wye found", so it continues from there instead of re-explaining. Pure
+    helpers first (the prompt, the parser, the section bodies), then the IO.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:pr-questions
+  file: packages/web/src/lib/pr-questions.ts
+  side: server
+  purpose: >
+    A librarian's questions live on its PR page (decision&#58;wf2.pr-questions-on-the-page): when a refining session
+    raises AskUserQuestion, the questions become `question:` cards under the PR's "## Questions" — the question, its
+    header, the options with their descriptions, `asked-by: session:<id>#<request>`, status open. The person answers
+    on the page (op:api.pr answer) or in the console; either way the card gets `answer`, `by`, status resolved, and
+    once every card of one request is answered the tool is answered too, so the session continues. Pure helpers
+    first, then the IO.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:pr-scope
+  file: packages/web/src/lib/pr-scope.ts
+  side: server
+  purpose: >
+    A PR's scope (decision&#58;wf2.pr-scheduler): the ids its build will touch — the Definition's blocks, the ids
+    the request tags, and what lib/impact's structural candidates reach from those (two hops with decay, weight ≥
+    0.5). Written to the frontmatter as `scope: [..]` with `scope-of: <hash of the Definition ids>` so readiness can
+    tell whether it is fresh; two PRs overlap when their scopes intersect — the dispatcher never builds them at
+    once.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->
