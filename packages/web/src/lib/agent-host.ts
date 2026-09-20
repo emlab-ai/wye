@@ -15,6 +15,7 @@ import { firstUserEvent } from './transcript';
 import { packetFor } from './packet';
 import './consolidate';   // registers the session-end consolidation hook (decision:memory.consolidate-sessions)
 import './pr-questions';  // registers the ask / answered hooks that mirror a librarian's questions onto its PR page
+import './dispatch';      // registers the session-end trigger and the tick of the PR scheduler (decision:wf2.pr-scheduler)
 
 // `turn`: the queue items handed to the open turn — stamped done / failed when it ends (decision:wf2.queue-item-state);
 // `product` / `wfUrl` let the pump build a first message when a fresh item comes up (rule:clean-slate); `stopped`: the

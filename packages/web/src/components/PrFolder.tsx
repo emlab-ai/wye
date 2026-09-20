@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-export type PrItem = { slug: string; project: string; title: string; icon: string; status: string; started: string };
+export type PrItem = { slug: string; project: string; title: string; icon: string; status: string; started: string; waiting?: string };
 
 // The rail's PRs system folder (req:wf2.ui.plans-folder, rule:prs-folder): opens the product's PRs page;
 // under it every request newest first, grouped by where it is — refining · approved · building — the open one marked,
@@ -25,7 +25,7 @@ export function PrFolder({ product, prs }: { product: string; prs: PrItem[] }) {
   const groups = [['refining', group('refining')], ['approved', group('approved')], ['building', group('building')]] as const;
   const row = (p: PrItem) => { const h = `/${product}/${p.project}/d/${p.slug}`; return (
     <li key={`${p.project}/${p.slug}`} className={`pf-row s-${p.status} ${path === h ? 'on' : ''}`}>
-      <Link href={h} className="pg-link" title={`${p.status}${p.started ? ` · ${p.started.slice(0, 10)}` : ''}`}><span className="pg-icon">{p.icon}</span><span className="pg-title">{p.title}</span></Link>
+      <Link href={h} className="pg-link" title={`${p.status}${p.waiting ? ` · waiting: ${p.waiting}` : ''}${p.started ? ` · ${p.started.slice(0, 10)}` : ''}`}><span className="pg-icon">{p.icon}</span><span className="pg-title">{p.title}</span></Link>
     </li>); };
   return (
     <li className="pr-folder">

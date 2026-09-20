@@ -5,6 +5,7 @@ import { stopRefining } from '@/lib/pr-sessions';
 import { questionsOf, answerOnPage } from '@/lib/pr-questions';
 import { answerPermission, isLive, liveState } from '@/lib/agent-host';
 import { getSession } from '@/lib/sessions';
+import { notifyDispatch, waitingReasons } from '@/lib/dispatch';
 import { REPO_ROOT } from '@/lib/products';
 import path from 'node:path';
 import { getFrontmatter, setFrontmatter, requestTaskId, prNumberOf, prLabel } from '@/lib/pr-doc';
@@ -32,7 +33,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ product:
   const sess = sid ? await getSession(scope.product.dir, sid) : null;
   const lastSaid = (sess?.transcript ?? []).filter(e => e.kind === 'assistant' && e.text?.trim()).pop()?.text?.trim().split('\n').filter(Boolean).pop()?.slice(0, 200) ?? '';
   const conversation = sess ? { id: sess.id, status: sess.status, ...liveState(sess.id), role: sess.role ?? 'worker', last: lastSaid } : null;
-  return NextResponse.json({ ref, node: num ? `pr:${num}` : `pr:${pr.slug}`, num, title, label: num ? prLabel(num, title) : title, status: getFrontmatter(pr.md, 'status') ?? '', role: getFrontmatter(pr.md, 'role') ?? 'worker', task: getFrontmatter(pr.md, 'task') ?? (pr.md.includes(`${requestTaskId(pr.slug)} `) ? requestTaskId(pr.slug) : null), session: getFrontmatter(pr.md, 'session') ?? '', approvedBy: getFrontmatter(pr.md, 'approved-by') ?? null, approvedAt: getFrontmatter(pr.md, 'approved-at') ?? null, conversation, definition: d, readiness: prReadiness(scope, pr.md), questions: questionsOf(scope.graph, path.relative(REPO_ROOT, pr.file)) }, { headers: { 'cache-control': 'no-store' } });
+  return NextResponse.json({ ref, node: num ? `pr:${num}` : `pr:${pr.slug}`, num, title, label: num ? prLabel(num, title) : title, status: getFrontmatter(pr.md, 'status') ?? '', role: getFrontmatter(pr.md, 'role') ?? 'worker', task: getFrontmatter(pr.md, 'task') ?? (pr.md.includes(`${requestTaskId(pr.slug)} `) ? requestTaskId(pr.slug) : null), session: getFrontmatter(pr.md, 'session') ?? '', approvedBy: getFrontmatter(pr.md, 'approved-by') ?? null, approvedAt: getFrontmatter(pr.md, 'approved-at') ?? null, conversation, waiting: waitingReasons(product)[ref] ?? null, definition: d, readiness: prReadiness(scope, pr.md), questions: questionsOf(scope.graph, path.relative(REPO_ROOT, pr.file)) }, { headers: { 'cache-control': 'no-store' } });
 }
 export async function PATCH(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
@@ -56,6 +57,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ produc
   if (body.action === 'approve') {
     await approvePr(scope.product.dir, product, body.ref, by);
     const stopped = await stopRefining(scope.product.dir, body.ref, `The PR was approved by ${by} — stop here; say in one line what is on the page.`).catch(() => []);
+    notifyDispatch(product, new URL(req.url).origin); // the build starts from here (decision:wf2.pr-scheduler)
     return NextResponse.json({ ok: true, status: 'approved', stopped });
   }
   if (body.action === 'cancel') {

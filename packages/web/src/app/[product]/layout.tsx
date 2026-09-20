@@ -17,6 +17,7 @@ import { REPO_ROOT } from '@/lib/products';
 import type { TreeItem } from '@/components/DocTree';
 import type { PrItem } from '@/components/PrFolder';
 import { prsPageId } from '@/lib/pr-doc';
+import { waitingReasons } from '@/lib/dispatch';
 
 export default async function ProductLayout({ children, params }: { children: ReactNode; params: Promise<{ product: string }> }) {
   const { product } = await params;
@@ -37,7 +38,7 @@ export default async function ProductLayout({ children, params }: { children: Re
   const withoutPrs = (items: DocNode[], project: string): DocNode[] => items.filter(d => {
     if (viewIds.has(d.module.id)) return false;
     if (d.module.id !== prsPageId(project)) return true;
-    for (const c of d.children) { const f = fm.get(c.file) ?? {}; prs.push({ slug: c.slug, project, title: c.title, icon: icons.get(c.file) || defaultIcon(c.slug), status: f.status ?? '', started: f.started ?? '' }); }
+    for (const c of d.children) { const f = fm.get(c.file) ?? {}; prs.push({ slug: c.slug, project, title: c.title, icon: icons.get(c.file) || defaultIcon(c.slug), status: f.status ?? '', started: f.started ?? '', waiting: waitingReasons(scope.product.slug)[`${scope.product.slug}/${project}/${c.slug}`] }); }
     return false;
   }).map(d => ({ ...d, children: withoutPrs(d.children, project) }));
   const projects = scope.projects.map(p => { const t = treeFor(scope, p.slug); return { slug: p.slug, title: p.meta.title, icon: p.meta.icon || (p.meta.kind === 'goal' ? '🎯' : '📁'), kind: p.meta.kind, status: p.meta.status, main: t.main?.slug ?? '', roots: withoutPrs(t.roots, p.slug).map(toItem), docs: [...t.byFile.values()].filter(d => d.file.includes(`/projects/${p.slug}/docs/`)).map(d => ({ slug: d.slug, title: d.title })) }; });

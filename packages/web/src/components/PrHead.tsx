@@ -8,7 +8,7 @@ import { useMe } from './WorkList';
 type Readiness = { definition: boolean; agreed: boolean; impact: boolean; contradictions: boolean; tasks: boolean; ok: boolean; unagreed: string[]; contradicted: string[] };
 type Q = { id: string; q: string; header?: string; options: { label: string; description?: string }[]; multi: boolean; status: string; answer?: string; by?: string; askedBy?: string };
 type Conversation = { id: string; status: string; live: boolean; busy: boolean; role: string; last: string };
-type Pr = { ref: string; node: string; num: number | null; title: string; label: string; status: string; task: string | null; session: string; approvedBy: string | null; approvedAt: string | null; conversation: Conversation | null; readiness: Readiness; definition: { total: number; agreed: number }; questions: Q[] };
+type Pr = { ref: string; node: string; num: number | null; title: string; label: string; status: string; task: string | null; session: string; approvedBy: string | null; approvedAt: string | null; conversation: Conversation | null; waiting: string | null; readiness: Readiness; definition: { total: number; agreed: number }; questions: Q[] };
 
 const CHECKS: { key: keyof Readiness; label: string; why: string }[] = [
   { key: 'definition', label: 'definition', why: 'at least one block in Definition' },
@@ -74,7 +74,8 @@ export function PrHead({ product, prRef }: { product: string; prRef: string }) {
             <button disabled={busy} onClick={() => act('cancel')}>Cancel</button>
           </>}
           {pr.status === 'approved' && <>
-            {pr.task && <button className="pri" onClick={() => open(pr.task!)} title="Assign the build to a worker from the request task's panel">Build</button>}
+            <span className="muted small" title="The dispatcher builds approved PRs when a slot is free and no building PR overlaps this one's scope">{pr.waiting ? `waiting: ${pr.waiting}` : 'queued for a build'}</span>
+            {pr.task && <button onClick={() => open(pr.task!)} title="Assign the build by hand from the request task's panel">Build now</button>}
             <button disabled={busy} onClick={() => act('reopen')}>Reopen</button>
             <button disabled={busy} onClick={() => act('cancel')}>Cancel</button>
           </>}
