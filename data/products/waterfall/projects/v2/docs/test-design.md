@@ -344,6 +344,13 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
 ## End-to-end (Playwright, real server on a temp copy of the fixture repo)
 
 ```yaml
+- id: ui-test:tabs
+  file: (by hand with playwright-core against the dev server — not written yet; task:waterfall.ui-test-tabs-write-and-run)
+  status: proposed
+  description: >
+    req:wf2.ui.tabs — open two documents, the second opens as a tab after the first; open the first again, its tab
+    comes forward and nothing is added; open a node in the context column, a tab appears there; × on a tab shows its
+    neighbour; pin keeps a tab; reload — both strips come back with the last tab open; the Context root has no ×.
 - id: test:node-edit-web
   file: packages/web/src/lib/node-edit.test.ts
   cases: 5

@@ -96,6 +96,29 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
   part-of: module:req-shell
+- id: req:wf2.ui.tabs
+  title: Pages and opened nodes stay open as tabs, above the content and above the context column
+  when: >
+    a person navigates inside a product — opens a document or a view in the content column, or opens a node,
+    a session or a search hit in the context column
+  then: >
+    it opens as a tab in a strip above that column, right after the tab they were on (or the tab that already
+    shows it comes forward — nothing opens twice), so what they were reading stays one click away; a click on a
+    tab goes there, × (or the middle mouse button) closes it and shows its neighbour, a pinned tab keeps its place
+    and shows a pin instead of ×; the strip scrolls sideways when it is full; both strips read the same way and
+    the tabs of each column are remembered per product in that browser, the last one open again after a reload
+  unless: the tab is fixed (the Context root of the column), which can be neither closed nor pinned
+  status: shipped
+  satisfied-by: [component:tabs, component:top-bar, component:peek-provider]
+  verified-by: [ui-test:tabs]
+  by: alex
+  evidence: [session:7a334e57e6, packages/web/src/components/Tabs.tsx, packages/web/src/components/TopBar.tsx#usePageTabs, packages/web/src/components/PeekProvider.tsx]
+  part-of: module:req-shell
+```
+
+  - [ ] task:waterfall.ui-test-tabs-write-and-run ui-test:tabs — write and run the playwright-core probe for req:wf2.ui.tabs open, bring forward, close shows neighbour, pin, reload keeps both strips, fixed Context root ; mark the test passed. (by: agent:7a334e57e6, since: 2026-09-20, part-of: req:wf2.ui.tabs)
+
+```yaml
 - id: req:wf2.ui.tree-menu
   title: A tree row has a menu to duplicate or delete the document
   when: >

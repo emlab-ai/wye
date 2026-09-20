@@ -551,7 +551,7 @@ The editor's blocks and the components the pages are made of, by area.
   file: packages/web/src/components/Tabs.tsx
   side: client
   purpose: >
-    A strip of tabs, editor style (req&#58;wf2.ui.tabs): one row that scrolls sideways, the open tab on the
+    A strip of tabs, editor style (req:wf2.ui.tabs): one row that scrolls sideways, the open tab on the
     content's ground, the others sunk; × closes (the middle button too), a pinned tab keeps its place and shows a
     pin instead of ×. The same strip sits above the content and above the context column, so both read the same way.
   status: proposed
