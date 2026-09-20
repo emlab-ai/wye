@@ -2,7 +2,8 @@
 // keys follow lib/parse.js: a word, camelCase allowed (a type's `startDate`)
 export const EXTRA_KEY = '[A-Za-z][A-Za-z0-9_-]*';
 export const EXTRA_GROUP = new RegExp(`\\s*\\((${EXTRA_KEY}:\\s*[^()]*?(?:,\\s*${EXTRA_KEY}:\\s*[^()]*?)*)\\)\\s*$`);
-export const EXTRA_SPLIT = new RegExp(`,\\s*(?=${EXTRA_KEY}:)`);
+// a comma inside [] separates list items, never keys — an id like rule:x looks like a key otherwise (as lib/parse.js)
+export const EXTRA_SPLIT = new RegExp(`,\\s*(?![^[\\]]*\\])(?=${EXTRA_KEY}:)`);
 export function parseExtra(extra: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const kv of extra.split(EXTRA_SPLIT)) { const m = kv.match(new RegExp(`^\\s*(${EXTRA_KEY}):\\s*(.*?)\\s*$`)); if (m && m[2]) out[m[1]] = m[2]; }

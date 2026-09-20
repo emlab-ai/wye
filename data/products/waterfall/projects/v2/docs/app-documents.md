@@ -607,6 +607,15 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     Turns every kind:slug token in text and inline code into a link with href \"#tag:<id>\"; Document.tsx renders those links as SmartTag components. Text already inside a link is left alone.
   part-of: module:app-documents
 - id: lib:anchors
+- id: lib:link-all
+  file: packages/web/src/lib/link-all.ts
+  side: shared
+  purpose: >
+    Pure: `linkAll(md, phrase, id)` turns every plain whole-word occurrence of a phrase into a link to the node —
+    outside frontmatter, fences, comments, code spans, existing links, urls, ids and dotted names; inside a yaml card
+    only the text-bearing values and their folded continuation lines — and `countPlain` counts without changing.
+    Tested by test:web-lib#link-all. Behind op:api.link-all (req:wf2.editor.entity-from-text).
+  part-of: module:app-documents
   file: packages/web/src/lib/anchors.ts
   side: shared
   purpose: >

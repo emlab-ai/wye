@@ -136,6 +136,14 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
 <!-- list:op -->
 
 ```yaml
+- id: op:api.link-all
+  args: GET /api/<product>/link-all?text= | POST { text, id, docs? }
+  does: >
+    GET: where a phrase is still a plain word, per document with counts; POST: every plain occurrence becomes a link
+    to the node in the documents named (default all), each file written atomically, the graph rebuilt once (lib:link-all).
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/link-all/route.ts
+  part-of: module:api
 - id: op:api.docs.create
   args: POST /api/<product>/<project>/doc
   does: >

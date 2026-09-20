@@ -41,7 +41,8 @@ function useHistoryNav(path: string) {
 // tab next to the current one (or brings back the tab that already shows the page); a click on a tab goes there,
 // × closes it and shows its neighbour. Remembered per product in this browser.
 type PageTab = { href: string; label: string; icon: string };
-function usePageTabs(product: string, path: string, label: string, icon: string) {
+// provisional: the page could not name itself (a document whose file is gone) — an existing tab keeps its label
+function usePageTabs(product: string, path: string, label: string, icon: string, provisional = false) {
   const router = useRouter();
   const key = `wf-tabs:${product}`;
   const [tabs, setTabs] = useState<PageTab[] | null>(null);
@@ -54,13 +55,13 @@ function usePageTabs(product: string, path: string, label: string, icon: string)
       const list = cur ?? [];
       const i = list.findIndex(t => t.href === path);
       let next: PageTab[];
-      if (i >= 0) next = list[i].label === label && list[i].icon === icon ? list : list.map((t, k) => k === i ? { ...t, label, icon } : t);
+      if (i >= 0) next = provisional || (list[i].label === label && list[i].icon === icon) ? list : list.map((t, k) => k === i ? { ...t, label, icon } : t);
       else { const at = list.findIndex(t => t.href === lastPath.current); next = [...list]; next.splice(at >= 0 ? at + 1 : list.length, 0, { href: path, label, icon }); }
       lastPath.current = path;
       if (next !== list) { try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* ignore */ } }
       return next;
     });
-  }, [tabs === null, path, label, icon, product, key]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tabs === null, path, label, icon, provisional, product, key]); // eslint-disable-line react-hooks/exhaustive-deps
   const close = useCallback((href: string) => {
     setTabs(cur => {
       const list = cur ?? []; const i = list.findIndex(t => t.href === href); if (i < 0) return list;
@@ -80,7 +81,7 @@ export function TopBar({ product, docs }: { product: { slug: string; title: stri
   const can = useHistoryNav(path);
   const parts = path.split('/').filter(Boolean); // [product, ...]
   const crumbs: { href: string; label: string; icon?: string }[] = [{ href: `/${product.slug}`, label: product.title, icon: product.icon || '◆' }];
-  let doc: DocMeta | undefined; let edited = '';
+  let doc: DocMeta | undefined; let edited = ''; let gone = false;
   if (parts[1] === 'sessions' && parts[2]) { crumbs.push({ href: `/${product.slug}/sessions`, label: PAGES.sessions }, { href: path, label: `session ${parts[2].slice(0, 6)}${parts[3] === 'changes' ? ' · changes' : ''}`, icon: '⚡' }); }
   else if (parts[1] === 'types' && parts[2]) crumbs.push({ href: `/${product.slug}/types`, label: PAGES.types }, { href: path, label: parts[2] });
   else if (parts[1] && PAGES[parts[1]]) crumbs.push({ href: `/${product.slug}/${parts[1]}`, label: PAGES[parts[1]] });
@@ -90,13 +91,16 @@ export function TopBar({ product, docs }: { product: { slug: string; title: stri
     const chain: DocMeta[] = []; let cur: DocMeta | undefined = doc; const seen = new Set<string>();
     while (cur && !seen.has(cur.slug)) { seen.add(cur.slug); chain.unshift(cur); cur = cur.parent ? docs[cur.parent] : undefined; }
     for (const d of chain) crumbs.push({ href: `/${product.slug}/${d.project}/d/${d.slug}`, label: d.title, icon: d.icon });
-    if (!chain.length) crumbs.push({ href: path, label: parts[3] });
+    // a document the layout does not know — its file is gone (decision:wf2.deleted-outside-stays-put): the crumb and
+    // the tab keep the title they had, the crumb falling back to the slug
+    if (!chain.length) { gone = true; crumbs.push({ href: path, label: parts[3] }); }
     if (doc) edited = ago(doc.mtime);
   } else if (parts[1]) crumbs.push({ href: `/${product.slug}/${parts[1]}`, label: parts[1] });
   const link = typeof window !== 'undefined' ? window.location.origin + path : path;
   const copy = async () => { try { await navigator.clipboard.writeText(link); toast('Link copied'); } catch { toast(link); } };
   const last = crumbs[crumbs.length - 1];
-  const pages = usePageTabs(product.slug, path, last.label, last.icon ?? PAGE_ICONS[parts[1] ?? ''] ?? '');
+  const pages = usePageTabs(product.slug, path, last.label, last.icon ?? PAGE_ICONS[parts[1] ?? ''] ?? '', gone);
+  if (gone) { const t = pages.tabs.find(t => t.href === path); if (t) { last.label = t.label; last.icon = t.icon || undefined; } }
   const pageTabs: Tab[] = pages.tabs.map(t => ({ key: t.href, label: t.label, icon: t.icon || undefined, title: t.href }));
   return (
     <div className="topframe">

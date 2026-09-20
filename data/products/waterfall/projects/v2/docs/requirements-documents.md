@@ -18,6 +18,25 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 <!-- list:req -->
 
 ```yaml
+- id: req:wf2.editor.entity-from-text
+  title: A word in the text becomes a node of any type in one gesture, and every other place that says it can follow
+  when: the person selects a word or phrase in a document (or in a node's content in the column) and presses ⌁ node
+  then: >
+    the picker offers, besides the existing nodes that match and a new document, a NEW NODE of a chosen type — the
+    product's own types first, then entity, value, person, team, goal, requirement, decision, question, task —
+    made from the selection: its card lands on the type's home page (or on this page for a base kind), the
+    selection becomes its tag, and the picker then says where else the same words are still plain in the product —
+    per document, with counts — and offers to link them all; Link them all rewrites every plain occurrence into the
+    tag (never inside code, comments, existing links, ids, frontmatter or a card's keys), this document included,
+    and the documents rebuild
+  unless: the phrase is a single character, or it appears nowhere else — then the picker just closes
+  status: shipped
+  refines: req:wf2.ui.node-page
+  satisfied-by: [component:doc-editor, op:api.link-all, op:api.types.add, lib:link-all]
+  verified-by: [test:web-lib#link-all]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-documents
 - id: req:wf2.editor.table-scroll
   title: A data table scrolls sideways when the editor is narrower than its columns
   when: >
@@ -332,7 +351,12 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   verified-by: [ui-test:command-palette]
 ```
 
-- req:document-opened-in-the Document opened in the editor, but deleted outside, must show tab, with content showing page not found #proposed
+- req:document-opened-in-the Document opened in the editor, but deleted outside, must show tab, with content showing page not found #shipped (title: A document deleted outside the app stays open as a page that says it is gone, when: a document a person has open in the editor is removed from disk by something other than the app's own Delete — a shell command, a git checkout, an agent rewriting the folder, then: the person stays where they are: the URL, the top bar and the rail do not change and nobody is moved to another page; only the content area is replaced by a notice that the page was not found. If the file comes back — a checkout, an undo, an agent writing it again — the document takes the notice's place by itself, without a reload, unless: the person had edits not yet saved when the file vanished: the notice still shows and those edits are dropped — a pending save never recreates a file that was deleted, because the file is canonical, refines: [req:wf2.ui.node-page], related-to: [req:wf2.ui.tree-menu, rule:live-refresh], rule: live-refresh], verified-by: [ui-test:document-not-found], satisfied-by: [rule:doc-gone-in-place, rule:doc-write-gone])
+
+  verdict:d4e781fe65cb refines decision:wf2.deleted-outside-stays-put — A states the design decision that external deletion keeps the person in place; B details that same decision as a full requirement with conditions (file return, unsaved edits). (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:wf2.deleted-outside-stays-put req:document-opened-in-the)
+
+  verdict:77eb2be3e95e refines decision:wf2.deleted-outside-drops-edits — A isolates the decision that unsaved edits do not recreate a deleted file; B incorporates that decision as part of the larger 'unless' clause of the external deletion requirement. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:wf2.deleted-outside-drops-edits req:document-opened-in-the)
+
 <!-- /list:req -->
 
 ## Open questions

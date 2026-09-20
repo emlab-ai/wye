@@ -667,3 +667,9 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .qtoast-head { display: flex; align-items: center; gap: 6px; font: 600 11px var(--font-m); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); } .qtoast-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); animation: qtoast-pulse 1.4s infinite; } .qtoast.permission .qtoast-dot { background: var(--accent); }
 .qtoast-x { margin-left: auto; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1; } .qtoast-q { font-size: 13px; margin: 4px 0 2px; color: var(--ink); } .qtoast-sub { font-size: 11px; }
 @keyframes qtoast-in { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } } @keyframes qtoast-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+/* a document page whose file is gone: the notice sits where the content was (decision:wf2.deleted-outside-stays-put) */
+.doc-not-found h1 { font-size: 20px; margin: 0 0 10px; }
+.doc-not-found p { font-size: 14px; line-height: 1.5; max-width: 560px; }
+.doc-not-found code { font: 13px var(--font-m); background: var(--bg-2, rgba(127,127,127,.12)); padding: 1px 5px; border-radius: 4px; }
+
+.linknode-new { display: flex; align-items: center; gap: 6px; } .linknode-new button { flex: 1; min-width: 0; } .linknode-new select { font: 12px var(--font-m); max-width: 120px; } .linknode-note { font-size: 12px; margin: 6px 0; color: var(--ink-2); } .linknode .sec-actions { margin: 4px 0 2px; }

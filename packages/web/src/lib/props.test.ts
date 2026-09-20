@@ -10,5 +10,7 @@ describe('extra props', () => {
     // property names of a product's own types may be camelCase (startDate), like lib/parse.js reads them
     expect(parseExtra('foundIn: 1.2, severity: high')).toEqual({ foundIn: '1.2', severity: 'high' });
     expect(withExtra('foundIn: 1.2', 'reportedBy', 'person:ana')).toBe('foundIn: 1.2, reportedBy: person:ana');
+    // an id list keeps its commas: rule:x inside [] is a list item, not a key
+    expect(parseExtra('refines: [req:r0], related-to: [req:r2, rule:live-refresh], owner: alex')).toEqual({ refines: '[req:r0]', 'related-to': '[req:r2, rule:live-refresh]', owner: 'alex' });
   });
 });

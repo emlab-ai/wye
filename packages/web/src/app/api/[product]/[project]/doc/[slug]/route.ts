@@ -38,7 +38,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
   const body = (await req.json()) as Op;
   const session = req.headers.get('x-wf-session'); if (session) recordArtifact(hit.scope.product.dir, session, { doc: hit.d.module.id }).catch(() => {});
   claimWrite(hit.d.file, { session: session ?? undefined, by: req.headers.get('x-wf-by') ?? undefined }); // who edits this document (change records, lib/changes)
-  const md = await loadMarkdown(REPO_ROOT, hit.d.file);
+  // the graph may still list a document whose file was just removed outside the app: a write never recreates it
+  // (rule:doc-write-gone, decision:wf2.deleted-outside-drops-edits)
+  const md = await loadMarkdown(REPO_ROOT, hit.d.file).catch(() => null);
+  if (md === null) return NextResponse.json({ error: 'not_found', message: `${hit.d.file} is no longer on disk` }, { status: 404 });
   if (body.op === 'retype') return retype(hit.scope, hit.d.file, md, body.type);
   let r: WriteResult;
   switch (body.op) {

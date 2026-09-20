@@ -554,18 +554,44 @@ function LinkNodeButton({ onRequest }: { onRequest: (r: LinkRequest) => void }) 
   );
 }
 
-function LinkNodePicker({ req, onClose, apply, createDoc }: { req: LinkRequest; onClose: () => void; apply: (id: string) => void; createDoc: (title: string) => Promise<string | null> }) {
-  const { index } = usePeek();
+// The ⌁ node picker (req:wf2.editor.entity-from-text): link the selection to a node, make a new document from it, or
+// make a NEW NODE of a chosen type from it — "London" becomes city:london, its card on the type's home page (or this
+// page for a base kind) and the word a tag — then offer to link every other plain "London" in the product.
+function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEverywhere }: { req: LinkRequest; onClose: () => void; apply: (id: string) => void; createDoc: (title: string) => Promise<string | null>; createNode: (type: string, title: string) => Promise<string | null>; linkEverywhere: (text: string, id: string, docs: string[]) => Promise<number> }) {
+  const { index, ownTypes, product } = usePeek();
   const [q, setQ] = useState(req.text.trim());
   const [busy, setBusy] = useState(false);
+  const [type, setType] = useState(ownTypes[0]?.slug ?? 'entity');
+  // after a link: every other plain occurrence of the phrase, per document, and the offer to link them all
+  const [after, setAfter] = useState<{ id: string; text: string; docs: { doc: string; project: string; title: string; count: number }[]; count: number; done?: number } | null>(null);
   const hits = useMemo(() => { const n = q.trim().toLowerCase(); if (!n) return []; return Object.values(index).filter(e => e.id.toLowerCase().includes(n) || e.title.toLowerCase().includes(n)).slice(0, 8); }, [q, index]);
-  const create = async () => { setBusy(true); const id = await createDoc(q.trim()); setBusy(false); if (id) apply(id); };
+  const types = [...ownTypes.map(t => t.slug), ...['entity', 'value', 'person', 'team', 'goal', 'req', 'decision', 'question', 'task'].filter(k => !ownTypes.some(t => t.slug === k))];
+  const linked = async (id: string) => {
+    apply(id);
+    // the rest of the product: where the same words are still plain
+    const text = req.text.trim(); if (!text || text.length < 2) { onClose(); return; }
+    try { const r = await fetch(`/api/${product}/link-all?text=${encodeURIComponent(text)}`); const j = await r.json(); if (r.ok && j.count) { setAfter({ id, text, docs: j.docs, count: j.count }); return; } } catch { /* offer nothing */ }
+    onClose();
+  };
+  const create = async () => { setBusy(true); const id = await createDoc(q.trim()); setBusy(false); if (id) linked(id); };
+  const createTyped = async () => { setBusy(true); const id = await createNode(type, q.trim()); setBusy(false); if (id) linked(id); };
+  const all = async () => { if (!after) return; setBusy(true); const n = await linkEverywhere(after.text, after.id, after.docs.map(d => `${d.project}/${d.doc}`)); setBusy(false); setAfter({ ...after, done: n }); setTimeout(onClose, 1600); };
+  if (after) return (
+    <div className="linknode" style={{ left: Math.min(req.x, window.innerWidth - 360), top: req.y }}>
+      <div className="linknode-sel">“{after.text}” → <code>{after.id}</code></div>
+      {after.done === undefined ? <>
+        <p className="linknode-note">{after.count} other plain “{after.text}” in {after.docs.length} document{after.docs.length === 1 ? '' : 's'}: {after.docs.slice(0, 5).map(d => `${d.title} (${d.count})`).join(', ')}{after.docs.length > 5 ? ', …' : ''}</p>
+        <div className="sec-actions"><button className="pri" disabled={busy} onMouseDown={e => { e.preventDefault(); all(); }}>Link them all</button><button className="linkish" onMouseDown={e => { e.preventDefault(); onClose(); }}>Only this one</button></div>
+      </> : <p className="linknode-note">linked {after.done} place{after.done === 1 ? '' : 's'} — the documents rebuild</p>}
+    </div>
+  );
   return (
     <div className="linknode" style={{ left: Math.min(req.x, window.innerWidth - 360), top: req.y }}>
       <div className="linknode-sel">link “{req.text || '…'}” to</div>
-      <input autoFocus value={q} placeholder="search id or title, or a new document title…" onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { if (hits[0]) apply(hits[0].id); else if (q.trim()) create(); } if (e.key === 'Escape') onClose(); }} />
+      <input autoFocus value={q} placeholder="search id or title, or a new document title…" onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { if (hits[0]) linked(hits[0].id); else if (q.trim()) createTyped(); } if (e.key === 'Escape') onClose(); }} />
       <ul>
-        {hits.map(h => <li key={h.id}><button onMouseDown={e => { e.preventDefault(); apply(h.id); }}><span>{h.id}</span><small>{h.title}</small></button></li>)}
+        {hits.map(h => <li key={h.id}><button onMouseDown={e => { e.preventDefault(); linked(h.id); }}><span>{h.id}</span><small>{h.title}</small></button></li>)}
+        {q.trim() && <li className="linknode-new"><button className="create" disabled={busy} onMouseDown={e => { e.preventDefault(); createTyped(); }}><span>+ new <b>{type}</b> “{q.trim()}”</span><small>a {type}:{q.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')} card, and this word becomes its tag</small></button><select value={type} onMouseDown={e => e.stopPropagation()} onChange={e => setType(e.target.value)} title="the type of the new node">{types.map(t => <option key={t} value={t}>{t}</option>)}</select></li>}
         {q.trim() && <li><button className="create" disabled={busy} onMouseDown={e => { e.preventDefault(); create(); }}><span>+ new document “{q.trim()}”</span><small>creates a page under this one and links to it</small></button></li>}
       </ul>
     </div>
@@ -634,6 +660,9 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const loading = useRef(false);
   const touched = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // the editor leaving the page (the document's file deleted outside the app, the page swapped for its not-found
+  // notice) takes its pending save with it: edits never recreate a deleted file (decision:wf2.deleted-outside-drops-edits)
+  useEffect(() => () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } }, []);
   const theme = useMemo(() => (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'), []);
 
   // Publish the block under the cursor (its plain text and the ids it already carries) as the editing context for
@@ -751,6 +780,28 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     router.refresh();
     return j.node as string;
   };
+  // a new node of a type from the selection (req:wf2.editor.entity-from-text): its card goes to the type's home
+  // page, or to this page for a base kind (the route takes `home`)
+  const createNode = async (type: string, title: string): Promise<string | null> => {
+    const idSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    if (!idSlug) return null;
+    const r = await fetch(`/api/${product}/types/${type}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug: idSlug, title, home: `${project}/${slug}` }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 409) return `${type}:${idSlug}`;
+    if (!r.ok) { setLintMsg(`could not create ${type}: ${j.message ?? j.error}`); return null; }
+    return j.id as string;
+  };
+  // every other plain occurrence in the product, this document included: the pending save goes first, the bulk
+  // rewrite follows, and the editor takes the new body from disk like any external change
+  const linkEverywhere = async (text: string, id: string, docs: string[]): Promise<number> => {
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; const md = blocksToMarkdown(editor.document as unknown as AnyBlock[]); if (lastExported.current !== null && norm(md) !== norm(lastExported.current)) { lastExported.current = md; await save(md); } }
+    const r = await fetch(`/api/${product}/link-all`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, id, docs }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { setLintMsg(`could not link everywhere: ${j.message ?? j.error}`); return 0; }
+    lastExported.current = null; // the document changed on disk under us: the next refresh reloads it
+    router.refresh();
+    return j.count as number;
+  };
   const applyLink = (id: string) => {
     if (!linkReq) return;
     // Restore the captured range (typing in the picker collapsed it), then use BlockNote's own createLink so the
@@ -759,7 +810,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     tt.view.focus();
     tt.commands.setTextSelection({ from: linkReq.from, to: linkReq.to });
     editor.createLink(id, linkReq.text || id);
-    setLinkReq(null); touched.current = true; changed();
+    touched.current = true; changed();
   };
   // "@" inserts a tag for any node (or document) by id or title.
   const mentionItems = (q: string) => {
@@ -850,7 +901,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
         <SuggestionMenuController triggerCharacter="@" minQueryLength={1} getItems={async q => mentionItems(q)} />
       </BlockNoteView>
       <input ref={imageInput} type="file" accept="image/*" multiple hidden onChange={e => { const fs = [...(e.target.files ?? [])]; e.target.value = ''; if (fs.length) void insertInlineImages(fs); }} />
-      {linkReq && <LinkNodePicker req={linkReq} onClose={() => setLinkReq(null)} apply={applyLink} createDoc={createDoc} />}
+      {linkReq && <LinkNodePicker req={linkReq} onClose={() => setLinkReq(null)} apply={applyLink} createDoc={createDoc} createNode={createNode} linkEverywhere={linkEverywhere} />}
       {askReq && <AskAgentBox req={askReq} onClose={() => setAskReq(null)} />}
     </div>
     </EditorScope.Provider>

@@ -14,13 +14,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const { product, slug: typeSlug } = await params;
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const t = typeBySlug(scope.graph, typeSlug); if (!t) return NextResponse.json({ error: 'not_found', message: 'unknown type' }, { status: 404 });
-  const body = (await req.json()) as { slug?: string; title?: string };
+  const body = (await req.json()) as { slug?: string; title?: string; home?: string };
   const slug = (body.slug ?? '').trim();
   if (!/^[a-z0-9][a-z0-9_.-]*$/.test(slug)) return NextResponse.json({ error: 'invalid', message: 'slug must be lowercase letters, digits, dots or dashes' }, { status: 422 });
   const id = `${typeSlug}:${slug}`;
   if (scope.idx.byId.get(id)?.defined) return NextResponse.json({ error: 'conflict', message: `${id} already exists` }, { status: 409 });
-  const file = t.home ? scope.graph.modules.find(m => m.id === t.home || m.file.endsWith('/' + t.home.replace(/^[a-z-]+:/, '') + '.md'))?.file : (isBaseType(t) ? '' : t.file);
-  if (!file) return NextResponse.json({ error: 'invalid', message: 'the type has no home document' }, { status: 422 });
+  // the home: the type's own, else the document the caller names (`home`: project/doc — an entity made from a
+  // selection lands on the page the person is on, req:wf2.editor.entity-from-text), else the declaring document
+  const named = body.home ? scope.graph.modules.find(m => m.file.endsWith(`/projects/${body.home!.split('/')[0]}/docs/${body.home!.split('/').slice(1).join('/')}.md`))?.file : '';
+  const file = (t.home ? scope.graph.modules.find(m => m.id === t.home || m.file.endsWith('/' + t.home.replace(/^[a-z-]+:/, '') + '.md'))?.file : '') || named || (isBaseType(t) ? '' : t.file);
+  if (!file) return NextResponse.json({ error: 'invalid', message: 'the type has no home document — say where it goes' }, { status: 422 });
   const abs = path.join(REPO_ROOT, file);
   await withFileLock(abs, async () => {
     const md = await readFile(abs, 'utf8');
