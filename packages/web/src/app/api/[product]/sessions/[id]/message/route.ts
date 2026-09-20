@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getProduct } from '@/lib/products';
 import { getSession, saveAttachment, takeFromQueue } from '@/lib/sessions';
 import { sendMessage, startChat, restartFresh, isLive } from '@/lib/agent-host';
+import { setRefining } from '@/lib/pr-docs';
 
 // POST { text, refs?, link?, images?, fresh? } → into the session's persistent queue; the agent takes it when idle
 // (one at a time or as a batch, per the session's setting). If the agent is not running it is resumed and takes the
@@ -25,5 +26,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     if (next?.fresh) await restartFresh(p.dir, product, id, await takeFromQueue(p.dir, id), { wfUrl });
     else await startChat(p.dir, product, id, { wfUrl, resume: !!s.agentSessionId });
   }
+  if (s.role === 'librarian' && s.prDoc) await setRefining(p.dir, product, s.prDoc).catch(() => {}); // a librarian back on its PR: draft → refining
   return NextResponse.json({ ok: true, position: r.position, live: isLive(id) });
 }

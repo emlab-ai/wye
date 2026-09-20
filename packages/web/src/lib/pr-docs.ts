@@ -226,6 +226,14 @@ export function prDefinition(scope: Scope, md: string): DefinitionState {
     return { status: n.status, openContradictions: open };
   });
 }
+// A librarian is on it again (the message row on the PR head): draft → refining; other statuses stay.
+export async function setRefining(productDir: string, product: string, ref: string): Promise<void> {
+  const at = await prDocFile(product, ref); if (!at) return;
+  let changed = false;
+  await withFileLock(at.file, async () => { const md = await readFile(at.file, 'utf8'); if (getFrontmatter(md, 'status') !== 'draft') return; await writeAtomic(at.file, setFrontmatter(md, 'status', 'refining')); changed = true; });
+  if (changed) await rebuild(productDir);
+}
+
 // Readiness (decision:wf2.pr-lifecycle): the Definition's state plus the task count, as the PR head shows it.
 export function prReadiness(scope: Scope, md: string): Readiness { return readiness(prDefinition(scope, md), taskLines(md).length); }
 

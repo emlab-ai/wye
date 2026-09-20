@@ -64,9 +64,12 @@ export function CommandBox() {
         const j = await (await fetch(`/api/${product}/sessions`)).json();
         const active = (j.sessions as Live[]).filter(s => s.mode === 'chat' && s.live).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
         setSessions(active); setDefaults(j.defaults ?? { cwd: '', waterfall: '' });
-        setTarget('new'); // a clean slate by default (rule:clean-slate)
         let remembered = '', lastAgent = '', lastMode = ''; try { remembered = localStorage.getItem(`wf-cwd-${product}`) ?? ''; lastAgent = localStorage.getItem(`wf-agent-${product}`) ?? ''; lastMode = localStorage.getItem('wf-cmd-mode') ?? ''; } catch { /* ignore */ }
         if (lastMode === 'adhoc' || lastMode === 'pr') setModeState(lastMode);
+        // on a PR page with a live conversation the box talks to that PR (decision:wf2.pr-talk); else a clean slate (rule:clean-slate)
+        const here = m ? index[docNodeOf(index, m[2]) ?? ''] : undefined;
+        const mine = here?.kind === 'pr' ? active.find(s => (here.sessions ?? []).includes(s.id)) : undefined;
+        if (mine) { setTarget(mine.id); setModeState('adhoc'); } else setTarget('new');
         setCwd(c => c || remembered || j.defaults?.cwd || j.defaults?.waterfall || '');
         if (AGENTS.some(a => a.id === lastAgent)) setAgent(lastAgent);
       } catch { setSessions([]); setTarget('new'); }

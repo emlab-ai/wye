@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getProduct } from '@/lib/products';
-import { AGENTS, createSession, listSessions, listRunners } from '@/lib/sessions';
+import { AGENTS, createSession, listSessions, listRunners, setPrDoc } from '@/lib/sessions';
 import { startChat, liveState, reconcileStale } from '@/lib/agent-host';
 import { askingOf } from '@/lib/asking';
-import { createPrDoc } from '@/lib/pr-docs';
+import { createPrDoc, readPrDoc, setRefining } from '@/lib/pr-docs';
 import { markReading, runIntake } from '@/lib/pr-intake';
 import { buildPrompt } from '@/lib/agent-host';
 import { prsOf } from '@/lib/pr-doc';
@@ -25,7 +25,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ product
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const body = (await req.json()) as { agent?: string; instruction?: string; refs?: string[]; source?: Record<string, string>; mode?: 'run' | 'chat'; cwd?: string; pr?: boolean; images?: { name?: string; dataUrl: string }[]; role?: 'worker' | 'librarian' };
+  const body = (await req.json()) as { agent?: string; instruction?: string; refs?: string[]; source?: Record<string, string>; mode?: 'run' | 'chat'; cwd?: string; pr?: boolean; prRef?: string; images?: { name?: string; dataUrl: string }[]; role?: 'worker' | 'librarian' };
   // Ask Wye (req:exec.ask-wye): a librarian session — claude on the host with the librarian prompt, in the Wye repo
   const role = body.pr === true || body.role === 'librarian' ? 'librarian' : 'worker';
   const agent = role === 'librarian' ? 'claude-code' : AGENTS.find(a => a.id === body.agent)?.id;
@@ -44,7 +44,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   // a request has its page before the first message names it (rule:pr-doc); an ad-hoc conversation and a queued run have none
   const wfUrl = new URL(req.url).origin;
   if (role === 'librarian') {
-    s.prDoc = (await createPrDoc(p.dir, product, s)) ?? undefined;
+    // `prRef`: refine an existing PR (its page stays; the message row on the PR head) instead of making a page
+    const existing = body.prRef && (await readPrDoc(product, body.prRef)) ? body.prRef : null;
+    if (existing) { await setPrDoc(p.dir, s.id, existing, `refines ${existing}`); s.prDoc = existing; await setRefining(p.dir, product, existing); }
+    else s.prDoc = (await createPrDoc(p.dir, product, s)) ?? undefined;
+    if (s.prDoc && existing) { const started = await startChat(p.dir, product, s.id, { wfUrl }); return NextResponse.json(started ?? s, { status: 201 }); }
     if (s.prDoc) {
       // intake first (decision:wf2.pr-intake): the page says it is being read, the person lands on it now, the
       // librarian starts once what Wye found is on the page — and in its first message

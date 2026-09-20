@@ -7,7 +7,8 @@ import { useMe } from './WorkList';
 
 type Readiness = { definition: boolean; agreed: boolean; impact: boolean; contradictions: boolean; tasks: boolean; ok: boolean; unagreed: string[]; contradicted: string[] };
 type Q = { id: string; q: string; header?: string; options: { label: string; description?: string }[]; multi: boolean; status: string; answer?: string; by?: string; askedBy?: string };
-type Pr = { ref: string; node: string; num: number | null; title: string; label: string; status: string; task: string | null; session: string; approvedBy: string | null; approvedAt: string | null; readiness: Readiness; definition: { total: number; agreed: number }; questions: Q[] };
+type Conversation = { id: string; status: string; live: boolean; busy: boolean; role: string; last: string };
+type Pr = { ref: string; node: string; num: number | null; title: string; label: string; status: string; task: string | null; session: string; approvedBy: string | null; approvedAt: string | null; conversation: Conversation | null; readiness: Readiness; definition: { total: number; agreed: number }; questions: Q[] };
 
 const CHECKS: { key: keyof Readiness; label: string; why: string }[] = [
   { key: 'definition', label: 'definition', why: 'at least one block in Definition' },
@@ -27,6 +28,7 @@ export function PrHead({ product, prRef }: { product: string; prRef: string }) {
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  const [say, setSay] = useState(''); const [saying, setSaying] = useState(false);
   const load = useCallback(async () => { try { const r = await fetch(`/api/${product}/pr?ref=${encodeURIComponent(prRef)}`); if (r.ok) setPr(await r.json()); } catch { /* keep what we have */ } }, [product, prRef]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => { if (!pr || !['refining', 'building', 'approved'].includes(pr.status)) return; const t = setInterval(load, 5000); return () => clearInterval(t); }, [pr, load]);
@@ -42,6 +44,19 @@ export function PrHead({ product, prRef }: { product: string; prRef: string }) {
   };
   const approve = () => { if (pr.readiness.ok || confirm) act('approve'); else setConfirm(true); };
   const open_ = pr.questions.filter(q => q.status === 'open');
+  // Tell Wye (decision:wf2.pr-talk): into the PR's conversation — resumed when it ended, started on this page when there is none
+  const talk = async () => {
+    const text = say.trim(); if (!text || saying) return; setSaying(true); setMsg('');
+    const c = pr.conversation; const link = typeof location !== 'undefined' ? location.href.split('#')[0] : undefined;
+    let id = c && c.role === 'librarian' && c.status !== 'cancelled' ? c.id : null;
+    let r: Response;
+    if (id) r = await fetch(`/api/${product}/sessions/${id}/message`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, link }) });
+    else { const [, project, doc] = prRef.split('/'); r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ pr: true, prRef, instruction: text, refs: [pr.node], source: { project, doc, link } }) }); }
+    const j = await r.json().catch(() => ({})); setSaying(false);
+    if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not send'); return; }
+    id ??= j.id; setSay(''); if (id) open(`session:${id}`); await load();
+  };
+  const talking = !['done', 'failed', 'cancelled', 'building'].includes(pr.status);
   const rd = pr.readiness;
   const ended = ['done', 'failed', 'cancelled'].includes(pr.status);
   return (
@@ -72,6 +87,12 @@ export function PrHead({ product, prRef }: { product: string; prRef: string }) {
         {rd.contradicted.length > 0 && <>· contradicted: {rd.contradicted.map(id => <span key={id}><SmartTag id={id} /> </span>)}</>}
       </p>}
       {msg && <p className="muted small">{msg}</p>}
+      {talking && <div className="pr-talk">
+        <input value={say} placeholder={pr.conversation?.live ? 'Tell Wye what to change… (↵)' : pr.conversation ? 'Tell Wye… (↵ resumes the conversation)' : 'Tell Wye… (↵ starts refining on this page)'} onChange={e => setSay(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); talk(); } }} disabled={saying} />
+        <button className="pri" disabled={!say.trim() || saying} onClick={talk}>{saying ? '…' : 'Send'}</button>
+        {pr.conversation && <button className="linkish" onClick={() => open(`session:${pr.conversation!.id}`)} title="Open the conversation in the column">{pr.conversation.busy ? 'Wye is thinking…' : pr.conversation.live ? 'conversation' : `conversation (${pr.conversation.status})`}</button>}
+      </div>}
+      {talking && pr.conversation?.last && !open_.length && <p className="pr-last muted">{pr.conversation.busy ? '…' : '↳'} {pr.conversation.last}</p>}
       {open_.length > 0 && <div className="pr-questions">
         <p className="ask-lead">Wye is asking — the request goes on once you answer.</p>
         {open_.map(q => <PageQuestion key={q.id} product={product} prRef={prRef} q={q} me={me} onDone={load} />)}
