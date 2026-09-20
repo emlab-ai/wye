@@ -13,11 +13,14 @@ const LABEL: Record<ImpactVerdict, string> = { update: 'Updates proposed', rewor
 // reason; an update shows the candidate's text beside the proposed one as a diff, editable, with Apply / Skip and
 // Apply all; a rework names the task the app wrote, a contradicts the contradiction, an ask the question. The set
 // fills in as verdicts arrive; without a run (impact manual / off) the structural candidates show with an Impact button.
-export function ImpactCard({ product, changeId, impact, me }: { product: string; changeId: string; impact?: ImpactSet; me?: string }) {
+// On a review card the head is one line — `summary` from lib/review-summary — and the groups are folded (`collapsed`)
+// unless something asks for action (rule:review-readable); the reached-not-judged list is always folded.
+export function ImpactCard({ product, changeId, impact, me, summary, collapsed = false }: { product: string; changeId: string; impact?: ImpactSet; me?: string; summary?: string; collapsed?: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [open, setOpen] = useState<Set<ImpactVerdict>>(new Set(['update', 'rework', 'contradicts', 'ask']));
+  const [shown, setShown] = useState(!collapsed);
   const [msg, setMsg] = useState<string | null>(null);
   const post = async (body: Record<string, unknown>) => {
     setBusy(String(body.candidate ?? body.action)); setMsg(null);
@@ -36,25 +39,28 @@ export function ImpactCard({ product, changeId, impact, me }: { product: string;
     <div className="impact">
       <div className="impact-head">
         <strong>Impact</strong>
-        {!impact && <span className="muted">not computed</span>}
-        {impact && <span className="muted">{cands.length} candidate{cands.length === 1 ? '' : 's'}{judged.length ? ` · ${judged.length} judged` : ''}{impact.status === 'running' && impact.pending ? ` · ${impact.pending} pending…` : ''}{impact.status === 'failed' ? ` · failed: ${impact.error}` : ''}{impact.mode !== 'auto' && impact.status === 'candidates' ? ` · impact ${impact.mode}: not judged` : ''}</span>}
+        {summary ? <span className="muted">{summary}{impact?.status === 'running' ? '…' : ''}</span> : <>
+          {!impact && <span className="muted">not computed</span>}
+          {impact && <span className="muted">{cands.length} candidate{cands.length === 1 ? '' : 's'}{judged.length ? ` · ${judged.length} judged` : ''}{impact.status === 'running' && impact.pending ? ` · ${impact.pending} pending…` : ''}{impact.status === 'failed' ? ` · failed: ${impact.error}` : ''}{impact.mode !== 'auto' && impact.status === 'candidates' ? ` · impact ${impact.mode}: not judged` : ''}</span>}
+        </>}
         <span className="impact-acts">
+          {cands.length > 0 && <button className="linkish" onClick={() => setShown(v => !v)}>{shown ? 'hide' : 'show'}</button>}
           {(!impact || impact.status === 'candidates' || impact.status === 'failed' || impact.status === 'done') && <button className="linkish" disabled={busy === 'run'} onClick={() => post({ action: 'run' })} title="Judge every candidate against the change with the model">{impact?.status === 'done' ? 'Run again' : 'Impact'}</button>}
           {updates.length > 1 && <button className="linkish" disabled={busy === 'apply-all'} onClick={() => post({ action: 'apply-all' })} title="Apply every unedited update">Apply all ({updates.length})</button>}
         </span>
       </div>
       {msg && <p className="bad small">{msg}</p>}
-      {groups.map(([v, cs]) => (
+      {shown && groups.map(([v, cs]) => (
         <div key={v} className={`impact-group ${v}`}>
           <div className="impact-group-head" onClick={() => toggle(v)}><span className="tchev">{open.has(v) ? '▾' : '▸'}</span>{LABEL[v]} <small className="muted">{cs.length}</small></div>
           {open.has(v) && <ul>{cs.map(c => <Candidate key={c.id} c={c} edit={edits[c.id]} setEdit={t => setEdits(e => ({ ...e, [c.id]: t }))} busy={busy === c.id} onApply={(force?: boolean) => post({ action: 'apply', candidate: c.id, text: edits[c.id] || undefined, force })} onSkip={() => post({ action: 'skip', candidate: c.id })} />)}</ul>}
         </div>
       ))}
-      {unjudged.length > 0 && (
-        <div className="impact-group pending">
-          <div className="impact-group-head" onClick={() => toggle('unaffected')}><span className="tchev">▸</span>{impact?.status === 'running' ? 'Waiting for a verdict' : 'Reached, not judged'} <small className="muted">{unjudged.length}</small></div>
+      {shown && unjudged.length > 0 && (
+        <details className="impact-group pending">
+          <summary className="impact-group-head">{impact?.status === 'running' ? 'Waiting for a verdict' : 'Reached, not judged'} <small className="muted">{unjudged.length}</small></summary>
           <ul className="impact-plain">{unjudged.slice(0, 30).map(c => <li key={c.id}><SmartTag id={c.id} /> <span className="muted">{c.via === 'text' ? 'by text' : c.path}</span></li>)}</ul>
-        </div>
+        </details>
       )}
     </div>
   );

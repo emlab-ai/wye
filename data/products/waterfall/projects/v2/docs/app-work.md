@@ -105,6 +105,21 @@ enforces.
     that have a pending record, so a worker knows the value it read is unreviewed.
   source: packages/web/src/app/api/[product]/changes/[id]/route.ts; packages/web/src/lib/changes.ts#revertPatch; packages/web/src/lib/packet.ts#packetFor
   status: shipped
+- id: rule:review-readable
+  statement: >
+    An Inbox card is laid out for the person's decision, not for completeness. On the surface: the kind, the title
+    (a prose node's clipped title is replaced by its full first description, said once), one description that is
+    enough to understand the block — a requirement as "When …, then …, unless …", a decision as its choice, a
+    question as its question, the rest as their statement — or, for a change, what changed as status pills, a
+    property old → new, a text as a word diff; then only what asks for a decision: open contradicts / duplicate
+    verdicts with their reason, and the impact in one line (opened when an update, rework, contradiction or
+    question waits; folded when everything reached is unaffected or still pending); who, when, where and "checked
+    against n neighbours · consistent" in one muted line. Everything else — the id, the unchanged frame, the other
+    fields (context, alternatives, consequences, source, evidence), refs, consistent and refines verdicts, the
+    reached-not-judged list — is under a "details" fold. lib:review-summary decides these (pure, tested).
+  source: packages/web/src/lib/review-summary.ts; packages/web/src/components/ChangeList.tsx; packages/web/src/components/ReviewList.tsx; packages/web/src/components/ImpactCard.tsx
+  status: shipped
+  verified-by: [test:web-lib#review-summary]
 - id: rule:impact-candidates
   statement: >
     An edit's structural candidates are the changed node's content first (its `has` children, undecayed), then two
@@ -201,7 +216,7 @@ enforces.
   part-of: module:app-work
 - id: component:change-card
   file: packages/web/src/components/ChangeList.tsx
-  purpose: the Inbox's Changes group (req:exec.change-kept, req:exec.change-review) — old and new per changed key with a word diff, the unchanged framing fields, the verdicts on the new value, changed-since, Accept / Revert, and the impact set
+  purpose: the Inbox's Changes group (req:exec.change-kept, req:exec.change-review), laid out for the decision (rule:review-readable) — old and new per changed key with a word diff; open conflicts and the impact's one line on the surface; the unchanged framing fields, id and other verdicts under details, the verdicts on the new value, changed-since, Accept / Revert, and the impact set
   part-of: module:app-work
 - id: component:impact-card
   file: packages/web/src/components/ImpactCard.tsx
@@ -224,6 +239,15 @@ enforces.
 ## Libraries and stores
 
 ```yaml
+- id: lib:review-summary
+  file: packages/web/src/lib/review-summary.ts
+  side: shared
+  purpose: >
+    Pure: what a review card shows on the surface and what it folds (rule:review-readable) — `describeBlock` (one
+    description per kind and the secondary fields), `changeSegments` / `changeSentence` (an edit as status, property
+    and text segments, and as one sentence), `verdictSummary` (open conflicts, one line for the rest),
+    `impactSummary` (one line, what asks for action first, whether the card opens). Tested by
+    test:web-lib#review-summary.
 - id: lib:work
   file: packages/web/src/lib/work.ts
   side: server

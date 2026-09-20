@@ -313,6 +313,22 @@ computed and no review.
   requires-tests: [test:web-lib#change-revert, ui-test:change-review]
   part-of: goal:exec.work-and-impact
   verified-by: [ui-test:change-review, test:web-lib#changes]
+- id: req:exec.review-readable
+  title: A review card shows what a person needs to decide, and folds the rest
+  when: a proposed block or a pending change is listed in the Inbox
+  then: >
+    the card reads as a title, one description enough to understand it (a requirement as its behaviour, a decision
+    as its choice, a change as what changed with old and new), the open conflicts and the impact that asks for action,
+    and who / when / where in one muted line; ids, unchanged fields, other properties, refs, consistent verdicts and
+    the reached-not-judged list are under a details fold
+  unless: a candidate or verdict asks for action, in which case it is on the surface with its reason
+  status: shipped
+  refines: req:exec.change-review
+  satisfied-by: [rule:review-readable, lib:review-summary, component:change-card, component:review-list, component:impact-card]
+  verified-by: [test:web-lib#review-summary]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.work-and-impact
 - id: req:exec.change-validated
   title: A change is validated on write like a new block
   when: a change record is created for a decision, requirement, rule, constraint or goal

@@ -8,6 +8,7 @@ import { wordDiff } from '@/lib/diff';
 import type { ChangeRecord } from '@/lib/changes';
 import type { ItemVerdict } from '@/lib/review';
 import type { ImpactSet } from '@/lib/impact-run';
+import { changeSegments, impactSummary, verdictSummary } from '@/lib/review-summary';
 import { ImpactCard } from './ImpactCard';
 
 export type ChangeView = Omit<ChangeRecord, 'impact'> & { stale: boolean; exists: boolean; verdicts?: ItemVerdict[]; impact?: ImpactSet };
@@ -17,10 +18,13 @@ export function DiffText({ a, b }: { a: string; b: string }) {
   return <span className="cdiff">{wordDiff(a, b).map((r, i) => r.kind === 'same' ? <span key={i}>{r.text}</span> : r.kind === 'del' ? <del key={i}>{r.text}</del> : <ins key={i}>{r.text}</ins>)}</span>;
 }
 
-// Changes in the Inbox (component:change-card, req:exec.change-kept, req:exec.change-review): a pending edit of a
-// typed node with the old and new value side by side — property by property, word by word in a text — the fields
-// that frame it, the write-time verdicts on the new value, the impact set (E.3), and Accept / Revert. A record whose
-// node moved on since says so and asks for a fresh look before Accept.
+const when = (iso: string) => new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+// Changes in the Inbox (component:change-card, req:exec.change-kept, req:exec.change-review), laid out for a
+// person's decision (rule:review-readable): the title, then what changed — status as pills, a property as old → new,
+// a text as a word diff — then only what asks for a decision: open conflicts on the new value and the impact's one
+// line (opened when something needs action). Who and when in one muted line; the id, the unchanged frame, every
+// other verdict and the full impact set under "details". A record whose node moved on since says so before Accept.
 export function ChangeList({ product, changes, me }: { product: string; changes: ChangeView[]; me?: string }) {
   const { open } = usePeek(); const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -35,30 +39,42 @@ export function ChangeList({ product, changes, me }: { product: string; changes:
   if (!changes.length) return null;
   return (
     <section className="changes">
-      <h3 className="review-group-head">Changes <span className="muted">{changes.length} edit{changes.length === 1 ? '' : 's'} of existing blocks, old and new side by side</span></h3>
+      <h3 className="review-group-head">Changes <span className="muted">{changes.length} edit{changes.length === 1 ? '' : 's'} of existing blocks</span></h3>
       <ul className="change-items">
         {changes.map(c => {
-          const blocked = (c.verdicts ?? []).some(v => (v.kind === 'contradicts' || v.kind === 'duplicate') && v.open);
+          const v = verdictSummary(c.verdicts);
+          const blocked = v.open.length > 0;
+          const imp = impactSummary(c.impact);
+          const segs = changeSegments(c);
+          const title = c.after.title && c.after.title !== c.node ? c.after.title : c.node;
+          const frame = [`status ${c.after.status || '—'}`, ...FRAME.filter(k => !c.changed.includes(k) && c.after.props[k]).map(k => `${k}: ${c.after.props[k].slice(0, 120)}`)];
           return (
             <li key={c.id} className={`change-item ${c.stale ? 'stale' : ''}`}>
               <div className="review-head" onClick={() => open(c.node)}>
                 <KindPill kind={c.kind} />
-                <span className="review-title"><SmartTag id={c.node} /> <span className="muted">{c.after.title !== c.node ? c.after.title : ''}</span></span>
-                <span className="muted review-where">{c.by} · {new Date(c.updatedAt).toLocaleString()} · {c.changed.join(', ')}</span>
+                <span className="review-title">{title}</span>
                 {c.stale && <span className="pill s at-risk" title="the node was edited again after this record — look again before you accept">changed since</span>}
                 {!c.exists && <span className="pill s blocked">node gone</span>}
               </div>
               <dl className="change-diff">
-                {c.changed.map(k => (
-                  <div key={k} className="change-row">
-                    <dt>{k === 'text' ? c.after.textKey : k}</dt>
-                    <dd>{k === 'text' ? <DiffText a={c.before.text} b={c.after.text} /> : k === 'status' ? <><StatusPill status={c.before.status || '—'} /> → <StatusPill status={c.after.status || '—'} /></> : <DiffText a={c.before.props[k] ?? ''} b={c.after.props[k] ?? ''} />}</dd>
+                {segs.map(s => (
+                  <div key={s.key} className="change-row">
+                    <dt>{s.label}</dt>
+                    <dd>{s.kind === 'text' ? <DiffText a={s.from} b={s.to} /> : s.kind === 'status' ? <><StatusPill status={s.from} /> → <StatusPill status={s.to} /></> : <DiffText a={s.from} b={s.to} />}</dd>
                   </div>
                 ))}
-                <div className="change-row frame"><dt>unchanged</dt><dd className="muted">{[`status ${c.after.status || '—'}`, ...FRAME.filter(k => !c.changed.includes(k) && c.after.props[k]).map(k => `${k}: ${c.after.props[k].slice(0, 80)}`)].join(' · ')}</dd></div>
               </dl>
-              {(c.verdicts ?? []).length > 0 && <ul className="change-verdicts">{c.verdicts!.map((v, i) => <li key={i} className={`verdict ${v.kind}`}><b>{v.kind}</b> <SmartTag id={v.other} /> <span className="muted">{v.reason}</span>{v.open && <span className="pill s question">open</span>}</li>)}</ul>}
-              <ImpactCard product={product} changeId={c.id} impact={c.impact} me={me} />
+              {v.open.length > 0 && <ul className="change-verdicts">{v.open.map((x, i) => <li key={i} className={`verdict ${x.kind}`}><b>{x.kind}</b> <SmartTag id={x.other} /> <span className="muted">{x.reason}</span> <span className="pill s question">decide on the block</span></li>)}</ul>}
+              <ImpactCard product={product} changeId={c.id} impact={c.impact} me={me} summary={imp.line} collapsed={imp.actionable === 0} />
+              <p className="review-meta muted">{c.by} · {when(c.updatedAt)}{v.line ? ` · ${v.line}` : ''}</p>
+              <details className="review-more">
+                <summary>details</summary>
+                <dl className="change-diff">
+                  <div className="change-row"><dt>node</dt><dd><SmartTag id={c.node} /> <span className="muted">in {c.doc}</span></dd></div>
+                  <div className="change-row frame"><dt>unchanged</dt><dd className="muted">{frame.join(' · ')}</dd></div>
+                  {(c.verdicts ?? []).filter(x => !v.open.includes(x)).length > 0 && <div className="change-row"><dt>verdicts</dt><dd><ul className="change-verdicts">{(c.verdicts ?? []).filter(x => !v.open.includes(x)).map((x, i) => <li key={i} className={`verdict ${x.kind}`}><b>{x.kind}</b> <SmartTag id={x.other} /> <span className="muted">{x.reason}</span></li>)}</ul></dd></div>}
+                </dl>
+              </details>
               <div className="sec-actions review-acts">
                 <button className="pri" disabled={busy === c.id || blocked} title={blocked ? 'an open contradicts / duplicate verdict on the new value — supersede, refine or dismiss it on the block first' : 'keep the new value; the record closes'} onClick={() => act(c, 'accept')}>Accept</button>
                 <button disabled={busy === c.id || !c.exists} title="write the old value back through the writer; recorded as a change of its own" onClick={() => act(c, 'revert', c.stale && confirm('The node changed since this record. Write the old value back anyway?'))}>Revert</button>

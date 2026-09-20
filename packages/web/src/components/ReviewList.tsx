@@ -6,11 +6,16 @@ import { SmartTag } from './SmartTag';
 import { StatusPill, KindPill } from './Pills';
 import { requestSend } from './CommandBox';
 import type { ReviewItem } from '@/lib/review';
+import { describeBlock, verdictSummary } from '@/lib/review-summary';
 
 const LABEL: Record<string, string> = { question: 'Questions', contradiction: 'Contradictions', decision: 'Decisions', req: 'Requirements', rule: 'Rules', constraint: 'Constraints', lesson: 'Lessons', goal: 'Goals', entity: 'Entities', task: 'Tasks' };
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');
 
 // Review what agents wrote into the documents: approve, reject or resolve in place; open the node or its document.
+// Each card is laid out for the decision (rule:review-readable): the title; one description that is enough to
+// understand the block — a requirement as its behaviour, a decision as its choice, a question as its question; the
+// open conflicts that need a choice; where it is and how it was checked, muted; everything else (the other fields,
+// the refs, consistent verdicts) under "details".
 export function ReviewList({ product, items }: { product: string; items: ReviewItem[] }) {
   const { open, openId } = usePeek(); const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -58,19 +63,30 @@ export function ReviewList({ product, items }: { product: string; items: ReviewI
           <ul className="review-items">
             {its.map(it => (
               <li key={it.id} className={`review-item ${openId === it.id ? 'on' : ''}`}>
-                <div className="review-head" onClick={() => open(it.id)}>
-                  <KindPill kind={it.kind} /><span className="review-title">{plain(it.title)}</span><StatusPill status={it.status} />
-                  <span className="muted review-where">{it.project} / {it.doc}{it.session ? ` · session ${it.session.slice(0, 6)}` : ''}</span>
-                </div>
-                {it.text && it.text !== it.title && <p className="review-text">{plain(it.text).slice(0, 500)}</p>}
-                {Object.entries(it.fields).filter(([k]) => k !== 'date').map(([k, v]) => <p key={k} className="inbox-field"><b>{k}</b> {plain(v).slice(0, 400)}</p>)}
-                {it.refs.length > 0 && <div className="tags">{it.refs.map(r => <SmartTag key={r} id={r} />)}</div>}
-                {(it.verdicts?.length || it.checked || it.classifying) ? (
-                  <div className="verdicts">
-                    {it.classifying && <span className="muted">not yet classified against its neighbours</span>}
-                    {!!it.checked && <span className="muted">checked against {it.checked} neighbour{it.checked === 1 ? '' : 's'}{it.verdicts?.length ? ':' : ' — consistent'}</span>}
-                    {(it.verdicts ?? []).map((v, i) => <p key={i} className={`verdict v-${v.kind} ${v.open ? 'open' : ''}`}><b>{v.kind}</b> <SmartTag id={v.other} />{v.conflict && <small className="muted"> {v.conflict}</small>} <span>{plain(v.reason)}</span>{v.contradiction && !v.open && <small className="muted"> · resolved</small>}</p>)}
-                  </div>) : null}
+                {(() => {
+                  const d = describeBlock(it.kind, it.text, it.fields);
+                  const v = verdictSummary(it.verdicts, it.checked, it.classifying);
+                  const rest = (it.verdicts ?? []).filter(x => !v.open.includes(x));
+                  // a prose node's title is its clipped first sentence: when the description starts with it, the
+                  // description is the title — said once, in full
+                  const t = plain(it.title); const clipped = t.length >= 50 && d.description.startsWith(t.replace(/[…. ]+$/, '').slice(0, 50));
+                  return <>
+                    <div className="review-head" onClick={() => open(it.id)}>
+                      <KindPill kind={it.kind} /><span className="review-title">{clipped ? d.description.slice(0, 400) : t}</span><StatusPill status={it.status} />
+                    </div>
+                    {!clipped && d.description && d.description !== t && <p className="review-text">{d.description.slice(0, 700)}</p>}
+                    {v.open.map((x, i) => <p key={i} className={`verdict v-${x.kind} open`}><b>{x.kind}</b> <SmartTag id={x.other} />{x.conflict && <small className="muted"> {x.conflict}</small>} <span>{plain(x.reason)}</span></p>)}
+                    <p className="review-meta muted">{it.project} / {it.doc}{it.session ? ` · session ${it.session.slice(0, 6)}` : ''}{v.line ? ` · ${v.line}` : ''}</p>
+                    {(d.secondary.length > 0 || it.refs.length > 0 || rest.length > 0) && (
+                      <details className="review-more">
+                        <summary>details</summary>
+                        <p className="inbox-field"><b>id</b> <SmartTag id={it.id} /></p>
+                        {d.secondary.map(([k, val]) => <p key={k} className="inbox-field"><b>{k}</b> {val.slice(0, 600)}</p>)}
+                        {it.refs.length > 0 && <div className="tags">{it.refs.map(r => <SmartTag key={r} id={r} />)}</div>}
+                        {rest.map((x, i) => <p key={i} className={`verdict v-${x.kind}`}><b>{x.kind}</b> <SmartTag id={x.other} /> <span>{plain(x.reason)}</span>{x.contradiction && !x.open && <small className="muted"> · resolved</small>}</p>)}
+                      </details>)}
+                  </>;
+                })()}
                 {choosing === it.id && (
                   <div className="verdict-choice">
                     <p>This block contradicts or duplicates {openConflicts(it).map(v => <SmartTag key={v.other} id={v.other} />)}. Approve it and…</p>
