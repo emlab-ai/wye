@@ -6,6 +6,7 @@ import { transcriptExcerpt, parseCandidates, candidateSlug, candidateCard, inser
 import { rebuild } from './write';
 import { REPO_ROOT } from './products';
 import type { ChatEvent, Session } from './session-types';
+import type { JevClient } from './jev';
 
 // consolidation at session end (decision:memory.consolidate-sessions): the transcript → candidates → proposed cards with evidence
 const ev = (kind: ChatEvent['kind'], text: string): ChatEvent => ({ t: '2026-09-19T10:00:00Z', kind, text });
@@ -31,6 +32,11 @@ describe('consolidation, pure parts', () => {
   it('writes a card with by, evidence and part-of, a question open', () => {
     const card = candidateCard('question:shop.rounding', { kind: 'question', title: 'Which rounding?', text: 'Half-up or bankers?', by: 'agent', evidence: [4, 9] }, { id: 'abc123' }, 'plan:plan-x', 'claude-code', '2026-09-19');
     expect(card).toContain('- id: question:shop.rounding'); expect(card).toContain('status: open'); expect(card).toContain('by: agent:claude-code'); expect(card).toContain('evidence: [session:abc123#4, session:abc123#9]'); expect(card).toContain('part-of: plan:plan-x');
+  });
+  it('carries related-to on a card when links are given', () => {
+    const card = candidateCard('decision:shop.round', { kind: 'decision', title: 'Round half-up', text: 'because the accountant', by: 'person', evidence: [1] }, { id: 'abc' }, 'plan:p', 'claude-code', '2026-09-20', ['rule:round', 'req:pay']);
+    expect(card).toContain('  related-to: [rule:round, req:pay]');
+    expect(candidateCard('decision:shop.round', { kind: 'decision', title: 'X', text: 'y', by: 'person', evidence: [] }, { id: 'abc' }, 'plan:p', 'claude-code', '2026-09-20')).not.toContain('related-to');
   });
   it('puts the cards at the end of the Plan section, before Tasks', () => {
     const md = '# P\n\n## Plan\n\n_what_\n\n## Tasks\n\n- [ ] task:x.y do';
@@ -81,7 +87,10 @@ _What was understood._
       transcript: [ev('user', 'Make prices gross. ' + 'x'.repeat(200)), ev('assistant', 'Doing it. [[decision: Prices are stored gross]]'), ev('user', 'And [[constraint: Never round before the total]] — [[question: Which rounding do we use]]'), ev('assistant', 'Noted. [[lesson: The price test broke because the fixture was net]]')],
       artifacts: { docs: [], nodes: [], blocks: [{ id: 'decision:shop.prices-gross', change: 'added', doc: 'plan:plan-gross', title: 'Prices are stored gross', at: '' }] },
     } as unknown as Session;
-    const r = await consolidateSession(dir, path.basename(dir), s);
+    // with a Jev client every card is linked before it is written (Jev auto-linking design §4): the stubbed judge is sure of task:shop.gross
+    const jev: JevClient = { enabled: true, model: 'fake', ask: async () => ({ model: '', answers: {}, usage: {} }), judgeLinks: async (_t, c) => c.map(x => ({ id: x.id, p: x.id === 'task:shop.gross' ? 0.9 : 0.1 })), judgeKind: async () => ({ kind: 'note', p: 0 }) };
+    const searchFn = async () => Object.assign([{ id: 'task:shop.gross', score: 0.5, semantic: 0.5, keyword: 0, snippet: '' }, { id: 'plan:plan-gross', score: 0.4, semantic: 0.4, keyword: 0, snippet: '' }], { hidden: 0 });
+    const r = await consolidateSession(dir, path.basename(dir), s, { jev, searchFn: searchFn as never });
     expect(r.candidates.map(c => c.kind).sort()).toEqual(['constraint', 'lesson', 'question']);
     expect(r.filed).toHaveLength(3);
     const md = await readFile(path.join(dir, 'projects/p/docs/plan-gross.md'), 'utf8');
@@ -89,6 +98,7 @@ _What was understood._
     expect(md).toContain('evidence: [session:s1#2]'); expect(md).toContain('by: person'); expect(md).toContain('by: agent:claude-code');
     expect(md).toMatch(/- id: question:[^\n]+\n  title: Which rounding do we use\n  q: >/); expect(md).toContain('status: open');
     expect(md).toMatch(/- id: lesson:/);
+    expect(md.match(/related-to: \[task:shop.gross\]/g)).toHaveLength(3);
     expect(md.indexOf('```yaml')).toBeLessThan(md.indexOf('## Tasks'));
     await rebuild(dir);
     const g = JSON.parse(await readFile(path.join(dir, '_build/graph.json'), 'utf8')) as { nodes: { id: string; kind: string; status: string; defined: boolean }[] };

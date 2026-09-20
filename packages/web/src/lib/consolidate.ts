@@ -11,6 +11,8 @@ import { REPO_ROOT } from './products';
 import { onSessionEnd, updateSession } from './sessions';
 import type { Session, ChatEvent } from './session-types';
 import { loadGraph } from './load';
+import { jevClient, type JevClient } from './jev';
+import { judgeText, confidentIds, type SearchFn } from './links';
 import { writeAtomic, withFileLock } from './write';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -42,13 +44,14 @@ export function candidateSlug(product: string, c: Candidate, taken: Set<string>)
 
 const y = (k: string, v: string | undefined) => v ? `  ${k}: >\n    ${v.replace(/\n+/g, ' ').match(/.{1,110}(\s|$)/g)?.map(x => x.trim()).filter(Boolean).join('\n    ') ?? v}` : '';
 // The yaml card of a candidate — proposed (open for a question), with who said it and where
-export function candidateCard(id: string, c: Candidate, s: Pick<Session, 'id'>, planId: string, agentName: string, date: string): string {
+export function candidateCard(id: string, c: Candidate, s: Pick<Session, 'id'>, planId: string, agentName: string, date: string, related: string[] = []): string {
   const evidence = c.evidence.length ? c.evidence.map(n => `session:${s.id}#${n}`).join(', ') : `session:${s.id}`;
   const by = c.by === 'agent' ? `agent:${agentName}` : 'person';
   const lines = [`- id: ${id}`, `  title: ${c.title.replace(/:/g, ' -')}`];
   if (c.kind === 'decision') lines.push(y('context', c.context), y('choice', c.text), `  date: ${date}`);
   else if (c.kind === 'question') lines.push(y('q', c.text || c.title), y('context', c.context));
   else lines.push(y('statement', c.text || c.title), y('context', c.context));
+  if (related.length) lines.push(`  related-to: [${related.join(', ')}]`); // the knowledge Jev is sure the card is about (Jev auto-linking design §4)
   lines.push(`  status: ${c.kind === 'question' ? 'open' : 'proposed'}`, `  by: ${by}`, `  evidence: [${evidence}]`, `  part-of: ${planId}`);
   return lines.filter(Boolean).join('\n');
 }
@@ -64,7 +67,7 @@ export function insertIntoPlanSection(md: string, cards: string[]): string {
 }
 
 // The run: transcript → candidates → cards filed on the plan; the session log says what happened.
-export async function consolidateSession(productDir: string, product: string, s: Session, opts: { model?: string } = {}): Promise<{ candidates: Candidate[]; filed: string[]; doc?: string }> {
+export async function consolidateSession(productDir: string, product: string, s: Session, opts: { model?: string; jev?: JevClient; searchFn?: SearchFn } = {}): Promise<{ candidates: Candidate[]; filed: string[]; doc?: string }> {
   const excerpt = transcriptExcerpt(s.transcript ?? []);
   if (excerpt.length < 200) return { candidates: [], filed: [] };
   const written = (s.artifacts?.blocks ?? []).filter(b => b.change !== 'removed' && /^(decision|constraint|question|lesson|req|rule|task):/.test(b.id)).map(b => ({ id: b.id, title: b.title }));
@@ -78,7 +81,14 @@ export async function consolidateSession(productDir: string, product: string, s:
   const taken = new Set(graph.nodes.map(n => n.id));
   const date = new Date().toISOString().slice(0, 10);
   const filed: string[] = []; const cards: string[] = [];
-  for (const c of candidates) { const id = candidateSlug(product, c, taken); taken.add(id); filed.push(id); cards.push(candidateCard(id, c, s, page.id, s.agent, date)); }
+  // each card linked before it is written when a Jev key is stored (Jev auto-linking design §4); a failure leaves the card unlinked
+  const jev = opts.jev ?? await jevClient();
+  for (const c of candidates) {
+    const id = candidateSlug(product, c, taken); taken.add(id); filed.push(id);
+    let related: string[] = [];
+    if (jev.enabled) { try { related = confidentIds(await judgeText(productDir, graph, `${c.title}. ${c.text}`, { jev, searchFn: opts.searchFn })); } catch (e) { console.warn('jev: consolidation link failed —', e instanceof Error ? e.message : e); } }
+    cards.push(candidateCard(id, c, s, page.id, s.agent, date, related));
+  }
   await withFileLock(file, async () => { const md = await readFile(file, 'utf8'); await writeAtomic(file, insertIntoPlanSection(md, cards)); });
   return { candidates, filed, doc: s.planDoc };
 }
