@@ -56,6 +56,7 @@ export function Rail({ products, product, projects, plans, views = [], headings 
         {item(`${base}/inbox`, 'Inbox', '⇩')}
         {item(`${base}/sessions`, 'Agents', '⚡')}
         <PlanFolder product={product.slug} plans={plans} />
+        {item(`${base}/settings`, 'Settings', '⚙')}
       </ul>
       </div>
       <div className="rail-split" ref={split} role="separator" aria-orientation="horizontal" title="Drag to resize; double-click to reset" onMouseDown={onSplit} onDoubleClick={resetSplit} />

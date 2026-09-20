@@ -8,7 +8,7 @@ import { TabStrip, type Tab } from './Tabs';
 
 export type DocMeta = { slug: string; node: string; title: string; icon: string; project: string; parent?: string; mtime: string };
 const PAGES: Record<string, string> = { goals: 'Goals', tasks: 'Tasks', questions: 'Questions', knowledge: 'Knowledge', graph: 'Graph', inbox: 'Inbox', sessions: 'Agents', plans: 'Plans', new: 'New product', types: 'Types', search: 'Search' };
-const PAGE_ICONS: Record<string, string> = { goals: '◎', tasks: '☑', questions: '?', knowledge: '◈', graph: '⌬', inbox: '⇩', sessions: '⚡', types: '○', search: '⌕', plans: '🗺️' };
+const PAGE_ICONS: Record<string, string> = { goals: '◎', tasks: '☑', questions: '?', knowledge: '◈', graph: '⌬', inbox: '⇩', sessions: '⚡', types: '○', search: '⌕', plans: '🗺️', settings: '⚙' };
 
 const ago = (iso: string) => { const m = (Date.now() - Date.parse(iso)) / 60000; if (m < 1) return 'just now'; if (m < 60) return `${Math.round(m)} min ago`; if (m < 1440) return `${Math.round(m / 60)} h ago`; const d = Math.round(m / 1440); return d < 30 ? `${d} d ago` : new Date(iso).toLocaleDateString(); };
 

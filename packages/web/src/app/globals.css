@@ -673,3 +673,4 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .doc-not-found code { font: 13px var(--font-m); background: var(--bg-2, rgba(127,127,127,.12)); padding: 1px 5px; border-radius: 4px; }
 
 .linknode-new { display: flex; align-items: center; gap: 6px; } .linknode-new button { flex: 1; min-width: 0; } .linknode-new select { font: 12px var(--font-m); max-width: 120px; } .linknode-note { font-size: 12px; margin: 6px 0; color: var(--ink-2); } .linknode .sec-actions { margin: 4px 0 2px; }
+.settings-section { max-width: 680px; } .settings-section .inbox-form { max-width: 520px; }
