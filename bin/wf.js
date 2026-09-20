@@ -1,39 +1,39 @@
 #!/usr/bin/env node
 'use strict';
-// wf — the agent's door into Wye. Talks to the running web app (WF_URL, default http://localhost:3456).
+// wye (formerly wf) — the agent's door into Wye; bin/wye.js is the command, this file the code. Talks to the running web app (WF_URL, default http://localhost:3456).
 //
-//   wf resolve <link|id>                 what a link points at: document, node, block or section (text included)
-//   wf doc <product/project/doc>         a document's markdown body
-//   wf doc write <product/project/doc> [--file f]   replace the body (stdin or --file), checked against the current hash
-//   wf doc create <product/project/slug> --title "…" [--template blank] [--parent doc] [--type module]   a new document in a project (a page of that type)
-//   wf doc retype <product/project/doc> --type <slug>   the page becomes an instance of that type; every link to it follows
-//   wf node <id> [--product p]           a node with its relations
-//   wf node set <id> --product p [--status s] [--text t] [--set key=value ...] [--unset key ...]
-//   wf node content <id> [--product p]   the blocks under the node (its content) as markdown; --file f | stdin replaces it
-//   wf verdicts <id ...> --product p     classify nodes against their neighbours now (duplicate | refines | consistent | contradicts)
-//   wf impact <id> --after "<new text>" --product p [--no-judge] [--json]   what an edit would reach and what each reached node
+//   wye resolve <link|id>                 what a link points at: document, node, block or section (text included)
+//   wye doc <product/project/doc>         a document's markdown body
+//   wye doc write <product/project/doc> [--file f]   replace the body (stdin or --file), checked against the current hash
+//   wye doc create <product/project/slug> --title "…" [--template blank] [--parent doc] [--type module]   a new document in a project (a page of that type)
+//   wye doc retype <product/project/doc> --type <slug>   the page becomes an instance of that type; every link to it follows
+//   wye node <id> [--product p]           a node with its relations
+//   wye node set <id> --product p [--status s] [--text t] [--set key=value ...] [--unset key ...]
+//   wye node content <id> [--product p]   the blocks under the node (its content) as markdown; --file f | stdin replaces it
+//   wye verdicts <id ...> --product p     classify nodes against their neighbours now (duplicate | refines | consistent | contradicts)
+//   wye impact <id> --after "<new text>" --product p [--no-judge] [--json]   what an edit would reach and what each reached node
 //        needs (unaffected | update | rework | contradicts | ask) — run it before editing an approved node; nothing is written
-//   wf context "<text>" --product p [--all | --as-of d]   knowledge closest to a text (local semantic search; ended nodes hidden)
-//   wf packet --for "<text>" [--ref id ...] --product p [--budget N] [--all | --as-of d]   the constraints in force for a text:
+//   wye context "<text>" --product p [--all | --as-of d]   knowledge closest to a text (local semantic search; ended nodes hidden)
+//   wye packet --for "<text>" [--ref id ...] --product p [--budget N] [--all | --as-of d]   the constraints in force for a text:
 //        every rule, constraint, gate, approved decision, goal and open question within two hops of what it touches, complete
-//   wf type add <slug> --product p [--extends parent] [--purpose "…"] [--doc product/project/doc]   a proposed type card
-//   wf inbox add --product p --title "…" [--ref id ...] (body on stdin)   a raw note (pasted material) for later filing;
+//   wye type add <slug> --product p [--extends parent] [--purpose "…"] [--doc product/project/doc]   a proposed type card
+//   wye inbox add --product p --title "…" [--ref id ...] (body on stdin)   a raw note (pasted material) for later filing;
 //        decisions, questions, requirements and rules are blocks in the documents, not inbox items
-//   wf inbox list --product p [--all]    what is waiting for review
-//   wf session list --product p [--all]  sessions (active first); runners online
-//   wf session show <id> --product p     one session with its log (--full for everything)
-//   wf session changes <id>              every block the session added / changed / removed, per document (--json)
-//   wf session create --product p --agent a "<instruction>" [--ref id ...] [--link url]
-//   wf session log <id> --product p "<line>" | (stdin)   append to the log
-//   wf session done|fail <id> --product p ["result"]     finish a session
-//   wf session handoff <id> --product p --agent a ["note"]  continue it under another agent
-//   wf session open <id> --product p <product/project/doc[#node] | url>   navigate the person's browser to a page
-//   wf session take <id> --product p       mark it running under you (interactive pick-up, e.g. /wf-restore)
-//   wf propose [<product/project/doc>] --plan <product/project/plan-x> --product p (a yaml card with `- id: kind:slug` on stdin or --file f)
+//   wye inbox list --product p [--all]    what is waiting for review
+//   wye session list --product p [--all]  sessions (active first); runners online
+//   wye session show <id> --product p     one session with its log (--full for everything)
+//   wye session changes <id>              every block the session added / changed / removed, per document (--json)
+//   wye session create --product p --agent a "<instruction>" [--ref id ...] [--link url]
+//   wye session log <id> --product p "<line>" | (stdin)   append to the log
+//   wye session done|fail <id> --product p ["result"]     finish a session
+//   wye session handoff <id> --product p --agent a ["note"]  continue it under another agent
+//   wye session open <id> --product p <product/project/doc[#node] | url>   navigate the person's browser to a page
+//   wye session take <id> --product p       mark it running under you (interactive pick-up, e.g. /wf-restore)
+//   wye propose [<product/project/doc>] --plan <product/project/plan-x> --product p (a yaml card with `- id: kind:slug` on stdin or --file f)
 //        one proposed block into the document where its kind lives, embedded on the plan's Definition; without a
 //        document it is defined on the plan under Definition (decision:exec.definition-home-fallback)
-//   wf plan <product/project/plan-x> [--status defining|defined|building|done|cancelled]   the plan's status and Definition
-//   wf plan build <product/project/plan-x> [--worker claude-code|codex|runner] [--note "…"] [--force]   Build: hand the plan's
+//   wye plan <product/project/plan-x> [--status defining|defined|building|done|cancelled]   the plan's status and Definition
+//   wye plan build <product/project/plan-x> [--worker claude-code|codex|runner] [--note "…"] [--force]   Build: hand the plan's
 //        request task to a worker with the Definition (rule:build) — what the person's "build it" in a librarian conversation means
 //   wf explain <id | "text"> --product p   the current state of the product around a node or a text (the librarian, one turn)
 //   wf work list --product p [--unassigned | --mine <name> | --goal <id> | --plan <id>] [--done]   every task with its state
@@ -108,13 +108,13 @@ const commands = {
   async resolve() { if (!pos[1]) die('wf resolve <link|id>'); await resolve(pos[1]); },
   async doc() {
     if (pos[1] === 'create') {
-      const d = docRef(pos[2] || die('wf doc create <product/project/slug> --title "…"'));
+      const d = docRef(pos[2] || die('wye doc create <product/project/slug> --title "…"'));
       const j = await api('POST', `/api/${d.product}/${d.project}/doc`, { title: flags.title || die('--title is required'), template: flags.template || 'blank', parent: flags.parent || '', type: flags.type || 'module' });
       if (j.slug !== d.doc) console.error(`note: the slug comes from the title — created ${j.slug}, not ${d.doc}`);
       return out(flags.json ? j : `created ${d.product}/${d.project}/${j.slug} (${WF_URL}/${d.product}/${d.project}/d/${j.slug})`);
     }
     if (pos[1] === 'retype') {
-      const d = docRef(pos[2] || die('wf doc retype <product/project/doc> --type <slug>'));
+      const d = docRef(pos[2] || die('wye doc retype <product/project/doc> --type <slug>'));
       const j = await api('PUT', `/api/${d.product}/${d.project}/doc/${d.doc}`, { op: 'retype', type: flags.type || die('--type is required') });
       return out(flags.json ? j : `${d.product}/${d.project}/${d.doc} is now ${j.node}${j.rewritten ? ` — ${j.rewritten} reference(s) in ${j.files} file(s) rewritten` : ''}`);
     }
@@ -131,7 +131,7 @@ const commands = {
   async node() {
     if (pos[1] === 'content') {
       // the node's content (req:ontology.content): read as markdown of its own, or replaced from --file / stdin
-      const id = pos[2] || die('wf node content <id> [--file f]');
+      const id = pos[2] || die('wye node content <id> [--file f]');
       const text = flags.file ? fs.readFileSync(flags.file, 'utf8') : await readStdin();
       if (!flags.file && !text) { const j = await api('GET', `/api/${product()}/node/${encodeURIComponent(id)}/content`); return out(flags.json ? j : j.content); }
       const cur = await api('GET', `/api/${product()}/node/${encodeURIComponent(id)}/content`);
@@ -139,7 +139,7 @@ const commands = {
       return out(flags.json ? j : `${cur.file}: content of ${id} written${j.lintOk ? '' : ' — check: ' + j.lintErrors.join(' · ')}`);
     }
     if (pos[1] === 'set') {
-      const id = pos[2] || die('wf node set <id> …'); const props = {};
+      const id = pos[2] || die('wye node set <id> …'); const props = {};
       for (const kv of list(flags.set)) { const i = kv.indexOf('='); if (i > 0) props[kv.slice(0, i)] = kv.slice(i + 1); }
       for (const k of list(flags.unset)) props[k] = null;
       const patch = { ...(flags.status ? { status: flags.status } : {}), ...(flags.text ? { text: flags.text } : {}), ...(Object.keys(props).length ? { props } : {}) };
@@ -147,14 +147,14 @@ const commands = {
       out(flags.json ? j : `${j.file}: ${j.line}`);
       return;
     }
-    const id = pos[1] || die('wf node <id>'); const j = await api('GET', `/api/${product()}/node/${encodeURIComponent(id)}`);
+    const id = pos[1] || die('wye node <id>'); const j = await api('GET', `/api/${product()}/node/${encodeURIComponent(id)}`);
     if (flags.json) return out(j);
     console.log(`${j.node.id} [${j.node.kind}${j.node.status ? ', ' + j.node.status : ''}] ${j.node.file}:${j.node.line}\n${j.node.body}`);
     for (const [v, ids] of j.relations.out) console.log(`  ${v} → ${ids.join(', ')}`); for (const [v, ids] of j.relations.inc) console.log(`  ← ${v}: ${ids.join(', ')}`);
   },
   async type() {
-    if (pos[1] !== 'add') die('wf type add <slug> [--extends parent] [--purpose "…"] [--doc product/project/doc]');
-    const slug = pos[2] || die('wf type add <slug>'); const p = product();
+    if (pos[1] !== 'add') die('wye type add <slug> [--extends parent] [--purpose "…"] [--doc product/project/doc]');
+    const slug = pos[2] || die('wye type add <slug>'); const p = product();
     const body = { slug, extends: flags.extends || 'node', purpose: flags.purpose || '' };
     if (flags.doc) { const d = docRef(flags.doc); body.doc = `data/products/${d.product}/projects/${d.project}/docs/${d.doc}.md`; body.project = d.project; } // the route wants the repo-relative file
     const j = await api('POST', `/api/${p}/types`, body);
@@ -163,14 +163,14 @@ const commands = {
   async packet() {
     // the constraint packet (op:api.packet): what governs a text and/or ids — complete, not a top-k; ended nodes hidden
     const text = flags.for !== undefined ? String(flags.for) : (pos[1] || (await readStdin()));
-    const refs = list(flags.ref); if (!text.trim() && !refs.length) die('wf packet --for "<text>" [--ref id ...] [--budget N] [--all | --as-of d]');
+    const refs = list(flags.ref); if (!text.trim() && !refs.length) die('wye packet --for "<text>" [--ref id ...] [--budget N] [--all | --as-of d]');
     const j = await api('POST', `/api/${product()}/packet`, { text, refs, budget: flags.budget ? Number(flags.budget) : undefined, all: !!flags.all, asOf: flags['as-of'] || undefined });
     if (flags.json) return out(j);
     console.log(`# Constraints in force: ${text.trim().slice(0, 80) || refs.join(', ')}\n\n${j.markdown}`);
   },
   async verdicts() {
     // the verdict pass for nodes, now (op:api.verdicts): how each relates to its neighbours; non-consistent verdicts land under the node
-    const ids = pos.slice(1); if (!ids.length) die('wf verdicts <id ...> [--json]');
+    const ids = pos.slice(1); if (!ids.length) die('wye verdicts <id ...> [--json]');
     const j = await api('POST', `/api/${product()}/verdicts`, { ids });
     if (flags.json) return out(j);
     const order = { contradicts: 0, duplicate: 1, refines: 2, consistent: 3 };
@@ -179,7 +179,7 @@ const commands = {
   },
   async impact() {
     // the impact set of a hypothetical edit (op:api.impact, req:exec.impact-for-agents): candidates with paths, then verdicts
-    const id = pos[1] || die('wf impact <id> --after "<new text>"'); const after = flags.after !== undefined ? String(flags.after) : (await readStdin());
+    const id = pos[1] || die('wye impact <id> --after "<new text>"'); const after = flags.after !== undefined ? String(flags.after) : (await readStdin());
     if (!after.trim()) die('--after "<new text>" (or the new text on stdin) is required');
     const j = await api('POST', `/api/${product()}/impact`, { id, after, judge: !flags['no-judge'] });
     if (flags.json) return out(j);
@@ -199,7 +199,7 @@ const commands = {
     if (pos[1] === 'add') {
       const fields = {}; for (const k of ['context', 'choice', 'alternatives', 'consequences', 'when', 'then', 'unless', 'statement', 'source', 'q']) if (flags[k]) fields[k] = String(flags[k]);
       const text = pos[2] || (process.stdin.isTTY ? '' : await readStdin());
-      if (!flags.title && !text && !Object.keys(fields).length) die('wf inbox add --type t --title "…" [fields] (or body on stdin)');
+      if (!flags.title && !text && !Object.keys(fields).length) die('wye inbox add --type t --title "…" [fields] (or body on stdin)');
       const j = await api('POST', `/api/${p}/inbox`, { type: flags.type || 'note', title: flags.title || '', text, from: flags.from || (process.env.WF_SESSION ? `agent session ${process.env.WF_SESSION}` : 'agent'), refs: list(flags.ref), session: flags.session || process.env.WF_SESSION, fields });
       return out(flags.json ? j : `inbox: ${j.name} (waiting for review at ${WF_URL}/${p}/inbox)`);
     }
@@ -222,7 +222,7 @@ const commands = {
       const instruction = pos[2] || (await readStdin()); const j = await api('POST', `/api/${p}/sessions`, { agent: flags.agent || 'claude-code', instruction, refs: list(flags.ref), source: flags.link ? { link: flags.link } : {} });
       return out(flags.json ? j : `session ${j.id} queued for ${j.agent}`);
     }
-    if (!id) die(`wf session ${sub} <id>`);
+    if (!id) die(`wye session ${sub} <id>`);
     if (sub === 'show') {
       const s = await api('GET', `/api/${p}/sessions/${id}`); if (flags.json) return out(s);
       console.log(`session ${s.id}  ${s.status}  agent ${s.agent}${s.runner ? ' runner ' + s.runner : ''}  created ${s.createdAt}${s.parent ? '  continues ' + s.parent : ''}${s.children && s.children.length ? '  handed to ' + s.children.join(', ') : ''}`);
@@ -235,7 +235,7 @@ const commands = {
     if (sub === 'log') { const text = pos[3] || (await readStdin()); const lines = text.split('\n').filter(Boolean); await api('PATCH', `/api/${p}/sessions/${id}`, { lines }); return; }
     if (sub === 'done' || sub === 'fail') { const result = pos[3] !== undefined ? pos[3] : process.stdin.isTTY ? undefined : await readStdin(); await api('PATCH', `/api/${p}/sessions/${id}`, { status: sub === 'done' ? 'done' : 'failed', result }); return out(`session ${id} ${sub === 'done' ? 'done' : 'failed'}`); }
     if (sub === 'take') { const runner = flags.runner || `interactive-${os.hostname().split('.')[0]}`; await api('PATCH', `/api/${p}/sessions/${id}`, { status: 'running', runner, line: `taken over interactively (${runner})` }); return out(`session ${id} running under ${runner}`); }
-    if (sub === 'open') { const target = pos[3] || die('wf session open <id> <product/project/doc[#node] | url>'); const j = await api('PATCH', `/api/${p}/sessions/${id}`, { open: target }); return out(flags.json ? j : `opened ${j.path}${j.live ? '' : ' (no live console — logged only)'}`); }
+    if (sub === 'open') { const target = pos[3] || die('wye session open <id> <product/project/doc[#node] | url>'); const j = await api('PATCH', `/api/${p}/sessions/${id}`, { open: target }); return out(flags.json ? j : `opened ${j.path}${j.live ? '' : ' (no live console — logged only)'}`); }
     if (sub === 'cancel') { await api('PATCH', `/api/${p}/sessions/${id}`, { status: 'cancelled' }); return out(`session ${id} cancelled`); }
     if (sub === 'changes') { // every block the session added, changed or removed, per document
       const j = await api('GET', `/api/${p}/sessions/${id}/changes`); if (flags.json) return out(j);
@@ -250,7 +250,7 @@ const commands = {
     // one proposed block (op:api.propose): the card on stdin or --file; the home document first, else the plan
     const p = product(); const doc = pos[1] && !pos[1].startsWith('--') ? pos[1] : '';
     const card = flags.file ? fs.readFileSync(flags.file, 'utf8') : await readStdin();
-    if (!card.trim()) die('wf propose [<product/project/doc>] --plan <product/project/plan-x>  (the yaml card on stdin or --file f)');
+    if (!card.trim()) die('wye propose [<product/project/doc>] --plan <product/project/plan-x>  (the yaml card on stdin or --file f)');
     if (!doc && !flags.plan) die('--plan <product/project/plan-x> is required when no document is given');
     const body = { card, plan: flags.plan || undefined, doc: doc ? (() => { const d = docRef(doc); return `${d.product}/${d.project}/${d.doc}`; })() : undefined };
     const j = await api('POST', `/api/${p}/propose`, body);
@@ -260,7 +260,7 @@ const commands = {
     if (pos[1] === 'build') {
       // Build from the CLI (rule:build, req:exec.build-from-definition): the plan's request task goes to a worker with the
       // Definition as context; the librarian runs this when the person says "build it" (decision:exec.librarian-may-build)
-      const ref = pos[2] || die('wf plan build <product/project/plan-x> [--worker claude-code|codex|runner] [--note "…"] [--force]');
+      const ref = pos[2] || die('wye plan build <product/project/plan-x> [--worker claude-code|codex|runner] [--note "…"] [--force]');
       const d = docRef(ref); const p = d.product; const r = `${d.product}/${d.project}/${d.doc}`;
       const plan = await api('GET', `/api/${p}/plan?ref=${encodeURIComponent(r)}`);
       if (!plan.task) die(`${r} has no request task to build`);
@@ -268,7 +268,7 @@ const commands = {
       const j = await api('POST', `/api/${p}/work/assign`, { id: plan.task, worker: flags.worker || 'claude-code', note: flags.note || '', build: r, force: !!flags.force, by: flags.by || (process.env.WF_SESSION ? `agent:${process.env.WF_SESSION}` : undefined) });
       return out(flags.json ? j : `${r} → building: ${plan.task} → ${j.worker}${j.session ? ` (session ${j.session}, ${j.mode})` : ''}; definition ${df.total ?? '?'} block(s), ${df.agreed ?? '?'} agreed${df.defined ? '' : ` — ${df.open ?? '?'} still open, built anyway`}`);
     }
-    const ref = pos[1] || die('wf plan <product/project/plan-x> [--status s]'); const d = docRef(ref); const p = d.product;
+    const ref = pos[1] || die('wye plan <product/project/plan-x> [--status s]'); const d = docRef(ref); const p = d.product;
     const r = `${d.product}/${d.project}/${d.doc}`;
     if (flags.status) { const j = await api('PATCH', `/api/${p}/plan`, { ref: r, status: flags.status }); return out(flags.json ? j : `${r}: status ${j.status}`); }
     const j = await api('GET', `/api/${p}/plan?ref=${encodeURIComponent(r)}`); if (flags.json) return out(j);
@@ -279,7 +279,7 @@ const commands = {
   },
   async explain() {
     // one librarian turn on a node or a text (req:exec.explain-anywhere, op:api.explain): the current state, nothing proposed
-    const what = pos[1] || (await readStdin()); if (!what.trim()) die('wf explain <id | "text">');
+    const what = pos[1] || (await readStdin()); if (!what.trim()) die('wye explain <id | "text">');
     const j = await api('POST', `/api/${product()}/explain`, /^[a-z-]+:[A-Za-z0-9_.\-]+$/.test(what.trim()) ? { id: what.trim() } : { text: what });
     if (flags.json) return out(j);
     console.log(j.explanation);
@@ -296,7 +296,7 @@ const commands = {
       return;
     }
     if (sub === 'add') {
-      const text = pos[2] || (await readStdin()); if (!text.trim()) die('wf work add "<text>" [--part-of <id>] [--ready]');
+      const text = pos[2] || (await readStdin()); if (!text.trim()) die('wye work add "<text>" [--part-of <id>] [--ready]');
       const j = await api('POST', `/api/${p}/work`, { text, partOf: flags['part-of'] || undefined, project: flags.project || undefined, ready: !!flags.ready, by: flags.by || (process.env.WF_SESSION ? `agent:${process.env.WF_SESSION}` : 'agent') });
       return out(flags.json ? j : `${j.id} added to ${j.file} (unassigned${flags.ready ? ', ready' : ''})`);
     }
@@ -306,19 +306,19 @@ const commands = {
       return console.log(j.task ? `${j.task.id}  ${j.task.title}${j.task.plan ? `  (${j.task.plan.id})` : ''}` : 'no ready, unblocked, unassigned task');
     }
     if (sub === 'assign') {
-      const id = pos[2] || die('wf work assign <task> --worker <name>');
+      const id = pos[2] || die('wye work assign <task> --worker <name>');
       const j = await api('POST', `/api/${p}/work/assign`, { id, worker: flags.worker || die('--worker required'), note: flags.note || '', plan: !!flags.plan, force: !!flags.force, by: flags.by || undefined });
       return out(flags.json ? j : `${id} → ${j.worker}${j.session ? ` (session ${j.session}, ${j.mode})` : ''}`);
     }
     die(`unknown work command: ${sub}`);
   },
   async agent() {
-    if (pos[1] !== 'listen') die('wf agent listen --product p --agent a [--cmd "…"] [--name n] [--once]');
+    if (pos[1] !== 'listen') die('wye agent listen --product p --agent a [--cmd "…"] [--name n] [--once]');
     const p = product(); const agent = flags.agent || 'claude-code';
     const name = flags.name || `${os.hostname().split('.')[0]}-${agent}-${process.pid}`;
     // defaults: the prompt arrives on stdin; the agent may read, edit and run the project's tools without prompting
     const DEFAULT_CMD = {
-      'claude-code': `claude -p --output-format text --permission-mode acceptEdits --allowedTools "Bash(wf:*)" "Bash(ctx:*)" "Bash(node:*)" "Bash(npm:*)" "Bash(git:*)" "Read" "Edit" "Write" "Grep" "Glob"`,
+      'claude-code': `claude -p --output-format text --permission-mode acceptEdits --allowedTools "Bash(wye:*)" "Bash(wf:*)" "Bash(ctx:*)" "Bash(node:*)" "Bash(npm:*)" "Bash(git:*)" "Read" "Edit" "Write" "Grep" "Glob"`,
       codex: 'codex exec --sandbox workspace-write',
     };
     const cmd = flags.cmd || DEFAULT_CMD[agent] || die(`no default command for agent ${agent}; pass --cmd`);

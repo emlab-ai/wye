@@ -5,6 +5,7 @@
     "private": true,
     "bin": {
         "ctx": "bin/ctx.js",
+        "wye": "bin/wye.js",
         "wf": "bin/wf.js"
     },
     "workspaces": [

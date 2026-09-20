@@ -33,6 +33,28 @@ sources:
 
 What this module must do is written where it was decided — the PRD and the dev design; this document maps the code onto it. Requirements: req:wf2.api, req:wf2.api.identity, req:wf2.api.skills, req:wf2.sessions.questions, req:wf2.sessions.quiet-console, req:wf2.sessions.summary-in-flow, req:wf.skills, req:wf.skills.mcp. Rules the code enforces: rule:agent-sessions, rule:agent-host, rule:agent-runner, rule:session-queue, rule:subagents-in-console, rule:agent-questions, rule:console-flow, rule:agent-contract, rule:task-artifacts. Pages: page:web/sessions, page:web/session, page:web/session-changes, page:skill/context-v2, page:agents-snippet.
 
+```yaml
+- id: decision:wf2.cli-is-wye
+  title: The agent CLI is `wye`; `wf` stays an alias until nothing says it any more
+  context: >
+    The product was renamed Wye (decision:waterfall.rename-scope) and the CLI kept its old name, wf. The person asked
+    for the rename on 2026-09-20.
+  choice: >
+    `bin/wye.js` is the command (package bin, install.sh link, the agents' allow-lists); `bin/wf.js` holds the code
+    and stays linked as `wf` for sessions and documents that still say it. Every prompt, skill, README line and app
+    string says `wye`; the environment variables keep their names (WF_URL, WF_PRODUCT, WF_SESSION) so running agents
+    are not cut off. Documents written before the rename keep `wf` in their prose; new ones say `wye`.
+  alternatives: >
+    Rename the file and the environment variables in one go (breaks the sessions in flight and every old plan);
+    keep wf (the product is not called that).
+  consequences: two links on PATH for a while; a later sweep removes the alias and renames the env vars.
+  date: 2026-09-20
+  status: proposed
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  affects: [rule:agent-runner, rule:agent-contract, rule:librarian-tools]
+```
+
 ## Components
 
 React components (`component:` cards). `side` says whether it renders on the server or hydrates in the browser.

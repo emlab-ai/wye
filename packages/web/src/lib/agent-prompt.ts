@@ -14,7 +14,7 @@ import { constitutionSection } from './constitution';
 export async function agentSystemPrompt(product: string, productDir: string, wfUrl: string, role: 'worker' | 'librarian' = 'worker'): Promise<string> {
   let base = '';
   const file = role === 'librarian' ? 'prompts/librarian-system.md' : 'prompts/agent-system.md';
-  try { base = await readFile(path.join(REPO_ROOT, file), 'utf8'); } catch { base = '# Wye contract\nWye is the source of truth for product knowledge. Read it before acting (`wf context`, `wf resolve`) and record every decision, requirement, rule and task back into it.'; }
+  try { base = await readFile(path.join(REPO_ROOT, file), 'utf8'); } catch { base = '# Wye contract\nWye is the source of truth for product knowledge. Read it before acting (`wye context`, `wye resolve`) and record every decision, requirement, rule and task back into it.'; }
   let own = '';
   try { own = await readFile(path.join(productDir, '_agent.md'), 'utf8'); } catch { /* none */ }
   // every project's plan document (`plan.md`, else the one file named plan-ish that is not a request's `plan-<slug>.md`

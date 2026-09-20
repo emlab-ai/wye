@@ -41,7 +41,7 @@ export function Assign({ product, item, people, me, onClose, onDone, build, unag
           <>
             <label className="assign-row"><span className="muted">to</span>
               <select value={worker} onChange={e => setWorker(e.target.value)}>
-                <optgroup label="agents">{AGENTS.filter(a => a.id !== 'clerk').map(a => <option key={a.id} value={a.id}>{a.label} — a conversation</option>)}<option value="runner">Runner pool — queued for wf agent listen</option></optgroup>
+                <optgroup label="agents">{AGENTS.filter(a => a.id !== 'clerk').map(a => <option key={a.id} value={a.id}>{a.label} — a conversation</option>)}<option value="runner">Runner pool — queued for wye agent listen</option></optgroup>
                 <optgroup label="people">{[...new Set([...(me ? [me] : []), ...people])].map(p => <option key={p} value={p}>{p}</option>)}<option value="__other">someone else…</option></optgroup>
               </select>
               {worker === '__other' && <input value={name} placeholder="name" onChange={e => setName(e.target.value)} autoFocus />}

@@ -41,7 +41,7 @@ export function InboxList({ product, initial }: { product: string; initial: Inbo
         <button className={`chip ${filter === 'new' ? 'on' : ''}`} onClick={() => setFilter('new')}>To review <small>{counts.new}</small></button>
         <button className={`chip ${filter === 'all' ? 'on' : ''}`} onClick={() => setFilter('all')}>All <small>{counts.all}</small></button>
       </div></div>
-      {!shown.length && <p className="muted">Nothing to review. Agents drop decisions, requirements and questions here with <code>wf inbox add</code>; people with the form above.</p>}
+      {!shown.length && <p className="muted">Nothing to review. Agents drop decisions, requirements and questions here with <code>wye inbox add</code>; people with the form above.</p>}
       <ul className="inbox-items">
         {shown.map(i => (
           <li key={i.name} className={`inbox-item ${i.status} ${openName === i.name ? 'open' : ''}`}>

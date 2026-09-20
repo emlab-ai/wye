@@ -31,14 +31,14 @@ export function Console({ session, onStatus, onKnowledge }: { session: Session; 
   const stick = useRef(true);
   const id = session.id;
   const router = useRouter();
-  // `wf session log` lines and the `wf session done` summary are part of the conversation, placed by time
+  // `wye session log` lines and the `wye session done` summary are part of the conversation, placed by time
   const flow = useMemo(() => {
     const extra: ChatEvent[] = (session.log ?? []).map(l => ({ t: l.t, kind: 'log' as const, text: l.line }));
     if (session.result) extra.push({ t: session.finishedAt ?? session.updatedAt, kind: 'summary', text: session.result });
     if (!extra.length) return events;
     return [...events, ...extra].sort((a, b) => a.t.localeCompare(b.t));
   }, [events, session.log, session.result, session.finishedAt, session.updatedAt]);
-  // `wf session open` moves the page only when it arrives live; a replayed transcript (snapshot) never navigates
+  // `wye session open` moves the page only when it arrives live; a replayed transcript (snapshot) never navigates
   useEffect(() => {
     const es = new EventSource(`/api/${product}/sessions/${id}/stream`);
     es.addEventListener('snapshot', e => { const j = JSON.parse((e as MessageEvent).data); setEvents(j.transcript); setLive(j.live); if (j.queue) setQueue(j.queue); });

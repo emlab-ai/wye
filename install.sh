@@ -5,14 +5,15 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 BIN="${HOME}/.local/bin"
 SKILLS="${HOME}/.claude/skills"
 mkdir -p "$BIN" "$SKILLS"
-chmod +x "$HERE/bin/ctx.js" "$HERE/bin/wf.js"
+chmod +x "$HERE/bin/ctx.js" "$HERE/bin/wf.js" "$HERE/bin/wye.js"
 ln -sfn "$HERE/bin/ctx.js" "$BIN/ctx"
-ln -sfn "$HERE/bin/wf.js" "$BIN/wf"
+ln -sfn "$HERE/bin/wye.js" "$BIN/wye"
+ln -sfn "$HERE/bin/wf.js" "$BIN/wf"     # the old name, an alias
 for s in "$HERE"/skills/*/; do
     name="$(basename "$s")"
     ln -sfn "${s%/}" "$SKILLS/$name"
 done
-echo "wf       → $BIN/wf"
+echo "wye      → $BIN/wye   (wf → $BIN/wf, the old name)"
 echo "ctx      → $BIN/ctx  $(case ":$PATH:" in *":$BIN:"*) echo '(on PATH)';; *) echo "(add $BIN to PATH)";; esac)"
 for s in "$HERE"/skills/*/; do echo "skill    → $SKILLS/$(basename "$s")"; done
 echo

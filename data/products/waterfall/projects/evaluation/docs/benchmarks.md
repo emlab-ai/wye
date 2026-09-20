@@ -5,8 +5,7 @@ title: Benchmarks — set up, run, compare
 status: proposed
 owner: alex
 last-verified: 2026-09-19
-part-of: module:memory-review
-order: 36
+order: 10
 sources:
   - lib/graph.js                       # packet, impact, check — the functions tier 1 scores
   - packages/web/src/lib/artifacts.ts  # block attribution — the session ground truth
@@ -72,7 +71,7 @@ data/products/<product>/_build/eval/<date>-<suite>.json    results (store:eval-r
 ## Tier 1 — the product's own history
 
 ```
-wf eval own [--product <p>] [--suite packet|currency|contradictions|impact|consolidation|all] [--live]
+wye eval own [--product <p>] [--suite packet|currency|contradictions|impact|consolidation|all] [--live]
 ```
 
 | suite | what it does | ground truth | score |
@@ -92,7 +91,7 @@ is on the page).
 Building the ground truth once, so runs are cheap and repeatable:
 
 ```
-wf eval own --build-truth          # writes eval/own/truth-<product>-<graphSha>.json
+wye eval own --build-truth          # writes eval/own/truth-<product>-<graphSha>.json
 ```
 
 — the requirement → governing-set table, the supersession pairs, the hidden-edge list, the commit and session
@@ -103,7 +102,7 @@ rebuilds it.
 ## Tier 2 — with and without, on the same request
 
 ```
-wf eval compare --product <p> --request "<text>" [--ref <id>...] --agent claude-code --runs 5 [--arms with,without]
+wye eval compare --product <p> --request "<text>" [--ref <id>...] --agent claude-code --runs 5 [--arms with,without]
 ```
 
 What the harness does, per run:
@@ -142,10 +141,10 @@ Table: public-corpus run). Judge: GPT-5.4-mini, strict — "allowed paraphrase b
 topic with the wrong facts" — mean of three passes; ground truth authored from primary sources or SPARQL-derived sets.
 
 ```
-wf eval public moosedev --fetch                  # clones bench/ into eval/public/moosedev/data (read its README first: file names below are to be confirmed against it)
-wf eval public moosedev --import                 # corpus → data/products/eval-moosedev/projects/codegraph/docs/*.md
-wf eval public moosedev --run [--live] [--judge-passes 3]
-wf eval public moosedev --report                 # the four numbers beside theirs
+wye eval public moosedev --fetch                  # clones bench/ into eval/public/moosedev/data (read its README first: file names below are to be confirmed against it)
+wye eval public moosedev --import                 # corpus → data/products/eval-moosedev/projects/codegraph/docs/*.md
+wye eval public moosedev --run [--live] [--judge-passes 3]
+wye eval public moosedev --report                 # the four numbers beside theirs
 ```
 
 Import: each typed record becomes a yaml card of a type declared in `ontology.md` of the scratch product
@@ -171,9 +170,9 @@ PassionNet (arxiv.org/abs/2412.01657). Published: macro-F1 0.908 WorldVista, 0.9
 transformers).
 
 ```
-wf eval public reqpairs --fetch                  # the CSVs into eval/public/reqpairs/data (columns: req_a, req_b, label)
-wf eval public reqpairs --run --set worldvista|uav|pure|opencoss [--sample 500] [--live]
-wf eval public reqpairs --report
+wye eval public reqpairs --fetch                  # the CSVs into eval/public/reqpairs/data (columns: req_a, req_b, label)
+wye eval public reqpairs --run --set worldvista|uav|pure|opencoss [--sample 500] [--live]
+wye eval public reqpairs --report
 ```
 
 Run: the pair judge of decision:memory.write-time-verdict (the same prompt, the same model) classifies each pair
@@ -188,9 +187,9 @@ Source: github.com/HUST-AI-HYZ/MemoryAgentBench (ICLR 2026, MIT). Four competenc
 resolution (FactConsolidation, EventQA), where the repo's own adapters give the numbers for Mem0, Letta and Cognee.
 
 ```
-wf eval public memoryagentbench --fetch
-wf eval public memoryagentbench --run --competency cr [--live]
-wf eval public memoryagentbench --report
+wye eval public memoryagentbench --fetch
+wye eval public memoryagentbench --run --competency cr [--live]
+wye eval public memoryagentbench --report
 ```
 
 Adapter (`eval/public/memoryagentbench/wye_adapter.py`, the repo's adapter interface): *add* writes each injected
@@ -210,16 +209,18 @@ Source: xiaowu0162.github.io/longmemeval-v2 (CC BY 4.0); 451 questions over 100�
 
 Every model-scored number (contradictions, constraint violations, should-have-known) is only as good as the judge.
 `eval/judge/labels.jsonl` holds 50 pairs the person labelled (question:memory.eval-judge: is fifty enough, and is the
-person the only labeller); `wf eval judge --agreement` runs the judge over them and prints Cohen's κ, which the
+person the only labeller); `wye eval judge --agreement` runs the judge over them and prints Cohen's κ, which the
 Evaluation page shows next to every score that used it. A judge change (model or prompt hash) reruns the agreement
 before any suite accepts it.
 
 ## Reading and showing results
 
-`wf eval report [--suite …] [--since <date>]` prints the latest scores, the previous ones and the delta; the
-Evaluation page (req:memory.eval-page, page:web/eval) shows the same: tier 1 with deltas and the CI tolerance, tier 2
-pairs with Compare and the blind mark, the Public tab with ours beside the published numbers (source, date, model,
-judge on every row), and tier 3's weekly sparklines with instruction and constitution changes marked on the axis.
+`wye eval report [--suite …] [--since <date>]` prints the latest scores, the previous ones and the delta. In the app
+the results are documents of this project, not a page of their own (constraint:wf2.no-custom-pages): every run is an
+`eval-run:` card with its `eval-score:` cards (type:eval-run, type:eval-score in this project's ontology page),
+written by the harness into the runs document; results.md shows them with the existing data table and instances
+view blocks — filtered, grouped and sorted like any other type — and the same for tier-2 pairs (type:eval-pair) and
+the public benchmarks (type:eval-public, ours beside the published number with source, date, model, judge).
 
 How to say it outside Wye: quote the public numbers with their source and date; quote ours with model, judge and
 graph sha; never a with-and-without pair with fewer than five runs per arm; never a judge-scored number without its κ.
@@ -227,8 +228,8 @@ graph sha; never a with-and-without pair with fewer than five runs per arm; neve
 ## Work
 
 <!-- tasks -->
-- [ ] task:memory.eval-truth `wf eval own --build-truth`: the ground-truth file from edges, supersessions, hidden edges, git and session co-changes, session decision blocks; keyed by graph sha. Part of goal:memory.validated-asks (decision:memory.evaluation). First step of task:memory.eval-suite.
-- [ ] task:memory.eval-judge-set `eval/judge/labels.jsonl` (50 pairs labelled by the person), `wf eval judge --agreement` (Cohen's κ), rerun on judge change. Part of goal:memory.validated-asks (question:memory.eval-judge).
+- [ ] task:memory.eval-truth `wye eval own --build-truth`: the ground-truth file from edges, supersessions, hidden edges, git and session co-changes, session decision blocks; keyed by graph sha. Part of goal:memory.validated-asks (decision:memory.evaluation). First step of task:memory.eval-suite.
+- [ ] task:memory.eval-judge-set `eval/judge/labels.jsonl` (50 pairs labelled by the person), `wye eval judge --agreement` (Cohen's κ), rerun on judge change. Part of goal:memory.validated-asks (question:memory.eval-judge).
 - [ ] task:memory.eval-moosedev-import The MOOSEDev corpus importer: their two ontologies as type cards, records as yaml cards with status and supersedes, provenance kept, ctx check green; their judge prompt vendored with licence. Part of goal:memory.validated-asks (decision:memory.public-benchmarks). Part of task:memory.eval-public.
 - [ ] task:memory.eval-reqpairs-loader Loaders for WorldVista / UAV / PURE / OpenCOSS and the stratified sample; label mapping to the verdict classes; macro-F1 and confusion matrix. Part of goal:memory.validated-asks. Part of task:memory.eval-public.
 - [ ] task:memory.eval-mab-adapter The Wye adapter for MemoryAgentBench (add with write-time adjudication, query through the packet with currency), run on conflict resolution, report beside Mem0 / Letta / Cognee. Part of goal:memory.validated-asks. Part of task:memory.eval-public. After task:memory.bitemporal-props.
@@ -237,9 +238,9 @@ graph sha; never a with-and-without pair with fewer than five runs per arm; neve
 ```yaml
 - id: task:memory.eval-cli
   text: >
-    The `wf eval` command family and the `eval/` layout as the page gives them — `wf eval own | compare | public <adapter> | judge | report`
+    The `wye eval` command family and the `eval/` layout as the page gives them — `wye eval own | compare | public <adapter> | judge | report`
     with the flags shown, `eval/{own,compare,public,judge,recorded}`, lib:eval writing store:eval-results (`{ suite, date, graphSha,
-    model, promptHashes, judge, scores, runs }`) with the tolerance and the gate of req:memory.eval-gate, `wf eval report` printing
+    model, promptHashes, judge, scores, runs }`) with the tolerance and the gate of req:memory.eval-gate, `wye eval report` printing
     latest / previous / delta; test/smoke.js runs the suites on recordings. First step of the build, before task:memory.eval-truth.
     Part of goal:memory.validated-asks (decision:memory.eval-build-scope).
   status: open
@@ -249,7 +250,7 @@ graph sha; never a with-and-without pair with fewer than five runs per arm; neve
 ```yaml
 - id: task:memory.eval-recordings
   text: >
-    The first live runs (decision:memory.eval-first-live-runs): every tier-1 suite, `wf eval judge --agreement`, one tier-2 pair with
+    The first live runs (decision:memory.eval-first-live-runs): every tier-1 suite, `wye eval judge --agreement`, one tier-2 pair with
     five runs per arm, each public adapter on its sample, with WATERFALL_LIVE=1 on haiku; eval/recorded/ and the first
     `_build/eval/<date>-*.json` committed; the numbers quoted on module:benchmarks with model, judge, graph sha and date.
     Last step of the build, after task:memory.eval-page. Part of goal:memory.validated-asks.

@@ -7,13 +7,13 @@ description: Restore and continue a Wye agent session by id — /wf-restore <ses
 
 Pick up a Wye session in this conversation (transfer of work from another agent or a runner).
 
-1. Load it: `wf session show <id> --product <p> --full` (`WF_PRODUCT` or `--product`; if unknown, try
-   `wf session list --product <p> --all` for each product under `data/products/`).
-2. Read every ref and the source link it names: `wf resolve <link|id>` for each; read the documents they point at.
-3. If the session continues another (`continues <id>`), show that one too: `wf session show <parent> --full`.
+1. Load it: `wye session show <id> --product <p> --full` (`WF_PRODUCT` or `--product`; if unknown, try
+   `wye session list --product <p> --all` for each product under `data/products/`).
+2. Read every ref and the source link it names: `wye resolve <link|id>` for each; read the documents they point at.
+3. If the session continues another (`continues <id>`), show that one too: `wye session show <parent> --full`.
 4. Tell the human in two lines what the session asked for and where it stopped, then continue the work here.
-5. Take it: `wf session take <id> --product <p>` (marks it running under you, so no runner also starts it).
-6. As you work: `wf session log <id> --product <p> "<line>"` for progress; when finished
-   `wf session done <id> --product <p> "<result>"` (or `fail`).
+5. Take it: `wye session take <id> --product <p>` (marks it running under you, so no runner also starts it).
+6. As you work: `wye session log <id> --product <p> "<line>"` for progress; when finished
+   `wye session done <id> --product <p> "<result>"` (or `fail`).
 
 Use the waterfall-agent skill for how to read and write the product's documents.

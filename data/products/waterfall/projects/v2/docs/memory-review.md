@@ -528,7 +528,7 @@ it can be published as one.
     judge and three-pass mean, the four numbers reported beside MOOSEDev's and mem0's); the verdict judge run over
     WorldVista, UAV and PURE pairs with macro-F1 beside the published 0.88–0.95; then a Wye adapter for
     MemoryAgentBench's conflict-resolution competency; LongMemEval-V2 when the instruction layer exists. The
-    Evaluation page shows a Public tab with Wye's number, the published numbers, the date, model and prompt hashes.
+    Results page of the Evaluation project lists eval-public cards: Wye's number, the published numbers, the date, model and prompt hashes.
     Numbers from other systems are quoted with their source and never re-run by us unless the harness is public.
   alternatives: >
     LoCoMo / LongMemEval v1 (measure user-chat recall; self-reported vendor scores); ALICE's set (not public);
@@ -552,10 +552,10 @@ it can be published as one.
   choice: >
     An `eval/` suite in the repo: tier-1 benchmarks as tests with recorded model outputs for CI and a live mode
     (WATERFALL_LIVE=1), each writing its scores to `_build/eval/<date>.json` with the model, prompt hashes and graph
-    sha; a tier-2 harness (`wf eval compare --request "…" --runs 5`) that runs the with and without arms in scratch
+    sha; a tier-2 harness (`wye eval compare --request "…" --runs 5`) that runs the with and without arms in scratch
     worktrees, keeps the transcripts immutable, scores them, and stores the pair; a tier-3 collector that computes the
-    weekly numbers from sessions, change records and the Inbox. One Evaluation page (page:web/eval) shows the latest
-    tier-1 scores against the previous run, every tier-2 pair with Compare, and the tier-3 sparklines. No feature of
+    weekly numbers from sessions, change records and the Inbox. The Evaluation project's Results page shows the runs, scores, pairs and public rows as cards through the existing
+    table and view blocks (constraint:wf2.no-custom-pages). No feature of
     §1–§7 is switched on by default before its tier-1 benchmark exists and its number is on the page.
   alternatives: >
     Anecdotes (a good session with the packet) — the paper's near-misses are exactly that; public benchmarks
@@ -583,7 +583,7 @@ it can be published as one.
   part-of: goal:memory.validated-asks
 - id: req:memory.eval-compare
   title: The same request runs with and without the memory and the two are shown side by side
-  when: `wf eval compare` runs, or Compare is used on a plan
+  when: `wye eval compare` runs, or Compare is used on a plan
   then: >
     the with arm (packet, instructions, definition) and the without arm (contract only) run the same instruction with
     the same agent and model in scratch worktrees, n times each; transcripts are kept immutable; each run is scored
@@ -597,17 +597,17 @@ it can be published as one.
   requires-tests: [test:eval#compare-harness, ui-test:eval-compare]
   part-of: goal:memory.validated-asks
 - id: req:memory.eval-page
-  title: One page shows the numbers, over time
-  when: the Evaluation entry opens (/<product>/eval)
+  title: The numbers are documents of the Evaluation project, shown with the existing table and view blocks
+  when: the person opens the Evaluation project's Results page
   then: >
-    the latest tier-1 scores with the previous run and the delta; every with-and-without pair with Compare; and the
-    weekly product numbers — sessions, share citing a node, contradictions found at write time vs later, Inbox
-    accept / reject, reverts, bounced tasks, should-have-known questions, request → defined → done times — as
-    sparklines, with the instruction and constitution changes marked on the time axis
+    every run is an eval-run card with its eval-score cards (type:eval-run, type:eval-score, written by the harness),
+    every with-and-without pair an eval-pair card, every public benchmark row an eval-public card with ours beside
+    the published number and its source; the page shows them with the data table and instances view blocks —
+    filtered, grouped, sorted like any type — and no page of its own exists (constraint:wf2.no-custom-pages)
   status: proposed
   refines: req:memory.eval-benchmarks
-  satisfied-by: [page:web/eval, op:api.eval]
-  requires-tests: [test:web-components#eval-page]
+  satisfied-by: [module:eval-results, module:eval-ontology, component:instance-table, component:view-block]
+  requires-tests: [test:eval#cards-written]
   part-of: goal:memory.validated-asks
 - id: question:memory.eval-judge
   title: Who labels the judge's validation set, and how many pairs are enough?
@@ -703,9 +703,9 @@ Three things decide whether it works, and they are the questions below: what liv
 - [x] task:memory.lint-deep `ctx check --deep`: the verdict pass over every same-kind pair that shares a neighbour, on demand (Karpathy's lint --deep), reporting new contradictions. Part of goal:memory.validated-asks. (session: 9f3d83809b)
 - [ ] task:memory.instructions type:instruction and type:lesson in the base ontology; `_agent.md` as instruction blocks; the prompt's Instructions section scoped by applies-to and capped; the consolidation run's outcome inputs (failed, cancelled, bounced, reverted, rejected), one instruction patch per run as a change record with evidence, rejected proposals kept and read. Part of goal:memory.validated-asks (decision:memory.instructions-compiled). After task:memory.consolidate and task:exec.change-store.
 - [ ] task:memory.eval-suite `eval/own`: packet completeness vs vector top-k over shipped requirements, currency over supersessions, impact recall over co-changed blocks from git and sessions, consolidation recall over hidden decision blocks — recorded outputs for CI, live mode, scores to `_build/eval/<date>-own.json`; extends the verdict-pass benchmark of task:memory.benchmark. Part of goal:memory.validated-asks (req:memory.eval-benchmarks). Set up and run as module:benchmarks says.
-- [ ] task:memory.eval-compare `wf eval compare`: with and without arms in scratch worktrees, n runs, immutable transcripts, scoring, blind human mark; Compare on a plan. Part of goal:memory.validated-asks (req:memory.eval-compare).
+- [ ] task:memory.eval-compare `wye eval compare`: with and without arms in scratch worktrees, n runs, immutable transcripts, scoring, blind human mark; Compare on a plan. Part of goal:memory.validated-asks (req:memory.eval-compare).
 - [ ] task:memory.eval-public `eval/public`: MOOSEDev bench through Wye (corpus as typed cards in a scratch product, questions via packet and context, their judge, four numbers beside theirs and mem0's); the verdict judge over WorldVista / UAV / PURE pairs with macro-F1; then a MemoryAgentBench adapter for conflict resolution; the Public tab on the Evaluation page. Part of goal:memory.validated-asks (decision:memory.public-benchmarks). After task:memory.constraint-packet and task:memory.verdict-pass.
-- [ ] task:memory.eval-page page:web/eval and op:api.eval: tier-1 scores with deltas, tier-2 pairs, tier-3 weekly sparklines with instruction and constitution changes marked, the Public tab. Part of goal:memory.validated-asks (req:memory.eval-page).
+- [ ] task:memory.eval-cards The harness writes every run as eval-run / eval-score / eval-pair / eval-public cards into the Evaluation project's runs document; the Results page shows them with the table and view blocks; page:web/eval, EvalView and the rail entry removed. Part of goal:memory.validated-asks (req:memory.eval-page, constraint:wf2.no-custom-pages).
 - [ ] task:memory.code-source-spike The comment pass of the parser over source-roots for one language (TypeScript, `//` and `/** */`), read-only, on Wye's own packages/web: entity, op, rule, component, lib nodes defined beside their code; one-defining-place check; the web app shows them with file and line. Part of goal:memory.validated-asks (decision:memory.code-source). Answer question:memory.code-source.kinds and question:memory.code-source.writes first.
 - [ ] task:memory.code-drift With code-defined entities: compare declared fields with the class or type next to the comment and report drift. Part of goal:memory.validated-asks. After task:memory.code-source-spike.
 <!-- /tasks -->
@@ -737,8 +737,8 @@ Three things decide whether it works, and they are the questions below: what liv
     a judge set and a page, written as nine open task lines; a worker could build a slice or all of it.
   choice: >
     One plan builds everything the page says except LongMemEval-V2, in this order and each step a checked task line
-    as it lands: task:memory.eval-truth and task:memory.eval-suite (tier 1, all five suites, `wf eval own`),
-    task:memory.eval-judge-set (`eval/judge`, `wf eval judge --agreement`), task:memory.eval-compare (tier 2),
+    as it lands: task:memory.eval-truth and task:memory.eval-suite (tier 1, all five suites, `wye eval own`),
+    task:memory.eval-judge-set (`eval/judge`, `wye eval judge --agreement`), task:memory.eval-compare (tier 2),
     task:memory.eval-public with task:memory.eval-moosedev-import, task:memory.eval-reqpairs-loader and
     task:memory.eval-mab-adapter, then task:memory.eval-page (page:web/eval, op:api.eval, the Public tab).
     Every command has the shape the page gives it; `store:eval-results` is the one results format for all tiers.
@@ -750,7 +750,7 @@ Three things decide whether it works, and they are the questions below: what liv
     LongMemEval-V2 stays behind task:memory.instructions; decision:memory.evaluation and
     decision:memory.public-benchmarks, still proposed, are what this build implements and want approving with it.
   date: 2026-09-20
-  status: proposed
+  status: approved
   by: alex
   evidence: [session:a95bf7bbe0]
   refines: decision:memory.evaluation
@@ -789,7 +789,7 @@ Three things decide whether it works, and they are the questions below: what liv
     Report only, no gate until two or three runs exist (rejected: the gate is the point of decision:memory.evaluation);
     any drop fails (rejected: a twelve-pair suite moves 8 points on one pair).
   consequences: >
-    `wf eval own` needs the previous file; a suite may later carry its own tolerance in the results file without a
+    `wye eval own` needs the previous file; a suite may later carry its own tolerance in the results file without a
     format change; a deliberate drop (a new positive set, question:memory.benchmark-positives) is accepted by
     re-baselining, not by widening the tolerance.
   date: 2026-09-20
@@ -821,7 +821,7 @@ Three things decide whether it works, and they are the questions below: what liv
     harness only with fake judges and the person runs live — leaves CI skipping every suite.
   consequences: >
     A model key in the worker's environment; the first numbers are haiku numbers and are quoted as such; a judge
-    change reruns `wf eval judge --agreement` before any suite accepts it, as the page says.
+    change reruns `wye eval judge --agreement` before any suite accepts it, as the page says.
   date: 2026-09-20
   status: proposed
   by: alex
@@ -838,7 +838,7 @@ Three things decide whether it works, and they are the questions below: what liv
 ```yaml
 - id: req:memory.eval-gate
   title: A suite's drop against the previous run fails the eval
-  when: `wf eval own` (or CI running it with recordings) finishes a suite and a previous `_build/eval/<date>-own.json` holds a score for it
+  when: `wye eval own` (or CI running it with recordings) finishes a suite and a previous `_build/eval/<date>-own.json` holds a score for it
   then: >
     the new score, the previous one, the delta and the tolerance (5 points, decision:memory.eval-tolerance) are
     printed and written into the results file; a delta below minus the tolerance makes the run exit non-zero after
