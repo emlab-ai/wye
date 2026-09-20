@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** The plan document becomes the Prompt Request (`type:pr`, `pr:<slug>`, under the project's Requests page) with the lifecycle `draft → refining → approved → building → done | failed | cancelled`, a computed readiness list, an Approve / Cancel gate the person owns, and a ⌘P with two modes: ad-hoc (a conversation, no document) and PR (a draft + a refining session).
+**Goal:** The plan document becomes the Prompt Request (`type:pr`, `pr:<slug>`, under the project's PRs page) with the lifecycle `draft → refining → approved → building → done | failed | cancelled`, a computed readiness list, an Approve / Cancel gate the person owns, and a ⌘P with two modes: ad-hoc (a conversation, no document) and PR (a draft + a refining session).
 
 **Architecture:** A mechanical rename of everything named plan (libs, routes, components, CLI, prompts, template, base ontology, parser special cases) followed by a one-off migration of the existing documents and sessions; then the new pieces — `readiness()` in the pure lib, a `PrHead` component on `type:pr` pages, `PATCH /api/<p>/pr { action }`, the refining brief, and the command box's mode row. Build by hand (Assign with `build`) keeps working until D2's dispatcher.
 
@@ -14,7 +14,7 @@
 
 - Statuses `PR_STATUSES = ['draft', 'refining', 'approved', 'building', 'done', 'failed', 'cancelled']`; readiness is computed, never a status.
 - Session records keep working: `Session.prDoc` is the field; a stored `planDoc` is read as `prDoc` when `prDoc` is absent (`sessions.ts` `getSession` / `listSessions` normalise on read).
-- Ids: `pr:<slug>`, files `pr-<slug>.md`, the Requests page `requests.md` = `module:<project>-requests`.
+- Ids: `pr:<slug>`, files `pr-<slug>.md`, the PRs page `prs.md` = `module:<project>-prs`.
 - `wye plan …` keeps working as an alias of `wye pr …` printing `plan is now pr` once to stderr.
 - Every step green: `cd packages/web && npx tsc --noEmit -p . && npx vitest run`, and `npm test` at the end of each task; `node bin/ctx.js check --root data/products/waterfall` 0 errors after the migration.
 - Commit to `main` per task, message in the repo's style.
@@ -29,7 +29,7 @@
 - Modify: `packages/web/src/lib/session-types.ts` (`SessionPlan` → `SessionPr`, `planDoc` → `prDoc`, `plans` → `prs`)
 
 **Interfaces (Produces):**
-- `requestsPageId(projectSlug) → 'module:<p>-requests'`
+- `requestsPageId(projectSlug) → 'module:<p>-prs'`
 - `prSlug(request, taken) → 'pr-…'`, `prTitle`, `PrDocVars`, `prDocBody(template, vars)`, `requestTaskId`, `fromLine`, `prDocPath`, `PrWindow`, `resultSection`, `withResult`, `requestTaskStatusOnEnd(taskStatus, prStatus)`, `PrEndStatus`, `prStatusOnEnd`, `getFrontmatter`, `setFrontmatter`, `prsOf(product, graph, sessionId) → SessionPr[]`, `definitionIds`, `sectionBody`, `withDefinition` (inserts before `## Impact`, then `## Tasks`, else appends), `AGREED`, `DefinitionState`, `definitionState`
 - New: `Readiness = { definition: boolean; agreed: boolean; impact: boolean; contradictions: boolean; tasks: boolean; ok: boolean; unagreed: string[]; contradicted: string[] }`; `readiness(d: DefinitionState, taskCount: number, impactFresh = true) → Readiness`; `taskLines(md) → string[]` (ids of `- [ ] task:` / `- [x] task:` lines under Tasks); `PR_STATUSES`.
 - Removed: `planStatusFromDefinition` (defining ↔ defined no longer exist; `refining` is set by the session, not the Definition).
@@ -62,7 +62,7 @@ Run: `cd packages/web && npx vitest run src/lib/pr-doc.test.ts` — FAIL (import
 
 - [ ] **Step 3: Rewrite `pr-doc.ts`**
 
-Apply the identifier table to the file body and header comment (the header says: "The Prompt Request document (req:wf2.pr, rule:pr-doc): one per request — created by the app from templates/docs/pr.md under the project's Requests page, refined until approved, built by a worker, finished by the app with the result. Pure…"). `prSlug` prefixes `pr-`. `withDefinition` when the section is missing inserts before `## Impact`, else before `## Tasks`, else appends. Remove `planStatusFromDefinition`. Add:
+Apply the identifier table to the file body and header comment (the header says: "The Prompt Request document (req:wf2.pr, rule:pr-doc): one per request — created by the app from templates/docs/pr.md under the project's PRs page, refined until approved, built by a worker, finished by the app with the result. Pure…"). `prSlug` prefixes `pr-`. `withDefinition` when the section is missing inserts before `## Impact`, else before `## Tasks`, else appends. Remove `planStatusFromDefinition`. Add:
 
 ```ts
 // The Tasks section's task ids: `- [ ] task:x …` / `- [x] task:x …` lines, top level only.
@@ -100,10 +100,10 @@ Run: `npx vitest run src/lib/pr-doc.test.ts` — PASS. Commit only after Task 2 
 - `packages/web/src/app/[product]/plans/page.tsx` → `[product]/requests/page.tsx`
 - `templates/docs/plan-request.md` → `templates/docs/pr.md`
 
-**Files (modify):** `pr-docs.ts`, `sessions.ts`, `agent-host.ts`, `agent-prompt.ts`, `work.ts`, `work.test.ts`, `work-io.ts`, `consolidate.ts`, `consolidate.test.ts`, `graph-diff.test.ts`, `explain.ts`, `constitution.ts`, `watch.ts`, `changes.ts`; routes `propose`, `sessions` (+ `[id]`, `[id]/message`), `work/assign`; components `RequestFolder`, `PrList`, `TaskWork`, `Assign`, `WorkList`, `SessionView`, `SessionList`, `Console`, `Rail`, `TopBar`, `DocProps`, `ContextCard`, `CommandBox` (names only — the mode row is Task 5); `app/[product]/layout.tsx`, `work/page.tsx`, `sessions/page.tsx`, `sessions/[id]/page.tsx`; `globals.css` (class names `.plan-*` → `.pr-*`); `bin/wf.js`; `prompts/agent-system.md`, `prompts/librarian-system.md`; `schema/base-ontology.md`; `lib/graph.js`, `lib/impact.js`, `lib/parse.js`; `lib/consolidate.js` (prompt text mentions "plan document" → "PR document").
+**Files (modify):** `pr-docs.ts`, `sessions.ts`, `agent-host.ts`, `agent-prompt.ts`, `work.ts`, `work.test.ts`, `work-io.ts`, `consolidate.ts`, `consolidate.test.ts`, `graph-diff.test.ts`, `explain.ts`, `constitution.ts`, `watch.ts`, `changes.ts`; routes `propose`, `sessions` (+ `[id]`, `[id]/message`), `work/assign`; components `PrFolder`, `PrList`, `TaskWork`, `Assign`, `WorkList`, `SessionView`, `SessionList`, `Console`, `Rail`, `TopBar`, `DocProps`, `ContextCard`, `CommandBox` (names only — the mode row is Task 5); `app/[product]/layout.tsx`, `work/page.tsx`, `sessions/page.tsx`, `sessions/[id]/page.tsx`; `globals.css` (class names `.plan-*` → `.pr-*`); `bin/wf.js`; `prompts/agent-system.md`, `prompts/librarian-system.md`; `schema/base-ontology.md`; `lib/graph.js`, `lib/impact.js`, `lib/parse.js`; `lib/consolidate.js` (prompt text mentions "plan document" → "PR document").
 
 **Interfaces (Produces):**
-- `pr-docs.ts`: `ensureRequestsPage(project, root)`, `createPrDoc(productDir, product, s)` (file `pr-<slug>.md`, `status: draft`, `refining` when `s.role === 'librarian'`), `withRequestTaskStatus`, `requestTaskStatus`, `finishPrDoc`, `adoptPrDoc`, `closePrDoc`, `readPrDoc`, `embedInDefinition`, `prDefinition(scope, md) → DefinitionState`, `prReadiness(scope, md) → Readiness` (= `readiness(prDefinition(scope, md), taskLines(md).length)`), `trackDefinitions`, `definitionContext`, `SYSTEM_VIEWS`, `ensureViewPages`, `viewPageId`. `refreshPlanStatuses` is removed (and its `POST { action: 'refresh' }` route).
+- `pr-docs.ts`: `ensurePrsPage(project, root)`, `createPrDoc(productDir, product, s)` (file `pr-<slug>.md`, `status: draft`, `refining` when `s.role === 'librarian'`), `withRequestTaskStatus`, `requestTaskStatus`, `finishPrDoc`, `adoptPrDoc`, `closePrDoc`, `readPrDoc`, `embedInDefinition`, `prDefinition(scope, md) → DefinitionState`, `prReadiness(scope, md) → Readiness` (= `readiness(prDefinition(scope, md), taskLines(md).length)`), `trackDefinitions`, `definitionContext`, `SYSTEM_VIEWS`, `ensureViewPages`, `viewPageId`. `refreshPlanStatuses` is removed (and its `POST { action: 'refresh' }` route).
 - `sessions.ts`: `setPrDoc(productDir, id, ref, line?)`; `getSession`/`listSessions` normalise `planDoc` → `prDoc`.
 - `op:api.pr`: `GET ?ref=` → `{ ref, node: 'pr:<slug>', status, role, task, session, definition, readiness }`; `PATCH { ref, status }` (Task 4 adds `action`).
 - Route `/[product]/requests` (page "Requests"; `/plans` redirects to it).
@@ -158,15 +158,15 @@ _Written by the app when the build ends: the summary and the blocks this request
 
 - [ ] **Step 1: Apply the table everywhere**
 
-Identifier table (whole-word, case-sensitive, in every file listed): `plan-doc`→`pr-doc`, `plan-docs`→`pr-docs`, `planDoc`→`prDoc` (keep the fallback read in `sessions.ts`), `PlanDoc`→`PrDoc`, `plansPageId`→`requestsPageId`, `ensurePlansPage`→`ensureRequestsPage`, `createPlanDoc`→`createPrDoc`, `finishPlanDoc`→`finishPrDoc`, `adoptPlanDoc`→`adoptPrDoc`, `closePlanDoc`→`closePrDoc`, `readPlanDoc`→`readPrDoc`, `planDefinition`→`prDefinition`, `planSlug`→`prSlug`, `planTitle`→`prTitle`, `planDocBody`→`prDocBody`, `planDocPath`→`prDocPath`, `planStatusOnEnd`→`prStatusOnEnd`, `PlanEndStatus`→`PrEndStatus`, `PlanWindow`→`PrWindow`, `plansOf`→`prsOf`, `SessionPlan`→`SessionPr`, `PlanItem`→`PrItem`, `PlanFolder`→`RequestFolder`, `PlanList`→`PrList`, `PLAN_STATUSES`→`PR_STATUSES`, `planDocNote`→`prDocNote`, `librarianPlanNote`→`refiningNote` (text rewritten in Task 5; for now only the name and `plan:`→`pr:`), `planFirst` — delete the function and its call sites (the "plan first" protocol goes; `Session.plan`, the `plan:` body flags of the sessions and message routes, the `plan` checkbox in `Assign` and `CommandBox` are removed), `'plan'` kind literals → `'pr'` (`work.ts` plansByFile, `WorkGroupBy`, `work-io.ts`, `pr-doc.ts` prsOf, `pr-docs.ts`, `ContextCard` kinds, `lib/graph.js` and `lib/impact.js` `NOT_THROUGH`, `lib/parse.js:513` forgetting rule), `plan:`→`pr:` in every string, `plan-`→`pr-` in slugs and CSS class names, `module:${p}-plans`→`module:${p}-requests`, `/plans`→`/requests` in links (`Rail`, `TopBar` `PAGE_ICONS` key `requests: '🗺️'`), statuses `proposed`→`draft`, `defining`→`refining`, `defined`→`approved` where a status string is compared (`work-io.ts:29` list becomes `['draft', 'refining', 'approved', 'building']`; the "defined" check on Build in `TaskWork` becomes `readiness.ok`).
+Identifier table (whole-word, case-sensitive, in every file listed): `plan-doc`→`pr-doc`, `plan-docs`→`pr-docs`, `planDoc`→`prDoc` (keep the fallback read in `sessions.ts`), `PlanDoc`→`PrDoc`, `plansPageId`→`requestsPageId`, `ensurePlansPage`→`ensurePrsPage`, `createPlanDoc`→`createPrDoc`, `finishPlanDoc`→`finishPrDoc`, `adoptPlanDoc`→`adoptPrDoc`, `closePlanDoc`→`closePrDoc`, `readPlanDoc`→`readPrDoc`, `planDefinition`→`prDefinition`, `planSlug`→`prSlug`, `planTitle`→`prTitle`, `planDocBody`→`prDocBody`, `planDocPath`→`prDocPath`, `planStatusOnEnd`→`prStatusOnEnd`, `PlanEndStatus`→`PrEndStatus`, `PlanWindow`→`PrWindow`, `plansOf`→`prsOf`, `SessionPlan`→`SessionPr`, `PlanItem`→`PrItem`, `PlanFolder`→`PrFolder`, `PlanList`→`PrList`, `PLAN_STATUSES`→`PR_STATUSES`, `planDocNote`→`prDocNote`, `librarianPlanNote`→`refiningNote` (text rewritten in Task 5; for now only the name and `plan:`→`pr:`), `planFirst` — delete the function and its call sites (the "plan first" protocol goes; `Session.plan`, the `plan:` body flags of the sessions and message routes, the `plan` checkbox in `Assign` and `CommandBox` are removed), `'plan'` kind literals → `'pr'` (`work.ts` plansByFile, `WorkGroupBy`, `work-io.ts`, `pr-doc.ts` prsOf, `pr-docs.ts`, `ContextCard` kinds, `lib/graph.js` and `lib/impact.js` `NOT_THROUGH`, `lib/parse.js:513` forgetting rule), `plan:`→`pr:` in every string, `plan-`→`pr-` in slugs and CSS class names, `module:${p}-plans`→`module:${p}-requests`, `/plans`→`/requests` in links (`Rail`, `TopBar` `PAGE_ICONS` key `requests: '🗺️'`), statuses `proposed`→`draft`, `defining`→`refining`, `defined`→`approved` where a status string is compared (`work-io.ts:29` list becomes `['draft', 'refining', 'approved', 'building']`; the "defined" check on Build in `TaskWork` becomes `readiness.ok`).
 
 Wording in prose/comments/UI: "plan document" → "PR document" / "the request", "Plans" → "Requests", "plan" (the object) → "PR"; keep "plan" only where it means planning as a verb.
 
 `bin/wf.js`: `async pr()` with the body of `plan()` (`wye pr <ref> [--status]`, `wye pr build <ref> …` — Build stays; the librarian no longer runs it, so drop that comment), plus `async plan() { console.error('plan is now pr'); return this.pr(); }`; the usage block: `wye pr`, `wye propose … --pr <ref>` (`--plan` still accepted).
 
-`schema/base-ontology.md`: `type:plan` → `type:pr`, purpose "A Prompt Request — one per request: `pr-<slug>` under the project's Requests page, holding the request, its context, the definition (the blocks it proposes), its impact, the tasks and — once built — the result. Statuses draft | refining | approved | building | done | failed | cancelled. Written by the app at start, approval and end, by the agent and the person while they refine (rule:pr-type-base)."
+`schema/base-ontology.md`: `type:plan` → `type:pr`, purpose "A Prompt Request — one per request: `pr-<slug>` under the project's PRs page, holding the request, its context, the definition (the blocks it proposes), its impact, the tasks and — once built — the result. Statuses draft | refining | approved | building | done | failed | cancelled. Written by the app at start, approval and end, by the agent and the person while they refine (rule:pr-type-base)."
 
-`ensureRequestsPage` body: title "Requests", intro "Every request to the product is a Prompt Request under this page (type:pr): what was asked, what it touches, the blocks it proposes, its impact, the tasks and — when built — the result. ⌘P creates one; it is refined until clear, approved here, then built by an agent.", `<!-- view:pr -->`.
+`ensurePrsPage` body: title "Requests", intro "Every request to the product is a Prompt Request under this page (type:pr): what was asked, what it touches, the blocks it proposes, its impact, the tasks and — when built — the result. ⌘P creates one; it is refined until clear, approved here, then built by an agent.", `<!-- view:pr -->`.
 
 - [ ] **Step 2: Compile and test**
 
@@ -234,8 +234,8 @@ console.log('plans-to-prs: ok');
 'use strict';
 // One-off (Prompt Requests D1): plan documents become Prompt Requests. Per product: every `type: plan` document is
 // renamed plan-<x>.md → pr-<x>.md with node pr:pr-<x>, type pr, the status mapped (proposed | defining | defined →
-// refining when a running session holds it, else draft; the rest unchanged), part-of → the Requests page; the
-// Plans page plans.md → requests.md (module:<p>-requests, "Requests", view:pr); every reference plan:<x> anywhere in
+// refining when a running session holds it, else draft; the rest unchanged), part-of → the PRs page; the
+// Plans page plans.md → requests.md (module:<p>-prs, "Requests", view:pr); every reference plan:<x> anywhere in
 // the product's documents → pr:<x>; every session's planDoc → prDoc with the new slug, its refs likewise.
 // Usage: node scripts/plans-to-prs.js --product waterfall | --all [--dry]
 const fs = require('fs'); const path = require('path');
@@ -300,19 +300,19 @@ if (require.main === module) {
   const root = path.join(__dirname, '..', 'data', 'products');
   const products = args.includes('--all') ? fs.readdirSync(root).filter(n => !n.startsWith('.') && fs.existsSync(path.join(root, n, '_product.md'))) : [args[args.indexOf('--product') + 1]].filter(Boolean);
   if (!products.length) { console.error('usage: node scripts/plans-to-prs.js --product <slug> | --all [--dry]'); process.exit(1); }
-  for (const p of products) { const r = migrate(path.join(root, p), { dry }); console.log(`${p}: ${r.docs.length} document(s) → pr, ${r.pages.length} Requests page(s), ${r.refs} reference(s), ${r.sessions} session(s)${dry ? ' (dry run)' : ''}`); }
+  for (const p of products) { const r = migrate(path.join(root, p), { dry }); console.log(`${p}: ${r.docs.length} document(s) → pr, ${r.pages.length} PRs page(s), ${r.refs} reference(s), ${r.sessions} session(s)${dry ? ' (dry run)' : ''}`); }
 }
 ```
 
 - [ ] **Step 3: Test, dry-run, run, check**
 
-Run: `node test/plans-to-prs.js` → `plans-to-prs: ok`. Then `node scripts/plans-to-prs.js --all --dry` (read the counts), `node scripts/plans-to-prs.js --all`, `node bin/ctx.js check --root data/products/waterfall` (0 errors; compare warnings with before), `grep -rn "plan:plan-\|type: plan\b" data/products/waterfall` → nothing. Also `data/products/waterfall/projects/v2/docs/prd-execution.md:110` `type:plan` card → `type:pr` with the new statuses in its comment. Also the Requests page for each project: there is `plans.md` in `v2` (and wherever the script found one).
+Run: `node test/plans-to-prs.js` → `plans-to-prs: ok`. Then `node scripts/plans-to-prs.js --all --dry` (read the counts), `node scripts/plans-to-prs.js --all`, `node bin/ctx.js check --root data/products/waterfall` (0 errors; compare warnings with before), `grep -rn "plan:plan-\|type: plan\b" data/products/waterfall` → nothing. Also `data/products/waterfall/projects/v2/docs/prd-execution.md:110` `type:plan` card → `type:pr` with the new statuses in its comment. Also the PRs page for each project: there is `plans.md` in `v2` (and wherever the script found one).
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add scripts/plans-to-prs.js test/plans-to-prs.js package.json data/products/waterfall
-git commit -m "pr: the 27 plan documents migrated to Prompt Requests (scripts/plans-to-prs — files, nodes, statuses, the Requests page, every reference, the sessions' prDoc), ctx check green"
+git commit -m "pr: the 27 plan documents migrated to Prompt Requests (scripts/plans-to-prs — files, nodes, statuses, the PRs page, every reference, the sessions' prDoc), ctx check green"
 ```
 
 ---
@@ -418,7 +418,7 @@ Imports from `./agent-host` (`isLive`, `sendMessage`, `stopChat`) — `pr-docs.t
 
 `d/[doc]/page.tsx`: `{split.frontmatter.type === 'pr' && <PrHead product={product} ref={`${product}/${project}/${d.slug}`} node={d.module.id} />}` before `<DocProps …>`.
 
-`PrList.tsx` rows (the Requests folder list / page): a readiness dot (green when ok) and the Approve / Cancel buttons calling the same PATCH.
+`PrList.tsx` rows (the PRs folder list / page): a readiness dot (green when ok) and the Approve / Cancel buttons calling the same PATCH.
 
 - [ ] **Step 4: Test, run, commit**
 
