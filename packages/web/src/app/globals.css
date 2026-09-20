@@ -22,7 +22,8 @@ a { color: var(--accent); }
 code, pre { font-family: var(--font-m); }
 
 /* ===== shell ===== */
-.shell { display: grid; grid-template-columns: 300px 1fr; height: 100dvh; }
+.shell { display: grid; grid-template-columns: var(--rail-w, 300px) 1fr; height: 100dvh; position: relative; }
+.rail-resize { position: absolute; top: 0; bottom: 0; left: calc(var(--rail-w, 300px) - 3px); width: 6px; cursor: col-resize; z-index: 5; } .rail-resize:hover, body.resizing .rail-resize { background: color-mix(in srgb, var(--accent) 35%, transparent); }
 .content { min-width: 0; overflow-y: auto; }
 .page { padding: 20px 24px 80px; max-width: 900px; }
 .page h1 { font-size: 24px; margin: 0 0 4px; } .page .sub { font: 12px var(--font-m); color: var(--muted); margin: 0 0 16px; }
@@ -71,7 +72,7 @@ code, pre { font-family: var(--font-m); }
 .peek { min-width: 0; height: 100dvh; background: var(--ground); border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
 /* the column's frame (rule:column-frame): the bar stays at the top, .peek-body is the one scroller under it, a session's message box sticks to its bottom */
 .peek-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 40px; } .peek-body.peek-session { padding-bottom: 0; }
-.shell.split { grid-template-columns: 300px minmax(0, 1fr) 6px var(--panel-w, 560px); }
+.shell.split { grid-template-columns: var(--rail-w, 300px) minmax(0, 1fr) 6px var(--panel-w, 560px); }
 .peek-sub { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--line); }
 /* ===== node header in the column: kind · id · type on the left, icon tools on the right (Notion/Asana register) ===== */
 .node-head { display: flex; align-items: center; gap: 8px; min-height: 32px; margin: 2px 0 4px; }
@@ -231,7 +232,7 @@ button.pill { cursor: pointer; font-family: var(--font-m); } .nblock-peek:hover 
 .doc-head .doc-props { margin-top: 8px; max-width: 720px; } .doc-head .doc-props > div.empty dt { opacity: .6; } .doc-head .doc-more { font-size: 12px; color: var(--muted); }
 .linked { margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--line); } .linked ul { padding-left: 18px; }
 .muted { color: var(--muted); }
-@media (max-width: 720px) { .shell, .shell.split, .shell.rail-hidden, .shell.rail-hidden.split { grid-template-columns: 1fr; } .splitter, .rail-toggle { display: none; } .rail { height: auto; max-height: 45dvh; } .peek { position: fixed; top: 0; right: 0; bottom: 0; width: 100%; z-index: 30; } }
+@media (max-width: 720px) { .shell, .shell.split, .shell.rail-hidden, .shell.rail-hidden.split { grid-template-columns: 1fr; } .splitter, .rail-toggle, .rail-resize { display: none; } .rail { height: auto; max-height: 45dvh; } .peek { position: fixed; top: 0; right: 0; bottom: 0; width: 100%; z-index: 30; } }
 
 /* ===== editing ===== */
 .sec { position: relative; }
@@ -312,9 +313,9 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .linknode-sel { font: 11px var(--font-m); color: var(--muted); margin: 0 0 4px 2px; }
 
 /* ===== AFFiNE-like shell ===== */
-.shell { grid-template-columns: 260px 1fr; position: relative; } .shell.split { grid-template-columns: 260px minmax(0, 1fr) 6px var(--panel-w, 560px); }
+.shell { grid-template-columns: var(--rail-w, 280px) 1fr; position: relative; } .shell.split { grid-template-columns: var(--rail-w, 280px) minmax(0, 1fr) 6px var(--panel-w, 560px); }
 /* the hidden rail stays a grid item at zero width; removing it from the grid would shift the other columns */
-.shell.rail-hidden { grid-template-columns: 0 1fr; } .shell.rail-hidden.split { grid-template-columns: 0 minmax(0, 1fr) 6px var(--panel-w, 560px); } .shell.rail-hidden .rail { width: 0; min-width: 0; overflow: hidden; visibility: hidden; border: 0; padding: 0; }
+.shell.rail-hidden { grid-template-columns: 0 1fr; } .shell.rail-hidden .rail-resize { display: none; } .shell.rail-hidden.split { grid-template-columns: 0 minmax(0, 1fr) 6px var(--panel-w, 560px); } .shell.rail-hidden .rail { width: 0; min-width: 0; overflow: hidden; visibility: hidden; border: 0; padding: 0; }
 .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; background: var(--ground); border-bottom: 1px solid var(--line); font-size: 13px; }
 .topbar-btn { border: 0; background: none; border-radius: 6px; padding: 4px 8px; color: var(--ink-2); cursor: pointer; font: 500 12px var(--font-b); line-height: 1; } .topbar-btn:hover { background: var(--sunk); color: var(--ink); } .topbar-btn.on { color: var(--accent); } .topbar-rail { font-size: 15px; padding: 3px 7px; margin-right: 2px; }
 .crumbs-nav { display: flex; align-items: center; gap: 2px; min-width: 0; flex: 1; overflow: hidden; white-space: nowrap; } .crumb { display: inline-flex; align-items: center; } .crumb a { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px; color: var(--ink-2); text-decoration: none; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .crumb a:hover { background: var(--sunk); color: var(--ink); } .crumb a.on { color: var(--ink); } .crumb-sep { color: var(--muted); padding: 0 2px; } .crumb-icon { font-size: 14px; }
@@ -390,7 +391,7 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .doc-title-row { display: flex; align-items: center; gap: 8px; }
 .prop-in.icon { width: 44px; font-size: 28px; text-align: center; padding: 0; margin: 0; }
 .newdoc-form { margin: 6px 14px; }
-.shell { grid-template-columns: 280px 1fr; } .shell.split { grid-template-columns: 280px minmax(0, 1fr) 6px var(--panel-w, 560px); } .shell.rail-hidden { grid-template-columns: 0 1fr; } .shell.rail-hidden.split { grid-template-columns: 0 minmax(0, 1fr) 6px var(--panel-w, 560px); }
+.shell { grid-template-columns: var(--rail-w, 280px) 1fr; } .shell.split { grid-template-columns: var(--rail-w, 280px) minmax(0, 1fr) 6px var(--panel-w, 560px); } .shell.rail-hidden { grid-template-columns: 0 1fr; } .shell.rail-hidden .rail-resize { display: none; } .shell.rail-hidden.split { grid-template-columns: 0 minmax(0, 1fr) 6px var(--panel-w, 560px); }
 .prop-in.icon::placeholder { opacity: .5; }
 
 /* ===== product / knowledge / inbox ===== */

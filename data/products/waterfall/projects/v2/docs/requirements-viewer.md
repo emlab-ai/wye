@@ -1,7 +1,7 @@
 ---
 node: module:req-viewer
 type: module
-title: Requirements — the static viewer
+title: The static viewer
 status: proposed
 owner: alex
 last-verified: 2026-09-20
@@ -9,7 +9,7 @@ part-of: module:wf2-prd
 order: 26
 ---
 
-# Requirements — the static viewer
+# The static viewer
 
 
 

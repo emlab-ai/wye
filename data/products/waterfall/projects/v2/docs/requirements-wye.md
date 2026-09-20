@@ -1,7 +1,7 @@
 ---
 node: module:req-wye
 type: module
-title: Requirements — the product itself
+title: The product itself
 status: proposed
 owner: alex
 last-verified: 2026-09-20
@@ -9,7 +9,7 @@ part-of: module:wf2-prd
 order: 25
 ---
 
-# Requirements — the product itself
+# The product itself
 
 
 

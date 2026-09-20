@@ -19,6 +19,17 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 <!-- list:req -->
 
 ```yaml
+- id: req:wf2.ui.rail-resize
+  title: The rail can be made wider or narrower
+  when: the person drags the rail's right edge
+  then: the rail takes the width they set (between 200 and 640 px), the content and the context column refit, and the width is remembered in that browser; a double-click on the edge restores the default
+  unless: the screen is narrow (phone), where the rail stacks and has no edge to drag
+  status: shipped
+  satisfied-by: [component:shell]
+  verified-by: [ui-test:rail-resize]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-shell
 - id: req:wf2.ui.tree-menu
   title: A tree row has a menu to duplicate or delete the document
   when: >
