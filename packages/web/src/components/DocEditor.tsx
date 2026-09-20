@@ -22,6 +22,7 @@ import { parseExtra, withExtra, GOAL_STATUSES, TASK_STATUSES, STATUSES } from '@
 import { filterRows, parseViewQuery, viewQuery, EMPTY_FILTERS, type Filters, type InstanceRow } from '@/lib/instance-table';
 import { slugify } from '@/lib/templates';
 import { blockHash } from '@/lib/anchors';
+import { applyLinks, blockText, blockLinked, type LinkBlock } from '@/lib/apply-links';
 import { headingSlug, DONE_STATUSES } from '@/lib/doc';
 import { ProgressBar } from './Progress';
 import { requestSend } from './CommandBox';
@@ -679,11 +680,9 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     if (bid !== lastBlockId.current) { lastBlockId.current = bid; if (!scoped && active) setFocused(null); if (touched.current && !loading.current && settle(true)) changed(); }
     if (scoped) return; // a content editor never drives the Context root: the column shows its node already
     if (!block || !Array.isArray(block.content)) { setEditing(null); return; }
-    const items = block.content as { type: string; text?: string; props?: { id?: string }; href?: string; content?: { text?: string }[] }[];
-    const text = items.map(i => i.type === 'text' ? i.text ?? '' : i.type === 'link' ? (i.content ?? []).map(c => c.text ?? '').join('') : '').join('');
-    const linked = items.flatMap(i => i.type === 'tag' && i.props?.id ? [i.props.id] : i.type === 'link' && i.href && /^[a-z-]+:/.test(i.href) ? [i.href] : []);
+    const text = blockText(block as unknown as LinkBlock);
+    const linked = blockLinked(block as unknown as LinkBlock);
     const np = block.type === 'node' ? block.props as unknown as { kind: string; slug: string } : null;
-    if (np) linked.push(`${np.kind}:${np.slug}`);
     setEditing({ docSlug: slug, blockId: String((block as { id?: string }).id ?? ''), text, linked, nodeId: np && np.slug ? `${np.kind}:${np.slug}` : undefined, insert: (id: string) => {
       editor.focus();
       // a tag glued to the previous word would change it; pad with a space unless the cursor already follows one
@@ -708,6 +707,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       const blocks = importMarkdown(md, src => editor.tryParseMarkdownToBlocks(src) as unknown as AnyBlock[]);
       editor.replaceBlocks(editor.document, (blocks.length ? blocks : [{ type: 'paragraph', content: [] }]) as never);
       settle();
+      judged.current = new Map((editor.document as unknown as LinkBlock[]).map(b => [String(b.id), blockText(b)]));
       lastExported.current = blocksToMarkdown(editor.document as unknown as AnyBlock[]);
       const shrink = lastExported.current.replace(/\s+/g, '').length / Math.max(1, md.replace(/\s+/g, '').length);
       if (md.trim() && shrink < 0.9) throw new Error(`the editor could not represent this document faithfully (${Math.round(shrink * 100)}% of the text survived import)`);
@@ -763,15 +763,36 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       lastExported.current = md; save(md);
     }, 700);
   };
-  // On leaving the editor: ids typed as text become tags and a paragraph that starts with an id becomes a node block.
+  // Links Jev is sure of, applied on leaving the editor (Jev auto-linking design §3): the blocks whose text changed
+  // since the last judgement go to /links; the ids come back as tags / related-to through applyLinks, then the save.
+  // The server never writes into an open document (the autosave's ifMatch would conflict), so this happens here.
+  const judged = useRef<Map<string, string>>(new Map()); // block id → its text when last judged (or loaded)
+  const autoLink = async () => {
+    if (scoped) return;
+    const blocks = editor.document as unknown as LinkBlock[];
+    const stale = blocks.filter(b => b.id && blockText(b).trim().length >= 12 && judged.current.get(String(b.id)) !== blockText(b));
+    if (!stale.length) return;
+    for (const b of stale) judged.current.set(String(b.id), blockText(b));
+    let links: Record<string, string[]> = {};
+    try { const r = await fetch(`/api/${product}/links`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ blocks: stale.map(b => ({ key: String(b.id), text: blockText(b), linked: blockLinked(b) })) }) }); links = (await r.json()).links ?? {}; } catch { return; }
+    if (!Object.keys(links).length) return;
+    const r = applyLinks(editor.document as unknown as LinkBlock[], links); if (!r.changed) return;
+    loading.current = true; editor.replaceBlocks(editor.document, r.blocks as never); loading.current = false;
+    for (const b of r.blocks) if (b.id && links[b.id]) judged.current.set(String(b.id), blockText(b));
+    touched.current = true; changed(); publishContext();
+  };
+  // On leaving the editor: ids typed as text become tags and a paragraph that starts with an id becomes a node block;
+  // then the changed blocks are linked.
   const retag = (e: ReactFocusEvent<HTMLDivElement>) => {
     if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
     if (settle(true)) changed();
     const before = JSON.stringify(editor.document);
     const after = expand(editor.document as unknown as AnyBlock[], []);
-    if (JSON.stringify(after) === before) return;
-    loading.current = true; editor.replaceBlocks(editor.document, after as never); loading.current = false;
-    changed(); // the converted blocks may serialise differently (aliases expanded, node lines); save that
+    if (JSON.stringify(after) !== before) {
+      loading.current = true; editor.replaceBlocks(editor.document, after as never); loading.current = false;
+      changed(); // the converted blocks may serialise differently (aliases expanded, node lines); save that
+    }
+    void autoLink();
   };
   const createDoc = async (title: string): Promise<string | null> => {
     const r = await fetch(`/api/${product}/${project}/doc`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title, template: 'blank', parent: slug }) });
