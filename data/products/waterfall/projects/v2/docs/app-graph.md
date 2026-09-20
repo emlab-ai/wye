@@ -31,6 +31,28 @@ What this module must do is written where it was decided — the PRD and the dev
 <!-- list:rule -->
 
 ```yaml
+- id: rule:init-shallow
+  statement: >
+    `wye init` is deterministic and shallow: it walks the repository (skipping node_modules, build output, data, public
+    and docs folders), takes the workspaces (package.json / pnpm) or the top-level code folders as modules, classifies
+    files by path — Next app routes and pages as `page:` cards, `app/api/**/route` and `bin/*` as `op:` cards,
+    `components/*` as `component:` cards, test files as `test:` cards, the rest as `lib:` cards (one per folder when a
+    module has more than sixty) — and uses each file's first comment block as the purpose, with ids inside it
+    neutralised so they make no edges. Every page's source-roots is the repository root; `_product.md` records the
+    repo. It never overwrites a page that exists, and a feature init embeds every id the product already defines.
+  source: lib/init.js#init; lib/init.js#classify; lib/init.js#areasOf; lib/init.js#headerPurpose
+  status: shipped
+  verified-by: [test:init]
+- id: rule:describe-contract
+  statement: >
+    `wye deepen <module>` assigns `task:<project>.describe.<module>` to a worker (op:api.work.assign) with
+    prompts/describe-module.md as the note: purpose on the module card; requirements as observable behaviours in the
+    person's words on the module's requirements page; each satisfied by the lib / component / op cards that deliver
+    it, whose purpose says what that code does and whose file (with #symbol) is the link; tests as verified-by; rules
+    with `source: file#symbol`; entities and states; questions and drift instead of guesses; no wider than the
+    module; ctx check green and the task done before the summary.
+  source: bin/wf.js#deepen; prompts/describe-module.md
+  status: shipped
 - id: rule:node-detection
   statement: A node is created from (a) `id: kind:slug` or `- id: kind:slug` inside a ```yaml block, split on `---` lines; (b) any id in a `### ` heading; (c) a table row whose first cell contains an id, unless the header row matches op|id|test node|enum|#|edge|policy|option|your req|test|tool; (d) a numbered row of a section whose heading contains "drift" or "contradiction".
   source: lib/parse.js:60-70, :118-121, :122-149
@@ -166,6 +188,13 @@ What this module must do is written where it was decided — the PRD and the dev
 <!-- list:lib -->
 
 ```yaml
+- id: lib:init
+  file: lib/init.js
+  side: server
+  purpose: >
+    The scan and the writer behind `wye init` (rule:init-shallow): walk, areasOf, classify, headerPurpose, init —
+    tested by test:init on this repository.
+  part-of: module:app-graph
 - id: lib:core.parse
   file: lib/parse.js
   side: server
@@ -223,3 +252,24 @@ What this module must do is written where it was decided — the PRD and the dev
   statement: Waterfall has no authentication or authorization of its own. Access is file-system access to the repo; the published viewer inherits the Artifact's own sharing controls.
   applies-to: [op:ctx.build, op:ctx.check, page:viewer/reqs]
 ```
+
+## Operations
+
+<!-- list:op -->
+
+```yaml
+- id: op:cli.wye-init
+  args: wye init --product <slug> --repo <dir> [--title …] [--project main] [--feature <name> --path <dir>] [--icon] [--description]
+  does: a product's or a feature's definition from its code, shallow, with the describe tasks (rule:init-shallow)
+  gate: none
+  source: bin/wf.js#init
+  part-of: module:app-graph
+- id: op:cli.wye-deepen
+  args: wye deepen <module> --product p [--worker claude-code|codex|runner] [--project main] [--force]
+  does: assigns the module's describe task with the describe contract (rule:describe-contract)
+  gate: none
+  source: bin/wf.js#deepen
+  part-of: module:app-graph
+```
+
+<!-- /list:op -->

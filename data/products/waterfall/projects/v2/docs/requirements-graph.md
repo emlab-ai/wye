@@ -19,6 +19,38 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 <!-- list:req -->
 
 ```yaml
+- id: req:wf2.cli.init
+  title: A product's definition starts from its code in one command, shallow, with the way deeper laid out
+  when: the person runs `wye init --product <slug> --repo <dir>` (or `--feature "<name>" --path <dir>` inside a product)
+  then: >
+    the product (or feature project) exists with the layered tree — the product page with its modules and a goal,
+    Product with a requirements page per module and the constitution, Experience with every page and component the
+    code declares, Domain, Systems with a page per module listing its libraries and operations, Quality with the
+    tests, Decisions, Research, Archive, a Backlog — every card with its file and the file's header comment as its
+    purpose, ids stable, nothing the code does not show; one `#ready` describe task per module; a feature embeds the
+    blocks the product already defines instead of defining them again; a second run overwrites nothing
+  unless: the repository has no code the scan recognises, in which case the tree is written with one Root module
+  status: shipped
+  satisfied-by: [op:cli.wye-init, lib:init, rule:init-shallow]
+  verified-by: [test:init]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-graph
+- id: req:wf2.cli.deepen
+  title: A module is deepened by a worker that reads its code and maps every requirement to the file that delivers it
+  when: the person runs `wye deepen <module>`, assigns the module's describe task, or a runner takes it
+  then: >
+    a worker reads the code under the module, writes its requirements on the module's requirements page in the
+    person's words (when / then / unless), maps each one by `satisfied-by` to the library, component and operation
+    cards that deliver it — each with its file (and symbol) and a paragraph on what that code does — and by
+    `verified-by` to its tests, writes the rules the code enforces with their source, the entities and states, and a
+    question where the code is unclear; `ctx check` is green and the describe task is done
+  status: shipped
+  refines: req:wf2.cli.init
+  satisfied-by: [op:cli.wye-deepen, rule:describe-contract, req:exec.dispatch]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-graph
 - id: req:wf.describe
   title: A module can be described completely without code
   when: someone (usually an agent following skill:waterfall-describe-module) writes docs/context-graph/<module>.md from the template

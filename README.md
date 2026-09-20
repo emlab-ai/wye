@@ -41,6 +41,8 @@ cd ~/Projects/waterfall && ./install.sh     # links `ctx` into ~/.local/bin and 
 | `ctx reqs [--status s]` | requirement tree with status glyphs (● tested ◐ untested/unverified ○ proposed ? question) |
 | `ctx site [--out dir]` | build the viewer (index.html + data.js) ready for the Artifact tool |
 | `ctx stats` | counts by kind, verb, requirement status |
+| `wye init --product <slug> --repo <dir>` | a product's definition from its code, first pass: the layered tree (Wye · Product · Experience · Domain · Systems · Quality · Decisions · Research · Archive), every module, page, component, library, operation and test the repo shows — shallow — and a `#ready` describe task per module. `--feature "<name>" --path <dir>` does the same for one feature inside a product, embedding what the product already defines. No model; nothing overwritten |
+| `wye deepen <module> --product <slug>` | assigns the module's describe task to a worker with `prompts/describe-module.md`: the requirements read from the code, in the person's words, each mapped (`satisfied-by`) to the library / component / operation cards that deliver it — file plus what that code does — and to its tests; rules with `source: file#symbol` |
 | `npm run dev` | web app (packages/web, Next.js) at http://localhost:3000: documents with node cards and smart tags, in-place editing (BlockNote for prose, forms for cards, templates for new documents), peek panel, React Flow mind map. Reads `_build/graph.json` and rebuilds it after every save; run `ctx build` once first. Use `npx --workspace=packages/web next dev -p 3456` for another port |
 
 ## Writing nodes as prose

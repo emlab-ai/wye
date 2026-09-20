@@ -32,6 +32,11 @@
 //   wye propose [<product/project/doc>] --plan <product/project/plan-x> --product p (a yaml card with `- id: kind:slug` on stdin or --file f)
 //        one proposed block into the document where its kind lives, embedded on the plan's Definition; without a
 //        document it is defined on the plan under Definition (decision:exec.definition-home-fallback)
+//   wye init --product <slug> --repo <dir> [--title "…"] [--feature "<name>" --path <dir>]   a product's (or feature's) definition
+//        from its code: the layered tree, every module / page / component / library / operation / test, shallow, and a
+//        #ready describe task per module (lib/init.js) — no model, nothing overwritten
+//   wye deepen <module> --product p [--worker claude-code]   assign the module's describe task: requirements from the code,
+//        each mapped to the file that delivers it (prompts/describe-module.md)
 //   wye plan <product/project/plan-x> [--status defining|defined|building|done|cancelled]   the plan's status and Definition
 //   wye plan build <product/project/plan-x> [--worker claude-code|codex|runner] [--note "…"] [--force]   Build: hand the plan's
 //        request task to a worker with the Definition (rule:build) — what the person's "build it" in a librarian conversation means
@@ -260,6 +265,27 @@ const commands = {
     if (pos[1] === 'build') {
       // Build from the CLI (rule:build, req:exec.build-from-definition): the plan's request task goes to a worker with the
       // Definition as context; the librarian runs this when the person says "build it" (decision:exec.librarian-may-build)
+  // wye init: a product's (or a feature's) definition from its code, shallow, with the describe tasks (lib/init.js)
+  async init() {
+    const p = flags.product || die('wye init --product <slug> --repo <dir> [--title "…"] [--project main] [--feature "<name>" --path <dir>] [--icon 📦] [--description "…"]');
+    const repo = flags.repo || die('--repo <dir> — the code the product is read from');
+    const { init } = require('../lib/init.js');
+    const r = init({ dataRoot: path.join(__dirname, '..', 'data'), product: p, title: flags.title, project: flags.project, repo, feature: flags.feature, path: flags.path, icon: flags.icon, description: flags.description });
+    if (flags.json) return out({ ...r.made, areas: r.areas.map(a => ({ dir: a.dir, slug: a.slug, files: a.files.length })), project: r.project });
+    console.log(`${r.made.written.length} page(s) written under data/products/${p}/projects/${r.project}/docs${r.made.skipped.length ? ` (${r.made.skipped.length} existed and were kept)` : ''}`);
+    console.log(`scanned ${r.made.counts.files} files: ${r.areas.length} modules, ${r.made.counts.pages} pages, ${r.made.counts.components} components, ${r.made.counts.ops} operations, ${r.made.counts.tests} tests`);
+    for (const a of r.areas) console.log(`  ${a.slug.padEnd(20)} ${String(a.files.length).padStart(5)} files  ${a.dir}`);
+    console.log(`\nnext: ctx build --root data/products/${p} && ctx check --root data/products/${p} --repo ${repo}\n      open it in the app, then wye deepen <module> --product ${p}   (or let a runner take the #ready tasks)`);
+  },
+  // wye deepen <module>: assign the module's describe task to a worker with the describe contract (prompts/describe-module.md)
+  async deepen() {
+    const mod = pos[1] || die('wye deepen <module> --product p [--worker claude-code|codex|runner] [--project main]');
+    const p = product(); const proj = flags.project || 'main';
+    const id = `task:${proj}.describe.${mod}`;
+    let contract = ''; try { contract = fs.readFileSync(path.join(__dirname, '..', 'prompts', 'describe-module.md'), 'utf8'); } catch { /* the task text carries the gist */ }
+    const j = await api('POST', `/api/${p}/work/assign`, { id, worker: flags.worker || 'claude-code', note: contract, force: !!flags.force, by: flags.by || undefined });
+    return out(flags.json ? j : `${id} → ${j.worker}${j.session ? ` (session ${j.session}, ${j.mode})` : ''} — the worker reads the code and writes the requirements mapped to it`);
+  },
       const ref = pos[2] || die('wye plan build <product/project/plan-x> [--worker claude-code|codex|runner] [--note "…"] [--force]');
       const d = docRef(ref); const p = d.product; const r = `${d.product}/${d.project}/${d.doc}`;
       const plan = await api('GET', `/api/${p}/plan?ref=${encodeURIComponent(r)}`);
