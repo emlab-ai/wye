@@ -33,6 +33,8 @@
 //        one proposed block into the document where its kind lives, embedded on the plan's Definition; without a
 //        document it is defined on the plan under Definition (decision:exec.definition-home-fallback)
 //   wf plan <product/project/plan-x> [--status defining|defined|building|done|cancelled]   the plan's status and Definition
+//   wf plan build <product/project/plan-x> [--worker claude-code|codex|runner] [--note "…"] [--force]   Build: hand the plan's
+//        request task to a worker with the Definition (rule:build) — what the person's "build it" in a librarian conversation means
 //   wf explain <id | "text"> --product p   the current state of the product around a node or a text (the librarian, one turn)
 //   wf work list --product p [--unassigned | --mine <name> | --goal <id> | --plan <id>] [--done]   every task with its state
 //   wf work add "<text>" --product p [--part-of <id>] [--ready]   a task line on the backlog (under the node when --part-of names one)
@@ -255,6 +257,17 @@ const commands = {
     return out(flags.json ? j : `${j.id} proposed in ${j.file}${j.plan ? ` — embedded on ${j.plan}'s Definition` : ''}${doc ? '' : ' (no home document yet: on the plan under Definition)'}`);
   },
   async plan() {
+    if (pos[1] === 'build') {
+      // Build from the CLI (rule:build, req:exec.build-from-definition): the plan's request task goes to a worker with the
+      // Definition as context; the librarian runs this when the person says "build it" (decision:exec.librarian-may-build)
+      const ref = pos[2] || die('wf plan build <product/project/plan-x> [--worker claude-code|codex|runner] [--note "…"] [--force]');
+      const d = docRef(ref); const p = d.product; const r = `${d.product}/${d.project}/${d.doc}`;
+      const plan = await api('GET', `/api/${p}/plan?ref=${encodeURIComponent(r)}`);
+      if (!plan.task) die(`${r} has no request task to build`);
+      const df = plan.definition || {};
+      const j = await api('POST', `/api/${p}/work/assign`, { id: plan.task, worker: flags.worker || 'claude-code', note: flags.note || '', build: r, force: !!flags.force, by: flags.by || (process.env.WF_SESSION ? `agent:${process.env.WF_SESSION}` : undefined) });
+      return out(flags.json ? j : `${r} → building: ${plan.task} → ${j.worker}${j.session ? ` (session ${j.session}, ${j.mode})` : ''}; definition ${df.total ?? '?'} block(s), ${df.agreed ?? '?'} agreed${df.defined ? '' : ` — ${df.open ?? '?'} still open, built anyway`}`);
+    }
     const ref = pos[1] || die('wf plan <product/project/plan-x> [--status s]'); const d = docRef(ref); const p = d.product;
     const r = `${d.product}/${d.project}/${d.doc}`;
     if (flags.status) { const j = await api('PATCH', `/api/${p}/plan`, { ref: r, status: flags.status }); return out(flags.json ? j : `${r}: status ${j.status}`); }

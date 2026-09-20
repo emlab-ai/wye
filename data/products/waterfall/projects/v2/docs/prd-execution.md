@@ -615,6 +615,32 @@ computed and no review.
   status: proposed
   affects: [req:wf2.clerk, rule:agent-host, rule:agent-contract, component:command-box]
   part-of: goal:exec.define-first
+- id: decision:exec.librarian-may-build
+  title: "Build it" said to the librarian starts the build — the librarian runs `wf plan build`, it never tells the person to press a button
+  context: >
+    On 2026-09-20 the person told the librarian "i asked to build this one" on plan:plan-build and got a paragraph
+    explaining that Build was theirs to press (decision:exec.wye-is-a-role: the librarian writes no code; rule:build
+    lives in the UI; the wf CLI had no Build). Nothing started. The person's word in the conversation is the same
+    approval the button gives.
+  choice: >
+    `wf plan build <plan> [--worker claude-code|codex|runner] [--force]` — the plan's request task assigned with
+    `build: <plan>` through op:api.work.assign, exactly what the Build button does (rule:build): the Definition goes
+    with it, unagreed blocks listed as such, the plan moves to building. The librarian's tool set includes it, and
+    its prompt says: when the person says build / go ahead / do it / implement, run it at once, report the session
+    that started and what was still open, and finish. The librarian still writes no code — the worker does. Never
+    "that is yours to press".
+  alternatives: >
+    Keep Build UI-only and have the librarian ask the person to press it (what happened; the person had already said
+    it); let the librarian implement (breaks the role).
+  consequences: >
+    bin/wf.js gains `plan build`; prompts/librarian-system.md and the host's librarian protocol gain the line;
+    rule:build's "a librarian's hold does not refuse it" already covers the hand-over.
+  date: 2026-09-20
+  status: proposed
+  refines: decision:exec.wye-is-a-role
+  affects: [decision:exec.wye-is-a-role, rule:build, req:exec.build-from-definition]
+  by: agent:claude
+  part-of: goal:exec.define-first
 - id: decision:exec.plan-lifecycle
   title: A plan goes proposed → defining → defined → building → done, and its Definition section is the set of blocks it will build
   context: >
