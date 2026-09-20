@@ -486,3 +486,74 @@ The editor's blocks and the components the pages are made of, by area.
 ```
 
 <!-- /list:component -->
+
+## Unsorted
+
+<!-- list:component -->
+
+```yaml
+- id: component:file-route
+  file: packages/web/src/app/[product]/[project]/d/assets/[file]/route.ts
+  side: server
+  purpose: >
+    Images and files a document embeds: docs/assets/<file>, served relative to the document's URL so the markdown
+    can say ![caption](assets/<file>) and render both here and on GitHub.
+  status: proposed
+  part-of: module:components
+- id: component:product-layout
+  file: packages/web/src/app/[product]/layout.tsx
+  side: server
+  purpose: >
+    (no header comment)
+  status: proposed
+  part-of: module:components
+- id: component:root-layout
+  file: packages/web/src/app/layout.tsx
+  side: server
+  purpose: >
+    (no header comment)
+  status: proposed
+  part-of: module:components
+- id: component:attachments
+  file: packages/web/src/components/Attachments.tsx
+  side: client
+  purpose: >
+    Images a person pastes (or drops) into a message box before sending: the session composer and the command box
+    take them the same way — up to 8, shown as thumbnails with a remove button, sent as data URLs and stored as the
+    session's files (store:session-files). Claude Code takes pasted images the same way.
+  status: proposed
+  part-of: module:components
+- id: component:constitution-list
+  file: packages/web/src/components/ConstitutionList.tsx
+  side: client
+  purpose: >
+    (no header comment)
+  status: proposed
+  part-of: module:components
+- id: component:editor-scope
+  file: packages/web/src/components/EditorScope.ts
+  side: client
+  purpose: >
+    The node whose content a DocEditor edits (decision:wf2.content-editor-scoped); null on a document page. Its own
+    module so a block component can read it without importing the editor (which imports the blocks).
+  status: proposed
+  part-of: module:components
+- id: component:question-toasts
+  file: packages/web/src/components/QuestionToasts.tsx
+  side: client
+  purpose: >
+    (no header comment)
+  status: proposed
+  part-of: module:components
+- id: component:tabs
+  file: packages/web/src/components/Tabs.tsx
+  side: client
+  purpose: >
+    A strip of tabs, editor style (req&#58;wf2.ui.tabs): one row that scrolls sideways, the open tab on the
+    content's ground, the others sunk; × closes (the middle button too), a pinned tab keeps its place and shows a
+    pin instead of ×. The same strip sits above the content and above the context column, so both read the same way.
+  status: proposed
+  part-of: module:components
+```
+
+<!-- /list:component -->

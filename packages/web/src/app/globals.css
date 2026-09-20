@@ -660,3 +660,10 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .taskwork-assigned { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; margin: 6px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--ground); font-size: 13px; } .taskwork-assigned small { font: 600 10px var(--font-m); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); } .taskwork-plan { font-weight: 600; }
 
 .palette-intent { gap: 6px; align-items: center; } .palette-intent .chip { font-size: 13px; padding: 4px 12px; } .palette-intent .chip.on { background: var(--ink); color: var(--surface); border-color: var(--ink); } .palette-intent .palette-note { margin-left: 6px; }
+
+/* an agent's open question, wherever the person is (req:wf2.sessions.question-toast) */
+.qtoasts { position: fixed; right: 16px; bottom: 16px; z-index: 55; display: flex; flex-direction: column; gap: 8px; width: min(380px, calc(100vw - 32px)); }
+.qtoast { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 10px; padding: 10px 12px; box-shadow: 0 10px 30px rgba(0,0,0,.25); cursor: pointer; animation: qtoast-in .2s ease-out; } .qtoast.permission { border-left-color: var(--accent); }
+.qtoast-head { display: flex; align-items: center; gap: 6px; font: 600 11px var(--font-m); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); } .qtoast-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); animation: qtoast-pulse 1.4s infinite; } .qtoast.permission .qtoast-dot { background: var(--accent); }
+.qtoast-x { margin-left: auto; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1; } .qtoast-q { font-size: 13px; margin: 4px 0 2px; color: var(--ink); } .qtoast-sub { font-size: 11px; }
+@keyframes qtoast-in { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } } @keyframes qtoast-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }

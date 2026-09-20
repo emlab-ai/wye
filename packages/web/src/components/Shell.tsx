@@ -5,6 +5,7 @@ import { usePeek } from './PeekProvider';
 import { PeekPanel } from './PeekPanel';
 import { CommandBox } from './CommandBox';
 import { SearchPanel } from './SearchPanel';
+import { QuestionToasts } from './QuestionToasts';
 
 // The app frame: a collapsible rail, the content, and — while a node, context or session is open — the right
 // column, separated from the content by a draggable splitter. The rail starts hidden on document and session
@@ -52,6 +53,7 @@ export function Shell({ children }: { children: ReactNode }) {
       {split && <PeekPanel />}
       <CommandBox />
       <SearchPanel open={search} onClose={() => setSearch(false)} />
+      <QuestionToasts />
     </div>
   );
 }

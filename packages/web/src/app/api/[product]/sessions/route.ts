@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getProduct } from '@/lib/products';
 import { AGENTS, createSession, listSessions, listRunners } from '@/lib/sessions';
 import { startChat, liveState, reconcileStale } from '@/lib/agent-host';
+import { askingOf } from '@/lib/asking';
 import { createPlanDoc } from '@/lib/plan-docs';
 import { plansOf } from '@/lib/plan-doc';
 import { loadScope } from '@/lib/scope';
@@ -14,7 +15,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ product
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   await reconcileStale(p.dir);
   const scope = await loadScope(product);
-  const sessions = (await listSessions(p.dir)).map(s => ({ ...s, transcript: undefined, ...(s.mode === 'chat' ? liveState(s.id) : {}), plans: scope ? plansOf(product, scope.graph, s.id) : [] }));
+  const sessions = (await listSessions(p.dir)).map(s => { const live = s.mode === 'chat' ? liveState(s.id) : {}; return { ...s, transcript: undefined, ...live, asking: (live as { live?: boolean }).live ? askingOf(s.transcript ?? []) : undefined, plans: scope ? plansOf(product, scope.graph, s.id) : [] }; });
   return NextResponse.json({ sessions, runners: await listRunners(p.dir), defaults: { cwd: p.meta.repo ?? '', waterfall: REPO_ROOT } }, { headers: { 'cache-control': 'no-store' } });
 }
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {

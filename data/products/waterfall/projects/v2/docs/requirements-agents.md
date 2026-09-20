@@ -19,6 +19,17 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 <!-- list:req -->
 
 ```yaml
+- id: req:wf2.sessions.question-toast
+  title: An agent's open question reaches the person wherever they are
+  when: a live conversation is waiting on the person — the agent asked a question (AskUserQuestion) or a tool needs permission — and nobody has answered
+  then: a toast appears at the bottom right of every page naming the agent and the question (or the tool and what it wants), with the request it belongs to; a click opens the conversation in the column with the question card; × hides that question until a new one comes; the toasts follow session changes and poll every twenty seconds
+  status: shipped
+  refines: req:wf2.sessions.questions
+  satisfied-by: [component:question-toasts, lib:asking, op:api.sessions]
+  verified-by: [test:web-lib#asking]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-agents
 - id: req:wf2.sessions.block-attribution
   title: Every block a session adds, changes or removes is attributed to it
   when: >
