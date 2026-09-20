@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { loadScope } from '@/lib/scope';
 import { readPrDoc, prDefinition, prReadiness, approvePr, cancelPr, reopenPr } from '@/lib/pr-docs';
 import { stopRefining } from '@/lib/pr-sessions';
-import { getFrontmatter, setFrontmatter, requestTaskId } from '@/lib/pr-doc';
+import { getFrontmatter, setFrontmatter, requestTaskId, prNumberOf, prLabel } from '@/lib/pr-doc';
 import { PR_STATUSES } from '@/lib/props';
 import { writeAtomic, rebuild } from '@/lib/write';
 
@@ -18,7 +18,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ product:
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const pr = await readPrDoc(product, ref); if (!pr) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const d = prDefinition(scope, pr.md);
-  return NextResponse.json({ ref, node: `pr:${pr.slug}`, status: getFrontmatter(pr.md, 'status') ?? '', role: getFrontmatter(pr.md, 'role') ?? 'worker', task: getFrontmatter(pr.md, 'task') ?? (pr.md.includes(`${requestTaskId(pr.slug)} `) ? requestTaskId(pr.slug) : null), session: getFrontmatter(pr.md, 'session') ?? '', approvedBy: getFrontmatter(pr.md, 'approved-by') ?? null, approvedAt: getFrontmatter(pr.md, 'approved-at') ?? null, definition: d, readiness: prReadiness(scope, pr.md) }, { headers: { 'cache-control': 'no-store' } });
+  const num = prNumberOf(pr.slug); const title = getFrontmatter(pr.md, 'title') ?? pr.slug;
+  return NextResponse.json({ ref, node: num ? `pr:${num}` : `pr:${pr.slug}`, num, title, label: num ? prLabel(num, title) : title, status: getFrontmatter(pr.md, 'status') ?? '', role: getFrontmatter(pr.md, 'role') ?? 'worker', task: getFrontmatter(pr.md, 'task') ?? (pr.md.includes(`${requestTaskId(pr.slug)} `) ? requestTaskId(pr.slug) : null), session: getFrontmatter(pr.md, 'session') ?? '', approvedBy: getFrontmatter(pr.md, 'approved-by') ?? null, approvedAt: getFrontmatter(pr.md, 'approved-at') ?? null, definition: d, readiness: prReadiness(scope, pr.md) }, { headers: { 'cache-control': 'no-store' } });
 }
 export async function PATCH(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;

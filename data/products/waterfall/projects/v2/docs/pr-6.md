@@ -1,5 +1,5 @@
 ---
-node: pr:pr-improve-context-window-click-element-would
+node: pr:6
 type: pr
 title: improve context window, when i click to the element, i would like to be able to add…
 status: done
@@ -54,11 +54,11 @@ The context column (component:peek-panel, `packages/web/src/components/PeekPanel
 
 ## Tasks
 
-- [x] task:connected-cards-rows Expand toggle on every Connected and tracking row; the expanded row shows the node's EmbeddedCard part of pr:pr-improve-context-window-click-element-would (session: edd6ae474d)
-- [x] task:connected-cards-groups Cards / tags toggle on every group heading part of pr:pr-improve-context-window-click-element-would (session: edd6ae474d)
-- [x] task:connected-cards-css The expanded card spans the column under its row part of pr:pr-improve-context-window-click-element-would (session: edd6ae474d)
-- [x] task:connected-cards-ui-test Verify in Chrome via playwright-core: expand a row, expand a group, collapse, no toggle on a stub, an edit in the expanded card saves part of pr:pr-improve-context-window-click-element-would (session: edd6ae474d)
-- [x] task:connected-cards-knowledge req:wf2.ui.connected-cards and rule:connected-cards shipped, component:peek-panel refined, ui-test recorded part of pr:pr-improve-context-window-click-element-would (session: edd6ae474d)
+- [x] task:connected-cards-rows Expand toggle on every Connected and tracking row; the expanded row shows the node's EmbeddedCard part of pr:6 (session: edd6ae474d)
+- [x] task:connected-cards-groups Cards / tags toggle on every group heading part of pr:6 (session: edd6ae474d)
+- [x] task:connected-cards-css The expanded card spans the column under its row part of pr:6 (session: edd6ae474d)
+- [x] task:connected-cards-ui-test Verify in Chrome via playwright-core: expand a row, expand a group, collapse, no toggle on a stub, an edit in the expanded card saves part of pr:6 (session: edd6ae474d)
+- [x] task:connected-cards-knowledge req:wf2.ui.connected-cards and rule:connected-cards shipped, component:peek-panel refined, ui-test recorded part of pr:6 (session: edd6ae474d)
 
 ## Result
 
@@ -68,8 +68,8 @@ Blocks this plan produced:
 
 - added decision:wf2.connected-rows-expand-to-cards — A connected row expands in place into the node's embedded card
 - added task:connected-cards-rows — Expand toggle on every Connected and tracking row;
-- added task:connected-cards-groups — Cards / tags toggle on every group heading part of pr:pr-improve-context-window-click-element-would
-- added task:connected-cards-css — The expanded card spans the column under its row part of pr:pr-improve-context-window-click-element-would
+- added task:connected-cards-groups — Cards / tags toggle on every group heading part of pr:6
+- added task:connected-cards-css — The expanded card spans the column under its row part of pr:6
 - added task:connected-cards-ui-test — Verify in Chrome via playwright-core:
 - added task:connected-cards-knowledge — req:wf2.ui.connected-cards and rule:connected-cards shipped, component:peek-panel refined, ui-test recorded pa
 - changed component:peek-panel — peek-panel

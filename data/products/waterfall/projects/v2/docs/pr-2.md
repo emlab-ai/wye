@@ -1,5 +1,5 @@
 ---
-node: pr:pr-text-which-sent-agent-beginning-no
+node: pr:2
 type: pr
 title: this text, which is sent to agent at the beginning, can you no show it, it is kind of…
 status: done

@@ -1,5 +1,5 @@
 ---
-node: pr:pr-still-bad-now-need-click-tag
+node: pr:7
 type: pr
 title: still bad!
 status: done
@@ -100,10 +100,10 @@ What does *not* change: an embedded card inside the column (a connected row open
 
 ## Tasks
 
-- [x] task:block-select-provider `select(id)` and `focused` on PeekProvider; the Context root of PeekPanel renders `focused ?? editing.nodeId` (Related only when the caret's block is the focused one); `publishContext` clears `focused` when the caret moves to another block. Part of pr:pr-still-bad-now-need-click-tag. (session: 367dedec3c)
-- [x] task:block-select-blocks `onSelect` on CardHost, attached to the outermost element of ProseCard, QuestionCard and DecisionCard (clicks inside an `a` skipped); EditorCard, RowNode and TypeRowFor call `select` on click and from the pill; EmbeddedCard selects when `inEditor`, never in the column. Part of pr:pr-still-bad-now-need-click-tag. (session: 367dedec3c)
-- [x] task:block-select-ui-test ui-test:block-select in Chrome via playwright-core on a scratch product: a session open in the column, click a card's text → the column shows the node at the root and the session chip stays; click an embed's text area → its node; click a table row's cell → the row's node; a tag inside a card's text still pushes; a connected card's text area in the column does not navigate; tsc and the unit tests pass. Part of pr:pr-still-bad-now-need-click-tag. (session: 367dedec3c)
-- [x] task:block-select-knowledge req:wf2.ui.block-select and rule:block-select shipped on dev-design; ui-test:block-select on test-design; task:ontology.block-select done under goal:ontology.graph-editor. Part of pr:pr-still-bad-now-need-click-tag. (session: 367dedec3c)
+- [x] task:block-select-provider `select(id)` and `focused` on PeekProvider; the Context root of PeekPanel renders `focused ?? editing.nodeId` (Related only when the caret's block is the focused one); `publishContext` clears `focused` when the caret moves to another block. Part of pr:7. (session: 367dedec3c)
+- [x] task:block-select-blocks `onSelect` on CardHost, attached to the outermost element of ProseCard, QuestionCard and DecisionCard (clicks inside an `a` skipped); EditorCard, RowNode and TypeRowFor call `select` on click and from the pill; EmbeddedCard selects when `inEditor`, never in the column. Part of pr:7. (session: 367dedec3c)
+- [x] task:block-select-ui-test ui-test:block-select in Chrome via playwright-core on a scratch product: a session open in the column, click a card's text → the column shows the node at the root and the session chip stays; click an embed's text area → its node; click a table row's cell → the row's node; a tag inside a card's text still pushes; a connected card's text area in the column does not navigate; tsc and the unit tests pass. Part of pr:7. (session: 367dedec3c)
+- [x] task:block-select-knowledge req:wf2.ui.block-select and rule:block-select shipped on dev-design; ui-test:block-select on test-design; task:ontology.block-select done under goal:ontology.graph-editor. Part of pr:7. (session: 367dedec3c)
 
 ## Result
 

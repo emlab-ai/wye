@@ -1,5 +1,5 @@
 ---
-node: pr:pr-table-horizontally-scrollable-just-take-100
+node: pr:4
 type: pr
 title: table should horizontally scrollable , not just take 100% width, in small screens it…
 status: done
@@ -80,9 +80,9 @@ and the rest of the document does not move. No markup or data change; goals/task
 
 ## Tasks
 
-- [x] task:table-scroll-css `.nrow` name column minimum 200 px (typeGrid and the goals/tasks template), `min-width: min-content` on `.nrow`, `overflow-x: auto` on the collection's `.bn-block`, in globals.css and DocEditor.tsx#typeGrid. Part of pr:pr-table-horizontally-scrollable-just-take-100, part of req:wf2.editor.table-scroll. (session: 01b14dc871)
-- [x] task:table-scroll-ui-test ui-test:table-scroll in Chrome with playwright-core against the dev server: the Bugs table at a 700 px viewport — name column ≥ 200 px, header and rows one width, the block scrolls sideways, the document does not; at 1400 px — no scrollbar and the rows fill the editor; a goals/tasks table the same. Part of pr:pr-table-horizontally-scrollable-just-take-100, part of req:wf2.editor.table-scroll. (session: 01b14dc871)
-- [x] task:table-scroll-knowledge req:wf2.editor.table-scroll and rule:table-scroll shipped, ui-test:table-scroll passed on test-design; component:doc-editor's purpose says what the editor is (today it reads as a stray comment about inline tags). Part of pr:pr-table-horizontally-scrollable-just-take-100. (session: 01b14dc871)
+- [x] task:table-scroll-css `.nrow` name column minimum 200 px (typeGrid and the goals/tasks template), `min-width: min-content` on `.nrow`, `overflow-x: auto` on the collection's `.bn-block`, in globals.css and DocEditor.tsx#typeGrid. Part of pr:4, part of req:wf2.editor.table-scroll. (session: 01b14dc871)
+- [x] task:table-scroll-ui-test ui-test:table-scroll in Chrome with playwright-core against the dev server: the Bugs table at a 700 px viewport — name column ≥ 200 px, header and rows one width, the block scrolls sideways, the document does not; at 1400 px — no scrollbar and the rows fill the editor; a goals/tasks table the same. Part of pr:4, part of req:wf2.editor.table-scroll. (session: 01b14dc871)
+- [x] task:table-scroll-knowledge req:wf2.editor.table-scroll and rule:table-scroll shipped, ui-test:table-scroll passed on test-design; component:doc-editor's purpose says what the editor is (today it reads as a stray comment about inline tags). Part of pr:4. (session: 01b14dc871)
 
 ## Result
 

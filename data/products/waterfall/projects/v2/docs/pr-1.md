@@ -1,5 +1,5 @@
 ---
-node: pr:pr-pannel-text-input-bottom-bar-top
+node: pr:1
 type: pr
 title: the pannel / text input at the bottom and bar on top must not be scrollable, content is…
 status: done
@@ -76,10 +76,10 @@ relations scroll.
 
 ## Tasks
 
-- [x] task:column-frame-layout `.peek` becomes a flex column: `.peek-nav` fixed at the top, `.peek-body` (new wrapper in component:peek-panel) the one scroller; `.console` loses its height and `.console-log` its scroll; `.console-input` is sticky at the bottom of the scroller; the session body has no bottom padding under the box. Part of pr:pr-pannel-text-input-bottom-bar-top, part of req:wf2.ui.column-frame. (session: 07aa6645ad)
-- [x] task:column-frame-follow component:console finds its nearest scroll ancestor, reads "at the end" from its scroll and scrolls it to the end on a new event when it was at the end (rule:column-frame). Part of pr:pr-pannel-text-input-bottom-bar-top, part of req:wf2.ui.column-frame. (session: 07aa6645ad)
-- [x] task:column-frame-ui-test ui-test:column-frame run in Chrome with playwright-core against the dev server: bar and box in view with a long conversation, the body scrolls, the end is followed, a long node keeps its bar. Part of pr:pr-pannel-text-input-bottom-bar-top, part of req:wf2.ui.column-frame. (session: 07aa6645ad)
-- [x] task:column-frame-knowledge req:wf2.ui.column-frame and rule:column-frame shipped; component:peek-panel's purpose says what it is (it reads "How an edge reads from the open node's side" today — a stray comment). Part of pr:pr-pannel-text-input-bottom-bar-top. (session: 07aa6645ad)
+- [x] task:column-frame-layout `.peek` becomes a flex column: `.peek-nav` fixed at the top, `.peek-body` (new wrapper in component:peek-panel) the one scroller; `.console` loses its height and `.console-log` its scroll; `.console-input` is sticky at the bottom of the scroller; the session body has no bottom padding under the box. Part of pr:1, part of req:wf2.ui.column-frame. (session: 07aa6645ad)
+- [x] task:column-frame-follow component:console finds its nearest scroll ancestor, reads "at the end" from its scroll and scrolls it to the end on a new event when it was at the end (rule:column-frame). Part of pr:1, part of req:wf2.ui.column-frame. (session: 07aa6645ad)
+- [x] task:column-frame-ui-test ui-test:column-frame run in Chrome with playwright-core against the dev server: bar and box in view with a long conversation, the body scrolls, the end is followed, a long node keeps its bar. Part of pr:1, part of req:wf2.ui.column-frame. (session: 07aa6645ad)
+- [x] task:column-frame-knowledge req:wf2.ui.column-frame and rule:column-frame shipped; component:peek-panel's purpose says what it is (it reads "How an edge reads from the open node's side" today — a stray comment). Part of pr:1. (session: 07aa6645ad)
 
 ## Result
 

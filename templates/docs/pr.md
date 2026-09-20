@@ -1,5 +1,5 @@
 ---
-node: pr:{{slug}}
+node: pr:{{num}}
 type: pr
 title: {{title}}
 status: draft
@@ -35,7 +35,7 @@ _What the change reaches — computed from the Definition — and the other PRs 
 
 ## Tasks
 
-_`- [ ] task:` lines, `part of pr:{{slug}}`; their check state is what is in progress._
+_`- [ ] task:` lines, `part of pr:{{num}}`; their check state is what is in progress._
 
 {{requesttask}}
 

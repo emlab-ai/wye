@@ -34,11 +34,11 @@ describe('pr approval', () => {
   it('a PR is born refining under a librarian and building under a worker (decision:wf2.pr-lifecycle)', async () => {
     const base = { id: 'l1', product, agent: 'claude-code', status: 'running', refs: [], source: {}, instruction: 'make the checkout round half-up', log: [], createdAt: '', updatedAt: '' } as unknown as Session;
     const ref = await createPrDoc(dir, product, { ...base, role: 'librarian' });
-    expect(ref).toBe(`${product}/p/pr-make-checkout-round-half-up`);
-    const md = await readFile(path.join(dir, 'projects/p/docs/pr-make-checkout-round-half-up.md'), 'utf8');
-    expect(md).toMatch(/^type: pr$/m); expect(md).toMatch(/^status: refining$/m); expect(md).toMatch(/^part-of: module:p-prs$/m); expect(md).toContain('## Impact');
+    expect(ref).toBe(`${product}/p/pr-1`); // pr-a is not numbered, so #1
+    const md = await readFile(path.join(dir, 'projects/p/docs/pr-1.md'), 'utf8');
+    expect(md).toMatch(/^node: pr:1$/m); expect(md).toMatch(/^type: pr$/m); expect(md).toMatch(/^status: refining$/m); expect(md).toMatch(/^part-of: module:p-prs$/m); expect(md).toContain('## Impact');
     const ref2 = await createPrDoc(dir, product, { ...base, id: 'w1', instruction: 'make the checkout round half-up' });
-    expect(ref2).toBe(`${product}/p/pr-make-checkout-round-half-up-2`);
-    expect(await readFile(path.join(dir, 'projects/p/docs/pr-make-checkout-round-half-up-2.md'), 'utf8')).toMatch(/^status: building$/m);
+    expect(ref2).toBe(`${product}/p/pr-2`);
+    expect(await readFile(path.join(dir, 'projects/p/docs/pr-2.md'), 'utf8')).toMatch(/^status: building$/m);
   });
 });

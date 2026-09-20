@@ -30,7 +30,7 @@ last-verified: 2026-09-20
 
 Work, changes and impact
 
-The code behind module:prd-execution (built 2026-09-19, pr:pr-build-one-too): the Work view and dispatch (E.1),
+The code behind module:prd-execution (built 2026-09-19, pr:15): the Work view and dispatch (E.1),
 the backlog (E.4), change records (E.2), the impact run (E.3) and the librarian with the plan's Definition (E.5).
 What it must do is written on the PRD — goal:exec.work-and-impact, goal:exec.define-first and their requirements;
 this document maps the code onto it: the pages, components, libraries, stores and endpoints, and the rules the code

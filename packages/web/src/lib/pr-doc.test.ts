@@ -1,17 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { prSlug, prTitle, prDocBody, fromLine, resultSection, withResult, setFrontmatter, getFrontmatter, prsOf, prStatusOnEnd, requestTaskStatusOnEnd, definitionIds, withDefinition, definitionState, readiness, taskLines } from './pr-doc';
+import { nextPrNumber, prNumberOf, prLabel, prTitle, prDocBody, fromLine, resultSection, withResult, setFrontmatter, getFrontmatter, prsOf, prStatusOnEnd, requestTaskStatusOnEnd, definitionIds, withDefinition, definitionState, readiness, taskLines } from './pr-doc';
 
 const TPL = readFileSync(path.join(__dirname, '../../../../templates/docs/pr.md'), 'utf8');
-const vars = { slug: 'pr-page-link-session', title: 'page link on the session', date: '2026-09-18', session: 'abc123', agent: 'claude-code', parent: 'module:app-agents', started: '2026-09-18T12:00:00.000Z', request: 'page link on the session, it looks good\n\n## but\nshould be a plan', from: '_from: module:app-agents · refs: req:x_' };
+const vars = { num: 41, slug: 'pr-41', title: 'page link on the session', date: '2026-09-18', session: 'abc123', agent: 'claude-code', parent: 'module:app-agents', started: '2026-09-18T12:00:00.000Z', request: 'page link on the session, it looks good\n\n## but\nshould be a plan', from: '_from: module:app-agents · refs: req:x_' };
 
-describe('prSlug / prTitle', () => {
-  it('takes the telling words of the request and skips taken slugs', () => {
-    expect(prSlug('page link on the session, it looks good, but should be done in a different way')).toBe('pr-page-link-session-looks-good-but');
-    expect(prSlug('Add a page X', ['pr-add-page-x'])).toBe('pr-add-page-x-2');
-    expect(prSlug('Add a page X', ['pr-add-page-x', 'pr-add-page-x-2'])).toBe('pr-add-page-x-3');
-    expect(prSlug('')).toBe('pr-request');
+describe('prNumber / prTitle', () => {
+  it('numbers like pull requests: one more than the highest in use, from ids or slugs', () => {
+    expect(nextPrNumber([])).toBe(1);
+    expect(nextPrNumber(['pr:3', 'pr-7', 'pr:pr-old-words', 'req:x'])).toBe(8);
+    expect(prNumberOf('pr:12')).toBe(12); expect(prNumberOf('pr-12')).toBe(12); expect(prNumberOf('pr-words')).toBeNull();
+    expect(prLabel(12, 'Round half-up')).toBe('#12 Round half-up');
   });
   it('titles from the first line, markdown stripped and cut', () => {
     expect(prTitle('\n# **Fix** the [thing](http://x)\nmore')).toBe('Fix the thing');
@@ -22,17 +22,17 @@ describe('prSlug / prTitle', () => {
 describe('prDocBody', () => {
   it('fills the template: typed frontmatter, the request quoted, the from line, the sections', () => {
     const md = prDocBody(TPL, vars);
-    expect(md).toMatch(/^---\nnode: pr:pr-page-link-session\ntype: pr\ntitle: page link on the session\n/);
+    expect(md).toMatch(/^---\nnode: pr:41\ntype: pr\ntitle: page link on the session\n/);
     expect(md).toContain('session: abc123\nagent: claude-code\nstarted: 2026-09-18T12:00:00.000Z\npart-of: module:app-agents\n---');
     expect(md).toContain('## Request\n\n> page link on the session, it looks good\n> \n> ## but\n> should be a plan\n\n_from: module:app-agents · refs: req:x_\n\n## Context');
     for (const h of ['## Context', '## Definition', '## Impact', '## Tasks', '## Result']) expect(md).toContain(h);
-    expect(md).toContain('part of pr:pr-page-link-session');
+    expect(md).toContain('part of pr:41');
   });
   it('writes the request as a task line under Tasks with the worker and the session (req:exec.request-is-a-task)', () => {
     const md = prDocBody(TPL, { ...vars, title: 'Fix (the) #thing', partOf: 'goal:g1' });
-    expect(md).toContain('- [ ] task:pr-page-link-session Fix the thing #in-progress (worker: claude-code, session: abc123, part-of: goal:g1)');
-    expect(prDocBody(TPL, vars)).toContain('- [ ] task:pr-page-link-session page link on the session #in-progress (worker: claude-code, session: abc123)\n');
-    expect(prDocBody(TPL, { ...vars, task: 'task:x.y' })).toContain('## Tasks\n\n_`- [ ] task:` lines, `part of pr:pr-page-link-session`; their check state is what is in progress._\n\n![[task:x.y]]\n');
+    expect(md).toContain('- [ ] task:pr-41 Fix the thing #in-progress (worker: claude-code, session: abc123, part-of: goal:g1)');
+    expect(prDocBody(TPL, vars)).toContain('- [ ] task:pr-41 page link on the session #in-progress (worker: claude-code, session: abc123)\n');
+    expect(prDocBody(TPL, { ...vars, task: 'task:x.y' })).toContain('## Tasks\n\n_`- [ ] task:` lines, `part of pr:41`; their check state is what is in progress._\n\n![[task:x.y]]\n');
     expect(prDocBody(TPL, { ...vars, task: 'task:x.y' })).toContain('started: 2026-09-18T12:00:00.000Z\ntask: task:x.y\npart-of:');
     expect(prDocBody(TPL, vars)).not.toMatch(/^task:/m);
     expect(requestTaskStatusOnEnd('in-progress', 'done')).toBe('review');
@@ -96,18 +96,18 @@ describe('prsOf', () => {
   const node = (id: string, body: string, file = 'projects/v2/docs/' + id.split(':')[1] + '.md', status = 'proposed', kind = id.split(':')[0]) => ({ id, kind, title: 't ' + id, status, body, file, defined: true });
   const graph = {
     nodes: [
-      node('pr:pr-b', 'session: s1\nstarted: 2026-09-18T12:00:00Z\nfinished: 2026-09-18', undefined, 'done'),
-      node('pr:pr-a', 'session: s1\nstarted: 2026-09-18T10:00:00Z', undefined, 'draft'),
+      node('pr:2', 'session: s1\nstarted: 2026-09-18T12:00:00Z\nfinished: 2026-09-18', 'projects/v2/docs/pr-2.md', 'done'),
+      node('pr:1', 'session: s1\nstarted: 2026-09-18T10:00:00Z', 'projects/v2/docs/pr-1.md', 'draft'),
       node('pr:pr-other', 'session: s2\nstarted: 2026-09-18T11:00:00Z'),
       node('pr:pr-none', 'nothing'),
       node('task:a1', 'x', 'projects/v2/docs/plan-a.md', 'done'), node('task:a2', 'x', 'projects/v2/docs/plan-a.md', 'open'), node('task:a3', 'x', 'projects/v2/docs/plan-a.md', 'in-progress'),
     ],
-    edges: [{ from: 'task:a1', to: 'pr:pr-a', verb: 'part-of' }, { from: 'task:a2', to: 'pr:pr-a', verb: 'part-of' }, { from: 'task:a3', to: 'pr:pr-a', verb: 'part-of' }, { from: 'task:a3', to: 'pr:pr-b', verb: 'mentions' }],
+    edges: [{ from: 'task:a1', to: 'pr:1', verb: 'part-of' }, { from: 'task:a2', to: 'pr:1', verb: 'part-of' }, { from: 'task:a3', to: 'pr:1', verb: 'part-of' }, { from: 'task:a3', to: 'pr:2', verb: 'mentions' }],
   };
   it('lists a session\'s plans from the graph, oldest first, with their task counts', () => {
     expect(prsOf('waterfall', graph, 's1')).toEqual([
-      { ref: 'waterfall/v2/pr-a', node: 'pr:pr-a', title: 't pr:pr-a', status: 'draft', started: '2026-09-18T10:00:00Z', finished: undefined, tasks: { done: 1, total: 3 } },
-      { ref: 'waterfall/v2/pr-b', node: 'pr:pr-b', title: 't pr:pr-b', status: 'done', started: '2026-09-18T12:00:00Z', finished: '2026-09-18', tasks: { done: 0, total: 0 } },
+      { ref: 'waterfall/v2/pr-1', node: 'pr:1', title: '#1 t pr:1', status: 'draft', started: '2026-09-18T10:00:00Z', finished: undefined, tasks: { done: 1, total: 3 } },
+      { ref: 'waterfall/v2/pr-2', node: 'pr:2', title: '#2 t pr:2', status: 'done', started: '2026-09-18T12:00:00Z', finished: '2026-09-18', tasks: { done: 0, total: 0 } },
     ]);
     expect(prsOf('waterfall', graph, 'nobody')).toEqual([]);
   });

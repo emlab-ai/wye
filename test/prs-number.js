@@ -1,0 +1,24 @@
+'use strict';
+// scripts/prs-number (decision:wf2.pr-numbers): word-slugged PRs get numbers in started order after the highest in use;
+// files, nodes, request tasks, references and sessions follow; a numbered PR is left alone; a second run does nothing.
+const fs = require('fs'); const path = require('path'); const os = require('os'); const assert = require('assert');
+const { migrate } = require('../scripts/prs-number');
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wye-num-'));
+const docs = path.join(tmp, 'projects/p/docs'); fs.mkdirSync(docs, { recursive: true }); fs.mkdirSync(path.join(tmp, '_sessions'), { recursive: true });
+fs.writeFileSync(path.join(tmp, '_product.md'), '---\ntitle: T\n---\n');
+fs.writeFileSync(path.join(docs, 'pr-4.md'), '---\nnode: pr:4\ntype: pr\ntitle: Four\nstatus: done\nstarted: 2026-09-10T00:00:00Z\n---\n\n# Four\n');
+fs.writeFileSync(path.join(docs, 'pr-late-words.md'), '---\nnode: pr:pr-late-words\ntype: pr\ntitle: Late\nstatus: draft\nstarted: 2026-09-20T00:00:00Z\n---\n\n# Late\n\n- [ ] task:pr-late-words Late #todo\n');
+fs.writeFileSync(path.join(docs, 'pr-early-words.md'), '---\nnode: pr:pr-early-words\ntype: pr\ntitle: Early\nstatus: done\nstarted: 2026-09-15T00:00:00Z\n---\n\n# Early\n');
+fs.writeFileSync(path.join(docs, 'other.md'), '---\nnode: module:other\ntitle: O\n---\n\nSee pr:pr-late-words and pr:4.\n\n- [ ] task:o Do #open (part-of: pr:pr-early-words)\n');
+fs.writeFileSync(path.join(tmp, '_sessions/s1.json'), JSON.stringify({ id: 's1', prDoc: 't/p/pr-late-words', refs: ['task:pr-late-words'] }));
+const r = migrate(tmp, {});
+assert.deepStrictEqual(r.docs, ['pr-early-words → pr-5', 'pr-late-words → pr-6']);
+assert.ok(fs.existsSync(path.join(docs, 'pr-5.md')) && fs.existsSync(path.join(docs, 'pr-6.md')) && !fs.existsSync(path.join(docs, 'pr-late-words.md')));
+const six = fs.readFileSync(path.join(docs, 'pr-6.md'), 'utf8');
+assert.match(six, /^node: pr:6$/m); assert.match(six, /- \[ \] task:pr-6 Late/);
+const o = fs.readFileSync(path.join(docs, 'other.md'), 'utf8');
+assert.match(o, /See pr:6 and pr:4\./); assert.match(o, /part-of: pr:5/);
+const s1 = JSON.parse(fs.readFileSync(path.join(tmp, '_sessions/s1.json'), 'utf8'));
+assert.strictEqual(s1.prDoc, 't/p/pr-6'); assert.deepStrictEqual(s1.refs, ['task:pr-6']);
+assert.strictEqual(migrate(tmp, {}).docs.length, 0);
+console.log('prs-number: ok');

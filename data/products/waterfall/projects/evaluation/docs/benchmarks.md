@@ -245,7 +245,7 @@ is unqualified. The cards are on the Runs page (module:eval-runs); `wye eval rep
 
 ## Code
 
-Built 2026-09-20 (pr:pr-build). `wye eval` runs in the CLI process: it parses the product's documents itself
+Built 2026-09-20 (pr:18). `wye eval` runs in the CLI process: it parses the product's documents itself
 (lib/parse, lib/graph), asks the running app only for what needs a model — semantic hits, packets — and records
 those answers, so a replay needs neither.
 
@@ -336,7 +336,7 @@ those answers, so a replay needs neither.
     latest / previous / delta; test/smoke.js runs the suites on recordings. First step of the build, before task:memory.eval-truth.
     Part of goal:memory.validated-asks (decision:memory.eval-build-scope).
   status: done
-  part-of: pr:pr-build
+  part-of: pr:18
   session: 9f29fa036e
 ```
 
@@ -348,5 +348,5 @@ those answers, so a replay needs neither.
     `_build/eval/<date>-*.json` committed; the numbers quoted on module:benchmarks with model, judge, graph sha and date.
     Last step of the build, after task:memory.eval-page. Part of goal:memory.validated-asks.
   status: open
-  part-of: pr:pr-build
+  part-of: pr:18
 ```

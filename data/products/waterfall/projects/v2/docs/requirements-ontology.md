@@ -131,7 +131,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
     show? The answer decides what the editor draws under a block and what an agent writes.
   context: >
     goal:ontology.graph-editor — "any node can have child nodes, like comments"; the person's request on
-    pr:pr-still-bad-now-need-click-tag. Nested list items are the only child form the parser has today
+    pr:7. Nested list items are the only child form the parser has today
     (req:ontology.blocks); a comment type does not exist yet (type:comment would extend type:node with `on: ref node
     -(inverse)-> comments` and `by`).
   status: resolved

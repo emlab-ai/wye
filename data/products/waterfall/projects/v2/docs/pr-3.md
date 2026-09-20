@@ -1,5 +1,5 @@
 ---
-node: pr:pr-work-in-progress-visibility
+node: pr:3
 type: pr
 title: Work-in-progress visibility — a Plans folder, a plan per request, all work items on the Agents page
 status: done
@@ -145,13 +145,13 @@ task below records the fix to make.
 
 ## Tasks
 
-- [x] task:plans-folder lib/plan-docs: `ensurePlansPage(project)` writes `plans.md` (module:<project>-plans, title Plans, `<!-- view:plan -->`) when missing; createPlanDoc parents every plan on it; the template's frontmatter gains `started:`; the two existing plan documents move under module:v2-prs. Part of pr:pr-work-in-progress-visibility, part of decision:wf2.plans-folder. (session: 07aa6645ad)
-- [x] task:plan-per-request createSession (chat and queue) and restartFresh create a plan document for every request, plan-first ticked or not; a plan left unfinished is finished as cancelled when a fresh request replaces it; buildPrompt always names the plan document (the plan-first protocol adds its steps on top). Part of pr:pr-work-in-progress-visibility, part of decision:wf2.plan-per-request. (session: 07aa6645ad)
-- [x] task:plan-result-owned lib/plan-doc: `withResult` replaces the section; `resultSection` takes the plan's window and leaves out the plan's own node and the Plans page; finishing twice yields one Result; the two existing plan documents are cleaned. Tests in plan-doc.test.ts. Part of pr:pr-work-in-progress-visibility, part of decision:wf2.plan-result-owned-by-app. (session: 07aa6645ad)
-- [x] task:plans-in-agents-view GET /api/<product>/sessions joins the graph: `plans` per session (ref, node, title, status, started, finished, tasks done/total) from plan nodes with `session: <id>`; component:session-list renders the work list under each row with the current plan marked and drops "plan ↗"; component:session-view shows the current plan and the earlier count. Part of pr:pr-work-in-progress-visibility, part of decision:wf2.plan-per-request. (session: 07aa6645ad)
-- [x] task:plan-type-props type:pr declares `session`, `agent`, `started`, `finished`; component:doc-props shows `session` as a link that opens the conversation. Closes task:plan-type-agent-prop. Part of pr:pr-work-in-progress-visibility. (session: 07aa6645ad)
-- [x] task:plans-ui-test ui-test:plans in Chrome (playwright-core): a fresh request on a live conversation makes a second plan under Plans; the Agents row lists both with the first done and the second running; `wf session done` writes one Result with only this plan's blocks; ending twice keeps one Result. Part of pr:pr-work-in-progress-visibility. (session: 07aa6645ad)
-- [x] task:plans-knowledge After shipping: rule:pr-doc, req:wf2.sessions.plan-doc and req:wf2.sessions.plan-result refined and shipped; question:wf2.plan-doc-parent resolved; session 672f4fdf3d's tasks (plan-doc-lib, plan-doc-create, plan-first-prompt, plan-doc-result, plan-doc-links, session-page-retire) set done where the code is in; commit. Part of pr:pr-work-in-progress-visibility. (session: 07aa6645ad)
+- [x] task:plans-folder lib/plan-docs: `ensurePlansPage(project)` writes `plans.md` (module:<project>-plans, title Plans, `<!-- view:plan -->`) when missing; createPlanDoc parents every plan on it; the template's frontmatter gains `started:`; the two existing plan documents move under module:v2-prs. Part of pr:3, part of decision:wf2.plans-folder. (session: 07aa6645ad)
+- [x] task:plan-per-request createSession (chat and queue) and restartFresh create a plan document for every request, plan-first ticked or not; a plan left unfinished is finished as cancelled when a fresh request replaces it; buildPrompt always names the plan document (the plan-first protocol adds its steps on top). Part of pr:3, part of decision:wf2.plan-per-request. (session: 07aa6645ad)
+- [x] task:plan-result-owned lib/plan-doc: `withResult` replaces the section; `resultSection` takes the plan's window and leaves out the plan's own node and the Plans page; finishing twice yields one Result; the two existing plan documents are cleaned. Tests in plan-doc.test.ts. Part of pr:3, part of decision:wf2.plan-result-owned-by-app. (session: 07aa6645ad)
+- [x] task:plans-in-agents-view GET /api/<product>/sessions joins the graph: `plans` per session (ref, node, title, status, started, finished, tasks done/total) from plan nodes with `session: <id>`; component:session-list renders the work list under each row with the current plan marked and drops "plan ↗"; component:session-view shows the current plan and the earlier count. Part of pr:3, part of decision:wf2.plan-per-request. (session: 07aa6645ad)
+- [x] task:plan-type-props type:pr declares `session`, `agent`, `started`, `finished`; component:doc-props shows `session` as a link that opens the conversation. Closes task:plan-type-agent-prop. Part of pr:3. (session: 07aa6645ad)
+- [x] task:plans-ui-test ui-test:plans in Chrome (playwright-core): a fresh request on a live conversation makes a second plan under Plans; the Agents row lists both with the first done and the second running; `wf session done` writes one Result with only this plan's blocks; ending twice keeps one Result. Part of pr:3. (session: 07aa6645ad)
+- [x] task:plans-knowledge After shipping: rule:pr-doc, req:wf2.sessions.plan-doc and req:wf2.sessions.plan-result refined and shipped; question:wf2.plan-doc-parent resolved; session 672f4fdf3d's tasks (plan-doc-lib, plan-doc-create, plan-first-prompt, plan-doc-result, plan-doc-links, session-page-retire) set done where the code is in; commit. Part of pr:3. (session: 07aa6645ad)
 - [ ] task:artifacts-credit-by-session lib:artifacts credits every running session with every block change on disk, so two workers at once (or a plan's window) get each other's blocks; credit by the writer instead (x-wf-session on API writes; for disk writes, the session whose process's cwd and agent match, else all running). Part of module:app-agents, follows decision:wf2.plan-result-owned-by-app.
 
 ## Result
@@ -160,8 +160,8 @@ Work in progress is visible as plans. Every request that starts work — a new s
 
 Blocks this plan produced:
 
-- added pr:pr-pannel-text-input-bottom-bar-top — the pannel / text input at the bottom and bar on top must not be scrollable, content is…
-- added pr:pr-text-which-sent-agent-beginning-no — this text, which is sent to agent at the beginning, can you no show it, it is kind of…
+- added pr:1 — the pannel / text input at the bottom and bar on top must not be scrollable, content is…
+- added pr:2 — this text, which is sent to agent at the beginning, can you no show it, it is kind of…
 - added task:plan-type-agent-prop — The plan pages the app writes (plan:plan-…, type:pr) carry `agent:` and `session:` in their frontmatter;
 - added decision:wf2.plans-folder — Every plan document is a sub-page of one Plans page per project
 - added decision:wf2.plan-per-request — A plan document for every request that starts work; a worker's history is its list of plans

@@ -9,16 +9,15 @@ import type { BlockChange, Session, SessionPr, SessionStatus } from './session-t
 // the rail shows it as a system folder, not in the Documents tree (rule:prs-folder).
 export const prsPageId = (projectSlug: string) => `module:${projectSlug}-prs`;
 
-const STOP = new Set(['a', 'an', 'the', 'to', 'of', 'in', 'on', 'for', 'and', 'or', 'is', 'it', 'be', 'me', 'my', 'so', 'as', 'at', 'by', 'do', 'we', 'i', 'that', 'this', 'with', 'from', 'into', 'when', 'then', 'not', 'must', 'should', 'please', 'can', 'you']);
-
-// `pr-` + the first telling words of the request (stop words dropped, six at most), `-2`, `-3`… when taken.
-export function prSlug(request: string, taken: Iterable<string> = []): string {
-  const words = request.toLowerCase().replace(/[`*_#>\[\]()]/g, ' ').split(/[^a-z0-9]+/).filter(w => w && !STOP.has(w));
-  const base = `pr-${(words.slice(0, 6).join('-') || 'request').slice(0, 48).replace(/-+$/, '')}`;
-  const have = new Set(taken);
-  if (!have.has(base)) return base;
-  for (let n = 2; ; n++) if (!have.has(`${base}-${n}`)) return `${base}-${n}`;
+// PRs are numbered like pull requests (decision:wf2.pr-numbers): `pr:123`, file `pr-123.md`, shown as "#123 Title".
+// The next number is one more than the highest in use across the product — from the graph's pr nodes and the
+// files on disk (a page written a second ago may not be in the graph yet).
+export const prNumberOf = (idOrSlug: string): number | null => { const m = idOrSlug.match(/^(?:pr:|pr-)?(\d+)$/); return m ? Number(m[1]) : null; };
+export function nextPrNumber(taken: Iterable<string>): number {
+  let max = 0; for (const t of taken) { const n = prNumberOf(t); if (n && n > max) max = n; }
+  return max + 1;
 }
+export const prLabel = (num: number, title: string) => `#${num} ${title}`;
 
 // The title: the first non-empty line of the request, markdown stripped, cut at 90 characters.
 export function prTitle(request: string): string {
@@ -29,7 +28,7 @@ export function prTitle(request: string): string {
 
 // partOf: what the request task is part of (req:exec.request-is-a-task) — the goal or node it was sent from;
 // task: the task the session was assigned (req:exec.dispatch) — embedded on the plan instead of a new request task
-export type PrDocVars = { slug: string; title: string; date: string; session: string; agent: string; started: string; parent: string; request: string; from: string; partOf?: string; task?: string; role?: 'worker' | 'librarian' };
+export type PrDocVars = { num: number; slug: string; title: string; date: string; session: string; agent: string; started: string; parent: string; request: string; from: string; partOf?: string; task?: string; role?: 'worker' | 'librarian' };
 
 // The request task (req:exec.request-is-a-task, decision:exec.task-is-the-unit): `task:<plan-slug>` on the plan
 // document — the request itself as a work item, on the Work view from the first second.
@@ -42,7 +41,7 @@ export function prDocBody(template: string, v: PrDocVars): string {
   // the request task's text can carry no parenthesis or hashtag: they would read as its properties or status
   const taskTitle = v.title.replace(/[()#]/g, ' ').replace(/\s+/g, ' ').trim();
   const requestTask = v.task ? `![[${v.task}]]` : `- [ ] ${requestTaskId(v.slug)} ${taskTitle} #in-progress (worker: ${v.agent}, session: ${v.session}${v.partOf ? `, part-of: ${v.partOf}` : ''})`;
-  let out = template.replace(/\{\{(slug|title|date|session|agent|started|parent|request|from|task|requesttask|role)\}\}/g, (_, k: string) => k === 'request' ? request : k === 'requesttask' ? requestTask : k === 'role' ? (v.role === 'librarian' ? 'librarian' : '') : v[k as keyof PrDocVars] ?? '');
+  let out = template.replace(/\{\{(num|slug|title|date|session|agent|started|parent|request|from|task|requesttask|role)\}\}/g, (_, k: string) => k === 'request' ? request : k === 'requesttask' ? requestTask : k === 'role' ? (v.role === 'librarian' ? 'librarian' : '') : k === 'num' ? String(v.num) : String(v[k as keyof PrDocVars] ?? ''));
   if (!v.parent) out = out.replace(/^part-of: \n/m, '');
   if (!v.task) out = out.replace(/^task: \n/m, '');
   // the page is born with someone on it (decision:wf2.pr-lifecycle): refining under a librarian, building under a worker
@@ -130,7 +129,8 @@ export function prsOf(product: string, g: PrGraph, sessionId: string): SessionPr
     if (!(prop(n.body, 'session') ?? '').split(/\s+/).includes(sessionId)) continue;
     const m = n.file.match(/projects\/([^/]+)\/docs\/([^/]+)\.md$/); if (!m) continue;
     const tasks = g.edges.filter(e => e.to === n.id && e.verb === 'part-of' && byId.get(e.from)?.kind === 'task').map(e => byId.get(e.from)!);
-    out.push({ ref: `${product}/${m[1]}/${m[2]}`, node: n.id, title: n.title, status: n.status, started: prop(n.body, 'started'), finished: prop(n.body, 'finished'), tasks: { done: tasks.filter(t => t.status === 'done').length, total: tasks.length } });
+    const num = prNumberOf(n.id);
+    out.push({ ref: `${product}/${m[1]}/${m[2]}`, node: n.id, title: num ? prLabel(num, n.title) : n.title, status: n.status, started: prop(n.body, 'started'), finished: prop(n.body, 'finished'), tasks: { done: tasks.filter(t => t.status === 'done').length, total: tasks.length } });
   }
   return out.sort((a, b) => (a.started ?? '').localeCompare(b.started ?? '') || a.ref.localeCompare(b.ref));
 }

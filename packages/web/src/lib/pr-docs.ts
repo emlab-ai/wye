@@ -8,7 +8,7 @@ import { loadScope } from './scope';
 import { docRoute, projectTree } from './doc';
 import { rebuild, writeAtomic, withFileLock } from './write';
 import { onSessionEnd, setPrDoc, addRefs } from './sessions';
-import { fromLine, getFrontmatter, prDocBody, prSlug, prsPageId, prStatusOnEnd, prTitle, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, withDefinition, definitionIds, definitionState, readiness, taskLines, type PrEndStatus, type DefinitionState, type Readiness } from './pr-doc';
+import { fromLine, getFrontmatter, prDocBody, nextPrNumber, prsPageId, prStatusOnEnd, prTitle, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, withDefinition, definitionIds, definitionState, readiness, taskLines, type PrEndStatus, type DefinitionState, type Readiness } from './pr-doc';
 import type { Scope } from './scope';
 import { createRequire } from 'node:module';
 import { listChanges } from './changes';
@@ -85,7 +85,7 @@ function placeOf(s: Session): { project?: string; doc?: string } {
   return m ? { project: m[1], doc: m[2] } : {};
 }
 
-// Create `pr-<slug>` for the request: a sub-page of the project's PRs page, the type:pr card in the
+// Create `pr-<n>` for the request: a sub-page of the project's PRs page, the type:pr card in the
 // frontmatter (`session`, `agent`, `started`), the request under "Request" with where it came from as tags.
 // Returns the document ref (product/project/slug) and stores it on the session as `prDoc`.
 export async function createPrDoc(productDir: string, product: string, s: Session): Promise<string | null> {
@@ -96,14 +96,16 @@ export async function createPrDoc(productDir: string, product: string, s: Sessio
   const tree = projectTree(scope.graph, project.slug);
   const prsPage = await ensurePrsPage(project, tree.main && tree.main.slug !== 'prs' ? tree.main.module.id : null);
   const sourceDoc = scope.graph.modules.find(m => { const r = docRoute(m.file); return r?.project === project.slug && r.doc === at.doc; });
-  let taken: string[] = []; try { taken = (await readdir(project.docsDir)).filter(n => n.endsWith('.md')).map(n => n.slice(0, -3)); } catch { /* new project */ }
-  const slug = prSlug(s.instruction, taken);
+  // the number (decision:wf2.pr-numbers): one more than any PR of the product, in the graph or on disk
+  const taken: string[] = scope.graph.nodes.filter(n => n.kind === 'pr').map(n => n.id);
+  for (const p of scope.projects) { try { taken.push(...(await readdir(p.docsDir)).filter(n => n.endsWith('.md')).map(n => n.slice(0, -3))); } catch { /* new project */ } }
+  const num = nextPrNumber(taken); const slug = `pr-${num}`;
   const tpl = await readFile(TEMPLATE, 'utf8');
   const now = new Date().toISOString();
   // the request task is part of the goal or node the request was sent from (req:exec.request-is-a-task): the first
   // ref that is not the document itself, a session or a PR
   const partOf = s.refs.find(r => /^[a-z-]+:/.test(r) && r !== sourceDoc?.id && !/^(session|pr|module|block):/.test(r));
-  const md = prDocBody(tpl, { slug, title: prTitle(s.instruction), date: now.slice(0, 10), session: s.id, agent: s.agent, started: now, parent: prsPage, request: s.instruction, from: fromLine(s, sourceDoc?.id), partOf, task: s.task, role: s.role });
+  const md = prDocBody(tpl, { num, slug, title: prTitle(s.instruction), date: now.slice(0, 10), session: s.id, agent: s.agent, started: now, parent: prsPage, request: s.instruction, from: fromLine(s, sourceDoc?.id), partOf, task: s.task, role: s.role });
   await writeAtomic(path.join(project.docsDir, `${slug}.md`), md);
   await rebuild(productDir);
   const ref = `${product}/${project.slug}/${slug}`;

@@ -311,7 +311,7 @@ const commands = {
     if (flags.status) { const j = await api('PATCH', `/api/${p}/pr`, { ref: r, status: flags.status }); return out(flags.json ? j : `${r}: status ${j.status}`); }
     const j = await api('GET', `/api/${p}/pr?ref=${encodeURIComponent(r)}`); if (flags.json) return out(j);
     const df = j.definition;
-    console.log(`${j.node}  ${j.status}${j.role === 'librarian' ? '  (librarian)' : ''}${j.task ? '  task ' + j.task : ''}  session ${j.session}`);
+    console.log(`${j.label ?? j.node}  ${j.status}${j.role === 'librarian' ? '  (librarian)' : ''}${j.task ? '  task ' + j.task : ''}  session ${j.session}`);
     console.log(`definition: ${df.total} block(s), ${df.agreed} agreed, ${df.open} open${df.missing ? `, ${df.missing} missing` : ''}${df.contradicted.length ? `, contradicted: ${df.contradicted.join(', ')}` : ''}`);
     const rd = j.readiness; if (rd) console.log(`readiness: ${['definition', 'agreed', 'impact', 'contradictions', 'tasks'].map(k => `${rd[k] ? '✓' : '✗'} ${k}`).join(' · ')} — ${rd.ok ? 'ready to approve' : 'not ready'}${j.approvedBy ? ` · approved by ${j.approvedBy} ${j.approvedAt ?? ''}` : ''}`);
     for (const it of df.items) console.log(`  ${it.agreed ? '✓' : it.missing ? '?' : '·'} ${it.id}${it.status ? ' #' + it.status : ''}`);

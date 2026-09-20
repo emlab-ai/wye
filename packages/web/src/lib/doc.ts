@@ -101,7 +101,9 @@ export function documentTree(g: GraphData): { roots: DocNode[]; main: DocNode | 
   const nodes = new Map<string, DocNode>();
   for (const m of g.modules) {
     const module = byId.get(m.id)!;
-    nodes.set(m.id, { module, file: m.file, slug: docSlug(m.file), title: m.title || module.title, children: [] });
+    // a PR reads "#123 Title" wherever the tree names it (decision:wf2.pr-numbers)
+    const num = m.id.match(/^pr:(\d+)$/)?.[1];
+    nodes.set(m.id, { module, file: m.file, slug: docSlug(m.file), title: num ? `#${num} ${m.title || module.title}` : m.title || module.title, children: [] });
   }
   const hasParent = new Set<string>();
   for (const e of g.edges) {

@@ -21,13 +21,13 @@ One card per results file: the suite, the graph and git shas, the model, the jud
   title: "own — 2026-09-20 (replayed)"
   suite: own
   date: 2026-09-20
-  graph-sha: "2ed6676c8f6d"
-  git: "84bc5cf20664"
+  graph-sha: "cf81ab5cbd76"
+  git: "b759d3511a74"
   model: "claude-haiku-4-5-20251001"
   judge: "claude-haiku-4-5-20251001 @ 6d31662f"
   prompts: "verdict 6d31662f, impact 291a2d1d, consolidation 1d527194"
   gate: passed
-  truth: "truth-waterfall-2ed6676c8f6d.json: requirements 70, supersessions 2, commits 76, sessions 18, consolidation 28"
+  truth: "truth-waterfall-cf81ab5cbd76.json: requirements 70, supersessions 2, commits 76, sessions 18, consolidation 28"
   truth: "errors: packet: recording missing in eval/recorded/semantic-waterfall.json for context \"Every request that starts work becomes a plan document under\" — run once with --live (WATERFALL_LIVE=1); currency: recording missing in eval/recorded/semantic-waterfall.json for context \"The definition of Wye is by kind on top and by area inside —\" — run once with --live (WATERFALL_LIVE=1); impact: recording missing in eval/recorded/semantic-waterfall.json for context \"api.links\" — run once with --live (WATERFALL_LIVE=1)"
 ```
 

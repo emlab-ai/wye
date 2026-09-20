@@ -1,5 +1,5 @@
 ---
-node: pr:pr-work-component-data-table-rule-type
+node: pr:5
 type: pr
 title: Work on component:data-table, rule:type-tables, rule:goals-and-tasks.
 status: done
@@ -152,11 +152,11 @@ Built as planned, with three things the build found (all in rule:table-filter):
 
 ## Tasks
 
-- [x] task:table-filter-req Write req:wf2.editor.table-filter under Tables on app-documents, proposed; the two decisions and the open question on this plan — part of pr:pr-work-component-data-table-rule-type
-- [x] task:table-filter-marker `COLLECTION_OPEN` accepts a trailing key=value query, the collection block gets a `query` prop, `collectionMarker` / serialize.ts write it back; test:web-lib#import covers a marker with and without a query — part of pr:pr-work-component-data-table-rule-type (session: bd2ece3698)
-- [x] task:table-filter-toolbar The Data table header gets a filter toggle and toolbar (search, status chips with counts, a chip row per enum / bool column, a select per ref column, owner for goals and tasks), "n of m" and "clear filters"; rows that do not match get a hidden class, the trailing empty row stays; filtering uses lib:instance-table's filterRows — part of pr:pr-work-component-data-table-rule-type (session: bd2ece3698)
-- [x] task:table-filter-rule rule:table-filter shipped under Tables on app-documents (source: import.ts#COLLECTION_OPEN, DocEditor.tsx#CollectionBlock, globals.css), req:wf2.editor.table-filter shipped, component:data-table's purpose names the filter — part of pr:pr-work-component-data-table-rule-type
-- [x] task:table-filter-ui-test ui-test:table-filter in test-design: a filter hides rows and keeps the file's rows, the marker carries the query, reload keeps the filter, clear restores the bare marker — part of pr:pr-work-component-data-table-rule-type
+- [x] task:table-filter-req Write req:wf2.editor.table-filter under Tables on app-documents, proposed; the two decisions and the open question on this plan — part of pr:5
+- [x] task:table-filter-marker `COLLECTION_OPEN` accepts a trailing key=value query, the collection block gets a `query` prop, `collectionMarker` / serialize.ts write it back; test:web-lib#import covers a marker with and without a query — part of pr:5 (session: bd2ece3698)
+- [x] task:table-filter-toolbar The Data table header gets a filter toggle and toolbar (search, status chips with counts, a chip row per enum / bool column, a select per ref column, owner for goals and tasks), "n of m" and "clear filters"; rows that do not match get a hidden class, the trailing empty row stays; filtering uses lib:instance-table's filterRows — part of pr:5 (session: bd2ece3698)
+- [x] task:table-filter-rule rule:table-filter shipped under Tables on app-documents (source: import.ts#COLLECTION_OPEN, DocEditor.tsx#CollectionBlock, globals.css), req:wf2.editor.table-filter shipped, component:data-table's purpose names the filter — part of pr:5
+- [x] task:table-filter-ui-test ui-test:table-filter in test-design: a filter hides rows and keeps the file's rows, the marker carries the query, reload keeps the filter, clear restores the bare marker — part of pr:5
 
 ## Result
 
@@ -173,11 +173,11 @@ Blocks this plan produced:
 - added task:table-filter-toolbar — The Data table header gets a filter toggle and toolbar (search, status chips with counts, a chip row per enum 
 - added task:table-filter-rule — rule:table-filter shipped under Tables on app-documents (source:
 - added task:table-filter-ui-test — ui-test:table-filter in test-design:
-- added pr:pr-improve-context-window-click-element-would — improve context window, when i click to the element, i would like to be able to add…
+- added pr:6 — improve context window, when i click to the element, i would like to be able to add…
 - added decision:wf2.connected-rows-expand-to-cards — A connected row expands in place into the node's embedded card
 - added task:connected-cards-rows — Expand toggle on every Connected and tracking row;
-- added task:connected-cards-groups — Cards / tags toggle on every group heading part of pr:pr-improve-context-window-click-element-would
-- added task:connected-cards-css — The expanded card spans the column under its row part of pr:pr-improve-context-window-click-element-would
+- added task:connected-cards-groups — Cards / tags toggle on every group heading part of pr:6
+- added task:connected-cards-css — The expanded card spans the column under its row part of pr:6
 - added task:connected-cards-ui-test — Verify in Chrome via playwright-core:
 - added task:connected-cards-knowledge — req:wf2.ui.connected-cards and rule:connected-cards shipped, component:peek-panel refined, ui-test recorded pa
 - changed component:peek-panel — peek-panel
@@ -185,7 +185,7 @@ Blocks this plan produced:
 - added req:wf2.ui.connected-cards — A connected node opens as its card under its row in the context column
 - added rule:connected-cards — connected-cards
 - added ui-test:connected-cards — connected-cards
-- added pr:pr-still-bad-now-need-click-tag — still bad!
+- added pr:7 — still bad!
 - added action:select-block — a click anywhere on a typed block of the document selects it: the Context root shows the node (rule:block-sele
 - added req:wf2.ui.block-select — A click anywhere on a block shows its node in the context column
 - added rule:block-select — block-select

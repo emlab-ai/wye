@@ -6,7 +6,7 @@ import { StatusPill } from './Pills';
 import { useMe } from './WorkList';
 
 type Readiness = { definition: boolean; agreed: boolean; impact: boolean; contradictions: boolean; tasks: boolean; ok: boolean; unagreed: string[]; contradicted: string[] };
-type Pr = { ref: string; node: string; status: string; task: string | null; session: string; approvedBy: string | null; approvedAt: string | null; readiness: Readiness; definition: { total: number; agreed: number } };
+type Pr = { ref: string; node: string; num: number | null; title: string; label: string; status: string; task: string | null; session: string; approvedBy: string | null; approvedAt: string | null; readiness: Readiness; definition: { total: number; agreed: number } };
 
 const CHECKS: { key: keyof Readiness; label: string; why: string }[] = [
   { key: 'definition', label: 'definition', why: 'at least one block in Definition' },
@@ -45,6 +45,7 @@ export function PrHead({ product, prRef }: { product: string; prRef: string }) {
   return (
     <section className={`pr-head s-${pr.status}`}>
       <div className="pr-head-row">
+        {pr.num && <span className="pr-num" title={pr.node}>#{pr.num}</span>}
         <StatusPill status={pr.status} />
         {pr.approvedBy && <span className="muted small">approved by {pr.approvedBy}{pr.approvedAt ? ` · ${pr.approvedAt.slice(0, 16).replace('T', ' ')}` : ''}</span>}
         <ul className="pr-checks" aria-label="Readiness">
