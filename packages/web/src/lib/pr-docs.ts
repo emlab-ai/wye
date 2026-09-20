@@ -92,7 +92,9 @@ export async function createPrDoc(productDir: string, product: string, s: Sessio
   if (s.prDoc) return s.prDoc;
   const scope = await loadScope(product); if (!scope || !scope.projects.length) return null;
   const at = placeOf(s);
-  const project: Project = scope.projects.find(p => p.slug === at.project) ?? scope.projects[0];
+  // without a place: the project that already holds PRs (most of them), else the first
+  const home = () => { const counts = new Map<string, number>(); for (const n of scope.graph.nodes) if (n.kind === 'pr' && n.defined) { const r = docRoute(n.file); if (r) counts.set(r.project, (counts.get(r.project) ?? 0) + 1); } const best = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0]; return scope.projects.find(p => p.slug === best); };
+  const project: Project = scope.projects.find(p => p.slug === at.project) ?? home() ?? scope.projects[0];
   const tree = projectTree(scope.graph, project.slug);
   const prsPage = await ensurePrsPage(project, tree.main && tree.main.slug !== 'prs' ? tree.main.module.id : null);
   const sourceDoc = scope.graph.modules.find(m => { const r = docRoute(m.file); return r?.project === project.slug && r.doc === at.doc; });
