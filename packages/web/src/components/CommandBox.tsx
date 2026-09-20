@@ -73,6 +73,10 @@ export function CommandBox() {
   if (!req) return null;
   const isWye = target === 'wye';
   const isNew = target === 'new' || target === 'runner' || isWye;
+  // what the person wants (req:wf2.ui.intent): a task (a worker does it now), a plan (a worker understands, proposes,
+  // confirms, then builds) or a proposal (Wye reads what the product knows and proposes blocks to the Inbox — nothing built)
+  const intent: 'task' | 'plan' | 'proposal' | 'message' = !isNew ? 'message' : isWye ? 'proposal' : plan ? 'plan' : 'task';
+  const setIntent = (i: 'task' | 'plan' | 'proposal') => { if (i === 'proposal') setTarget('wye'); else { if (target === 'wye') setTarget('new'); setPlan(i === 'plan'); } };
   const run = async () => {
     const instruction = text.trim(); if ((!instruction && !attach.images.length) || busy) return;
     if (isWye) {
@@ -81,7 +85,8 @@ export function CommandBox() {
       const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ role: 'librarian', instruction, refs: req.refs ?? [], source: { ...(req.source ?? {}), ...(req.text ? { text: req.text.slice(0, 2000) } : {}) }, images: attach.images }) });
       const j = await r.json().catch(() => ({})); setBusy(false);
       if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not start'); return; }
-      setReq(null); open(`session:${j.id}`); return;
+      // the proposal's page: every block the conversation proposes, as blocks, filling in as they land (page:web/search?session=)
+      setReq(null); open(`session:${j.id}`); location.assign(`/${product}/search?session=${j.id}`); return;
     }
     if (target === 'new' && !cwd.trim()) { setMsg('a working folder is required — the code repository the agent works in'); return; }
     setBusy(true); setMsg(null);
@@ -120,17 +125,25 @@ export function CommandBox() {
         <textarea ref={box} className="palette-in" value={text} rows={text.split('\n').length > 3 ? 6 : 3} placeholder={isWye ? 'What do you want? — improve …, allow …, change … (Enter to ask Wye; Shift+Enter for a new line)' : isNew ? 'What should the agent do? — fix …, build …, change … (Enter to run, Shift+Enter for a new line; paste a screenshot too)' : 'Your next message to that conversation (Enter to send, Shift+Enter for a new line; paste a screenshot too)'} onChange={e => setText(e.target.value)} onPaste={attach.onPaste} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (e.altKey) later(); else run(); } }} disabled={busy} />
         <AttachStrip images={attach.images} remove={attach.remove} />
         {refs.length > 0 && <div className="palette-ctx"><span className="muted">with</span>{refs.map(id => <SmartTag key={id} id={id} />)}{req.source?.blockId && <span className="muted">· this block</span>}</div>}
+        {isNew && (
+          <div className="palette-row palette-intent" role="radiogroup" aria-label="What do you want">
+            <button type="button" className={`chip ${intent === 'task' ? 'on' : ''}`} onClick={() => setIntent('task')} title="A worker does it now, in the code">Task</button>
+            <button type="button" className={`chip ${intent === 'plan' ? 'on' : ''}`} onClick={() => setIntent('plan')} title="A worker reads Wye, writes a plan on a page and asks before building">Plan</button>
+            <button type="button" className={`chip ${intent === 'proposal' ? 'on' : ''}`} onClick={() => setIntent('proposal')} title="Wye reads what the product knows and proposes new blocks to the Inbox — nothing is built">Proposal</button>
+            <span className="muted palette-note">{intent === 'task' ? 'a worker does it now' : intent === 'plan' ? 'understand, propose, confirm, then build' : 'evaluate the knowledge, propose blocks to the Inbox, show them on a page'}</span>
+          </div>
+        )}
         <div className="palette-row">
           <label className="palette-to"><span className="muted">to</span>
             <select value={target} onChange={e => setTarget(e.target.value)} title="where the request goes">
               {sessions.length > 0 && <optgroup label="active conversations">{sessions.map(s => <option key={s.id} value={s.id}>{label(s)}</option>)}</optgroup>}
-              <optgroup label="new"><option value="wye">Ask Wye — define it first, build later</option><option value="new">New conversation — a coding agent</option><option value="runner">Queue for a runner (wf agent listen)</option></optgroup>
+              <optgroup label="new"><option value="wye">Wye — a proposal, nothing built</option><option value="new">New conversation — a coding agent</option><option value="runner">Queue for a runner (wye agent listen)</option></optgroup>
             </select>
           </label>
           {isNew && !isWye && <select value={agent} onChange={e => setAgent(e.target.value)} title="agent">{AGENTS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}</select>}
         </div>
-        {isWye && <div className="palette-row"><span className="muted palette-note">Wye reads what the product already knows, explains the current state, asks what it must, and proposes the requirements, decisions and tasks as blocks on a plan — agreed before anyone builds</span></div>}
-        {(target === 'new' || fresh) && (
+        {isWye && <div className="palette-row"><span className="muted palette-note">Wye reads what the product already knows, explains the current state, asks what it must, and proposes requirements, decisions, questions and tasks as blocks — they wait in the Inbox and show on the proposal's page; nothing is built</span></div>}
+        {fresh && (
           <div className="palette-row">
             <label className="palette-plan" title="The agent reads Wye, works out what the request touches, writes the plan on a page and asks you before building">
               <input type="checkbox" checked={plan} onChange={e => setPlan(e.target.checked)} /> plan first — understand, propose, confirm, then build
@@ -149,7 +162,7 @@ export function CommandBox() {
           {!isNew && <span className="muted palette-note">{fresh ? 'restarts that conversation\u2019s agent from nothing — after its current turn when one is open — then sends this as its first message' : 'goes into that conversation as your next message; the agent keeps its context and folder'}</span>}
           {target === 'runner' && <span className="muted palette-note">queued until a runner for that agent picks it up</span>}
           {isNew && <button className="palette-later" onClick={later} disabled={!text.trim() || busy} title="Keep it as a task on the backlog — unassigned, on the Work view — without sending it to anyone (⌥↵)">Later</button>}
-          <button className="palette-go" onClick={run} disabled={(!text.trim() && !attach.images.length) || busy}>{busy ? 'Sending…' : !isNew ? (fresh ? 'Restart & send ↵' : 'Send ↵') : isWye ? 'Ask Wye ↵' : target === 'runner' ? 'Queue ↵' : plan ? 'Plan & build ↵' : 'Run ↵'}</button>
+          <button className="palette-go" onClick={run} disabled={(!text.trim() && !attach.images.length) || busy}>{busy ? 'Sending…' : !isNew ? (fresh ? 'Restart & send ↵' : 'Send ↵') : isWye ? 'Propose ↵' : target === 'runner' ? 'Queue ↵' : plan ? 'Plan & build ↵' : 'Do it ↵'}</button>
         </div>
         {msg && <p className="bad palette-msg">{msg}</p>}
         <p className="muted palette-hint">⌘P opens this anywhere · Send to agent on any block opens it with the block · the conversation opens in the right column · Later (⌥↵) keeps it as a task for anyone</p>

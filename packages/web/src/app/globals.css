@@ -658,3 +658,5 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 @media (max-width: 720px) { .search-body { grid-template-columns: 1fr; } .search-preview { display: none; } }
 
 .taskwork-assigned { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; margin: 6px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--ground); font-size: 13px; } .taskwork-assigned small { font: 600 10px var(--font-m); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); } .taskwork-plan { font-weight: 600; }
+
+.palette-intent { gap: 6px; align-items: center; } .palette-intent .chip { font-size: 13px; padding: 4px 12px; } .palette-intent .chip.on { background: var(--ink); color: var(--surface); border-color: var(--ink); } .palette-intent .palette-note { margin-left: 6px; }

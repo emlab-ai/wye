@@ -19,6 +19,22 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 <!-- list:req -->
 
 ```yaml
+- id: req:wf2.ui.intent
+  title: The command box asks what the person wants — a task, a plan or a proposal — and a proposal ends on a page of what was proposed
+  when: the person opens the command box (⌘P) and types a request
+  then: >
+    three choices sit above the text — Task (a worker does it now), Plan (a worker understands, proposes a plan on a
+    page, confirms, then builds), Proposal (Wye reads what the product knows and proposes requirements, decisions,
+    questions and tasks as blocks — they wait in the Inbox, nothing is built) — with one line saying what each does;
+    Proposal opens a page that lists every block that conversation proposed, as blocks with their Inbox state,
+    filling in as they land, with links to the conversation, its plan and the Inbox
+  unless: a live conversation is chosen as the target — then the text is a message into it and the choices hide
+  status: shipped
+  refines: req:exec.ask-wye
+  satisfied-by: [component:command-box, page:web/search]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-shell
 - id: req:wf2.ui.search
   title: Search opens from anywhere with ⌘F and shows blocks, not links
   when: the person presses ⌘F / Ctrl+F on any page
