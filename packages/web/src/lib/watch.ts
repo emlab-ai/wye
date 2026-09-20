@@ -11,7 +11,7 @@ import type { GraphData } from './graph';
 import { scheduleVerdicts } from './verdicts';
 import { recordChanges, takeClaim } from './changes';
 import { scheduleImpact } from './impact-run';
-import { trackDefinitions } from './pr-docs';
+import { trackDefinitions, refreshStaleScopes } from './pr-docs';
 import { loadScope } from './scope';
 import { listSessions } from './sessions';
 
@@ -77,7 +77,7 @@ export function ensureWatch(productDir: string) {
                 const records = await recordChanges(productDir, path.basename(productDir), before, after, changes, who).catch(e => { console.log(`[wf] changes: ${e instanceof Error ? e.message : e}`); return []; });
                 if (records.length) scheduleImpact(productDir, path.basename(productDir), records, m => console.log(`[wf] ${m}`));
                 // a librarian's blocks land in its request's Definition (req:exec.definition-tracked) — the writes here come back through this watcher
-                try { const scope = await loadScope(path.basename(productDir)); if (scope) { await trackDefinitions(scope, running, changes.map(c => ({ ...c, session: attribution.get(c.id)?.session }))); } } catch (e) { console.log(`[wf] definition: ${e instanceof Error ? e.message : e}`); }
+                try { const scope = await loadScope(path.basename(productDir)); if (scope) { await trackDefinitions(scope, running, changes.map(c => ({ ...c, session: attribution.get(c.id)?.session }))); const rescoped = await refreshStaleScopes(scope); if (rescoped.length) console.log(`[wf] scope: ${rescoped.join(', ')}`); } } catch (e) { console.log(`[wf] definition: ${e instanceof Error ? e.message : e}`); }
                 // the write-time verdict pass (decision:memory.write-time-verdict): new or changed knowledge is classified
                 // against its neighbours; runs detached, writes its lines under the nodes, which the watcher then picks up
                 scheduleVerdicts(productDir, path.basename(productDir), changes, m => console.log(`[wf] ${m}`));

@@ -17,6 +17,7 @@ import { readPrDoc } from './pr-docs';
 import { setFrontmatter, sectionBody } from './pr-doc';
 import { writeAtomic, withFileLock, rebuild } from './write';
 import { updateSession } from './sessions';
+import { refreshScope } from './pr-scope';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const req = createRequire(path.join(REPO_ROOT, 'package.json'));
@@ -122,6 +123,7 @@ export async function runIntake(productDir: string, product: string, sessionId: 
     await writeAtomic(pr.file, md);
   });
   await rebuild(productDir);
+  await refreshScope(productDir, (await loadScope(product))?.graph ?? scope.graph, pr.file).catch(() => []); // the scope from the request's tags, before any Definition
   await updateSession(productDir, sessionId, { line: `intake: "${it.title}" — touches ${ids.length} node(s), reaches ${new Set(cands.map(c => c.id)).size}` }).catch(() => {});
   return `\n## What Wye found (already on the page under Context and Impact)\n${contextBody(it, touched, packet.markdown, '')}\n\nReaches: ${[...new Set(cands.map(c => c.id))].slice(0, 20).join(', ') || 'nothing yet'}.\nContinue from here: do not re-explain the state; propose the Definition and ask what is open.`;
 }

@@ -16,6 +16,7 @@ import { patchProseNode } from './node-edit';
 import { parseNodeLine } from './node-line';
 export { prsPageId };
 import type { Session } from './session-types';
+import { scopeFresh } from './pr-scope';
 
 const TEMPLATE = path.join(REPO_ROOT, 'templates/docs/pr.md');
 
@@ -235,7 +236,7 @@ export async function setRefining(productDir: string, product: string, ref: stri
 }
 
 // Readiness (decision:wf2.pr-lifecycle): the Definition's state plus the task count, as the PR head shows it.
-export function prReadiness(scope: Scope, md: string): Readiness { return readiness(prDefinition(scope, md), taskLines(md).length); }
+export function prReadiness(scope: Scope, md: string): Readiness { return readiness(prDefinition(scope, md), taskLines(md).length, scopeFresh(md)); }
 
 // Approval (decision:wf2.pr-approval-is-the-persons-click): the person's click. Sets the status and who / when; the
 // route then tells and stops a live refining session (lib/pr-sessions) — the build is the dispatcher's or Build's,
@@ -268,6 +269,20 @@ export async function trackDefinitions(scope: Scope, sessions: Session[], change
     const ids = changes.filter(c => c.change !== 'removed' && KNOWLEDGE.test(c.id) && c.session === s.id && c.id !== `task:${slug}` && !scope.graph.nodes.some(n => n.id === c.id && n.file.endsWith(`/${slug}.md`))).map(c => c.id);
     if (ids.length) await embedInDefinition(scope.product.dir, scope.product.slug, s.prDoc, ids).catch(() => 0);
   }
+}
+// The scope of every PR whose Definition is not what its scope was computed for (decision:wf2.pr-scheduler) — after
+// the watcher's rebuild, so a block added a moment ago counts.
+export async function refreshStaleScopes(scope: Scope): Promise<string[]> {
+  const { refreshScope } = await import('./pr-scope');
+  const done: string[] = [];
+  for (const n of scope.graph.nodes) {
+    if (n.kind !== 'pr' || !n.defined || ['done', 'failed', 'cancelled'].includes(n.status)) continue;
+    const file = path.join(REPO_ROOT, n.file);
+    let md: string; try { md = await readFile(file, 'utf8'); } catch { continue; }
+    if (scopeFresh(md)) continue;
+    await refreshScope(scope.product.dir, scope.graph, file); done.push(n.id);
+  }
+  return done;
 }
 
 // The Definition as a worker's context (req:exec.build-from-definition): every block's id, status and text, the

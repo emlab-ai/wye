@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { loadScope } from '@/lib/scope';
-import { readPrDoc, prDefinition, prReadiness, approvePr, cancelPr, reopenPr } from '@/lib/pr-docs';
+import { readPrDoc, prDefinition, prReadiness, approvePr, cancelPr, reopenPr, refreshStaleScopes } from '@/lib/pr-docs';
 import { stopRefining } from '@/lib/pr-sessions';
 import { questionsOf, answerOnPage } from '@/lib/pr-questions';
 import { answerPermission, isLive, liveState } from '@/lib/agent-host';
@@ -68,4 +68,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ produc
   await writeAtomic(pr.file, setFrontmatter(pr.md, 'status', body.status));
   await rebuild(scope.product.dir);
   return NextResponse.json({ ok: true, status: body.status });
+}
+
+// POST { action: 'rescope' } → recompute the scope of every PR whose Definition moved (decision:wf2.pr-scheduler).
+export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {
+  const { product } = await params;
+  const body = (await req.json().catch(() => ({}))) as { action?: string };
+  if (body.action !== 'rescope') return NextResponse.json({ error: 'invalid', message: 'unknown action' }, { status: 422 });
+  const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  return NextResponse.json({ ok: true, rescoped: await refreshStaleScopes(scope) });
 }
