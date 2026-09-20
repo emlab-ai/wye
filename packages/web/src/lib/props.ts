@@ -20,4 +20,4 @@ export const STATUSES = ['', 'proposed', 'approved', 'unverified', 'api-only', '
 // review: an agent finished and a person checks (decision:exec.task-is-the-unit)
 export const TASK_STATUSES = ['todo', 'open', 'in-progress', 'blocked', 'review', 'done'];
 // a plan's life (decision:exec.plan-lifecycle): defining while a librarian is on it, defined when its Definition is agreed, building while a worker holds its request task
-export const PLAN_STATUSES = ['proposed', 'defining', 'defined', 'building', 'done', 'cancelled', 'failed'];
+export const PR_STATUSES = ['draft', 'refining', 'approved', 'building', 'done', 'failed', 'cancelled'];

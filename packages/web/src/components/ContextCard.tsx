@@ -11,7 +11,7 @@ const GROUPS: { label: string; kinds: string[] }[] = [
   { label: 'Required', kinds: ['req'] },
   { label: 'Decided and constrained', kinds: ['decision', 'constraint', 'rule', 'gate', 'lesson'] },
   { label: 'Open questions', kinds: ['question', 'contradiction'] },
-  { label: 'Work on this area', kinds: ['task', 'plan', 'goal'] },
+  { label: 'Work on this area', kinds: ['task', 'pr', 'goal'] },
 ];
 
 // The Context card (req:exec.wye-context): while a librarian session reads, the product knowledge around the request

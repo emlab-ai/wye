@@ -269,14 +269,15 @@ type means instances may carry properties the type does not declare without a wa
     blocked-by: list of task? -(inverse)-> blocks
     change: string?                                   # the change record a follow-up task came from
     ready: bool?                                      # `#ready` on the line: defined enough for a runner to take
-- id: type:plan
+- id: type:pr
   extends: type:module
   purpose: >
-    A plan document — a worker's work item: one per request that starts work (a new session, or a fresh-context
-    message on one), `plan-<slug>` under the project's Plans page, holding the request, its context, the plan, the
-    tasks (their check state is what is in progress) and — once the session ends — the result with the blocks it
-    produced. Written by the app at start and end, by the agent and the person while they plan; the Agents page
-    lists a session's plans. A base type because the app writes plan pages in every product (rule:plan-type-base).
+    A Prompt Request — one per request to the product: `pr-<slug>` under the project's PRs page, holding the
+    request, its context, the definition (the blocks it proposes), its impact, the tasks and — once built — the
+    result with the blocks it produced. Statuses draft | refining | approved | building | done | failed | cancelled:
+    refined by a librarian session until the person approves it on the page, then built by a worker. Written by the
+    app at start, approval and end, by the agent and the person while they refine; the Agents page lists a session's
+    requests. A base type because the app writes request pages in every product (rule:pr-type-base).
   open: true
   props:
     session: string

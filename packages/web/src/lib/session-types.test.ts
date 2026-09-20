@@ -16,7 +16,7 @@ describe('queueState', () => {
   });
   it('queueView keeps text and stamps, drops refs and images', () => {
     const v = queueView([{ id: 'a', text: 'x', addedAt: 't', refs: ['req:x'], images: ['i.png'], fresh: true }], undefined);
-    expect(v).toEqual({ items: [{ id: 'a', text: 'x', addedAt: 't', sentAt: undefined, doneAt: undefined, failedAt: undefined, error: undefined, fresh: true, plan: undefined, state: 'waiting' }], batch: 'one' });
+    expect(v).toEqual({ items: [{ id: 'a', text: 'x', addedAt: 't', sentAt: undefined, doneAt: undefined, failedAt: undefined, error: undefined, fresh: true, pr: undefined, state: 'waiting' }], batch: 'one' });
   });
 });
 

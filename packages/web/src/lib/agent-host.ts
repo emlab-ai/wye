@@ -10,7 +10,7 @@ import { loadScope } from './scope';
 import { resolveLink, renderResolved } from './resolve';
 import { REPO_ROOT } from './products';
 import { agentSystemPrompt } from './agent-prompt';
-import { createPlanDoc, closePlanDoc } from './plan-docs';
+import { createPrDoc, closePrDoc } from './pr-docs';
 import { firstUserEvent } from './transcript';
 import { packetFor } from './packet';
 import './consolidate';   // registers the session-end consolidation hook (decision:memory.consolidate-sessions)
@@ -45,38 +45,29 @@ export function subscribe(id: string, fn: (e: ChatEvent) => void): () => void {
   l.subs.add(fn); return () => { l.subs.delete(fn); };
 }
 
-// The plan document of the request (rule:plan-doc, decision:wf2.plan-per-request): every request that starts work has
-// one — the page the person and the agent work on, where the tasks live and where the app writes the result.
-export function planDocNote(planDoc?: string): string {
-  if (!planDoc) return '\n## The plan document\nNo plan document could be created for this request; write the plan and its tasks on the subject\'s page instead.';
-  const [product, project, slug] = planDoc.split('/');
-  return `\n## The plan document\nThis request's plan document is \`${planDoc}\` (node \`plan:${slug}\`, file data/products/${product}/projects/${project}/docs/${slug}.md, under the project's Plans page). The app created it with the request under "Request", empty Context / Plan / Result sections and, under Tasks, the request itself as a task line (\`task:${slug}\`, in progress, your name as worker — the Work view lists it; the app moves it to review when this session ends, or leave it done with \`wye node set task:${slug} --status done\`). Keep the work there: what you found under **Context** (tags \`kind:slug\`, embeds \`![[kind:slug]]\`), what you decided or cannot answer under **Plan** (\`decision:\` and \`question:\` blocks), the work as \`- [ ] task:<product>.<slug> … part of plan:${slug}\` lines under **Tasks** — tick them with \`wye node set task:… --status done\` as you go, that is what the person watches. The app writes **Result** (your \`wye session done\` summary and the blocks this plan produced) when the session ends.`;
+// The request page of a build (rule:pr-doc): a worker building a request works on its page — the tasks live there
+// and the app writes the result. An ad-hoc conversation has no page: nothing is written unless the person asks.
+export function prDocNote(prDoc?: string): string {
+  if (!prDoc) return '\n## This conversation\nAn ad-hoc conversation: no request page. Nothing is written unless the person asks; the blocks you do write (wye node set, wye propose, wye doc write under this session) are tracked as this session\'s artifacts.';
+  const [product, project, slug] = prDoc.split('/');
+  return `\n## The request page\nYou are building the Prompt Request \`${prDoc}\` (node \`pr:${slug}\`, file data/products/${product}/projects/${project}/docs/${slug}.md, under the project's PRs page). Its **Definition** is what was agreed — build that, nothing more. Under **Tasks** the request itself is a task line (\`task:${slug}\`, in progress, your name as worker — the Work view lists it; the app moves it to review when this session ends, or leave it done with \`wye node set task:${slug} --status done\`); add \`- [ ] task:<product>.<slug> … part of pr:${slug}\` lines for the work and tick them with \`wye node set task:… --status done\` as you go — that is what the person watches. Put what you found under **Context** (tags \`kind:slug\`, embeds \`![[kind:slug]]\`); decisions you had to take as \`decision:\` blocks. The app writes **Result** (your \`wye session done\` summary and the blocks this request produced) when the session ends.`;
 }
 
-// Plan-first protocol (rule:plan-first): a request with "plan first" on is understood and proposed on its plan
-// document before anything is built; the person confirms through the agent's question card (rule:agent-questions).
-export function planFirst(planDoc?: string): string {
-  const slug = planDoc?.split('/')[2] ?? '';
-  return `
-## Before you build — plan first, on the plan document
-This request came with "plan first" on. The plan is a page the person and you work on together — the plan document above — not a chat message. Do not change code until the person has confirmed it:
-1. Understand: run \`wye context "<the request in your words>"\`, resolve the nodes it returns (\`wye resolve\`) and read the documents they live in; look at the code areas involved. Work out which part of the app and which knowledge — modules, documents, requirements, rules, decisions, tasks — the change touches.
-2. Model: name the subject of the request as one node, \`kind:slug\` — the node under the cursor or the document from Context when they fit, else the node you found, else the new node the request creates ("add a page X" → \`page:x\`). Make sure its type exists: \`wye node type:<kind>\` (base types such as page, entity, op, action, component, req, rule, decision, task exist already); if not, \`wf type add <kind> --extends <parent> --purpose "…"\` writes a proposed type card into the product's ontology document. The subject's page is the document where the node is defined, else the document the request came from (Context above), else the type's home; only when the subject is new and no document fits, create one — \`wye doc create <product/project/slug> --title "…" [--parent <doc>]\`.
-3. Write the plan on the plan document (\`wye doc\` to read, edit the file, \`ctx --root data/products/<product> check\` green). Under **Context**: the modules, documents, nodes and code paths the request touches, as tags (\`kind:slug\` in prose) and embeds (\`![[kind:slug]]\` on a line of its own shows that block's card). Under **Plan**: prose for what you understood; \`question:\` blocks (status: open) for what you cannot answer; \`decision:\` blocks (status: proposed) for what is decided. Requirements, rules, components, pages and the subject's card are defined on the subject's page (one source, with the entity) and embedded on the plan document with \`![[id]]\`. Under **Tasks**: \`- [ ] task:<product>.<slug> … part of plan:${slug || '<slug>'}\` lines for the work, in order. Prose explains; blocks carry what is required, decided, asked and to do.
-4. Show it: \`wye session open <session id> ${planDoc || '<product/project/doc>'}\` — the person's browser navigates to the plan document while this conversation stays in the context column. Say in one chat line what is on the page.
-5. Collaborate: the person adds, comments, changes and answers on the page. Ask with one AskUserQuestion — header "Plan", the question "Build what the page says?", options "Proceed", "Adjust" (they say what to change, here or on the page), "Cancel". Wait for the answer; on Adjust re-read the page (\`wye doc\`), revise it and ask again; on Cancel stop after \`wye session done\`.
-6. Build: only after Proceed — re-read the plan document once more (the person may have changed it), then code and tests for what it says, then statuses (\`wye node set task:… --status done\`, reqs shipped) and \`wye session done <session id> "<summary>"\` — the summary and the blocks you changed land under "Result" on the plan document.`;
-}
-
-// The librarian's plan note (decision:exec.plan-lifecycle): the plan is defining; what the conversation proposes
-// lands in its Definition; the person builds it later from that page.
-export function librarianPlanNote(planDoc?: string): string {
-  if (!planDoc) return '\n## The plan document\nNo plan document could be created for this request; propose blocks into the documents where they belong and list them in your reply.';
-  const slug = planDoc.split('/')[2];
-  return `\n## The plan document\nThis request's plan is \`${planDoc}\` (node \`plan:${slug}\`, status defining). Its **Definition** section is the set of blocks this conversation proposes — every \`wye propose --plan ${planDoc}\` embeds there, and blocks or edits you make with your session id are embedded too. The person reads it live. When every block in it is agreed the plan is defined and any worker can build it from that page later (Build on the plan); you do not build. Under **Context** you may add what you found (tags \`kind:slug\`, embeds \`![[kind:slug]]\`) with \`wye doc write\` — never touch other sections.`;
+// The refining brief (decision:wf2.pr-lifecycle): the librarian fills the request's page until it is ready; the person
+// approves it there — the librarian never approves and never builds (decision:wf2.pr-approval-is-the-persons-click).
+export function refiningNote(prDoc?: string): string {
+  if (!prDoc) return '\n## The request\nNo request page could be created; propose blocks into the documents where they belong and list them in your reply.';
+  const slug = prDoc.split('/')[2];
+  return `\n## The request page
+This conversation refines the Prompt Request \`${prDoc}\` (node \`pr:${slug}\`, status refining) until it is clear and agreed. The person reads it live. Work on the page, not in chat:
+- **Context**: what the request touches — modules, documents, nodes, code paths — as tags (\`kind:slug\`) and embeds (\`![[kind:slug]]\`), and what you understood, in prose (\`wye doc write\`, this section only).
+- **Definition**: every block the request needs — requirements (when / then / unless, in the person's words), decisions (a choice with alternatives), constraints, questions for what you cannot decide, tasks — proposed into their home documents with \`wye propose --pr ${prDoc}\` (they embed here by themselves); edits of existing blocks with \`wye node set\` under your session (they are tracked as change records and embedded too).
+- Say plainly when the request is already satisfied, partly, or contradicts a constraint or decision in force.
+- Ask at most three questions at a time, as question: blocks on the page, only for what the requirement shape leaves open or a constraint makes ambiguous, with the reading you would assume first.
+The request is ready when its readiness list is green (\`wye pr ${prDoc}\`): a Definition, every block agreed, no open contradiction, at least one task. When it is, say so in one line and stop. Never edit code. Never approve and never build — approval is the person's click on the page; the build starts from there.`;
 }
 export function librarianProtocol(): string {
-  return `\n## This conversation\nYou are the librarian (prompts/librarian-system.md): explain the current state first, with the nodes as tags; ask at most three questions at a time, only for what the requirement shape leaves open (when / then / unless) or a constraint in force makes ambiguous, with the reading you would assume as the first option; then propose the definition as blocks with \`wye propose\` — a requirement is a behaviour the person can observe (when / then / unless, in their words, no mechanism); how the product does it is a rule (code-enforced, with source) or a decision (a choice with alternatives) — and report their verdicts (\`wye verdicts\`). Say plainly when the request is already satisfied, partly, or contradicts a constraint or decision. Never edit code or files; never approve. When the person says build it / go ahead / do it, run \`wye plan build <plan>\` at once — their word here is the approval — and report the session that started; never tell them to press Build themselves (decision:exec.librarian-may-build).`;
+  return `\n## This conversation\nYou are the librarian (prompts/librarian-system.md): explain the current state first, with the nodes as tags; ask at most three questions at a time, only for what the requirement shape leaves open (when / then / unless) or a constraint in force makes ambiguous, with the reading you would assume as the first option; then propose the definition as blocks with \`wye propose\` — a requirement is a behaviour the person can observe (when / then / unless, in their words, no mechanism); how the product does it is a rule (code-enforced, with source) or a decision (a choice with alternatives) — and report their verdicts (\`wye verdicts\`). Say plainly when the request is already satisfied, partly, or contradicts a constraint or decision. Never edit code or files; never approve; never build — when the person says build it / go ahead / do it, tell them the request is approved with the Approve button on its page and whether the readiness list is green.`;
 }
 
 // `wye session open`: navigate the person to a page. Only a chat session with a live console can move the browser;
@@ -107,7 +98,7 @@ export async function buildPrompt(product: string, s: Session, wfUrl: string, pr
   const paths = productDir && s.images?.length ? s.images.map(n => path.join(filesDir(productDir, s.id), n)) : [];
   const parts = [`You are working on the product "${product}" in Wye (requirements, rules, decisions, goals and tasks kept as markdown; the app at ${wfUrl} shows this conversation live). Session ${s.id}.`, `\n## Instruction\n${s.instruction}${imageLines(paths)}`];
   const ctx: string[] = []; const seen = new Set<string>();
-  const requestTask = s.planDoc ? `task:${s.planDoc.split('/')[2]}` : '';
+  const requestTask = s.prDoc ? `task:${s.prDoc.split('/')[2]}` : '';
   for (const ref of [...(s.source?.link ? [s.source.link] : []), ...s.refs]) {
     if (seen.has(ref) || !scope || ref === requestTask) continue; seen.add(ref); // the request task is the request itself
     try { const j = await resolveLink(scope, ref); ctx.push(j ? renderResolved(ref, j) : `- ${ref}: not found`); } catch (e) { ctx.push(`- ${ref}: could not resolve (${e instanceof Error ? e.message : e})`); }
@@ -116,13 +107,12 @@ export async function buildPrompt(product: string, s: Session, wfUrl: string, pr
   parts.push(await constraintsSection(scope, s));
   if (s.parent) parts.push(`\nThis session continues session ${s.parent}; its log and result are in the instruction above.`);
   if (s.role === 'librarian') {
-    // the librarian (decision:exec.wye-is-a-role): its plan, its protocol, its reads — no code, no folder
-    parts.push(librarianPlanNote(s.planDoc), librarianProtocol());
-    parts.push(`\n## How to work\n- The Wye CLI is \`wf\` (WF_URL=${wfUrl}, WF_PRODUCT=${product}). Read: \`wye packet --for "<text>"\`, \`wye context "<text>"\`, \`wye resolve <link|id>\`, \`wye node <id>\`, \`wye doc <product/project/doc>\`, \`wye work list\`, \`wye impact <id> --after "<text>"\`. Propose: \`wye propose <product/project/doc> --plan ${s.planDoc ?? '<plan ref>'}\` with a yaml card on stdin (\`--file f\` works too). Report: \`wye session log ${s.id} "<line>"\`, \`wye verdicts <id …>\`, \`wye plan ${s.planDoc ?? '<plan ref>'}\`; end with \`wye session done ${s.id} "<summary>"\`.\n- The person replies here; their answers to your questions are decisions — record them as \`decision:\` blocks (by: the person, evidence: session:${s.id}) with \`wye propose\`.`);
+    // the librarian (decision:exec.wye-is-a-role): its request page, its protocol, its reads — no code, no folder
+    parts.push(refiningNote(s.prDoc), librarianProtocol());
+    parts.push(`\n## How to work\n- The Wye CLI is \`wf\` (WF_URL=${wfUrl}, WF_PRODUCT=${product}). Read: \`wye packet --for "<text>"\`, \`wye context "<text>"\`, \`wye resolve <link|id>\`, \`wye node <id>\`, \`wye doc <product/project/doc>\`, \`wye work list\`, \`wye impact <id> --after "<text>"\`. Propose: \`wye propose <product/project/doc> --pr ${s.prDoc ?? '<pr ref>'}\` with a yaml card on stdin (\`--file f\` works too). Report: \`wye session log ${s.id} "<line>"\`, \`wye verdicts <id …>\`, \`wye pr ${s.prDoc ?? '<pr ref>'}\`; end with \`wye session done ${s.id} "<summary>"\`.\n- The person replies here; their answers to your questions are decisions — record them as \`decision:\` blocks (by: the person, evidence: session:${s.id}) with \`wye propose\`.`);
     return parts.join('\n');
   }
-  parts.push(planDocNote(s.planDoc));
-  if (s.plan) parts.push(planFirst(s.planDoc));
+  parts.push(prDocNote(s.prDoc));
   parts.push(`\n## How to work\n- The Wye CLI is \`wf\` (WF_URL=${wfUrl}, WF_PRODUCT=${product}). Read: \`wye resolve <link|id>\`, \`wye doc <product/project/doc>\`, \`wye node <id>\`, \`wye context "<text>"\`. Write: \`wye node set <id> --status s --set key=value\`, \`wye doc write <product/project/doc> --file f\`.\n- Product documents live under ${REPO_ROOT}/data/products/${product}/projects/<project>/docs/ (markdown; a line that starts with an id defines that node; keep ids stable). Run \`ctx --root data/products/${product} check\` from ${REPO_ROOT} after editing them.\n- This is a conversation: the person can reply here. Ask when something is unclear; say plainly what you changed.`);
   return parts.join('\n');
 }
@@ -293,7 +283,7 @@ export function answerPermission(id: string, requestId: string, allow: boolean, 
 // A fresh item comes up (rule:clean-slate, req:wf2.sessions.fresh-in-queue): end the process if one is up (the
 // pump only gets here when no turn is open, so nothing in progress is cut), forget the agent's own session id (and
 // the Codex thread), mark the transcript, and hand the items — already taken from the queue — to a new process as
-// a first message built like a new session's: instruction, refs, link, images, plan-first when the item asks.
+// a first message built like a new session's: instruction, refs, link, images.
 export async function restartFresh(productDir: string, product: string, id: string, items: QueueItem[], opts: { wfUrl: string }): Promise<boolean> {
   const s = await getSession(productDir, id); if (!s || !items.length) return false;
   const l = live().get(id);
@@ -305,11 +295,10 @@ export async function restartFresh(productDir: string, product: string, id: stri
   }
   await updateSession(productDir, id, { forgetAgentSession: true, line: 'context cleared' });
   await notifyQueue(productDir, id);
-  const fresh: Session = { ...s, agentSessionId: undefined, plan: !!items[0].plan, instruction: items.map(i => i.text.trim()).filter(Boolean).join('\n\n---\n\n'), refs: [...new Set(items.flatMap(i => i.refs ?? []))], source: { ...(s.source ?? {}), link: items.find(i => i.link)?.link }, images: items.flatMap(i => i.images ?? []), parent: undefined };
-  // a fresh request is new work: the plan it leaves unfinished is closed, and it gets a plan document of its own
-  // (rule:plan-doc, decision:wf2.plan-per-request)
-  await closePlanDoc(productDir, s).catch(() => {});
-  fresh.planDoc = (await createPlanDoc(productDir, product, { ...fresh, planDoc: undefined })) ?? undefined;
+  const fresh: Session = { ...s, agentSessionId: undefined, instruction: items.map(i => i.text.trim()).filter(Boolean).join('\n\n---\n\n'), refs: [...new Set(items.flatMap(i => i.refs ?? []))], source: { ...(s.source ?? {}), link: items.find(i => i.link)?.link }, images: items.flatMap(i => i.images ?? []), parent: undefined };
+  // a fresh request on a request's conversation is new work: the request it leaves unfinished is closed and it gets
+  // one of its own (rule:pr-doc, decision:wf2.plan-per-request); an ad-hoc conversation stays without a page
+  if (s.prDoc) { await closePrDoc(productDir, s).catch(() => {}); fresh.prDoc = (await createPrDoc(productDir, product, { ...fresh, prDoc: undefined })) ?? undefined; }
   const first = await buildPrompt(product, fresh, opts.wfUrl, productDir);
   const shown = items.length > 1 ? `(batch of ${items.length})\n\n${fresh.instruction}` : fresh.instruction;
   await startChat(productDir, product, id, { wfUrl: opts.wfUrl, firstMessage: first, shown, images: fresh.images });

@@ -1,58 +1,57 @@
-// Server-only IO for plan documents (rule:plan-doc): the project's Plans page (decision:wf2.plans-folder), a plan
-// document for every request that starts work (decision:wf2.plan-per-request), the result written when the plan
-// ends (decision:wf2.plan-result-owned-by-app). The shapes come from lib/plan-doc (pure).
+// Server-only IO for Prompt Requests (rule:pr-doc): the project's PRs page (decision:wf2.plans-folder), a PR page
+// document for every request that starts work (decision:wf2.plan-per-request), the result written when the build
+// ends (decision:wf2.plan-result-owned-by-app). The shapes come from lib/pr-doc (pure).
 import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { REPO_ROOT, type Project } from './products';
 import { loadScope } from './scope';
 import { docRoute, projectTree } from './doc';
 import { rebuild, writeAtomic, withFileLock } from './write';
-import { onSessionEnd, setPlanDoc, addRefs } from './sessions';
-import { fromLine, getFrontmatter, planDocBody, planSlug, plansPageId, planStatusOnEnd, planTitle, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, withDefinition, definitionIds, definitionState, planStatusFromDefinition, type PlanEndStatus, type DefinitionState } from './plan-doc';
+import { onSessionEnd, setPrDoc, addRefs } from './sessions';
+import { fromLine, getFrontmatter, prDocBody, prSlug, prsPageId, prStatusOnEnd, prTitle, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, withDefinition, definitionIds, definitionState, type PrEndStatus, type DefinitionState } from './pr-doc';
 import type { Scope } from './scope';
 import { createRequire } from 'node:module';
 import { listChanges } from './changes';
 import { patchProseNode } from './node-edit';
 import { parseNodeLine } from './node-line';
-export { plansPageId };
+export { prsPageId };
 import type { Session } from './session-types';
 
-const TEMPLATE = path.join(REPO_ROOT, 'templates/docs/plan-request.md');
+const TEMPLATE = path.join(REPO_ROOT, 'templates/docs/pr.md');
 
-// The Plans page of a project: `plans.md`, node module:<project>-plans (plansPageId, lib/plan-doc), under the
-// project's main document when it has one. Every plan document is a sub-page of it. Written when missing; returns its node id.
-export async function ensurePlansPage(project: Project, root: string | null): Promise<string> {
-  const id = plansPageId(project.slug);
-  const file = path.join(project.docsDir, 'plans.md');
+// The PRs page of a project: `prs.md`, node module:<project>-prs (prsPageId, lib/pr-doc), under the project's main
+// document when it has one. Every PR is a sub-page of it. Written when missing; returns its node id.
+export async function ensurePrsPage(project: Project, root: string | null): Promise<string> {
+  const id = prsPageId(project.slug);
+  const file = path.join(project.docsDir, 'prs.md');
   try { await stat(file); return id; } catch { /* write it */ }
   const md = `---
 node: ${id}
 type: module
-title: Plans
+title: PRs
 status: active
 owner: unassigned
 last-verified: ${new Date().toISOString().slice(0, 10)}
 ${root ? `part-of: ${root}\n` : ''}---
 
-# Plans
+# PRs
 
-Every piece of work an agent takes on is a plan document under this page (type:plan): the request, what the agent
-found, the plan, the tasks and — when the session ends — the result with the blocks it produced. The app creates
-one for each request that starts work (rule:plan-doc); the agent and the person fill it while they plan; the Agents
-page lists them per worker.
+Every request to the product is a Prompt Request under this page (type:pr): what was asked, what it touches, the
+blocks it proposes, its impact, the tasks and — when built — the result. ⌘P creates one; it is refined until clear,
+approved here, then built by an agent (rule:pr-doc).
 
-<!-- view:plan -->
+<!-- view:pr -->
 `;
   await writeAtomic(file, md);
   return id;
 }
 
 // The system view pages (decision:wf2.views-are-pages): Goals and Work are documents that hold one instances view
-// each — every goal, every task of the product, as blocks — written once into the project that holds the Plans page.
-// The rail links to them; they leave the Documents tree like Plans does. Nothing else is special about them.
+// each — every goal, every task of the product, as blocks — written once into the project that holds the PRs page.
+// The rail links to them; they leave the Documents tree like PRs does. Nothing else is special about them.
 export const SYSTEM_VIEWS = [
   { slug: 'goals', title: 'Goals', icon: '◎', view: 'goal', query: '', intro: 'Every goal of the product, wherever it is defined — as blocks. Filter, group and sort here; a goal is written on its own page (a goal: line or card) or added under a Goals data list.' },
-  { slug: 'work', title: 'Work', icon: '☑', view: 'task', query: 'group=status', intro: 'Every task of the product, wherever it is written — plans, definition pages, the Backlog — as blocks, grouped by status. A task\'s panel assigns it, builds a plan or ticks it done.' },
+  { slug: 'work', title: 'Work', icon: '☑', view: 'task', query: 'group=status', intro: 'Every task of the product, wherever it is written — PRs, definition pages, the Backlog — as blocks, grouped by status. A task\'s panel assigns it, builds a PR or ticks it done.' },
 ] as const;
 export const viewPageId = (projectSlug: string, slug: string) => `module:${projectSlug}-${slug}`;
 export async function ensureViewPages(project: Project): Promise<void> {
@@ -86,34 +85,34 @@ function placeOf(s: Session): { project?: string; doc?: string } {
   return m ? { project: m[1], doc: m[2] } : {};
 }
 
-// Create `plan-<slug>` for the request: a sub-page of the project's Plans page, the type:plan card in the
+// Create `pr-<slug>` for the request: a sub-page of the project's PRs page, the type:pr card in the
 // frontmatter (`session`, `agent`, `started`), the request under "Request" with where it came from as tags.
-// Returns the document ref (product/project/slug) and stores it on the session as `planDoc`.
-export async function createPlanDoc(productDir: string, product: string, s: Session): Promise<string | null> {
-  if (s.planDoc) return s.planDoc;
+// Returns the document ref (product/project/slug) and stores it on the session as `prDoc`.
+export async function createPrDoc(productDir: string, product: string, s: Session): Promise<string | null> {
+  if (s.prDoc) return s.prDoc;
   const scope = await loadScope(product); if (!scope || !scope.projects.length) return null;
   const at = placeOf(s);
   const project: Project = scope.projects.find(p => p.slug === at.project) ?? scope.projects[0];
   const tree = projectTree(scope.graph, project.slug);
-  const plansPage = await ensurePlansPage(project, tree.main && tree.main.slug !== 'plans' ? tree.main.module.id : null);
+  const prsPage = await ensurePrsPage(project, tree.main && tree.main.slug !== 'prs' ? tree.main.module.id : null);
   const sourceDoc = scope.graph.modules.find(m => { const r = docRoute(m.file); return r?.project === project.slug && r.doc === at.doc; });
   let taken: string[] = []; try { taken = (await readdir(project.docsDir)).filter(n => n.endsWith('.md')).map(n => n.slice(0, -3)); } catch { /* new project */ }
-  const slug = planSlug(s.instruction, taken);
+  const slug = prSlug(s.instruction, taken);
   const tpl = await readFile(TEMPLATE, 'utf8');
   const now = new Date().toISOString();
   // the request task is part of the goal or node the request was sent from (req:exec.request-is-a-task): the first
-  // ref that is not the document itself, a session or a plan
-  const partOf = s.refs.find(r => /^[a-z-]+:/.test(r) && r !== sourceDoc?.id && !/^(session|plan|module|block):/.test(r));
-  const md = planDocBody(tpl, { slug, title: planTitle(s.instruction), date: now.slice(0, 10), session: s.id, agent: s.agent, started: now, parent: plansPage, request: s.instruction, from: fromLine(s, sourceDoc?.id), partOf, task: s.task, role: s.role });
+  // ref that is not the document itself, a session or a PR
+  const partOf = s.refs.find(r => /^[a-z-]+:/.test(r) && r !== sourceDoc?.id && !/^(session|pr|module|block):/.test(r));
+  const md = prDocBody(tpl, { slug, title: prTitle(s.instruction), date: now.slice(0, 10), session: s.id, agent: s.agent, started: now, parent: prsPage, request: s.instruction, from: fromLine(s, sourceDoc?.id), partOf, task: s.task, role: s.role });
   await writeAtomic(path.join(project.docsDir, `${slug}.md`), md);
   await rebuild(productDir);
   const ref = `${product}/${project.slug}/${slug}`;
-  await setPlanDoc(productDir, s.id, ref, `plan document ${ref}`);
+  await setPrDoc(productDir, s.id, ref, `PR page ${ref}`);
   if (!s.task) await addRefs(productDir, s.id, [requestTaskId(slug)]); // the session's refs carry the request task
   return ref;
 }
 
-// Set the request task's status on the plan document's text (pure over the markdown): the line is found by id.
+// Set the request task's status on the PR page's text (pure over the markdown): the line is found by id.
 export function withRequestTaskStatus(md: string, slug: string, status: string): string {
   const id = requestTaskId(slug);
   const i = md.split('\n').findIndex(l => parseNodeLine(l)?.id === id); if (i < 0) return md;
@@ -125,22 +124,22 @@ export function requestTaskStatus(md: string, slug: string): string | undefined 
   return undefined;
 }
 
-async function planDocFile(product: string, ref: string): Promise<{ file: string; project: string; slug: string } | null> {
+async function prDocFile(product: string, ref: string): Promise<{ file: string; project: string; slug: string } | null> {
   const [prod, projectSlug, slug] = ref.split('/'); if (prod !== product || !projectSlug || !slug) return null;
   const scope = await loadScope(product, projectSlug); if (!scope?.project) return null;
   return { file: path.join(scope.project.docsDir, `${slug}.md`), project: projectSlug, slug };
 }
 
-// The plan ended: the summary and the blocks credited to the session inside the plan's window go under "Result"
+// The build ended: the summary and the blocks credited to the session inside the PR's window go under "Result"
 // (rewritten each time); the card's `status` and `finished` are set. `status` and `summary` override what the
-// session says (a plan a fresh request replaces is cancelled with a note).
-export async function finishPlanDoc(productDir: string, s: Session, opts: { status?: PlanEndStatus; summary?: string; finished?: string } = {}): Promise<boolean> {
-  if (!s.planDoc) return false;
-  const at = await planDocFile(s.product, s.planDoc); if (!at) return false;
+// session says (a PR a fresh request replaces is cancelled with a note).
+export async function finishPrDoc(productDir: string, s: Session, opts: { status?: PrEndStatus; summary?: string; finished?: string } = {}): Promise<boolean> {
+  if (!s.prDoc) return false;
+  const at = await prDocFile(s.product, s.prDoc); if (!at) return false;
   let md: string; try { md = await readFile(at.file, 'utf8'); } catch { return false; }
   const finished = opts.finished ?? s.finishedAt ?? new Date().toISOString();
-  const status = opts.status ?? planStatusOnEnd(s.status);
-  let body = resultSection({ ...s, status: status as Session['status'], result: opts.summary ?? s.result }, { started: getFrontmatter(md, 'started'), finished, exclude: [`plan:${at.slug}`, plansPageId(at.project)] });
+  const status = opts.status ?? prStatusOnEnd(s.status);
+  let body = resultSection({ ...s, status: status as Session['status'], result: opts.summary ?? s.result }, { started: getFrontmatter(md, 'started'), finished, exclude: [`pr:${at.slug}`, prsPageId(at.project)] });
   // what was built against each block of the Definition (req:exec.build-from-definition): its status now, and whether this session changed it
   const defIds = definitionIds(md);
   if (defIds.length && s.role !== 'librarian') {
@@ -156,10 +155,10 @@ export async function finishPlanDoc(productDir: string, s: Session, opts: { stat
   return true;
 }
 
-// A handed-off session continues its parent's plan: the plan's `session` names both, so it shows under each worker.
-export async function adoptPlanDoc(productDir: string, s: Session): Promise<void> {
-  if (!s.planDoc) return;
-  const at = await planDocFile(s.product, s.planDoc); if (!at) return;
+// A handed-off session continues its parent's PR: the PR's `session` names both, so it shows under each worker.
+export async function adoptPrDoc(productDir: string, s: Session): Promise<void> {
+  if (!s.prDoc) return;
+  const at = await prDocFile(s.product, s.prDoc); if (!at) return;
   let md: string; try { md = await readFile(at.file, 'utf8'); } catch { return; }
   const ids = (getFrontmatter(md, 'session') ?? '').split(/\s+/).filter(Boolean);
   if (ids.includes(s.id)) return;
@@ -167,26 +166,26 @@ export async function adoptPlanDoc(productDir: string, s: Session): Promise<void
   await rebuild(productDir);
 }
 
-// A fresh request replaces the current plan (decision:wf2.plan-per-request): a plan its session never finished is
+// A fresh request replaces the current PR (decision:wf2.plan-per-request): a PR its session never finished is
 // closed as cancelled; one already finished (the session was done) is left as it is.
-export async function closePlanDoc(productDir: string, s: Session): Promise<void> {
-  if (!s.planDoc) return;
-  const at = await planDocFile(s.product, s.planDoc); if (!at) return;
+export async function closePrDoc(productDir: string, s: Session): Promise<void> {
+  if (!s.prDoc) return;
+  const at = await prDocFile(s.product, s.prDoc); if (!at) return;
   let md: string; try { md = await readFile(at.file, 'utf8'); } catch { return; }
   if (getFrontmatter(md, 'finished')) return;
-  await finishPlanDoc(productDir, s, { status: 'cancelled', summary: `_Left unfinished — a new request replaced it on ${new Date().toISOString().slice(0, 10)}._` });
+  await finishPrDoc(productDir, s, { status: 'cancelled', summary: `_Left unfinished — a new request replaced it on ${new Date().toISOString().slice(0, 10)}._` });
 }
 
-// registered once the module is loaded (lib/agent-host imports it): every ended session finishes its plan document —
-// except a librarian's (decision:exec.plan-lifecycle): the plan it defined outlives the conversation, stays defining
+// registered once the module is loaded (lib/agent-host imports it): every ended session finishes its PR page —
+// except a librarian's (decision:exec.plan-lifecycle): the PR it refined outlives the conversation, stays refining
 // or defined, and is finished by the session that builds it; its request task goes to review for the person
 onSessionEnd(async (productDir, s) => {
-  if (!s.planDoc) return;
+  if (!s.prDoc) return;
   if (s.role === 'librarian') { await librarianLeft(productDir, s).catch(() => undefined); return; }
-  await finishPlanDoc(productDir, s);
-}, 'plan-docs');
+  await finishPrDoc(productDir, s);
+}, 'pr-docs');
 async function librarianLeft(productDir: string, s: Session): Promise<void> {
-  const at = await planDocFile(s.product, s.planDoc!); if (!at) return;
+  const at = await prDocFile(s.product, s.prDoc!); if (!at) return;
   let md: string; try { md = await readFile(at.file, 'utf8'); } catch { return; }
   const cur = requestTaskStatus(md, at.slug); if (cur === undefined || cur === 'done') return;
   await writeAtomic(at.file, withRequestTaskStatus(md, at.slug, 'review'));
@@ -195,13 +194,13 @@ async function librarianLeft(productDir: string, s: Session): Promise<void> {
 
 // ---- the Definition (req:exec.definition-tracked, req:exec.plan-defined)
 
-export async function readPlanDoc(product: string, ref: string): Promise<{ file: string; md: string; slug: string; project: string } | null> {
-  const at = await planDocFile(product, ref); if (!at) return null;
+export async function readPrDoc(product: string, ref: string): Promise<{ file: string; md: string; slug: string; project: string } | null> {
+  const at = await prDocFile(product, ref); if (!at) return null;
   try { return { ...at, md: await readFile(at.file, 'utf8') }; } catch { return null; }
 }
-// Embed ids under the plan's Definition (idempotent); rebuilds when something was added.
+// Embed ids under the PR's Definition (idempotent); rebuilds when something was added.
 export async function embedInDefinition(productDir: string, product: string, ref: string, ids: string[]): Promise<number> {
-  const at = await planDocFile(product, ref); if (!at || !ids.length) return 0;
+  const at = await prDocFile(product, ref); if (!at || !ids.length) return 0;
   let added = 0;
   await withFileLock(at.file, async () => {
     let md: string; try { md = await readFile(at.file, 'utf8'); } catch { return; }
@@ -211,8 +210,8 @@ export async function embedInDefinition(productDir: string, product: string, ref
   if (added) await rebuild(productDir);
   return added;
 }
-// The state of a plan's Definition from the graph: each embedded block's status and the open contradictions on it.
-export function planDefinition(scope: Scope, md: string): DefinitionState {
+// The state of a PR's Definition from the graph: each embedded block's status and the open contradictions on it.
+export function prDefinition(scope: Scope, md: string): DefinitionState {
   const ids = definitionIds(md);
   return definitionState(ids, id => {
     const n = scope.idx.byId.get(id); if (!n?.defined) return null;
@@ -220,39 +219,24 @@ export function planDefinition(scope: Scope, md: string): DefinitionState {
     return { status: n.status, openContradictions: open };
   });
 }
-// defining ↔ defined as the Definition's blocks are agreed or change (decision:exec.plan-lifecycle). Called after a
-// rebuild for every plan in one of those states; writes the frontmatter only when the status moves.
-export async function refreshPlanStatuses(scope: Scope): Promise<string[]> {
-  const moved: string[] = [];
-  for (const n of scope.graph.nodes) {
-    if (n.kind !== 'plan' || !n.defined || !['defining', 'defined'].includes(n.status)) continue;
-    const file = path.join(REPO_ROOT, n.file);
-    let md: string; try { md = await readFile(file, 'utf8'); } catch { continue; }
-    const next = planStatusFromDefinition(n.status, planDefinition(scope, md));
-    if (next === n.status) continue;
-    await writeAtomic(file, setFrontmatter(md, 'status', next)); moved.push(`${n.id} → ${next}`);
-  }
-  if (moved.length) await rebuild(scope.product.dir);
-  return moved;
-}
-// Every typed block a librarian session added or changed goes into its plan's Definition (req:exec.definition-tracked).
+// Every typed block a librarian session added or changed goes into its PR's Definition (req:exec.definition-tracked).
 const KNOWLEDGE = /^(req|decision|constraint|question|rule|lesson|task|goal|entity):/;
 // Only blocks the session itself wrote (its claim on the write — wf propose, wf node set, wf doc write with the
 // session header) — never what another session or the person wrote meanwhile (question:wf2.attribution-several-sessions).
 export async function trackDefinitions(scope: Scope, sessions: Session[], changes: { id: string; change: string; session?: string }[]): Promise<void> {
   for (const s of sessions) {
-    if (s.role !== 'librarian' || !s.planDoc || s.status !== 'running') continue;
-    const slug = s.planDoc.split('/')[2];
+    if (s.role !== 'librarian' || !s.prDoc || s.status !== 'running') continue;
+    const slug = s.prDoc.split('/')[2];
     const ids = changes.filter(c => c.change !== 'removed' && KNOWLEDGE.test(c.id) && c.session === s.id && c.id !== `task:${slug}` && !scope.graph.nodes.some(n => n.id === c.id && n.file.endsWith(`/${slug}.md`))).map(c => c.id);
-    if (ids.length) await embedInDefinition(scope.product.dir, scope.product.slug, s.planDoc, ids).catch(() => 0);
+    if (ids.length) await embedInDefinition(scope.product.dir, scope.product.slug, s.prDoc, ids).catch(() => 0);
   }
 }
 
 // The Definition as a worker's context (req:exec.build-from-definition): every block's id, status and text, the
 // change records of the plan's sessions with before and after; the constraint packet rides in the first message.
 export async function definitionContext(scope: Scope, ref: string): Promise<{ text: string; state: DefinitionState; unagreed: string[] } | null> {
-  const plan = await readPlanDoc(scope.product.slug, ref); if (!plan) return null;
-  const d = planDefinition(scope, plan.md);
+  const plan = await readPrDoc(scope.product.slug, ref); if (!plan) return null;
+  const d = prDefinition(scope, plan.md);
   const { nodeText } = createRequire(path.join(REPO_ROOT, 'package.json'))('./lib/judge.js') as { nodeText: (n: unknown) => string };
   const lines = d.items.map(it => { const n = scope.idx.byId.get(it.id); return `- ${it.id}${it.status ? ` #${it.status}` : ''}${it.agreed ? '' : ' (not agreed)'}: ${n ? nodeText(n) : '(missing)'}`; });
   const sessions = (getFrontmatter(plan.md, 'session') ?? '').split(/\s+/).filter(Boolean);

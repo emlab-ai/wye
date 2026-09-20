@@ -9,7 +9,7 @@ import type { WorkItem } from '@/lib/work';
 import type { ProducedBlock } from '@/lib/work-io';
 import { agentLabel, when } from './SessionView';
 
-type Detail = { item: WorkItem; sessions: { id: string; status: string; agent: string; result?: string; createdAt: string; finishedAt?: string; planDoc?: string }[]; blocks: ProducedBlock[] };
+type Detail = { item: WorkItem; sessions: { id: string; status: string; agent: string; result?: string; createdAt: string; finishedAt?: string; prDoc?: string }[]; blocks: ProducedBlock[] };
 const REVIEWABLE = new Set(['proposed', 'draft', 'open', 'question']);
 
 // A task's work in the right column (req:exec.dispatch, req:exec.done-comes-back): who holds it and what is
@@ -28,7 +28,7 @@ export function TaskWork({ id }: { id: string }) {
     fetch(`/api/${product}/work?id=${encodeURIComponent(id)}`).then(r => r.ok ? r.json() : null).then((j: Detail | null) => {
       if (!live) return; setD(j);
       const it = j?.item; const doc = it?.doc;
-      if (it?.requestTask && it.plan && doc) fetch(`/api/${product}/plan?ref=${encodeURIComponent(`${product}/${doc.project}/${doc.slug}`)}`).then(r => r.ok ? r.json() : null).then(p => { if (live && p) setPlan(p); }).catch(() => {});
+      if (it?.requestTask && it.pr && doc) fetch(`/api/${product}/plan?ref=${encodeURIComponent(`${product}/${doc.project}/${doc.slug}`)}`).then(r => r.ok ? r.json() : null).then(p => { if (live && p) setPlan(p); }).catch(() => {});
     });
     const onChange = () => setTick(t => t + 1);
     window.addEventListener('wf:change', onChange);
@@ -60,7 +60,7 @@ export function TaskWork({ id }: { id: string }) {
         // assigned and under way (req:exec.dispatch): who holds it, since when, the execution plan and the conversation
         <div className="taskwork-assigned">
           <small>{last.status === 'queued' ? 'queued for' : 'assigned to'}</small> <b>{agentLabel(last.agent)}</b> <span className="muted">· {when(last.createdAt)}</span>
-          {last.planDoc && <a className="taskwork-plan" href={`/${product}/${last.planDoc.split('/').slice(1).join('/d/')}`} title={last.planDoc}>execution plan ↗</a>}
+          {last.prDoc && <a className="taskwork-plan" href={`/${product}/${last.prDoc.split('/').slice(1).join('/d/')}`} title={last.prDoc}>execution plan ↗</a>}
           <button className="linkish" onClick={() => open(`session:${last.id}`)}>conversation {last.id.slice(0, 6)}</button>
         </div>
       )}
@@ -74,7 +74,7 @@ export function TaskWork({ id }: { id: string }) {
       )}
       {last && (last.status === 'done' || last.status === 'failed' || last.status === 'cancelled') && (
         <div className="taskwork-result">
-          <div className="taskwork-head"><small>result</small><button className="linkish" onClick={() => open(`session:${last.id}`)}>session {last.id.slice(0, 6)}</button>{last.planDoc && <a className="linkish" href={`/${product}/${last.planDoc.split('/').slice(1).join('/d/')}`}>plan ↗</a>}<StatusPill status={last.status} /><span className="muted">{agentLabel(last.agent)} · {when(last.finishedAt ?? last.createdAt)}</span></div>
+          <div className="taskwork-head"><small>result</small><button className="linkish" onClick={() => open(`session:${last.id}`)}>session {last.id.slice(0, 6)}</button>{last.prDoc && <a className="linkish" href={`/${product}/${last.prDoc.split('/').slice(1).join('/d/')}`}>plan ↗</a>}<StatusPill status={last.status} /><span className="muted">{agentLabel(last.agent)} · {when(last.finishedAt ?? last.createdAt)}</span></div>
           <p className="taskwork-summary">{(last.result ?? '').trim() || <em className="muted">no summary</em>}</p>
           {blocks.length > 0 && (
             <div className="taskwork-blocks">

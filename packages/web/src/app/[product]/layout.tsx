@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Rail } from '@/components/Rail';
-import { SYSTEM_VIEWS, ensureViewPages, viewPageId } from '@/lib/plan-docs';
+import { SYSTEM_VIEWS, ensureViewPages, viewPageId } from '@/lib/pr-docs';
 import { PeekProvider } from '@/components/PeekProvider';
 import { Shell } from '@/components/Shell';
 import { TopBar, type DocMeta } from '@/components/TopBar';
@@ -15,8 +15,8 @@ import { loadMarkdown } from '@/lib/load';
 import { outline, splitDocument, docRoute, type DocNode } from '@/lib/doc';
 import { REPO_ROOT } from '@/lib/products';
 import type { TreeItem } from '@/components/DocTree';
-import type { PlanItem } from '@/components/PlanFolder';
-import { plansPageId } from '@/lib/plan-doc';
+import type { PrItem } from '@/components/PrFolder';
+import { prsPageId } from '@/lib/pr-doc';
 
 export default async function ProductLayout({ children, params }: { children: ReactNode; params: Promise<{ product: string }> }) {
   const { product } = await params;
@@ -26,22 +26,22 @@ export default async function ProductLayout({ children, params }: { children: Re
   await Promise.all(scope.graph.modules.map(async m => { try { const md = await loadMarkdown(REPO_ROOT, m.file); fm.set(m.file, splitDocument(md).frontmatter); outlines.set(m.file, outline(md)); } catch { /* file gone */ } }));
   const icons = { get: (file: string) => fm.get(file)?.icon ?? '' };
   const toItem = (d: DocNode): TreeItem => ({ slug: d.slug, node: d.module.id, title: d.title, icon: icons.get(d.file) || defaultIcon(d.slug), project: docRoute(d.file)?.project ?? '', children: d.children.map(toItem) });
-  // the project's Plans page is a system folder (rule:plans-folder): it and its sub-documents leave the Documents
-  // tree, and the plans go to the rail's Plans folder, every project together, newest first
-  const plans: PlanItem[] = [];
-  // the system view pages (Goals, Work) live in the project that holds Plans (else the first) and leave the tree too
-  const viewProject = scope.projects.find(p => scope.graph.modules.some(m => m.id === plansPageId(p.slug))) ?? scope.projects[0];
+  // the project's PRs page is a system folder (rule:prs-folder): it and its sub-documents leave the Documents
+  // tree, and the requests go to the rail's PRs folder, every project together, newest first
+  const prs: PrItem[] = [];
+  // the system view pages (Goals, Work) live in the project that holds PRs (else the first) and leave the tree too
+  const viewProject = scope.projects.find(p => scope.graph.modules.some(m => m.id === prsPageId(p.slug))) ?? scope.projects[0];
   if (viewProject) { try { await ensureViewPages(viewProject); } catch { /* read-only tree */ } }
   const views = viewProject ? SYSTEM_VIEWS.map(v => ({ slug: v.slug, title: v.title, icon: v.icon, project: viewProject.slug })) : [];
   const viewIds = new Set(viewProject ? SYSTEM_VIEWS.map(v => viewPageId(viewProject.slug, v.slug)) : []);
-  const withoutPlans = (items: DocNode[], project: string): DocNode[] => items.filter(d => {
+  const withoutPrs = (items: DocNode[], project: string): DocNode[] => items.filter(d => {
     if (viewIds.has(d.module.id)) return false;
-    if (d.module.id !== plansPageId(project)) return true;
-    for (const c of d.children) { const f = fm.get(c.file) ?? {}; plans.push({ slug: c.slug, project, title: c.title, icon: icons.get(c.file) || defaultIcon(c.slug), status: f.status ?? '', started: f.started ?? '' }); }
+    if (d.module.id !== prsPageId(project)) return true;
+    for (const c of d.children) { const f = fm.get(c.file) ?? {}; prs.push({ slug: c.slug, project, title: c.title, icon: icons.get(c.file) || defaultIcon(c.slug), status: f.status ?? '', started: f.started ?? '' }); }
     return false;
-  }).map(d => ({ ...d, children: withoutPlans(d.children, project) }));
-  const projects = scope.projects.map(p => { const t = treeFor(scope, p.slug); return { slug: p.slug, title: p.meta.title, icon: p.meta.icon || (p.meta.kind === 'goal' ? '🎯' : '📁'), kind: p.meta.kind, status: p.meta.status, main: t.main?.slug ?? '', roots: withoutPlans(t.roots, p.slug).map(toItem), docs: [...t.byFile.values()].filter(d => d.file.includes(`/projects/${p.slug}/docs/`)).map(d => ({ slug: d.slug, title: d.title })) }; });
-  plans.sort((a, b) => b.started.localeCompare(a.started) || a.title.localeCompare(b.title));
+  }).map(d => ({ ...d, children: withoutPrs(d.children, project) }));
+  const projects = scope.projects.map(p => { const t = treeFor(scope, p.slug); return { slug: p.slug, title: p.meta.title, icon: p.meta.icon || (p.meta.kind === 'goal' ? '🎯' : '📁'), kind: p.meta.kind, status: p.meta.status, main: t.main?.slug ?? '', roots: withoutPrs(t.roots, p.slug).map(toItem), docs: [...t.byFile.values()].filter(d => d.file.includes(`/projects/${p.slug}/docs/`)).map(d => ({ slug: d.slug, title: d.title })) }; });
+  prs.sort((a, b) => b.started.localeCompare(a.started) || a.title.localeCompare(b.title));
   const headings = scope.graph.modules.flatMap(m => (outlines.get(m.file) ?? []).map(h => ({ doc: m.file, slug: h.slug, text: h.text })));
   // every document with its parent and last edit, for the top bar's breadcrumbs
   const docs: Record<string, DocMeta> = {};
@@ -52,7 +52,7 @@ export default async function ProductLayout({ children, params }: { children: Re
   return (
     <PeekProvider product={scope.product.slug} index={scope.index} kinds={scope.graph.kinds} types={ownTypes}>
       <Shell>
-        <Rail products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} plans={plans} views={views} headings={headings} />
+        <Rail products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} prs={prs} views={views} headings={headings} />
         <LiveRefresh product={scope.product.slug} />
         <main className="content"><TopBar product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} docs={docs} />{children}</main>
       </Shell>
@@ -64,7 +64,7 @@ function defaultIcon(slug: string): string {
   if (/prd|requirement/.test(slug)) return '📋';
   if (/dev|design|arch/.test(slug)) return '🛠️';
   if (/test/.test(slug)) return '🧪';
-  if (/plan/.test(slug)) return '🗺️';
+  if (/^pr-|plan/.test(slug)) return '🗺️';
   if (/project/.test(slug)) return '🏠';
   return '📄';
 }

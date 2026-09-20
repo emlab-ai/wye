@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { loadScope } from '@/lib/scope';
-import { viewPageId } from '@/lib/plan-docs';
+import { viewPageId } from '@/lib/pr-docs';
 import { loadWork } from '@/lib/work-io';
 import { WorkList } from '@/components/WorkList';
 

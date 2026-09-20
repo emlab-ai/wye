@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { loadScope } from '@/lib/scope';
-import { viewPageId } from '@/lib/plan-docs';
+import { viewPageId } from '@/lib/pr-docs';
 import { trackRows } from '@/lib/track';
 import { TrackList } from '@/components/TrackList';
 

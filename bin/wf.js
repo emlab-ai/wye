@@ -29,23 +29,25 @@
 //   wye session handoff <id> --product p --agent a ["note"]  continue it under another agent
 //   wye session open <id> --product p <product/project/doc[#node] | url>   navigate the person's browser to a page
 //   wye session take <id> --product p       mark it running under you (interactive pick-up, e.g. /wf-restore)
-//   wye propose [<product/project/doc>] --plan <product/project/plan-x> --product p (a yaml card with `- id: kind:slug` on stdin or --file f)
-//        one proposed block into the document where its kind lives, embedded on the plan's Definition; without a
-//        document it is defined on the plan under Definition (decision:exec.definition-home-fallback)
+//   wye propose [<product/project/doc>] --pr <product/project/pr-x> --product p (a yaml card with `- id: kind:slug` on stdin or --file f)
+//        one proposed block into the document where its kind lives, embedded on the request's Definition; without a
+//        document it is defined on the request under Definition (decision:exec.definition-home-fallback)
 //   wye init --product <slug> --repo <dir> [--title "…"] [--feature "<name>" --path <dir>]   a product's (or feature's) definition
 //        from its code: the layered tree, every module / page / component / library / operation / test, shallow, and a
 //        #ready describe task per module (lib/init.js) — no model, nothing overwritten
 //   wye deepen <module> --product p [--worker claude-code]   assign the module's describe task: requirements from the code,
 //        each mapped to the file that delivers it (prompts/describe-module.md)
-//   wye plan <product/project/plan-x> [--status defining|defined|building|done|cancelled]   the plan's status and Definition
-//   wye plan build <product/project/plan-x> [--worker claude-code|codex|runner] [--note "…"] [--force]   Build: hand the plan's
+//   wye pr <product/project/pr-x> [--status draft|refining|approved|building|done|failed|cancelled]   the request's status, Definition and readiness
+//   wye pr build <product/project/pr-x> [--worker claude-code|codex|runner] [--note "…"] [--force]   Build: hand the request's
 //        request task to a worker with the Definition (rule:build) — what the person's "build it" in a librarian conversation means
-//   wf explain <id | "text"> --product p   the current state of the product around a node or a text (the librarian, one turn)
-//   wf work list --product p [--unassigned | --mine <name> | --goal <id> | --plan <id>] [--done]   every task with its state
-//   wf work add "<text>" --product p [--part-of <id>] [--ready]   a task line on the backlog (under the node when --part-of names one)
-//   wf work next --product p [--goal <id>]   the oldest ready, unblocked, unassigned task
-//   wf work assign <task> --worker <person|claude-code|codex|runner> --product p [--note "…"] [--plan] [--force]
-//   wf agent listen --product p --agent claude-code|codex [--cmd "<command>"] [--name n] [--once] [--take-ready [--goal <id>]]
+//   wye explain <id | "text"> --product p   the current state of the product around a node or a text (the librarian, one turn)
+//   wye work list --product p [--unassigned | --mine <name> | --goal <id> | --plan <id>] [--done]   every task with its state
+//   wye work add "<text>" --product p [--part-of <id>] [--ready]   a task line on the backlog (under the node when --part-of names one)
+//   wye work next --product p [--goal <id>]   the oldest ready, unblocked, unassigned task
+//   wye work assign <task> --worker <person|claude-code|codex|runner> --product p [--note "…"] [--force]
+//   wye eval own | compare | public <adapter> | judge | report   the benchmarks (module:benchmarks): tier 1 on the product's own
+//        history with the CI gate, the with-and-without harness, the public adapters, the judge set's κ, the latest / previous / delta
+//   wye agent listen --product p --agent claude-code|codex [--cmd "<command>"] [--name n] [--once] [--take-ready [--goal <id>]]
 //        pick up queued sessions for that agent, run the command with the prompt on stdin, stream output to the log;
 //        --take-ready also claims the oldest #ready unblocked unassigned task when nothing is queued
 const fs = require('fs');
@@ -110,7 +112,9 @@ async function resolve(link) {
 }
 
 const commands = {
-  async resolve() { if (!pos[1]) die('wf resolve <link|id>'); await resolve(pos[1]); },
+  // the benchmarks (eval/cli.js): runs here, reads the documents, asks the app for hits and packets; exit 2 when the gate fails
+  async eval() { const code = await require('../eval/cli.js').main(pos.slice(1), flags); if (code) process.exit(code); },
+  async resolve() { if (!pos[1]) die('wye resolve <link|id>'); await resolve(pos[1]); },
   async doc() {
     if (pos[1] === 'create') {
       const d = docRef(pos[2] || die('wye doc create <product/project/slug> --title "…"'));
@@ -255,16 +259,13 @@ const commands = {
     // one proposed block (op:api.propose): the card on stdin or --file; the home document first, else the plan
     const p = product(); const doc = pos[1] && !pos[1].startsWith('--') ? pos[1] : '';
     const card = flags.file ? fs.readFileSync(flags.file, 'utf8') : await readStdin();
-    if (!card.trim()) die('wye propose [<product/project/doc>] --plan <product/project/plan-x>  (the yaml card on stdin or --file f)');
-    if (!doc && !flags.plan) die('--plan <product/project/plan-x> is required when no document is given');
-    const body = { card, plan: flags.plan || undefined, doc: doc ? (() => { const d = docRef(doc); return `${d.product}/${d.project}/${d.doc}`; })() : undefined };
+    const prRef = flags.pr || flags.plan; // --plan is the old name
+    if (!card.trim()) die('wye propose [<product/project/doc>] --pr <product/project/pr-x>  (the yaml card on stdin or --file f)');
+    if (!doc && !prRef) die('--pr <product/project/pr-x> is required when no document is given');
+    const body = { card, pr: prRef || undefined, doc: doc ? (() => { const d = docRef(doc); return `${d.product}/${d.project}/${d.doc}`; })() : undefined };
     const j = await api('POST', `/api/${p}/propose`, body);
-    return out(flags.json ? j : `${j.id} proposed in ${j.file}${j.plan ? ` — embedded on ${j.plan}'s Definition` : ''}${doc ? '' : ' (no home document yet: on the plan under Definition)'}`);
+    return out(flags.json ? j : `${j.id} proposed in ${j.file}${j.pr ? ` — embedded on ${j.pr}'s Definition` : ''}${doc ? '' : ' (no home document yet: on the plan under Definition)'}`);
   },
-  async plan() {
-    if (pos[1] === 'build') {
-      // Build from the CLI (rule:build, req:exec.build-from-definition): the plan's request task goes to a worker with the
-      // Definition as context; the librarian runs this when the person says "build it" (decision:exec.librarian-may-build)
   // wye init: a product's (or a feature's) definition from its code, shallow, with the describe tasks (lib/init.js)
   async init() {
     const p = flags.product || die('wye init --product <slug> --repo <dir> [--title "…"] [--project main] [--feature "<name>" --path <dir>] [--icon 📦] [--description "…"]');
@@ -286,23 +287,29 @@ const commands = {
     const j = await api('POST', `/api/${p}/work/assign`, { id, worker: flags.worker || 'claude-code', note: contract, force: !!flags.force, by: flags.by || undefined });
     return out(flags.json ? j : `${id} → ${j.worker}${j.session ? ` (session ${j.session}, ${j.mode})` : ''} — the worker reads the code and writes the requirements mapped to it`);
   },
-      const ref = pos[2] || die('wye plan build <product/project/plan-x> [--worker claude-code|codex|runner] [--note "…"] [--force]');
+  async pr() {
+    if (pos[1] === 'build') {
+      // Build from the CLI (rule:build, req:exec.build-from-definition): the request's task goes to a worker with the
+      // Definition as context — the person's move, never the librarian's
+      const ref = pos[2] || die('wye pr build <product/project/pr-x> [--worker claude-code|codex|runner] [--note "…"] [--force]');
       const d = docRef(ref); const p = d.product; const r = `${d.product}/${d.project}/${d.doc}`;
-      const plan = await api('GET', `/api/${p}/plan?ref=${encodeURIComponent(r)}`);
-      if (!plan.task) die(`${r} has no request task to build`);
-      const df = plan.definition || {};
-      const j = await api('POST', `/api/${p}/work/assign`, { id: plan.task, worker: flags.worker || 'claude-code', note: flags.note || '', build: r, force: !!flags.force, by: flags.by || (process.env.WF_SESSION ? `agent:${process.env.WF_SESSION}` : undefined) });
-      return out(flags.json ? j : `${r} → building: ${plan.task} → ${j.worker}${j.session ? ` (session ${j.session}, ${j.mode})` : ''}; definition ${df.total ?? '?'} block(s), ${df.agreed ?? '?'} agreed${df.defined ? '' : ` — ${df.open ?? '?'} still open, built anyway`}`);
+      const pr = await api('GET', `/api/${p}/pr?ref=${encodeURIComponent(r)}`);
+      if (!pr.task) die(`${r} has no request task to build`);
+      const df = pr.definition || {};
+      const j = await api('POST', `/api/${p}/work/assign`, { id: pr.task, worker: flags.worker || 'claude-code', note: flags.note || '', build: r, force: !!flags.force, by: flags.by || (process.env.WF_SESSION ? `agent:${process.env.WF_SESSION}` : undefined) });
+      return out(flags.json ? j : `${r} → building: ${pr.task} → ${j.worker}${j.session ? ` (session ${j.session}, ${j.mode})` : ''}; definition ${df.total ?? '?'} block(s), ${df.agreed ?? '?'} agreed${df.defined ? '' : ` — ${df.open ?? '?'} still open, built anyway`}`);
     }
-    const ref = pos[1] || die('wye plan <product/project/plan-x> [--status s]'); const d = docRef(ref); const p = d.product;
+    const ref = pos[1] || die('wye pr <product/project/pr-x> [--status s] | wye pr approve|cancel <ref>'); const d = docRef(ref); const p = d.product;
     const r = `${d.product}/${d.project}/${d.doc}`;
-    if (flags.status) { const j = await api('PATCH', `/api/${p}/plan`, { ref: r, status: flags.status }); return out(flags.json ? j : `${r}: status ${j.status}`); }
-    const j = await api('GET', `/api/${p}/plan?ref=${encodeURIComponent(r)}`); if (flags.json) return out(j);
+    if (flags.status) { const j = await api('PATCH', `/api/${p}/pr`, { ref: r, status: flags.status }); return out(flags.json ? j : `${r}: status ${j.status}`); }
+    const j = await api('GET', `/api/${p}/pr?ref=${encodeURIComponent(r)}`); if (flags.json) return out(j);
     const df = j.definition;
     console.log(`${j.node}  ${j.status}${j.role === 'librarian' ? '  (librarian)' : ''}${j.task ? '  task ' + j.task : ''}  session ${j.session}`);
     console.log(`definition: ${df.total} block(s), ${df.agreed} agreed, ${df.open} open${df.missing ? `, ${df.missing} missing` : ''}${df.contradicted.length ? `, contradicted: ${df.contradicted.join(', ')}` : ''} — ${df.defined ? 'defined' : 'not yet defined'}`);
     for (const it of df.items) console.log(`  ${it.agreed ? '✓' : it.missing ? '?' : '·'} ${it.id}${it.status ? ' #' + it.status : ''}`);
   },
+  // `plan` is the old name of `pr`
+  async plan() { console.error('wye plan is now wye pr'); return this.pr(); },
   async explain() {
     // one librarian turn on a node or a text (req:exec.explain-anywhere, op:api.explain): the current state, nothing proposed
     const what = pos[1] || (await readStdin()); if (!what.trim()) die('wye explain <id | "text">');
@@ -316,8 +323,8 @@ const commands = {
     if (sub === 'list') {
       const j = await api('GET', `/api/${p}/work`); if (flags.json) return out(j);
       const flat = []; const walk = (r, d) => { flat.push([r, d]); for (const c of r.children) walk(c, d + 1); }; for (const r of j.items) walk(r, 0);
-      const rows = flat.filter(([r]) => (flags.done || r.status !== 'done') && (!flags.unassigned || r.state === 'unassigned') && (!flags.mine || r.worker === flags.mine) && (!flags.goal || r.partOf.includes(flags.goal)) && (!flags.plan || (r.plan && r.plan.id === flags.plan)));
-      for (const [r, d] of rows) console.log(`${'  '.repeat(d)}${r.id.padEnd(40 - d * 2)} ${r.status.padEnd(12)} ${r.state.padEnd(11)}${r.ready ? ' #ready' : '       '} ${(r.worker || '—').padEnd(12)} ${r.plan ? r.plan.id : (r.partOf[0] || '')}  ${r.title.slice(0, 60)}`);
+      const rows = flat.filter(([r]) => (flags.done || r.status !== 'done') && (!flags.unassigned || r.state === 'unassigned') && (!flags.mine || r.worker === flags.mine) && (!flags.goal || r.partOf.includes(flags.goal)) && (!flags.pr || (r.pr && r.pr.id === flags.pr)));
+      for (const [r, d] of rows) console.log(`${'  '.repeat(d)}${r.id.padEnd(40 - d * 2)} ${r.status.padEnd(12)} ${r.state.padEnd(11)}${r.ready ? ' #ready' : '       '} ${(r.worker || '—').padEnd(12)} ${r.pr ? r.pr.id : (r.partOf[0] || '')}  ${r.title.slice(0, 60)}`);
       if (!rows.length) console.log('no work matches');
       return;
     }
@@ -329,11 +336,11 @@ const commands = {
     if (sub === 'next') {
       const j = await api('GET', `/api/${p}/work/next${flags.goal ? `?goal=${encodeURIComponent(flags.goal)}` : ''}`); if (flags.json) return out(j);
       if (j.off) return console.log('auto-take is off for this product (_product.md: auto-take: off)');
-      return console.log(j.task ? `${j.task.id}  ${j.task.title}${j.task.plan ? `  (${j.task.plan.id})` : ''}` : 'no ready, unblocked, unassigned task');
+      return console.log(j.task ? `${j.task.id}  ${j.task.title}${j.task.pr ? `  (${j.task.pr.id})` : ''}` : 'no ready, unblocked, unassigned task');
     }
     if (sub === 'assign') {
       const id = pos[2] || die('wye work assign <task> --worker <name>');
-      const j = await api('POST', `/api/${p}/work/assign`, { id, worker: flags.worker || die('--worker required'), note: flags.note || '', plan: !!flags.plan, force: !!flags.force, by: flags.by || undefined });
+      const j = await api('POST', `/api/${p}/work/assign`, { id, worker: flags.worker || die('--worker required'), note: flags.note || '', force: !!flags.force, by: flags.by || undefined });
       return out(flags.json ? j : `${id} → ${j.worker}${j.session ? ` (session ${j.session}, ${j.mode})` : ''}`);
     }
     die(`unknown work command: ${sub}`);

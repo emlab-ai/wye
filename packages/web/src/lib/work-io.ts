@@ -4,10 +4,10 @@
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { loadScope, type Scope } from './scope';
-import { listSessions, createSession, updateSession, onSessionEnd, AGENTS, getSession, setPlanDoc } from './sessions';
+import { listSessions, createSession, updateSession, onSessionEnd, AGENTS, getSession, setPrDoc } from './sessions';
 import { liveState, startChat } from './agent-host';
-import { createPlanDoc, adoptPlanDoc, readPlanDoc, definitionContext, planDefinition } from './plan-docs';
-import { setFrontmatter, definitionIds } from './plan-doc';
+import { createPrDoc, adoptPrDoc, readPrDoc, definitionContext, prDefinition } from './pr-docs';
+import { setFrontmatter, definitionIds } from './pr-doc';
 import { editNode } from './node-edit';
 import { docIdOf, docRoute } from './doc';
 import { REPO_ROOT } from './products';
@@ -21,15 +21,15 @@ const AGENT_IDS = new Set(AGENTS.map(a => a.id));
 
 // Every task with its derived state: the sessions come from disk, the live/busy bits from this process.
 export async function loadWork(scope: Scope): Promise<{ items: WorkItem[]; people: string[]; agents: { id: string; label: string }[] }> {
-  const sessions: WorkSession[] = (await listSessions(scope.product.dir)).map(s => ({ id: s.id, status: s.status, agent: s.agent, refs: s.refs, createdAt: s.createdAt, updatedAt: s.updatedAt, finishedAt: s.finishedAt, result: s.result, planDoc: s.planDoc, artifacts: s.artifacts, ...(s.mode === 'chat' ? liveState(s.id) : {}) }));
+  const sessions: WorkSession[] = (await listSessions(scope.product.dir)).map(s => ({ id: s.id, status: s.status, agent: s.agent, refs: s.refs, createdAt: s.createdAt, updatedAt: s.updatedAt, finishedAt: s.finishedAt, result: s.result, prDoc: s.prDoc, artifacts: s.artifacts, ...(s.mode === 'chat' ? liveState(s.id) : {}) }));
   const items = workItems(scope.graph, scope.idx, sessions);
   // a plan with a Definition (decision:exec.plan-lifecycle): its counts on the request task's row and the plan group
   const defs = new Map<string, WorkItem['definition']>();
   for (const n of scope.graph.nodes) {
-    if (n.kind !== 'plan' || !n.defined || !['defining', 'defined', 'building', 'proposed'].includes(n.status)) continue;
-    try { const md = await readFile(path.join(REPO_ROOT, n.file), 'utf8'); if (!definitionIds(md).length) continue; const d = planDefinition(scope, md); defs.set(n.id, { total: d.total, agreed: d.agreed, open: d.open, defined: d.defined, contradicted: d.contradicted.length }); } catch { /* unreadable */ }
+    if (n.kind !== 'pr' || !n.defined || !['draft', 'refining', 'approved', 'building'].includes(n.status)) continue;
+    try { const md = await readFile(path.join(REPO_ROOT, n.file), 'utf8'); if (!definitionIds(md).length) continue; const d = prDefinition(scope, md); defs.set(n.id, { total: d.total, agreed: d.agreed, open: d.open, defined: d.defined, contradicted: d.contradicted.length }); } catch { /* unreadable */ }
   }
-  if (defs.size) { const walk = (r: WorkItem) => { if (r.plan && defs.has(r.plan.id)) r.definition = defs.get(r.plan.id); r.children.forEach(walk); }; items.forEach(walk); }
+  if (defs.size) { const walk = (r: WorkItem) => { if (r.pr && defs.has(r.pr.id)) r.definition = defs.get(r.pr.id); r.children.forEach(walk); }; items.forEach(walk); }
   // people: the product file's list, plus every name that holds or owns a task
   const seen = new Set(scope.product.meta.people ?? []);
   const walk = (r: WorkItem) => { if (r.worker && !AGENT_IDS.has(r.worker) && r.worker !== RUNNER_POOL) seen.add(r.worker); r.children.forEach(walk); }; items.forEach(walk);
@@ -47,14 +47,14 @@ function taskInstruction(scope: Scope, item: WorkItem, note?: string): string {
   const parts = [`Work on ${item.id}: ${text}`];
   if (note?.trim()) parts.push(note.trim());
   if (item.partOf.length) parts.push(`It serves ${item.partOf.join(', ')}.`);
-  if (item.plan) parts.push(`It is on the plan ${item.plan.id}${item.plan.title ? ` ("${item.plan.title}")` : ''}.`);
+  if (item.pr) parts.push(`It is on the plan ${item.pr.id}${item.pr.title ? ` ("${item.pr.title}")` : ''}.`);
   parts.push(`When it is done: \`wf node set ${item.id} --status done\`; what you leave open stays as task lines under it.`);
   return parts.join('\n\n');
 }
 
 // build: the task is a plan's request task and the plan's Definition goes with it (req:exec.build-from-definition):
 // the session works on that plan (no new plan document), the plan moves to building
-export type AssignInput = { worker: string; note?: string; plan?: boolean; cwd?: string; force?: boolean; by?: string; wfUrl: string; agent?: string; build?: string };
+export type AssignInput = { worker: string; note?: string; cwd?: string; force?: boolean; by?: string; wfUrl: string; agent?: string; build?: string };
 export type AssignResult = { ok: true; worker: string; session?: string; mode?: 'chat' | 'run' } | { ok: false; error: 'not_found' | 'refused' | 'held' | 'invalid'; message: string };
 
 // Assign (req:exec.dispatch): a person gets `worker:`; an agent gets a session with the task, its document and what
@@ -85,13 +85,13 @@ export async function assignTask(scope: Scope, id: string, input: AssignInput): 
   let instruction = taskInstruction(scope, item, input.note);
   const def = input.build ? await definitionContext(scope, input.build) : null;
   if (def) instruction = `${instruction}\n\n${def.text}`;
-  const s = await createSession(scope.product.dir, scope.product.slug, { agent, instruction, refs, source, mode, cwd, plan: !!input.plan && !def, task: id });
+  const s = await createSession(scope.product.dir, scope.product.slug, { agent, instruction, refs, source, mode, cwd, task: id });
   if (def && input.build) {
-    // Build: the session continues the plan that holds the Definition (rule:plan-doc, decision:exec.plan-lifecycle)
-    await setPlanDoc(scope.product.dir, s.id, input.build, `builds ${input.build} from its Definition`); s.planDoc = input.build;
-    await adoptPlanDoc(scope.product.dir, { ...s, planDoc: input.build });
-    const plan = await readPlanDoc(scope.product.slug, input.build); if (plan) { await writeAtomic(plan.file, setFrontmatter(plan.md, 'status', 'building')); await rebuild(scope.product.dir); }
-  } else s.planDoc = (await createPlanDoc(scope.product.dir, scope.product.slug, s)) ?? undefined;
+    // Build: the session continues the plan that holds the Definition (rule:pr-doc, decision:exec.plan-lifecycle)
+    await setPrDoc(scope.product.dir, s.id, input.build, `builds ${input.build} from its Definition`); s.prDoc = input.build;
+    await adoptPrDoc(scope.product.dir, { ...s, prDoc: input.build });
+    const plan = await readPrDoc(scope.product.slug, input.build); if (plan) { await writeAtomic(plan.file, setFrontmatter(plan.md, 'status', 'building')); await rebuild(scope.product.dir); }
+  } else s.prDoc = (await createPrDoc(scope.product.dir, scope.product.slug, s)) ?? undefined; // an assigned task gets a request page of its own, born building
   // taken: in progress, the worker and the session on the line, the ready mark spent
   await editNode(scope, id, { status: 'in-progress', props: { worker: agent, session: [...new Set([...item.sessions.map(x => x.id), s.id])].join(' '), ready: null } });
   if (mode === 'chat') await startChat(scope.product.dir, scope.product.slug, s.id, { wfUrl: input.wfUrl });
@@ -119,7 +119,7 @@ export async function captureTask(scope: Scope, input: CaptureInput): Promise<{ 
   const line = `- [ ] ${id} ${text.replace(/[()#]/g, ' ').replace(/\s+/g, ' ').trim()}${input.ready ? ' #ready' : ''} (${props.join(', ')})`;
   // under the node it came from, when that node has a document and a form that takes content
   const from = input.partOf ? scope.idx.byId.get(input.partOf) : undefined;
-  if (from?.defined && from.file && from.form !== 'block' && from.kind !== 'module' && from.kind !== 'plan') {
+  if (from?.defined && from.file && from.form !== 'block' && from.kind !== 'module' && from.kind !== 'pr') {
     const abs = path.join(REPO_ROOT, from.file);
     const ok = await withFileLock(abs, async () => {
       const md = await readFile(abs, 'utf8');
@@ -165,13 +165,13 @@ export async function nextForRunner(scope: Scope, opts: { goal?: string; take?: 
 // the blocks they produced with their current status — the questions left open and the decisions proposed among
 // them are what the person reviews.
 export type ProducedBlock = { id: string; kind: string; change: string; title: string; status: string; exists: boolean; doc: string; session: string };
-export async function taskDetail(scope: Scope, id: string): Promise<{ item: WorkItem; sessions: { id: string; status: string; agent: string; result?: string; createdAt: string; finishedAt?: string; planDoc?: string }[]; blocks: ProducedBlock[] } | null> {
+export async function taskDetail(scope: Scope, id: string): Promise<{ item: WorkItem; sessions: { id: string; status: string; agent: string; result?: string; createdAt: string; finishedAt?: string; prDoc?: string }[]; blocks: ProducedBlock[] } | null> {
   const { items } = await loadWork(scope);
   const item = findItem(items, id); if (!item) return null;
   const sessions = []; const blocks: ProducedBlock[] = []; const seen = new Set<string>();
   for (const ref of item.sessions) {
     const s = await getSession(scope.product.dir, ref.id); if (!s) continue;
-    sessions.push({ id: s.id, status: s.status, agent: s.agent, result: s.result, createdAt: s.createdAt, finishedAt: s.finishedAt, planDoc: s.planDoc });
+    sessions.push({ id: s.id, status: s.status, agent: s.agent, result: s.result, createdAt: s.createdAt, finishedAt: s.finishedAt, prDoc: s.prDoc });
     for (const b of s.artifacts?.blocks ?? []) {
       if (b.id.startsWith('block:') || seen.has(b.id) || b.id === id) continue; seen.add(b.id);
       const n = scope.idx.byId.get(b.id);

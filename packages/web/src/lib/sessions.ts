@@ -28,9 +28,9 @@ export async function getSession(productDir: string, id: string): Promise<Sessio
 }
 // `images` (name + data URL, as pasted into the command box) become the session's files (store:session-files) and
 // are listed on the session by file name; they go to the agent with the first message.
-export async function createSession(productDir: string, product: string, input: { agent: string; instruction: string; refs?: string[]; source?: SessionSource; mode?: 'run' | 'chat'; cwd?: string; plan?: boolean; images?: { name?: string; dataUrl: string }[]; task?: string; role?: SessionRole }): Promise<Session> {
+export async function createSession(productDir: string, product: string, input: { agent: string; instruction: string; refs?: string[]; source?: SessionSource; mode?: 'run' | 'chat'; cwd?: string; images?: { name?: string; dataUrl: string }[]; task?: string; role?: SessionRole }): Promise<Session> {
   const now = new Date().toISOString();
-  const s: Session = { id: randomBytes(5).toString('hex'), product, agent: input.agent, mode: input.mode ?? 'run', cwd: input.cwd, ...(input.plan ? { plan: true } : {}), ...(input.task ? { task: input.task } : {}), ...(input.role && input.role !== 'worker' ? { role: input.role } : {}), status: 'queued', createdAt: now, updatedAt: now, instruction: input.instruction, refs: [...new Set(input.refs ?? [])], source: input.source ?? {}, log: [{ t: now, line: input.mode === 'chat' ? 'chat session created' : `queued for ${input.agent}` }] };
+  const s: Session = { id: randomBytes(5).toString('hex'), product, agent: input.agent, mode: input.mode ?? 'run', cwd: input.cwd, ...(input.task ? { task: input.task } : {}), ...(input.role && input.role !== 'worker' ? { role: input.role } : {}), status: 'queued', createdAt: now, updatedAt: now, instruction: input.instruction, refs: [...new Set(input.refs ?? [])], source: input.source ?? {}, log: [{ t: now, line: input.mode === 'chat' ? 'chat session created' : `queued for ${input.agent}` }] };
   const images: string[] = [];
   for (const im of (input.images ?? []).slice(0, 8)) { const n = await saveAttachment(productDir, s.id, im.name ?? 'image', im.dataUrl); if (n) images.push(n); }
   if (images.length) s.images = images;
@@ -48,7 +48,7 @@ async function mutate<T>(productDir: string, id: string, fn: (s: Session) => T |
   if (!ID.test(id)) return null;
   return withFileLock(file(productDir, id), async () => { const s = await getSession(productDir, id); if (!s) return null; const r = await fn(s); await saveSession(productDir, s); return r; });
 }
-// Hooks run once a session reaches done / failed / cancelled (the plan document's result, rule:plan-doc); after the
+// Hooks run once a session reaches done / failed / cancelled (the plan document's result, rule:pr-doc); after the
 // record is saved, outside the file lock.
 export type EndHook = ((productDir: string, s: Session) => Promise<void>) & { key?: string };
 const endHooks: EndHook[] = (globalThis as unknown as { __wfEndHooks?: EndHook[] }).__wfEndHooks ??= [];
@@ -88,9 +88,9 @@ export async function addRefs(productDir: string, id: string, refs: string[]): P
   return mutate(productDir, id, s => { s.refs = [...new Set([...s.refs, ...refs])]; return s; });
 }
 
-// The plan document a plan-first session works on (rule:plan-doc): product/project/slug.
-export async function setPlanDoc(productDir: string, id: string, ref: string, line?: string): Promise<Session | null> {
-  return mutate(productDir, id, s => { s.planDoc = ref; if (line) s.log.push({ t: new Date().toISOString(), line }); s.updatedAt = new Date().toISOString(); return s; });
+// The request document a session works on (rule:pr-doc): product/project/slug.
+export async function setPrDoc(productDir: string, id: string, ref: string, line?: string): Promise<Session | null> {
+  return mutate(productDir, id, s => { s.prDoc = ref; if (line) s.log.push({ t: new Date().toISOString(), line }); s.updatedAt = new Date().toISOString(); return s; });
 }
 
 // Claim the oldest queued session for an agent: first come, first served, one at a time per file lock.
@@ -110,7 +110,7 @@ export async function handoffSession(productDir: string, product: string, id: st
   const tail = s.log.slice(-40).map(l => `${l.t.slice(11, 19)} ${l.line}`).join('\n');
   const instruction = [`Continue session ${s.id} (${s.agent}${s.runner ? ' on ' + s.runner : ''}, ${s.status}).`, note.trim() ? `\nHandoff note: ${note.trim()}` : '', `\nOriginal instruction:\n${s.instruction}`, s.result ? `\nResult so far:\n${s.result}` : '', tail ? `\nLog tail:\n${tail}` : ''].filter(Boolean).join('\n');
   const child = await createSession(productDir, product, { agent, instruction, refs: s.refs, source: s.source, cwd: s.cwd });
-  await mutate(productDir, child.id, c => { c.parent = s.id; if (s.planDoc) c.planDoc = s.planDoc; }); // the same plan goes on under the next agent
+  await mutate(productDir, child.id, c => { c.parent = s.id; if (s.prDoc) c.prDoc = s.prDoc; }); // the same plan goes on under the next agent
   await mutate(productDir, s.id, p => { p.children = [...(p.children ?? []), child.id]; p.log.push({ t: new Date().toISOString(), line: `handed off to ${agent} as session ${child.id}` }); if (p.status === 'queued' || p.status === 'running') p.status = 'cancelled'; });
   return (await getSession(productDir, child.id)) ?? child;
 }
@@ -171,7 +171,7 @@ export async function dropPending(productDir: string, id: string): Promise<numbe
 }
 // The fresh mark of a waiting item can change until the item is handed over.
 export async function setItemFresh(productDir: string, id: string, itemId: string, fresh: boolean): Promise<boolean> {
-  return (await mutate(productDir, id, s => { const q = (s.queue ?? []).find(x => x.id === itemId && !x.sentAt); if (!q) return false; if (fresh) q.fresh = true; else { delete q.fresh; delete q.plan; } return true; })) ?? false;
+  return (await mutate(productDir, id, s => { const q = (s.queue ?? []).find(x => x.id === itemId && !x.sentAt); if (!q) return false; if (fresh) q.fresh = true; else { delete q.fresh; } return true; })) ?? false;
 }
 export async function setBatch(productDir: string, id: string, batch: 'one' | 'all'): Promise<void> {
   await mutate(productDir, id, s => { s.batch = batch; });

@@ -24,7 +24,7 @@ export function Assign({ product, item, people, me, onClose, onDone, build, unag
   const go = async () => {
     if (!chosen || busy) return;
     setBusy(true); setMsg(null);
-    const r = await fetch(`/api/${product}/work/assign`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: item.id, worker: chosen, note, plan: isAgent && plan && !build, cwd: cwd.trim() || undefined, force, by: me || undefined, build }) });
+    const r = await fetch(`/api/${product}/work/assign`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: item.id, worker: chosen, note, pr: isAgent && plan && !build, cwd: cwd.trim() || undefined, force, by: me || undefined, build }) });
     const j = await r.json().catch(() => ({})); setBusy(false);
     if (r.status === 409) { setForce(true); setMsg(`${j.message} — press Assign again to re-queue it.`); return; }
     if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not assign'); return; }

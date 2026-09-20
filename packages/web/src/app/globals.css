@@ -193,7 +193,7 @@ code, pre { font-family: var(--font-m); }
 .session-rows { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; } .session-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-bottom: 1px solid var(--line); cursor: pointer; } .session-row:last-child { border-bottom: 0; } .session-row:hover, .session-row.on { background: var(--sunk); } .session-row.on { box-shadow: inset 3px 0 0 var(--accent); }
 .session-row-main { flex: 1; min-width: 0; }
 .session-row-acts { display: flex; gap: 4px; visibility: hidden; } .session-row:hover .session-row-acts, .session-row.on .session-row-acts { visibility: visible; }
-.plan-list { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; } .plan-item { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; padding: 2px 6px; margin-left: -6px; border-radius: 6px; } .plan-item.on { background: var(--sunk); box-shadow: inset 2px 0 0 var(--accent); } .plan-item .pill { flex: none; } .plan-title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); text-decoration: none; } .plan-title:hover { text-decoration: underline; } .plan-tasks { flex: none; font: 11px var(--font-m); color: var(--muted); } .plan-tasks.all { color: var(--ok); } .plan-when { flex: none; font: 11px var(--font-m); } .plan-list.compact .plan-item { font-size: 12px; } .session-plans { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0 6px; } .session-plans > small { padding-top: 6px; } .session-plans .plan-list { margin: 0; flex: 1; min-width: 0; }
+.pr-list { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; } .pr-item { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 13px; padding: 2px 6px; margin-left: -6px; border-radius: 6px; } .pr-item.on { background: var(--sunk); box-shadow: inset 2px 0 0 var(--accent); } .pr-item .pill { flex: none; } .pr-title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); text-decoration: none; } .pr-title:hover { text-decoration: underline; } .pr-tasks { flex: none; font: 11px var(--font-m); color: var(--muted); } .pr-tasks.all { color: var(--ok); } .pr-when { flex: none; font: 11px var(--font-m); } .pr-list.compact .pr-item { font-size: 12px; } .session-prs { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0 6px; } .session-prs > small { padding-top: 6px; } .session-prs .pr-list { margin: 0; flex: 1; min-width: 0; }
 .session-row-queue { margin-top: 6px; font: 12px var(--font-m); } .session-row-queue > .muted { display: block; margin-bottom: 2px; }
 .queue-list { margin: 4px 0 0; padding: 0; list-style: none; } .queue-list .qi { display: flex; gap: 8px; align-items: center; padding: 2px 0; font-size: 12px; } .queue-list .qi .pill { font-size: 10px; padding: 0 6px; flex: none; } .queue-list .qi-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .queue-list .qi.done .qi-text, .queue-list .qi.failed .qi-text { color: var(--muted); }
 .queue-list .qi-fresh { flex: none; font: 500 10px var(--font-m); text-transform: uppercase; border: 1px dashed var(--line-2); border-radius: 999px; padding: 0 6px; color: var(--muted); background: none; cursor: default; } .queue-list button.qi-fresh { cursor: pointer; } .queue-list .qi-fresh.on { color: var(--accent); border-color: var(--accent); border-style: solid; }
@@ -540,8 +540,8 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .spage-kind { margin: 0 0 12px; } .spage-kind h5 { margin: 0 0 4px; font-weight: 500; font-size: 13px; } .spage .schange > small { flex: none; }
 .spage-result { font-size: 14px; }
 
-/* the rail's Plans system folder (component:plan-folder): a menu entry with a caret, the plans as rows beneath */
-.plan-folder .pf-head { display: flex; align-items: center; gap: 2px; } .plan-folder .pf-head a { flex: 1; } .plan-folder .pf-head.on a { background: var(--sunk); }
+/* the rail's PRs system folder (component:request-folder): a menu entry with a caret, the requests as rows beneath, grouped by where they are */
+.pr-folder .pf-head { display: flex; align-items: center; gap: 2px; } .pr-folder .pf-head a { flex: 1; } .pr-folder .pf-head.on a { background: var(--sunk); }
 .rail-menu .pf-caret { flex: none; width: 24px; height: 24px; padding: 0; justify-content: center; color: var(--muted); font-size: 13px; }
 .rail-menu .pf-caret:hover { color: var(--ink); }
 .pf-list { list-style: none; margin: 0; padding: 0 0 2px; }
@@ -549,7 +549,8 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .rail-menu .pf-row.on .pg-link { background: var(--sunk); font-weight: 600; }
 .pf-row .pg-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pf-empty { padding: 4px 8px 4px 36px; font-size: 13px; }
-/* plans that ended fold under "done" (decision:memory.forgetting) */
+.pf-group { list-style: none; } .pf-group-head { display: block; padding: 3px 8px 1px 36px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; } .pf-group-head small { opacity: .7; }
+/* PRs that ended fold under "done" (decision:memory.forgetting) */
 .pf-done { list-style: none; }
 .pf-done-head { display: flex; align-items: center; gap: 6px; padding: 3px 8px 3px 36px; background: none; border: 0; color: var(--muted); font-size: 12px; cursor: pointer; width: 100%; text-align: left; }
 .pf-done-head:hover { color: var(--ink); }

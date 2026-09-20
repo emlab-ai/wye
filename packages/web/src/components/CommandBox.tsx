@@ -92,14 +92,14 @@ export function CommandBox() {
     setBusy(true); setMsg(null);
     const refs = req.refs ?? [];
     if (!isNew) {
-      const r = await fetch(`/api/${product}/sessions/${target}/message`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: instruction, refs, link: req.source?.link, images: attach.images, fresh, plan: fresh && plan }) });
+      const r = await fetch(`/api/${product}/sessions/${target}/message`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: instruction, refs, link: req.source?.link, images: attach.images, fresh, pr: fresh && plan }) });
       const j = await r.json().catch(() => ({})); setBusy(false);
       if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not send'); return; }
       setReq(null); open(`session:${target}`); return;
     }
     const mode = target === 'runner' ? 'run' : 'chat';
     const source = { ...(req.source ?? {}), ...(req.text ? { text: req.text.slice(0, 2000) } : {}) };
-    const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ agent, instruction, refs, source, mode, cwd: cwd.trim(), plan: mode === 'chat' && plan, images: attach.images }) });
+    const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ agent, instruction, refs, source, mode, cwd: cwd.trim(), pr: mode === 'chat' && plan, images: attach.images }) });
     const j = await r.json().catch(() => ({})); setBusy(false);
     if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not start'); return; }
     try { localStorage.setItem(`wf-cwd-${product}`, cwd.trim()); localStorage.setItem(`wf-agent-${product}`, agent); } catch { /* ignore */ }

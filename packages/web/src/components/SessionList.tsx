@@ -1,5 +1,5 @@
 'use client';
-import { PlanList } from './PlanList';
+import { PrList } from './PrList';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePeek } from './PeekProvider';
 import { useRouter } from 'next/navigation';
@@ -67,7 +67,7 @@ export function SessionList({ product, initial, initialRunners }: { product: str
               <div className="session-row-title">{plainAppLinks(s.instruction.split('\n').find(l => l.trim()) ?? '(no instruction)', origin, titles)}</div>
               <div className="session-row-sub"><span>{agentLabel(s.agent)}{s.mode === 'chat' ? ' · chat' : ''}</span>{s.cwd && <><span>·</span><span>{s.cwd.replace(/^\/Users\/[^/]+/, '~')}</span></>}<span>·</span><span>{when(s.createdAt)}</span>{s.source?.doc && <><span>·</span><span>{s.source.project ? `${s.source.project} / ` : ''}{s.source.doc}</span></>}{s.refs.length > 0 && <span className="tags">{s.refs.slice(0, 4).map(r => <SmartTag key={r} id={r} />)}{s.refs.length > 4 && <span className="muted">+{s.refs.length - 4}</span>}</span>}</div>
               {/* the worker's work items: every plan of the session, the current one marked (decision:wf2.plan-per-request) */}
-              <PlanList session={s} plans={s.plans ?? []} />
+              <PrList session={s} prs={s.prs ?? []} />
               {(s.queue?.length ?? 0) > 0 && <div className="session-row-queue"><span className="muted">queue · {queueSummary(s.queue!)}</span><QueueList items={queueView(s.queue, s.batch).items} control={body => control(s.id, body)} compact /></div>}
             </div>
             <span className="session-row-acts" onClick={e => e.stopPropagation()}>

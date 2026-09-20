@@ -1,5 +1,5 @@
 'use client';
-import { PlanList } from './PlanList';
+import { PrList } from './PrList';
 import { useCallback, useEffect, useState } from 'react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
@@ -60,7 +60,7 @@ export function SessionView({ id }: { id: string }) {
       {/* a librarian conversation (decision:exec.wye-is-a-role): the knowledge around the request at the top, for the whole conversation (req:exec.wye-context) */}
       {s.role === 'librarian' && <ContextCard key={s.id} text={s.instruction} refs={s.refs} known={knowledge} />}
       {/* the work items of this worker, the current plan marked; the page they link to is where the tasks and the result are */}
-      {(s.plans?.length ?? 0) > 0 && <div className="session-plans"><small className="muted">work</small><PlanList session={s} plans={s.plans!} compact /></div>}
+      {(s.prs?.length ?? 0) > 0 && <div className="session-prs"><small className="muted">work</small><PrList session={s} prs={s.prs!} compact /></div>}
       {(s.runner || s.cwd) && <p className="muted session-src">{s.cwd && <>folder <code>{s.cwd.replace(/^\/Users\/[^/]+/, '~')}</code>{s.runner ? ' · ' : ''}</>}{s.runner && <>runner {s.runner}</>}{s.startedAt ? ` · started ${when(s.startedAt)}` : ''}{s.finishedAt ? ` · finished ${when(s.finishedAt)}` : ''}</p>}
       {(s.parent || (s.children && s.children.length > 0)) && <p className="session-src">{s.parent && <>continues <button className="linkish" onClick={() => open(`session:${s.parent}`)}>session {s.parent.slice(0, 6)}</button></>}{s.children && s.children.length > 0 && <> handed off to {s.children.map(c => <button key={c} className="linkish" onClick={() => open(`session:${c}`)}>session {c.slice(0, 6)}</button>)}</>}</p>}
       {handoff && (

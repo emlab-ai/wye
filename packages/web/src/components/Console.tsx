@@ -64,7 +64,7 @@ export function Console({ session, onStatus, onKnowledge }: { session: Session; 
   const send = async () => {
     const t = text.trim(); if (!t && !images.length) return;
     setBusy(true); setText(''); const imgs = attach.take(); const f = fresh; setFresh(false);
-    const r = await fetch(`/api/${product}/sessions/${id}/message`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: t, images: imgs, fresh: f, plan: f && plan }) });
+    const r = await fetch(`/api/${product}/sessions/${id}/message`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: t, images: imgs, fresh: f, pr: f && plan }) });
     setBusy(false); if (!r.ok) setEvents(evs => [...evs, { t: new Date().toISOString(), kind: 'stderr', text: 'could not send the message' }]); else setLive(true);
   };
   const control = (body: object) => fetch(`/api/${product}/sessions/${id}/control`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });

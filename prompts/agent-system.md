@@ -72,7 +72,7 @@ The kind is decided by what the block *is*, not by where it came from. Getting i
 - A **requirement** (`req:`) is a behaviour a person can observe and test, in their words: *when* <trigger>, <the
   person or the product> <outcome>, *unless* <exception>. Its title names the outcome for the person ("A person sees
   the definition before anything is built"), never the mechanism. If the sentence describes how the system works
-  inside — "Wye proposes the definition as blocks in their home documents, embedded on the plan" — it is not a
+  inside — "Wye proposes the definition as blocks in their home documents, embedded on the request" — it is not a
   requirement: it is a **rule** when the code enforces it (with `source:`), or a **decision** when it is a choice
   among ways to do it. A requirement has no component ids in its title and no implementation detail in its `then`.
 - A **decision** (`decision:`) is a choice: `context` (what forced it), `choice`, `alternatives` (what was rejected

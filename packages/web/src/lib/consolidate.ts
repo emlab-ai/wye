@@ -73,10 +73,10 @@ export async function consolidateSession(productDir: string, product: string, s:
   const written = (s.artifacts?.blocks ?? []).filter(b => b.change !== 'removed' && /^(decision|constraint|question|lesson|req|rule|task):/.test(b.id)).map(b => ({ id: b.id, title: b.title }));
   const answer = await judge().ask(consolidationPrompt(excerpt, written), { model: opts.model });
   const candidates = parseCandidates(answer).slice(0, 12);
-  if (!candidates.length || !s.planDoc) return { candidates, filed: [] };
-  // the plan document from the graph: plan:<slug> is the page node, its file the target
-  const slug = s.planDoc.split('/')[2]; const graph = await loadGraph(path.join(productDir, '_build/graph.json')).catch(() => null);
-  const page = graph?.nodes.find(n => n.id === `plan:${slug}` && n.defined); if (!graph || !page) return { candidates, filed: [] };
+  if (!candidates.length || !s.prDoc) return { candidates, filed: [] };
+  // the plan document from the graph: pr:<slug> is the page node, its file the target
+  const slug = s.prDoc.split('/')[2]; const graph = await loadGraph(path.join(productDir, '_build/graph.json')).catch(() => null);
+  const page = graph?.nodes.find(n => n.id === `pr:${slug}` && n.defined); if (!graph || !page) return { candidates, filed: [] };
   const file = path.join(REPO_ROOT, page.file);
   const taken = new Set(graph.nodes.map(n => n.id));
   const date = new Date().toISOString().slice(0, 10);
@@ -90,12 +90,12 @@ export async function consolidateSession(productDir: string, product: string, s:
     cards.push(candidateCard(id, c, s, page.id, s.agent, date, related));
   }
   await withFileLock(file, async () => { const md = await readFile(file, 'utf8'); await writeAtomic(file, insertIntoPlanSection(md, cards)); });
-  return { candidates, filed, doc: s.planDoc };
+  return { candidates, filed, doc: s.prDoc };
 }
 
 // registered once the module is loaded (lib/agent-host imports it): after the plan's result is written, a done session is consolidated, detached
 onSessionEnd(async (productDir, s) => {
-  if (s.status !== 'done' || !s.planDoc) return;
+  if (s.status !== 'done' || !s.prDoc) return;
   if (!(await consolidateEnabled(productDir))) return;
   const product = path.basename(productDir);
   void consolidateSession(productDir, product, s).then(r => updateSession(productDir, s.id, { line: r.filed.length ? `consolidation: ${r.filed.length} block(s) the conversation decided but nobody wrote — filed as proposed on ${r.doc}: ${r.filed.join(', ')}` : `consolidation: ${r.candidates.length ? 'everything the conversation decided was written' : 'nothing to consolidate'}` })).catch(e => updateSession(productDir, s.id, { line: `consolidation failed: ${e instanceof Error ? e.message : e}` }));

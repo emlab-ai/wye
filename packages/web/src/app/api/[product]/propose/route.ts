@@ -5,17 +5,18 @@ import { loadScope } from '@/lib/scope';
 import { REPO_ROOT } from '@/lib/products';
 import { docRoute, documentTree } from '@/lib/doc';
 import { writeAtomic, withFileLock, rebuild } from '@/lib/write';
-import { embedInDefinition, readPlanDoc } from '@/lib/plan-docs';
+import { embedInDefinition, readPrDoc } from '@/lib/pr-docs';
 import { claimWrite } from '@/lib/changes';
 import { recordArtifact } from '@/lib/artifacts';
 
-// op:api.propose (req:exec.wye-proposes, decision:exec.definition-home-fallback) — POST { card, plan, doc? } → one
+// op:api.propose (req:exec.wye-proposes, decision:exec.definition-home-fallback) — POST { card, pr, doc? } → one
 // proposed block (a yaml card with `- id: kind:slug`) appended to the document where that kind lives, embedded on the
-// plan's Definition; without `doc` the card is written on the plan itself under Definition, marked as needing a home.
+// request's Definition; without `doc` the card is written on the request itself under Definition, marked as needing a home.
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const body = (await req.json()) as { card?: string; plan?: string; doc?: string; by?: string };
+  const raw = (await req.json()) as { card?: string; pr?: string; plan?: string; doc?: string; by?: string };
+  const body = { ...raw, pr: raw.pr ?? raw.plan }; // `plan` is the old name of the request ref
   const card = (body.card ?? '').replace(/^```ya?ml\s*\n|\n```\s*$/g, '').trim();
   const idm = card.match(/^-?\s*id:\s*([a-z-]+:[A-Za-z0-9_.\-]+)\s*$/m);
   if (!idm) return NextResponse.json({ error: 'invalid', message: 'the card must carry `- id: kind:slug`' }, { status: 422 });
@@ -28,8 +29,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const rest = lines.slice(1).filter(l => l.trim());
   const base = Math.min(...rest.map(l => l.match(/^\s*/)![0].length), 99);
   const block = [lines[0].replace(/^-\s+/, '- '), ...rest.map(l => `  ${l.slice(Math.min(base, l.match(/^\s*/)![0].length))}`)].join('\n');
-  const plan = body.plan ? await readPlanDoc(product, body.plan) : null;
-  if (body.plan && !plan) return NextResponse.json({ error: 'not_found', message: `plan ${body.plan} not found` }, { status: 404 });
+  const pr = body.pr ? await readPrDoc(product, body.pr) : null;
+  if (body.pr && !pr) return NextResponse.json({ error: 'not_found', message: `request ${body.pr} not found` }, { status: 404 });
   let file: string;
   if (body.doc) {
     const d = body.doc.split('/'); const target = [...documentTree(scope.graph).byFile.values()].find(x => x.slug === d[2] && docRoute(x.file)?.project === d[1]);
@@ -38,10 +39,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     claimWrite(target.file, { session, by: body.by ?? (session ? undefined : 'agent:wye') });
     await withFileLock(file, async () => { const md = await readFile(file, 'utf8'); await writeAtomic(file, `${md.replace(/\s+$/, '')}\n\n\`\`\`yaml\n${block}\n\`\`\`\n`); });
     await rebuild(scope.product.dir);
-    if (plan) await embedInDefinition(scope.product.dir, product, body.plan!, [id]);
-  } else if (plan) {
-    // no home yet: defined on the plan under Definition, the person moves it later (the id stays)
-    file = plan.file;
+    if (pr) await embedInDefinition(scope.product.dir, product, body.pr!, [id]);
+  } else if (pr) {
+    // no home yet: defined on the request under Definition, the person moves it later (the id stays)
+    file = pr.file;
     claimWrite(path.relative(REPO_ROOT, file), { session });
     await withFileLock(file, async () => {
       const md = await readFile(file, 'utf8');
@@ -52,7 +53,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
       await writeAtomic(file, next);
     });
     await rebuild(scope.product.dir);
-  } else return NextResponse.json({ error: 'invalid', message: 'doc or plan required' }, { status: 422 });
+  } else return NextResponse.json({ error: 'invalid', message: 'doc or pr required' }, { status: 422 });
   if (session) recordArtifact(scope.product.dir, session, { node: id }).catch(() => {});
-  return NextResponse.json({ ok: true, id, file: path.relative(REPO_ROOT, file), plan: body.plan ?? null }, { status: 201 });
+  return NextResponse.json({ ok: true, id, file: path.relative(REPO_ROOT, file), pr: body.pr ?? null }, { status: 201 });
 }

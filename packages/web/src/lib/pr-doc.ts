@@ -1,27 +1,27 @@
-// The plan document (req:wf2.sessions.plan-doc, rule:plan-doc): one per request that starts work — a new session or
-// a fresh-context message (decision:wf2.plan-per-request) — created by the app from templates/docs/plan-request.md
+// The plan document (req:wf2.sessions.pr-doc, rule:pr-doc): one per request that starts work — a new session or
+// a fresh-context message (decision:wf2.plan-per-request) — created by the app from templates/docs/pr.md
 // under the project's Plans page (decision:wf2.plans-folder), finished by the app with the result. Pure: the slug,
 // the body, the result section scoped to the plan's window, the frontmatter edits, a session's plans read from the
 // graph; the IO lives in lib/plan-docs.
-import type { BlockChange, Session, SessionPlan, SessionStatus } from './session-types';
+import type { BlockChange, Session, SessionPr, SessionStatus } from './session-types';
 
-// The Plans page of a project: `plans.md`, node module:<project>-plans — every plan document is a sub-page of it
-// (decision:wf2.plans-folder); the rail shows it as a system folder, not in the Documents tree (rule:plans-folder).
-export const plansPageId = (projectSlug: string) => `module:${projectSlug}-plans`;
+// The PRs page of a project: `prs.md`, node module:<project>-requests — every request is a sub-page of it;
+// the rail shows it as a system folder, not in the Documents tree (rule:prs-folder).
+export const prsPageId = (projectSlug: string) => `module:${projectSlug}-prs`;
 
 const STOP = new Set(['a', 'an', 'the', 'to', 'of', 'in', 'on', 'for', 'and', 'or', 'is', 'it', 'be', 'me', 'my', 'so', 'as', 'at', 'by', 'do', 'we', 'i', 'that', 'this', 'with', 'from', 'into', 'when', 'then', 'not', 'must', 'should', 'please', 'can', 'you']);
 
-// `plan-` + the first telling words of the request (stop words dropped, six at most), `-2`, `-3`… when taken.
-export function planSlug(request: string, taken: Iterable<string> = []): string {
+// `pr-` + the first telling words of the request (stop words dropped, six at most), `-2`, `-3`… when taken.
+export function prSlug(request: string, taken: Iterable<string> = []): string {
   const words = request.toLowerCase().replace(/[`*_#>\[\]()]/g, ' ').split(/[^a-z0-9]+/).filter(w => w && !STOP.has(w));
-  const base = `plan-${(words.slice(0, 6).join('-') || 'request').slice(0, 48).replace(/-+$/, '')}`;
+  const base = `pr-${(words.slice(0, 6).join('-') || 'request').slice(0, 48).replace(/-+$/, '')}`;
   const have = new Set(taken);
   if (!have.has(base)) return base;
   for (let n = 2; ; n++) if (!have.has(`${base}-${n}`)) return `${base}-${n}`;
 }
 
 // The title: the first non-empty line of the request, markdown stripped, cut at 90 characters.
-export function planTitle(request: string): string {
+export function prTitle(request: string): string {
   const line = request.split('\n').map(l => l.trim()).find(Boolean) ?? 'request';
   const plain = line.replace(/^#+\s*/, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`]/g, '').trim();
   return plain.length > 90 ? `${plain.slice(0, 89).replace(/\s+\S*$/, '')}…` : plain || 'request';
@@ -29,7 +29,7 @@ export function planTitle(request: string): string {
 
 // partOf: what the request task is part of (req:exec.request-is-a-task) — the goal or node it was sent from;
 // task: the task the session was assigned (req:exec.dispatch) — embedded on the plan instead of a new request task
-export type PlanDocVars = { slug: string; title: string; date: string; session: string; agent: string; started: string; parent: string; request: string; from: string; partOf?: string; task?: string; role?: 'worker' | 'librarian' };
+export type PrDocVars = { slug: string; title: string; date: string; session: string; agent: string; started: string; parent: string; request: string; from: string; partOf?: string; task?: string; role?: 'worker' | 'librarian' };
 
 // The request task (req:exec.request-is-a-task, decision:exec.task-is-the-unit): `task:<plan-slug>` on the plan
 // document — the request itself as a work item, on the Work view from the first second.
@@ -37,16 +37,17 @@ export const requestTaskId = (slug: string) => `task:${slug}`;
 
 // Fill the template. A request is quoted line by line so its own headings and blocks stay prose; `from` is the
 // line that names where the request came from (document, node, refs) as tags — empty when nothing is known.
-export function planDocBody(template: string, v: PlanDocVars): string {
+export function prDocBody(template: string, v: PrDocVars): string {
   const request = v.request.trim().split('\n').map(l => `> ${l}`).join('\n');
   // the request task's text can carry no parenthesis or hashtag: they would read as its properties or status
   const taskTitle = v.title.replace(/[()#]/g, ' ').replace(/\s+/g, ' ').trim();
   const requestTask = v.task ? `![[${v.task}]]` : `- [ ] ${requestTaskId(v.slug)} ${taskTitle} #in-progress (worker: ${v.agent}, session: ${v.session}${v.partOf ? `, part-of: ${v.partOf}` : ''})`;
-  let out = template.replace(/\{\{(slug|title|date|session|agent|started|parent|request|from|task|requesttask|role)\}\}/g, (_, k: string) => k === 'request' ? request : k === 'requesttask' ? requestTask : k === 'role' ? (v.role === 'librarian' ? 'librarian' : '') : v[k as keyof PlanDocVars] ?? '');
+  let out = template.replace(/\{\{(slug|title|date|session|agent|started|parent|request|from|task|requesttask|role)\}\}/g, (_, k: string) => k === 'request' ? request : k === 'requesttask' ? requestTask : k === 'role' ? (v.role === 'librarian' ? 'librarian' : '') : v[k as keyof PrDocVars] ?? '');
   if (!v.parent) out = out.replace(/^part-of: \n/m, '');
   if (!v.task) out = out.replace(/^task: \n/m, '');
-  if (v.role !== 'librarian') out = out.replace(/^role: \n/m, '');
-  else out = out.replace(/^status: proposed$/m, 'status: defining'); // a librarian is on it (decision:exec.plan-lifecycle)
+  // the page is born with someone on it (decision:wf2.pr-lifecycle): refining under a librarian, building under a worker
+  if (v.role !== 'librarian') { out = out.replace(/^role: \n/m, ''); out = out.replace(/^status: draft$/m, 'status: building'); }
+  else out = out.replace(/^status: draft$/m, 'status: refining');
   if (!v.from) out = out.replace(/\n{3,}## Context/, '\n\n## Context');
   return out;
 }
@@ -61,17 +62,17 @@ export function fromLine(s: Pick<Session, 'refs' | 'source'>, docNode?: string):
 }
 
 // The app path of a plan document ref (product/project/slug).
-export function planDocPath(ref: string): string { const [product, project, slug] = ref.split('/'); return `/${product}/${project}/d/${slug}`; }
+export function prDocPath(ref: string): string { const [product, project, slug] = ref.split('/'); return `/${product}/${project}/d/${slug}`; }
 
 const MARK: Record<BlockChange['change'], string> = { added: 'added', changed: 'changed', removed: 'removed' };
 
-// The plan's window (decision:wf2.plan-result-owned-by-app): only blocks credited between `started` and `finished`
+// The request's window (decision:wf2.plan-result-owned-by-app): only blocks credited between `started` and `finished`
 // (ISO strings, compared as such) count, and never the plan's own page or the Plans page (`exclude`).
-export type PlanWindow = { started?: string; finished?: string; exclude?: string[] };
+export type PrWindow = { started?: string; finished?: string; exclude?: string[] };
 
 // The Result section's body: the summary, then the blocks the plan produced (one line each, the id as a tag —
 // never at the start of the line, which would define it), paragraphs as a count with a link to the changes page.
-export function resultSection(s: Pick<Session, 'id' | 'product' | 'status' | 'result' | 'artifacts'>, w: PlanWindow = {}): string {
+export function resultSection(s: Pick<Session, 'id' | 'product' | 'status' | 'result' | 'artifacts'>, w: PrWindow = {}): string {
   const lines: string[] = [];
   lines.push((s.result ?? '').trim() || `_The session ended with status ${s.status} and no summary._`);
   const out = new Set(w.exclude ?? []);
@@ -79,7 +80,7 @@ export function resultSection(s: Pick<Session, 'id' | 'product' | 'status' | 're
   const typed = blocks.filter(b => !b.id.startsWith('block:'));
   const prose = blocks.length - typed.length;
   if (typed.length) {
-    lines.push('', 'Blocks this plan produced:', '');
+    lines.push('', 'Blocks this request produced:', '');
     for (const b of typed) lines.push(`- ${MARK[b.change]} ${b.id}${b.title ? ` — ${b.title.replace(/\n/g, ' ').slice(0, 120)}` : ''}`);
   }
   if (prose) lines.push('', `${prose} paragraph${prose === 1 ? '' : 's'} added or changed — [per document](/${s.product}/sessions/${s.id}/changes)`);
@@ -98,17 +99,17 @@ export function withResult(md: string, body: string): string {
   return `${md.slice(0, start)}\n${body}\n${next === -1 ? '' : '\n'}${md.slice(end)}`;
 }
 
-// The request task when its plan ends (req:exec.request-is-a-task): review when the agent did not mark it done —
-// a person checks — and done stays done; a cancelled or failed plan leaves it open (todo) for the next worker.
-export function requestTaskStatusOnEnd(taskStatus: string, planStatus: PlanEndStatus): string {
+// The request task when its build ends (req:exec.request-is-a-task): review when the agent did not mark it done —
+// a person checks — and done stays done; a cancelled or failed request leaves it open (todo) for the next worker.
+export function requestTaskStatusOnEnd(taskStatus: string, prStatus: PrEndStatus): string {
   if (taskStatus === 'done') return 'done';
-  return planStatus === 'done' ? 'review' : 'todo';
+  return prStatus === 'done' ? 'review' : 'todo';
 }
 
-// The plan's status when its session ends (or a fresh request replaces it while it runs): done / failed /
-// cancelled follow the session; anything else means the plan was left unfinished — cancelled.
-export type PlanEndStatus = 'done' | 'failed' | 'cancelled';
-export function planStatusOnEnd(status: SessionStatus): PlanEndStatus { return status === 'done' || status === 'failed' ? status : 'cancelled'; }
+// The request's status when its build session ends (or a fresh request replaces it while it runs): done / failed /
+// cancelled follow the session; anything else means it was left unfinished — cancelled.
+export type PrEndStatus = 'done' | 'failed' | 'cancelled';
+export function prStatusOnEnd(status: SessionStatus): PrEndStatus { return status === 'done' || status === 'failed' ? status : 'cancelled'; }
 
 // A key's value from the frontmatter, undefined when absent.
 export function getFrontmatter(md: string, key: string): string | undefined {
@@ -117,15 +118,15 @@ export function getFrontmatter(md: string, key: string): string | undefined {
   return m ? m[1].trim() || undefined : undefined;
 }
 
-// A worker's plans (SessionPlan), read from the graph (decision:wf2.plan-per-request): every plan node whose
-// `session` names the session's id, oldest first, with its task counts (tasks `part of` the plan; done = status done).
-type PlanGraph = { nodes: { id: string; kind: string; title: string; status: string; body: string; file: string; defined?: boolean }[]; edges: { from: string; to: string; verb: string }[] };
-export function plansOf(product: string, g: PlanGraph, sessionId: string): SessionPlan[] {
+// A worker's PRs (SessionPr), read from the graph (decision:wf2.plan-per-request): every pr node whose
+// `session` names the session's id, oldest first, with its task counts (tasks `part of` the request; done = status done).
+type PrGraph = { nodes: { id: string; kind: string; title: string; status: string; body: string; file: string; defined?: boolean }[]; edges: { from: string; to: string; verb: string }[] };
+export function prsOf(product: string, g: PrGraph, sessionId: string): SessionPr[] {
   const prop = (body: string, key: string) => body.match(new RegExp(`^${key}:[ \\t]*(.*)$`, 'm'))?.[1].trim() || undefined;
   const byId = new Map(g.nodes.map(n => [n.id, n]));
-  const out: SessionPlan[] = [];
+  const out: SessionPr[] = [];
   for (const n of g.nodes) {
-    if (n.kind !== 'plan' || n.defined === false) continue;
+    if (n.kind !== 'pr' || n.defined === false) continue;
     if (!(prop(n.body, 'session') ?? '').split(/\s+/).includes(sessionId)) continue;
     const m = n.file.match(/projects\/([^/]+)\/docs\/([^/]+)\.md$/); if (!m) continue;
     const tasks = g.edges.filter(e => e.to === n.id && e.verb === 'part-of' && byId.get(e.from)?.kind === 'task').map(e => byId.get(e.from)!);
@@ -143,9 +144,9 @@ export function setFrontmatter(md: string, key: string, value: string): string {
   return `---\n${body}\n---${md.slice(fm[0].length)}`;
 }
 
-// ---- the Definition (decision:exec.plan-lifecycle, req:exec.plan-defined, req:exec.definition-tracked)
+// ---- the Definition (decision:wf2.pr-lifecycle, req:exec.plan-defined, req:exec.definition-tracked)
 
-// The ids in a plan's Definition section: embedded (`![[id]]`), defined as a card (`- id: x`) or as a prose line.
+// The ids in a request's Definition section: embedded (`![[id]]`), defined as a card (`- id: x`) or as a prose line.
 export function definitionIds(md: string): string[] {
   const sec = sectionBody(md, 'Definition'); if (sec === null) return [];
   const ids: string[] = [];
@@ -168,9 +169,9 @@ export function withDefinition(md: string, ids: string[]): string {
   const lines = fresh.map(id => `![[${id}]]`).join('\n\n');
   const m = md.match(/^## Definition[^\n]*\n/m);
   if (!m || m.index === undefined) {
-    const plan = md.match(/^## Plan[^\n]*\n/m);
+    const next = md.match(/^## Impact[^\n]*\n/m) ?? md.match(/^## Tasks[^\n]*\n/m) ?? md.match(/^## Plan[^\n]*\n/m);
     const block = `## Definition\n\n${lines}\n\n`;
-    return plan && plan.index !== undefined ? `${md.slice(0, plan.index)}${block}${md.slice(plan.index)}` : `${md.replace(/\s+$/, '')}\n\n${block}`;
+    return next && next.index !== undefined ? `${md.slice(0, next.index)}${block}${md.slice(next.index)}` : `${md.replace(/\s+$/, '')}\n\n${block}`;
   }
   const start = m.index + m[0].length; const rest = md.slice(start); const next = rest.search(/^## /m);
   const end = next === -1 ? md.length : start + next;
@@ -189,9 +190,18 @@ export function definitionState(ids: string[], lookup: (id: string) => { status:
   const agreed = items.filter(i => i.agreed).length; const missing = items.filter(i => i.missing).length;
   return { total: items.length, agreed, open: items.length - agreed - missing, missing, contradicted, defined: items.length > 0 && agreed === items.length && !contradicted.length, items };
 }
-// The plan's next status from its Definition (decision:exec.plan-lifecycle): defining ↔ defined; other statuses stay.
-export function planStatusFromDefinition(status: string, d: DefinitionState): string {
-  if (status === 'defining' && d.defined) return 'defined';
-  if (status === 'defined' && !d.defined) return 'defining';
-  return status;
+
+// The Tasks section's task ids: `- [ ] task:x …` / `- [x] task:x …` lines, top level only.
+export function taskLines(md: string): string[] {
+  const sec = sectionBody(md, 'Tasks'); if (sec === null) return [];
+  return sec.split('\n').map(l => l.match(/^-\s+\[[ xX]\]\s+(task:[A-Za-z0-9_.\-]+)\s/)?.[1]).filter((x): x is string => !!x);
+}
+
+// Readiness (decision:wf2.pr-lifecycle): computed, never a status — what must hold before the person approves.
+// `impactFresh` is the scheduler's "the scope was computed after the last Definition change"; until then always true.
+export type Readiness = { definition: boolean; agreed: boolean; impact: boolean; contradictions: boolean; tasks: boolean; ok: boolean; unagreed: string[]; contradicted: string[] };
+export function readiness(d: DefinitionState, taskCount: number, impactFresh = true): Readiness {
+  const unagreed = d.items.filter(i => !i.agreed).map(i => i.id);
+  const r = { definition: d.total > 0, agreed: d.total > 0 && unagreed.length === 0, impact: impactFresh, contradictions: d.contradicted.length === 0, tasks: taskCount > 0, unagreed, contradicted: d.contradicted };
+  return { ...r, ok: r.definition && r.agreed && r.impact && r.contradictions && r.tasks };
 }

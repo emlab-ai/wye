@@ -3,7 +3,7 @@ import { getProduct } from '@/lib/products';
 import { getSession, updateSession, type SessionStatus } from '@/lib/sessions';
 import { openInSession, liveState } from '@/lib/agent-host';
 import { openTarget } from '@/lib/open-target';
-import { plansOf } from '@/lib/plan-doc';
+import { prsOf } from '@/lib/pr-doc';
 import { loadScope } from '@/lib/scope';
 
 // GET → the session ; PATCH { status?, line?, result? } → appends to the log / changes status (used by runners and Cancel);
@@ -13,7 +13,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ product
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const s = await getSession(p.dir, id); if (!s) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const scope = await loadScope(product);
-  return NextResponse.json({ ...s, ...(s.mode === 'chat' ? liveState(s.id) : {}), plans: scope ? plansOf(product, scope.graph, s.id) : [] }, { headers: { 'cache-control': 'no-store' } });
+  return NextResponse.json({ ...s, ...(s.mode === 'chat' ? liveState(s.id) : {}), prs: scope ? prsOf(product, scope.graph, s.id) : [] }, { headers: { 'cache-control': 'no-store' } });
 }
 export async function PATCH(req: Request, { params }: { params: Promise<{ product: string; id: string }> }) {
   const { product, id } = await params;

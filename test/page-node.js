@@ -61,10 +61,10 @@ title: TODO
 
 # TODO
 `);
-// a plan page as the app writes it (templates/docs/plan-request.md) in a product with no ontology document of its own
-const plan = w('plan-x.md', `---
-node: plan:x
-type: plan
+// a plan page as the app writes it (templates/docs/pr.md) in a product with no ontology document of its own
+const plan = w('pr-x.md', `---
+node: pr:x
+type: pr
 title: Do X
 status: proposed
 owner: unassigned
@@ -105,12 +105,12 @@ assert(!has(warnings, /team:platform: undeclared property (title|status|icon|ord
 assert(has(errors, /ghost\.md: node ghost:x — ghost is not a declared type/), 'unknown kind reported: ' + errors.join(' | '));
 assert(!data.modules.some(m => m.id === 'ghost:x'), 'the ghost page is not a module');
 
-// --- type:plan is a base type (rule:plan-type-base): a plan page parses in any product, its props declared
-const p = g.node('plan:x');
-assert(p && p.defined && p.kind === 'plan', 'plan:x is the document node of a product without its own type:plan: ' + errors.join(' | '));
-assert(data.modules.some(m => m.id === 'plan:x'), 'the plan page is in the graph');
-assert(!has(warnings, /plan:x: undeclared property (session|agent|started)/), 'session, agent, started are declared on type:plan: ' + warnings.filter(x => x.includes('plan:x')).join(' | '));
-assert((g.out.get('plan:x') || []).some(e => e.verb === 'part-of' && e.to === 'module:todo'), 'part-of from the frontmatter is an edge');
+// --- type:pr is a base type (rule:pr-type-base): a plan page parses in any product, its props declared
+const p = g.node('pr:x');
+assert(p && p.defined && p.kind === 'pr', 'pr:x is the document node of a product without its own type:pr: ' + errors.join(' | '));
+assert(data.modules.some(m => m.id === 'pr:x'), 'the plan page is in the graph');
+assert(!has(warnings, /pr:x: undeclared property (session|agent|started)/), 'session, agent, started are declared on type:pr: ' + warnings.filter(x => x.includes('pr:x')).join(' | '));
+assert((g.out.get('pr:x') || []).some(e => e.verb === 'part-of' && e.to === 'module:todo'), 'part-of from the frontmatter is an edge');
 
 // --- the frontmatter type: line is not read
 assert(!has(warnings, /module:todo: undeclared property type/), 'type: is a bookkeeping key');

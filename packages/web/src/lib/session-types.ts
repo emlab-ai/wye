@@ -7,15 +7,15 @@ export type SessionMode = 'run' | 'chat';
 // Work waiting for the agent: sent one at a time (batch 'one') or all pending items joined into one message ('all').
 // An item keeps its life on the session record (decision:wf2.queue-item-state): addedAt → sentAt (handed to the
 // agent, its turn is open) → doneAt | failedAt (that turn ended; `error` says how it failed). `fresh` asks the host
-// to restart the agent from nothing before handing the item over (rule:clean-slate), `plan` for the plan-first
+// to restart the agent from nothing before handing the item over (rule:clean-slate)
 // section in that first message.
-export interface QueueItem { id: string; text: string; refs?: string[]; link?: string; images?: string[]; addedAt: string; sentAt?: string; doneAt?: string; failedAt?: string; error?: string; fresh?: boolean; plan?: boolean }
+export interface QueueItem { id: string; text: string; refs?: string[]; link?: string; images?: string[]; addedAt: string; sentAt?: string; doneAt?: string; failedAt?: string; error?: string; fresh?: boolean; }
 export type QueueState = 'waiting' | 'working' | 'done' | 'failed';
 export const queueState = (q: Pick<QueueItem, 'sentAt' | 'doneAt' | 'failedAt'>): QueueState => q.failedAt ? 'failed' : q.doneAt ? 'done' : q.sentAt ? 'working' : 'waiting';
 // What the console and the Agents page show of a queue: every item with its state (no refs, links or images).
-export type QueueItemView = { id: string; text: string; addedAt: string; sentAt?: string; doneAt?: string; failedAt?: string; error?: string; fresh?: boolean; plan?: boolean; state: QueueState };
+export type QueueItemView = { id: string; text: string; addedAt: string; sentAt?: string; doneAt?: string; failedAt?: string; error?: string; fresh?: boolean; state: QueueState };
 export type QueueView = { items: QueueItemView[]; batch: 'one' | 'all' };
-export const queueView = (items: QueueItem[] | undefined, batch: 'one' | 'all' | undefined): QueueView => ({ items: (items ?? []).map(q => ({ id: q.id, text: q.text, addedAt: q.addedAt, sentAt: q.sentAt, doneAt: q.doneAt, failedAt: q.failedAt, error: q.error, fresh: q.fresh, plan: q.plan, state: queueState(q) })), batch: batch ?? 'one' });
+export const queueView = (items: QueueItem[] | undefined, batch: 'one' | 'all' | undefined): QueueView => ({ items: (items ?? []).map(q => ({ id: q.id, text: q.text, addedAt: q.addedAt, sentAt: q.sentAt, doneAt: q.doneAt, failedAt: q.failedAt, error: q.error, fresh: q.fresh, state: queueState(q) })), batch: batch ?? 'one' });
 // "1 working · 2 waiting · 5 done" — the states that have items, in that order; failed counts as well
 export const queueSummary = (items: Pick<QueueItem, 'sentAt' | 'doneAt' | 'failedAt'>[]): string => {
   const n: Record<QueueState, number> = { working: 0, waiting: 0, done: 0, failed: 0 };
@@ -30,16 +30,15 @@ export const nextTake = <T extends Pick<QueueItem, 'sentAt' | 'fresh'>>(queue: T
   const i = pending.findIndex(q => q.fresh);
   return i === -1 ? pending : pending.slice(0, i);
 };
-// plan: the agent understands and proposes before it builds (rule:plan-first) — set by the command palette
 // a block the session added, changed or removed (req:wf2.sessions.block-attribution)
 export type BlockChange = { id: string; change: 'added' | 'changed' | 'removed'; doc: string; title: string; at: string };
 // task: the task this session was assigned (req:exec.dispatch) — its plan document embeds it instead of writing a
 // request task; role: worker (builds) or librarian (reads Wye, explains, proposes — never code; decision:exec.wye-is-a-role)
 export type SessionRole = 'worker' | 'librarian';
-export interface Session { id: string; product: string; agent: string; mode?: SessionMode; plan?: boolean; planDoc?: string; task?: string; role?: SessionRole; queue?: QueueItem[]; batch?: 'one' | 'all'; status: SessionStatus; createdAt: string; updatedAt: string; instruction: string; refs: string[]; source: SessionSource; log: { t: string; line: string }[]; result?: string; runner?: string; startedAt?: string; finishedAt?: string; parent?: string; children?: string[]; cwd?: string; images?: string[]; agentSessionId?: string; transcript?: ChatEvent[]; totalCostUsd?: number; artifacts?: { docs: string[]; nodes: string[]; blocks?: BlockChange[] }; live?: boolean; busy?: boolean; plans?: SessionPlan[] }
+export interface Session { id: string; product: string; agent: string; mode?: SessionMode; prDoc?: string; /** stored by sessions from before Prompt Requests; read as prDoc */ planDoc?: string; task?: string; role?: SessionRole; queue?: QueueItem[]; batch?: 'one' | 'all'; status: SessionStatus; createdAt: string; updatedAt: string; instruction: string; refs: string[]; source: SessionSource; log: { t: string; line: string }[]; result?: string; runner?: string; startedAt?: string; finishedAt?: string; parent?: string; children?: string[]; cwd?: string; images?: string[]; agentSessionId?: string; transcript?: ChatEvent[]; totalCostUsd?: number; artifacts?: { docs: string[]; nodes: string[]; blocks?: BlockChange[] }; live?: boolean; busy?: boolean; prs?: SessionPr[] }
 // A worker's work items (decision:wf2.plan-per-request): the plan documents whose `session` names this session, read
 // from the graph by the API — not stored on the record.
-export type SessionPlan = { ref: string; node: string; title: string; status: string; started?: string; finished?: string; tasks: { done: number; total: number } };
+export type SessionPr = { ref: string; node: string; title: string; status: string; started?: string; finished?: string; tasks: { done: number; total: number } };
 // A conversation's process may outlive its recorded status: `wf session done` marks the work done while claude or codex
 // stays up to take the next message. `live`/`busy` come from the API (agent-host#liveState), never from disk.
 // Tokens of one turn: `in` everything the model read (fresh, cache writes and cache reads), `out` what it wrote,
