@@ -2,13 +2,14 @@
 node: plan:plan-build-one-too
 type: plan
 title: build this one too
-status: proposed
+status: done
 owner: unassigned
 last-verified: 2026-09-19
 session: de966d3bd9
 agent: claude-code
 started: 2026-09-19T13:05:04.876Z
 part-of: module:v2-plans
+finished: 2026-09-19T14:22:21.240Z
 ---
 
 # build this one too
@@ -327,4 +328,158 @@ Follow-ups this session left:
 
 ## Result
 
-_Written by the app when the session ends: the summary and the blocks this plan produced._
+Built the execution PRD (module:prd-execution) in five commits, one per area, plus tests and knowledge. E.1 — the task is the unit: type:task gains worker, priority, blocked-by, change and the #ready mark, review joins the statuses; every request's plan carries the request as task:<plan-slug>; lib/work derives queued / working / stalled / held / unassigned from the session records; page:web/work replaces Tasks (groups, URL filters, mine, done folded); Assign hands a task to a person, an agent or the runner pool with the packet in the first message; the task panel shows the result and Review into the Inbox. E.4 — Later (⌥↵) and ＋ capture a task under the node or on the plan's Backlog; inbox notes file as tasks; wf work list|add|next|assign; wf agent listen --take-ready. E.2 — change records from the watcher's rebuild diff (one path for every writer), old and new side by side in the Inbox with a word diff, verdicts, changed-since, Accept / Revert, the changed badge, the packet marks pending nodes. E.3 — lib/impact.js (content first, two hops with decay and paths, no sibling hops), verbatim repeats without a call, verdicts through the judge with cache and budget, impact: auto | manual | off; update patches applied from the card, rework → backlog task, contradicts → contradiction, ask → question; wf impact, ctx impact --explain. E.5 — the librarian: Ask Wye starts claude with prompts/librarian-system.md and a closed tool set on a plan with a Definition; wf propose, wf plan, wf explain / Explain on nodes; blocks it writes embed automatically; defined when every block is agreed and nothing contradicts; Build assigns the request with the Definition as context and the Result maps what was built. Verified: 42 Chrome checks on a scratch product, the librarian and impact live with the real models; 27 requirements shipped; module:app-work documents the code. Proposed on the plan: 7 decisions (build order, changes from the diff, impact through the judge, librarian on the host, order = document then priority, definition-home fallback, Later is ⌥↵, rework on the backlog), a lesson on dev-reload registries; open: question:exec.ask-wye-default. Follow-ups: task:exec.librarian-replay, task:exec.impact-benchmark, task:exec.switch-impact-on, task:exec.librarian-codex, task:exec.definition-on-the-plan-page, task:exec.attribution-by-claim.
+
+Blocks this plan produced:
+
+- added decision:exec.build-order — The execution PRD is built E.1 → E.4 → E.2 → E.3 → E.5, one commit per area, model pieces behind flags
+- added decision:exec.changes-from-the-rebuild-diff — Change records are made from the watcher's rebuild diff, not by every writer; writers only tag who
+- added decision:exec.impact-through-the-judge — Impact judgements go through lib/judge.js's model call with their own prompt, cache and budget
+- added decision:exec.librarian-on-the-host — The librarian is Claude Code on the existing host with its own system prompt and a tool allow-list; one clean session pe
+- added decision:exec.order-is-document-then-priority — Within a plan the order of task lines is the order; across plans `priority` orders, lower first
+- added decision:exec.definition-home-fallback — When a proposed block has no home document yet, Wye writes it on the plan under Definition and says so
+- added question:exec.ask-wye-default — Does "Ask Wye" become the command box's default, replacing "New conversation · plan first"?
+- added task:exec.impl.task-props — type:task gains worker, priority, blocked-by (inverse blocks), change, ready;
+- added task:exec.impl.request-task — the plan template and lib:plan-doc write the request as `task:<plan-slug>` with worker and session;
+- added task:exec.impl.work-api — lib/work.ts pure (derived state from session records:
+- added task:exec.impl.work-view — page:web/work replaces the Tasks entry:
+- added task:exec.impl.assign — Assign on a row and on the task panel:
+- added task:exec.impl.task-result — the task panel's result:
+- added task:exec.impl.capture — "Later" in the command box (⇧↵) and "+ backlog" on nodes and documents write a task line to the plan document 
+- added task:exec.impl.take-ready — `#ready` on task lines;
+- added task:exec.impl.change-store — lib/changes.ts + store:changes (`_changes/<id>.json`) written from the watcher's rebuild diff with attribution
+- added task:exec.impl.change-card — component:change-card in the Inbox under Changes:
+- added task:exec.impl.impact-lib — lib/impact.js pure:
+- added task:exec.impl.impact-run — op:api.impact:
+- added task:exec.impl.impact-outcomes — Apply / Skip / Apply all (op:api.impact.apply, stale-candidate check);
+- added task:exec.impl.impact-cli — `wf impact <id> --after` and `ctx impact --semantic --explain`;
+- added task:exec.impl.librarian-role — role on the session record;
+- added task:exec.impl.wye-context-card — the Context card in the context column:
+- added task:exec.impl.wye-turns — the librarian's first turn (explain with tags), the question form along when / then / unless, `wf propose` wri
+- added task:exec.impl.plan-definition — type:plan statuses (proposed, defining, defined, building, done, cancelled) and the Definition section in lib:
+- added task:exec.impl.build — Build on a plan:
+- added task:exec.impl.tests — unit tests per lib (work states, plan-doc request task, change record, impact candidates, impact apply, rework
+- changed type:task — task
+- changed task:exec.task-props — type:task gains worker, priority, blocked-by (inverse blocks) and the review status;
+- changed task:exec.request-task — The plan template and lib:plan-doc write the request as a task line with worker and session;
+- changed task:exec.work-api — op:api.work:
+- changed task:exec.work-view — page:web/work replaces the Tasks entry:
+- changed task:exec.assign — Assign on a row and on the task panel:
+- changed task:exec.task-result — The task panel's result:
+- changed task:exec.capture — "Later" in the command box and "+ backlog" on nodes and documents write a task line to the plan document or un
+- changed task:exec.take-ready — `#ready` on task lines;
+- changed task:exec.change-store — store:changes and op:api.changes:
+- changed task:exec.change-card — component:change-card in the Inbox under Changes:
+- changed task:exec.impact-lib — lib:impact pure:
+- changed task:exec.impact-run — op:api.impact:
+- changed task:exec.impact-outcomes — Apply / Skip / Apply all for patches (op:api.impact.apply, stale-candidate check);
+- changed task:exec.impact-cli — `wf impact <id> --after` and `ctx impact --semantic --explain`;
+- added plan:plan-why-t-type-space-typing-answer — why i can't type space when typing answer??? also no answer in details, it must be like…
+- added task:plan-why-t-type-space-typing-answer — why i can't type space when typing answer???
+- added decision:wf2.answer-is-content — A question's answer is its content, edited with the block editor; no `answer:` key
+- added task:wf2.prose-area — Card prose sections keep local state;
+- added task:wf2.answer-content — Question card:
+- added task:wf2.details-q-once — Details panel shows q once and labels a question's content as its answer part of plan:plan-why-t-type-space-ty
+- added task:wf2.answer-rules — rule:card-essence and rule:card-fold updated through `wf impact` part of plan:plan-why-t-type-space-typing-ans
+- changed task:app.trace-requirements — For every requirement in the PRD that the app satisfies, add the component, lib or op that satisfies it to its
+- added plan:plan-work-task-app-trace-requirements-every — Work on task:app.trace-requirements: For every requirement in the PRD that the app…
+- changed rule:card-fold — Every card's header carries `FoldToggle` when the node has content — a chip "▸ n blocks" whose click opens the
+- changed rule:card-essence — A question card shows q and its answer; the answer is the question's content (decision:wf2.answer-is-content) 
+- changed req:wf2.ui.card-preview — A card of a node with content shows only its own first block; the content is in the details
+- added task:wf2.prose-newlines — A newline typed in a card's prose section (q, context, choice, alternatives) is folded to a space on save (`fi
+- changed req:exec.backlog-for-agents — An agent can read the backlog and add to it
+- changed task:exec.librarian-role — Session role on the record;
+- changed task:exec.wye-context-card — The Context card in the context column:
+- changed task:exec.wye-turns — The librarian's first turn (explain with tags, say when satisfied or contradicting), the question form along w
+- changed task:exec.plan-definition — type:plan statuses and the Definition section in lib:plan-doc;
+- changed task:exec.build — Build on a plan:
+- added module:app-work — Work, changes, impact and the librarian
+- added rule:work-state — A task's status is the word on its line (todo, open, in-progress, blocked, review, done — `#ready` a mark besi
+- added rule:work-nesting — On the Work view a plan's tasks nest under the plan's request task (`task:<plan-slug>`, written by the plan te
+- added rule:assign-refusal — Assign refuses a done task and a task blocked by a task that is not done (422 with the reason); a task a sessi
+- added rule:capture-home — A captured task line goes under the node it was captured from when that node has a document and takes content 
+- added rule:take-ready — A runner started with `--take-ready` asks op:api.work.next when nothing is queued for it; the app answers with
+- added rule:change-record — Change records are made from the watcher's rebuild diff, one code path for every writer: for each changed type
+- added rule:change-review — Accept marks the record accepted by the person and nothing else moves; Revert writes `before` back through the
+- added rule:impact-candidates — An edit's structural candidates are the changed node's content first (its `has` children, undecayed), then two
+- added rule:impact-run — An impact run belongs to a pending change record: candidates are computed and stored on the record at once; wi
+- added rule:impact-apply — Apply writes a proposed update through the node writer (the edited text when the person changed it) only when 
+- added rule:librarian-tools — A session with role librarian is claude on the host with prompts/librarian-system.md as its system prompt, in 
+- added rule:definition — A plan's Definition section holds ids at its top level — `![[id]]` embeds, cards, prose lines; what is indente
+- added rule:build — Build assigns a plan's request task with `build: <plan ref>`: the instruction gains the Definition — every blo
+- added page:web/work — Every task of the product as one list, whoever holds it (req:exec.work-view): status, derived state, plan or g
+- added component:work-list — the Work view's grid — rows nested per rule:work-nesting, groups, chips, the I-am name, the Assign / Build dia
+- added component:assign — the Assign / Build dialog — a person, an agent (a conversation, plan first, folder) or the runner pool, a note
+- added component:task-work — a task's Work section in the column (req:exec.done-comes-back) — state, worker, Assign, Build and the plan's D
+- added component:change-card — the Inbox's Changes group (req:exec.change-kept, req:exec.change-review) — old and new per changed key with a 
+- added component:impact-card — the impact set on a change card (req:exec.impact-set, req:exec.impact-patch) — candidates grouped by verdict w
+- added component:context-card — the Context card at the top of a librarian conversation (req:exec.wye-context) — the packet's nodes and the se
+- added component:explain-card — Explain on any node (req:exec.explain-anywhere) — one librarian turn, the current state around the node with t
+- added component:changed-badge — the "changed" badge on a node's header while a change record on it is pending; the old value on hover, a link 
+- added lib:work — Pure: `workItems(graph, idx, sessions)` (rule:work-state, rule:work-nesting), `filterWork`, `groupWork`, `work
+- added lib:work-io — loadWork (sessions from disk, live state from the host, the plans' Definition counts), assignTask (rule:assign
+- added lib:changes — change records (rule:change-record) — nodeValue, changedKeys, tracking keys, claims, recordsFromDiff (pure), t
+- added lib:diff — a word-level LCS diff for the change card and the impact patches
+- added lib:impact — Shared by ctx and the app: structuralCandidates (rule:impact-candidates), verbatimUpdate, judgeImpact — the im
+- added lib:impact-run — the run on a change record (rule:impact-run) — candidatesFor with the semantic hits, scheduleImpact from the w
+- added lib:explain — one librarian turn (req:exec.explain-anywhere) — the packet and the context around a node or a text to the mod
+- added store:changes — One record per edit of a typed node (decision:exec.change-record): node, document, file and line, before and a
+- added op:api.work — api.work
+- added op:api.work.assign — api.work.assign
+- added op:api.work.next — api.work.next
+- added op:api.changes — api.changes
+- added op:api.impact — api.impact
+- added op:api.impact.apply — api.impact.apply
+- added op:api.propose — api.propose
+- added op:api.plan — api.plan
+- added op:api.explain — api.explain
+- added flag:impact — impact
+- added flag:auto-take — auto-take
+- added flag:impact-model — impact-model
+- changed test:web-lib — vitest over the pure modules of the web app — also packages/web/src/lib/presets.test.ts and packages/web/src/l
+- added test:impact — impact
+- added ui-test:work-view — work-view
+- added ui-test:work-assign — work-assign
+- added ui-test:change-review — change-review
+- added ui-test:ask-wye — ask-wye
+- added ui-test:build-plan — build-plan
+- added test:librarian — The librarian's turns on a recorded conversation: explains with tags, asks only unfilled slots, proposes into 
+- changed req:exec.work-view — One Work view lists every task of the product, whoever holds it
+- changed req:exec.work-states — A task's live state comes from its sessions; its status stays on the line
+- changed req:exec.dispatch — A task is handed to a worker from where it is listed
+- changed req:exec.request-is-a-task — A request sent to an agent is on the Work view from the moment it is sent
+- changed req:exec.done-comes-back — A finished task shows what it produced and what it asks for
+- changed req:exec.human-work — A person's work is on the same view as an agent's
+- changed req:exec.change-kept — An edit of a typed node keeps its old value
+- changed req:exec.change-review — A pending change is accepted or reverted in the Inbox
+- changed req:exec.change-validated — A change is validated on write like a new block
+- changed req:exec.impact-set — An edit's change card shows what it reaches and why
+- changed req:exec.impact-patch — A proposed update is a patch with old and new, applied from the card
+- changed req:exec.impact-rework — An update that is more than a line becomes a task on the Work view
+- changed req:exec.impact-contradiction — A candidate the new value cannot hold with becomes a contradiction
+- changed req:exec.impact-sub-items — A node's own content is the first thing an edit reaches
+- changed req:exec.impact-for-agents — An agent gets the same impact analysis for an edit it is about to make
+- added ui-test:explain — explain
+- changed req:exec.capture — A work item is captured in one gesture, from anywhere, without assigning it
+- changed req:exec.ready-for-runners — A runner takes only what a person marked ready
+- changed req:exec.ask-wye — A request typed to Wye starts a definition conversation on its own plan
+- changed req:exec.wye-context — Wye finds what the product knows and shows it in the context column while it reads
+- changed req:exec.wye-explains — Wye explains the current state before it proposes anything
+- changed req:exec.wye-asks — Wye asks along the requirement shape, few questions, as a form
+- changed req:exec.wye-proposes — Wye proposes the definition as blocks in their home documents, embedded on the plan
+- changed req:exec.plan-defined — A plan is defined when its Definition is agreed
+- changed req:exec.build-from-definition — A defined plan is built by any worker from its Definition
+- changed req:exec.definition-tracked — Every change a definition conversation proposes is tracked as part of the plan
+- changed req:exec.explain-anywhere — What do we know about this?" works on any node without starting a request
+- changed task:exec.ui-tests — ui-test:work-view, ui-test:work-assign, ui-test:change-review in Chrome (playwright-core):
+- added decision:exec.later-is-alt-enter — Later in the command box is a button and ⌥↵; ⇧↵ stays a new line
+- added decision:exec.rework-on-the-backlog — A rework verdict becomes a task on the project's backlog, not a "Follow up" plan document
+- added lesson:exec.registries-survive-dev-reloads — A registry kept on globalThis (the session end hooks, the watcher, the write claims) survives Next's dev reloa
+- added task:exec.librarian-replay — test:librarian as a recorded replay:
+- added task:exec.impact-benchmark — A benchmark for impact verdicts once a few live runs exist:
+- added task:exec.switch-impact-on — Set `impact:
+- added task:exec.librarian-codex — The librarian on codex:
+- added task:exec.definition-on-the-plan-page — Show the Definition's state (n blocks, k agreed, j open, contradicted) on the plan document's header and in th
+- added task:exec.attribution-by-claim — Credit blocks to a session by its write claim rather than to every running session (the Definition already doe
+
+72 paragraphs added or changed — [per document](/waterfall/sessions/de966d3bd9/changes)

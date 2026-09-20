@@ -2,13 +2,14 @@
 node: plan:plan-told-show-card-additional-blocks-only
 type: plan
 title: i told you not to show in the card, additional blocks only first one, the reset is in…
-status: proposed
+status: done
 owner: unassigned
 last-verified: 2026-09-18
 session: a4dbc39398
 agent: claude-code
 started: 2026-09-18T22:07:03.152Z
 part-of: module:v2-plans
+finished: 2026-09-18T22:18:28.572Z
 ---
 
 # i told you not to show in the card, additional blocks only first one, the reset is in…
@@ -62,4 +63,30 @@ Code: component:node-cards (`FoldToggle`, `CardHost.fold`), `EditorCard` in DocE
 
 ## Result
 
-_Written by the app when the session ends: the summary and the blocks this plan produced._
+Cards no longer show any of a node's content: the card is the node's text, properties and a '▸ n blocks' chip that opens the details (the content is edited there). Root cause: req:wf2.ui.card-preview had the card show the first content block and a single block whole — task:new-226's one child rendered in full. EditorCard now hides every child block (still blocks and in the file), the chip opens the details, the caret inside a hidden block shows them via the editor's selection and folds on leaving; embeds drop the ContentPreview. ui-test:node-content rewritten, 28/28; block-select 15/15, table-filter 25/25, 203 unit tests, tsc clean. req:wf2.ui.card-preview and rule:card-fold rewritten; decision:wf2.card-shows-no-content proposed; task:wf2.card-no-content and task:wf2.card-no-content-verify done. Commit b1cc792.
+
+Blocks this plan produced:
+
+- changed page:web/context-column — web/context-column
+- changed rule:content-editor — content-editor
+- changed op:node.content — node.content
+- changed component:node-editor — node-editor
+- changed task:wf2.content-text-first — The column's node view is properties first, then one Content editor whose first block is the node's text (deci
+- changed ui-test:node-content — node-content
+- added plan:plan-hide-noise-like-tasks-ok-keep — hide noise like this from tasks?
+- added req:wf2.ui.produced-collapsed — What a task's sessions produced is folded at the bottom of the column
+- added rule:produced-collapsed — produced-collapsed
+- added decision:wf2.produced-kept-collapsed — Produced stays on a task, folded at the bottom of the column
+- added decision:wf2.produced-not-remembered — The Produced fold is not remembered across nodes
+- added task:wf2.produced-bottom — Move Produced below Connected in the column for a goal or task (PeekPanel NodeView) part of plan:plan-hide-noi
+- added task:wf2.produced-collapsed — Produced is a bar with show / hide:
+- added task:wf2.produced-test — Extend ui-test:node-content:
+- added task:wf2.produced-knowledge — Ship req:wf2.ui.produced-collapsed and rule:produced-collapsed, update component:produced, req:wf2.ui.node-pag
+- changed component:node-cards — node-cards
+- changed rule:card-fold — card-fold
+- changed req:wf2.ui.card-preview — A card of a node with content shows only its own first block; the content is in the details
+- added decision:wf2.card-shows-no-content — A card shows none of its content; the count chip opens the details
+- added task:wf2.card-no-content — EditorCard hides every child block (not only beyond the first), the chip opens the details (wf:select / the pe
+- added task:wf2.card-no-content-verify — ui-test:node-content rewritten for the new fold (none of the children has a height, the chip opens the details
+
+31 paragraphs added or changed — [per document](/waterfall/sessions/a4dbc39398/changes)

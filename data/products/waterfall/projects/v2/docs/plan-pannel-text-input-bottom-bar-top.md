@@ -10,6 +10,7 @@ agent: claude-code
 started: 2026-09-18T11:57:12.331Z
 finished: 2026-09-18T12:16:51.532Z
 part-of: module:v2-plans
+order: 30
 ---
 
 # the pannel / text input at the bottom and bar on top must not be scrollable, content is…

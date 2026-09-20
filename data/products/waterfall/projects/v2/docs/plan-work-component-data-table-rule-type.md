@@ -2,13 +2,14 @@
 node: plan:plan-work-component-data-table-rule-type
 type: plan
 title: Work on component:data-table, rule:type-tables, rule:goals-and-tasks.
-status: proposed
+status: done
 owner: unassigned
 last-verified: 2026-09-18
 session: bd2ece3698
 agent: claude-code
 started: 2026-09-18T15:13:58.067Z
 part-of: module:v2-plans
+finished: 2026-09-18T17:17:57.569Z
 ---
 
 # Work on component:data-table, rule:type-tables, rule:goals-and-tasks.
@@ -159,4 +160,51 @@ Built as planned, with three things the build found (all in rule:table-filter):
 
 ## Result
 
-_Written by the app when the session ends: the summary and the blocks this plan produced._
+Data table filters shipped (req:wf2.editor.table-filter, rule:table-filter): the table header has a filter toggle and toolbar — search, status chips with counts, a chip row per enum / bool column, a select per ref column (owner for goals and tasks), n of m, clear — matched with lib/instance-table#filterRows; the filters live on the marker line (<!-- table:bug status=open priority=high -->, decision:wf2.table-filter-on-marker) via COLLECTION_OPEN / serialize.ts; rows that do not match are hidden by a style element the header renders, never removed (decision:wf2.table-filter-hides-rows); the trailing empty row and the row the cursor is in are never hidden; the query is written with setNodeMarkup; a row text click whose block is not the cursor block brings the selection along (fixes one-row-per-letter after a toolbar transaction). ui-test:table-filter 25/25 in Chrome (self-contained scratch product), table-scroll 14/14, 191 unit tests, tsc clean; committed b7ff5d5. Open: question:wf2.table-filter-sort (sort / group in the editor table). Sent to the inbox: req shipped, rule shipped, 2 decisions proposed, 1 question open.
+
+Blocks this plan produced:
+
+- added req:wf2.editor.table-filter — A data table can be filtered by the person reading it
+- added decision:wf2.table-filter-on-marker — A data table keeps its filters on its marker line, like a view block
+- added decision:wf2.table-filter-hides-rows — A filter hides rows in the editor; the rows stay children of the table and stay in the file
+- added question:wf2.table-filter-sort — wf2.table-filter-sort
+- added task:table-filter-req — Write req:wf2.editor.table-filter under Tables on app-documents, proposed;
+- added task:table-filter-marker — `COLLECTION_OPEN` accepts a trailing key=value query, the collection block gets a `query` prop, `collectionMar
+- added task:table-filter-toolbar — The Data table header gets a filter toggle and toolbar (search, status chips with counts, a chip row per enum 
+- added task:table-filter-rule — rule:table-filter shipped under Tables on app-documents (source:
+- added task:table-filter-ui-test — ui-test:table-filter in test-design:
+- added plan:plan-improve-context-window-click-element-would — improve context window, when i click to the element, i would like to be able to add…
+- added decision:wf2.connected-rows-expand-to-cards — A connected row expands in place into the node's embedded card
+- added task:connected-cards-rows — Expand toggle on every Connected and tracking row;
+- added task:connected-cards-groups — Cards / tags toggle on every group heading part of plan:plan-improve-context-window-click-element-would
+- added task:connected-cards-css — The expanded card spans the column under its row part of plan:plan-improve-context-window-click-element-would
+- added task:connected-cards-ui-test — Verify in Chrome via playwright-core:
+- added task:connected-cards-knowledge — req:wf2.ui.connected-cards and rule:connected-cards shipped, component:peek-panel refined, ui-test recorded pa
+- changed component:peek-panel — peek-panel
+- changed page:web/context-column — web/context-column
+- added req:wf2.ui.connected-cards — A connected node opens as its card under its row in the context column
+- added rule:connected-cards — connected-cards
+- added ui-test:connected-cards — connected-cards
+- added plan:plan-still-bad-now-need-click-tag — still bad!
+- added action:select-block — a click anywhere on a typed block of the document selects it: the Context root shows the node (rule:block-sele
+- added req:wf2.ui.block-select — A click anywhere on a block shows its node in the context column
+- added rule:block-select — block-select
+- added goal:ontology.graph-editor — The document is a graph editor
+- added question:ontology.child-nodes — How is a child node — a comment on a block — written in the markdown?
+- added task:ontology.block-select — A click anywhere on a typed block — card, row, embed, text included — selects it and the context column shows 
+- added task:ontology.paragraph-select — A click in a plain paragraph selects its block node:
+- added task:ontology.children-in-column — The context column shows a node's `content` — its child blocks:
+- added decision:wf2.block-click-selects — A click anywhere on a block selects it; the column's Context root shows the node
+- added decision:wf2.graph-editor-is-a-goal — The graph-editor vision is a goal on the ontology design, built in steps
+- added task:block-select-provider — `select(id)` and `focused` on PeekProvider;
+- added task:block-select-blocks — `onSelect` on CardHost, attached to the outermost element of ProseCard, QuestionCard and DecisionCard (clicks 
+- added task:block-select-ui-test — ui-test:block-select in Chrome via playwright-core on a scratch product:
+- added task:block-select-knowledge — req:wf2.ui.block-select and rule:block-select shipped on dev-design;
+- added task:ontology.child-nodes-design — The uniform content model (decision:ontology.uniform-content):
+- added ui-test:block-select — block-select
+- added decision:ontology.uniform-content — Every node has the same `content` field — a list of child blocks — and everything else related is a ref
+- changed component:data-table — data-table
+- added rule:table-filter — table-filter
+- added ui-test:table-filter — table-filter
+
+99 paragraphs added or changed — [per document](/waterfall/sessions/bd2ece3698/changes)

@@ -5,7 +5,7 @@ title: Plans
 status: active
 owner: unassigned
 last-verified: 2026-09-18
-part-of: module:wf2
+order: 50
 ---
 
 # Plans

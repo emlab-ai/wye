@@ -22,7 +22,10 @@ Write here. An `id: kind:slug` inside a yaml block becomes a card; a `kind:slug`
 bug:new-396 i should be able to insert image to the block content, i.e into a bug/task
 
 <!-- table:bug -->
-- bug:when-i-select-a When i select a bug in side bug table it must show bug card in teh context panel, the same way as bug block #done (priority: p1)
+- bug:when-i-select-a When i select a bug in side bug table it must show bug card in teh context panel, the same way as bug blockasdf #done (priority: p1)
+  - [ ] task:new-640 subtask 1the same data
+  - [x] task:check-the-row-folds check the row folds in the table
+
 - bug:no-need-to-add no need to add all types like "Bugs table", "managers table" etc, instead we need do add one generic datatable? and in the properteis add type #done
 - bug:properties-need-to-be Properties must be editable on the card, like in Asana: text and every property, in the context panel #done (priority: p1)
 - bug:palette-paste-images The ⌘P command box must accept pasted (and dropped) images the way the session composer does — a screenshot of what to fix travels with the request to the agent #done (priority: p1)

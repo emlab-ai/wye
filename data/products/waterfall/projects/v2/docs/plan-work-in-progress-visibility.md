@@ -2,13 +2,15 @@
 node: plan:plan-work-in-progress-visibility
 type: plan
 title: Work-in-progress visibility — a Plans folder, a plan per request, all work items on the Agents page
-status: proposed
+status: done
 owner: unassigned
 last-verified: 2026-09-18
 session: 07aa6645ad
 agent: claude-code
 started: 2026-09-18T12:21:39Z
 part-of: module:v2-plans
+finished: 2026-09-18T12:46:43.506Z
+order: 50
 ---
 
 # Work-in-progress visibility — a Plans folder, a plan per request, all work items on the Agents page
@@ -149,9 +151,56 @@ task below records the fix to make.
 - [x] task:plans-in-agents-view GET /api/<product>/sessions joins the graph: `plans` per session (ref, node, title, status, started, finished, tasks done/total) from plan nodes with `session: <id>`; component:session-list renders the work list under each row with the current plan marked and drops "plan ↗"; component:session-view shows the current plan and the earlier count. Part of plan:plan-work-in-progress-visibility, part of decision:wf2.plan-per-request. (session: 07aa6645ad)
 - [x] task:plan-type-props type:plan declares `session`, `agent`, `started`, `finished`; component:doc-props shows `session` as a link that opens the conversation. Closes task:plan-type-agent-prop. Part of plan:plan-work-in-progress-visibility. (session: 07aa6645ad)
 - [x] task:plans-ui-test ui-test:plans in Chrome (playwright-core): a fresh request on a live conversation makes a second plan under Plans; the Agents row lists both with the first done and the second running; `wf session done` writes one Result with only this plan's blocks; ending twice keeps one Result. Part of plan:plan-work-in-progress-visibility. (session: 07aa6645ad)
-- [ ] task:plans-knowledge After shipping: rule:plan-doc, req:wf2.sessions.plan-doc and req:wf2.sessions.plan-result refined and shipped; question:wf2.plan-doc-parent resolved; session 672f4fdf3d's tasks (plan-doc-lib, plan-doc-create, plan-first-prompt, plan-doc-result, plan-doc-links, session-page-retire) set done where the code is in; commit. Part of plan:plan-work-in-progress-visibility.
+- [x] task:plans-knowledge After shipping: rule:plan-doc, req:wf2.sessions.plan-doc and req:wf2.sessions.plan-result refined and shipped; question:wf2.plan-doc-parent resolved; session 672f4fdf3d's tasks (plan-doc-lib, plan-doc-create, plan-first-prompt, plan-doc-result, plan-doc-links, session-page-retire) set done where the code is in; commit. Part of plan:plan-work-in-progress-visibility. (session: 07aa6645ad)
 - [ ] task:artifacts-credit-by-session lib:artifacts credits every running session with every block change on disk, so two workers at once (or a plan's window) get each other's blocks; credit by the writer instead (x-wf-session on API writes; for disk writes, the session whose process's cwd and agent match, else all running). Part of module:app-agents, follows decision:wf2.plan-result-owned-by-app.
 
 ## Result
 
-_Written by the app when the session ends._
+Work in progress is visible as plans. Every request that starts work — a new session (chat or queued) or a fresh-context message — gets a plan document plan-<slug> under the project's Plans page (plans.md, created by the app; the tree shows them there, the page carries a live view of type:plan), with session, agent, started in its card; the agent's first message always names it and says where tasks, questions and decisions go; the session's tasks are its `- [ ] task:` lines, ticked as work goes; when the session ends the app writes one Result (the summary and the blocks produced inside the plan's window) and sets status/finished — ending twice no longer appends (this session's earlier plan carried its result three times). One worker, many plans: the Agents rows list every plan of a session (status, title → the page, tasks done/all, when, the current one marked) instead of a single 'plan ↗'; the session head shows the same list; a plan's header shows its session as a link. A fresh request closes an unfinished plan as cancelled; a handoff carries the plan on. Decisions (proposed, on plan-work-in-progress-visibility): decision:wf2.plans-folder (resolves question:wf2.plan-doc-parent), decision:wf2.plan-per-request, decision:wf2.plan-result-owned-by-app. req:wf2.sessions.plan-doc / plan-result and rule:plan-doc shipped; ui-test:plans passed (27 checks, Chrome + API + a live probe). Session 3805823665 moved type:plan to the base ontology in parallel (ffe2df6). Commit 239c96a; 7 tasks done. Open: task:artifacts-credit-by-session — every running session is credited with every block change, so a plan's block list is only as exact as that.
+
+Blocks this plan produced:
+
+- added plan:plan-pannel-text-input-bottom-bar-top — the pannel / text input at the bottom and bar on top must not be scrollable, content is…
+- added plan:plan-text-which-sent-agent-beginning-no — this text, which is sent to agent at the beginning, can you no show it, it is kind of…
+- added task:plan-type-agent-prop — The plan pages the app writes (plan:plan-…, type:plan) carry `agent:` and `session:` in their frontmatter;
+- added decision:wf2.plans-folder — Every plan document is a sub-page of one Plans page per project
+- added decision:wf2.plan-per-request — A plan document for every request that starts work; a worker's history is its list of plans
+- added decision:wf2.plan-result-owned-by-app — The app owns a plan's Result section and scopes the blocks to the plan's time window
+- added task:plans-folder — lib/plan-docs:
+- added task:plan-per-request — createSession (chat and queue) and restartFresh create a plan document for every request, plan-first ticked or
+- added task:plan-result-owned — lib/plan-doc:
+- added task:plans-in-agents-view — GET /api/<product>/sessions joins the graph:
+- added task:plan-type-props — type:plan declares `session`, `agent`, `started`, `finished`;
+- added task:plans-ui-test — ui-test:plans in Chrome (playwright-core):
+- added task:plans-knowledge — After shipping:
+- added task:artifacts-credit-by-session — lib:artifacts credits every running session with every block change on disk, so two workers at once (or a plan
+- changed type:plan — moved from waterfall/v2/ontology.md to schema/base-ontology.md (extends module;
+- added plan:plan-plan-system-type-waterflow-project-specific — plan must be system type, not waterflow project specific
+- added rule:plan-type-base — plan-type-base
+- added decision:wf2.plan-type-is-base — type:plan is a base type in schema/base-ontology.md, not a card of the waterfall product
+- added task:wf2.plan-type-move-base — Move the type:plan card from data/products/waterfall/projects/v2/docs/ontology.md to schema/base-ontology.md (
+- added task:wf2.plan-type-kinds-yaml — Add `plan` to schema/kinds.yaml (purpose, required:
+- added task:wf2.plan-type-test — test/page-node.js:
+- added task:wf2.plan-type-knowledge — app-agents.md "type:plan (ontology, proposed)" → base ontology;
+- changed component:session-view — session-view
+- changed component:session-list — session-list
+- changed req:wf2.sessions.plan-doc — Every request that starts work becomes a plan document under the project's Plans page
+- changed req:wf2.sessions.plan-result — The plan document ends with the result — the app's section, scoped to the plan
+- changed rule:plan-doc — plan-doc
+- changed lib:plan-doc — plan-doc
+- added component:plan-list — plan-list
+- changed ui-test:plan-doc — A palette request makes a plan document; the result lands on it
+- changed decision:wf2.plan-is-a-document — A plan is a document of its own — plan-<slug> under the page it was asked on — not a derived session page
+- changed question:wf2.plan-doc-parent — wf2.plan-doc-parent
+- changed task:plan-doc-lib — lib:plan-doc (pure, vitest):
+- changed task:plan-doc-create — createSession and a fresh queue item with `plan:
+- changed task:plan-first-prompt — PLAN_FIRST names the plan document (path and node) and says where blocks go:
+- changed task:plan-doc-result — the PATCH that sets a session done / failed / cancelled writes the Result section (summary, blocks, paragraphs
+- changed task:plan-doc-links — "page ↗" on the session head (component:session-view), the Agents rows (component:session-list) and the consol
+- changed task:session-page-retire — `/<product>/sessions/<id>` redirects to the plan document (else to `/changes`);
+- changed task:plan-doc-ui-test — Run ui-test:plan-doc in Chrome (playwright-core) against a live palette request;
+- changed task:plan-doc-knowledge — After shipping:
+- changed page:web/sessions — Agents
+- added ui-test:plans — plans
+
+80 paragraphs added or changed — [per document](/waterfall/sessions/07aa6645ad/changes)

@@ -10,6 +10,7 @@ agent: claude-code
 started: 2026-09-18T11:59:17.596Z
 finished: 2026-09-18T12:14:24.419Z
 part-of: module:v2-plans
+order: 40
 ---
 
 # this text, which is sent to agent at the beginning, can you no show it, it is kind of…

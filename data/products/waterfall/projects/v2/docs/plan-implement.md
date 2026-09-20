@@ -2,13 +2,14 @@
 node: plan:plan-implement
 type: plan
 title: implement this
-status: proposed
+status: done
 owner: unassigned
 last-verified: 2026-09-19
 session: 9f3d83809b
 agent: claude-code
 started: 2026-09-19T11:17:38.825Z
 part-of: module:v2-plans
+finished: 2026-09-19T11:59:39.188Z
 ---
 
 # implement this
@@ -111,4 +112,408 @@ Follow-ups this session left:
 
 ## Result
 
-_Written by the app when the session ends: the summary and the blocks this plan produced._
+Built 10 of the 12 tasks of module:memory-review (goal:memory.validated-asks), 9 commits on main. Bitemporal nodes: since/until/by/evidence/supersedes on type:node, statuses superseded/retired, parser fills until + superseded-by, ended and archived nodes leave wf context / ctx search / packet unless --all or --as-of (decision:memory.bitemporal, req:memory.current-by-construction shipped). type:constraint + Constitution view + ## Constitution in the agent prompt; six proposed constraints in project.md (two already approved). The constraint packet: lib/graph.js#constraints, ctx constraints, op:api.packet, wf packet --for, and ## Constraints in force in every first message (decision:memory.constraint-packet, req:memory.intake-packet shipped). Shapes on type cards enforced by ctx check (decision:memory.shapes). Forgetting: ended plans archived for retrieval (629 nodes), rail folds them (decision:memory.forgetting). Verdict pass: lib/judge.js through claude -p (cached, budgeted, model + prompt hash), ctx verdicts, ctx check --deep, watcher hook behind verdicts: on, Inbox shows verdicts and approving with an open contradiction asks supersede / refine / dismiss; op:api.verdicts, wf verdicts (decision:memory.write-time-verdict, req:memory.verdicts shipped). Benchmark: recall 17 % / precision 100 % on haiku — the drift rows are doc-vs-reality, question:memory.benchmark-positives open (test-design). Consolidation on session done behind consolidate: on (decision:memory.consolidate-sessions). Not built: the code-source spike (its two questions are open). New proposed decisions on the plan: decision:memory.model-calls-via-cli, decision:memory.consistent-verdicts-in-the-log, decision:memory.statuses-stay-with-the-person. Follow-ups: task:memory.impl.idle-consolidation, task:memory.impl.supersession-chain, task:memory.impl.benchmark-positives, task:memory.impl.switch-on, task:memory.impl.consolidated-blocks-in-changes.
+
+Blocks this plan produced:
+
+- added decision:memory.model-calls-via-cli — The verdict pass and the consolidation run call the agent CLI the app already runs, one-shot
+- added task:memory.impl.bitemporal — since, until, superseded-by / supersedes, by, evidence on type:node;
+- added task:memory.impl.constraint-type — type:constraint and type:lesson in the base ontology;
+- added task:memory.impl.packet — the constraint packet:
+- added task:memory.impl.shapes — `shapes:` on type cards read by the parser and enforced by ctx check;
+- added task:memory.impl.forgetting — archived-for-retrieval:
+- added task:memory.impl.decision-statuses — statuses on the status-less decisions in waterfall's documents.
+- added task:memory.impl.verdicts — the write-time verdict pass:
+- added task:memory.impl.benchmark — the hide-one-edge regression over the contradicts edges, behind WATERFALL_LIVE=1.
+- added task:memory.impl.consolidate — consolidation on session done:
+- added task:memory.impl.lint-deep — `ctx check --deep` over same-kind pairs sharing a neighbour.
+- changed bug:when-i-select-a — When i select a bug in side bug table it must show bug card in teh context panel, the same way as bug blockasd
+- changed plan:plan-hide-noise-like-tasks-ok-keep — hide noise like this from tasks?
+- changed plan:plan-improve-context-window-click-element-would — improve context window, when i click to the element, i would like to be able to add…
+- changed plan:plan-pannel-text-input-bottom-bar-top — the pannel / text input at the bottom and bar on top must not be scrollable, content is…
+- changed type:plan — plan
+- changed task:waterfall.rename-code — Rename the package names and every user-facing "Waterfall" to Wye in the code, README, prompts and skills;
+- changed plan:plan-table-horizontally-scrollable-just-take-100 — table should horizontally scrollable , not just take 100% width, in small screens it…
+- changed plan:plan-text-which-sent-agent-beginning-no — this text, which is sent to agent at the beginning, can you no show it, it is kind of…
+- changed plan:plan-told-show-card-additional-blocks-only — i told you not to show in the card, additional blocks only first one, the reset is in…
+- changed plan:plan-work-component-data-table-rule-type — Work on component:data-table, rule:type-tables, rule:goals-and-tasks.
+- changed plan:plan-work-in-progress-visibility — Work-in-progress visibility — a Plans folder, a plan per request, all work items on the Agents page
+- changed task:plans-knowledge — After shipping:
+- changed type:decision — decision
+- changed module:todo — TODO
+- changed task:new-917 — if we have codex or claude process running it must be visible as live/active sessions, and rename sessions to 
+- changed task:new-453 — we need to add.
+- added task:new-687 — subtask
+- added bug:new-732 — test
+- added task:new-428 — childe task
+- changed task:memory.bitemporal-props — Add since, until, superseded-by, by, session, evidence to type:node;
+- changed task:memory.constraint-type — Declare type:constraint in the base ontology, move the product's constraints out of _agent.md and the spec's n
+- added task:new-640 — subtask 1the same data
+- added task:check-the-row-folds — check the row folds in the table
+- added constraint:wf2.local-first — Wye runs on the person's machine over the files of this repo. No hosting surface in v2: no multi-user auth, no
+- added constraint:wf2.text-canonical — Text files in git are canonical: a product's knowledge is its markdown documents; nothing is stored apart that
+- added constraint:wf2.person-approves — Nothing resolves a contradiction, retires a decision or deletes memory without a person: agents, the verdict p
+- added constraint:wf2.blocks-not-prose — Decisions, questions, requirements, rules, constraints and tasks are typed blocks in the document they belong 
+- added constraint:wf2.one-defining-place — Every id is defined in exactly one place; every other occurrence is a reference. Ids are stable; a rename rewr
+- added constraint:wf2.main-branch — While Wye is a prototype, work is committed straight to main — no feature branches, no merge menus.
+- added type:constraint — constraint
+- added type:lesson — lesson
+- added type:contradiction — contradiction
+- added type:verdict — verdict
+- added module:prd-execution — PRD — execution: work, workers, and edits with impact
+- added goal:exec.work-and-impact — All work is one list, any worker can take any item, and an edit shows what it changes before it lands
+- added decision:exec.task-is-the-unit — The task is the unit of work; a plan is a request with its tasks; a session is a worker's shift
+- added req:exec.work-view — One Work view lists every task of the product, whoever holds it
+- added req:exec.work-states — A task's live state comes from its sessions; its status stays on the line
+- added req:exec.dispatch — A task is handed to a worker from where it is listed
+- added req:exec.request-is-a-task — A request sent to an agent is on the Work view from the moment it is sent
+- added req:exec.done-comes-back — A finished task shows what it produced and what it asks for
+- added req:exec.human-work — A person's work is on the same view as an agent's
+- added question:exec.auto-dispatch — May a runner take unassigned open tasks on its own, or only tasks that were assigned?
+- added question:exec.priority — How is order expressed — a priority number on the line, the order in the document, or both?
+- added decision:exec.change-record — Every edit of a typed node is written through, and a change record keeps the old and new value with a review state
+- added req:exec.change-kept — An edit of a typed node keeps its old value
+- added req:exec.change-review — A pending change is accepted or reverted in the Inbox
+- added req:exec.change-validated — A change is validated on write like a new block
+- added decision:exec.impact-run — An edit's impact is computed structurally with semantic seeding, then a model judges each reached node and proposes its 
+- added decision:exec.impact-trigger — Impact runs after the person stops editing a typed node, never on every keystroke, and only when something is reached
+- added req:exec.impact-set — An edit's change card shows what it reaches and why
+- added req:exec.impact-patch — A proposed update is a patch with old and new, applied from the card
+- added req:exec.impact-rework — An update that is more than a line becomes a task on the Work view
+- added req:exec.impact-contradiction — A candidate the new value cannot hold with becomes a contradiction
+- added req:exec.impact-sub-items — A node's own content is the first thing an edit reaches
+- added req:exec.impact-for-agents — An agent gets the same impact analysis for an edit it is about to make
+- added question:exec.agent-edits-pending — Does an agent's edit to an approved node wait for review before agents downstream see it as current?
+- added question:exec.impact-model — Which model judges impact, and what does a run cost?
+- added task:exec.task-props — type:task gains worker, priority, blocked-by (inverse blocks) and the review status;
+- added task:exec.request-task — The plan template and lib:plan-doc write the request as a task line with worker and session;
+- added task:exec.work-api — op:api.work:
+- added task:exec.work-view — page:web/work replaces the Tasks entry:
+- added task:exec.assign — Assign on a row and on the task panel:
+- added task:exec.task-result — The task panel's result:
+- added task:exec.change-store — store:changes and op:api.changes:
+- added task:exec.change-card — component:change-card in the Inbox under Changes:
+- added task:exec.impact-lib — lib:impact pure:
+- added task:exec.impact-run — op:api.impact:
+- added task:exec.impact-outcomes — Apply / Skip / Apply all for patches (op:api.impact.apply, stale-candidate check);
+- added task:exec.impact-cli — `wf impact <id> --after` and `ctx impact --semantic --explain`;
+- added task:exec.ui-tests — ui-test:work-view, ui-test:work-assign, ui-test:change-review in Chrome (playwright-core):
+- changed component:console — The live conversation with an agent: every event of the transcript, streamed over SSE, plus a message box. Use
+- changed component:ask-questions — The agent's AskUserQuestion, rendered as a form instead of a permission dump. Answers go back inside the tool'
+- changed component:session-view — One agent session in the right column: what was sent, its status, and the live log (polled while active). The 
+- changed component:session-changes — Everything a session changed in the knowledge base, block by block: per document, the nodes it added, changed 
+- changed component:session-list — All agent sessions of a product, active first; polls while any is active. A row opens the session in the right
+- changed component:queue-list — A conversation's queue with the state of every item (decision:wf2.queue-item-state): the working item first, t
+- changed component:produced — Everything that came out of the sessions that worked on a task: the sessions themselves (with their logs), the
+- changed component:command-box — The one command box (decision:wf2.one-command-box): ⌘P / Ctrl+P opens it with what the person is looking at (t
+- changed lib:agent-host — The agent host: the app runs Claude Code / Codex as child processes for chat sessions, keeps the conversation 
+- changed lib:agent-prompt — The system prompt every agent started by Waterfall receives: the shared contract (prompts/agent-system.md) plu
+- changed lib:graph-diff — What changed between two builds of the graph: defined nodes (typed blocks and block: paragraphs) that are new,
+- changed lib:session-changes — A session's block attribution joined with the current graph (kind, status now, still exists) and grouped per d
+- changed lib:sessions — Agent sessions: work sent from a block, node or page to an agent. Stored as JSON files under the product's _se
+- changed lib:session-types — Shared (browser-safe) session types and the agents that can be chosen; the pure queue helpers — queueState, qu
+- changed lib:transcript — A turn has one user message (a batch is joined into one), so a user event that repeats the previous user event
+- changed lib:resolve — What a link points at: a document, a node, a hashed block or a heading section. Shared by the resolve API (age
+- changed lib:core.wf — The wf CLI: an agent's door into the running app — resolve, doc, node, context, inbox add, session log/done/ta
+- changed page:web/session-changes — A session's changes as a page: every block it added, changed or removed, per document, with the change and kin
+- changed rule:block-attribution — Attribution is per block and derived. The watcher keeps the graph as it last saw it; after every rebuild it di
+- changed page:web/session — A session as a page: the task (instruction, refs, source, the follow-up messages and their states), the page t
+- changed component:session-page — The body of page:web/session: head (agent, status, when, "open conversation"), the task (through component:tra
+- changed lib:session-page — What the session page shows, derived: the todo rows — tasks the session added or changed (artifacts.blocks), t
+- changed rule:session-page — The session page is computed, never stored: lib:session-page joins the session record with the current graph o
+- changed rule:history-nav — ‹ › in the top bar call history.back / history.forward; ⌘[ / ⌘] (Ctrl on Windows) do the same. Whether there i
+- changed component:transcript-markdown — The one markdown renderer for conversation and session text: react-markdown with GFM and lib:remark-tags, `a` 
+- changed lib:app-link — Pure: `appLink(href, origin)` → null for a foreign URL, else `{ path, hash, kind: 'root' | 'doc' | 'node' | 's
+- changed rule:plan-type-base — type:plan is declared in schema/base-ontology.md, read first for every product, so a plan page (`node: plan:<s
+- changed rule:plan-doc — The plan document is written, not derived: lib:plan-doc makes the slug (`plan-` + the first words of the reque
+- changed lib:plan-doc — Pure: `planSlug(request, taken)`, `planTitle`, `planDocBody(template, vars)`, `resultSection(session, window)`
+- changed component:plan-list — A worker's work items (decision:wf2.plan-per-request): the session's plans oldest first — status pill, the tit
+- changed component:doc-editor — The single-page BlockNote editor of a document (rule:single-page-editor): prose blocks, node cards and prose n
+- changed component:data-table — The "Data table" block of the editor (CollectionBlock, RowNode, TypeRow): a header with the type picker and on
+- changed component:document-reader — Read-only rendering of a document (server component). Shown until the editor hydrates, and used by anything th
+- changed component:live-document — Shows the server-rendered reader until the client is ready, then the single-page editor takes over.
+- changed component:doc-props — The document header is the page node's card (req:wf2.page.header-card): a type picker pill (the product's own 
+- changed component:node-card — A yaml flow list \"[a, b, c]\" renders as its items; anything else as linkified text.
+- changed component:drawing-block — An embedded Excalidraw drawing. The markdown keeps a plain image link (![Title](drawings/x.excalidraw)); the s
+- changed component:ask-agent — A command box at the selection: what you type goes to an active conversation together with the selected text, 
+- changed component:node-cards — The cards a typed block renders as — the plain node block, the question card, the decision card — as one set o
+- changed rule:table-scroll — The editor block that holds a data table (the collection block with its child rows) is the horizontal scroll c
+- changed rule:table-filter — A data table's filters live on its opening marker as key=value pairs in the view block's grammar — `<!-- table
+- changed rule:card-fold — Every card's header carries `FoldToggle` when the node has content — a chip "▸ n blocks" whose click opens the
+- changed rule:card-essence — A question card shows q and answer; a decision card shows context, choice and alternatives (in that order, eac
+- changed component:embed-block — An embedded node inside a document: a block whose markdown is one line, `![[kind:slug]]`, rendered as the node
+- changed rule:embed-line — A paragraph whose whole text is `![[kind:slug]]` is an embed of that node. lib/import lifts it to an `embed` b
+- changed rule:page-node-line — The document's node is the `node: kind:slug` line of its frontmatter; the kind is the node's type; a document 
+- changed rule:doc-retype — Changing a page's type changes its id, and the change rewrites every reference to the old id in the product's 
+- changed lib:import — Markdown → editor blocks, in two steps: `prepare` (pure) lifts yaml blocks and rules out of the markdown and l
+- changed lib:serialize — BlockNote blocks → markdown, under our control (BlockNote's own export is lossy). Pure; typed loosely so it ca
+- changed rule:content-lines — Nesting never relies on the markdown parser's own nesting (BlockNote flattens a nested list that follows a par
+- changed lib:node-content — A node's content in its document: `contentExtent` finds the lines under a prose line, a list item or a yaml ca
+- changed lib:mdflow — Join hard-wrapped paragraph lines so the block editor does not turn them into line breaks. Lists, tables, head
+- changed lib:remark-tags — Turns every kind:slug token in text and inline code into a link with href \"#tag:<id>\"; Document.tsx renders 
+- changed lib:anchors — Stable addresses for blocks. A node block is addressed by its id (#n-<id>), a heading by its slug, and any oth
+- changed lib:node-line — A prose node line (\"- [ ] task:x Text #status (k: v)\") taken apart and put back together, so a single node c
+- changed lib:node-edit — Edit the line that defines a prose node, in place, under the file lock; then rebuild the graph.
+- changed lib:props — The trailing \"(key: value, key: value)\" group of a prose node as a map, and back.
+- changed lib:yaml-form — Form ↔ yaml for one node chunk. Pure; used by the card editor (client) and tested with vitest.
+- changed lib:write — Server-only: pure text operations on a document plus the atomic write and the graph rebuild.
+- changed lib:doc — Walk lines keeping absolute character offsets so writers can replace exact spans.
+- changed lib:templates — Document templates for new pages (PRD, design, plan, blank).
+- changed lib:annotations — Annotations as text: what an Excalidraw scene says about the image under it, for an agent that reads words — l
+- changed lib:instances — New instance cards for a type: the card body, and where it goes in the home document.
+- changed lib:type-edit — Edit a type: card in its document text: its own props block (name, value type, required, inverse) and scalar k
+- changed lib:embed — An embedded node, pure: the node as op:api.node returns it → the card props component:node-cards renders (card
+- changed lib:kinds — Per-kind skeletons for new cards, from the required/recommended keys in schema/kinds.yaml.
+- changed lib:core.parse — The parser: markdown → graph. Pass 1 reads type: cards (base ontology + product), pass 2 reads yaml cards, pro
+- changed lib:core.graph — Query layer over graph.json: get, neighbors, search, impact, packet, render, stats and check (structural lint 
+- changed lib:core.ctx — The ctx CLI: build, site, get, neighbors, search, impact, packet, check, stats, reqs — the offline way to read
+- changed page:web/goals — Every goal as a tracking list (search, status chips, sub-goals, progress); a row opens the goal in the context
+- changed page:web/knowledge — Everything the graph knows, by kind; a kind page is component:instance-table over that kind — a declared type 
+- changed page:web/questions — Open question blocks (and inbox questions) first, resolved after; each can be sent to an agent.
+- changed page:web/inbox — Review queue: proposed decisions, requirements, rules and goals and open questions written in the documents — 
+- changed component:track-list — Goals or tasks as a tracking list: search, status filter, nested sub-items; a row opens the item in the right 
+- changed component:node-editor — A node's page in the right column, laid out like a Notion task (task:new-826, bug:properties-need-to-be): the 
+- changed component:question-list — Question blocks and inbox questions as one list, open first; each row sends the question to an agent or opens 
+- changed component:inbox-list — Inbox items to review: each one can be filed into a document as a node (with a suggested document and id) or d
+- changed component:inbox-note — Add a text note (or a pasted conversation) to the product inbox.
+- changed component:review-list — Review what agents wrote into the documents: approve, reject or resolve in place; open the node or its documen
+- changed component:graph-view — React Flow needs to own node state to record measured sizes; re-seed it whenever the computed graph changes.
+- changed component:context-panel — Context for what is being written: the current block's text goes to the product's local semantic search and th
+- changed component:type-rows — Rows of the Types page: the whole row opens the type in the context column; the ↗ and the parent tag are their
+- changed component:instance-table — Every instance of one type (or every node of one kind) as a filterable table: search, status chips with counts
+- changed component:view-block — The `view` block of the editor: a live, read-only component:instance-table of one type inside a document. Its 
+- changed component:type-view — A type in the context column: its card (purpose, extends, open), its own properties as an editable table, the 
+- changed component:add-instance — \"+ add\" on a type page: writes a `<type>:<slug>` card with the type's required properties into the type's ho
+- changed component:add-type — \"+ add type\" on the Types index: writes a `type:<slug>` card (extends, purpose) into the product's ontology 
+- changed lib:graph — ontology (lib/parse.js pass 1): a property of a type, effective on the type (own or inherited from `from`)
+- changed lib:types — Ontology helpers over graph.json: a node's type (its kind prefix), the extends chain, instances of a type and 
+- changed lib:instance-table — Every instance of one type (or every node of one kind) as table rows with a column per declared property, and 
+- changed lib:track — Goals (or tasks) of a product as a tree: an item nests under the goal it is part of when that goal is of the s
+- changed lib:review — The review queue is a view over the documents: nodes agents (or people) wrote that nobody has approved yet. De
+- changed lib:inbox — The inbox: knowledge candidates (decisions, requirements, rules, questions, notes) that agents and people drop
+- changed lib:semantic — Local semantic search over a product's knowledge: every defined node (title + text) is embedded once with a sm
+- changed rule:view-block — A document may hold a view of a type's instances: one line `<!-- view:<slug> key=value … -->` (an HTML comment
+- changed page:web/overview — Product overview: description, projects and goals, knowledge counts by kind.
+- changed page:web/project — Project overview: its documents; opens the main document directly when there is one.
+- changed page:web/new-product — Create a product (title, description, icon) — writes data/products/<slug>/_product.md.
+- changed page:web/plans — Every plan of the product (type:plan, all projects) as the filterable instance table — status, tasks, session,
+- changed component:shell — The app frame: a collapsible rail, the content, and — while a node, context or session is open — the right col
+- changed component:rail — The left rail: product switcher, menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inb
+- changed component:plan-folder — The rail's Plans system folder (req:wf2.ui.plans-folder): the entry to page:web/plans with a caret, and under 
+- changed component:top-bar — The bar above the content, Notion style: sidebar control, back / forward (‹ ›, ⌘[ / ⌘] — rule:history-nav, req
+- changed component:doc-tree — Docmost-style document tree: chevron for documents with children, a dot for leaves, an emoji icon, the title. 
+- changed component:search — Rail search over document titles, headings and node ids/titles; a hit opens the document or the node.
+- changed component:new-doc — a document lives in its parent's project; without a parent the project can be picked when there are several
+- changed component:live-refresh — Follows the product on disk: when an agent or an editor writes a document, the graph, the inbox or a session, 
+- changed component:peek-provider — What the editor is working on right now: the current block's text, the ids it already links, and a function th
+- changed component:peek-panel — The context column itself: the bar (←, the chip stack, ×) fixed at the top and, under it, the one scroller (`.
+- changed component:peek-graph — The open node's neighbourhood as a small mind map inside the panel; clicking a node opens it in the panel.
+- changed component:doc-peek — A document in the right column: its title, status, first paragraph and outline, so a link can be checked witho
+- changed component:smart-tag — A node id as a clickable tag with the kind colour; click opens the node in the context column, ⌘-click on a do
+- changed component:id-link — Renders text with every kind:slug token as a SmartTag; trailing punctuation stays text.
+- changed component:pills — Kind, status and stub pills shared by cards, lists and the peek panel.
+- changed component:progress — A small progress bar; undefined means \"not known\".
+- changed lib:scope — Server-only: everything a page needs for one product (and optionally one project), loaded once per request.
+- changed lib:load — Server-only: the one place the web app touches the filesystem. Keep graph.ts free of node: imports so client c
+- changed lib:knowledge — The knowledge index: how nodes are grouped and named for humans.
+- changed lib:ids — The kind list is open: a product's type: cards add kinds (graph.kinds). setKinds is called with the graph's ki
+- changed lib:presets — Graph presets: which kinds and verbs each view shows (Requirements, Mechanics, Data, Drift, Everything).
+- changed lib:doc-ops — Duplicating and deleting documents from the tree (rule:tree-menu): copySlug (<slug>-copy, -copy-2 …), duplicat
+- changed lib:layout — Every visible edge ranks the layout so non-tree presets (Drift, Data) still spread into layers; only refines/h
+- changed lib:products — Server-only registry of products and projects, read from the data folder: <data>/products/<product>/_product.m
+- changed lib:watch — Watches the product data on disk so the app follows what agents and editors write: any change under data/produ
+- changed lib:artifacts — What a session produced: documents written while it ran (from the disk watcher), nodes it changed (from the no
+- changed lib:desktop.main — The Electron main process: owns the Next.js server as a child, waits until it answers, opens the window; agent
+- changed store:product-file — The product: title, icon, description. Created by op:api.products.create.
+- changed store:project-file — A project or goal: title, kind, status, icon, main document.
+- changed store:documents — The knowledge itself: every document with its frontmatter (node: <kind>:<slug> — the page's node, of any decla
+- changed store:assets — Images pasted or dropped into documents, named <date>-<base>-<hex>.<ext>.
+- changed store:drawings — Excalidraw scenes with their SVG (shown), PNG (for agents) and annotation description (for agents).
+- changed store:build — The parsed graph: nodes, edges, modules, kinds, types, inverses, problems. Rebuilt by ctx build (the app spawn
+- changed store:embeddings — Cached sentence embeddings per node for the local semantic search; refreshed per node when its text changes.
+- changed store:sessions — An agent session: instruction, refs, status, log, result, queue, transcript (chat events), artifacts. Mutated 
+- changed store:session-files — Images attached to a session's messages — pasted into the composer (action:send-message) or into the command b
+- changed store:inbox — Raw material with no document yet: notes, pasted conversations, agent items; filed into a document or dismisse
+- changed store:agent-instructions — Product-specific instructions appended to the agent contract (optional).
+- changed store:base-ontology — The base types every product has, read first by the parser; kinds.yaml is its prose summary.
+- changed store:model-cache — The MiniLM sentence model transformers.js downloads once for the semantic search; nothing leaves the machine.
+- changed rule:hosting-columns — Every table has tenantId (default "local"), createdBy (the agent or user name), createdAt and updatedAt; agent
+- changed entity:task — The unit of intent. Replaces the v0.1 delta file (decision:wf2.tasks-replace-delta-files). Links to the nodes 
+- changed entity:decision — A decision posted by an agent or human. Immutable (rule:decision-immutable); superseded, never edited.
+- changed entity:contradiction — A finding with two sides. Structural rows are upserted from drift nodes and contradicts edges on every parse (
+- changed entity:graph-delta — A proposed change to markdown, produced by the clerk, applied by a person (gate:delta-apply). The patch is a l
+- changed entity:agent-session — Who is talking to the server. Created or touched on every call that names an agent (rule:created-by).
+- changed entity:packet — The v0.1 packet plus, when seeded from a task, the open decisions and contradictions touching its nodes (rule:
+- changed rule:column-frame — The context column is a flex column: `.peek-nav` (the bar) is fixed at the top, `.peek-body` is the one scroll
+- changed rule:connected-cards — The Connected list and a goal's tracking lists share one row (`RelRow`): the expand toggle (`.rel-x`, ▸/▾, onl
+- changed rule:block-select — `PeekProvider` keeps `focused` (the node a click selected) next to the chip stack; `select(id)` sets it, moves
+- changed rule:content-editor — `DocEditor` takes a `scope` — a node id. Scoped, it loads the node's text as its first block and the content m
+- changed rule:produced-collapsed — NodeView renders `Produced` after Connected (list or graph) for a goal or task with sessions; `Produced` is a 
+- changed rule:related-collapsed — The Context root renders Related as a bar with a show / hide button (`Related` in PeekPanel); `ContextPanel` —
+- changed page:skill/context-v2 — The agent contract in tool names — graph.packet before code, decisions.post for every decision, graph.patch be
+- changed rule:markdown-canonical — No DB table stores a node body or edge list; the DB references nodes by id string only. The in-memory graph is
+- changed rule:created-by — The agent name from the X-Agent header or MCP client info is attached to the request context; every row writte
+- changed rule:project-scoped — Every tool resolves its project argument by id or unique name before doing anything else and answers not_found
+- changed rule:question-decision-nodes — The template gains a §D Decisions section (ADR keys date, context, options, choice, consequences, optional dec
+- changed rule:watcher-debounce — File events under a project's graph path are debounced 200 ms per file; a re-parse runs for the whole project,
+- changed rule:last-good-graph — If a parse throws, the registry keeps the previous graph and node hashes, records lastError with file and line
+- changed rule:structural-import — After every parse, each drift node yields one contradiction per contradicts edge pair and each explicit contra
+- changed rule:config-print — On start the server prints a `claude mcp add waterfall -- <stdio command>` line, a `claude mcp add --transport
+- changed rule:one-tool-set — Tools are defined once as {name, schema (zod), handler}; the MCP server registers each as an MCP tool and the 
+- changed rule:error-shape — Handlers throw ToolError(code, message, details); the HTTP layer maps code to status (409 conflict, 422 invali
+- changed rule:sse-refresh — The server emits value:sse-event over GET /api/v1/events; the web app subscribes once per project and refetche
+- changed rule:patch-in-place — The writer locates the node's yaml block by the file and line the parser recorded and the id on its first line
+- changed rule:edge-serialisation — addEdges and removeEdges are written as typed keys when the verb has one (refines, satisfied-by, verified-by, 
+- changed rule:section-map — schema/kinds.yaml gains a sections map from kind to the ## heading the template uses (req → R, entity → 1, val
+- changed rule:if-match — A node's hash is sha256 of its dedented body as the parser produces it; graph.patch requires ifMatch and refus
+- changed rule:validate-before-write — Before touching disk the writer re-parses the patched file text together with the project's other files in mem
+- changed rule:stub-targets-warn — An edge to an id no file describes is accepted; the write result carries warnings listing the stub ids, matchi
+- changed rule:atomic-file-write — A file is written to <file>.tmp-<pid> and renamed over the original; the watcher ignores .tmp- files.
+- changed rule:per-file-queue — Writes are serialised per absolute file path through a promise chain; a write waits for the previous write to 
+- changed rule:cli-fallback — ctx reads WATERFALL_URL (default http://localhost:7777); if a GET /api/v1/projects.list answers within 300 ms 
+- changed rule:clerk-triggers — A clerk run is queued on decisions.post, on tasks.create, on tasks.update when links change, and on clerk.run;
+- changed rule:decision-immutable — The decision table has no update path except clerkStatus; decisions.post with supersedes sets supersedesId on 
+- changed rule:post-wait — decisions.post awaits the queued clerk run with a 5 s timeout; on completion it returns {decision, related, co
+- changed rule:packet-task-seeds — When graph.packet receives a task id, seeds are the task's linked node ids in link order (instead of search hi
+- changed rule:clerk-context — A run's input is the trigger row, graph.packet around the affected nodes (budget from the task or 8000), every
+- changed rule:clerk-tools — The clerk's tool list is graph.get, graph.neighbors, graph.impact, graph.search, graph.packet, decisions.list,
+- changed rule:clerk-no-self-trigger — The clerk's session kind is internal; tasks.create, tasks.update and decisions.post refuse an internal session
+- changed rule:clerk-propose-only — propose_delta stores a graph_delta row with status proposed and returns its id; the clerk process has no refer
+- changed rule:clerk-delta-shape — A decision run's delta contains one create op for a decision node (id decision:<module>.<slug>, keys date, con
+- changed rule:delta-validated — Before a graph_delta row is stored its ops are applied to an in-memory copy of the project files and parsed; a
+- changed rule:delta-atomic — deltas.apply groups ops by file, applies each group through the writer with the current hashes, and if any gro
+- changed rule:clerk-budget — A run stops with status failed and error "budget" after 40 tool calls or when cumulative input tokens exceed 2
+- changed rule:clerk-cache — Before calling the model the runner looks for a done clerk_run with the same inputHash and model; a hit copies
+- changed rule:clerk-classify — For each rule, req and decision in the two-hop neighbourhood the clerk must call report_contradiction with a v
+- changed rule:side-ids — A contradiction side is either a node id (kind:slug) or decision:<uuid>; the UI and the check resolve each sid
+- changed rule:strict-open-contradiction — graph.check with strict adds an error for every open contradiction where either side is a node with status shi
+- changed rule:document-tree — A document is one markdown file in the project's graph folder. The tree comes from has edges between module no
+- changed rule:smart-tags — Every kind:slug token in prose, inline code, table cells and card properties renders as a tag (kind dot, slug;
+- changed rule:segment-write — The web app writes a document by span, never by regenerating it. splitDocument records character offsets for e
+- changed rule:prose-round-trip — Every prose section is a live block editor (the text between yaml blocks and --- rules); yaml blocks and rules
+- changed rule:card-form — A card is always editable in place: title, status (select), when/then/unless, prose keys as growing text areas
+- changed rule:new-document — A new document is created from templates/docs/<template>.md with the title, slug, parent and date filled in; i
+- changed rule:prose-nodes — A paragraph or list item whose first token is an id defines that node (`req:<slug> When a sale …`); the text a
+- changed rule:single-page-editor — A document is one editor. Prose blocks, headings, lists, tables, code and dividers are ordinary blocks; every 
+- changed rule:todo-tasks — A checkbox line whose first token is an id (`- [ ] task:slug Do the thing`) defines that node with status open
+- changed rule:mention-menu — Typing @ in the editor opens a search over every node and document by id or title; choosing one inserts its ta
+- changed rule:context-panel — While a block is being edited, the right panel's Context mode shows the product knowledge closest to that bloc
+- changed rule:goals-and-tasks — Goals and tasks are tracked like Atlassian goals. Every product has a Goals page and a Tasks page (search, sta
+- changed rule:type-tables — A document may hold a table of any type the product declares: the lines between `<!-- table:<slug> -->` and `<
+- changed rule:node-page-layout — The context column shows a node as a page, not a form: the kind and id small on top, the title large and edita
+- changed rule:table-rows — A row of any table (goals, tasks, a type's) is selected by a click anywhere in it — its status select, a prope
+- changed rule:process-is-active — A conversation whose claude or codex process is up is active whatever its recorded status: `wf session done` m
+- changed rule:clean-slate — A request from the command box starts a new conversation by default: the "to" picker opens on "New conversatio
+- changed rule:idle-stop — A claude conversation that is live and idle — no open turn, no queued message — for WF_AGENT_IDLE_MIN minutes 
+- changed rule:agent-sessions — Any block can be sent to an agent: "Send to agent" sits in every block's drag-handle menu, on node block heade
+- changed rule:documents-tree — The rail shows one Documents tree per product: every document with its sub-documents, regardless of the projec
+- changed rule:doc-tree-row-stable — The document tree's row is a module-level component (Row) that takes the tree's shared state as one prop; it i
+- changed rule:tree-menu — Every row of the Documents tree has a context menu — right-click, or the "⋯" shown on hover — with Duplicate a
+- changed rule:plans-folder — The rail treats a project's Plans page (`module:<project>-plans`, lib/plan-docs#plansPageId) as a system folde
+- changed rule:rail-split — The rail is two panes — `.rail-top` (menu, search, the Plans folder) and the Documents pane — with `.rail-spli
+- changed rule:block-links — Every block has a stable link: `<web>/<product>/<project>/d/<doc>#<anchor>` where the anchor is `n-<id>` for a
+- changed rule:agent-runner — External agents connect through the `wf` CLI (bin/wf.js) against the running web app. `wf agent listen --produ
+- changed rule:agent-host — Chat sessions are hosted by the app: the server spawns the agent as a child process (Claude Code with `-p --in
+- changed rule:session-queue — Every message to a chat session goes through the session's persistent queue (items with id, text, refs, link, 
+- changed rule:subagents-in-console — Claude Code runs with --forward-subagent-text; events produced inside a subagent carry the parent tool use id 
+- changed rule:drawings — A drawing is an Excalidraw scene stored beside the document (docs/drawings/<slug>.excalidraw) with an SVG expo
+- changed rule:inline-images — An image can be part of a node's text. Pasting an image while the cursor is in a node block (a bug, a task, a 
+- changed rule:image-annotations — Annotate image" on an image block (drag-handle menu) turns the image into a drawing whose canvas is the image:
+- changed rule:plan-first — A session started from the command palette carries `plan: true`, and its first message ends with a plan-first 
+- changed rule:agent-questions — An agent's question (Claude Code's AskUserQuestion, which arrives as a permission request over the stdio permi
+- changed rule:console-flow — The console is one conversation in time order. Runs of tool calls, results and thinking between two messages f
+- changed rule:live-refresh — The app follows the product on disk: a recursive watcher on data/products/<product> (lib/watch.ts, on globalTh
+- changed rule:questions-view — The Questions page lists every open question about the product: question nodes (kind question or status questi
+- changed rule:task-artifacts — A session's output is traceable from the task it worked on. While a session runs, the app records what it prod
+- changed rule:agent-contract — Every agent Waterfall starts receives the Waterfall contract as its system prompt (prompts/agent-system.md, pl
+- changed rule:inbox-review — The Inbox is a review view over the documents, not a store: it lists the blocks nobody has approved yet — deci
+- changed rule:app-navigation — The app frame has a collapsible rail (hidden by default on document and session pages, shown elsewhere; toggle
+- changed rule:doc-links — A link whose target is a module id is a document link: clicking it (or the module tag) opens that document. Th
+- changed rule:node-cards — A yaml block is split into chunks on id lines exactly as the parser does; a chunk whose id the graph defines r
+- changed rule:deep-links — Every view is a route under /p/<project>; the node page is /n/<id>, the graph /graph?focus=<id>&preset=<name>,
+- changed rule:prose-keys — A yaml key is prose if it is in value:prose-key or its value is a block scalar (> or |); prose keys get the bl
+- changed rule:blocknote-prose-only — BlockNote edits only the text of a prose key; on save its blocks are exported to markdown and written back as 
+- changed rule:mindmap-layout — The graph view lays out the focus node's tree (refines and has edges, outgoing from the focus, depth from the 
+- changed decision:memory.constraint-packet — A request's first message carries the constraints in force, computed structurally, not found by the agent
+- changed decision:memory.bitemporal — Every node can say since when and until when it holds, and what superseded it; current means not ended
+- changed req:memory.current-by-construction — Superseded, rejected and retired knowledge leaves current retrieval, should move legacy knowledge to archive
+- changed decision:memory.write-time-verdict — A new decision, requirement, rule or constraint is classified against its neighbours when it is written, before the Inbo
+- changed decision:memory.constraint-type — A constraint is its own type — a product rule without a code source — and the approved ones are the constitution every a
+- changed decision:memory.consolidate-sessions — When a session ends, what it decided is extracted from the transcript and diffed against what was written
+- changed decision:memory.code-source — Code files are a second source of nodes — a comment whose first token is an id defines that node, with the same grammar 
+- changed rule:ontology.content — lib/parse.js keeps a stack of open containers — list items, named paragraph lines and the last card of a yaml 
+- changed rule:ontology.open-kinds — The id regex is built per parse from the base kinds plus the slugs of every type: card in the base ontology an
+- changed rule:ontology.narrow-only — A child type may only narrow an inherited property — make it required or narrow its ref type to a subtype — ne
+- changed rule:ontology.open-types — A type is closed unless it says `open: true`: instances of a closed type get an "undeclared property" warning 
+- changed rule:ontology.inverse-generated — Inverse edges are generated by the parser (generated: true) and never written to markdown; the CLI graph keeps
+- changed rule:ontology.block-id — A block node's id is block:<document slug>.<hash> where hash is the FNV-1a anchor hash of the decoration-free 
+- changed rule:ontology.hidden-kinds — field, prop and block nodes exist for addressing, links and properties; they are hidden from the rail, the kno
+- changed decision:ontology.base-ontology-referenced — Ontology: the base ontology is one file in the repo (schema/base-ontology.md), read for every product; kinds.yaml stays 
+- changed product:waterfall — The product this graph describes. In the v2 data model a product groups projects (repos); waterfall itself is 
+- changed gate:agent-token — Every API call carries an agent name (HTTP header X-Agent or MCP client info) and is recorded as an agent_sess
+- changed gate:delta-apply — deltas.apply and deltas.reject are allowed for a human user or an agent_session whose kind is marked trusted i
+- changed test:fixture — A trimmed copy of the YesSensei inventory pilot (about 12 reqs, 10 rules, 4 entities, 6 ops, 2 pages, 3 drift 
+- changed test:prose — Prose nodes in the current parser (lib/parse.js): a temp document with id-first paragraphs and list items, ali
+- changed test:server-api — Contract tests. Every case runs twice, once over HTTP and once over an MCP client on stdio, from one table of 
+- changed test:clerk — The clerk with recorded model responses (packages/server/test/fixture/clerk/*.json) so runs are deterministic.
+- changed test:web-lib — vitest over the pure modules of the web app — also packages/web/src/lib/presets.test.ts and packages/web/src/l
+- changed op:api.context — api.context
+- added op:api.packet — api.packet
+- changed task:memory.constraint-packet — Build the constraint packet (op:api.packet, `wf packet --for`) and put it in the first message under "Constrai
+- changed req:memory.intake-packet — A request reaches the agent with the constraints that govern it
+- changed task:memory.shapes — `shapes:` on type cards read by the parser and enforced by ctx check;
+- changed task:memory.forgetting — Archived-for-retrieval state for done plans and closed sessions;
+- changed decision:wf2.plan-is-a-document — A plan is a document of its own — plan-<slug> under the page it was asked on — not a derived session page
+- changed task:memory.decision-statuses — Give the 43 status-less decisions a status (approved where the code follows them, superseded where a later one
+- added decision:exec.backlog-is-unassigned-work — The backlog is the unassigned tasks; the inbox folder stays raw material; a task marked ready may be taken by a runner
+- added req:exec.capture — A work item is captured in one gesture, from anywhere, without assigning it
+- added req:exec.ready-for-runners — A runner takes only what a person marked ready
+- added req:exec.backlog-for-agents — An agent can read the backlog and add to it
+- added goal:exec.define-first — A request is understood, explained and agreed as knowledge before anyone builds it
+- added decision:exec.wye-is-a-role — Wye is a session role — the librarian — with the clerk's guardrails, not a new runtime
+- added decision:exec.plan-lifecycle — A plan goes proposed → defining → defined → building → done, and its Definition section is the set of blocks it will bui
+- added req:exec.ask-wye — A request typed to Wye starts a definition conversation on its own plan
+- added req:exec.wye-context — Wye finds what the product knows and shows it in the context column while it reads
+- added req:exec.wye-explains — Wye explains the current state before it proposes anything
+- added req:exec.wye-asks — Wye asks along the requirement shape, few questions, as a form
+- added req:exec.wye-proposes — Wye proposes the definition as blocks in their home documents, embedded on the plan
+- added req:exec.plan-defined — A plan is defined when its Definition is agreed
+- added req:exec.build-from-definition — A defined plan is built by any worker from its Definition
+- added req:exec.definition-tracked — Every change a definition conversation proposes is tracked as part of the plan
+- added req:exec.explain-anywhere — What do we know about this?" works on any node without starting a request
+- added question:exec.wye-model — Which model and agent runs the librarian, and does it reuse a worker's conversation or always start clean?
+- added question:exec.definition-home — When the home document for a proposed block does not exist yet, where does Wye write it?
+- added op:api.verdicts — api.verdicts
+- changed req:memory.verdicts — A proposed block arrives in the Inbox with its verdicts
+- added decision:memory.consistent-verdicts-in-the-log — Only verdicts that are not "consistent" are written under the node; consistent ones stay in the judge log
+- added task:exec.capture — "Later" in the command box and "+ backlog" on nodes and documents write a task line to the plan document or un
+- added task:exec.take-ready — `#ready` on task lines;
+- added task:exec.librarian-role — Session role on the record;
+- added task:exec.wye-context-card — The Context card in the context column:
+- added task:exec.wye-turns — The librarian's first turn (explain with tags, say when satisfied or contradicting), the question form along w
+- added task:exec.plan-definition — type:plan statuses and the Definition section in lib:plan-doc;
+- added task:exec.build — Build on a plan:
+- added task:exec.librarian-tests — test:librarian — recorded librarian turns on the YesSensei pilot:
+- changed task:memory.verdict-pass — The write-time verdict pass on new or changed decision / req / rule / constraint blocks:
+- changed task:memory.lint-deep — `ctx check --deep`:
+- changed decision:memory.benchmark — The 78 existing contradicts edges are the regression set for the verdict pass
+- added test:verdict-bench — verdict-bench
+- added test:memory — memory
+- added test:verdicts — verdicts
+- added test:packet — packet
+- added question:memory.benchmark-positives — Where does a text-vs-text positive set for the verdict pass come from?
+- changed task:memory.benchmark — The hide-one-edge regression over the 78 contradicts edges:
+- added lib:consolidate — Consolidation at session end (decision:memory.consolidate-sessions): on a done session the transcript (the per
+- added flag:verdicts — verdicts
+- added flag:consolidate — consolidate
+- added flag:judge-model — judge-model
+- changed task:memory.consolidate — The consolidation run on session done:
+- added verdict:e0f217651378 — contradicts req:wf2.contradictions — A requires contradictions to stay open until resolved;
+- added contradiction:waterfall.e0f217651378 — decision:memory.forgetting contradicts req:wf2.contradictions — A requires contradictions to stay open until r
+- added task:memory.impl.idle-consolidation — Consolidate a chat that went idle for a day, not only one that ended with `wf session done` (decision:memory.c
+- added task:memory.impl.supersession-chain — Show the supersession chain on the node card and the Decisions timeline (superseded greyed, a link to the supe
+- added task:memory.impl.benchmark-positives — Build the text-vs-text positive set for test:verdict-bench once question:memory.benchmark-positives is answere
+- added task:memory.impl.switch-on — Set `verdicts:
+- added task:memory.impl.consolidated-blocks-in-changes — Credit the blocks consolidation files to the session that produced them (rule:task-artifacts) so they show und
+
+217 paragraphs added or changed — [per document](/waterfall/sessions/9f3d83809b/changes)

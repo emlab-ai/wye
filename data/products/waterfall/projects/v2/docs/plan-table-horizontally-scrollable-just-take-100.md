@@ -2,13 +2,15 @@
 node: plan:plan-table-horizontally-scrollable-just-take-100
 type: plan
 title: table should horizontally scrollable , not just take 100% width, in small screens it…
-status: proposed
+status: done
 owner: unassigned
 last-verified: 2026-09-18
 session: 01b14dc871
 agent: claude-code
 started: 2026-09-18T13:02:40.466Z
 part-of: module:v2-plans
+finished: 2026-09-18T13:10:05.623Z
+order: 10
 ---
 
 # table should horizontally scrollable , not just take 100% width, in small screens it…
@@ -84,4 +86,18 @@ and the rest of the document does not move. No markup or data change; goals/task
 
 ## Result
 
-_Written by the app when the session ends: the summary and the blocks this plan produced._
+A data table narrower than its columns now scrolls sideways as one block instead of squeezing the name column (req:wf2.editor.table-scroll, rule:table-scroll, both shipped): the name column keeps a 200px minimum, header and rows have min-width: min-content so they stay one width, and the collection's .bn-block has overflow-x: auto; a wide editor is unchanged. Goals/tasks tables get the same. Verified in Chrome via playwright-core (ui-test:table-scroll, 14 checks at 700/1400 px on the bug table and a goals/tasks table, passed). Knowledge: component:data-table card on app-documents (the block had no node), component:doc-editor's purpose corrected, decision:wf2.table-scroll-not-shrink proposed on the plan; 3 tasks done. Commit df6fe7a.
+
+Blocks this plan produced:
+
+- added component:data-table — data-table
+- added req:wf2.editor.table-scroll — A data table scrolls sideways when the editor is narrower than its columns
+- added rule:table-scroll — table-scroll
+- added decision:wf2.table-scroll-not-shrink — A narrow data table scrolls sideways; columns keep their minimum widths
+- added task:table-scroll-css — `.nrow` name column minimum 200 px (typeGrid and the goals/tasks template), `min-width:
+- added task:table-scroll-ui-test — ui-test:table-scroll in Chrome with playwright-core against the dev server:
+- added task:table-scroll-knowledge — req:wf2.editor.table-scroll and rule:table-scroll shipped, ui-test:table-scroll passed on test-design;
+- added ui-test:table-scroll — table-scroll
+- changed component:doc-editor — doc-editor
+
+17 paragraphs added or changed — [per document](/waterfall/sessions/01b14dc871/changes)

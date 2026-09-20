@@ -1,11 +1,9 @@
 ---
 node: module:app-work
 type: module
-title: Work, changes, impact and the librarian
+title: Work, changes and impact
 status: proposed
 owner: alex
-last-verified: 2026-09-19
-part-of: module:app
 sources:
   - packages/web/src/lib/work.ts
   - packages/web/src/lib/work-io.ts
@@ -23,9 +21,14 @@ sources:
   - packages/web/src/components/ImpactCard.tsx
   - packages/web/src/components/ContextCard.tsx
   - packages/web/src/components/ExplainCard.tsx
+part-of: module:app
+order: 43
+last-verified: 2026-09-20
 ---
 
-# Work, changes, impact and the librarian
+# Work, changes and impact
+
+Work, changes and impact
 
 The code behind module:prd-execution (built 2026-09-19, plan:plan-build-one-too): the Work view and dispatch (E.1),
 the backlog (E.4), change records (E.2), the impact run (E.3) and the librarian with the plan's Definition (E.5).
@@ -33,7 +36,8 @@ What it must do is written on the PRD — goal:exec.work-and-impact, goal:exec.d
 this document maps the code onto it: the pages, components, libraries, stores and endpoints, and the rules the code
 enforces.
 
-## Rules the code enforces
+
+## Rules
 
 ```yaml
 - id: rule:work-state
@@ -186,57 +190,267 @@ enforces.
     the request task does not refuse it; the dialog names the unagreed blocks and says "Build anyway".
   source: packages/web/src/lib/work-io.ts#assignTask; packages/web/src/lib/plan-docs.ts#definitionContext; packages/web/src/lib/plan-docs.ts#finishPlanDoc
   status: shipped
+- id: rule:todo-tasks
+  statement: >
+    A checkbox line whose first token is an id (`- [ ] task:slug Do the thing`) defines that node with status
+    open, `- [x]` with status done; a #status hashtag overrides. In the editor such a node shows a checkbox in its
+    header; toggling it rewrites the line. task is a node kind (alias tk:) and the default for the "task block"
+    slash item.
+  source: lib/parse.js; packages/web/src/lib/import.ts#proseNode; packages/web/src/lib/serialize.ts#nodeToMarkdown
+  status: unverified
+  verified-by: [test:prose, test:web-lib#import]
+- id: rule:goals-and-tasks
+  statement: >
+    Goals and tasks are tracked like Atlassian goals. Every product has a Goals page and a Tasks page (search, status
+    chips, sub-goals nested under the goal they are part of, columns name / status / target or due / progress or goal /
+    owner / document); a row opens the item in the right column, whose node view adds a tracking section (status,
+    target, owner, progress, sub-goals, tasks and requirements that are part of it). A document may hold a goals or
+    tasks table: the lines between `<!-- goals -->` and `<!-- /goals -->` (or tasks) are ordinary goal/task lines to
+    the parser and an editable table in the editor (status select, target/due, progress, owner; "+ add" appends a
+    row). Progress is `(progress: n)` when given, else the share of done/shipped/complete parts. Goal statuses are
+    proposed, on-track, at-risk, off-track, paused, complete, non-goal.
+  source: packages/web/src/components/TrackList.tsx; packages/web/src/lib/track.ts; packages/web/src/lib/doc.ts#nodeIndex; packages/web/src/components/DocEditor.tsx#RowNode
+  status: shipped
+  verified-by: [test:web-lib#import, test:web-lib#props]
+- id: rule:plans-folder
+  statement: >
+    The rail treats a project's Plans page (`module:<project>-plans`, lib/plan-docs#plansPageId) as a system folder:
+    the product layout takes it and its sub-documents out of the Documents tree and hands the plans (every project,
+    sorted by the plan card's `started` descending) to the Plans folder in the rail's menu, whose entry is
+    /<product>/plans. A plan document is found by the tree, not by its type: what sits under the Plans page is a
+    plan. Files stay in the project's docs folder (decision:wf2.plans-system-folder).
+  source: packages/web/src/app/[product]/layout.tsx#withoutPlans; packages/web/src/components/Rail.tsx; packages/web/src/components/PlanFolder.tsx; packages/web/src/app/[product]/plans/page.tsx; packages/web/src/lib/plan-doc.ts#plansPageId
+  status: shipped
+  verified-by: [ui-test:plans-folder]
+  related-to: [rule:documents-tree, rule:plan-doc]
+- id: rule:plan-first
+  statement: >
+    A session started from the command palette carries `plan: true`, and its first message ends with a plan-first
+    section. Before changing code the agent (1) understands — `wf context` on the request, resolves the nodes,
+    reads their documents and the code involved; (2) models — names the subject of the request as one node
+    (`kind:slug`: the node under the cursor or the document the palette sent when they fit, else found, else the
+    new node the request creates), makes sure its type exists (`wf node type:<slug>`; else `wf type add`, a
+    proposed `type:` card in the product's ontology document) and picks the subject's page: the document where the
+    node is defined, else the one open in the palette, else the type's home, and only when the subject is new and
+    no document fits a new one (`wf doc create`); (3) writes the plan on that page, not in chat — the subject's
+    card when it is new, and everything understood as blocks in the page's sections: `req:` (proposed),
+    `decision:` (proposed), `question:` (open), `- [ ] task:` lines, links to the modules and code touched; `ctx
+    check` green; (4) shows it — `wf session open <id> <product/project/doc>[#node]` navigates the person's browser
+    to the page while the session stays in the context column, and one chat line says what is there; (5)
+    collaborates — the person edits, comments and answers on the page; one AskUserQuestion (header "Plan", "Build
+    what the page says?", Proceed / Adjust / Cancel) rendered as a question card (rule:agent-questions); Adjust
+    re-reads the page and revises it, Cancel ends the session; (6) builds only after Proceed, after re-reading the
+    page once more — code and tests for what the page says, then statuses (tasks done, reqs shipped) and `wf
+    session done`. The palette can switch the protocol off for a plain run. The flag is part of the prompt, not a
+    session mode: the session, host and console are the ones every conversation uses.
+  source: packages/web/src/components/CommandBox.tsx; packages/web/src/lib/agent-host.ts#PLAN_FIRST; packages/web/src/lib/sessions.ts#createSession; bin/wf.js#session
+  status: proposed
+  verified-by: [ui-test:command-palette]
+  related-to: [rule:agent-questions, rule:agent-host, component:command-box, decision:wf2.plan-is-a-page, op:session.open]
+- id: rule:task-artifacts
+  statement: >
+    A session's output is traceable from the task it worked on. While a session runs, the app records what it
+    produced: documents written on disk (credited by the watcher to every running session of the product, except
+    the app's own task-link writes), nodes it changed through the node API (the wf CLI sends its session id in
+    x-wf-session), and inbox items it filed (they carry the session id). Tasks among the session's refs get
+    `(session: <ids>, produced: module:…)` in their property group — `produced` is an edge — and marking a task
+    done with wf node set adds the session too. The task's panel shows a Produced section: the sessions (with
+    status and result), the documents, the nodes changed and the inbox items (questions, decisions) with their
+    review status — folded at the bottom of the column until asked for (rule:produced-collapsed). An html comment ends a prose node's text, so tables' closing markers never leak into a task.
+  source: packages/web/src/lib/artifacts.ts; packages/web/src/components/Produced.tsx; lib/parse.js
+  status: shipped
+  verified-by: [test:prose]
 ```
 
-## Pages and components
+## Decisions
 
 ```yaml
-- id: page:web/work
-  route: /<product>/work (the old /<product>/tasks redirects here)
-  component: app/[product]/work/page.tsx
-  purpose: >
-    Every task of the product as one list, whoever holds it (req:exec.work-view): status, derived state, plan or
-    goal, worker, document; grouped by status by default, switchable to state, goal, plan, document, worker; search
-    and filters in the URL (q, status, state, worker, goal, plan, doc, done, group, mine); done and archived-done
-    folded away unless "done work"; "mine" by the name remembered per browser (gate:none). Assign and Send on
-    every row, Build on a request task's row with the Definition counts beside it.
-  status: shipped
-  part-of: module:app-work
-- id: component:work-list
-  file: packages/web/src/components/WorkList.tsx
-  purpose: the Work view's grid — rows nested per rule:work-nesting, groups, chips, the I-am name, the Assign / Build dialog
-  part-of: module:app-work
-- id: component:assign
-  file: packages/web/src/components/Assign.tsx
-  purpose: the Assign / Build dialog — a person, an agent (a conversation, plan first, folder) or the runner pool, a note; a held task asks before it re-queues; Build lists the unagreed blocks
-  part-of: module:app-work
-- id: component:task-work
-  file: packages/web/src/components/TaskWork.tsx
-  purpose: a task's Work section in the column (req:exec.done-comes-back) — state, worker, Assign, Build and the plan's Definition state for a request task, ✓ done, the last session's result, the blocks it produced with their status and Review into the Inbox on them
-  part-of: module:app-work
-- id: component:change-card
-  file: packages/web/src/components/ChangeList.tsx
-  purpose: the Inbox's Changes group (req:exec.change-kept, req:exec.change-review), laid out for the decision (rule:review-readable) — old and new per changed key with a word diff; open conflicts and the impact's one line on the surface; the unchanged framing fields, id and other verdicts under details, the verdicts on the new value, changed-since, Accept / Revert, and the impact set
-  part-of: module:app-work
-- id: component:impact-card
-  file: packages/web/src/components/ImpactCard.tsx
-  purpose: the impact set on a change card (req:exec.impact-set, req:exec.impact-patch) — candidates grouped by verdict with path and reason, an update's diff editable with Apply / Skip / Apply all, the task, contradiction or question an outcome became, the unjudged ones and an Impact / Run again button
-  part-of: module:app-work
-- id: component:context-card
-  file: packages/web/src/components/ContextCard.tsx
-  purpose: the Context card at the top of a librarian conversation (req:exec.wye-context) — the packet's nodes and the semantic hits grouped as what exists, required, decided and constrained, open questions, work; grows with the session's knowledge events
-  part-of: module:app-work
-- id: component:explain-card
-  file: packages/web/src/components/ExplainCard.tsx
-  purpose: Explain on any node (req:exec.explain-anywhere) — one librarian turn, the current state around the node with the nodes as tags
-  part-of: module:app-work
-- id: component:changed-badge
-  file: packages/web/src/components/ChangedBadge.tsx
-  purpose: the "changed" badge on a node's header while a change record on it is pending; the old value on hover, a link to the Inbox
-  part-of: module:app-work
+- id: decision:wf2.plan-first-is-a-prompt
+  title: Plan-first is a section of the first message, not a session mode or a second agent
+  context: >
+    The command palette (⌘P) must make an agent understand and propose before it builds, and let the person confirm.
+    That could be a distinct session mode with its own host and console, a separate planning agent that hands off,
+    or a protocol in the prompt.
+  choice: >
+    A `plan: true` flag on the session appends a plan-first section to the first message (understand → propose →
+    confirm with one AskUserQuestion → build). The confirmation uses the question card every conversation already
+    renders (rule:agent-questions); the session, host and console are unchanged. The palette can untick it.
+  alternatives: >
+    A session mode — duplicates the host and console for one difference; a planning agent handing off to a builder
+    — loses the context it just gathered; a fixed "plan" tool — Claude Code's AskUserQuestion already is the form.
+  consequences: rule:plan-first; action:command-palette; a later agent can carry the same flag from any entry point
+  status: proposed
+  date: 2026-09-17
+  related-to: [rule:plan-first, rule:agent-questions, decision:wf2.agent-questions-are-forms]
+  session: 8aa3926e18
+- id: decision:wf2.plan-is-a-page
+  title: The plan is the subject's page, worked on together, not a chat message
+  context: >
+    The first plan-first protocol had the agent propose in a chat message and ask Proceed / Adjust / Cancel. A chat
+    message is gone once the session ends, the person can only answer it, and nothing forced the agent to say which
+    entity the request is about, whether its type exists, or where it lives.
+  choice: >
+    The plan lives on the subject's page: the agent names the subject as one node, makes sure its type and its
+    document exist (existing document first, a new one only when nothing fits), writes what it understood there as
+    typed blocks (req, decision, question, task — proposed), navigates the person to the page (`wf session open`),
+    and the two work on the page until the person answers Proceed. The build is what the page says at that moment.
+  alternatives: >
+    Keep the plan in chat and copy blocks to a document afterwards — the person cannot edit the plan itself and the
+    copy drifts; a dedicated "plan" document per session — one more place to look, and the knowledge belongs with
+    the entity anyway.
+  consequences: rule:plan-first; op:session.open; `wf doc create`, `wf type add`, `wf session open` in bin/wf.js; req:wf2.ui.command-palette
+  status: proposed
+  date: 2026-09-17
+  related-to: [decision:wf2.plan-first-is-a-prompt, rule:plan-first, rule:agent-questions]
+  session: 0e07e8fd53
+- id: decision:exec.task-is-the-unit
+  title: The task is the unit of work; a plan is a request with its tasks; a session is a worker's shift
+  context: >
+    Today a request becomes a plan document and, when the agent writes them, task lines; a session is what a runner
+    claims. Linear + Copilot and every 2026 orchestration guide use the issue / task as the thing assigned, claimed and
+    reviewed. The person: "agents are just workers".
+  choice: >
+    A work item is a task: node — the `- [ ] task:` line the parser already reads, anywhere in the documents — with
+    its status (todo, open, in-progress, blocked, review, done) on the line. A request from the command box creates a
+    plan document as now *and* one task line in it (`task:<plan-slug>` — the request itself) that the session's
+    `refs` carry, so the request is on the board from the first second; tasks the agent adds under the plan are its
+    steps and nest under it. A session is a worker's shift on one or more tasks: it never appears on the Work view as
+    an item, only as the worker column of the tasks it holds. A task's `session:` links (rule:task-artifacts) say
+    which shifts worked it; `worker:` says who holds it now — a person's name or an agent name.
+  alternatives: >
+    Plans as the unit (a step that needs a different worker has no row); sessions as the unit (the Agents page today:
+    work is invisible until someone is on it); a separate task store (the v2 design's task table — rejected with the
+    database, decision:wf2.plan-is-a-page).
+  consequences: >
+    `review` joins task statuses (an agent finished; a person checks); `worker: string?` and `priority: number?` join
+    type:task; the plan document template gets the request task line; the Work view (E.1) lists tasks and nothing
+    else; the Agents page keeps showing workers and their plans.
+  date: 2026-09-19
+  status: proposed
+  affects: [type:task, rule:plan-doc, rule:task-artifacts, page:web/sessions]
+  part-of: goal:exec.work-and-impact
+- id: decision:exec.change-record
+  title: Every edit of a typed node is written through, and a change record keeps the old and new value with a review state
+  context: >
+    An edit through op:api.node or the editor rewrites the defining line; rule:block-attribution notes that the
+    block changed; the old value survives only in git. The person wants old and new side by side and the edit treated
+    as an Inbox item. Suggesting-mode systems keep before and after as a pending proposal that is accepted or rejected
+    like a diff; markdown is canonical here (rule:markdown-canonical) and a proposal that is not in the document is
+    invisible to agents reading the file.
+  choice: >
+    The write goes through as today — the document shows the new value, git has the history. Beside it the app writes a
+    change record (store:changes, `_changes/<id>.json`): node id, document and line, `before` and `after` (the whole
+    defining block: text and properties), who (person or agent name), session, time, and a state — pending, accepted,
+    reverted — plus the impact run it triggered (E.3) and the verdicts of the write-time pass
+    (decision:memory.write-time-verdict). A node with a pending change shows a "changed" badge with the old value on
+    hover; the Inbox lists pending changes under a Changes group with a field-level and word-level diff; Accept marks
+    the record accepted (nothing else moves), Revert writes `before` back through the same writer (and records that as
+    its own change). An edit by an agent to a node whose status is approved or shipped is also pending; the constraint
+    packet marks such nodes "changed, pending review" so a worker reading it knows. A person's edits to their own
+    proposed blocks are accepted at once (a draft is a draft).
+  alternatives: >
+    Suggesting mode in the markdown (the old value stays canonical, the proposal is a sibling block) — two truths in the
+    document, agents read the wrong one; git only — no old value for a property, no review state, no impact link; a
+    `history:` content block under the node — clutters every document with what the app can keep beside it.
+  consequences: >
+    A new operational store like sessions (json, not knowledge); the Inbox gains a group; Revert exists; the block
+    editor and node-edit both write the record; the change record is the input and the parent of the impact run.
+  date: 2026-09-19
+  status: proposed
+  affects: [op:api.node, rule:block-attribution, rule:inbox-review, rule:markdown-canonical]
+  part-of: goal:exec.work-and-impact
+- id: decision:exec.impact-run
+  title: An edit's impact is computed structurally with semantic seeding, then a model judges each reached node and proposes its update
+  context: >
+    `ctx impact` walks the reverse structural closure three hops; op:api.context finds the semantically nearest nodes;
+    neither says what an edit means for the nodes it reaches. The 2026 impact-analysis work finds that structure
+    alone misses renamed or paraphrased dependents, semantics alone floods (0.42 precision), and the blend with a
+    verification step is the shape that works; Kiro regenerates only what the change reaches, on an explicit sync.
+    STALE finds second-hop, propagated effects are what models miss when left to notice them on their own.
+  choice: >
+    An impact run takes a change record and produces an impact set: (1) candidates from structure — the node's content
+    (its sub-items), what refines it, what it is satisfied by and verified by, what it governs or is governed by,
+    what depends on it, what is part of it, tasks that serve it, what mentions it — two hops over reversed edges with
+    decay, each candidate with its path; (2) candidates from semantics — the nearest nodes to the new text that
+    structure did not reach, marked "by text"; (3) one model call per candidate (batched, budgeted, cached by pair
+    hash) that reads the before, the after, the candidate and its path and answers: unaffected | update — with the
+    proposed new text or property values for the candidate | rework — a sentence saying what has to change when it is
+    more than the block | contradicts — the new value and the candidate cannot both hold | ask — a question the
+    person must answer first. The run is stored on the change record; the change card lists the impact set grouped by
+    verdict, each with its path and reason; an update is a proposed patch with old and new that Apply writes through
+    the writer (and records as a change by the app, accepted); a rework becomes a task line under the change's plan
+    (or a new plan "Follow up: <node>") on the Work view, unassigned, with the reason as its text, which the person
+    assigns to a worker (req:exec.dispatch); a contradicts opens a contradiction as in decision:memory.write-time-verdict;
+    an ask is a question: block on the changed node.
+  alternatives: >
+    Structure only (misses paraphrased dependents); semantics only (floods); regenerate the dependents outright as Kiro
+    does (the documents are the person's, not generated — patches and tasks, never rewrites); ask one agent session to
+    "update everything" (unbounded, invisible, and it would edit approved blocks without review).
+  consequences: >
+    A run per change, budgeted per rebuild like the verdict pass; an impact set on the change card; patches, tasks,
+    contradictions and questions as the four outcomes, each landing where that kind already lives; the Work view gains
+    "follow-up" tasks the app wrote; `ctx impact` grows `--semantic` and `--explain` (paths) for agents.
+  date: 2026-09-19
+  status: proposed
+  affects: [op:api.context, decision:memory.write-time-verdict, req:exec.dispatch, rule:inbox-review]
+  part-of: goal:exec.work-and-impact
+- id: decision:exec.impact-trigger
+  title: Impact runs after the person stops editing a typed node, never on every keystroke, and only when something is reached
+  context: >
+    "not always" — the person does not want a model call on every edit. An edit is many keystrokes; a paragraph edit
+    reaches nothing; a status change is not a change of meaning.
+  choice: >
+    A change record is created when the editor's block loses focus or the document saves, whichever is first, one per
+    node per editing spell (edits within five minutes on the same node fold into one record); the impact run starts
+    when the record has structural candidates or the text changed by more than a property value, at most one run per
+    node in flight (a further edit restarts it); a status or tracking-field change, a plain paragraph and a node with
+    no dependents produce no run. "Impact" on any node's panel runs it on demand, with or without a change. A product
+    setting (`_product.md`: impact: auto | manual | off) and a per-run budget cap it; `manual` keeps the change records
+    and skips the model.
+  alternatives: >
+    Run on every save (noise and cost); run only on demand (the person forgets, which is the failure the ask is about);
+    run at session end only (a person's edit in the editor has no session).
+  consequences: >
+    The editor sends the change on blur/save; the run is asynchronous and its card fills in as verdicts arrive (the
+    change is reviewable before the run finishes); the setting lives on the product file.
+  date: 2026-09-19
+  status: proposed
+  affects: [op:api.node, store:product-file]
+  part-of: goal:exec.work-and-impact
+- id: decision:exec.backlog-is-unassigned-work
+  title: The backlog is the unassigned tasks; the inbox folder stays raw material; a task marked ready may be taken by a runner
+  context: >
+    The person wants to drop items for an agent to discover and work on, "maybe it is the inbox". The inbox folder
+    (store:inbox) holds raw material without a document — pasted conversations, notes — that a person files or
+    dismisses (rule:inbox-review); the Inbox view lists proposed blocks. Work is a task line (decision:exec.task-is-the-unit).
+    question:exec.auto-dispatch asked whether runners may take unassigned tasks on their own.
+  choice: >
+    A backlog item is a task line with no worker. Capture is one gesture from anywhere — the command box's "Later"
+    (⌘P, type, ⇧↵) and a "+ backlog" on any node or document — that writes `- [ ] task:<slug> <text>` into the
+    project's plan document (the follow-ups home rule:agent-contract already names) or under the node it was
+    captured from when there is one, with `by:` the person and the date; an inbox note can be filed as a task the same
+    way. The Work view's Unassigned group is the backlog, in priority then capture order. A task is discoverable by
+    runners only when it says `#ready` (a person's word that it is defined enough to start): `wf work next` returns
+    the oldest ready, unblocked, unassigned task of the product (or of a goal), a runner in auto mode (`wf agent
+    listen --take-ready`) claims it as if assigned (req:exec.dispatch), and everything else on the backlog is
+    visible to agents (`wf work list --unassigned`) but not taken. This resolves question:exec.auto-dispatch: never
+    silently, per task, by the ready mark.
+  alternatives: >
+    A separate backlog document per product (one more place; the plan document is that place already); the inbox
+    folder as the backlog (raw notes are not work items and have no status, goal or worker); auto-dispatch of every
+    open task (work starts that nobody looked at).
+  consequences: >
+    `ready` joins the task statuses as a mark, not a stage (a ready task is still todo); the command box gains
+    "Later"; `wf work list|next` join the CLI; a runner gains `--take-ready`; the Work view's Unassigned group shows
+    the ready ones first with a mark.
+  date: 2026-09-19
+  status: proposed
+  resolves: question:exec.auto-dispatch
+  affects: [rule:inbox-review, store:inbox, component:command-box, rule:agent-runner, req:exec.dispatch]
+  part-of: goal:exec.work-and-impact
 ```
 
-## Libraries and stores
+## Libraries
 
 ```yaml
 - id: lib:review-summary
@@ -289,89 +503,9 @@ enforces.
   side: server
   purpose: one librarian turn (req:exec.explain-anywhere) — the packet and the context around a node or a text to the model (WF_EXPLAIN_MODEL, default claude-sonnet-5) with the librarian's brief; the answer with the ids it names as refs
   part-of: module:app-work
-- id: store:changes
-  path: data/products/<product>/_changes/<id>.json
-  format: json
-  purpose: >
-    One record per edit of a typed node (decision:exec.change-record): node, document, file and line, before and
-    after (text, textKey, status, props), the changed keys, by, session, at, updatedAt, state (pending | accepted |
-    reverted), tracking / own marks, acceptedBy, revertedBy, revertOf, and the impact set. Operational like
-    _sessions/, git-ignored; the documents stay canonical (constraint:wf2.text-canonical).
-  part-of: module:app-work
 ```
 
-## API
-
-```yaml
-- id: op:api.work
-  args: GET /api/<product>/work [?id=task:x]; POST { text, partOf?, project?, ready?, by? }
-  does: >
-    GET: every task with its derived state, plan, goal, worker, sessions, produced count and the plans' Definition
-    counts; with ?id one task with its sessions and the blocks they produced (req:exec.done-comes-back). POST:
-    capture a task line (rule:capture-home) — `wf work add`, Later in the command box, an inbox note filed as a task.
-  gate: none (local app)
-  source: packages/web/src/app/api/[product]/work/route.ts; packages/web/src/lib/work-io.ts
-  status: shipped
-  part-of: module:app-work
-- id: op:api.work.assign
-  args: POST /api/<product>/work/assign { id, worker, note?, plan?, cwd?, force?, agent?, by?, build? }
-  does: hands a task to a worker (rule:assign-refusal); with `build` the plan's Definition goes with it (rule:build). 422 refused, 409 held.
-  gate: none (local app)
-  source: packages/web/src/app/api/[product]/work/assign/route.ts; packages/web/src/lib/work-io.ts#assignTask
-  status: shipped
-  part-of: module:app-work
-- id: op:api.work.next
-  args: GET /api/<product>/work/next [?goal=]; POST { agent, runner, goal? }
-  does: the oldest ready, unblocked, unassigned task (rule:take-ready); POST takes it as an assignment for the runner's agent — 204 when none or when auto-take is off
-  gate: none (local app)
-  source: packages/web/src/app/api/[product]/work/next/route.ts; packages/web/src/lib/work-io.ts#nextForRunner
-  status: shipped
-  part-of: module:app-work
-- id: op:api.changes
-  args: GET /api/<product>/changes [?state=&node=&all=1]; GET /changes/<id>; POST /changes/<id> { action: accept | revert | reopen, by?, force? }
-  does: the change records with `stale` and `exists` (rule:change-record, rule:change-review)
-  gate: none (local app)
-  source: packages/web/src/app/api/[product]/changes/route.ts; packages/web/src/app/api/[product]/changes/[id]/route.ts
-  status: shipped
-  part-of: module:app-work
-- id: op:api.impact
-  args: POST /api/<product>/changes/<id>/impact { action: run | apply | apply-all | skip, candidate?, text?, props?, force?, reason?, by? }; POST /api/<product>/impact { id, after, judge? }
-  does: the impact run on a change record and its outcomes (rule:impact-run, rule:impact-apply); the what-if for an edit an agent is about to make — candidates with paths, verdicts when judge is not false, nothing written (`wf impact <id> --after`)
-  gate: none (local app)
-  source: packages/web/src/app/api/[product]/changes/[id]/impact/route.ts; packages/web/src/app/api/[product]/impact/route.ts; packages/web/src/lib/impact-run.ts
-  status: shipped
-  part-of: module:app-work
-- id: op:api.impact.apply
-  args: POST /api/<product>/changes/<id>/impact { action: apply, candidate, text?, props?, force? }
-  does: Apply one proposed update (rule:impact-apply); 409 when the candidate moved on
-  gate: none (local app)
-  source: packages/web/src/lib/impact-run.ts#applyPatch
-  status: shipped
-  part-of: module:app-work
-- id: op:api.propose
-  args: POST /api/<product>/propose { card, plan, doc? } (x-wf-session credits the writer)
-  does: one proposed block into the named document, embedded on the plan's Definition; on the plan itself when no document is named (rule:definition); 409 when the id exists — refine it instead. `wf propose` calls it.
-  gate: none (local app)
-  source: packages/web/src/app/api/[product]/propose/route.ts
-  status: shipped
-  part-of: module:app-work
-- id: op:api.plan
-  args: GET /api/<product>/plan?ref=; PATCH { ref, status }; POST { action: refresh }
-  does: a plan's status, role, task and Definition state (total, agreed, open, missing, contradicted, defined, items); set the status; recompute defining ↔ defined for every plan. `wf plan` calls it.
-  gate: none (local app)
-  source: packages/web/src/app/api/[product]/plan/route.ts; packages/web/src/lib/plan-docs.ts#planDefinition
-  status: shipped
-  part-of: module:app-work
-- id: op:api.explain
-  args: POST /api/<product>/explain { id } | { text }
-  does: one librarian turn — the current state around a node or a text with the nodes as tags, nothing written (lib:explain). `wf explain` and the node's Explain call it.
-  gate: none (local app)
-  source: packages/web/src/app/api/[product]/explain/route.ts; packages/web/src/lib/explain.ts
-  status: shipped
-  part-of: module:app-work
-```
-
-## Flags
+## Flags and gates
 
 ```yaml
 - id: flag:impact

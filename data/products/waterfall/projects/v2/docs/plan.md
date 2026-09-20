@@ -1,47 +1,219 @@
 ---
 node: module:wf2-plan
 type: module
-title: Waterfall v2 — plan
+title: Backlog
 status: proposed
 owner: alex
-last-verified: 2026-09-14
-part-of: module:wf2
+last-verified: 2026-09-20
+part-of: module:v2-plans
+order: 55
 ---
 
-# Waterfall v2 — plan
+# Backlog
 
-The running plan. Every task is a checkbox line that starts with a `task:` id; the box is the status, `#in-progress` or `#blocked` override it, and "part of" / "implements" name what the task serves. Progress per document is the number of checked tasks over all tasks.
+Work that is planned but on no plan document yet, by area, and the tasks past pages carried (done ones stay for the record). Assign from the Work view; a request that starts work gets its own plan under Plans.
 
-## Done
+<!-- view:task status=todo -->
+
+## The product itself
+
+<!-- tasks -->
+- [ ] task:wf2.definition.govern-links Every rule names what it governs (`governs:`) and every requirement its area's page, so the constraint packet reaches an area's rules through the graph rather than through the document they used to share; measured by the five packet texts of the 2026-09-20 refactor. Part of goal:memory.validated-asks.
+- [ ] task:wf2.definition.template The layered tree (Wye, Product, Experience, Domain, Systems, Quality, Decisions, Research, Archive) as `templates/product/`, so a new product starts with the same pages and the view blocks in place; YesSensei migrated to it. Part of goal:exec.define-first.
+- [ ] task:wf2.definition.rekind-sweep The mechanism-shaped requirements now on the Requirements pages become rules or decisions on their Systems page, and the observable behaviour they served becomes the requirement (decision:exec.kind-by-nature; continues task:exec.rekind).
+<!-- /tasks -->
+
+## Earlier tasks
 
 - [x] task:reader Documents-first reader with smart tags and a peek panel, implements req:wf2.ui.node-page.
+
 - [x] task:single-page-editor One Notion-style editor per document with typed node blocks, prose nodes and phrase links, implements req:wf2.ui.node-page.
+
 - [x] task:prose-nodes Prose node syntax in the parser with aliases and verb inference, part of rule:prose-nodes.
+
 - [x] task:todo-tasks Checkbox tasks that become task nodes, part of req:wf2.ui.node-page.
+
 - [x] task:create-doc-via-link Create a new document from the link picker and link the selection to it, part of rule:new-document.
 
-## Next
-
 - [x] task:livestream A live stream view like a console: agents append lines to it over the API and a human follows in real time; the stream is per project, persisted, and filterable by agent and task. (note: shipped 2026-09-16 as sessions + runner — see rule:agent-sessions and rule:agent-runner; polling, not push, for now)
+
 - [x] task:session-runner A runner that picks up queued sessions (`_sessions/*.json`, status queued), launches the chosen agent (Claude Code, Codex) with the instruction plus the referenced nodes as context, streams stdout into the session log over `PATCH /api/<product>/sessions/<id>` and marks done/failed. Depends on rule:agent-sessions.. Not implemented yet; part of req:wf2.ui.live and depends on req:wf2.serve.live.
+
 - [x] task:duplicate-user-event Every user message in a chat session was recorded twice (a second `user` event 5–15 s after the first, same text, no images). Root cause, not the two-pumps guess: from 09:12 to 16:15 on 2026-09-17 the host spawned Claude with `--replay-user-messages` and emitted a user event on the replay on top of its own; e9a6ba8 removed both, but a process spawned before that keeps its old args and stdout closure until it restarts (session 94ac3cf3e0 did). Verified on a fresh session (one user event per message); appendTranscript now drops a same-turn repeat (`dedupeUserEvents`, tested) and the stored transcripts were cleaned (6 files, 20 events). Part of req:wf2.sessions.quiet-console. (session: 94ac3cf3e0)
+
 - [x] task:image-annotation Annotate images for agents: an Annotate action on an image block opens it as a locked Excalidraw image with shapes, labels and arrows on top; saving exports SVG, a flattened PNG and a text description (regions with positions, arrows from→to, labels) that `wf resolve` appends to the block so an agent reads the annotations and can look at the PNG. Implements req:wf2.ui.annotate-images; part of req:wf2.ui.
+
 - [x] task:plan-as-page Plan-first as a page: PLAN_FIRST names the subject, makes type + card + page exist, writes the plan as proposed blocks on the page, `wf session open` navigates the person there; `wf doc create`, `wf type add`, `wf session open` in bin/wf.js. Part of req:wf2.ui.command-palette; follows decision:wf2.plan-is-a-page. (session: 0e07e8fd53)
+
 - [x] task:clean-slate-default The command box opens on "New conversation" with the remembered agent and folder (localStorage), live conversations as an explicit choice; rule:agent-sessions, action:command-palette and component:command-box refined. Part of req:wf2.sessions.clean-slate; follows decision:wf2.clean-slate. (session: 64813dfdab)
+
 - [x] task:clear-context "Clear context first" tick when a live conversation is chosen in the command box: `fresh: true` on the message route, agent-host#restartFresh (stop, forget agentSessionId / codex thread, divider note, first message built like a new session's with plan-first when ticked), startChat reuses the Live entry and guards the replaced process's close handler. Part of req:wf2.sessions.clean-slate. (session: 64813dfdab)
+
 - [x] task:idle-stop Stop a live-and-idle claude conversation after WF_AGENT_IDLE_MIN minutes (default 30, 0 disables): timer armed on `result`, cleared on a written message; stdin closed, session done with a line saying so; Resume / next message come back with --resume. Part of req:wf2.sessions.idle-stop; closes task:idle-agent-timeout. (session: 64813dfdab)
+
 - [x] task:decision-card DecisionNode in DocEditor: context, choice and alternatives as prose sections (editable text areas via setBodyField, like the question card), everything else behind "details" with the id and the yaml editor. Implements req:wf2.cards.decision-essence; follows decision:wf2.card-essence. (session: 843b0e1f2c)
+
 - [x] task:decision-card-ui-test Run ui-test:decision-card in Chrome and record the result on rule:card-essence. Part of req:wf2.cards.decision-essence. (session: 843b0e1f2c)
+
 - [x] task:plan-type-agent-prop The plan pages the app writes (plan:plan-…, type:plan) carry `agent:` and `session:` in their frontmatter; now that a page is an instance of its type (rule:page-node-line) ctx check warns `undeclared property agent (type type:plan)` on each — declare `agent: string?` on type:plan (ontology) or drop the key from the page writer. Part of decision:wf2.page-node-typed. (session: 3805823665)
+
 - [ ] task:open-from-runner A session run by `wf agent listen` (no live console in the app) should also navigate the person on `wf session open` — the sessions SSE stream would need to carry log-derived events. Part of req:wf2.ui.command-palette.
+
 - [ ] task:plan-page-comments Comments on a plan page reach the agent without the person retyping them: on Adjust the agent diffs the page against what it wrote and reads the person's edits as feedback. Part of req:wf2.ui.command-palette.
+
 - [ ] task:palette-recent-commands The command palette remembers the last commands per product and offers them when it opens (rerun, or edit and run). Part of req:wf2.ui.command-palette.
+
 - [ ] task:ui-tests-in-ci The browser scenarios (ui-test:edit-node-flow, ui-test:table-rows) as a runnable e2e suite: playwright-core with the installed Chrome (channel chrome), packages/web/e2e/*.spec.ts, against the dev server; today they are run by hand. Part of req:wf2.ui.
+
 - [ ] task:plan-progress Show progress per document (checked tasks over all tasks) in the rail and on the plan page, part of req:wf2.ui.
+
 - [ ] task:autolink Suggest links for phrases that match a node's title or aliases (later the clerk does this), part of rule:smart-tags.
+
 - [ ] task:phase-1-server Core + server + MCP so agents read and write the graph, implements req:wf2.serve and req:wf2.api.
+
 - [ ] task:affine-polish Bring the shell closer to the AFFiNE look: journals-style recents, favourites, page cover and icon, part of req:wf2.ui.
 
-## Questions
 
-- question:wf2.tasks-in-markdown Tasks live in documents as task nodes rather than in the database the spec planned; the database can index them later. Is that the final answer? Related to decision:wf2.tasks-replace-delta-files.
+## Agents and sessions
+
+<!-- tasks -->
+- [x] task:graph-diff lib:graph-diff — pure diff of two graphs: added / changed / removed defined nodes (typed and block:), with title, doc and change; vitest. Part of req:wf2.sessions.block-attribution. (session: 53f99bfd98)
+- [x] task:block-attribution The watcher keeps the previous graph per product, diffs after each rebuild and records the blocks on every running session (`artifacts.blocks`, capped); the API node PUT records the node as changed on its session; the app's own task-link writes stay excluded. Part of req:wf2.sessions.block-attribution. (session: 53f99bfd98)
+- [x] task:session-changes-view component:session-changes under the knowledge strip (the strip shows "+n added · n changed per document" and opens it), the same component on /<product>/sessions/<id>/changes, op:api.sessions.changes (GET …/sessions/<id>/changes: the blocks joined with the current graph), `wf session changes <id>`, and the console's knowledge row with added / changed marks. Part of req:wf2.sessions.changes-page. (session: 53f99bfd98)
+- [x] task:session-changes-ui-test ui-test:session-changes — a probe session edits a document on disk (one new req, one changed rule, one paragraph); the strip, the changes page and wf session changes list them. Part of req:wf2.sessions.changes-page. (run by hand with playwright-core, 2026-09-18; in CI when task:ui-tests-in-ci lands)
+- [x] task:queue-item-state QueueItem gains `fresh`, `plan`, `doneAt`, `failedAt`, `error`; `Live.turn` remembers the handed item ids; the host stamps them on `result` (done / failed by is_error) and on a process exit mid-turn; Codex on its close; `notifyQueue` / the stream snapshot send every item with its derived state (`queueState` in lib/session-types, pure, tested). Part of req:wf2.sessions.queue-on-agents; follows decision:wf2.queue-item-state. (session: 181e88ad1f)
+- [x] task:fresh-at-take-time The message route enqueues `fresh` / `plan` on the item instead of calling restartFresh; the pump restarts the agent from nothing when the next item is fresh (idle: at once; busy: after the open turn's result) and hands it as a first message built like a new session's; batch mode splits at a fresh item; the console's message box gets the "clear context first" tick (off by default); control `item` toggles fresh on a waiting item. rule:clean-slate and rule:session-queue refined, op:api.sessions.message and op:api.sessions.control refined. Part of req:wf2.sessions.fresh-in-queue; follows decision:wf2.fresh-is-a-queue-property. (session: 181e88ad1f)
+- [x] task:agents-queue-rows component:session-list shows each row's queue: working item, waiting items (with remove and the fresh mark), done items folded, a "n working · n waiting · n done" summary; component:console's queue panel shows the same states. Part of req:wf2.sessions.queue-on-agents. (session: 181e88ad1f)
+- [x] task:agent-stop-from-list Stop (live rows) and Close (active rows) on hover in component:session-list, "Stop idle (n)" in the header; control action `close` = stopChat + drop pending items + status cancelled; row actions do not open the conversation. Part of req:wf2.sessions.stop-from-list. (session: 181e88ad1f)
+- [x] task:agents-queue-ui-test Run ui-test:agents-queue in Chrome (playwright-core) and record the result on the rules. Part of req:wf2.sessions.stop-from-list. (session: 181e88ad1f)
+- [x] task:session-page-lib lib:session-page — pure: `sessionPage(s, graph)` → todo rows (tasks from blocks ∪ refs ∪ `session:` back-links, joined with the graph: status now, title, part-of), blocks by kind with status now, opened pages from `open` events, counts; vitest. Part of req:wf2.sessions.page. (session: efee530d46)
+- [x] task:session-page page:web/session at `/<product>/sessions/<id>` (server-rendered from the record and the graph) with component:session-page; op:api.sessions.page for the live refetch; entry points — ↗ "page" on the session head in component:session-view, a "page" hover action on component:session-list rows, the console's "opened …" line as a client-side link. Part of req:wf2.sessions.page; follows decision:wf2.session-page-derived. (session: efee530d46)
+- [x] task:history-nav ‹ › in component:top-bar before the crumbs (history.back / forward, disabled when there is nowhere to go), ⌘[ / ⌘] shortcuts; `wf session open` and the console's "opened" line stay client-side so the right column keeps its stack. Part of req:wf2.ui.history-nav. (session: efee530d46)
+- [x] task:session-page-ui-test ui-test:session-page — a session with a task line added and a req proposed: the page lists the task unchecked, the req as proposed; setting the task done and the req shipped through the API updates the page; ‹ in the top bar returns to the previous page with the session still in the right column. Part of req:wf2.sessions.page. (session: efee530d46)
+- [x] task:app-link-lib lib:app-link (pure, vitest): parse an app URL against the page origin (localhost / 127.0.0.1 on the same port count), label it from the document title or slug and the node id; refuse foreign URLs. Part of req:wf2.transcript.app-links and rule:app-link. (session: 64813dfdab)
+- [x] task:transcript-markdown component:transcript-markdown: react-markdown + GFM + lib:remark-tags with `a` mapped through lib:app-link (Next Link for in-app paths, the node as SmartTag, the URL as title; foreign links target _blank); component:console (user, assistant, summary rows), component:session-page (instruction, result) and component:session-view (instruction, result) render through it; the session page's title and the Agents rows use the plain-text labels. Part of req:wf2.transcript.app-links. (session: 64813dfdab)
+- [x] task:desktop-external-links packages/desktop/main.js: `will-navigate` keeps the window on the app's origin and opens any other URL with shell.openExternal. Part of rule:app-link. (session: 64813dfdab)
+- [x] task:app-links-ui-test Run ui-test:app-links in Chrome (playwright-core) against a live conversation; record the result. Part of req:wf2.transcript.app-links. (session: 64813dfdab)
+- [x] task:app-links-knowledge After shipping: statuses to shipped, component:console and component:session-page purposes mention component:transcript-markdown. Part of decision:wf2.transcript-app-links. (session: 64813dfdab)
+- [x] task:plan-doc-lib lib:plan-doc (pure, vitest): `planSlug` (first words of the request, slugified, `-2` on collision), `planDocBody` from templates/docs/plan-request.md (frontmatter with the type:plan card, Request with the source document, node and refs as tags, empty Context / Plan / Tasks / Result), `resultSection` (summary + blocks list from artifacts.blocks), `withResult`. Part of req:wf2.sessions.plan-doc and rule:plan-doc.
+- [x] task:plan-doc-create createSession and a fresh queue item with `plan: true` create the plan document in the request's project under the source document (else the project's plan document), store `planDoc` on the session, log "plan document <path>"; the write carries x-wf-session so it is not attributed to the agent. Part of req:wf2.sessions.plan-doc. (built by session 672f4fdf3d; changed by decision:wf2.plans-folder and decision:wf2.plan-per-request in plan:plan-work-in-progress-visibility, session 07aa6645ad)
+- [x] task:plan-first-prompt PLAN_FIRST names the plan document (path and node) and says where blocks go: tasks (`part of plan:<slug>`), questions and decisions on the plan page; req/rule/component/page on the entity's page, embedded on the plan page with `![[id]]`; the type/card step stays for a new entity. Part of rule:plan-first and rule:plan-doc.
+- [x] task:plan-doc-result the PATCH that sets a session done / failed / cancelled writes the Result section (summary, blocks, paragraphs count → changes page) and the card's `status` and `finished`. Part of req:wf2.sessions.plan-result.
+- [x] task:plan-doc-links "page ↗" on the session head (component:session-view), the Agents rows (component:session-list) and the console's "opened …" line open the plan document; sessions without one show no "page" link (the changes link stays). Part of req:wf2.sessions.plan-doc. (the single link became component:plan-list — every plan of the worker, task:plans-in-agents-view)
+- [x] task:session-page-retire `/<product>/sessions/<id>` redirects to the plan document (else to `/changes`); remove component:session-page, lib:session-page and op:api.sessions.page with their tests; keep the changes page; decision:wf2.session-page-derived → superseded, req:wf2.sessions.page → superseded. Part of decision:wf2.plan-is-a-document.
+- [x] task:plan-doc-ui-test Run ui-test:plan-doc in Chrome (playwright-core) against a live palette request; record the result. Part of req:wf2.sessions.plan-doc.
+- [x] task:plan-doc-knowledge After shipping: statuses to shipped, module:app-agents' purpose and rule:plan-first mention the plan document, this session's own plan moved to `plan-…` as the first instance. Part of decision:wf2.plan-is-a-document.
+- [x] task:first-message-shown lib:agent-host: `startProcess` emits the first `user` event with `text` = the instruction (`s.instruction`, or the joined batch text for a fresh restart, passed as `shown` next to `firstMessage`) and `prompt` = the full message; both the Claude and the Codex path; `ChatEvent.prompt` added in lib:session-types; lib:transcript `firstUserEvent` (tested). Part of req:wf2.console.first-message-is-the-request and plan:plan-text-which-sent-agent-beginning-no. (session: c2bbac979d)
+- [x] task:first-message-fold component:console: a user row whose `prompt` differs from `text` renders a collapsed "what the agent received" fold with the prompt below the text; styles in globals.css. Verified in the browser (ui-test:first-message-fold). Part of req:wf2.console.first-message-is-the-request and plan:plan-text-which-sent-agent-beginning-no. (session: c2bbac979d)
+- [x] task:first-message-knowledge After shipping: req:wf2.console.first-message-is-the-request shipped, component:console's purpose mentions the fold. Part of decision:wf2.first-message-shown-as-request and plan:plan-text-which-sent-agent-beginning-no. (session: c2bbac979d)
+<!-- /tasks -->
+
+## Backlog
+
+<!-- tasks -->
+- [x] task:new-171 Add desctiption of the app, and all the modules of the app, so we can keep track all requirements about it, i.e. add section UI, add Storage, Navigation etc. add logical modules, create types, like component, page etc, then review entire waterfall app and fill all details. Part of module:app. (session: 94ac3cf3e0)
+- [ ] task:app.trace-requirements For every requirement in the PRD that the app satisfies, add the component, lib or op that satisfies it to its `satisfied-by` (the map here names the pieces; the PRD's edges still point at rules only). Part of module:app. #todo (worker: codex, session: b9b458ace4, produced: plan:plan-work-task-app-trace-requirements-every module:app-documents module:wf2-dev plan:plan-why-t-type-space-typing-answer module:prd-execution plan:plan-build-one-too module:app-work module:wf2-test module:memory-review module:benchmarks)
+- [ ] task:app.keep-in-step Regenerate the component, lib and op cards from the code (the header comment is the purpose) whenever a file is added or renamed under packages/web/src; a check that every file has a card and every card a file. Part of module:app.
+<!-- /tasks -->
+
+## Definition — the librarian
+
+<!-- tasks -->
+- [x] task:exec.librarian-role Session role on the record; prompts/librarian-system.md; the host's tool allow-list per role (wf read commands, wf propose, wf plan, questions; no shell, no code); "Ask Wye" and "Explain" in the command box and on nodes. Part of goal:exec.define-first (decision:exec.wye-is-a-role, req:exec.ask-wye, req:exec.explain-anywhere). (session: de966d3bd9)
+- [x] task:exec.wye-context-card The Context card in the context column: the constraint packet and semantic hits grouped by kind, filling in live from the session's knowledge events; stays at the top for the conversation. Part of goal:exec.define-first (req:exec.wye-context). (session: de966d3bd9)
+- [x] task:exec.wye-turns The librarian's first turn (explain with tags, say when satisfied or contradicting), the question form along when / then / unless and constraints (three at a time, skipped → question block), and `wf propose` writing proposed blocks to home documents and embedding them on the plan with verdicts. Part of goal:exec.define-first (req:exec.wye-explains, req:exec.wye-asks, req:exec.wye-proposes). Depends on task:memory.verdict-pass and task:memory.constraint-packet. (session: de966d3bd9)
+- [ ] task:exec.librarian-tests test:librarian — recorded librarian turns on the YesSensei pilot: explains with tags, asks only unfilled slots, proposes into home documents, never edits code; ui-test:ask-wye and ui-test:build-plan in Chrome. Part of goal:exec.define-first.
+<!-- /tasks -->
+
+## Documents and editing
+
+<!-- tasks -->
+- [x] task:embed-syntax EMBED_LINE in lib/import (lift to %%EMBED:n%%, expand to an `embed` block with `id`), the line back in lib/serialize, tests in import.test.ts and serialize.test.ts. Part of rule:embed-line.
+- [x] task:node-cards-module Move NodeBlock's card bodies (prose node, QuestionNode, DecisionNode, task checkbox) from DocEditor into components/NodeCards.tsx with a text slot instead of contentRef; DocEditor keeps rendering the same. Part of decision:wf2.embed-renders-source-card.
+- [x] task:embed-block components/EmbedBlock.tsx: the BlockNote `embed` block and the standalone EmbeddedCard — fetch op:api.node, render the card with a text area in the slot, save through op:node.edit (debounced), refetch on `wf:change` graph events, "from <document>" line, stub for undefined nodes. Part of req:wf2.embeds.render and req:wf2.embeds.edit-sync.
+- [x] task:embed-slash "Embed a node" slash item (`/ref`, `/embed`) with the node picker; inserts the block. Part of req:wf2.embeds.insert.
+- [x] task:embed-reader DocumentReader renders an embed line as the same EmbeddedCard the editor uses (component:node-card needs the body, which the reader's index does not carry; the card loads on the client and the editor takes over right after). Part of req:wf2.embeds.render.
+- [x] task:session-changes-cards component:session-changes rows become EmbeddedCards (removed rows keep the tag; paragraphs show their text; chips unchanged). Part of req:wf2.sessions.changes-cards.
+- [x] task:embeds-ui-test Run ui-test:embeds in Chrome (playwright-core) and record the result. Part of req:wf2.embeds.edit-sync.
+- [x] task:page-node-parse lib/parse.js: accept any `kind:slug` on the frontmatter `node:` line (kind must be a declared type, else an error problem); edges from frontmatter keys that are ref/list props of the type (propVerb) as well as EDGE_KEYS; lib/graph.js check ignores page bookkeeping keys; tests in test/parse. Part of req:wf2.page.node and rule:page-node-line. (session: 64813dfdab)
+- [x] task:page-node-web-helper packages/web/src/lib/doc.ts: docIdOf(file) / isDocNode(g, id) over graph.modules; replace every hand-built `module:${slug}` and `kind === 'module'` check (the tree items and the top bar's docs carry the node id; CommandBox → docNodeOf; DocEditor takes the id the create route returns; PeekPanel, SmartTag and hrefFor ask the index entry's `doc`; artifacts, session-page, session-changes, graph-diff, the node route → docIdOf; review, the knowledge page and linkedDocuments → the modules set; the types home lookup strips any kind). Part of rule:page-node-line. (session: 64813dfdab)
+- [x] task:page-node-header component:doc-props becomes the page node's card: type picker pill (own types then base types), id, status, icon, title, then nodeProps(type) as fields with the value type as placeholder, root props folded unless filled, ref/list fields with the link picker; saves through op:doc.frontmatter. Part of req:wf2.page.header-card. (session: 64813dfdab)
+- [x] task:page-node-retype packages/web/src/lib/retype.ts (pure, tested): rewrite an id across a set of markdown files; op:doc.retype (PUT op 'retype' on the doc route) rewrites the frontmatter node line and every reference in the product's documents, refuses a conflict; `wf doc retype`. Part of req:wf2.page.retype and rule:doc-retype. (session: 64813dfdab)
+- [x] task:page-node-create component:new-doc and `wf doc create --type <slug>`: type choice (default module); templates drop the `type: module` line; the required properties of the type written as empty keys. Part of req:wf2.page.create-typed. (session: 64813dfdab)
+- [x] task:page-node-types-page page:web/types: a page instance in the table links to the document (hrefFor already resolves it); the row shows a page icon. Part of req:ontology.type-page. (session: 64813dfdab)
+- [x] task:page-node-ui-test ui-test:page-node in Chrome: create a page as team, fill a property in the header, see it in the team table, retype it to person and see the links follow. Part of req:wf2.page.header-card. (session: 64813dfdab)
+- [x] task:page-node-knowledge After shipping: statuses to shipped, component:doc-props purpose updated, app-storage store:documents frontmatter description updated (node: any kind), task:new-226 done. Part of decision:wf2.page-node-typed. (session: 64813dfdab)
+<!-- /tasks -->
+
+## Knowledge and search
+
+<!-- tasks -->
+- [x] task:instance-table lib:instance-table (rows, filter, group, sort — vitest) and component:instance-table; the type page and the kind page render it with the toolbar and URL state; part of req:wf2.instances.filter, part of task:new-453. (session: 53f99bfd98)
+- [x] task:instance-view-block The `view` block in DocEditor: slash item "Instances view", `<!-- view:<slug> key=value -->` in import.ts / serialize.ts, type picker in the header, component:instance-table inside, read-only; part of req:wf2.instances.view-block, part of task:new-453. (session: 53f99bfd98)
+- [x] task:instance-table-ui-test ui-test:instance-table — open /types/bug, filter by status and an enum property, group by, copy the URL and reopen it; a view block in a document shows the same rows; part of req:wf2.instances.filter. (run by hand with playwright-core, 2026-09-17; in CI when task:ui-tests-in-ci lands)
+<!-- /tasks -->
+
+## Memory
+
+<!-- tasks -->
+- [x] task:memory.constraint-packet Build the constraint packet (op:api.packet, `wf packet --for`) and put it in the first message under "Constraints in force"; two hops over governs, gated-by, affects, refines, part-of, depends-on from refs + semantic seeds; superseded filtered. Part of goal:memory.validated-asks (decision:memory.constraint-packet). (session: 9f3d83809b)
+- [x] task:memory.bitemporal-props Add since, until, superseded-by, by, session, evidence to type:node; statuses superseded and retired; parser fills until / superseded-by from `supersedes`; retrieval and the packet skip ended nodes unless --as-of or --all. Part of goal:memory.validated-asks (decision:memory.bitemporal, decision:memory.evidence). (session: 9f3d83809b)
+- [x] task:memory.decision-statuses Give the 43 status-less decisions a status (approved where the code follows them, superseded where a later one replaced them) and `supersedes` where the prose says so. Part of goal:memory.validated-asks. (session: 9f3d83809b)
+- [x] task:memory.constraint-type Declare type:constraint in the base ontology, move the product's constraints out of _agent.md and the spec's non-goals into constraint: blocks, add the Constitution view and the `## Constitution` section of the agent prompt. Part of goal:memory.validated-asks (decision:memory.constraint-type). (session: 9f3d83809b)
+- [x] task:memory.verdict-pass The write-time verdict pass on new or changed decision / req / rule / constraint blocks: pair classification with reasons, verdict blocks with model and prompt hash, contradiction: nodes with kind and lifecycle, Inbox rows with verdicts and the supersede / refine / dismiss choice on approval. Part of goal:memory.validated-asks (decision:memory.write-time-verdict). (session: 9f3d83809b)
+- [x] task:memory.benchmark The hide-one-edge regression over the 78 contradicts edges: recall and precision per conflict kind, recorded verdicts for CI, live behind WATERFALL_LIVE=1. Part of goal:memory.validated-asks (decision:memory.benchmark). Before task:memory.verdict-pass is on by default. (session: 9f3d83809b)
+- [x] task:memory.consolidate The consolidation run on session done: candidates from the transcript, diff against produced blocks, misses filed as proposed blocks with evidence in the plan document; type:lesson. Part of goal:memory.validated-asks (decision:memory.consolidate-sessions). (session: 9f3d83809b)
+- [x] task:memory.forgetting Archived-for-retrieval state for done plans and closed sessions; retrieval, packet and search skip them unless --all; the rail folds them. Part of goal:memory.validated-asks (decision:memory.forgetting). (session: 9f3d83809b)
+- [x] task:memory.shapes `shapes:` on type cards read by the parser and enforced by ctx check; move the two hardcoded checks into the base ontology. Part of goal:memory.validated-asks (decision:memory.shapes). (session: 9f3d83809b)
+- [x] task:memory.lint-deep `ctx check --deep`: the verdict pass over every same-kind pair that shares a neighbour, on demand (Karpathy's lint --deep), reporting new contradictions. Part of goal:memory.validated-asks. (session: 9f3d83809b)
+- [ ] task:memory.instructions type:instruction and type:lesson in the base ontology; `_agent.md` as instruction blocks; the prompt's Instructions section scoped by applies-to and capped; the consolidation run's outcome inputs (failed, cancelled, bounced, reverted, rejected), one instruction patch per run as a change record with evidence, rejected proposals kept and read. Part of goal:memory.validated-asks (decision:memory.instructions-compiled). After task:memory.consolidate and task:exec.change-store.
+- [x] task:memory.eval-suite `eval/own`: packet completeness vs vector top-k over shipped requirements, currency over supersessions, impact recall over co-changed blocks from git and sessions, consolidation recall over hidden decision blocks — recorded outputs for CI, live mode, scores to `_build/eval/<date>-own.json`; extends the verdict-pass benchmark of task:memory.benchmark. Part of goal:memory.validated-asks (req:memory.eval-benchmarks). Set up and run as module:benchmarks says. (session: 9f29fa036e)
+- [x] task:memory.eval-compare `wye eval compare`: with and without arms in scratch worktrees, n runs, immutable transcripts, scoring, blind human mark; Compare on a plan. Part of goal:memory.validated-asks (req:memory.eval-compare). (session: 9f29fa036e)
+- [x] task:memory.eval-public `eval/public`: MOOSEDev bench through Wye (corpus as typed cards in a scratch product, questions via packet and context, their judge, four numbers beside theirs and mem0's); the verdict judge over WorldVista / UAV / PURE pairs with macro-F1; then a MemoryAgentBench adapter for conflict resolution; the Public tab on the Evaluation page. Part of goal:memory.validated-asks (decision:memory.public-benchmarks). After task:memory.constraint-packet and task:memory.verdict-pass. (session: 9f29fa036e)
+- [x] task:memory.eval-cards The harness writes every run as eval-run / eval-score / eval-pair / eval-public cards into the Evaluation project's runs document; the Results page shows them with the table and view blocks; page:web/eval, EvalView and the rail entry removed. Part of goal:memory.validated-asks (req:memory.eval-page, constraint:wf2.no-custom-pages). (session: 9f29fa036e)
+- [ ] task:memory.code-source-spike The comment pass of the parser over source-roots for one language (TypeScript, `//` and `/** */`), read-only, on Wye's own packages/web: entity, op, rule, component, lib nodes defined beside their code; one-defining-place check; the web app shows them with file and line. Part of goal:memory.validated-asks (decision:memory.code-source). Answer question:memory.code-source.kinds and question:memory.code-source.writes first.
+- [ ] task:memory.code-drift With code-defined entities: compare declared fields with the class or type next to the comment and report drift. Part of goal:memory.validated-asks. After task:memory.code-source-spike.
+<!-- /tasks -->
+
+## Ontology
+
+<!-- tasks -->
+- [x] task:ontology.block-select A click anywhere on a typed block — card, row, embed, text included — selects it and the context column shows the node (req:wf2.ui.block-select, rule:block-select). Part of goal:ontology.graph-editor; done by plan:plan-still-bad-now-need-click-tag. (session: 367dedec3c)
+- [ ] task:ontology.paragraph-select A click in a plain paragraph selects its block node: the Context root shows block:<doc>.<hash> — its heading, its links, what it has — instead of only the knowledge nearest to its text. Part of goal:ontology.graph-editor; depends on task:ontology.block-peek and task:ontology.block-select.
+- [ ] task:ontology.child-nodes-design type:comment declared as a block type with an author and a date, and a comment written as a nested block under what it comments on — the rest of the uniform content model (decision:ontology.uniform-content) shipped with plan:plan-need-more-work-context-panel-proper: `content` on type:node, the parser reading the blocks under any prose line, list item or card (rule:ontology.content). Part of goal:ontology.graph-editor; depends on req:ontology.content.
+- [x] task:ontology.children-in-column The context column shows a node's `content` — its child blocks — in the document's own editor scoped to the node, where any block can be added and a child's card opens the child one level deeper (req:wf2.ui.node-content, rule:content-editor). Part of goal:ontology.graph-editor; done by plan:plan-need-more-work-context-panel-proper. (session: ffab751604)
+- [x] task:ontology.types Type nodes and inheritance: `type:` cards with `extends` and `props`, two-pass parse with an open kind list, base ontology document replacing schema/kinds.yaml, inherited-property validation in ctx check, type page listing instances. Part of module:ontology-design; depends on req:wf.graph. (session: 94ac3cf3e0)
+- [x] task:ontology.inverses Named inverses and collections: the inverse declaration on properties, generated reverse edges, inverse names in the peek panel and node page, base verbs declared with inverses, cardinality inferred. Part of module:ontology-design; depends on task:ontology.types. (session: 94ac3cf3e0)
+- [x] task:ontology.blocks Every block a node: `block:` ids from anchor hashes, document→heading→block `has` tree, phrase links owned by the block, hidden by default in rail/search/site. Part of module:ontology-design; depends on task:ontology.inverses and rule:block-links. (session: 94ac3cf3e0)
+- [x] task:ontology.add-type Add a type from the Types index: "+ add type" (name, extends, purpose, destination document) writes the `type:` card to the ontology document and opens the new type in the context column for its properties. Implements req:ontology.add-type; part of module:ontology-design; depends on task:ontology.types. (session: 8aa3926e18)
+- [x] task:ontology.type-table A "<Type>s table" block for every own type: `<!-- table:<slug> -->` regions of prose instance lines, editable in the editor with a column per declared property. Implements req:ontology.type-table; part of module:ontology-design; depends on task:ontology.add-type. (session: 8aa3926e18)
+- [ ] task:ontology.kinds-yaml-generated Generate `schema/kinds.yaml` (kinds, verbs, statuses) from `schema/base-ontology.md` so the two cannot drift; today kinds.yaml is a hand-kept summary with a header pointing at the ontology. Part of module:ontology-design; depends on decision:ontology.base-ontology-referenced.
+- [ ] task:ontology.unique Cardinality on the inverse side: a `unique` modifier on a `list of` property makes the target's inverse a single ref instead of a collection; today every inverse renders as a list. Part of module:ontology-design; depends on task:ontology.inverses.
+- [ ] task:ontology.ref-slot-picker The editor's link picker filters targets by the property's declared type: a `ref employee` slot only offers employees and their subtypes; the block menu already offers the product's own types. Part of module:ontology-design; depends on task:ontology.types.
+- [ ] task:ontology.block-peek Open a block node from its `#b-<hash>` anchor in the peek panel (its links, its heading, a place for per-block properties such as a status or a comment). Part of module:ontology-design; depends on task:ontology.blocks.
+- [x] task:ontology.spike Throwaway spike before task:ontology.types: parse the person/employee/manager/team example from module:ontology with a two-pass parser in a branch of lib/parse.js and print the effective properties and inverses; the output is a yes/no on the two-pass approach, not code to keep. Part of module:ontology-design. (result: yes: two-pass works (types then instances); effective props by extends chain, generated inverses, transitive is-a, session: 94ac3cf3e0)
+- [x] task:do-research-and-expand Do research and expand on the ontology ideas, add desgin doc as child to this doc
+<!-- /tasks -->
+
+## Work, changes and impact
+
+<!-- tasks -->
+- [x] task:exec.task-props type:task gains worker, priority, blocked-by (inverse blocks) and the review status; the parser reads them from the property group; TrackList shows worker. Part of goal:exec.work-and-impact (decision:exec.task-is-the-unit). (session: de966d3bd9)
+- [x] task:exec.request-task The plan template and lib:plan-doc write the request as a task line with worker and session; the session's refs carry it; the end hook moves it to review or done. Part of goal:exec.work-and-impact (req:exec.request-is-a-task). (session: de966d3bd9)
+- [x] task:exec.work-api op:api.work: every task with its derived state from the session records (queued, working, stalled, unassigned), its plan, goal, worker, sessions, produced counts; lib:work pure and tested. Part of goal:exec.work-and-impact (req:exec.work-states). (session: de966d3bd9)
+- [x] task:exec.work-view page:web/work replaces the Tasks entry: rows, groups (status, goal, plan, document, worker), URL filters, nesting, "mine", done folded. Part of goal:exec.work-and-impact (req:exec.work-view, req:exec.human-work). (session: de966d3bd9)
+- [x] task:exec.assign Assign on a row and on the task panel: worker picker (people from the product file, agents, runner pool), note, plan-first; creates or queues the session with the constraint packet; refuses done and blocked tasks. Part of goal:exec.work-and-impact (req:exec.dispatch). (session: de966d3bd9)
+- [x] task:exec.task-result The task panel's result: summary, blocks, open questions, proposed decisions with Inbox state, Review action, tick done. Part of goal:exec.work-and-impact (req:exec.done-comes-back). (session: de966d3bd9)
+- [x] task:exec.change-store store:changes and op:api.changes: a record per edit from the editor, op:api.node, wf node set and the watcher (agent file writes, diffed by block); folding within five minutes; states; the changed badge. Part of goal:exec.work-and-impact (decision:exec.change-record, req:exec.change-kept). (session: de966d3bd9)
+- [x] task:exec.change-card component:change-card in the Inbox under Changes: property and word diff, framing fields, Accept, Revert (through the writer, recorded), "changed since", the verdicts of the write-time pass. Part of goal:exec.work-and-impact (req:exec.change-review, req:exec.change-validated). Depends on task:memory.verdict-pass. (session: de966d3bd9)
+- [x] task:exec.impact-lib lib:impact pure: structural candidates two hops over reversed edges with decay and paths, content first, verbatim-repeat detection, semantic candidates from the embeddings not reached by structure. Part of goal:exec.work-and-impact (req:exec.impact-set, req:exec.impact-sub-items). (session: de966d3bd9)
+- [x] task:exec.impact-run op:api.impact: the run on a change record — batched pair judgements with before / after / candidate / path, verdicts update | rework | contradicts | ask | unaffected, patches with old and new, cached by pair hash, budgeted; asynchronous, the card fills in; product setting impact: auto | manual | off; the trigger on blur / save. Part of goal:exec.work-and-impact (decision:exec.impact-run, decision:exec.impact-trigger). (session: de966d3bd9)
+- [x] task:exec.impact-outcomes Apply / Skip / Apply all for patches (op:api.impact.apply, stale-candidate check); rework → task line under the plan or a "Follow up" plan; contradicts → contradiction; ask → question block. Part of goal:exec.work-and-impact (req:exec.impact-patch, req:exec.impact-rework, req:exec.impact-contradiction). (session: de966d3bd9)
+- [x] task:exec.impact-cli `wf impact <id> --after` and `ctx impact --semantic --explain`; the agent contract asks for it before editing an approved node. Part of goal:exec.work-and-impact (req:exec.impact-for-agents). (session: de966d3bd9)
+- [x] task:exec.capture "Later" in the command box and "+ backlog" on nodes and documents write a task line to the plan document or under the node; inbox notes file as tasks; `wf work list|add`. Part of goal:exec.work-and-impact (req:exec.capture, req:exec.backlog-for-agents). (session: de966d3bd9)
+- [x] task:exec.take-ready `#ready` on task lines; `wf work next`; `wf agent listen --take-ready` claims the oldest ready unblocked unassigned task as an assignment; product setting to switch it off. Part of goal:exec.work-and-impact (req:exec.ready-for-runners, decision:exec.backlog-is-unassigned-work). (session: de966d3bd9)
+- [x] task:exec.plan-definition type:plan statuses and the Definition section in lib:plan-doc; blocks and change records of a defining session embed automatically; `defined` computed; the plan page shows the list with status and diffs. Part of goal:exec.define-first (decision:exec.plan-lifecycle, req:exec.plan-defined, req:exec.definition-tracked). (session: de966d3bd9)
+- [x] task:exec.build Build on a plan: assign the request task with the Definition as context; unagreed blocks listed when not defined; the Result maps what was built to each block. Part of goal:exec.define-first (req:exec.build-from-definition). (session: de966d3bd9)
+- [ ] task:exec.rekind Read every req: of this PRD against decision:exec.kind-by-nature: a block that describes how the product works becomes a rule (with source) or a decision, and the observable behaviour it served becomes the requirement, in the person's words; ids stay stable where the block stays a requirement. Part of goal:exec.define-first.
+- [x] task:exec.ui-tests ui-test:work-view, ui-test:work-assign, ui-test:change-review in Chrome (playwright-core): assign a task and see it queued then working; edit a requirement with a sub-requirement and see the change card with the child's proposed update; revert. Part of goal:exec.work-and-impact. (session: de966d3bd9)
+<!-- /tasks -->

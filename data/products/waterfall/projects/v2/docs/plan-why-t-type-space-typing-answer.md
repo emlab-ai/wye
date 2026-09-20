@@ -2,13 +2,14 @@
 node: plan:plan-why-t-type-space-typing-answer
 type: plan
 title: why i can't type space when typing answer??? also no answer in details, it must be like…
-status: proposed
+status: done
 owner: unassigned
 last-verified: 2026-09-19
 session: 5e84bc193c
 agent: claude-code
 started: 2026-09-19T13:49:56.575Z
 part-of: module:v2-plans
+finished: 2026-09-19T14:05:17.265Z
 ---
 
 # why i can't type space when typing answer??? also no answer in details, it must be like…
@@ -71,4 +72,21 @@ _`- [ ] task:` lines, `part of plan:plan-why-t-type-space-typing-answer`; their 
 
 ## Result
 
-_Written by the app when the session ends: the summary and the blocks this plan produced._
+Space was lost, not blocked: the card's prose text areas were controlled by a value that round-trips through fieldsToBody/parseBody (trim + fold), so the trailing space vanished on the next render. ProseArea keeps the typed text local (sameProse, tested). A question's answer is now its content (decision:wf2.answer-is-content, proposed): the blocks under the question render under the card as the answer section, never folded; a placeholder inserts the first block; the details panel shows q once and labels the Content as the answer. rule:card-essence, rule:card-fold, req:wf2.ui.card-preview updated via wf impact. Follow-up task:wf2.prose-newlines. Commit cdb0d1d.
+
+Blocks this plan produced:
+
+- added task:plan-why-t-type-space-typing-answer — why i can't type space when typing answer???
+- added decision:wf2.answer-is-content — A question's answer is its content, edited with the block editor; no `answer:` key
+- added task:wf2.prose-area — Card prose sections keep local state;
+- added task:wf2.answer-content — Question card:
+- added task:wf2.details-q-once — Details panel shows q once and labels a question's content as its answer part of plan:plan-why-t-type-space-ty
+- added task:wf2.answer-rules — rule:card-essence and rule:card-fold updated through `wf impact` part of plan:plan-why-t-type-space-typing-ans
+- changed task:app.trace-requirements — For every requirement in the PRD that the app satisfies, add the component, lib or op that satisfies it to its
+- added plan:plan-work-task-app-trace-requirements-every — Work on task:app.trace-requirements: For every requirement in the PRD that the app…
+- changed rule:card-fold — Every card's header carries `FoldToggle` when the node has content — a chip "▸ n blocks" whose click opens the
+- changed rule:card-essence — A question card shows q and its answer; the answer is the question's content (decision:wf2.answer-is-content) 
+- changed req:wf2.ui.card-preview — A card of a node with content shows only its own first block; the content is in the details
+- added task:wf2.prose-newlines — A newline typed in a card's prose section (q, context, choice, alternatives) is folded to a space on save (`fi
+
+29 paragraphs added or changed — [per document](/waterfall/sessions/5e84bc193c/changes)

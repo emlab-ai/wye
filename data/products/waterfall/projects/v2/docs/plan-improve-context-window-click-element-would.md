@@ -2,13 +2,14 @@
 node: plan:plan-improve-context-window-click-element-would
 type: plan
 title: improve context window, when i click to the element, i would like to be able to add…
-status: proposed
+status: done
 owner: unassigned
 last-verified: 2026-09-18
 session: edd6ae474d
 agent: claude-code
 started: 2026-09-18T15:19:04.398Z
 part-of: module:v2-plans
+finished: 2026-09-18T15:32:45.684Z
 ---
 
 # improve context window, when i click to the element, i would like to be able to add…
@@ -61,4 +62,20 @@ The context column (component:peek-panel, `packages/web/src/components/PeekPanel
 
 ## Result
 
-_Written by the app when the session ends: the summary and the blocks this plan produced._
+Connected rows in the context column expand in place into the node's full card: ▸ on any Connected or tracking row of a defined node renders its EmbeddedCard (the document's editable card) under the row; a group heading's cards/tags toggle opens or closes the whole group; stubs have no toggle; the tag still opens the node. PeekPanel RelRow/RelHead + globals.css; ui-test:connected-cards 16/16 in Chrome; req:wf2.ui.connected-cards and rule:connected-cards shipped, decision:wf2.connected-rows-expand-to-cards proposed; commit 8befe90
+
+Blocks this plan produced:
+
+- added decision:wf2.connected-rows-expand-to-cards — A connected row expands in place into the node's embedded card
+- added task:connected-cards-rows — Expand toggle on every Connected and tracking row;
+- added task:connected-cards-groups — Cards / tags toggle on every group heading part of plan:plan-improve-context-window-click-element-would
+- added task:connected-cards-css — The expanded card spans the column under its row part of plan:plan-improve-context-window-click-element-would
+- added task:connected-cards-ui-test — Verify in Chrome via playwright-core:
+- added task:connected-cards-knowledge — req:wf2.ui.connected-cards and rule:connected-cards shipped, component:peek-panel refined, ui-test recorded pa
+- changed component:peek-panel — peek-panel
+- changed page:web/context-column — web/context-column
+- added req:wf2.ui.connected-cards — A connected node opens as its card under its row in the context column
+- added rule:connected-cards — connected-cards
+- added ui-test:connected-cards — connected-cards
+
+13 paragraphs added or changed — [per document](/waterfall/sessions/edd6ae474d/changes)

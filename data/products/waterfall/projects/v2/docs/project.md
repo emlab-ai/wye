@@ -1,8 +1,8 @@
 ---
-node: module:wf2
+node: module:archive-project
 type: module
-title: Waterfall v2 — project
-status: proposed
+title: Waterfall v2 — project, 2026-09-14 (retired)
+status: retired
 owner: alex
 last-verified: 2026-09-14
 verified-against: docs/superpowers/specs/2026-09-14-waterfall-v2-design.md (design, no code yet)
@@ -12,7 +12,8 @@ sources:
   - docs/superpowers/specs/2026-09-14-web-ui-documents-first-design.md   # the reader: documents first, cards, smart tags, peek panel
   - docs/context-graph/waterfall.md                              # v0.1 self-description; v2 refines and resolves parts of it
   - schema/kinds.yaml
-order: 70
+part-of: module:archive
+order: 95
 ---
 
 # Waterfall v2 — project
@@ -21,7 +22,7 @@ This is the project file. It holds the product and project nodes, the sub-system
 
 | document | file | holds |
 |---|---|---|
-| PRD | `docs/context-graph/prd.md` (module:wf2-prd) | requirements `req:wf2.*` in when/then/unless form, flags |
+| PRD | `docs/context-graph/prd.md` (module:wf2-prd) | requirements `req&#58;wf2.*` in when/then/unless form, flags |
 | Dev design | `docs/context-graph/dev-design.md` (module:wf2-dev) | entities, values, state machines, operations (API tools), pages (web UI), rules |
 | Test design | `docs/context-graph/test-design.md` (module:wf2-test) | test nodes, what each verifies, untested surfaces |
 
@@ -31,48 +32,7 @@ Everything starts as `status: proposed`; a node moves to `unverified` when its s
 
 ## 0. module:wf2
 
-```yaml
-- id: module:wf2
-  purpose: >
-    Hold the full knowledge of a product under development — its artifact graph, tasks, decisions and
-    contradictions — so that humans and coding agents (Claude Code, Codex, others) read from and write to one
-    picture. v2 keeps the v0.1 markdown graph as the reviewed source of truth and adds a store for the churn
-    stream, a server with HTTP and MCP access, a Notion-style web app with an editable mind map, an internal clerk
-    agent that turns decisions into graph changes, and contradiction detection with explicit resolution. links t o
-    @ads.com entity:product
-  product: product:waterfall
-  submodules:
-    - core      # packages/core — parser, queries, lint (ported from lib/), the new in-place writer, the schema
-    - server    # packages/server — repo registry, watcher, in-memory graphs, SQLite, services, HTTP, MCP, SSE
-    - web       # packages/web — Next.js app: sidebar, node page, graph view, tasks, decisions, contradictions
-    - cli       # packages/cli — ctx as a thin client with local fallback
-    - clerk     # packages/server/src/clerk — the internal agent (Messages API tool-use loop)
-    - skills    # skills/* rewritten around the MCP tools; CLAUDE.md / AGENTS.md snippet
-  documents: [module:wf2-prd, module:wf2-dev, module:wf2-test]
-  scoping: one server process; many local repos (projects) grouped under products; ids are global within a project's graph
-  edges:
-    - module:wf2 -(has)-> module:wf2-prd
-    - module:wf2 -(has)-> module:wf2-dev
-    - module:wf2 -(has)-> module:wf2-test
-    - module:wf2 -(edge-to)-> module:waterfall          # v0.1: parser, queries, lint, static viewer, skills are reused
-    - module:wf2 -(edge-to)-> module:claude-code        # MCP client (stdio or HTTP); skills; CLAUDE.md snippet
-    - module:wf2 -(edge-to)-> module:codex              # MCP client via ~/.codex/config.toml; AGENTS.md snippet
-    - module:wf2 -(edge-to)-> module:anthropic-api      # the clerk runs on the Messages API
-    - module:wf2 -(edge-to)-> module:git                # markdown lives in the repo; the server only reads the sha
-    - module:wf2 -(edge-to)-> module:yessensei-pos      # first registered project; its inventory graph is the pilot
-```
-
-entity:product 
-
 ### product:waterfall
-
-```yaml
-- id: product:waterfall
-  description: >
-    The product this graph describes. In the v2 data model a product groups projects (repos); waterfall itself is
-    the first product and its own repo the first project.
-  projects: [module:wf2, module:waterfall]
-```
 
 ---
 
@@ -92,176 +52,11 @@ Each phase is its own implementation plan. Exit criteria are requirements in the
 
 The product's constraints (decision:memory.constraint-type): rules about Wye or how it is built that no code enforces. Approved ones go verbatim into every agent's system prompt and into the constraint packet of every request; they used to live in the spec's non-goals, the agent contract's prose and the person's memory notes.
 
-```yaml
-- id: constraint:wf2.local-first
-  statement: >
-    Wye runs on the person's machine over the files of this repo. No hosting surface in v2: no multi-user auth, no
-    remote git sync, no automatic commits. Schema and API may carry the fields for it, unused.
-  scope: [module:wf2, req:wf2.serve]
-  status: proposed
-  by: alex
-  evidence: [docs/superpowers/specs/2026-09-14-waterfall-v2-design.md]
-- id: constraint:wf2.text-canonical
-  statement: >
-    Text files in git are canonical: a product's knowledge is its markdown documents; nothing is stored apart that the
-    documents do not say, and git is the rollback.
-  scope: [rule:markdown-canonical, module:wf2]
-  status: proposed
-  by: alex
-- id: constraint:wf2.person-approves
-  statement: >
-    Nothing resolves a contradiction, retires a decision or deletes memory without a person: agents, the verdict pass
-    and the consolidation run propose blocks; a person approves, resolves or dismisses them in the Inbox.
-  scope: [rule:inbox-review, req:wf2.clerk, decision:memory.write-time-verdict]
-  status: proposed
-  by: alex
-- id: constraint:wf2.blocks-not-prose
-  statement: >
-    Decisions, questions, requirements, rules, constraints and tasks are typed blocks in the document they belong to —
-    never prose, bullets or chat. A follow-up that exists only in a message is lost.
-  scope: [rule:agent-contract]
-  status: proposed
-  by: alex
-- id: constraint:wf2.one-defining-place
-  statement: Every id is defined in exactly one place; every other occurrence is a reference. Ids are stable; a rename rewrites the references.
-  scope: [rule:page-node-line, module:ontology-design]
-  status: proposed
-  by: alex
-- id: constraint:wf2.main-branch
-  statement: While Wye is a prototype, work is committed straight to main — no feature branches, no merge menus.
-  scope: [module:wf2]
-  status: proposed
-  by: alex
-```
-
 ---
 
 ## D. Decisions (ADRs)
 
 Each decision was taken in the design discussion of 2026-09-14 and `governs` the requirements it shapes.
-
-```yaml
-- id: decision:wf2.hybrid-store
-  date: 2026-09-14
-  status: approved
-  context: >
-    v0.1 keeps everything in markdown; v2 needs history and structure for tasks, decisions and agent traffic, but
-    the reviewed artifact graph must stay in git.
-  options:
-    - markdown only (no history for the churn stream)
-    - database canonical with markdown export (loses git review, noisy diffs)
-    - hybrid
-  choice: hybrid — artifacts stay markdown in git; tasks, decisions, contradictions, deltas, runs and sessions live in SQLite keyed by node id; nothing in the DB duplicates a node body
-  consequences: two stores, one write path into the graph (the file); the DB references node ids as strings
-  governs: [req:wf2.store, req:wf2.write.single-path]
-- id: decision:wf2.local-first-hosted-ready
-  date: 2026-09-14
-  status: approved
-  context: one user on one machine today; a team and hosting later.
-  options:
-    - local only, no provisions (rewrite later)
-    - hosted now (auth, git sync, webhooks — too much surface)
-    - local now with tenant, user and token columns unused
-  choice: local now, hosted-ready — every table carries tenant_id and created_by; agent sessions carry a token hash; nothing is enforced locally
-  consequences: a few unused columns; Postgres and token enforcement are additive
-  governs: [req:wf2.store.hosting-ready, req:wf2.api.identity]
-- id: decision:wf2.stack
-  date: 2026-09-14
-  status: approved
-  context: >
-    the web app needs a Notion-style page editor and an editable mind map; the server must share code with the
-    existing parser.
-  options:
-    - extend the single-file static viewer (outgrown by a block editor and an editable graph)
-    - Vite SPA plus a separate API server
-    - Next.js app with BlockNote and React Flow, Hono server, Drizzle over SQLite, MCP TypeScript SDK
-  choice: pnpm monorepo in TypeScript; Next.js + BlockNote (block editing of prose keys only) + React Flow; Hono; Drizzle + SQLite; MCP TypeScript SDK
-  consequences: BlockNote's markdown round-trip is lossy, so yaml keys are edited as form fields, never as blocks
-  governs: [req:wf2.ui.node-page, req:wf2.ui.graph]
-- id: decision:wf2.sidecar-server
-  date: 2026-09-14
-  status: approved
-  context: how the server relates to the markdown files and the existing parser.
-  options:
-    - import into a DB and regenerate markdown (noisy diffs, loses hand formatting)
-    - move to one file per node first (migration before any value)
-    - a sidecar that parses the files as they are and patches yaml blocks in place
-  choice: sidecar over the existing parser; a new writer patches a node's yaml block in place using the file and line the parser records
-  consequences: the writer is the one new hard piece of core; per-node files remain possible later
-  governs: [req:wf2.serve, req:wf2.write]
-- id: decision:wf2.tasks-replace-delta-files
-  date: 2026-09-14
-  status: approved
-  context: v0.1 documented a delta.yaml per feature under _deltas/, which nothing parsed.
-  options:
-    - keep delta files next to tasks
-    - tasks in the DB with node links replace them; clerk-proposed changes are graph_delta rows applied to markdown
-  choice: retire the delta file; a task row with links is the unit of intent; a graph_delta row is the unit of proposed change
-  consequences: templates/delta.yaml and the skill text are superseded; approval moves onto the task
-  governs: [req:wf2.tasks, req:wf2.tasks.replaces-delta]
-- id: decision:wf2.immutable-decisions
-  date: 2026-09-14
-  status: approved
-  context: decisions are evidence; editing them in place would erase the trail contradictions depend on.
-  options:
-    - editable in place
-    - immutable, superseded by a later decision
-  choice: immutable; a later decision names the one it supersedes
-  consequences: the clerk compares against the whole chain; the UI shows superseded decisions greyed
-  governs: [req:wf2.decisions]
-- id: decision:wf2.human-applies-deltas
-  date: 2026-09-14
-  status: approved
-  context: who may turn a clerk proposal into a markdown change.
-  options:
-    - external agents apply their own deltas
-    - a human or a trusted agent applies; the clerk and the posting agent only propose
-  choice: apply and reject are gated; the clerk never edits markdown
-  consequences: a review step exists between a decision and the graph; trust for agents is a configuration question (question:wf2.trusted-agent)
-  governs: [req:wf2.clerk.propose-only, req:wf2.clerk.apply]
-- id: decision:wf2.clerk-triggers
-  date: 2026-09-14
-  status: approved
-  context: when the clerk runs.
-  options:
-    - on every markdown change (cost, noise)
-    - on decision posted, task created or relinked, and on demand from the UI
-  choice: decision, task, on demand
-  consequences: a node edited by hand is not re-checked until something touches it or a human asks
-  governs: [req:wf2.clerk, req:wf2.clerk.on-demand]
-- id: decision:wf2.clerk-runtime
-  date: 2026-09-14
-  status: approved
-  context: how the clerk is built.
-  options:
-    - Claude Agent SDK
-    - a hand-rolled tool-use loop over the Messages API using the same service layer
-  choice: hand-rolled loop; tools are the read side of the API plus propose_delta and report_contradiction; no shell, no file access
-  consequences: full control of budget, caching and audit; every run is a clerk_run row
-  governs: [req:wf2.clerk.audit, req:wf2.clerk.budget]
-- id: decision:wf2.product-model
-  date: 2026-09-15
-  status: approved
-  context: the first design made a project equal to a code repository with a docs/context-graph folder, and agents edited those files locally. The user wants the system itself to be the store — products, projects (or goals) and their documents live in Waterfall, agents maintain them here over the API, and product knowledge is a separate section built from everything the product holds.
-  options:
-    - keep documents inside code repositories, one graph per repository
-    - a data folder owned by Waterfall — products/<product>/projects/<project>/docs — with one graph per product
-    - a database as the store from day one
-  choice: the data folder, git-tracked with the app for now (WATERFALL_DATA later): _product.md and _project.md carry metadata, docs/*.md are the pages, inbox/ holds dropped inputs, _build/graph.json is the product's knowledge; a goal is a project with kind goal
-  consequences: the web app, ctx and the skills point at data/products; the spec's "project = repo" wording and entity:project's rootPath/gitRemote are superseded (drift:wf2.9); the clerk's job becomes turning inbox items into knowledge
-  governs: [req:wf2.store, req:wf2.store.products, req:wf2.ui]
-
-- id: decision:wf2.home-view
-  date: 2026-09-14
-  status: approved
-  context: what the web app opens on.
-  options:
-    - the mind map
-    - sidebar plus node page, graph as a view
-  choice: sidebar plus node page
-  consequences: the graph view is one click away and deep-linkable
-  governs: [req:wf2.ui]
-```
 
 ---
 
@@ -289,20 +84,6 @@ Each decision was taken in the design discussion of 2026-09-14 and `governs` the
 
 ## 8. Gates
 
-```yaml
-- id: gate:agent-token
-  statement: >
-    Every API call carries an agent name (HTTP header X-Agent or MCP client info) and is recorded as an
-    agent_session. Locally the token is not checked; when hosted, token_hash must match.
-  applies-to: [op:graph.patch, op:graph.create, op:tasks.create, op:tasks.update, op:decisions.post, op:deltas.apply, op:deltas.reject, op:contradictions.resolve, op:contradictions.dismiss, op:clerk.run]
-  NOT-applied-to: [op:graph.get, op:graph.search, op:graph.packet]   # reads are open locally; hosted reads will need the same token
-- id: gate:delta-apply
-  statement: >
-    deltas.apply and deltas.reject are allowed for a human user or an agent_session whose kind is marked trusted
-    in server config; the internal clerk and the agent that posted the decision are refused.
-  applies-to: [op:deltas.apply, op:deltas.reject]
-```
-
 ---
 
 ## 10. Drift and contradictions
@@ -325,31 +106,14 @@ Disagreements between this design and the v0.1 graph in `waterfall.md`, plus one
 
 ## 11. Open questions
 
+
+## Retired blocks
+
 ```yaml
-- id: question:wf2.per-node-files
-  q: >
-    One file per node (merge-friendly for many agents) stays deferred. The writer keeps the door open because the
-    parser accepts any .md in the graph folder. When does the number of concurrent agents make this worth the
-    migration?
-  see: question:wf.granularity
-- id: question:wf2.section-map
-  q: >
-    Which section a newly created node is appended to is taken from the template headings today. The map should
-    move into schema/kinds.yaml so the writer and the template agree (this also resolves drift:waterfall.6).
-- id: question:wf2.static-viewer
-  q: >
-    Keep `ctx site` and the static phone viewer next to the web app (publishable as an Artifact without a server),
-    or retire it after phase 2?
-- id: question:wf2.trusted-agent
-  q: >
-    What makes an agent trusted for deltas.apply — a server config list of agent names, a per-project setting, or
-    never (humans only)?
-- id: question:wf2.decision-granularity
-  q: >
-    What counts as a decision an agent must post — anything with a rejected alternative, or only changes to
-    requirements and rules? The skill snippet needs a one-line test.
-- id: question:wf2.clerk-model
-  q: >
-    Default model for the clerk — the mid tier for cost, or the top tier for classification quality on
-    contradictions? flag:clerk-model makes it configurable; the default is the open choice.
+- id: product:waterfall
+  status: retired
+  description: >
+    The product this graph describes. In the v2 data model a product groups projects (repos); waterfall itself is
+    the first product and its own repo the first project.
+  projects: [module:wf2, module:waterfall]
 ```
