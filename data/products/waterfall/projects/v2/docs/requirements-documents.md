@@ -37,6 +37,26 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
   part-of: module:req-documents
+- id: req:wf2.link.jev
+  title: What is written is linked to the knowledge it is about, automatically, when a Jev key is stored
+  when: >
+    a Jev (TypeSafe AI) API key is stored on the app's Settings page and (a) an inbox item arrives, (b) the person
+    leaves the editor after changing a block's text, or (c) a session's consolidation writes a candidate card
+  then: >
+    the local search's closest nodes are judged by Jev, one yes/no question per candidate ("is the text specifically
+    about, or does it directly depend on, this knowledge?"), and every candidate at 85 % or above is linked: an
+    inbox item gets it in refs (linked-by: jev) and, when untyped, the kind Jev is sure of; a paragraph or prose
+    node gets it as a tag at its end and a yaml card in related-to, applied in the editor before the save; a
+    consolidation card gets it in related-to. The Context column shows Jev's percentage on each hit and marks what
+    will be linked; the Inbox's filing view shows the same percentage
+  unless: no key is stored — then nothing changes, no call is made; or the call fails — then the un-judged result stands
+  status: shipped
+  refines: req:wf2.editor.entity-from-text
+  satisfied-by: [page:web/settings, component:settings-jev, lib:settings, lib:jev, lib:links, lib:apply-links, op:api.settings, op:api.settings.jev.test, op:api.links, component:doc-editor, component:context-panel, lib:inbox, lib:consolidate]
+  verified-by: [test:jev, test:web-lib#settings, test:web-lib#links, test:web-lib#apply-links, test:web-lib#inbox-jev, test:web-lib#consolidate]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-documents
 - id: req:wf2.editor.table-scroll
   title: A data table scrolls sideways when the editor is narrower than its columns
   when: >

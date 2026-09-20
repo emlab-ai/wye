@@ -431,6 +431,14 @@ Every page of the app by area: its route, what it shows, its actions. The table 
     (no header comment)
   status: proposed
   part-of: module:pages
+- id: page:web/settings
+  route: /<product>/settings
+  component: packages/web/src/app/[product]/settings/page.tsx
+  purpose: >
+    The app's settings (Jev auto-linking design §0). Reached from every product's rail but not about one product:
+    what is stored here applies to the whole app on this machine.
+  status: proposed
+  part-of: module:pages
 ```
 
 <!-- /list:page -->

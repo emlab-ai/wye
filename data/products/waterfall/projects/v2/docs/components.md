@@ -564,6 +564,14 @@ The editor's blocks and the components the pages are made of, by area.
     pin instead of ×. The same strip sits above the content and above the context column, so both read the same way.
   status: proposed
   part-of: module:components
+- id: component:settings-jev
+  file: packages/web/src/components/SettingsJev.tsx
+  side: client
+  purpose: >
+    The Jev key (Jev auto-linking design §0): masked field, Save / Remove, and Test — one real question with the
+    stored key, its round trip shown. A stored key is what switches auto-linking on; there is no other toggle.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

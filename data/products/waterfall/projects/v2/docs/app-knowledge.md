@@ -99,6 +99,69 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 <!-- list:decision -->
 
 ```yaml
+- id: decision:wf2.jev-judges-never-finds
+  title: Jev judges candidate links; the local search finds them
+  context: >
+    Jev (TypeSafe AI's System One model) answers typed questions about a text — yes/no, a choice, a score — with
+    calibrated probabilities in one pass, 70–500 ms, for a fraction of a cent; it cannot extract spans or classify
+    words. The product already has a local semantic search (lib:semantic) that finds the closest knowledge but
+    has no notion of "is this actually about X".
+  choice: >
+    Candidates always come from the local search (top 12–15); Jev gets one noul question per candidate in one call
+    and answers how likely the text is about it. One threshold, 0.85, decides what is linked automatically; below it
+    a candidate stays a suggestion. The same step (lib:links judgeText) serves the inbox, the editor and consolidation.
+  alternatives: >
+    Ask Jev to find entities — rejected: not what it does. Ask a text model to link — rejected: slower and costlier
+    for a judgement that is a probability, not prose; the judge (lib/judge.js) stays a candidate for the same move later.
+  consequences: >
+    Nothing links that the search did not surface. The question wording is versioned (promptVersion) and the
+    editor's cache keyed on it, so a rewording re-judges everything once.
+  affects: [req:wf2.link.jev, lib:links, lib:jev]
+  status: approved
+  date: 2026-09-20
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+- id: decision:wf2.jev-key-in-settings
+  title: The Jev key lives in the app's settings, never in a product's frontmatter or the environment
+  context: >
+    Product switches (impact, consolidate, verdicts) are _product.md frontmatter, which is committed — and the repo
+    is public. A key is per machine, not per product.
+  choice: >
+    A Settings page (rail ⚙, /<product>/settings, app-wide) with the key masked, Save / Test / Remove; stored in
+    data/_settings.json (mode 0600, gitignored) behind lib:settings; the browser only ever sees set + last 4. A stored
+    key is the switch — there is no separate toggle. TYPESAFE_API_KEY in the environment is only the fallback for
+    tests and evals outside the app.
+  alternatives: >
+    packages/web/.env.local — rejected by alex: the key has to be entered in the app's settings.
+  consequences: >
+    Every judging path runs in the app (the inbox add API, the links route, consolidation), so the CLI never needs
+    the key. The first settings page of the app; other app-wide settings go there.
+  affects: [req:wf2.link.jev, page:web/settings, lib:settings]
+  status: approved
+  date: 2026-09-20
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+- id: decision:wf2.editor-links-on-blur
+  title: Automatic links are applied in the editor on leaving it, never by the server behind it
+  context: >
+    The editor autosaves the whole body with an ifMatch hash (replace-body); a server-side write into an open document
+    would make the next save conflict (409) and reload the page under the cursor.
+  choice: >
+    On blur — the hook that already turns typed ids into tags — the blocks whose text changed since they were last
+    judged go to op:api.links; the confident ids come back and lib:apply-links appends them as tags (paragraph, prose
+    node) or merges them into related-to (yaml card); then the normal save runs. Verdicts are cached by text hash in
+    _build/jev.json so an unchanged block is never judged twice.
+  alternatives: >
+    The server writing related-to after the save — rejected (conflict). Suggest only, never write — kept as the
+    fallback if 0.85 proves too eager: a one-line change in applyLinks makes paragraphs suggestion-only.
+  consequences: >
+    A tag appended to a person's paragraph is a visible, undoable edit like any other; the Context column shows
+    beforehand what will be linked.
+  affects: [req:wf2.link.jev, component:doc-editor, lib:apply-links, op:api.links]
+  status: approved
+  date: 2026-09-20
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
 - id: decision:wf2.one-instance-table
   title: One instance table for the type page, the kind page and the view block
   context: >

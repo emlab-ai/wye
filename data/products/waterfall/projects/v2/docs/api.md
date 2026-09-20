@@ -456,6 +456,31 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/inbox/[name]/route.ts
   status: proposed
   part-of: module:api
+- id: op:api.links
+  args: POST /api/<product>/links
+  does: >
+    POST { blocks: [{ key, text, linked }] } → { links: { [key]: ids } } — the ids Jev is sure each block is about
+    (Jev auto-linking design §3), judged over the local search's candidates, cached by text. {} without a key.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/links/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.settings.jev.test
+  args: POST /api/settings/jev/test
+  does: >
+    POST → one tiny question to Jev with the stored key: { ok: true, ms, model } or { error }.
+  gate: none (local app)
+  source: packages/web/src/app/api/settings/jev/test/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.settings
+  args: GET | PUT /api/settings
+  does: >
+    GET → { jev: { set, last4 } } (never the key). PUT { jev: { key } } → the same view; an empty key removes it.
+  gate: none (local app)
+  source: packages/web/src/app/api/settings/route.ts
+  status: proposed
+  part-of: module:api
 ```
 
 <!-- /list:op -->

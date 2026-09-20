@@ -266,6 +266,19 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
     - write-scratch-root: moved, retired, added, tightened; a second write changes nothing
     - real-tree: check() finds no uncovered file and no missing file
   count: 6
+- id: test:jev
+  file: test/jev.js
+  description: >
+    lib/jev.js (req:wf2.link.jev, decision:wf2.jev-judges-never-finds) against a fake fetch: no key → disabled, no
+    call, empty results; judgeLinks sends one noul question per candidate keyed by index with the candidate in the
+    structured instructions and the bearer key in the header, answers back in order; empty candidates make no call;
+    judgeKind is a choice over the five inbox kinds; a 429 is retried, a 401 thrown with its status; LINK_MIN is 0.85.
+  cases:
+    - disabled: enabled false, judgeLinks [], judgeKind note/0, fetch never called
+    - judge-links: request shape (endpoint, POST, Authorization, model, state, questions.0 noul with `knowledge`), answers in order
+    - judge-kind: criteria keys decision, requirement, rule, question, note; the winner with its probability
+    - retry: 429 then 200 succeeds; 401 rejects with /401/
+  count: 4
 ```
 
 ## Documents and editing

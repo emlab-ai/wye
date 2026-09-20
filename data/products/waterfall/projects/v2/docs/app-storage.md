@@ -122,6 +122,44 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     Pure.
   status: proposed
   part-of: module:app-storage
+- id: lib:apply-links
+  file: packages/web/src/lib/apply-links.ts
+  side: server
+  purpose: >
+    Links applied in the editor (Jev auto-linking design §3), pure and client-safe: a paragraph or a prose node gets
+    the ids as smart tags at its end (the prose convention — a tag in text is a related-to edge); a yaml card gets
+    them merged into related-to in its body. Code, embeds, drawings and blocks not in the map are untouched.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:jev
+  file: packages/web/src/lib/jev.ts
+  side: server
+  purpose: >
+    The app's Jev client (Jev auto-linking design §1): lib/jev.js bound to the key the settings hold — shared with
+    the CLI and the eval suite through createRequire like the judge. Disabled without a key: every method returns
+    the empty result and makes no call.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:links
+  file: packages/web/src/lib/links.ts
+  side: server
+  purpose: >
+    Automatic links (Jev auto-linking design §3): the local search finds candidates for a text, Jev judges each ("is
+    the text about it?" → probability), and the ids above LINK_MIN are the links. judgeText is the shared step
+    (inbox, editor, consolidation); linksFor is the editor's batch — per block, cached by the text's hash in
+    <product>/_build/jev.json so an unchanged block is never judged twice, invalidated when the question wording
+    changes.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:settings
+  file: packages/web/src/lib/settings.ts
+  side: server
+  purpose: >
+    The app's settings (Jev auto-linking design §0): one json file at <data>/_settings.json — local to this machine,
+    listed in .gitignore, mode 0600 because it holds keys. Read fresh on every use (cheap, and the page's Save is
+    visible to the next request); the browser only ever sees publicSettings().
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->
