@@ -47,6 +47,37 @@ page lists them per worker.
   return id;
 }
 
+// The system view pages (decision:wf2.views-are-pages): Goals and Work are documents that hold one instances view
+// each — every goal, every task of the product, as blocks — written once into the project that holds the Plans page.
+// The rail links to them; they leave the Documents tree like Plans does. Nothing else is special about them.
+export const SYSTEM_VIEWS = [
+  { slug: 'goals', title: 'Goals', icon: '◎', view: 'goal', query: '', intro: 'Every goal of the product, wherever it is defined — as blocks. Filter, group and sort here; a goal is written on its own page (a goal: line or card) or added under a Goals data list.' },
+  { slug: 'work', title: 'Work', icon: '☑', view: 'task', query: 'group=status', intro: 'Every task of the product, wherever it is written — plans, definition pages, the Backlog — as blocks, grouped by status. A task\'s panel assigns it, builds a plan or ticks it done.' },
+] as const;
+export const viewPageId = (projectSlug: string, slug: string) => `module:${projectSlug}-${slug}`;
+export async function ensureViewPages(project: Project): Promise<void> {
+  for (const v of SYSTEM_VIEWS) {
+    const file = path.join(project.docsDir, `${v.slug}.md`);
+    try { await stat(file); continue; } catch { /* write it */ }
+    const md = `---
+node: ${viewPageId(project.slug, v.slug)}
+type: module
+title: ${v.title}
+status: active
+owner: unassigned
+last-verified: ${new Date().toISOString().slice(0, 10)}
+---
+
+# ${v.title}
+
+${v.intro}
+
+<!-- view:${v.view}${v.query ? ' ' + v.query : ''} -->
+`;
+    await writeAtomic(file, md);
+  }
+}
+
 // Where the request was made: the project and document slug from the source (the palette's Context) or from the
 // source link's path; the product's first project when neither says.
 function placeOf(s: Session): { project?: string; doc?: string } {

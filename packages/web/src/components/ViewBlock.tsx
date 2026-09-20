@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createReactBlockSpec } from '@blocknote/react';
 import { usePeek } from './PeekProvider';
 import { InstanceTable } from './InstanceTable';
@@ -26,8 +26,13 @@ export const ViewBlock = createReactBlockSpec(
       const { slug, query: rawQuery } = props.block.props as { slug: string; query: string };
       // `as=table` on the line asks for the table; the block form is the default (req:wf2.instances.view-as-blocks)
       const asTable = /(^|\s)as=table(\s|$)/.test(rawQuery);
-      const query = rawQuery.replace(/(^|\s)as=(table|list)(?=\s|$)/, '').trim();
-      const withAs = (q: string) => [q, asTable ? 'as=table' : ''].filter(Boolean).join(' ');
+      // `scope=project` keeps the rows of this document's project; the default is the whole product (decision:wf2.views-are-pages)
+      const scopeProject = /(^|\s)scope=project(\s|$)/.test(rawQuery);
+      const query = rawQuery.replace(/(^|\s)as=(table|list)(?=\s|$)/, '').replace(/(^|\s)scope=(project|product)(?=\s|$)/, '').trim();
+      const withAs = (q: string) => [q, asTable ? 'as=table' : '', scopeProject ? 'scope=project' : ''].filter(Boolean).join(' ');
+      const hostRef = useRef<HTMLDivElement>(null);
+      const [project, setProject] = useState('');
+      useEffect(() => { setProject((hostRef.current?.closest('.doc-editor') as HTMLElement | null)?.dataset.project ?? ''); }, []);
       const { product, ownTypes } = usePeek();
       const [table, setTable] = useState<Table | null>(null);
       const [err, setErr] = useState('');
@@ -45,9 +50,11 @@ export const ViewBlock = createReactBlockSpec(
       const options = [...ownTypes.map(t => t.slug), ...BASE_VIEW_KINDS.filter(k => !ownTypes.some(t => t.slug === k))]; if (!options.includes(slug)) options.push(slug);
       const initial = table ? parseViewQuery(query, table.columns.map(c => c.name)) : undefined;
       const onChange = (f: Filters) => { const q = viewQuery(f); if (q !== query) props.editor.updateBlock(props.block, { props: { query: withAs(q) } } as never); };
-      const setAs = (t: boolean) => props.editor.updateBlock(props.block, { props: { query: [query, t ? 'as=table' : ''].filter(Boolean).join(' ') } } as never);
+      const setAs = (t: boolean) => props.editor.updateBlock(props.block, { props: { query: [query, t ? 'as=table' : '', scopeProject ? 'scope=project' : ''].filter(Boolean).join(' ') } } as never);
+      const setScope = (proj: boolean) => props.editor.updateBlock(props.block, { props: { query: [query, asTable ? 'as=table' : '', proj ? 'scope=project' : ''].filter(Boolean).join(' ') } } as never);
+      const scoped = table && scopeProject && project ? { ...table, rows: table.rows.filter(r => r.file.includes(`/projects/${project}/`)) } : table;
       return (
-        <div className="view-block" contentEditable={false} ref={stop}>
+        <div className="view-block" contentEditable={false} ref={el => { stop(el); (hostRef as React.MutableRefObject<HTMLDivElement | null>).current = el; }}>
           <div className="view-head">
             <span className="chips-label">view</span>
             <select className="collection-kind" value={slug} title="the type this view lists" onChange={e => props.editor.updateBlock(props.block, { props: { slug: e.target.value, query: '' } } as never)}>
@@ -55,10 +62,13 @@ export const ViewBlock = createReactBlockSpec(
             </select>
             {table && <span className="muted small">{table.rows.length} {table.typed ? '' : '· not a declared type'}</span>}
             <button type="button" className="collection-view-toggle" title={asTable ? 'show as blocks' : 'show as a table'} onClick={() => setAs(!asTable)}>{asTable ? '☰ blocks' : '▤ table'}</button>
+            <select className="collection-kind" value={scopeProject ? 'project' : 'product'} title="where the blocks come from: the whole product, or this document's project" onChange={e => setScope(e.target.value === 'project')}>
+              <option value="product">whole product</option><option value="project">this project</option>
+            </select>
             {err && <span className="bad">{err}</span>}
           </div>
-          {table && initial && <InstanceTable product={product} table={table} initial={initial} onChange={onChange} as={asTable ? 'table' : 'list'} readOnly />}
-          {table && !table.rows.length && <p className="muted small">No {slug}s yet.</p>}
+          {scoped && initial && <InstanceTable product={product} table={scoped} initial={initial} onChange={onChange} as={asTable ? 'table' : 'list'} readOnly />}
+          {scoped && !scoped.rows.length && <p className="muted small">No {slug}s yet.</p>}
         </div>
       );
     },

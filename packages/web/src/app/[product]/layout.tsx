@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Rail } from '@/components/Rail';
+import { SYSTEM_VIEWS, ensureViewPages, viewPageId } from '@/lib/plan-docs';
 import { PeekProvider } from '@/components/PeekProvider';
 import { Shell } from '@/components/Shell';
 import { TopBar, type DocMeta } from '@/components/TopBar';
@@ -28,7 +29,13 @@ export default async function ProductLayout({ children, params }: { children: Re
   // the project's Plans page is a system folder (rule:plans-folder): it and its sub-documents leave the Documents
   // tree, and the plans go to the rail's Plans folder, every project together, newest first
   const plans: PlanItem[] = [];
+  // the system view pages (Goals, Work) live in the project that holds Plans (else the first) and leave the tree too
+  const viewProject = scope.projects.find(p => scope.graph.modules.some(m => m.id === plansPageId(p.slug))) ?? scope.projects[0];
+  if (viewProject) { try { await ensureViewPages(viewProject); } catch { /* read-only tree */ } }
+  const views = viewProject ? SYSTEM_VIEWS.map(v => ({ slug: v.slug, title: v.title, icon: v.icon, project: viewProject.slug })) : [];
+  const viewIds = new Set(viewProject ? SYSTEM_VIEWS.map(v => viewPageId(viewProject.slug, v.slug)) : []);
   const withoutPlans = (items: DocNode[], project: string): DocNode[] => items.filter(d => {
+    if (viewIds.has(d.module.id)) return false;
     if (d.module.id !== plansPageId(project)) return true;
     for (const c of d.children) { const f = fm.get(c.file) ?? {}; plans.push({ slug: c.slug, project, title: c.title, icon: icons.get(c.file) || defaultIcon(c.slug), status: f.status ?? '', started: f.started ?? '' }); }
     return false;
@@ -45,7 +52,7 @@ export default async function ProductLayout({ children, params }: { children: Re
   return (
     <PeekProvider product={scope.product.slug} index={scope.index} kinds={scope.graph.kinds} types={ownTypes}>
       <Shell>
-        <Rail products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} plans={plans} headings={headings} />
+        <Rail products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} plans={plans} views={views} headings={headings} />
         <LiveRefresh product={scope.product.slug} />
         <main className="content"><TopBar product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} docs={docs} />{children}</main>
       </Shell>

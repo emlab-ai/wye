@@ -12,7 +12,7 @@ export type RailProject = { slug: string; title: string; icon: string; kind: str
 
 // The left rail: product switcher, menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Constitution, Questions, Inbox, Agents,
 // then the Plans system folder — component:plan-folder), then every project's documents as one tree.
-export function Rail({ products, product, projects, plans, headings }: { products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; plans: PlanItem[]; headings: { doc: string; slug: string; text: string }[] }) {
+export function Rail({ products, product, projects, plans, views = [], headings }: { views?: { slug: string; title: string; icon: string; project: string }[]; products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; plans: PlanItem[]; headings: { doc: string; slug: string; text: string }[] }) {
   const path = usePathname(); const router = useRouter();
   const [newIn, setNewIn] = useState<string | null>(null); // '' = top level, slug = under that document
   // every project's documents in one tree; a project is just the folder a document lives in
@@ -49,8 +49,7 @@ export function Rail({ products, product, projects, plans, headings }: { product
       <div className="rail-top" ref={top} style={topH ? { flex: `0 0 ${topH}px`, maxHeight: 'none' } : undefined}>
       <ul className="rail-menu">
         {item(base, 'Overview', '⌂')}
-        {item(`${base}/goals`, 'Goals', '◎')}
-        {item(`${base}/work`, 'Work', '☑')}
+        {views.length ? views.map(v => <li key={v.slug}><Link href={`${base}/${v.project}/d/${v.slug}`} className={path === `${base}/${v.project}/d/${v.slug}` ? 'on' : ''}><i>{v.icon}</i>{v.title}</Link></li>) : <>{item(`${base}/goals`, 'Goals', '◎')}{item(`${base}/work`, 'Work', '☑')}</>}
         {item(`${base}/knowledge`, 'Knowledge', '◈')}
         {item(`${base}/types`, 'Types', '⬡')}
         {item(`${base}/constitution`, 'Constitution', '§')}

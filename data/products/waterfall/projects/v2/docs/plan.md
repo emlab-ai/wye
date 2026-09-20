@@ -19,6 +19,7 @@ Work that is planned but on no plan document yet, by area, and the tasks past pa
 <!-- tasks -->
 - [ ] task:wf2.definition.govern-links Every rule names what it governs (`governs:`) and every requirement its area's page, so the constraint packet reaches an area's rules through the graph rather than through the document they used to share; measured by the five packet texts of the 2026-09-20 refactor. Part of goal:memory.validated-asks.
 - [ ] task:wf2.definition.template The layered tree (Wye, Product, Experience, Domain, Systems, Quality, Decisions, Research, Archive) as `templates/product/`, so a new product starts with the same pages and the view blocks in place; YesSensei migrated to it. Part of goal:exec.define-first.
+- [ ] task:wf2.task-block-state A task block shows its live state (queued, working, stalled) and offers Assign / Build where the Work board did, so the Work document loses nothing (decision:wf2.views-are-pages). Part of goal:exec.work-and-impact.
 - [ ] task:wf2.editor.list-group A data list can be grouped: group by status / a property sorts the region's blocks by that key stably and writes the order back, with a heading row per group; the same on the instances view is already there. Part of goal:exec.work-and-impact (rule:list-view).
 - [ ] task:wf2.definition.rekind-sweep The mechanism-shaped requirements now on the Requirements pages become rules or decisions on their Systems page, and the observable behaviour they served becomes the requirement (decision:exec.kind-by-nature; continues task:exec.rekind).
 <!-- /tasks -->

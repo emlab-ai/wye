@@ -35,6 +35,29 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
   part-of: module:req-shell
+- id: decision:wf2.views-are-pages
+  title: Goals and Work are documents holding one instances view each; a view says where its blocks come from
+  context: >
+    Goals and Work were pages of their own (a tracking list, a work board) — against constraint:wf2.no-custom-pages.
+    The person asked on 2026-09-20 that they use the standard view component with a property saying the content is
+    parsed from the entire project.
+  choice: >
+    The app writes `goals.md` and `work.md` once into the project that holds Plans (`<!-- view:goal -->`,
+    `<!-- view:task group=status -->`), the rail's Goals and Work link to them, they leave the Documents tree like
+    Plans, and /goals and /work redirect to them. The view block gains `scope`: `product` (the default — every
+    block of every project) or `project` (this document's project), set in its header next to blocks / table. A
+    list region (`<!-- list:… -->`) is the same idea with scope = the page's own blocks.
+  alternatives: >
+    Keep the custom pages (rejected by the constraint); a scope=page on the view (that is the list region).
+  consequences: >
+    The Work page loses the live queued / working state and the Assign button on its rows until the task block shows
+    them (task:wf2.task-block-state); groups of done blocks fold and cards page by forty, because every card is a
+    live embed.
+  date: 2026-09-20
+  status: proposed
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  affects: [page:web/goals, page:web/tasks, page:web/work, component:view-block, constraint:wf2.no-custom-pages]
 - id: decision:wf2.rail-fewer-entries
   title: Graph, Questions and Search leave the rail — search is ⌘F, the graph and the questions stay at their routes
   context: the person asked on 2026-09-20; the rail listed eleven entries and a search box that found only titles and ids.

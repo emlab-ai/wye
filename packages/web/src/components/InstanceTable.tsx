@@ -76,11 +76,7 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
       {as === 'list' ? (
         // the block form (rule:view-block, req:wf2.instances.view-as-blocks): every instance as its own card, editable in place
         <div className="ilist">
-          {(groups ?? [['', rows]] as [string, InstanceRow[]][]).map(([k, rs]) => (
-            <div key={k} className="ilist-group">
-              {k && <div className="ilist-group-head">{k.startsWith(k.split(':')[0] + ':') && index[k] ? label(k) : k} <small className="muted">{rs.length}</small></div>}
-              {rs.map(r => <EmbeddedCard key={r.id} id={r.id} className="ilist-item" />)}
-            </div>))}
+          {(groups ?? [['', rows]] as [string, InstanceRow[]][]).map(([k, rs]) => <ListGroup key={k} label={k ? (k.startsWith(k.split(':')[0] + ':') && index[k] ? label(k) : k) : ''} rows={rs} closed={/^(done|complete|retired|superseded|rejected|dismissed)$/.test(k)} />)}
           {!rows.length && <p className="muted">No {table.slug}s match.</p>}
         </div>
       ) : (
@@ -98,6 +94,21 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
           {!rows.length && <tr><td colSpan={span} className="muted">No {table.slug}s match.</td></tr>}
         </tbody>
       </table></div>)}
+    </div>
+  );
+}
+
+// a group of cards: folded when it is the done / retired pile, and never more than PAGE cards at once — every card is
+// a live embed that fetches its node, so a page of 285 tasks would be 285 requests
+const PAGE = 40;
+function ListGroup({ label, rows, closed }: { label: string; rows: InstanceRow[]; closed: boolean }) {
+  const [open, setOpen] = useState(!closed);
+  const [shown, setShown] = useState(PAGE);
+  return (
+    <div className="ilist-group">
+      {label && <div className="ilist-group-head" onClick={() => setOpen(o => !o)} role="button"><span className="tchev">{open ? '▾' : '▸'}</span>{label} <small className="muted">{rows.length}</small></div>}
+      {open && rows.slice(0, shown).map(r => <EmbeddedCard key={r.id} id={r.id} className="ilist-item" />)}
+      {open && rows.length > shown && <button className="linkish ilist-more" onClick={() => setShown(n => n + PAGE)}>show {Math.min(PAGE, rows.length - shown)} more of {rows.length - shown}</button>}
     </div>
   );
 }
