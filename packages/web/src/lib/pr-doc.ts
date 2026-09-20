@@ -54,8 +54,8 @@ export function prDocBody(template: string, v: PrDocVars): string {
 // "from: module:x · refs: req:z" — what the palette knew about where the request was made, as tags.
 export function fromLine(s: Pick<Session, 'refs' | 'source'>, docNode?: string): string {
   const parts: string[] = [];
-  if (docNode) parts.push(`from: ${docNode}`);
-  const refs = s.refs.filter(r => r !== docNode);
+  if (docNode && !docNode.startsWith('pr:')) parts.push(`from: ${docNode}`); // a PR page you happened to be on is not where the request comes from
+  const refs = s.refs.filter(r => r !== docNode && !/^(pr|session):/.test(r));
   if (refs.length) parts.push(`refs: ${refs.join(', ')}`);
   return parts.length ? `_${parts.join(' · ')}_` : '';
 }

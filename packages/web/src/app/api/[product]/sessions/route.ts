@@ -4,6 +4,8 @@ import { AGENTS, createSession, listSessions, listRunners } from '@/lib/sessions
 import { startChat, liveState, reconcileStale } from '@/lib/agent-host';
 import { askingOf } from '@/lib/asking';
 import { createPrDoc } from '@/lib/pr-docs';
+import { markReading, runIntake } from '@/lib/pr-intake';
+import { buildPrompt } from '@/lib/agent-host';
 import { prsOf } from '@/lib/pr-doc';
 import { loadScope } from '@/lib/scope';
 import { stat } from 'node:fs/promises';
@@ -40,7 +42,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   }
   const s = await createSession(p.dir, product, { agent, instruction: instruction || '(image)', refs: (body.refs ?? []).filter(r => typeof r === 'string').slice(0, 50), source: body.source ?? {}, mode, cwd: cwd || undefined, images, role });
   // a request has its page before the first message names it (rule:pr-doc); an ad-hoc conversation and a queued run have none
-  if (role === 'librarian') s.prDoc = (await createPrDoc(p.dir, product, s)) ?? undefined;
-  if (mode === 'chat') { const started = await startChat(p.dir, product, s.id, { wfUrl: new URL(req.url).origin }); return NextResponse.json(started ?? s, { status: 201 }); }
+  const wfUrl = new URL(req.url).origin;
+  if (role === 'librarian') {
+    s.prDoc = (await createPrDoc(p.dir, product, s)) ?? undefined;
+    if (s.prDoc) {
+      // intake first (decision:wf2.pr-intake): the page says it is being read, the person lands on it now, the
+      // librarian starts once what Wye found is on the page — and in its first message
+      await markReading(product, s.prDoc).catch(() => {});
+      const ref = s.prDoc;
+      void (async () => {
+        const found = await runIntake(p.dir, product, s.id, ref, instruction, s.refs).catch(e => { console.warn('[wf] intake:', e instanceof Error ? e.message : e); return ''; });
+        const first = (await buildPrompt(product, s, wfUrl, p.dir)) + found;
+        await startChat(p.dir, product, s.id, { wfUrl, firstMessage: first, shown: s.instruction, images: s.images });
+      })();
+      return NextResponse.json(s, { status: 201 });
+    }
+  }
+  if (mode === 'chat') { const started = await startChat(p.dir, product, s.id, { wfUrl }); return NextResponse.json(started ?? s, { status: 201 }); }
   return NextResponse.json(s, { status: 201 });
 }
