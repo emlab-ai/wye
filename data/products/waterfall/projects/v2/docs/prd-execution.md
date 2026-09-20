@@ -107,7 +107,7 @@ computed and no review.
     blocked-by: list of task? -(inverse)-> blocks
     change: string?        # the change record a follow-up task came from
     ready: bool?           # the person's mark that a backlog task may be taken by a runner (#ready)
-- id: type:plan            # additions: statuses proposed | defining | defined | building | done | cancelled
+- id: type:pr              # additions: statuses draft | refining | approved | building | done | failed | cancelled
   props:
     role: string?          # the session role that filled it: librarian | worker
     definition: text?      # the Definition section: embedded blocks and change records, computed counts

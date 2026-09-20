@@ -130,7 +130,7 @@ Ontology
   session: 367dedec3c
 ```
 
-decision:ontology.uniform-content says every node has `content` — the blocks under it. plan:plan-need-more-work-context-panel-proper asks for the rest: the markdown form at every level, a content editor on the node itself, and what a card shows when the node has content. The requirement and the two decisions below say what the parser reads and how a person goes deeper; the column's side is req:wf2.ui.node-content on page:web/context-column.
+decision:ontology.uniform-content says every node has `content` — the blocks under it. pr:pr-need-more-work-context-panel-proper asks for the rest: the markdown form at every level, a content editor on the node itself, and what a card shows when the node has content. The requirement and the two decisions below say what the parser reads and how a person goes deeper; the column's side is req:wf2.ui.node-content on page:web/context-column.
 
 ```yaml
 - id: decision:ontology.content-markdown

@@ -225,14 +225,106 @@ the public benchmarks (type:eval-public, ours beside the published number with s
 How to say it outside Wye: quote the public numbers with their source and date; quote ours with model, judge and
 graph sha; never a with-and-without pair with fewer than five runs per arm; never a judge-scored number without its κ.
 
+## First numbers — 2026-09-20
+
+Live on claude-haiku-4-5-20251001, graph `b781bf999603`, git `881041e`; judge κ not measured yet (the fifty pairs of
+eval/judge/labels.jsonl wait for their labels — task:memory.eval-label-judge-set), so every model-scored number below
+is unqualified. The cards are on the Runs page (module:eval-runs); `wye eval report` prints the same.
+
+| suite | score | value | n | read |
+|---|---|---|---|---|
+| packet | packet.recall | 61.2 % | 64 | the constraint packet (top-6 seeds, two hops) holds 61 % of the governing set on a shipped requirement's edges — with the requirement itself hidden from the hits (decision:memory.eval-packet-hides-the-requirement) |
+| packet | vector.recall@10 / @20 | 69.7 % / 75.7 % | 64 | the plain top-k finds more of the same set than the packet: the two structural hops lose rules the vector reaches directly — the first thing to fix in the packet |
+| packet | packet.size-median | 53 nodes | 64 | not gated |
+| currency | currency.mrr; superseded-served | 1.0; 0 | 1 | one supersession in the product: the current node ranks first, nothing ended is served — n is too small to mean much yet |
+| contradictions | recall / precision | 16.7 % / 100 % | 12 / 30 | unchanged from test:verdict-bench: two of twelve drift pairs come back as contradicts (question:memory.benchmark-positives) |
+| impact | blended.recall@10 (structural / semantic) | 30.4 % (25.7 / 26.5) | 86 | of the blocks a commit or a session changed together, the candidate step reaches 30 % in its top ten from the first block; 86 co-change sets from 68 commits and 18 sessions |
+| compare | pair 2026-09-20-42c63c, 5 runs per arm | violations 1.2 vs 3.8; ids cited 1.4 vs 0; files changed 0.6 vs 2.4 | 5 / 5 | the request "after a session ends with status done, automatically commit the documents it changed" — which constraint:wf2.local-first forbids. With the packet haiku mostly refused and wrote a decision or a question instead (1.2 constitution violations per run, judged); without it, it built the auto-commit (3.8 violations, 2.4 files). Blind mark not given yet; κ n/a |
+| consolidation | recall (strict / loose) | 19.1 % / 27.7 % | 94 | 18 of 94 hidden decision blocks over 24 sessions come back as candidates of the consolidation prompt (word overlap ≥ 0.5 / ≥ 0.35); the misses a person marks real are the second set (task:memory.eval-consolidation-labels) |
+| public: MemoryAgentBench | FactConsolidation SH, 6k tier | 92 % | 100 | substring exact match, standalone runner, haiku reader over the app's search with the currency filter (141 candidate pairs judged, 140 facts superseded at write time); their Table 3 (GPT-4o-mini backbone, main tier): Mem0 18, MemGPT 28, Cognee 28, BM25 48; the 6k tier has no published row — the 32k numbers (Mem0 22, Cognee 39) are the nearest |
+
+## Code
+
+Built 2026-09-20 (pr:pr-build). `wye eval` runs in the CLI process: it parses the product's documents itself
+(lib/parse, lib/graph), asks the running app only for what needs a model — semantic hits, packets — and records
+those answers, so a replay needs neither.
+
+```yaml
+- id: lib:eval
+  file: eval/cli.js
+  side: server
+  part-of: module:benchmarks
+  purpose: >
+    The harness: eval/cli.js dispatches `wye eval own | compare | public <adapter> | judge | report | cards`;
+    eval/lib/results.js is store:eval-results with the gate (req:memory.eval-gate) and the report; eval/lib/record.js
+    the recordings; eval/lib/product.js the product as a lib/graph Graph with its graph sha (sha1 over the documents),
+    git sha, sessions and change records; eval/lib/app.js the app client; eval/lib/cards.js the results as cards of
+    module:eval-ontology; eval/own/truth.js the ground truth, eval/own/suites.js the five tier-1 suites;
+    eval/compare the tier-2 harness and its scorer; eval/judge the label set and κ; eval/public the three adapters.
+    Satisfies req:memory.eval-benchmarks, req:memory.eval-compare, req:memory.eval-page; verified by test:eval.
+- id: test:eval
+  file: test/eval.js
+  purpose: >
+    The gate and the results files (#packet-completeness, #currency, #contradictions, #impact-cochange replay the
+    recordings on the product's own history; #consolidation replays when its recording covers every session), the
+    recordings' replay-or-fail rule, Cohen's κ, the without arm's contract (#compare-harness), the requirement-pairs
+    pipeline on a ten-pair fixture, and the cards written for a run (#cards-written). No model, no app. In `npm test`.
+- id: store:eval-truth
+  path: eval/own/truth-<product>-<graphSha>.json
+  format: json
+  purpose: >
+    Tier 1's ground truth, built once per graph sha and never committed: every shipped requirement with the governing
+    set on its edges and its tests, the supersession pairs, the commits and sessions that changed typed blocks
+    together, the sessions whose decision blocks the consolidation suite hides. Running or finished sessions only.
+- id: store:eval-recordings
+  path: eval/recorded/<name>.json
+  format: json
+  purpose: >
+    Every model or embedding answer a suite needed, keyed by what was asked (a text, a pair, a session and its excerpt)
+    with the model and prompt hash: semantic-<product>, consolidation, judge, compare-shk, public-*. Committed; CI
+    replays them and a suite whose recording is missing fails (rule:eval-replay-or-fail).
+```
+
+```yaml
+- id: rule:eval-replay-or-fail
+  statement: >
+    Without `--live` (WATERFALL_LIVE=1) a suite is served only by its recording; an answer the recording lacks
+    throws MissingRecording and the suite fails — it never silently shrinks to what was recorded.
+  source: eval/lib/record.js:22
+  status: shipped
+- id: rule:eval-gate
+  statement: >
+    Every gated score carries its tolerance (5 points unless the score says otherwise); a run compares each score
+    with the latest previous file of the same suite, writes previous and delta beside it, and exits 2 after every
+    suite ran when a delta is below minus the tolerance (a lower-is-better score flips); `--baseline "<why>"` accepts
+    the new scores and writes the reason into the file; sizes and counts marked `gated: false` are never gated.
+  source: eval/lib/results.js:24
+  status: shipped
+- id: rule:eval-arms-offline
+  statement: >
+    A tier-2 run cannot reach the app (WF_URL points at a closed port) and works in a scratch worktree pinned to the
+    commit the pair started from; the with arm's memory — the packet, the constitution, the product instructions,
+    the plan's definition — arrives only in its first message, the without arm gets the base contract only; a kept
+    run is never re-run, `--resume` makes the missing ones.
+  source: eval/compare/index.js:26
+  status: shipped
+- id: rule:eval-cards
+  statement: >
+    After every results file is written the Evaluation project's runs document is regenerated from all of them: an
+    eval-run per file, an eval-score per number (not for compare, whose numbers live on the pair), an eval-pair per
+    pair with its arms hidden until every run is marked, an eval-public per public row.
+  source: eval/lib/cards.js:50
+  status: shipped
+```
+
 ## Work
 
 <!-- tasks -->
-- [ ] task:memory.eval-truth `wye eval own --build-truth`: the ground-truth file from edges, supersessions, hidden edges, git and session co-changes, session decision blocks; keyed by graph sha. Part of goal:memory.validated-asks (decision:memory.evaluation). First step of task:memory.eval-suite.
+- [x] task:memory.eval-truth `wye eval own --build-truth`: the ground-truth file from edges, supersessions, hidden edges, git and session co-changes, session decision blocks; keyed by graph sha. Part of goal:memory.validated-asks (decision:memory.evaluation). First step of task:memory.eval-suite. (session: 9f29fa036e)
 - [ ] task:memory.eval-judge-set `eval/judge/labels.jsonl` (50 pairs labelled by the person), `wye eval judge --agreement` (Cohen's κ), rerun on judge change. Part of goal:memory.validated-asks (question:memory.eval-judge).
-- [ ] task:memory.eval-moosedev-import The MOOSEDev corpus importer: their two ontologies as type cards, records as yaml cards with status and supersedes, provenance kept, ctx check green; their judge prompt vendored with licence. Part of goal:memory.validated-asks (decision:memory.public-benchmarks). Part of task:memory.eval-public.
-- [ ] task:memory.eval-reqpairs-loader Loaders for WorldVista / UAV / PURE / OpenCOSS and the stratified sample; label mapping to the verdict classes; macro-F1 and confusion matrix. Part of goal:memory.validated-asks. Part of task:memory.eval-public.
-- [ ] task:memory.eval-mab-adapter The Wye adapter for MemoryAgentBench (add with write-time adjudication, query through the packet with currency), run on conflict resolution, report beside Mem0 / Letta / Cognee. Part of goal:memory.validated-asks. Part of task:memory.eval-public. After task:memory.bitemporal-props.
+- [x] task:memory.eval-moosedev-import The MOOSEDev corpus importer: their two ontologies as type cards, records as yaml cards with status and supersedes, provenance kept, ctx check green; their judge prompt vendored with licence. Part of goal:memory.validated-asks (decision:memory.public-benchmarks). Part of task:memory.eval-public. (session: 9f29fa036e)
+- [x] task:memory.eval-reqpairs-loader Loaders for WorldVista / UAV / PURE / OpenCOSS and the stratified sample; label mapping to the verdict classes; macro-F1 and confusion matrix. Part of goal:memory.validated-asks. Part of task:memory.eval-public. (session: 9f29fa036e)
+- [x] task:memory.eval-mab-adapter The Wye adapter for MemoryAgentBench (add with write-time adjudication, query through the packet with currency), run on conflict resolution, report beside Mem0 / Letta / Cognee. Part of goal:memory.validated-asks. Part of task:memory.eval-public. After task:memory.bitemporal-props. (session: 9f29fa036e)
 <!-- /tasks -->
 
 ```yaml
@@ -243,8 +335,9 @@ graph sha; never a with-and-without pair with fewer than five runs per arm; neve
     model, promptHashes, judge, scores, runs }`) with the tolerance and the gate of req:memory.eval-gate, `wye eval report` printing
     latest / previous / delta; test/smoke.js runs the suites on recordings. First step of the build, before task:memory.eval-truth.
     Part of goal:memory.validated-asks (decision:memory.eval-build-scope).
-  status: open
-  part-of: plan:plan-build
+  status: done
+  part-of: pr:pr-build
+  session: 9f29fa036e
 ```
 
 ```yaml
@@ -255,5 +348,5 @@ graph sha; never a with-and-without pair with fewer than five runs per arm; neve
     `_build/eval/<date>-*.json` committed; the numbers quoted on module:benchmarks with model, judge, graph sha and date.
     Last step of the build, after task:memory.eval-page. Part of goal:memory.validated-asks.
   status: open
-  part-of: plan:plan-build
+  part-of: pr:pr-build
 ```

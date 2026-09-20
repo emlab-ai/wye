@@ -160,7 +160,7 @@ Cost: a graph of 3 344 lines becomes roughly 1 500 more nodes. The parser is lin
 
 ### The graph editor: where the UI has to get to
 
-The graph already says it (req:ontology.blocks): a document is a node, every block in it is a node, a typed block is a node with properties and edges, and `has` makes the document → heading → block tree a node tree. The editor does not show it yet — a block reads as a node only through its tag or pill, and a plain paragraph has no way to be opened at all. The goal below names the destination; the tasks under it are the steps, each shipping on its own. plan:plan-still-bad-now-need-click-tag does the first (req:wf2.ui.block-select).
+The graph already says it (req:ontology.blocks): a document is a node, every block in it is a node, a typed block is a node with properties and edges, and `has` makes the document → heading → block tree a node tree. The editor does not show it yet — a block reads as a node only through its tag or pill, and a plain paragraph has no way to be opened at all. The goal below names the destination; the tasks under it are the steps, each shipping on its own. pr:pr-still-bad-now-need-click-tag does the first (req:wf2.ui.block-select).
 
 ### Content: how it is written and how deep it goes
 

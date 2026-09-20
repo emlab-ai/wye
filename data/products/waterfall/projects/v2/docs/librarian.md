@@ -47,7 +47,7 @@ Definition — the librarian
 - id: decision:exec.librarian-may-build
   title: "Build it" said to the librarian starts the build — the librarian runs `wf plan build`, it never tells the person to press a button
   context: >
-    On 2026-09-20 the person told the librarian "i asked to build this one" on plan:plan-build and got a paragraph
+    On 2026-09-20 the person told the librarian "i asked to build this one" on pr:pr-build and got a paragraph
     explaining that Build was theirs to press (decision:exec.wye-is-a-role: the librarian writes no code; rule:build
     lives in the UI; the wf CLI had no Build). Nothing started. The person's word in the conversation is the same
     approval the button gives.

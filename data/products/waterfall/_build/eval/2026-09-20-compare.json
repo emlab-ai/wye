@@ -1,0 +1,772 @@
+{
+  "suite": "compare",
+  "date": "2026-09-20",
+  "graphSha": "11644de20a26",
+  "gitSha": "11aef9294ca8",
+  "live": true,
+  "model": "claude-haiku-4-5-20251001",
+  "promptHashes": {
+    "verdict": "6d31662f",
+    "shouldHaveKnown": "87aa90ae"
+  },
+  "judge": {
+    "model": "claude-haiku-4-5-20251001",
+    "prompt": "6d31662f",
+    "kappa": null,
+    "n": 0,
+    "note": "no agreement run yet — wye eval judge --agreement"
+  },
+  "scores": {
+    "2026-09-20-42c63c.with.n": {
+      "value": 5,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.with.ok": {
+      "value": 5,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.with.violations": {
+      "value": 1.2,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.with.idsCited": {
+      "value": 1.4,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.with.shouldHaveKnown": {
+      "value": 0,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.with.blocks": {
+      "value": 1.8,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.with.filesChanged": {
+      "value": 0.6,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.with.tokensIn": {
+      "value": 2403103,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.with.tokensOut": {
+      "value": 15423.4,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.with.wallS": {
+      "value": 169.6,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.with.cost": {
+      "value": 0.42,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.with.turns": {
+      "value": 40,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.without.n": {
+      "value": 5,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.without.ok": {
+      "value": 5,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.without.violations": {
+      "value": 3.8,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.without.idsCited": {
+      "value": 0,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.without.shouldHaveKnown": {
+      "value": 0,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.without.blocks": {
+      "value": 3,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.without.filesChanged": {
+      "value": 2.4,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.without.tokensIn": {
+      "value": 3265262.4,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.without.tokensOut": {
+      "value": 16128.8,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.without.wallS": {
+      "value": 187.6,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.without.cost": {
+      "value": 0.53,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    },
+    "2026-09-20-42c63c.without.turns": {
+      "value": 50,
+      "n": 5,
+      "unit": "points",
+      "gated": false,
+      "previous": null
+    }
+  },
+  "pairs": [
+    {
+      "id": "2026-09-20-42c63c",
+      "request": "After a session ends with status done, automatically commit the documents it changed to git with the session id in the commit message, so nothing is lost.",
+      "refs": [],
+      "plan": null,
+      "agent": "claude-code",
+      "model": "claude-haiku-4-5-20251001",
+      "arms": [
+        "with",
+        "without"
+      ],
+      "runs": 5,
+      "graphSha": "4bdbbe006987",
+      "gitSha": "feff8773f105",
+      "createdAt": "2026-09-20T10:15:59.267Z",
+      "packetNodes": [
+        "rule:agent-sessions",
+        "rule:block-attribution",
+        "rule:inbox-review",
+        "rule:markdown-canonical",
+        "rule:plan-doc",
+        "rule:process-is-active",
+        "rule:session-page",
+        "rule:agent-contract",
+        "rule:agent-host",
+        "rule:agent-questions",
+        "rule:agent-runner",
+        "rule:app-link",
+        "rule:app-navigation",
+        "rule:block-links",
+        "rule:blocknote-prose-only",
+        "rule:card-form",
+        "rule:clean-slate",
+        "rule:console-flow",
+        "rule:context-panel",
+        "rule:deep-links",
+        "rule:doc-links",
+        "rule:doc-tree-row-stable",
+        "rule:document-tree",
+        "rule:documents-tree",
+        "rule:drawings",
+        "rule:goals-and-tasks",
+        "rule:history-nav",
+        "rule:idle-stop",
+        "rule:image-annotations",
+        "rule:inline-images",
+        "rule:live-refresh",
+        "rule:mention-menu",
+        "rule:mindmap-layout",
+        "rule:new-document",
+        "rule:node-cards",
+        "rule:node-page-layout",
+        "rule:plan-first",
+        "rule:plan-type-base",
+        "rule:plans-folder",
+        "rule:product-layout",
+        "rule:prose-keys",
+        "rule:prose-nodes",
+        "rule:prose-round-trip",
+        "rule:questions-view",
+        "rule:rail-split",
+        "rule:segment-write",
+        "rule:session-queue",
+        "rule:single-page-editor",
+        "rule:smart-tags",
+        "rule:sse-refresh",
+        "rule:subagents-in-console",
+        "rule:table-rows",
+        "rule:task-artifacts",
+        "rule:todo-tasks",
+        "rule:tree-menu",
+        "rule:type-tables",
+        "goal:exec.work-and-impact",
+        "goal:exec.define-first",
+        "goal:memory.validated-asks",
+        "decision:memory.consolidate-sessions",
+        "decision:memory.write-time-verdict",
+        "decision:wf2.agents-via-cli",
+        "decision:wf2.desktop-electron",
+        "decision:wf2.local-semantic-search",
+        "decision:wf2.typed-blocks-in-documents",
+        "constraint:wf2.text-canonical",
+        "question:wf2.attribution-several-sessions",
+        "question:wf2.close-keeps-record",
+        "question:wf2.session-page-per-item",
+        "question:wf2.plan-doc-slug",
+        "question:wf2.plan-doc-knowledge",
+        "question:wf2.plan-doc-status-building",
+        "question:wf2.embed-paragraphs",
+        "question:wf2.page-instance-add",
+        "question:wf2.bugs-cards-dropped",
+        "question:memory.eval-judge",
+        "question:memory.code-source.kinds",
+        "question:memory.code-source.writes",
+        "question:ontology.q3",
+        "question:ontology.q4",
+        "question:exec.ask-wye-default",
+        "question:wf2.content-of-block-nodes",
+        "question:exec.auto-dispatch",
+        "question:exec.priority",
+        "question:exec.agent-edits-pending",
+        "question:exec.impact-model",
+        "question:exec.wye-model",
+        "question:exec.definition-home",
+        "question:wf2.definition.constitution-status",
+        "question:memory.benchmark-positives"
+      ],
+      "commit": "feff8773f10536a5573fb67755d49880641e731b",
+      "scoredAt": "2026-09-20T10:44:12.717Z",
+      "judge": {
+        "model": "claude-haiku-4-5-20251001",
+        "prompt": "6d31662f",
+        "kappa": null,
+        "n": 0,
+        "note": "no agreement run yet — wye eval judge --agreement"
+      },
+      "runRows": [
+        {
+          "arm": "with",
+          "n": 1,
+          "exit": 0,
+          "error": null,
+          "violations": 2,
+          "violationRows": [
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "decision:wf2.session-git-commit",
+              "reason": "A explicitly excludes automatic commits from the v2 design; B proposes automatic commits on session end."
+            },
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "diff:with-1",
+              "reason": "A states no automatic commits in v2; B's diff implements automatic commits via session-commit.ts."
+            }
+          ],
+          "idsCited": 1,
+          "cited": [
+            "constraint:wf2.text-canonical"
+          ],
+          "questions": [],
+          "shouldHaveKnown": 0,
+          "shkRows": [],
+          "blocks": 1,
+          "blockIds": [
+            "decision:wf2.session-git-commit"
+          ],
+          "filesChanged": 3,
+          "tokensIn": 2035603,
+          "tokensOut": 14975,
+          "cost": 0.3632653,
+          "turns": 36,
+          "wallS": 181,
+          "reverted": null,
+          "bounced": null,
+          "mark": null
+        },
+        {
+          "arm": "with",
+          "n": 2,
+          "exit": 0,
+          "error": null,
+          "violations": 1,
+          "violationRows": [
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "task:session-auto-commit",
+              "reason": "A forbids automatic commits as part of the local-first constraint; B implements automatic commits to git on session end, superseding A's original decision."
+            }
+          ],
+          "idsCited": 2,
+          "cited": [
+            "constraint:wf2.text-canonical",
+            "req:wf2.sessions.knowledge-changes"
+          ],
+          "questions": [],
+          "shouldHaveKnown": 0,
+          "shkRows": [],
+          "blocks": 1,
+          "blockIds": [
+            "task:session-auto-commit"
+          ],
+          "filesChanged": 0,
+          "tokensIn": 2676957,
+          "tokensOut": 18171,
+          "cost": 0.4548125,
+          "turns": 42,
+          "wallS": 208,
+          "reverted": null,
+          "bounced": null,
+          "mark": null
+        },
+        {
+          "arm": "with",
+          "n": 3,
+          "exit": 0,
+          "error": null,
+          "violations": 2,
+          "violationRows": [
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "task:auto-commit-on-done",
+              "reason": "A explicitly states 'no automatic commits' as part of v2's local-first constraint; B automatically commits documents when sessions end."
+            },
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "decision:wf2.auto-commit-on-session-done",
+              "reason": "A explicitly states 'no automatic commits' in v2; B proposes automatically committing documents on session completion."
+            }
+          ],
+          "idsCited": 1,
+          "cited": [
+            "constraint:wf2.text-canonical"
+          ],
+          "questions": [],
+          "shouldHaveKnown": 0,
+          "shkRows": [],
+          "blocks": 2,
+          "blockIds": [
+            "task:auto-commit-on-done",
+            "decision:wf2.auto-commit-on-session-done"
+          ],
+          "filesChanged": 0,
+          "tokensIn": 2617226,
+          "tokensOut": 16074,
+          "cost": 0.45303720000000014,
+          "turns": 43,
+          "wallS": 140,
+          "reverted": null,
+          "bounced": null,
+          "mark": null
+        },
+        {
+          "arm": "with",
+          "n": 4,
+          "exit": 0,
+          "error": null,
+          "violations": 1,
+          "violationRows": [
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "decision:wf2.auto-commit-on-session-done",
+              "reason": "A explicitly prohibits 'automatic commits' in v2; B proposes automatic commits on session completion."
+            }
+          ],
+          "idsCited": 2,
+          "cited": [
+            "constraint:wf2.local-first",
+            "constraint:wf2.text-canonical"
+          ],
+          "questions": [],
+          "shouldHaveKnown": 0,
+          "shkRows": [],
+          "blocks": 1,
+          "blockIds": [
+            "decision:wf2.auto-commit-on-session-done"
+          ],
+          "filesChanged": 0,
+          "tokensIn": 2222550,
+          "tokensOut": 13635,
+          "cost": 0.38773610000000003,
+          "turns": 39,
+          "wallS": 144,
+          "reverted": null,
+          "bounced": null,
+          "mark": null
+        },
+        {
+          "arm": "with",
+          "n": 5,
+          "exit": 0,
+          "error": null,
+          "violations": 0,
+          "violationRows": [],
+          "idsCited": 1,
+          "cited": [
+            "constraint:wf2.text-canonical"
+          ],
+          "questions": [
+            "question:wf2.git-commit-stderr** — Should git errors be logged silently or surfaced?",
+            "question:wf2.git-commit-failed-sessions** — Should failed/cancelled sessions also be committed?"
+          ],
+          "shouldHaveKnown": 0,
+          "shkRows": [],
+          "blocks": 4,
+          "blockIds": [
+            "task:session-auto-commit",
+            "decision:wf2.git-commit-on-done",
+            "question:wf2.git-commit-stderr",
+            "question:wf2.git-commit-failed-sessions"
+          ],
+          "filesChanged": 0,
+          "tokensIn": 2463179,
+          "tokensOut": 14262,
+          "cost": 0.4488627,
+          "turns": 40,
+          "wallS": 175,
+          "reverted": null,
+          "bounced": null,
+          "mark": null
+        },
+        {
+          "arm": "without",
+          "n": 1,
+          "exit": 0,
+          "error": null,
+          "violations": 7,
+          "violationRows": [
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "lib:session-commit",
+              "reason": "A states 'no automatic commits' while B implements automatic commit hooks on session end."
+            },
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "rule:session-auto-commit",
+              "reason": "A states 'no automatic commits' while B requires automatic commits when sessions end with status done."
+            },
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "task:session-auto-commit",
+              "reason": "A states 'no automatic commits' while B implements automatic commits triggered by session end."
+            },
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "req:wf2.sessions.auto-commit",
+              "reason": "A states 'no automatic commits' while B specifies changed documents are automatically committed to git."
+            },
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "decision:wf2.sessions.auto-commit-on-done",
+              "reason": "A states 'no automatic commits' while B proposes registering a hook that automatically commits changed documents."
+            },
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "diff:without-1",
+              "reason": "A states 'no automatic commits' while the diff shows implementation of automatic session-commit functionality."
+            },
+            {
+              "constraint": "constraint:wf2.text-canonical",
+              "item": "decision:wf2.sessions.auto-commit-on-done",
+              "reason": "A requires git be canonical with nothing stored outside documents; B allows commits to fail without breaking session flow, which would leave changed documents unsynchronized with git, violating A's constraint."
+            }
+          ],
+          "idsCited": 0,
+          "cited": [],
+          "questions": [],
+          "shouldHaveKnown": 0,
+          "shkRows": [],
+          "blocks": 5,
+          "blockIds": [
+            "lib:session-commit",
+            "rule:session-auto-commit",
+            "task:session-auto-commit",
+            "req:wf2.sessions.auto-commit",
+            "decision:wf2.sessions.auto-commit-on-done"
+          ],
+          "filesChanged": 5,
+          "tokensIn": 4976316,
+          "tokensOut": 22781,
+          "cost": 0.7492979999999999,
+          "turns": 71,
+          "wallS": 265,
+          "reverted": null,
+          "bounced": null,
+          "mark": null
+        },
+        {
+          "arm": "without",
+          "n": 2,
+          "exit": 0,
+          "error": null,
+          "violations": 2,
+          "violationRows": [
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "decision:wf2.session-git-commit",
+              "reason": "Constraint explicitly forbids automatic commits in v2; decision proposes registering a hook to auto-commit session changes."
+            },
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "task:session-git-commit",
+              "reason": "Constraint explicitly forbids automatic commits; task implements automatic commit of documents when session ends."
+            }
+          ],
+          "idsCited": 0,
+          "cited": [],
+          "questions": [],
+          "shouldHaveKnown": 0,
+          "shkRows": [],
+          "blocks": 2,
+          "blockIds": [
+            "decision:wf2.session-git-commit",
+            "task:session-git-commit"
+          ],
+          "filesChanged": 0,
+          "tokensIn": 4063407,
+          "tokensOut": 18828,
+          "cost": 0.6464206999999998,
+          "turns": 59,
+          "wallS": 221,
+          "reverted": null,
+          "bounced": null,
+          "mark": null
+        },
+        {
+          "arm": "without",
+          "n": 3,
+          "exit": 0,
+          "error": null,
+          "violations": 2,
+          "violationRows": [
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "task:session-git-commit",
+              "reason": "A explicitly states 'no automatic commits' while B implements automatic commits to git after a session ends."
+            },
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "decision:wf2.auto-commit-on-session-end",
+              "reason": "A explicitly states 'no automatic commits' while B proposes registering a hook that automatically commits changed documents."
+            }
+          ],
+          "idsCited": 0,
+          "cited": [],
+          "questions": [],
+          "shouldHaveKnown": 0,
+          "shkRows": [],
+          "blocks": 2,
+          "blockIds": [
+            "task:session-git-commit",
+            "decision:wf2.auto-commit-on-session-end"
+          ],
+          "filesChanged": 0,
+          "tokensIn": 1948425,
+          "tokensOut": 12676,
+          "cost": 0.3521368,
+          "turns": 35,
+          "wallS": 146,
+          "reverted": null,
+          "bounced": null,
+          "mark": null
+        },
+        {
+          "arm": "without",
+          "n": 4,
+          "exit": 0,
+          "error": null,
+          "violations": 4,
+          "violationRows": [
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "task:auto-commit-sessions",
+              "reason": "Task implements automatic commits when constraint explicitly forbids them"
+            },
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "req:wf2.session-auto-commit",
+              "reason": "Requirement specifies auto-commit to git while constraint explicitly forbids automatic commits"
+            },
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "decision:wf2.session-auto-commit",
+              "reason": "Decision to implement auto-commit contradicts the constraint's explicit prohibition"
+            },
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "diff:without-4",
+              "reason": "Implementation adds auto-commit functionality that constraint explicitly forbids"
+            }
+          ],
+          "idsCited": 0,
+          "cited": [],
+          "questions": [],
+          "shouldHaveKnown": 0,
+          "shkRows": [],
+          "blocks": 3,
+          "blockIds": [
+            "task:auto-commit-sessions",
+            "req:wf2.session-auto-commit",
+            "decision:wf2.session-auto-commit"
+          ],
+          "filesChanged": 3,
+          "tokensIn": 2453877,
+          "tokensOut": 14349,
+          "cost": 0.4334275000000001,
+          "turns": 42,
+          "wallS": 149,
+          "reverted": null,
+          "bounced": null,
+          "mark": null
+        },
+        {
+          "arm": "without",
+          "n": 5,
+          "exit": 0,
+          "error": null,
+          "violations": 4,
+          "violationRows": [
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "decision:wf2.session-git-commit",
+              "reason": "A states 'no automatic commits' as a constraint; B proposes automatic commits triggered by session completion."
+            },
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "task:session-git-commit-impl",
+              "reason": "A constrains 'no automatic commits'; B is an implementation task to build automatic commits functionality."
+            },
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "task:session-git-commit-test",
+              "reason": "A disallows automatic commits; B tests automatic commit functionality."
+            },
+            {
+              "constraint": "constraint:wf2.local-first",
+              "item": "diff:without-5",
+              "reason": "A is an approved constraint against automatic commits; B is a completed diff that implements automatic commits, representing a later state that supersedes the constraint."
+            }
+          ],
+          "idsCited": 0,
+          "cited": [],
+          "questions": [],
+          "shouldHaveKnown": 0,
+          "shkRows": [],
+          "blocks": 3,
+          "blockIds": [
+            "decision:wf2.session-git-commit",
+            "task:session-git-commit-impl",
+            "task:session-git-commit-test"
+          ],
+          "filesChanged": 4,
+          "tokensIn": 2884287,
+          "tokensOut": 12010,
+          "cost": 0.4900304000000001,
+          "turns": 43,
+          "wallS": 157,
+          "reverted": null,
+          "bounced": null,
+          "mark": null
+        }
+      ],
+      "byArm": {
+        "with": {
+          "n": 5,
+          "ok": 5,
+          "violations": 1.2,
+          "idsCited": 1.4,
+          "shouldHaveKnown": 0,
+          "blocks": 1.8,
+          "filesChanged": 0.6,
+          "tokensIn": 2403103,
+          "tokensOut": 15423.4,
+          "wallS": 169.6,
+          "cost": 0.42,
+          "turns": 40,
+          "mark": null
+        },
+        "without": {
+          "n": 5,
+          "ok": 5,
+          "violations": 3.8,
+          "idsCited": 0,
+          "shouldHaveKnown": 0,
+          "blocks": 3,
+          "filesChanged": 2.4,
+          "tokensIn": 3265262.4,
+          "tokensOut": 16128.8,
+          "wallS": 187.6,
+          "cost": 0.53,
+          "turns": 50,
+          "mark": null
+        }
+      }
+    }
+  ],
+  "runs": [],
+  "previousFile": null,
+  "gate": {
+    "passed": true,
+    "baseline": "tier 2 is not gated",
+    "drops": []
+  }
+}

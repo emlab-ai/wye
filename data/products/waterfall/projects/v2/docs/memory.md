@@ -174,7 +174,7 @@ Memory
     Retrieval quality stops degrading with use; "archived" is a computed state, not a status anyone sets.
   date: 2026-09-19
   status: approved
-  affects: [op:api.context, module:v2-plans]
+  affects: [op:api.context, module:v2-prs]
   part-of: goal:memory.validated-asks
 ```
 

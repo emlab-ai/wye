@@ -1,5 +1,5 @@
 ---
-node: module:v2-work
+node: module:evaluation-work
 type: module
 title: Work
 status: active
@@ -11,4 +11,4 @@ last-verified: 2026-09-20
 
 Every task of the product, wherever it is written — plans, definition pages, the Backlog — as blocks, grouped by status. A task's panel assigns it, builds a plan or ticks it done.
 
-<!-- view:task status=open group=status as=table -->
+<!-- view:task group=status -->

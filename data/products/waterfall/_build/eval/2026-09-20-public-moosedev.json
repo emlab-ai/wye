@@ -1,0 +1,256 @@
+{
+  "suite": "public-moosedev",
+  "date": "2026-09-20",
+  "graphSha": "226e82093117",
+  "gitSha": "11aef9294ca8",
+  "live": true,
+  "model": "claude-haiku-4-5-20251001",
+  "promptHashes": {
+    "judge": "moosedev/regrade_judge.py"
+  },
+  "judge": {
+    "model": "claude-haiku-4-5-20251001",
+    "prompt": "their judge prompt, vendored"
+  },
+  "scores": {
+    "moosedev.set-completeness": {
+      "value": 0.325,
+      "n": 7,
+      "judge": true,
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "moosedev.supersession": {
+      "value": 0.077,
+      "n": 1,
+      "judge": true,
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "moosedev.relevance-currency": {
+      "value": 0.667,
+      "n": 3,
+      "judge": false,
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    }
+  },
+  "runs": [
+    {
+      "id": "cur_mcp_handshake",
+      "cls": "relevance",
+      "runnable": true,
+      "usage": {
+        "in": 67711,
+        "out": 542,
+        "turns": 3,
+        "cost": 0.0538714
+      },
+      "answerChars": 277,
+      "coverage": 1,
+      "stale": false,
+      "score": 1
+    },
+    {
+      "id": "mh_motivation_of_superseder",
+      "cls": "multi-hop",
+      "runnable": false,
+      "why": "needs graph edges the released corpus does not carry"
+    },
+    {
+      "id": "mh_req_through_constraint",
+      "cls": "multi-hop",
+      "runnable": false,
+      "why": "needs graph edges the released corpus does not carry"
+    },
+    {
+      "id": "neg_accepted_ads_no_rationale",
+      "cls": "negation",
+      "runnable": false,
+      "why": "needs graph edges the released corpus does not carry"
+    },
+    {
+      "id": "neg_constraints_no_rationale",
+      "cls": "negation",
+      "runnable": false,
+      "why": "needs graph edges the released corpus does not carry"
+    },
+    {
+      "id": "rel_telemetry_privacy",
+      "cls": "relevance",
+      "runnable": true,
+      "usage": {
+        "in": 21338,
+        "out": 642,
+        "turns": 1,
+        "cost": 0.0187383
+      },
+      "answerChars": 538,
+      "coverage": 0,
+      "stale": false,
+      "score": 0
+    },
+    {
+      "id": "rel_value_ref_edges",
+      "cls": "relevance",
+      "runnable": true,
+      "usage": {
+        "in": 115640,
+        "out": 856,
+        "turns": 5,
+        "cost": 0.034566400000000004
+      },
+      "answerChars": 534,
+      "coverage": 1,
+      "stale": false,
+      "score": 1
+    },
+    {
+      "id": "set_accepted_constraints",
+      "cls": "completeness",
+      "runnable": true,
+      "error": "agent exited 1: "
+    },
+    {
+      "id": "set_all_constraints",
+      "cls": "completeness",
+      "runnable": true,
+      "usage": {
+        "in": 207337,
+        "out": 1846,
+        "turns": 8,
+        "cost": 0.060814499999999994
+      },
+      "answerChars": 1514,
+      "expected": 122,
+      "recallPasses": [
+        0.32786885245901637,
+        0.319672131147541,
+        0.32786885245901637
+      ],
+      "recall": 0.3251366120218579
+    },
+    {
+      "id": "set_all_lessons",
+      "cls": "completeness",
+      "runnable": true,
+      "error": "agent exited 1: "
+    },
+    {
+      "id": "set_all_requirements",
+      "cls": "completeness",
+      "runnable": true,
+      "error": "agent exited 1: "
+    },
+    {
+      "id": "set_deprecated_records",
+      "cls": "completeness",
+      "runnable": true,
+      "error": "agent exited 1: "
+    },
+    {
+      "id": "set_proposed_ads",
+      "cls": "completeness",
+      "runnable": true,
+      "error": "agent exited 1: "
+    },
+    {
+      "id": "set_superseded_ads",
+      "cls": "completeness",
+      "runnable": true,
+      "error": "agent exited 1: "
+    },
+    {
+      "id": "sup_all_superseded",
+      "cls": "supersession",
+      "runnable": true,
+      "usage": {
+        "in": 421705,
+        "out": 3146,
+        "turns": 15,
+        "cost": 0.09966399999999999
+      },
+      "answerChars": 1195,
+      "expected": 26,
+      "recallPasses": [
+        0.07692307692307693,
+        0.07692307692307693,
+        0.07692307692307693
+      ],
+      "recall": 0.07692307692307693
+    },
+    {
+      "id": "sup_current_replacements",
+      "cls": "supersession",
+      "runnable": false,
+      "why": "needs graph edges the released corpus does not carry"
+    },
+    {
+      "id": "sup_head_of_reversal",
+      "cls": "supersession",
+      "runnable": false,
+      "why": "needs graph edges the released corpus does not carry"
+    }
+  ],
+  "report": {
+    "title": "MOOSEDev bench — CodeGraph corpus, through Wye",
+    "source": "github.com/Trivyn/moosedev bench/ (Apache-2.0); arxiv.org/abs/2608.13662",
+    "published": "EVALUATION.md §3–4, codegraph matrix, judge GPT-5.4-mini strict, mean of three passes",
+    "judge": "claude-haiku-4-5-20251001 on their judge prompt (not GPT-5.4-mini)",
+    "rows": [
+      {
+        "name": "set completeness",
+        "ours": 0.325,
+        "n": 7,
+        "theirs": {
+          "MOOSEDev": 1,
+          "mem0": 0.18
+        }
+      },
+      {
+        "name": "negation",
+        "ours": null,
+        "n": 0,
+        "theirs": {
+          "MOOSEDev": 0.98,
+          "mem0": 0.06
+        },
+        "note": "2 task(s) not runnable: the released corpus has no rationale edges"
+      },
+      {
+        "name": "supersession",
+        "ours": 0.077,
+        "n": 1,
+        "theirs": {
+          "MOOSEDev": 0.98,
+          "mem0": 0.27
+        },
+        "note": "2 of 3 task(s) need the supersedes edge — not in the release"
+      },
+      {
+        "name": "relevance (+ currency)",
+        "ours": 0.667,
+        "n": 3,
+        "theirs": {
+          "MOOSEDev": 0.82,
+          "mem0": "0.67–0.90"
+        },
+        "note": "coverage of their marker groups, no judge; a stale marker zeroes a currency answer"
+      }
+    ],
+    "notes": [
+      "not runnable on the released corpus (edges withheld): mh_motivation_of_superseder, mh_req_through_constraint, neg_accepted_ads_no_rationale, neg_constraints_no_rationale, sup_current_replacements, sup_head_of_reversal",
+      "the agent had wf context (30 hits at most), wf packet, wf node, wf resolve — no file reads",
+      "multi-hop tasks are not in the four numbers (their table omits them too)"
+    ]
+  },
+  "previousFile": null,
+  "gate": {
+    "passed": true,
+    "baseline": "public benchmarks are not gated",
+    "drops": []
+  }
+}

@@ -520,6 +520,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     The wf CLI: an agent's door into the running app — resolve, doc, node, context, inbox add, session log/done/take, agent listen (runner).
   part-of: module:app-agents
 - id: lib:session-page
+  status: retired
   file: packages/web/src/lib/session-page.ts
   side: shared
   purpose: >

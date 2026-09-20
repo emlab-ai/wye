@@ -1,0 +1,2264 @@
+{
+  "suite": "public-memoryagentbench",
+  "date": "2026-09-20",
+  "graphSha": "2d278957bc3e",
+  "gitSha": "881041eac918",
+  "live": true,
+  "model": "claude-haiku-4-5-20251001",
+  "promptHashes": {
+    "verdict": "6d31662f"
+  },
+  "judge": {
+    "model": "claude-haiku-4-5-20251001",
+    "prompt": "6d31662f"
+  },
+  "scores": {
+    "memoryagentbench.fc-sh-6k": {
+      "value": 0.92,
+      "n": 100,
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    }
+  },
+  "runs": [
+    {
+      "i": 0,
+      "id": "factconsolidation_sh_6k_no0",
+      "question": "Which sport is goaltender associated with?",
+      "gold": [
+        "pesäpallo"
+      ],
+      "answer": "ice hockey",
+      "ok": false,
+      "hits": [
+        "fact:223",
+        "fact:310",
+        "fact:437",
+        "fact:362",
+        "fact:219",
+        "fact:321",
+        "fact:446",
+        "fact:50",
+        "fact:252",
+        "fact:416"
+      ]
+    },
+    {
+      "i": 1,
+      "id": "factconsolidation_sh_6k_no1",
+      "question": "What is Nobuhiro Watsuki famous for?",
+      "gold": [
+        "The Fairly OddParents"
+      ],
+      "answer": "The Fairly OddParents",
+      "ok": true,
+      "hits": [
+        "fact:259",
+        "fact:390",
+        "fact:86",
+        "fact:293",
+        "fact:95",
+        "fact:401",
+        "fact:304",
+        "fact:112",
+        "fact:44",
+        "fact:119"
+      ]
+    },
+    {
+      "i": 2,
+      "id": "factconsolidation_sh_6k_no2",
+      "question": "Which country was rugby union created in?",
+      "gold": [
+        "India"
+      ],
+      "answer": "India",
+      "ok": true,
+      "hits": [
+        "fact:186",
+        "fact:150",
+        "fact:348",
+        "fact:389",
+        "fact:23",
+        "fact:258",
+        "fact:160",
+        "fact:216",
+        "fact:93",
+        "fact:382"
+      ]
+    },
+    {
+      "i": 3,
+      "id": "factconsolidation_sh_6k_no3",
+      "question": "What is Ferdowsi famous for?",
+      "gold": [
+        "Shahnameh"
+      ],
+      "answer": "Shahnameh",
+      "ok": true,
+      "hits": [
+        "fact:86",
+        "fact:326",
+        "fact:112",
+        "fact:45",
+        "fact:423",
+        "fact:72",
+        "fact:259",
+        "fact:189",
+        "fact:358",
+        "fact:246"
+      ]
+    },
+    {
+      "i": 4,
+      "id": "factconsolidation_sh_6k_no4",
+      "question": "Which university was Joan Didion educated at?",
+      "gold": [
+        "University of California, Berkeley"
+      ],
+      "answer": "University of California, Berkeley",
+      "ok": true,
+      "hits": [
+        "fact:63",
+        "fact:349",
+        "fact:309",
+        "fact:399",
+        "fact:333",
+        "fact:15",
+        "fact:453",
+        "fact:208",
+        "fact:420",
+        "fact:148"
+      ]
+    },
+    {
+      "i": 5,
+      "id": "factconsolidation_sh_6k_no5",
+      "question": "Who is the author of The Marriage of Figaro?",
+      "gold": [
+        "Thomas Kyd"
+      ],
+      "answer": "Thomas Kyd",
+      "ok": true,
+      "hits": [
+        "fact:398",
+        "fact:335",
+        "fact:146",
+        "fact:401",
+        "fact:180",
+        "fact:11",
+        "fact:305",
+        "fact:200",
+        "fact:369",
+        "fact:420"
+      ]
+    },
+    {
+      "i": 6,
+      "id": "factconsolidation_sh_6k_no6",
+      "question": "Which sport is Tunisia national football team associated with?",
+      "gold": [
+        "basketball"
+      ],
+      "answer": "basketball",
+      "ok": true,
+      "hits": [
+        "fact:418",
+        "fact:279",
+        "fact:437",
+        "fact:340",
+        "fact:149",
+        "fact:346",
+        "fact:308",
+        "fact:389",
+        "fact:133",
+        "fact:417"
+      ]
+    },
+    {
+      "i": 7,
+      "id": "factconsolidation_sh_6k_no7",
+      "question": "Which sport is quarterback associated with?",
+      "gold": [
+        "Muay Thai"
+      ],
+      "answer": "Muay Thai",
+      "ok": true,
+      "hits": [
+        "fact:50",
+        "fact:362",
+        "fact:346",
+        "fact:417",
+        "fact:252",
+        "fact:437",
+        "fact:416",
+        "fact:340",
+        "fact:308",
+        "fact:303"
+      ]
+    },
+    {
+      "i": 8,
+      "id": "factconsolidation_sh_6k_no8",
+      "question": "What is the official language of Japan?",
+      "gold": [
+        "Swedish"
+      ],
+      "answer": "Swedish",
+      "ok": true,
+      "hits": [
+        "fact:439",
+        "fact:44",
+        "fact:99",
+        "fact:383",
+        "fact:184",
+        "fact:295",
+        "fact:151",
+        "fact:103",
+        "fact:95",
+        "fact:202"
+      ]
+    },
+    {
+      "i": 9,
+      "id": "factconsolidation_sh_6k_no9",
+      "question": "What is the name of the current head of the Tucson government?",
+      "gold": [
+        "Jonathan Rothschild"
+      ],
+      "answer": "Jonathan Rothschild",
+      "ok": true,
+      "hits": [
+        "fact:454",
+        "fact:351",
+        "fact:432",
+        "fact:202",
+        "fact:375",
+        "fact:140",
+        "fact:365",
+        "fact:265",
+        "fact:126",
+        "fact:249"
+      ]
+    },
+    {
+      "i": 10,
+      "id": "factconsolidation_sh_6k_no10",
+      "question": "What is the name of the current head of the Italy government?",
+      "gold": [
+        "Giuseppe Conte"
+      ],
+      "answer": "Giuseppe Conte",
+      "ok": true,
+      "hits": [
+        "fact:375",
+        "fact:202",
+        "fact:140",
+        "fact:432",
+        "fact:351",
+        "fact:454",
+        "fact:365",
+        "fact:427",
+        "fact:126",
+        "fact:249"
+      ]
+    },
+    {
+      "i": 11,
+      "id": "factconsolidation_sh_6k_no11",
+      "question": "Who performed Meredith Grey?",
+      "gold": [
+        "Ellen Pompeo"
+      ],
+      "answer": "Ellen Pompeo",
+      "ok": true,
+      "hits": [
+        "fact:96",
+        "fact:414",
+        "fact:181",
+        "fact:318",
+        "fact:364",
+        "fact:350",
+        "fact:285",
+        "fact:273",
+        "fact:425",
+        "fact:229"
+      ]
+    },
+    {
+      "i": 12,
+      "id": "factconsolidation_sh_6k_no12",
+      "question": "What position does Robert Parish play?",
+      "gold": [
+        "quarterback"
+      ],
+      "answer": "quarterback",
+      "ok": true,
+      "hits": [
+        "fact:334",
+        "fact:419",
+        "fact:227",
+        "fact:269",
+        "fact:110",
+        "fact:169",
+        "fact:434",
+        "fact:36",
+        "fact:246",
+        "fact:406"
+      ]
+    },
+    {
+      "i": 13,
+      "id": "factconsolidation_sh_6k_no13",
+      "question": "What is the country of citizenship of Cédric Klapisch?",
+      "gold": [
+        "Malaysia"
+      ],
+      "answer": "Malaysia",
+      "ok": true,
+      "hits": [
+        "fact:239",
+        "fact:250",
+        "fact:165",
+        "fact:358",
+        "fact:427",
+        "fact:319",
+        "fact:87",
+        "fact:322",
+        "fact:386",
+        "fact:245"
+      ]
+    },
+    {
+      "i": 14,
+      "id": "factconsolidation_sh_6k_no14",
+      "question": "Who is the author of Sidereus Nuncius?",
+      "gold": [
+        "Samuel Beckett"
+      ],
+      "answer": "Samuel Beckett",
+      "ok": true,
+      "hits": [
+        "fact:401",
+        "fact:301",
+        "fact:146",
+        "fact:305",
+        "fact:180",
+        "fact:200",
+        "fact:147",
+        "fact:398",
+        "fact:304",
+        "fact:119"
+      ]
+    },
+    {
+      "i": 15,
+      "id": "factconsolidation_sh_6k_no15",
+      "question": "Which continent is Germany located in?",
+      "gold": [
+        "Africa"
+      ],
+      "answer": "Africa",
+      "ok": true,
+      "hits": [
+        "fact:435",
+        "fact:211",
+        "fact:429",
+        "fact:105",
+        "fact:113",
+        "fact:280",
+        "fact:440",
+        "fact:220",
+        "fact:127",
+        "fact:442"
+      ]
+    },
+    {
+      "i": 16,
+      "id": "factconsolidation_sh_6k_no16",
+      "question": "Which religion is Kingdom of Ireland affiliated with?",
+      "gold": [
+        "Zoroastrianism"
+      ],
+      "answer": "Zoroastrianism",
+      "ok": true,
+      "hits": [
+        "fact:260",
+        "fact:182",
+        "fact:412",
+        "fact:94",
+        "fact:339",
+        "fact:357",
+        "fact:266",
+        "fact:172",
+        "fact:361",
+        "fact:119"
+      ]
+    },
+    {
+      "i": 17,
+      "id": "factconsolidation_sh_6k_no17",
+      "question": "Which country was association football created in?",
+      "gold": [
+        "Italy"
+      ],
+      "answer": "Italy",
+      "ok": true,
+      "hits": [
+        "fact:389",
+        "fact:348",
+        "fact:382",
+        "fact:186",
+        "fact:150",
+        "fact:216",
+        "fact:160",
+        "fact:437",
+        "fact:353",
+        "fact:95"
+      ]
+    },
+    {
+      "i": 18,
+      "id": "factconsolidation_sh_6k_no18",
+      "question": "Who is the developer of Windows Phone?",
+      "gold": [
+        "Microsoft"
+      ],
+      "answer": "Microsoft",
+      "ok": true,
+      "hits": [
+        "fact:221",
+        "fact:188",
+        "fact:201",
+        "fact:241",
+        "fact:428",
+        "fact:367",
+        "fact:74",
+        "fact:354",
+        "fact:351",
+        "fact:338"
+      ]
+    },
+    {
+      "i": 19,
+      "id": "factconsolidation_sh_6k_no19",
+      "question": "Who is the chief executive officer of Microsoft?",
+      "gold": [
+        "Steve Jobs"
+      ],
+      "answer": "Steve Jobs",
+      "ok": true,
+      "hits": [
+        "fact:188",
+        "fact:201",
+        "fact:393",
+        "fact:74",
+        "fact:379",
+        "fact:275",
+        "fact:408",
+        "fact:221",
+        "fact:351",
+        "fact:232"
+      ]
+    },
+    {
+      "i": 20,
+      "id": "factconsolidation_sh_6k_no20",
+      "question": "Who is the chairperson of Harvard University?",
+      "gold": [
+        "Peter Diamandis"
+      ],
+      "answer": "Peter Diamandis",
+      "ok": true,
+      "hits": [
+        "fact:222",
+        "fact:431",
+        "fact:232",
+        "fact:101",
+        "fact:399",
+        "fact:453",
+        "fact:15",
+        "fact:309",
+        "fact:114",
+        "fact:63"
+      ]
+    },
+    {
+      "i": 21,
+      "id": "factconsolidation_sh_6k_no21",
+      "question": "Who founded Church of Scotland?",
+      "gold": [
+        "John Knox"
+      ],
+      "answer": "John Knox",
+      "ok": true,
+      "hits": [
+        "fact:17",
+        "fact:193",
+        "fact:412",
+        "fact:265",
+        "fact:48",
+        "fact:230",
+        "fact:108",
+        "fact:287",
+        "fact:49",
+        "fact:43"
+      ]
+    },
+    {
+      "i": 22,
+      "id": "factconsolidation_sh_6k_no22",
+      "question": "Which sport is Galwegians RFC associated with?",
+      "gold": [
+        "rugby union"
+      ],
+      "answer": "rugby union",
+      "ok": true,
+      "hits": [
+        "fact:23",
+        "fact:93",
+        "fact:219",
+        "fact:279",
+        "fact:446",
+        "fact:252",
+        "fact:340",
+        "fact:315",
+        "fact:328",
+        "fact:303"
+      ]
+    },
+    {
+      "i": 23,
+      "id": "factconsolidation_sh_6k_no23",
+      "question": "Who is the director of American Broadcasting Company?",
+      "gold": [
+        "Ernst Heinkel"
+      ],
+      "answer": "Ernst Heinkel",
+      "ok": true,
+      "hits": [
+        "fact:392",
+        "fact:428",
+        "fact:363",
+        "fact:7",
+        "fact:404",
+        "fact:226",
+        "fact:354",
+        "fact:443",
+        "fact:290",
+        "fact:356"
+      ]
+    },
+    {
+      "i": 24,
+      "id": "factconsolidation_sh_6k_no24",
+      "question": "Which city did Gennady Rozhdestvensky die in?",
+      "gold": [
+        "United States of America"
+      ],
+      "answer": "Moscow",
+      "ok": false,
+      "hits": [
+        "fact:292",
+        "fact:451",
+        "fact:302",
+        "fact:450",
+        "fact:300",
+        "fact:142",
+        "fact:283",
+        "fact:270",
+        "fact:2",
+        "fact:51"
+      ]
+    },
+    {
+      "i": 25,
+      "id": "factconsolidation_sh_6k_no25",
+      "question": "What is the capital of Tang Empire?",
+      "gold": [
+        "Beaumont"
+      ],
+      "answer": "Beaumont",
+      "ok": true,
+      "hits": [
+        "fact:177",
+        "fact:203",
+        "fact:179",
+        "fact:388",
+        "fact:103",
+        "fact:171",
+        "fact:255",
+        "fact:341",
+        "fact:396",
+        "fact:26"
+      ]
+    },
+    {
+      "i": 26,
+      "id": "factconsolidation_sh_6k_no26",
+      "question": "Who is the director of British Broadcasting Corporation?",
+      "gold": [
+        "Narendra Modi"
+      ],
+      "answer": "Narendra Modi",
+      "ok": true,
+      "hits": [
+        "fact:428",
+        "fact:7",
+        "fact:226",
+        "fact:392",
+        "fact:443",
+        "fact:354",
+        "fact:74",
+        "fact:363",
+        "fact:290",
+        "fact:351"
+      ]
+    },
+    {
+      "i": 27,
+      "id": "factconsolidation_sh_6k_no27",
+      "question": "What is the country of citizenship of Benjamin Mazar?",
+      "gold": [
+        "Israel"
+      ],
+      "answer": "Israel",
+      "ok": true,
+      "hits": [
+        "fact:313",
+        "fact:250",
+        "fact:165",
+        "fact:343",
+        "fact:311",
+        "fact:441",
+        "fact:386",
+        "fact:358",
+        "fact:239",
+        "fact:217"
+      ]
+    },
+    {
+      "i": 28,
+      "id": "factconsolidation_sh_6k_no28",
+      "question": "What type of music does Michael Mantler play?",
+      "gold": [
+        "post-punk"
+      ],
+      "answer": "post-punk",
+      "ok": true,
+      "hits": [
+        "fact:298",
+        "fact:355",
+        "fact:415",
+        "fact:83",
+        "fact:281",
+        "fact:227",
+        "fact:144",
+        "fact:434",
+        "fact:110",
+        "fact:443"
+      ]
+    },
+    {
+      "i": 29,
+      "id": "factconsolidation_sh_6k_no29",
+      "question": "Which city did Oscar Wilde die in?",
+      "gold": [
+        "Guangzhou"
+      ],
+      "answer": "Guangzhou",
+      "ok": true,
+      "hits": [
+        "fact:270",
+        "fact:147",
+        "fact:300",
+        "fact:142",
+        "fact:292",
+        "fact:2",
+        "fact:450",
+        "fact:448",
+        "fact:451",
+        "fact:51"
+      ]
+    },
+    {
+      "i": 30,
+      "id": "factconsolidation_sh_6k_no30",
+      "question": "Which country was baseball created in?",
+      "gold": [
+        "Japan"
+      ],
+      "answer": "United States of America",
+      "ok": false,
+      "hits": [
+        "fact:160",
+        "fact:382",
+        "fact:216",
+        "fact:150",
+        "fact:348",
+        "fact:186",
+        "fact:162",
+        "fact:389",
+        "fact:212",
+        "fact:95"
+      ]
+    },
+    {
+      "i": 31,
+      "id": "factconsolidation_sh_6k_no31",
+      "question": "What is the country of citizenship of Ernst Heinkel?",
+      "gold": [
+        "Tang Empire"
+      ],
+      "answer": "Tang Empire",
+      "ok": true,
+      "hits": [
+        "fact:203",
+        "fact:392",
+        "fact:358",
+        "fact:22",
+        "fact:250",
+        "fact:436",
+        "fact:322",
+        "fact:311",
+        "fact:165",
+        "fact:60"
+      ]
+    },
+    {
+      "i": 32,
+      "id": "factconsolidation_sh_6k_no32",
+      "question": "Which city is the headquarter of The University of the Arts located in?",
+      "gold": [
+        "Philadelphia"
+      ],
+      "answer": "Philadelphia",
+      "ok": true,
+      "hits": [
+        "fact:387",
+        "fact:409",
+        "fact:114",
+        "fact:101",
+        "fact:9",
+        "fact:309",
+        "fact:380",
+        "fact:130",
+        "fact:314",
+        "fact:63"
+      ]
+    },
+    {
+      "i": 33,
+      "id": "factconsolidation_sh_6k_no33",
+      "question": "Which country was rap rock created in?",
+      "gold": [
+        "Russian Empire"
+      ],
+      "answer": "United States of America",
+      "ok": false,
+      "hits": [
+        "fact:359",
+        "fact:403",
+        "fact:162",
+        "fact:212",
+        "fact:267",
+        "fact:216",
+        "fact:348",
+        "fact:415",
+        "fact:150",
+        "fact:160"
+      ]
+    },
+    {
+      "i": 34,
+      "id": "factconsolidation_sh_6k_no34",
+      "question": "Where was Christianity founded?",
+      "gold": [
+        "Taipei"
+      ],
+      "answer": "Taipei",
+      "ok": true,
+      "hits": [
+        "fact:43",
+        "fact:193",
+        "fact:287",
+        "fact:370",
+        "fact:304",
+        "fact:154",
+        "fact:108",
+        "fact:48",
+        "fact:265",
+        "fact:49"
+      ]
+    },
+    {
+      "i": 35,
+      "id": "factconsolidation_sh_6k_no35",
+      "question": "What is the official language of United States of America?",
+      "gold": [
+        "German"
+      ],
+      "answer": "German",
+      "ok": true,
+      "hits": [
+        "fact:295",
+        "fact:184",
+        "fact:99",
+        "fact:383",
+        "fact:247",
+        "fact:126",
+        "fact:162",
+        "fact:439",
+        "fact:151",
+        "fact:216"
+      ]
+    },
+    {
+      "i": 36,
+      "id": "factconsolidation_sh_6k_no36",
+      "question": "Who performed Past Masters?",
+      "gold": [
+        "Madonna"
+      ],
+      "answer": "Madonna",
+      "ok": true,
+      "hits": [
+        "fact:364",
+        "fact:318",
+        "fact:285",
+        "fact:273",
+        "fact:96",
+        "fact:425",
+        "fact:350",
+        "fact:181",
+        "fact:229",
+        "fact:337"
+      ]
+    },
+    {
+      "i": 37,
+      "id": "factconsolidation_sh_6k_no37",
+      "question": "What is the capital of Japan?",
+      "gold": [
+        "Tokyo"
+      ],
+      "answer": "Tokyo",
+      "ok": true,
+      "hits": [
+        "fact:103",
+        "fact:209",
+        "fact:26",
+        "fact:388",
+        "fact:341",
+        "fact:255",
+        "fact:439",
+        "fact:202",
+        "fact:95",
+        "fact:198"
+      ]
+    },
+    {
+      "i": 38,
+      "id": "factconsolidation_sh_6k_no38",
+      "question": "What is the capital of France?",
+      "gold": [
+        "Harare"
+      ],
+      "answer": "Harare",
+      "ok": true,
+      "hits": [
+        "fact:171",
+        "fact:429",
+        "fact:198",
+        "fact:26",
+        "fact:190",
+        "fact:378",
+        "fact:255",
+        "fact:209",
+        "fact:33",
+        "fact:449"
+      ]
+    },
+    {
+      "i": 39,
+      "id": "factconsolidation_sh_6k_no39",
+      "question": "Who is the developer of SteamOS?",
+      "gold": [
+        "ABB Group"
+      ],
+      "answer": "ABB Group",
+      "ok": true,
+      "hits": [
+        "fact:277",
+        "fact:74",
+        "fact:188",
+        "fact:241",
+        "fact:379",
+        "fact:232",
+        "fact:92",
+        "fact:201",
+        "fact:305",
+        "fact:229"
+      ]
+    },
+    {
+      "i": 40,
+      "id": "factconsolidation_sh_6k_no40",
+      "question": "Which city is the headquarter of University of Bucharest located in?",
+      "gold": [
+        "Ankara"
+      ],
+      "answer": "Ankara",
+      "ok": true,
+      "hits": [
+        "fact:409",
+        "fact:333",
+        "fact:387",
+        "fact:106",
+        "fact:114",
+        "fact:101",
+        "fact:9",
+        "fact:380",
+        "fact:314",
+        "fact:15"
+      ]
+    },
+    {
+      "i": 41,
+      "id": "factconsolidation_sh_6k_no41",
+      "question": "Which sport is wide receiver associated with?",
+      "gold": [
+        "rugby"
+      ],
+      "answer": "rugby",
+      "ok": true,
+      "hits": [
+        "fact:252",
+        "fact:227",
+        "fact:446",
+        "fact:362",
+        "fact:417",
+        "fact:23",
+        "fact:93",
+        "fact:346",
+        "fact:219",
+        "fact:50"
+      ]
+    },
+    {
+      "i": 42,
+      "id": "factconsolidation_sh_6k_no42",
+      "question": "What position does Hines Ward play?",
+      "gold": [
+        "cornerback"
+      ],
+      "answer": "cornerback",
+      "ok": true,
+      "hits": [
+        "fact:36",
+        "fact:227",
+        "fact:110",
+        "fact:334",
+        "fact:434",
+        "fact:419",
+        "fact:269",
+        "fact:169",
+        "fact:362",
+        "fact:50"
+      ]
+    },
+    {
+      "i": 43,
+      "id": "factconsolidation_sh_6k_no43",
+      "question": "What is the capital of Australia?",
+      "gold": [
+        "Oderzo"
+      ],
+      "answer": "Oderzo",
+      "ok": true,
+      "hits": [
+        "fact:388",
+        "fact:220",
+        "fact:151",
+        "fact:150",
+        "fact:177",
+        "fact:378",
+        "fact:217",
+        "fact:33",
+        "fact:26",
+        "fact:179"
+      ]
+    },
+    {
+      "i": 44,
+      "id": "factconsolidation_sh_6k_no44",
+      "question": "Which continent is Malaysia located in?",
+      "gold": [
+        "Antarctica"
+      ],
+      "answer": "Antarctica",
+      "ok": true,
+      "hits": [
+        "fact:442",
+        "fact:187",
+        "fact:280",
+        "fact:113",
+        "fact:440",
+        "fact:435",
+        "fact:105",
+        "fact:220",
+        "fact:211",
+        "fact:234"
+      ]
+    },
+    {
+      "i": 45,
+      "id": "factconsolidation_sh_6k_no45",
+      "question": "Who is the author of A Wizard of Earthsea?",
+      "gold": [
+        "Pius XII"
+      ],
+      "answer": "Pius XII",
+      "ok": true,
+      "hits": [
+        "fact:301",
+        "fact:305",
+        "fact:401",
+        "fact:77",
+        "fact:180",
+        "fact:146",
+        "fact:200",
+        "fact:147",
+        "fact:430",
+        "fact:222"
+      ]
+    },
+    {
+      "i": 46,
+      "id": "factconsolidation_sh_6k_no46",
+      "question": "Who performed Free as a Bird?",
+      "gold": [
+        "The Beatles"
+      ],
+      "answer": "The Beatles",
+      "ok": true,
+      "hits": [
+        "fact:350",
+        "fact:364",
+        "fact:318",
+        "fact:285",
+        "fact:273",
+        "fact:181",
+        "fact:425",
+        "fact:96",
+        "fact:229",
+        "fact:337"
+      ]
+    },
+    {
+      "i": 47,
+      "id": "factconsolidation_sh_6k_no47",
+      "question": "Who is the author of Our Mutual Friend?",
+      "gold": [
+        "Charles Darwin"
+      ],
+      "answer": "Charles Darwin",
+      "ok": true,
+      "hits": [
+        "fact:146",
+        "fact:147",
+        "fact:398",
+        "fact:180",
+        "fact:401",
+        "fact:305",
+        "fact:344",
+        "fact:301",
+        "fact:430",
+        "fact:77"
+      ]
+    },
+    {
+      "i": 48,
+      "id": "factconsolidation_sh_6k_no48",
+      "question": "Which country was basketball created in?",
+      "gold": [
+        "Soviet Union"
+      ],
+      "answer": "United States of America",
+      "ok": false,
+      "hits": [
+        "fact:216",
+        "fact:348",
+        "fact:160",
+        "fact:382",
+        "fact:150",
+        "fact:389",
+        "fact:212",
+        "fact:186",
+        "fact:162",
+        "fact:359"
+      ]
+    },
+    {
+      "i": 49,
+      "id": "factconsolidation_sh_6k_no49",
+      "question": "What is the country of citizenship of Hal Needham?",
+      "gold": [
+        "United States of America"
+      ],
+      "answer": "United States of America",
+      "ok": true,
+      "hits": [
+        "fact:73",
+        "fact:250",
+        "fact:165",
+        "fact:322",
+        "fact:239",
+        "fact:95",
+        "fact:403",
+        "fact:386",
+        "fact:261",
+        "fact:345"
+      ]
+    },
+    {
+      "i": 50,
+      "id": "factconsolidation_sh_6k_no50",
+      "question": "Which continent is Bengaluru located in?",
+      "gold": [
+        "Oceania"
+      ],
+      "answer": "Oceania",
+      "ok": true,
+      "hits": [
+        "fact:234",
+        "fact:280",
+        "fact:220",
+        "fact:435",
+        "fact:440",
+        "fact:187",
+        "fact:211",
+        "fact:429",
+        "fact:105",
+        "fact:442"
+      ]
+    },
+    {
+      "i": 51,
+      "id": "factconsolidation_sh_6k_no51",
+      "question": "Which sport is Slovakia national football team associated with?",
+      "gold": [
+        "cricket"
+      ],
+      "answer": "cricket",
+      "ok": true,
+      "hits": [
+        "fact:279",
+        "fact:418",
+        "fact:437",
+        "fact:149",
+        "fact:340",
+        "fact:133",
+        "fact:346",
+        "fact:417",
+        "fact:389",
+        "fact:315"
+      ]
+    },
+    {
+      "i": 52,
+      "id": "factconsolidation_sh_6k_no52",
+      "question": "What is the name of the current head of state in United States of America?",
+      "gold": [
+        "Connachta"
+      ],
+      "answer": "Connachta",
+      "ok": true,
+      "hits": [
+        "fact:126",
+        "fact:432",
+        "fact:249",
+        "fact:247",
+        "fact:365",
+        "fact:396",
+        "fact:140",
+        "fact:295",
+        "fact:118",
+        "fact:311"
+      ]
+    },
+    {
+      "i": 53,
+      "id": "factconsolidation_sh_6k_no53",
+      "question": "Which religion is Imelda Marcos affiliated with?",
+      "gold": [
+        "atheism"
+      ],
+      "answer": "atheism",
+      "ok": true,
+      "hits": [
+        "fact:374",
+        "fact:11",
+        "fact:357",
+        "fact:119",
+        "fact:266",
+        "fact:172",
+        "fact:412",
+        "fact:331",
+        "fact:410",
+        "fact:263"
+      ]
+    },
+    {
+      "i": 54,
+      "id": "factconsolidation_sh_6k_no54",
+      "question": "What type of music does Dana International play?",
+      "gold": [
+        "Australian hip hop"
+      ],
+      "answer": "Australian hip hop",
+      "ok": true,
+      "hits": [
+        "fact:281",
+        "fact:337",
+        "fact:298",
+        "fact:83",
+        "fact:415",
+        "fact:355",
+        "fact:162",
+        "fact:144",
+        "fact:212",
+        "fact:419"
+      ]
+    },
+    {
+      "i": 55,
+      "id": "factconsolidation_sh_6k_no55",
+      "question": "What is the country of citizenship of Sable?",
+      "gold": [
+        "Czech Republic"
+      ],
+      "answer": "United States of America",
+      "ok": false,
+      "hits": [
+        "fact:244",
+        "fact:299",
+        "fact:250",
+        "fact:165",
+        "fact:102",
+        "fact:353",
+        "fact:403",
+        "fact:162",
+        "fact:436",
+        "fact:313"
+      ]
+    },
+    {
+      "i": 56,
+      "id": "factconsolidation_sh_6k_no56",
+      "question": "Which country was Charlie Hebdo created in?",
+      "gold": [
+        "Italy"
+      ],
+      "answer": "Italy",
+      "ok": true,
+      "hits": [
+        "fact:358",
+        "fact:423",
+        "fact:382",
+        "fact:436",
+        "fact:216",
+        "fact:348",
+        "fact:160",
+        "fact:162",
+        "fact:212",
+        "fact:389"
+      ]
+    },
+    {
+      "i": 57,
+      "id": "factconsolidation_sh_6k_no57",
+      "question": "Who is Elvis Presley married to?",
+      "gold": [
+        "Charles the Bold"
+      ],
+      "answer": "Charles the Bold",
+      "ok": true,
+      "hits": [
+        "fact:139",
+        "fact:273",
+        "fact:317",
+        "fact:138",
+        "fact:11",
+        "fact:452",
+        "fact:424",
+        "fact:335",
+        "fact:131",
+        "fact:233"
+      ]
+    },
+    {
+      "i": 58,
+      "id": "factconsolidation_sh_6k_no58",
+      "question": "Who performed Hermione Granger?",
+      "gold": [
+        "Kylie Minogue"
+      ],
+      "answer": "Kylie Minogue",
+      "ok": true,
+      "hits": [
+        "fact:425",
+        "fact:229",
+        "fact:285",
+        "fact:364",
+        "fact:96",
+        "fact:318",
+        "fact:181",
+        "fact:273",
+        "fact:354",
+        "fact:350"
+      ]
+    },
+    {
+      "i": 59,
+      "id": "factconsolidation_sh_6k_no59",
+      "question": "Which sport is Bo Ryan associated with?",
+      "gold": [
+        "association football"
+      ],
+      "answer": "association football",
+      "ok": true,
+      "hits": [
+        "fact:346",
+        "fact:340",
+        "fact:362",
+        "fact:446",
+        "fact:417",
+        "fact:437",
+        "fact:416",
+        "fact:213",
+        "fact:50",
+        "fact:252"
+      ]
+    },
+    {
+      "i": 60,
+      "id": "factconsolidation_sh_6k_no60",
+      "question": "What type of music does John McVie play?",
+      "gold": [
+        "rap rock"
+      ],
+      "answer": "rap rock",
+      "ok": true,
+      "hits": [
+        "fact:415",
+        "fact:355",
+        "fact:298",
+        "fact:83",
+        "fact:281",
+        "fact:452",
+        "fact:144",
+        "fact:162",
+        "fact:308",
+        "fact:110"
+      ]
+    },
+    {
+      "i": 61,
+      "id": "factconsolidation_sh_6k_no61",
+      "question": "What position does Rogério Ceni play?",
+      "gold": [
+        "flanker"
+      ],
+      "answer": "flanker",
+      "ok": true,
+      "hits": [
+        "fact:434",
+        "fact:269",
+        "fact:110",
+        "fact:334",
+        "fact:419",
+        "fact:227",
+        "fact:169",
+        "fact:36",
+        "fact:416",
+        "fact:310"
+      ]
+    },
+    {
+      "i": 62,
+      "id": "factconsolidation_sh_6k_no62",
+      "question": "Who is the chief executive officer of Twitter?",
+      "gold": [
+        "Bernard Arnault"
+      ],
+      "answer": "Bernard Arnault",
+      "ok": true,
+      "hits": [
+        "fact:275",
+        "fact:201",
+        "fact:188",
+        "fact:74",
+        "fact:393",
+        "fact:379",
+        "fact:408",
+        "fact:232",
+        "fact:428",
+        "fact:432"
+      ]
+    },
+    {
+      "i": 63,
+      "id": "factconsolidation_sh_6k_no63",
+      "question": "What language does Kylie Minogue speak?",
+      "gold": [
+        "German"
+      ],
+      "answer": "German",
+      "ok": true,
+      "hits": [
+        "fact:157",
+        "fact:425",
+        "fact:402",
+        "fact:44",
+        "fact:88",
+        "fact:439",
+        "fact:197",
+        "fact:151",
+        "fact:297",
+        "fact:336"
+      ]
+    },
+    {
+      "i": 64,
+      "id": "factconsolidation_sh_6k_no64",
+      "question": "Which sport is Darryl Strawberry associated with?",
+      "gold": [
+        "baseball"
+      ],
+      "answer": "baseball",
+      "ok": true,
+      "hits": [
+        "fact:213",
+        "fact:223",
+        "fact:303",
+        "fact:321",
+        "fact:376",
+        "fact:417",
+        "fact:346",
+        "fact:416",
+        "fact:362",
+        "fact:310"
+      ]
+    },
+    {
+      "i": 65,
+      "id": "factconsolidation_sh_6k_no65",
+      "question": "Which sport is placekicker associated with?",
+      "gold": [
+        "rugby"
+      ],
+      "answer": "rugby",
+      "ok": true,
+      "hits": [
+        "fact:321",
+        "fact:310",
+        "fact:419",
+        "fact:223",
+        "fact:219",
+        "fact:437",
+        "fact:362",
+        "fact:303",
+        "fact:405",
+        "fact:168"
+      ]
+    },
+    {
+      "i": 66,
+      "id": "factconsolidation_sh_6k_no66",
+      "question": "What kind of work does Stephen McNeil do?",
+      "gold": [
+        "journalist"
+      ],
+      "answer": "journalist",
+      "ok": true,
+      "hits": [
+        "fact:320",
+        "fact:445",
+        "fact:423",
+        "fact:77",
+        "fact:312",
+        "fact:72",
+        "fact:188",
+        "fact:178",
+        "fact:166",
+        "fact:368"
+      ]
+    },
+    {
+      "i": 67,
+      "id": "factconsolidation_sh_6k_no67",
+      "question": "Who is the employer of Dave Filoni?",
+      "gold": [
+        "British Broadcasting Corporation"
+      ],
+      "answer": "British Broadcasting Corporation",
+      "ok": true,
+      "hits": [
+        "fact:226",
+        "fact:140",
+        "fact:385",
+        "fact:445",
+        "fact:320",
+        "fact:276",
+        "fact:428",
+        "fact:232",
+        "fact:443",
+        "fact:188"
+      ]
+    },
+    {
+      "i": 68,
+      "id": "factconsolidation_sh_6k_no68",
+      "question": "Which continent is San Francisco located in?",
+      "gold": [
+        "North America"
+      ],
+      "answer": "North America",
+      "ok": true,
+      "hits": [
+        "fact:397",
+        "fact:178",
+        "fact:127",
+        "fact:442",
+        "fact:220",
+        "fact:440",
+        "fact:429",
+        "fact:234",
+        "fact:187",
+        "fact:113"
+      ]
+    },
+    {
+      "i": 69,
+      "id": "factconsolidation_sh_6k_no69",
+      "question": "Where was Canadair founded?",
+      "gold": [
+        "Tucson"
+      ],
+      "answer": "Tucson",
+      "ok": true,
+      "hits": [
+        "fact:265",
+        "fact:49",
+        "fact:264",
+        "fact:421",
+        "fact:230",
+        "fact:370",
+        "fact:193",
+        "fact:304",
+        "fact:48",
+        "fact:108"
+      ]
+    },
+    {
+      "i": 70,
+      "id": "factconsolidation_sh_6k_no70",
+      "question": "Which company is AP1000 produced by?",
+      "gold": [
+        "Canadair"
+      ],
+      "answer": "Canadair",
+      "ok": true,
+      "hits": [
+        "fact:356",
+        "fact:92",
+        "fact:400",
+        "fact:253",
+        "fact:404",
+        "fact:392",
+        "fact:230",
+        "fact:363",
+        "fact:277",
+        "type:product"
+      ]
+    },
+    {
+      "i": 71,
+      "id": "factconsolidation_sh_6k_no71",
+      "question": "What is the country of citizenship of Ayumi Hamasaki?",
+      "gold": [
+        "Japan"
+      ],
+      "answer": "Japan",
+      "ok": true,
+      "hits": [
+        "fact:293",
+        "fact:229",
+        "fact:250",
+        "fact:261",
+        "fact:165",
+        "fact:357",
+        "fact:313",
+        "fact:95",
+        "fact:217",
+        "fact:374"
+      ]
+    },
+    {
+      "i": 72,
+      "id": "factconsolidation_sh_6k_no72",
+      "question": "What position does Blair Walsh play?",
+      "gold": [
+        "placekicker"
+      ],
+      "answer": "placekicker",
+      "ok": true,
+      "hits": [
+        "fact:419",
+        "fact:334",
+        "fact:36",
+        "fact:269",
+        "fact:227",
+        "fact:169",
+        "fact:434",
+        "fact:110",
+        "fact:361",
+        "fact:351"
+      ]
+    },
+    {
+      "i": 73,
+      "id": "factconsolidation_sh_6k_no73",
+      "question": "Who is Tony Blair married to?",
+      "gold": [
+        "Alan Jay Lerner"
+      ],
+      "answer": "Alan Jay Lerner",
+      "ok": true,
+      "hits": [
+        "fact:424",
+        "fact:138",
+        "fact:8",
+        "fact:351",
+        "fact:84",
+        "fact:11",
+        "fact:233",
+        "fact:135",
+        "fact:422",
+        "fact:369"
+      ]
+    },
+    {
+      "i": 74,
+      "id": "factconsolidation_sh_6k_no74",
+      "question": "Who is the author of Endymion?",
+      "gold": [
+        "John Keats"
+      ],
+      "answer": "John Keats",
+      "ok": true,
+      "hits": [
+        "fact:180",
+        "fact:401",
+        "fact:305",
+        "fact:200",
+        "fact:301",
+        "fact:146",
+        "fact:77",
+        "fact:147",
+        "fact:430",
+        "fact:398"
+      ]
+    },
+    {
+      "i": 75,
+      "id": "factconsolidation_sh_6k_no75",
+      "question": "Who is the author of Lady Windermere's Fan?",
+      "gold": [
+        "Oscar Wilde"
+      ],
+      "answer": "Oscar Wilde",
+      "ok": true,
+      "hits": [
+        "fact:147",
+        "fact:305",
+        "fact:146",
+        "fact:180",
+        "fact:77",
+        "fact:344",
+        "fact:401",
+        "fact:398",
+        "fact:430",
+        "fact:420"
+      ]
+    },
+    {
+      "i": 76,
+      "id": "factconsolidation_sh_6k_no76",
+      "question": "What is the name of the current head of the Japan government?",
+      "gold": [
+        "Shinzō Abe"
+      ],
+      "answer": "Shinzō Abe",
+      "ok": true,
+      "hits": [
+        "fact:202",
+        "fact:432",
+        "fact:375",
+        "fact:351",
+        "fact:103",
+        "fact:454",
+        "fact:140",
+        "fact:249",
+        "fact:365",
+        "fact:293"
+      ]
+    },
+    {
+      "i": 77,
+      "id": "factconsolidation_sh_6k_no77",
+      "question": "Who is the chairperson of Congolese Party of Labour?",
+      "gold": [
+        "Stephen McNeil"
+      ],
+      "answer": "Stephen McNeil",
+      "ok": true,
+      "hits": [
+        "fact:445",
+        "fact:232",
+        "fact:351",
+        "fact:428",
+        "fact:276",
+        "fact:222",
+        "fact:217",
+        "fact:406",
+        "fact:262",
+        "fact:354"
+      ]
+    },
+    {
+      "i": 78,
+      "id": "factconsolidation_sh_6k_no78",
+      "question": "Which sport is flanker associated with?",
+      "gold": [
+        "rugby union"
+      ],
+      "answer": "rugby union",
+      "ok": true,
+      "hits": [
+        "fact:258",
+        "fact:219",
+        "fact:252",
+        "fact:23",
+        "fact:362",
+        "fact:437",
+        "fact:93",
+        "fact:416",
+        "fact:321",
+        "fact:279"
+      ]
+    },
+    {
+      "i": 79,
+      "id": "factconsolidation_sh_6k_no79",
+      "question": "What is the capital of Czech Republic?",
+      "gold": [
+        "Prague"
+      ],
+      "answer": "Prague",
+      "ok": true,
+      "hits": [
+        "fact:190",
+        "fact:299",
+        "fact:26",
+        "fact:198",
+        "fact:449",
+        "fact:209",
+        "fact:179",
+        "fact:255",
+        "fact:341",
+        "fact:171"
+      ]
+    },
+    {
+      "i": 80,
+      "id": "factconsolidation_sh_6k_no80",
+      "question": "What position does Lisa Leslie play?",
+      "gold": [
+        "goaltender"
+      ],
+      "answer": "goaltender",
+      "ok": true,
+      "hits": [
+        "fact:169",
+        "fact:419",
+        "fact:36",
+        "fact:434",
+        "fact:110",
+        "fact:269",
+        "fact:334",
+        "fact:227",
+        "fact:96",
+        "fact:266"
+      ]
+    },
+    {
+      "i": 81,
+      "id": "factconsolidation_sh_6k_no81",
+      "question": "What is the name of the current head of state in Soviet Union?",
+      "gold": [
+        "Elizabeth II"
+      ],
+      "answer": "Elizabeth II",
+      "ok": true,
+      "hits": [
+        "fact:365",
+        "fact:126",
+        "fact:179",
+        "fact:432",
+        "fact:249",
+        "fact:348",
+        "fact:202",
+        "fact:140",
+        "fact:353",
+        "fact:351"
+      ]
+    },
+    {
+      "i": 82,
+      "id": "factconsolidation_sh_6k_no82",
+      "question": "What is the country of citizenship of Ferdinand von Richthofen?",
+      "gold": [
+        "Canada"
+      ],
+      "answer": "Canada",
+      "ok": true,
+      "hits": [
+        "fact:386",
+        "fact:250",
+        "fact:165",
+        "fact:73",
+        "fact:319",
+        "fact:436",
+        "fact:322",
+        "fact:371",
+        "fact:353",
+        "fact:102"
+      ]
+    },
+    {
+      "i": 83,
+      "id": "factconsolidation_sh_6k_no83",
+      "question": "Which religion is Karen Armstrong affiliated with?",
+      "gold": [
+        "Church of Scotland"
+      ],
+      "answer": "Catholic Church",
+      "ok": false,
+      "hits": [
+        "fact:266",
+        "fact:412",
+        "fact:374",
+        "fact:361",
+        "fact:410",
+        "fact:119",
+        "fact:339",
+        "fact:94",
+        "fact:260",
+        "fact:263"
+      ]
+    },
+    {
+      "i": 84,
+      "id": "factconsolidation_sh_6k_no84",
+      "question": "Who was Vito Corleone created by?",
+      "gold": [
+        "Nobuhiro Watsuki"
+      ],
+      "answer": "Nobuhiro Watsuki",
+      "ok": true,
+      "hits": [
+        "fact:390",
+        "fact:358",
+        "fact:389",
+        "fact:112",
+        "fact:326",
+        "fact:102",
+        "fact:353",
+        "fact:95",
+        "fact:348",
+        "fact:193"
+      ]
+    },
+    {
+      "i": 85,
+      "id": "factconsolidation_sh_6k_no85",
+      "question": "What is the capital of Romania?",
+      "gold": [
+        "Rajanpur"
+      ],
+      "answer": "Rajanpur",
+      "ok": true,
+      "hits": [
+        "fact:449",
+        "fact:198",
+        "fact:190",
+        "fact:26",
+        "fact:179",
+        "fact:255",
+        "fact:171",
+        "fact:341",
+        "fact:247",
+        "fact:250"
+      ]
+    },
+    {
+      "i": 86,
+      "id": "factconsolidation_sh_6k_no86",
+      "question": "Which continent is India located in?",
+      "gold": [
+        "Africa"
+      ],
+      "answer": "Africa",
+      "ok": true,
+      "hits": [
+        "fact:280",
+        "fact:187",
+        "fact:220",
+        "fact:440",
+        "fact:234",
+        "fact:435",
+        "fact:211",
+        "fact:127",
+        "fact:442",
+        "fact:105"
+      ]
+    },
+    {
+      "i": 87,
+      "id": "factconsolidation_sh_6k_no87",
+      "question": "Which city did Olga of Kiev die in?",
+      "gold": [
+        "Rodez"
+      ],
+      "answer": "Rodez",
+      "ok": true,
+      "hits": [
+        "fact:450",
+        "fact:175",
+        "fact:302",
+        "fact:292",
+        "fact:451",
+        "fact:53",
+        "fact:142",
+        "fact:300",
+        "fact:51",
+        "fact:170"
+      ]
+    },
+    {
+      "i": 88,
+      "id": "factconsolidation_sh_6k_no88",
+      "question": "Who founded Sasanian Empire?",
+      "gold": [
+        "Walter Chrysler"
+      ],
+      "answer": "Walter Chrysler",
+      "ok": true,
+      "hits": [
+        "fact:264",
+        "fact:49",
+        "fact:265",
+        "fact:304",
+        "fact:193",
+        "fact:230",
+        "fact:403",
+        "fact:48",
+        "fact:108",
+        "fact:287"
+      ]
+    },
+    {
+      "i": 89,
+      "id": "factconsolidation_sh_6k_no89",
+      "question": "Which city did Pedro Pierluisi work in?",
+      "gold": [
+        "Washington, D.C."
+      ],
+      "answer": "Washington, D.C.",
+      "ok": true,
+      "hits": [
+        "fact:5",
+        "fact:276",
+        "fact:307",
+        "fact:406",
+        "fact:143",
+        "fact:265",
+        "fact:316",
+        "fact:395",
+        "fact:166",
+        "fact:178"
+      ]
+    },
+    {
+      "i": 90,
+      "id": "factconsolidation_sh_6k_no90",
+      "question": "Which sport is Surrey Senior Cup associated with?",
+      "gold": [
+        "basketball"
+      ],
+      "answer": "basketball",
+      "ok": true,
+      "hits": [
+        "fact:315",
+        "fact:279",
+        "fact:417",
+        "fact:93",
+        "fact:437",
+        "fact:219",
+        "fact:23",
+        "fact:303",
+        "fact:149",
+        "fact:446"
+      ]
+    },
+    {
+      "i": 91,
+      "id": "factconsolidation_sh_6k_no91",
+      "question": "What is the country of citizenship of Narendra Modi?",
+      "gold": [
+        "Australia"
+      ],
+      "answer": "Australia",
+      "ok": true,
+      "hits": [
+        "fact:217",
+        "fact:428",
+        "fact:354",
+        "fact:250",
+        "fact:165",
+        "fact:225",
+        "fact:358",
+        "fact:293",
+        "fact:95",
+        "fact:239"
+      ]
+    },
+    {
+      "i": 92,
+      "id": "factconsolidation_sh_6k_no92",
+      "question": "Who is Victoria Beckham married to?",
+      "gold": [
+        "David Beckham"
+      ],
+      "answer": "David Beckham",
+      "ok": true,
+      "hits": [
+        "fact:8",
+        "fact:135",
+        "fact:414",
+        "fact:84",
+        "fact:424",
+        "fact:303",
+        "fact:233",
+        "fact:335",
+        "fact:138",
+        "fact:11"
+      ]
+    },
+    {
+      "i": 93,
+      "id": "factconsolidation_sh_6k_no93",
+      "question": "What is the country of citizenship of Charles Messier?",
+      "gold": [
+        "Iran"
+      ],
+      "answer": "Iran",
+      "ok": true,
+      "hits": [
+        "fact:343",
+        "fact:371",
+        "fact:250",
+        "fact:358",
+        "fact:165",
+        "fact:386",
+        "fact:87",
+        "fact:427",
+        "fact:319",
+        "fact:131"
+      ]
+    },
+    {
+      "i": 94,
+      "id": "factconsolidation_sh_6k_no94",
+      "question": "Who was Rand al'Thor created by?",
+      "gold": [
+        "Ferdowsi"
+      ],
+      "answer": "Ferdowsi",
+      "ok": true,
+      "hits": [
+        "fact:326",
+        "fact:345",
+        "fact:390",
+        "fact:150",
+        "fact:401",
+        "fact:359",
+        "fact:186",
+        "fact:403",
+        "fact:48",
+        "fact:146"
+      ]
+    },
+    {
+      "i": 95,
+      "id": "factconsolidation_sh_6k_no95",
+      "question": "What position does Mike D'Antoni play?",
+      "gold": [
+        "point guard"
+      ],
+      "answer": "point guard",
+      "ok": true,
+      "hits": [
+        "fact:110",
+        "fact:269",
+        "fact:227",
+        "fact:434",
+        "fact:419",
+        "fact:334",
+        "fact:36",
+        "fact:169",
+        "fact:223",
+        "fact:427"
+      ]
+    },
+    {
+      "i": 96,
+      "id": "factconsolidation_sh_6k_no96",
+      "question": "What is the country of citizenship of Colin Irwin?",
+      "gold": [
+        "Israel"
+      ],
+      "answer": "Israel",
+      "ok": true,
+      "hits": [
+        "fact:441",
+        "fact:250",
+        "fact:165",
+        "fact:217",
+        "fact:311",
+        "fact:225",
+        "fact:386",
+        "fact:406",
+        "fact:444",
+        "fact:358"
+      ]
+    },
+    {
+      "i": 97,
+      "id": "factconsolidation_sh_6k_no97",
+      "question": "Who is Walter Chrysler's child?",
+      "gold": [
+        "Charles Frederick, Duke of Holstein-Gottorp"
+      ],
+      "answer": "Walter Percy Chrysler Jr.",
+      "ok": false,
+      "hits": [
+        "fact:61",
+        "fact:231",
+        "fact:264",
+        "fact:332",
+        "fact:433",
+        "fact:311",
+        "fact:411",
+        "fact:379",
+        "fact:316",
+        "fact:22"
+      ]
+    },
+    {
+      "i": 98,
+      "id": "factconsolidation_sh_6k_no98",
+      "question": "Who is Charles Darwin married to?",
+      "gold": [
+        "Amala Paul"
+      ],
+      "answer": "Amala Paul",
+      "ok": true,
+      "hits": [
+        "fact:335",
+        "fact:146",
+        "fact:131",
+        "fact:139",
+        "fact:8",
+        "fact:135",
+        "fact:424",
+        "fact:138",
+        "fact:452",
+        "fact:420"
+      ]
+    },
+    {
+      "i": 99,
+      "id": "factconsolidation_sh_6k_no99",
+      "question": "What position does Irving Fryar play?",
+      "gold": [
+        "wide receiver"
+      ],
+      "answer": "wide receiver",
+      "ok": true,
+      "hits": [
+        "fact:227",
+        "fact:419",
+        "fact:110",
+        "fact:434",
+        "fact:334",
+        "fact:269",
+        "fact:36",
+        "fact:169",
+        "fact:298",
+        "fact:321"
+      ]
+    }
+  ],
+  "meta": {
+    "facts": 455,
+    "pairs": 141,
+    "superseded": 140,
+    "judged": 141
+  },
+  "report": {
+    "title": "MemoryAgentBench — conflict resolution, factconsolidation_sh_6k",
+    "source": "github.com/HUST-AI-HYZ/MemoryAgentBench (ICLR 2026, MIT); huggingface.co/datasets/ai-hyz/MemoryAgentBench; arxiv.org/abs/2507.05257",
+    "published": "Table 3 (GPT-4o-mini backbone; main) and Table 10 (per context length); accuracy = substring exact match",
+    "judge": "none for the score (substring exact match); the judge adjudicates supersession at write time",
+    "rows": [
+      {
+        "name": "FactConsolidation SH accuracy (6k)",
+        "ours": 92,
+        "n": 100,
+        "theirs": {
+          "Mem0 (Table 3)": 18,
+          "Letta (MemGPT) (Table 3)": 28,
+          "Cognee (Table 3)": 28,
+          "GPT-4o-mini (128K, no memory) (Table 3)": 45,
+          "BM25 (Table 3)": 48
+        },
+        "note": "the 6k tier has no published row; the 32k numbers are the nearest"
+      }
+    ],
+    "notes": [
+      "adjudication: 141 candidate pairs sharing a subject, 141 judged, 140 facts superseded at write time",
+      "retrieval: the app's search, 10 hits with the currency filter on; reader claude-haiku-4-5-20251001, ten questions per call",
+      "wye_adapter.py runs the same adapter inside their harness (methods/); the numbers here come from the standalone runner"
+    ]
+  },
+  "previousFile": null,
+  "gate": {
+    "passed": true,
+    "baseline": "public benchmarks are not gated",
+    "drops": []
+  }
+}

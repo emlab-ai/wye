@@ -358,7 +358,7 @@ a view. Ids never change.
   status: proposed
   by: alex
   evidence: [session:d4d72bd04a]
-  affects: [module:app-agents, module:app-knowledge, module:bugs, module:v2-plans]
+  affects: [module:app-agents, module:app-knowledge, module:bugs, module:v2-prs]
 ```
 
   verdict:4f0788d0dce8 refines decision:waterfall.rename-scope — B adds specificity to A's rename decision by detailing that definition page titles must say Wye (not Waterfall v2) while maintaining A's constraint to keep the product slug unchanged. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:waterfall.rename-scope decision:wf2.definition-leftovers)

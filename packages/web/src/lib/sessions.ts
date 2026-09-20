@@ -19,12 +19,17 @@ export async function listSessions(productDir: string): Promise<Session[]> {
   let names: string[] = [];
   try { names = (await readdir(dir(productDir))).filter(n => n.endsWith('.json') && !n.startsWith('_')); } catch { return []; }
   const out: Session[] = [];
-  for (const n of names) { try { out.push(JSON.parse(await readFile(path.join(dir(productDir), n), 'utf8'))); } catch { /* skip broken */ } }
+  for (const n of names) { try { out.push(upgrade(JSON.parse(await readFile(path.join(dir(productDir), n), 'utf8')))); } catch { /* skip broken */ } }
   return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 export async function getSession(productDir: string, id: string): Promise<Session | null> {
   if (!ID.test(id)) return null;
-  try { return JSON.parse(await readFile(file(productDir, id), 'utf8')); } catch { return null; }
+  try { return upgrade(JSON.parse(await readFile(file(productDir, id), 'utf8'))); } catch { return null; }
+}
+// a record from before Prompt Requests named its page `planDoc`: read as prDoc, the slug as the migration renamed it
+function upgrade(s: Session): Session {
+  if (!s.prDoc && s.planDoc) { const [p, j, slug] = s.planDoc.split('/'); s.prDoc = [p, j, (slug ?? '').replace(/^plan-/, 'pr-')].join('/'); }
+  return s;
 }
 // `images` (name + data URL, as pasted into the command box) become the session's files (store:session-files) and
 // are listed on the session by file name; they go to the agent with the first message.
