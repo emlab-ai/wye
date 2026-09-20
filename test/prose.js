@@ -82,3 +82,16 @@ console.log('ok — prose nodes: ' + g.stats().nodes + ' nodes');
   assert(g.edges.some(e => e.from === 'task:t1' && e.to === 'module:b' && e.verb === 'produced'), 'produced edge');
   console.log('ok prose: html comment ends a prose node');
 }
+
+// trailing props: a comma inside [] separates list items, not keys — an id like rule:x is not a key
+{
+  const fs = require('fs'), os = require('os'), path = require('path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wf-prose-'));
+  fs.writeFileSync(path.join(dir, 'a.md'), '---\nnode: module:a\ntitle: A\n---\n\n- req:r1 The thing happens #shipped (refines: [req:r0], related-to: [req:r2, rule:live-refresh], owner: alex)\n');
+  const { parseFiles } = require('../lib/parse');
+  const g = parseFiles([path.join(dir, 'a.md')], dir);
+  const r = g.nodes.find(n => n.id === 'req:r1');
+  assert(r && /^related-to: \[req:r2, rule:live-refresh\]$/m.test(r.body) && /^owner: alex$/m.test(r.body), 'list prop kept whole: ' + (r && r.body));
+  assert(g.edges.some(e => e.from === 'req:r1' && e.to === 'rule:live-refresh' && e.verb === 'related-to'), 'second list item is an edge');
+  console.log('ok prose: an id list in trailing props keeps its commas');
+}

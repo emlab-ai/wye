@@ -228,13 +228,14 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   statement: >
     A paragraph or list item whose first token is an id defines that node (`req:<slug> When a sale …`); the text
     after the id is its `text` (title = first sentence), `#status` sets status, a trailing `(key: value, …)` group
-    carries other keys. Links `[phrase](kind:slug)` and bare ids in the text become edges whose verb is inferred
+    carries other keys — a comma inside a `[…]` list separates items, never keys, so `related-to: [<id>, <id>]`
+    is one value (lesson:wf2.prose-props-id-list). Links `[phrase](kind:slug)` and bare ids in the text become edges whose verb is inferred
     from the words before the id ("satisfied by", "verified by", "refines", "part of", …) and is related-to
     otherwise. Short aliases (et:, rq:, rl:, pg:, st:, dc:, qn:) expand to full kinds. A link in plain prose
     relates the document to its target. Yaml blocks keep defining nodes exactly as before.
-  source: lib/parse.js#proseRefs; lib/parse.js#inferVerb; schema/kinds.yaml
+  source: lib/parse.js#proseRefs; lib/parse.js#inferVerb; schema/kinds.yaml; packages/web/src/lib/props.ts#EXTRA_SPLIT
   status: unverified
-  verified-by: [test:prose]
+  verified-by: [test:prose, test:web-lib#props]
 - id: rule:single-page-editor
   statement: >
     A document is one editor. Prose blocks, headings, lists, tables, code and dividers are ordinary blocks; every
@@ -315,6 +316,25 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     references and moves a person off a removed page to its parent.
   source: packages/web/src/components/DocTree.tsx#Row; packages/web/src/app/api/[product]/docs/duplicate/route.ts; packages/web/src/app/api/[product]/docs/delete/route.ts; packages/web/src/lib/doc-ops.ts
   status: shipped
+- id: rule:doc-gone-in-place
+  statement: >
+    A document page whose file is not on disk — deleted outside the app while open, or never there — renders a
+    "Page not found" notice as its content, not a 404 boundary: the layout around it (URL, top bar, rail, tabs)
+    stays, the tab and the crumb keep the title they had (the crumb falls back to the slug when there was no tab),
+    and the next live refresh (rule:live-refresh: the watcher's rebuild after the file is written again) renders the
+    page back into the editor with no reload. The editor leaving the page clears its pending save.
+  source: packages/web/src/app/[product]/[project]/d/[doc]/page.tsx; packages/web/src/components/DocNotFound.tsx; packages/web/src/components/TopBar.tsx#usePageTabs; packages/web/src/components/DocEditor.tsx
+  status: shipped
+  verified-by: [ui-test:document-not-found]
+- id: rule:doc-write-gone
+  statement: >
+    A write to a document (op:doc.update, every op) whose file is no longer on disk is refused with 404 not_found —
+    the graph may still list the document for the 400 ms before the watcher rebuilds — so a pending save never
+    recreates a file that was deleted outside the app (decision:wf2.deleted-outside-drops-edits,
+    constraint:wf2.text-canonical).
+  source: packages/web/src/app/api/[product]/[project]/doc/[slug]/route.ts#PUT
+  status: shipped
+  verified-by: [ui-test:document-not-found]
 - id: rule:block-links
   statement: >
     Every block has a stable link: `<web>/<product>/<project>/d/<doc>#<anchor>` where the anchor is `n-<id>` for a
@@ -567,6 +587,17 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   consequences: First query after a cold start pays ~5 s to load the model; quality is adequate for short technical text, and a larger local model can be swapped in by changing one constant.
   status: approved
   date: 2026-09-16
+- id: lesson:wf2.prose-props-id-list
+  statement: >
+    `wf node set <id> --set "related-to=[<id>, <id>]"` on a prose line wrote the list, but the parser split the
+    trailing group at every ", word:" — the second id, `kind:slug]`, looked like a key — so the node lost its second
+    edge and carried a stray property named after the kind (seen on req:document-opened-in-the, 2026-09-20). The splitters in lib/parse.js and
+    packages/web/src/lib/props.ts now skip commas inside `[…]`; tests cover an id list in both.
+  about: [rule:prose-nodes, lib:props]
+  status: proposed
+  by: agent:claude-code
+  evidence: [session:baa6dff786]
+  date: 2026-09-20
 ```
 
 <!-- /list:decision -->
@@ -576,6 +607,15 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 <!-- list:lib -->
 
 ```yaml
+- id: lib:link-all
+  file: packages/web/src/lib/link-all.ts
+  side: shared
+  purpose: >
+    Pure: `linkAll(md, phrase, id)` turns every plain whole-word occurrence of a phrase into a link to the node —
+    outside frontmatter, fences, comments, code spans, existing links, urls, ids and dotted names; inside a yaml card
+    only the text-bearing values and their folded continuation lines — and `countPlain` counts without changing.
+    Tested by test:web-lib#link-all. Behind op:api.link-all (req:wf2.editor.entity-from-text).
+  part-of: module:app-documents
 - id: lib:import
   file: packages/web/src/lib/import.ts
   side: shared
@@ -607,15 +647,6 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     Turns every kind:slug token in text and inline code into a link with href \"#tag:<id>\"; Document.tsx renders those links as SmartTag components. Text already inside a link is left alone.
   part-of: module:app-documents
 - id: lib:anchors
-- id: lib:link-all
-  file: packages/web/src/lib/link-all.ts
-  side: shared
-  purpose: >
-    Pure: `linkAll(md, phrase, id)` turns every plain whole-word occurrence of a phrase into a link to the node —
-    outside frontmatter, fences, comments, code spans, existing links, urls, ids and dotted names; inside a yaml card
-    only the text-bearing values and their folded continuation lines — and `countPlain` counts without changing.
-    Tested by test:web-lib#link-all. Behind op:api.link-all (req:wf2.editor.entity-from-text).
-  part-of: module:app-documents
   file: packages/web/src/lib/anchors.ts
   side: shared
   purpose: >
@@ -698,3 +729,87 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```
 
 <!-- /list:lib -->
+
+```yaml
+- id: decision:wf2.deleted-outside-stays-put
+  title: A document deleted outside the app keeps its place; only the content becomes "not found"
+  context: >
+    rule:tree-menu decides what happens when a person deletes a document from inside the app (they land on the
+    parent). Nothing decided what the open editor does when the file disappears from disk by other means — a shell
+    command, a git checkout, an agent rewriting the folder — which rule:live-refresh only reports to the rail.
+  choice: >
+    The person is not moved. The URL, the top bar and the rail stay as they were and the content area alone shows a
+    "page not found" notice. When the watcher sees the file again the document replaces the notice by itself, the way
+    any other change reaches the page under rule:live-refresh.
+  alternatives: >
+    Move the person to the parent as the in-app Delete does — rejected: an outside deletion is often transient (a
+    checkout, a rebase, an agent mid-rewrite) and bouncing the person loses where they were. Keep the deleted row
+    visible in the Documents tree, marked missing — rejected for now: the tree follows the files, and a phantom row
+    would be the one place the rail disagrees with disk.
+  consequences: >
+    The document page needs a not-found state that keeps the shell around it, and the live-refresh path must turn a
+    removed document into that state and a reappearing one back into the editor without a reload.
+  affects: [req:document-opened-in-the, rule:live-refresh, component:live-document]
+  by: person
+  evidence: [session:a148426dd0]
+  status: proposed
+```
+
+  verdict:00e01bdd5df2 refines rule:live-refresh — B applies the live-refresh mechanism described in A to the specific case of externally deleted documents reappearing. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: rule:live-refresh decision:wf2.deleted-outside-stays-put)
+
+  verdict:f6d9d75af886 duplicate req:document-opened-in-the — A and B express the same behavior: person stays put, content shows 'not found', document replaces notice when file returns, stated at different formality levels. (kind: duplicate, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:document-opened-in-the decision:wf2.deleted-outside-stays-put)
+
+  contradiction:waterfall.f6d9d75af886 decision:wf2.deleted-outside-stays-put duplicates req:document-opened-in-the — A and B express the same behavior: person stays put, content shows 'not found', document replaces notice when file returns, stated at different formality levels. #open (between: decision:wf2.deleted-outside-stays-put req:document-opened-in-the, conflict: static, reason: A and B express the same behavior: person stays put  content shows 'not found'  document replaces notice when file returns  stated at different formality levels.)
+
+  verdict:152ee458ed63 refines decision:wf2.deleted-outside-drops-edits — A refines B by specifying the sub-case: unsaved edits are dropped when a file is deleted externally, narrowing B's main decision. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:wf2.deleted-outside-drops-edits decision:wf2.deleted-outside-stays-put)
+
+```yaml
+- id: decision:wf2.deleted-outside-drops-edits
+  title: Unsaved edits do not bring a deleted file back
+  context: >
+    A document open in the editor may have a save pending (rule:live-refresh holds off reloads while one is) at the
+    moment its file is removed from disk. Either the pending save recreates the file, or the deletion wins.
+  choice: >
+    The deletion wins. The "page not found" notice shows regardless of pending edits and those edits are dropped; a
+    pending save never recreates a file that was deleted outside the app.
+  alternatives: >
+    Let the next save recreate the file — rejected: the file is canonical (constraint:wf2.text-canonical) and a
+    save racing a checkout would resurrect a page the person or git just removed. Keep the last editor content and
+    offer a "restore this page" action on the notice — rejected for now as more than the case warrants; it can be
+    added later without changing this decision.
+  consequences: >
+    A person can lose a few seconds of typing when a file vanishes under them; the notice is honest about it.
+  affects: [req:document-opened-in-the, decision:wf2.deleted-outside-stays-put]
+  by: person
+  evidence: [session:a148426dd0]
+  status: proposed
+- id: decision:wf2.not-found-rendered-not-thrown
+  title: A missing document is rendered as a notice by the page, not thrown as a 404 boundary
+  context: >
+    decision:wf2.deleted-outside-stays-put needs the document to come back by itself when the file reappears. The
+    page used to call Next's notFound(): without a segment not-found file the default 404 replaced the whole layout
+    (rail, top bar and LiveRefresh gone, so nothing could bring the page back — seen in the browser on 2026-09-20);
+    with a segment not-found file the layout would stay, but Next's not-found boundary only resets when the
+    pathname changes, so a router.refresh() after the file returned would keep showing the notice.
+  choice: >
+    The page renders component:doc-not-found as ordinary content when the document is not in the graph or its file
+    cannot be read; router.refresh() from LiveRefresh then re-renders it into the editor as any other change.
+  alternatives: >
+    A not-found.tsx under d/[doc] with a client component that navigates to the same path on a change event —
+    rejected: same-path navigation does not reset the boundary either, and it would be a workaround for a boundary
+    we do not need. Keeping notFound() and reloading the window from the notice — rejected: req:document-opened-in-the
+    says without a reload.
+  consequences: >
+    A URL for a document that never existed answers 200 with the same notice instead of a 404 status; for a local
+    app that is acceptable. The project-level notFound() (unknown project) is unchanged.
+  affects: [req:document-opened-in-the, decision:wf2.deleted-outside-stays-put, rule:doc-gone-in-place]
+  by: agent:claude-code
+  evidence: [session:baa6dff786]
+  status: proposed
+```
+
+  verdict:65cf07c2a789 refines constraint:wf2.text-canonical — B applies A's canonical-file principle to the deletion scenario: because files are canonical, a pending save cannot recreate a deleted file. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: constraint:wf2.text-canonical decision:wf2.deleted-outside-drops-edits)
+
+  verdict:7fcc365c1e3f refines req:document-opened-in-the — A specifies the full behavior including the unless-clause for unsaved edits; B narrows focus to and details that specific scenario. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:document-opened-in-the decision:wf2.deleted-outside-drops-edits)
+
+  verdict:1b2ca7b6731e refines decision:wf2.deleted-outside-stays-put — A describes UI state preservation during deletion; B details the edge case of unsaved edits and articulates the principle that deletion takes precedence. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:wf2.deleted-outside-stays-put decision:wf2.deleted-outside-drops-edits)

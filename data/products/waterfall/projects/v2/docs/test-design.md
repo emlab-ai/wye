@@ -419,6 +419,19 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
     — two view blocks with those rows and filters; click a chip in the bug view — the line on disk becomes
     `<!-- view:bug status=done -->`; switch the header picker — the line names the new type with no query
     (2026-09-17, session 53f99bfd98)
+- id: ui-test:document-not-found
+  file: (run by hand with playwright-core against a dev server on a scratch copy — /tmp/wfpw/notfound.mjs; not in CI yet — task:ui-tests-in-ci)
+  scenario: >
+    open a document in the editor, type a few characters, delete its file on disk outside the app: within ~2 s the
+    content area alone shows "Page not found" — URL unchanged, rail and top bar in place, the page tab still titled
+    with the document's title; the typed text's save is refused with 404 and the file is not recreated. Write the
+    file back: within ~2 s the editor is back with the document's original text, no reload.
+  covers: [req:document-opened-in-the, rule:doc-gone-in-place, rule:doc-write-gone]
+  status: passed
+  result: >
+    run by hand with playwright-core (Chrome, headless) on 2026-09-20 against a second dev server (port 3457) on a
+    scratch copy of the repo with a scratch product, the main server being down with a stale SSR chunk: every step as
+    written (before the change the default Next 404 replaced the whole layout and nothing came back).
 - id: ui-test:session-changes
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >

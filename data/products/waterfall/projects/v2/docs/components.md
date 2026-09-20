@@ -168,6 +168,14 @@ The editor's blocks and the components the pages are made of, by area.
   purpose: >
     Shows the server-rendered reader until the client is ready, then the single-page editor takes over.
   part-of: module:components
+- id: component:doc-not-found
+  file: packages/web/src/components/DocNotFound.tsx
+  side: server
+  purpose: >
+    The content of a document page whose file is not on disk: the shell around it stays and only this notice takes
+    the document's place; LiveRefresh renders the page back into the editor when the file returns
+    (rule:doc-gone-in-place).
+  part-of: module:components
 - id: component:doc-props
   file: packages/web/src/components/DocProps.tsx
   side: client
