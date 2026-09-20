@@ -14,8 +14,8 @@ const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/
 // Review what agents wrote into the documents: approve, reject or resolve in place; open the node or its document.
 // Each card is laid out for the decision (rule:review-readable): the title; one description that is enough to
 // understand the block — a requirement as its behaviour, a decision as its choice, a question as its question; the
-// open conflicts that need a choice; where it is and how it was checked, muted; everything else (the other fields,
-// the refs, consistent verdicts) under "details".
+// open conflicts that need a choice; everything else (id, where, session, how it was checked, the other fields, the
+// refs, consistent verdicts) under "details".
 export function ReviewList({ product, items }: { product: string; items: ReviewItem[] }) {
   const { open, openId } = usePeek(); const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -71,20 +71,18 @@ export function ReviewList({ product, items }: { product: string; items: ReviewI
                   // description is the title — said once, in full
                   const t = plain(it.title); const clipped = t.length >= 50 && d.description.startsWith(t.replace(/[…. ]+$/, '').slice(0, 50));
                   return <>
-                    <div className="review-head" onClick={() => open(it.id)}>
+                    <div className={`review-head ${clipped ? 'long' : ''}`} onClick={() => open(it.id)}>
                       <KindPill kind={it.kind} /><span className="review-title">{clipped ? d.description.slice(0, 400) : t}</span><StatusPill status={it.status} />
                     </div>
                     {!clipped && d.description && d.description !== t && <p className="review-text">{d.description.slice(0, 700)}</p>}
                     {v.open.map((x, i) => <p key={i} className={`verdict v-${x.kind} open`}><b>{x.kind}</b> <SmartTag id={x.other} />{x.conflict && <small className="muted"> {x.conflict}</small>} <span>{plain(x.reason)}</span></p>)}
-                    <p className="review-meta muted">{it.project} / {it.doc}{it.session ? ` · session ${it.session.slice(0, 6)}` : ''}{v.line ? ` · ${v.line}` : ''}</p>
-                    {(d.secondary.length > 0 || it.refs.length > 0 || rest.length > 0) && (
-                      <details className="review-more">
-                        <summary>details</summary>
-                        <p className="inbox-field"><b>id</b> <SmartTag id={it.id} /></p>
+                    <details className="review-more">
+                      <summary>details</summary>
+                      <p className="inbox-field"><b>id</b> <SmartTag id={it.id} /> <span className="muted">in {it.project} / {it.doc}{it.session ? ` · session ${it.session.slice(0, 6)}` : ''}{v.line ? ` · ${v.line}` : ''}</span></p>
                         {d.secondary.map(([k, val]) => <p key={k} className="inbox-field"><b>{k}</b> {val.slice(0, 600)}</p>)}
                         {it.refs.length > 0 && <div className="tags">{it.refs.map(r => <SmartTag key={r} id={r} />)}</div>}
                         {rest.map((x, i) => <p key={i} className={`verdict v-${x.kind}`}><b>{x.kind}</b> <SmartTag id={x.other} /> <span>{plain(x.reason)}</span>{x.contradiction && !x.open && <small className="muted"> · resolved</small>}</p>)}
-                      </details>)}
+                    </details>
                   </>;
                 })()}
                 {choosing === it.id && (

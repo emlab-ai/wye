@@ -113,10 +113,10 @@ enforces.
     question as its question, the rest as their statement — or, for a change, what changed as status pills, a
     property old → new, a text as a word diff; then only what asks for a decision: open contradicts / duplicate
     verdicts with their reason, and the impact in one line (opened when an update, rework, contradiction or
-    question waits; folded when everything reached is unaffected or still pending); who, when, where and "checked
-    against n neighbours · consistent" in one muted line. Everything else — the id, the unchanged frame, the other
-    fields (context, alternatives, consequences, source, evidence), refs, consistent and refines verdicts, the
-    reached-not-judged list — is under a "details" fold. lib:review-summary decides these (pure, tested).
+    question waits; folded when everything reached is unaffected or still pending). Nothing else on the surface:
+    who, when, where, the id, "checked against n neighbours · consistent", the unchanged frame, the other fields
+    (context, alternatives, consequences, source, evidence), refs, consistent and refines verdicts and the
+    reached-not-judged list are under a "details" fold. lib:review-summary decides these (pure, tested).
   source: packages/web/src/lib/review-summary.ts; packages/web/src/components/ChangeList.tsx; packages/web/src/components/ReviewList.tsx; packages/web/src/components/ImpactCard.tsx
   status: shipped
   verified-by: [test:web-lib#review-summary]

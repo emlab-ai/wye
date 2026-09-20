@@ -319,8 +319,8 @@ computed and no review.
   then: >
     the card reads as a title, one description enough to understand it (a requirement as its behaviour, a decision
     as its choice, a change as what changed with old and new), the open conflicts and the impact that asks for action,
-    and who / when / where in one muted line; ids, unchanged fields, other properties, refs, consistent verdicts and
-    the reached-not-judged list are under a details fold
+    and nothing else; who, when, where, ids, unchanged fields, other properties, refs, consistent verdicts and the
+    reached-not-judged list are under a details fold
   unless: a candidate or verdict asks for action, in which case it is on the surface with its reason
   status: shipped
   refines: req:exec.change-review

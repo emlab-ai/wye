@@ -23,8 +23,8 @@ const when = (iso: string) => new Date(iso).toLocaleString(undefined, { day: 'nu
 // Changes in the Inbox (component:change-card, req:exec.change-kept, req:exec.change-review), laid out for a
 // person's decision (rule:review-readable): the title, then what changed — status as pills, a property as old → new,
 // a text as a word diff — then only what asks for a decision: open conflicts on the new value and the impact's one
-// line (opened when something needs action). Who and when in one muted line; the id, the unchanged frame, every
-// other verdict and the full impact set under "details". A record whose node moved on since says so before Accept.
+// line (opened when something needs action). Who, when, the id, the unchanged frame, every other verdict and the
+// full impact set are under "details" — nothing on the surface that is not part of the decision. A record whose node moved on since says so before Accept.
 export function ChangeList({ product, changes, me }: { product: string; changes: ChangeView[]; me?: string }) {
   const { open } = usePeek(); const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -47,17 +47,20 @@ export function ChangeList({ product, changes, me }: { product: string; changes:
           const imp = impactSummary(c.impact);
           const segs = changeSegments(c);
           const title = c.after.title && c.after.title !== c.node ? c.after.title : c.node;
+          // a prose node's title is its clipped first sentence: when the text is what changed, the diff is the title
+          const clipped = c.changed.includes('text') && title.length >= 50 && c.after.text.replace(/\s+/g, ' ').startsWith(title.replace(/[…. ]+$/, '').slice(0, 50));
           const frame = [`status ${c.after.status || '—'}`, ...FRAME.filter(k => !c.changed.includes(k) && c.after.props[k]).map(k => `${k}: ${c.after.props[k].slice(0, 120)}`)];
           return (
             <li key={c.id} className={`change-item ${c.stale ? 'stale' : ''}`}>
-              <div className="review-head" onClick={() => open(c.node)}>
+              <div className={`review-head ${clipped ? 'long' : ''}`} onClick={() => open(c.node)}>
                 <KindPill kind={c.kind} />
-                <span className="review-title">{title}</span>
+                {!clipped && <span className="review-title">{title}</span>}
+                {clipped && <span className="review-title"><DiffText a={c.before.text} b={c.after.text} /></span>}
                 {c.stale && <span className="pill s at-risk" title="the node was edited again after this record — look again before you accept">changed since</span>}
                 {!c.exists && <span className="pill s blocked">node gone</span>}
               </div>
               <dl className="change-diff">
-                {segs.map(s => (
+                {segs.filter(s => !(clipped && s.kind === 'text')).map(s => (
                   <div key={s.key} className="change-row">
                     <dt>{s.label}</dt>
                     <dd>{s.kind === 'text' ? <DiffText a={s.from} b={s.to} /> : s.kind === 'status' ? <><StatusPill status={s.from} /> → <StatusPill status={s.to} /></> : <DiffText a={s.from} b={s.to} />}</dd>
@@ -66,11 +69,11 @@ export function ChangeList({ product, changes, me }: { product: string; changes:
               </dl>
               {v.open.length > 0 && <ul className="change-verdicts">{v.open.map((x, i) => <li key={i} className={`verdict ${x.kind}`}><b>{x.kind}</b> <SmartTag id={x.other} /> <span className="muted">{x.reason}</span> <span className="pill s question">decide on the block</span></li>)}</ul>}
               <ImpactCard product={product} changeId={c.id} impact={c.impact} me={me} summary={imp.line} collapsed={imp.actionable === 0} />
-              <p className="review-meta muted">{c.by} · {when(c.updatedAt)}{v.line ? ` · ${v.line}` : ''}</p>
               <details className="review-more">
                 <summary>details</summary>
                 <dl className="change-diff">
                   <div className="change-row"><dt>node</dt><dd><SmartTag id={c.node} /> <span className="muted">in {c.doc}</span></dd></div>
+                  <div className="change-row"><dt>edited</dt><dd className="muted">{c.by} · {when(c.updatedAt)}{v.line ? ` · ${v.line}` : ''}</dd></div>
                   <div className="change-row frame"><dt>unchanged</dt><dd className="muted">{frame.join(' · ')}</dd></div>
                   {(c.verdicts ?? []).filter(x => !v.open.includes(x)).length > 0 && <div className="change-row"><dt>verdicts</dt><dd><ul className="change-verdicts">{(c.verdicts ?? []).filter(x => !v.open.includes(x)).map((x, i) => <li key={i} className={`verdict ${x.kind}`}><b>{x.kind}</b> <SmartTag id={x.other} /> <span className="muted">{x.reason}</span></li>)}</ul></dd></div>}
                 </dl>
