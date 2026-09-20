@@ -1,5 +1,12 @@
-_build/
+# _build is derived (graph, embeddings, verdicts) — except the eval results, which are the record of what was measured (store:eval-results)
+**/_build/*
+!**/_build/eval/
+**/_build/eval/compare/
 _sessions/
 # YesSensei knowledge stays local — this repo is public (decision:waterfall.strip-yessensei-before-push)
 yessensei/
 _changes/
+# eval-moosedev and eval-mab are scratch products the public benchmarks import into — downloaded corpora, never committed
+eval-moosedev/
+eval-mab/
+zz-*/

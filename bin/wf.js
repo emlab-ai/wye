@@ -37,7 +37,8 @@
 //        #ready describe task per module (lib/init.js) — no model, nothing overwritten
 //   wye deepen <module> --product p [--worker claude-code]   assign the module's describe task: requirements from the code,
 //        each mapped to the file that delivers it (prompts/describe-module.md)
-//   wye pr <product/project/pr-x> [--status draft|refining|approved|building|done|failed|cancelled]   the request's status, Definition and readiness
+//   wye pr <product/project/pr-x> [--status draft|refining|approved|building|done|failed|cancelled]   the PR's status, Definition and readiness
+//   wye pr approve|cancel|reopen <product/project/pr-x> [--by name]   the person's move (never the librarian's)
 //   wye pr build <product/project/pr-x> [--worker claude-code|codex|runner] [--note "…"] [--force]   Build: hand the request's
 //        request task to a worker with the Definition (rule:build) — what the person's "build it" in a librarian conversation means
 //   wye explain <id | "text"> --product p   the current state of the product around a node or a text (the librarian, one turn)
@@ -299,13 +300,20 @@ const commands = {
       const j = await api('POST', `/api/${p}/work/assign`, { id: pr.task, worker: flags.worker || 'claude-code', note: flags.note || '', build: r, force: !!flags.force, by: flags.by || (process.env.WF_SESSION ? `agent:${process.env.WF_SESSION}` : undefined) });
       return out(flags.json ? j : `${r} → building: ${pr.task} → ${j.worker}${j.session ? ` (session ${j.session}, ${j.mode})` : ''}; definition ${df.total ?? '?'} block(s), ${df.agreed ?? '?'} agreed${df.defined ? '' : ` — ${df.open ?? '?'} still open, built anyway`}`);
     }
-    const ref = pos[1] || die('wye pr <product/project/pr-x> [--status s] | wye pr approve|cancel <ref>'); const d = docRef(ref); const p = d.product;
+    // approve / cancel from the CLI — the person's move (a librarian never runs these)
+    if (pos[1] === 'approve' || pos[1] === 'cancel' || pos[1] === 'reopen') {
+      const ref = pos[2] || die(`wye pr ${pos[1]} <product/project/pr-x>`); const d = docRef(ref); const p = d.product;
+      const j = await api('PATCH', `/api/${p}/pr`, { ref: `${d.product}/${d.project}/${d.doc}`, action: pos[1], by: flags.by || undefined });
+      return out(flags.json ? j : `${d.product}/${d.project}/${d.doc}: ${j.status}${j.stopped?.length ? ` (refining session ${j.stopped.join(', ')} stopped)` : ''}`);
+    }
+    const ref = pos[1] || die('wye pr <product/project/pr-x> [--status s] | wye pr approve|cancel|reopen <ref>'); const d = docRef(ref); const p = d.product;
     const r = `${d.product}/${d.project}/${d.doc}`;
     if (flags.status) { const j = await api('PATCH', `/api/${p}/pr`, { ref: r, status: flags.status }); return out(flags.json ? j : `${r}: status ${j.status}`); }
     const j = await api('GET', `/api/${p}/pr?ref=${encodeURIComponent(r)}`); if (flags.json) return out(j);
     const df = j.definition;
     console.log(`${j.node}  ${j.status}${j.role === 'librarian' ? '  (librarian)' : ''}${j.task ? '  task ' + j.task : ''}  session ${j.session}`);
-    console.log(`definition: ${df.total} block(s), ${df.agreed} agreed, ${df.open} open${df.missing ? `, ${df.missing} missing` : ''}${df.contradicted.length ? `, contradicted: ${df.contradicted.join(', ')}` : ''} — ${df.defined ? 'defined' : 'not yet defined'}`);
+    console.log(`definition: ${df.total} block(s), ${df.agreed} agreed, ${df.open} open${df.missing ? `, ${df.missing} missing` : ''}${df.contradicted.length ? `, contradicted: ${df.contradicted.join(', ')}` : ''}`);
+    const rd = j.readiness; if (rd) console.log(`readiness: ${['definition', 'agreed', 'impact', 'contradictions', 'tasks'].map(k => `${rd[k] ? '✓' : '✗'} ${k}`).join(' · ')} — ${rd.ok ? 'ready to approve' : 'not ready'}${j.approvedBy ? ` · approved by ${j.approvedBy} ${j.approvedAt ?? ''}` : ''}`);
     for (const it of df.items) console.log(`  ${it.agreed ? '✓' : it.missing ? '?' : '·'} ${it.id}${it.status ? ' #' + it.status : ''}`);
   },
   // `plan` is the old name of `pr`

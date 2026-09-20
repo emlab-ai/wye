@@ -7,6 +7,7 @@ import { docRoute, linkedDocuments, splitDocument } from '@/lib/doc';
 import { bodyOf, hashOf } from '@/lib/write';
 import { DocumentReader } from '@/components/DocumentReader';
 import { DocProps } from '@/components/DocProps';
+import { PrHead } from '@/components/PrHead';
 import { LiveDocument } from '@/components/LiveDocument';
 import { DocNotFound } from '@/components/DocNotFound';
 
@@ -26,6 +27,7 @@ export default async function DocPage({ params }: { params: Promise<{ product: s
   const linked = linkedDocuments(scope.graph, scope.idx, d.file);
   return (
     <div className="page">
+      {split.frontmatter.type === 'pr' && <PrHead product={product} prRef={`${product}/${project}/${d.slug}`} />}
       <DocProps product={product} project={project} slug={d.slug} file={d.file} fm={split.frontmatter} node={d.module.id} types={scope.graph.types ?? []} />
       <LiveDocument product={product} project={project} slug={d.slug} body={body} ifMatch={hashOf(body)}>
         <DocumentReader doc={split} index={scope.index} />

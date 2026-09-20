@@ -20,7 +20,7 @@ export function TaskWork({ id }: { id: string }) {
   const [me] = useMe();
   const [d, setD] = useState<Detail | null>(null);
   const [assigning, setAssigning] = useState<false | 'assign' | 'build'>(false);
-  // a plan's request task carries the plan's Definition (decision:exec.plan-lifecycle): its state, and Build
+  // a PR's request task carries the PR's Definition (decision:wf2.pr-lifecycle): its state, and Build once approved
   const [plan, setPlan] = useState<{ ref: string; status: string; role: string; definition: { total: number; agreed: number; open: number; missing: number; contradicted: string[]; defined: boolean; items: { id: string; status: string; agreed: boolean }[] } } | null>(null);
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -28,7 +28,7 @@ export function TaskWork({ id }: { id: string }) {
     fetch(`/api/${product}/work?id=${encodeURIComponent(id)}`).then(r => r.ok ? r.json() : null).then((j: Detail | null) => {
       if (!live) return; setD(j);
       const it = j?.item; const doc = it?.doc;
-      if (it?.requestTask && it.pr && doc) fetch(`/api/${product}/plan?ref=${encodeURIComponent(`${product}/${doc.project}/${doc.slug}`)}`).then(r => r.ok ? r.json() : null).then(p => { if (live && p) setPlan(p); }).catch(() => {});
+      if (it?.requestTask && it.pr && doc) fetch(`/api/${product}/pr?ref=${encodeURIComponent(`${product}/${doc.project}/${doc.slug}`)}`).then(r => r.ok ? r.json() : null).then(p => { if (live && p) setPlan(p); }).catch(() => {});
     });
     const onChange = () => setTick(t => t + 1);
     window.addEventListener('wf:change', onChange);
@@ -51,16 +51,16 @@ export function TaskWork({ id }: { id: string }) {
         {item.ready && <span className="pill ready">ready</span>}
         {item.blocked && <span className="pill blocked-by" title={`blocked by ${item.blockedBy.join(', ')}`}>⛔ blocked</span>}
         <span className="taskwork-acts">
-          {plan && item.status !== 'done' && item.state !== 'working' && item.state !== 'queued' && <button className="linkish" onClick={() => setAssigning('build')} title="Assign the request with the plan's Definition as context">Build</button>}
+          {plan && plan.status === 'approved' && item.status !== 'done' && item.state !== 'working' && item.state !== 'queued' && <button className="linkish" onClick={() => setAssigning('build')} title="Assign the build with the PR's Definition as context">Build</button>}
           {item.status !== 'done' && <button className="linkish" onClick={() => setAssigning('assign')}>Assign</button>}
           {item.status !== 'done' && <button className="linkish" onClick={markDone} title={me ? `done, by ${me}` : 'done'}>✓ done</button>}
         </span>
       </div>
       {last && (last.status === 'running' || last.status === 'queued') && (
-        // assigned and under way (req:exec.dispatch): who holds it, since when, the execution plan and the conversation
+        // assigned and under way (req:exec.dispatch): who holds it, since when, the PR page and the conversation
         <div className="taskwork-assigned">
           <small>{last.status === 'queued' ? 'queued for' : 'assigned to'}</small> <b>{agentLabel(last.agent)}</b> <span className="muted">· {when(last.createdAt)}</span>
-          {last.prDoc && <a className="taskwork-plan" href={`/${product}/${last.prDoc.split('/').slice(1).join('/d/')}`} title={last.prDoc}>execution plan ↗</a>}
+          {last.prDoc && <a className="taskwork-plan" href={`/${product}/${last.prDoc.split('/').slice(1).join('/d/')}`} title={last.prDoc}>PR page ↗</a>}
           <button className="linkish" onClick={() => open(`session:${last.id}`)}>conversation {last.id.slice(0, 6)}</button>
         </div>
       )}

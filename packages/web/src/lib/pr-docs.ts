@@ -8,7 +8,7 @@ import { loadScope } from './scope';
 import { docRoute, projectTree } from './doc';
 import { rebuild, writeAtomic, withFileLock } from './write';
 import { onSessionEnd, setPrDoc, addRefs } from './sessions';
-import { fromLine, getFrontmatter, prDocBody, prSlug, prsPageId, prStatusOnEnd, prTitle, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, withDefinition, definitionIds, definitionState, type PrEndStatus, type DefinitionState } from './pr-doc';
+import { fromLine, getFrontmatter, prDocBody, prSlug, prsPageId, prStatusOnEnd, prTitle, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, withDefinition, definitionIds, definitionState, readiness, taskLines, type PrEndStatus, type DefinitionState, type Readiness } from './pr-doc';
 import type { Scope } from './scope';
 import { createRequire } from 'node:module';
 import { listChanges } from './changes';
@@ -187,8 +187,11 @@ onSessionEnd(async (productDir, s) => {
 async function librarianLeft(productDir: string, s: Session): Promise<void> {
   const at = await prDocFile(s.product, s.prDoc!); if (!at) return;
   let md: string; try { md = await readFile(at.file, 'utf8'); } catch { return; }
-  const cur = requestTaskStatus(md, at.slug); if (cur === undefined || cur === 'done') return;
-  await writeAtomic(at.file, withRequestTaskStatus(md, at.slug, 'review'));
+  let next = md;
+  if (getFrontmatter(md, 'status') === 'refining') next = setFrontmatter(next, 'status', 'draft'); // nobody on it now (approved / cancelled stay)
+  const cur = requestTaskStatus(next, at.slug); if (cur !== undefined && cur !== 'done') next = withRequestTaskStatus(next, at.slug, 'review');
+  if (next === md) return;
+  await writeAtomic(at.file, next);
   await rebuild(productDir);
 }
 
@@ -219,6 +222,29 @@ export function prDefinition(scope: Scope, md: string): DefinitionState {
     return { status: n.status, openContradictions: open };
   });
 }
+// Readiness (decision:wf2.pr-lifecycle): the Definition's state plus the task count, as the PR head shows it.
+export function prReadiness(scope: Scope, md: string): Readiness { return readiness(prDefinition(scope, md), taskLines(md).length); }
+
+// Approval (decision:wf2.pr-approval-is-the-persons-click): the person's click. Sets the status and who / when; the
+// route then tells and stops a live refining session (lib/pr-sessions) — the build is the dispatcher's or Build's,
+// never the librarian's.
+export async function approvePr(productDir: string, product: string, ref: string, by: string): Promise<void> {
+  const at = await prDocFile(product, ref); if (!at) throw new Error(`${ref}: not found`);
+  await withFileLock(at.file, async () => { const md = await readFile(at.file, 'utf8'); await writeAtomic(at.file, setFrontmatter(setFrontmatter(setFrontmatter(md, 'status', 'approved'), 'approved-by', by), 'approved-at', new Date().toISOString())); });
+  await rebuild(productDir);
+}
+export async function cancelPr(productDir: string, product: string, ref: string): Promise<void> {
+  const at = await prDocFile(product, ref); if (!at) throw new Error(`${ref}: not found`);
+  await withFileLock(at.file, async () => { let md = await readFile(at.file, 'utf8'); md = setFrontmatter(setFrontmatter(md, 'status', 'cancelled'), 'finished', new Date().toISOString()); const cur = requestTaskStatus(md, at.slug); if (cur !== undefined) md = withRequestTaskStatus(md, at.slug, requestTaskStatusOnEnd(cur, 'cancelled')); await writeAtomic(at.file, md); });
+  await rebuild(productDir);
+}
+// back to draft: approved-* and finished cleared, the request task open again
+export async function reopenPr(productDir: string, product: string, ref: string): Promise<void> {
+  const at = await prDocFile(product, ref); if (!at) throw new Error(`${ref}: not found`);
+  await withFileLock(at.file, async () => { let md = setFrontmatter(await readFile(at.file, 'utf8'), 'status', 'draft').replace(/^approved-(by|at):.*\n/gm, '').replace(/^finished:.*\n/m, ''); const cur = requestTaskStatus(md, at.slug); if (cur !== undefined && cur !== 'done') md = withRequestTaskStatus(md, at.slug, 'todo'); await writeAtomic(at.file, md); });
+  await rebuild(productDir);
+}
+
 // Every typed block a librarian session added or changed goes into its PR's Definition (req:exec.definition-tracked).
 const KNOWLEDGE = /^(req|decision|constraint|question|rule|lesson|task|goal|entity):/;
 // Only blocks the session itself wrote (its claim on the write — wf propose, wf node set, wf doc write with the

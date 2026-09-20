@@ -20,15 +20,15 @@ export function useMe(): [string, (v: string) => void] {
 }
 
 // The Work view (req:exec.work-view): every task of the product, its status (the line's word) and state (what is
-// happening now), worker, plan, goal, sessions; grouped by status by default; filters and search in the URL
-// (?q= &status= &state= &worker= &goal= &plan= &doc= &done=1 &group= &mine=1); done folded away unless asked.
+// happening now), worker, PR, goal, sessions; grouped by status by default; filters and search in the URL
+// (?q= &status= &state= &worker= &goal= &pr= &doc= &done=1 &group= &mine=1); done folded away unless asked.
 export function WorkList({ product, items, people }: { product: string; items: WorkItem[]; people: string[] }) {
   const { open, openId } = usePeek();
   const router = useRouter(); const path = usePathname(); const sp = useSearchParams();
   const [me, setMe] = useMe();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [assigning, setAssigning] = useState<WorkItem | null>(null);
-  const [building, setBuilding] = useState<string | null>(null); // the plan ref when the row's Build was pressed (req:exec.build-from-definition)
+  const [building, setBuilding] = useState<string | null>(null); // the PR ref when the row's Build was pressed (req:exec.build-from-definition)
   const f: WorkFilter = { q: sp.get('q') ?? '', status: sp.get('status') ?? '', state: sp.get('state') ?? '', worker: sp.get('worker') ?? '', goal: sp.get('goal') ?? '', pr: sp.get('plan') ?? '', doc: sp.get('doc') ?? '', done: sp.get('done') === '1', mine: sp.get('mine') === '1' ? (me || '—') : '' };
   const group = (sp.get('group') as WorkGroupBy | null) ?? 'status';
   const set = (patch: Record<string, string | null>) => {
@@ -40,7 +40,7 @@ export function WorkList({ product, items, people }: { product: string; items: W
   const counts = useMemo(() => workCounts(filterWork(items, { done: true })), [items]);
   const groups = useMemo(() => group === 'status' && !f.q && !f.status ? groupWork(visible, 'status') : groupWork(visible, group), [visible, group, f.q, f.status]);
   const toggle = (id: string) => setCollapsed(s => { const x = new Set(s); if (x.has(id)) x.delete(id); else x.add(id); return x; });
-  const label = (k: string) => k.startsWith('—') ? k : group === 'goal' || group === 'pr' ? k.replace(/^(goal|plan):/, '') : k;
+  const label = (k: string) => k.startsWith('—') ? k : group === 'goal' || group === 'pr' ? k.replace(/^(goal|pr):/, '') : k;
   const Row = ({ r, depth }: { r: WorkItem; depth: number }) => (
     <>
       <div className={`trow wrow ${r.id === openId ? 'on' : ''} ${r.status === 'done' ? 'done' : ''} st-${r.state}`} style={{ '--depth': depth } as React.CSSProperties} onClick={() => open(r.id)} role="row" data-task={r.id}>
@@ -50,7 +50,7 @@ export function WorkList({ product, items, people }: { product: string; items: W
           <span className="ttitle" title={plain(r.title)}>{plain(r.title) || r.id}</span>
           {r.ready && <span className="pill ready" title="marked ready: a runner may take it">ready</span>}
           {r.blocked && <span className="pill blocked-by" title={`blocked by ${r.blockedBy.join(', ')}`}>⛔</span>}
-          {r.requestTask && r.definition && <span className={`pill s ${r.definition.defined ? 'done' : 'in-progress'}`} title={`the plan's Definition: ${r.definition.total} blocks, ${r.definition.agreed} agreed, ${r.definition.open} open${r.definition.contradicted ? `, ${r.definition.contradicted} contradicted` : ''}`}>{r.definition.defined ? 'defined' : `${r.definition.agreed}/${r.definition.total} agreed`}</span>}
+          {r.requestTask && r.definition && <span className={`pill s ${r.definition.defined ? 'done' : 'in-progress'}`} title={`the PR's Definition: ${r.definition.total} blocks, ${r.definition.agreed} agreed, ${r.definition.open} open${r.definition.contradicted ? `, ${r.definition.contradicted} contradicted` : ''}`}>{r.definition.defined ? 'defined' : `${r.definition.agreed}/${r.definition.total} agreed`}</span>}
           <code className="tid">{r.requestTask ? 'request' : r.id.replace(/^task:/, '')}</code>
         </div>
         <div className="tcell"><StatusPill status={r.status} /></div>
@@ -59,7 +59,7 @@ export function WorkList({ product, items, people }: { product: string; items: W
         <div className="tcell towner">{r.worker ?? <span className="muted">—</span>}</div>
         <div className="tcell tdoc">
           {r.doc && <a href={`/${product}/${r.doc.project}/d/${r.doc.slug}#n-${encodeURIComponent(r.id)}`} onClick={e => e.stopPropagation()} title="Open the document where it is defined">{r.doc.slug}</a>}
-          {r.requestTask && r.pr && r.doc && r.state !== 'working' && r.state !== 'queued' && <button className="tsend" title="Assign the request with the plan's Definition as context" onClick={e => { e.stopPropagation(); setBuilding(`${product}/${r.doc!.project}/${r.doc!.slug}`); setAssigning(r); }} disabled={r.status === 'done'}>build</button>}
+          {r.requestTask && r.pr && r.pr.status === 'approved' && r.doc && r.state !== 'working' && r.state !== 'queued' && <button className="tsend" title="Assign the request with the plan's Definition as context" onClick={e => { e.stopPropagation(); setBuilding(`${product}/${r.doc!.project}/${r.doc!.slug}`); setAssigning(r); }} disabled={r.status === 'done'}>build</button>}
           <button className="tsend" title="Assign to a worker" onClick={e => { e.stopPropagation(); setBuilding(null); setAssigning(r); }} disabled={r.status === 'done'}>assign</button>
           <button className="tsend" title="Send to agent" onClick={e => { e.stopPropagation(); requestSend({ refs: [r.id], text: plain(r.title), source: r.doc ? { project: r.doc.project, doc: r.doc.slug, link: `${location.origin}/${product}/${r.doc.project}/d/${r.doc.slug}#n-${encodeURIComponent(r.id)}` } : undefined }); }}>⇢</button>
         </div>

@@ -7,7 +7,7 @@ import type { WorkItem } from '@/lib/work';
 // Assign (req:exec.dispatch): a task handed to a worker from where it is listed — a person (worker: is set), an
 // agent (a conversation starts with the task, its document and what it serves as refs, the constraint packet in
 // the first message), or the runner pool (a queued run session). A held task asks before it re-queues.
-// `build` (req:exec.build-from-definition): the task is a plan's request task and that plan's Definition goes with the
+// `build` (req:exec.build-from-definition): the task is a PR's request task and that PR's Definition goes with the
 // assignment; `unagreed` lists the blocks not yet agreed, so Build says what it is building on anyway.
 export function Assign({ product, item, people, me, onClose, onDone, build, unagreed }: { product: string; item: Pick<WorkItem, 'id' | 'title' | 'worker' | 'state' | 'status' | 'blocked' | 'blockedBy'>; people: string[]; me?: string; onClose: () => void; onDone: (session?: string) => void; build?: string; unagreed?: string[] }) {
   const [worker, setWorker] = useState(item.worker && !AGENTS.some(a => a.id === item.worker) ? item.worker : me || AGENTS[0].id);
@@ -35,7 +35,7 @@ export function Assign({ product, item, people, me, onClose, onDone, build, unag
     <div className="modal-back" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal assign" role="dialog" aria-label="Assign">
         <h3>{build ? 'Build' : 'Assign'} <code>{item.id.replace(/^task:/, '')}</code></h3>
-        {build && <p className="muted small">The worker gets the plan&apos;s Definition — every agreed block&apos;s text and id, the edits made while defining — with the constraint packet, and works on the same plan page.{unagreed?.length ? <> <b className="bad">{unagreed.length} block{unagreed.length === 1 ? ' is' : 's are'} not agreed</b> ({unagreed.join(', ')}) — building anyway means building on proposals.</> : ''}</p>}
+        {build && <p className="muted small">The worker gets the PR&apos;s Definition — every agreed block&apos;s text and id, the edits made while defining — with the constraint packet, and works on the same plan page.{unagreed?.length ? <> <b className="bad">{unagreed.length} block{unagreed.length === 1 ? ' is' : 's are'} not agreed</b> ({unagreed.join(', ')}) — building anyway means building on proposals.</> : ''}</p>}
         <p className="muted assign-title">{item.title}</p>
         {refused ? <p className="bad">Cannot assign: {refused}.</p> : (
           <>
