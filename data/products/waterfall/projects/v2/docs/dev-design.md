@@ -1502,7 +1502,9 @@ A node's details: properties, content, and what a card shows of it.
   statement: >
     Chat sessions are hosted by the app: the server spawns the agent as a child process (Claude Code with
     `-p --input-format stream-json --output-format stream-json --permission-prompt-tool stdio`, Codex with
-    `codex exec --json`, one process per turn resumed by thread id), keeps the conversation open, normalises the
+    `codex exec --json`, one process per turn resumed by thread id, spawned with stdin closed — `codex exec` appends
+    a piped stdin to the prompt and waits for its EOF, so an open pipe hung every turn with no output until
+    2026-09-20; a failed turn's message is the turn's error, said once), keeps the conversation open, normalises the
     agent's events into ChatEvents (user, assistant, thinking, tool_use, tool_result, result, permission, stderr,
     exit), persists them to the session transcript and streams them to the UI over server-sent events. The console
     in the right column shows the transcript live (rule:console-flow), renders the agent's questions as forms and

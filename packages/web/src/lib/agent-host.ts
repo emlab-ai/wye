@@ -18,7 +18,7 @@ import './consolidate';   // registers the session-end consolidation hook (decis
 // `turn`: the queue items handed to the open turn — stamped done / failed when it ends (decision:wf2.queue-item-state);
 // `product` / `wfUrl` let the pump build a first message when a fresh item comes up (rule:clean-slate); `stopped`: the
 // person ended the process, so its exit must not rewrite the recorded status.
-type Live = { id: string; productDir: string; product: string; wfUrl: string; agent: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string; known: Set<string>; model?: string; codexUsage?: TurnUsage; idle?: ReturnType<typeof setTimeout>; turn: string[]; stopped?: boolean };
+type Live = { id: string; productDir: string; product: string; wfUrl: string; agent: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string; known: Set<string>; model?: string; codexError?: string; codexUsage?: TurnUsage; idle?: ReturnType<typeof setTimeout>; turn: string[]; stopped?: boolean };
 const g = globalThis as unknown as { __wfAgentHost?: Map<string, Live> };
 const live = () => (g.__wfAgentHost ??= new Map<string, Live>());
 
@@ -357,12 +357,14 @@ function codexTurn(l: Live, cwd: string, text: string, fromQueue = false, imageP
   if (!fromQueue) emit(l, { kind: 'user', text });
   const imgArgs = imagePaths.flatMap(p => ['--image', p]);
   const args = l.codexThread ? ['exec', 'resume', l.codexThread, '--json', ...imgArgs, text] : ['exec', '--json', '--sandbox', 'workspace-write', ...imgArgs, text];
-  const proc = spawn('codex', args, { cwd, env: { ...process.env, WF_SESSION: l.id, WF_PRODUCT: l.productDir.split('/').pop() } });
+  // stdin must not be an open pipe: `codex exec` appends piped stdin to the prompt and waits for EOF, so a pipe
+  // nobody closes hangs the turn with no output (found 2026-09-20; the prompt is the argument, images are files)
+  const proc = spawn('codex', args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, WF_SESSION: l.id, WF_PRODUCT: l.productDir.split('/').pop() } });
   l.proc = proc; l.turnBusy = true;
   let buf = '';
   proc.stdout.on('data', d => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) onCodexLine(l, line); } });
-  proc.stderr.on('data', d => { const t = String(d).trim(); if (t && !/^warning:/i.test(t)) emit(l, { kind: 'stderr', text: t.slice(0, 2000) }); });
-  proc.on('close', code => { l.proc = null; l.turnBusy = false; endTurn(l, code !== 0 ? { error: `codex turn exited with ${code}` } : undefined); emit(l, { kind: 'result', text: '', code: code ?? -1, isError: code !== 0, usage: l.codexUsage }); l.codexUsage = undefined; if (code !== 0) updateSession(l.productDir, l.id, { line: `codex turn exited with ${code}` }).catch(() => {}); reportKnowledge(l); pump(l); });
+  proc.stderr.on('data', d => { const t = String(d).trim(); if (t && !/^warning:/i.test(t) && !/^Reading additional input from stdin/.test(t)) emit(l, { kind: 'stderr', text: t.slice(0, 2000) }); });
+  proc.on('close', code => { l.proc = null; l.turnBusy = false; const err = l.codexError; l.codexError = undefined; endTurn(l, code !== 0 || err ? { error: err ? `codex: ${err}` : `codex turn exited with ${code}` } : undefined); emit(l, { kind: 'result', text: '', code: code ?? -1, isError: code !== 0 || !!err, usage: l.codexUsage }); l.codexUsage = undefined; if (code !== 0) updateSession(l.productDir, l.id, { line: `codex turn exited with ${code}` }).catch(() => {}); reportKnowledge(l); pump(l); });
 }
 function onCodexLine(l: Live, line: string) {
   let j: Record<string, unknown>; try { j = JSON.parse(line); } catch { emit(l, { kind: 'stderr', text: line.slice(0, 500) }); return; }
@@ -378,7 +380,12 @@ function onCodexLine(l: Live, line: string) {
     return;
   }
   if (type === 'turn.completed') { const u = j.usage as Record<string, number> | undefined; if (u) l.codexUsage = { in: u.input_tokens ?? 0, out: u.output_tokens ?? 0 }; return; } // codex sums the turn's calls, so no context size
-  if (type === 'error' || type === 'turn.failed') emit(l, { kind: 'stderr', text: JSON.stringify(j.error ?? j).slice(0, 1000) });
+  if (type === 'error' || type === 'turn.failed') { // `error` then `turn.failed` carry the same message: say it once
+    const e = (j.error ?? j) as Record<string, unknown>; let msg = String(e.message ?? JSON.stringify(e));
+    try { const inner = JSON.parse(msg) as { error?: { message?: string } }; if (inner?.error?.message) msg = inner.error.message; } catch { /* plain text */ }
+    if (l.codexError === msg.slice(0, 1000)) return;
+    l.codexError = msg.slice(0, 1000); emit(l, { kind: 'stderr', text: `codex: ${msg.slice(0, 1000)}` });
+  }
 }
 
 // After a server restart, chat sessions the old process hosted are no longer running: close them once.
