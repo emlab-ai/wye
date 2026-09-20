@@ -19,8 +19,8 @@ Write here. An `id: kind:slug` inside a yaml block becomes a card; a `kind:slug`
 The types from the idea, as cards this document declares — the product's own ontology on top of the base types
 (see the Types page). An instance of `type:team` is `team:<slug>`; `members` is a collection whose inverse `memberOf`
 appears on each member without being written; `employee` inherits `name` from `person`. The plan type the app
-writes pages of (type:plan) is not declared here: it is a base type in `schema/base-ontology.md`, so every product
-parses plan pages (rule:plan-type-base, decision:wf2.plan-type-is-base).
+writes pages of (type:pr) is not declared here: it is a base type in `schema/base-ontology.md`, so every product
+parses plan pages (rule:pr-type-base, decision:wf2.plan-type-is-base).
 
 <!-- tasks -->
 <!-- /tasks -->

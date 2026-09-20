@@ -210,7 +210,7 @@ What the interface guarantees, by area — click, fold, drag, select, review car
     double-click clears both. `body.resizing-y` disables selection while dragging.
   source: packages/web/src/components/Rail.tsx#onSplit; packages/web/src/app/globals.css
   status: shipped
-  related-to: [rule:app-navigation, rule:plans-folder]
+  related-to: [rule:app-navigation, rule:prs-folder]
   verified-by: [ui-test:rail-split]
 - id: rule:deep-links
   statement: >

@@ -89,7 +89,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   unless: the request is a reply in a live conversation that already holds a task (the message joins that task)
   status: shipped
   refines: req:wf2.sessions.plan-doc
-  satisfied-by: [lib:plan-doc, rule:plan-doc, op:api.sessions]
+  satisfied-by: [lib:pr-doc, rule:pr-doc, op:api.sessions]
   requires-tests: [test:web-lib#plan-doc-request-task, ui-test:plans]
   part-of: goal:exec.work-and-impact
   verified-by: [ui-test:work-assign, test:web-lib#plan-doc]
@@ -213,7 +213,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
     to a worker with the change (before, after, reason) in the refs
   status: shipped
   refines: req:exec.impact-set
-  satisfied-by: [op:api.impact, lib:plan-doc, req:exec.dispatch]
+  satisfied-by: [op:api.impact, lib:pr-doc, req:exec.dispatch]
   requires-tests: [test:web-lib#impact-rework-task]
   part-of: goal:exec.work-and-impact
   verified-by: [test:impact]
@@ -261,7 +261,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
     linked as what the task is part of
   status: shipped
   refines: req:exec.work-view
-  satisfied-by: [component:command-box, op:api.work, lib:plan-doc]
+  satisfied-by: [component:command-box, op:api.work, lib:pr-doc]
   requires-tests: [test:web-lib#capture-task, ui-test:work-capture]
   part-of: goal:exec.work-and-impact
   verified-by: [ui-test:work-assign]

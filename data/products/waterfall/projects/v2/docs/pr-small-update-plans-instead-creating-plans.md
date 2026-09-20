@@ -22,7 +22,7 @@ _from: plan:plan-work-component-data-table-rule-type_
 
 ## Context
 
-The subject is the rail — page:web/sidebar (component:rail, component:doc-tree; rule:documents-tree, rule:app-navigation). Today every plan document (type:plan, one per request — req:wf2.sessions.plan-doc, rule:plan-doc, lib:plan-doc) is written as `plan-<slug>.md` in the project's docs folder, `part-of` the project's Plans page (`plans.md`, module:v2-prs — decision:wf2.plans-folder, task:plans-folder). The Plans page is an ordinary document, so it and its plans sit in the Documents tree, between the product's real documents (the screenshot). The Agents page lists plans per worker (component:plan-list); the Plans page shows them as a `view:plan` table (component:instance-table, lib:instance-table). Goals and Tasks already have product-level pages in the rail's menu (page:web/goals, page:web/tasks).
+The subject is the rail — page:web/sidebar (component:rail, component:doc-tree; rule:documents-tree, rule:app-navigation). Today every plan document (type:pr, one per request — req:wf2.sessions.plan-doc, rule:pr-doc, lib:pr-doc) is written as `plan-<slug>.md` in the project's docs folder, `part-of` the project's Plans page (`plans.md`, module:v2-prs — decision:wf2.plans-folder, task:plans-folder). The Plans page is an ordinary document, so it and its plans sit in the Documents tree, between the product's real documents (the screenshot). The Agents page lists plans per worker (component:pr-list); the Plans page shows them as a `view:plan` table (component:instance-table, lib:instance-table). Goals and Tasks already have product-level pages in the rail's menu (page:web/goals, page:web/tasks).
 
 Code: `packages/web/src/components/Rail.tsx` (the menu and the Documents section), `DocTree.tsx`, `app/[product]/layout.tsx` (builds the tree items per project), `lib/doc.ts#projectTree`, `lib/plan-docs.ts#plansPageId`, `app/[product]/types/[slug]/page.tsx` (the instance table a Plans page can reuse). `ctx` reads every `.md` under the product folder but the document routes, the editor's save, the watcher and links are all `/<product>/<project>/d/<doc>` — a plan cannot leave its project folder without touching all of them.
 
@@ -36,11 +36,11 @@ Plans become a **system folder** of the rail, like Inbox and Agents are system p
 
 ![[req:wf2.ui.plans-folder]]
 
-![[rule:plans-folder]]
+![[rule:prs-folder]]
 
-![[page:web/plans]]
+![[page:web/prs]]
 
-![[component:plan-folder]]
+![[component:pr-folder]]
 
 ```yaml
 - id: decision:wf2.plans-system-folder
@@ -50,10 +50,10 @@ Plans become a **system folder** of the rail, like Inbox and Agents are system p
     showed up in the Documents tree next to the product's own documents. The person wants Plans out of Documents:
     a system folder in the top section of the navigation.
   choice: >
-    The rail's menu gets a Plans folder (req:wf2.ui.plans-folder): its entry opens /<product>/plans (page:web/plans,
+    The rail's menu gets a Plans folder (req:wf2.ui.plans-folder): its entry opens /<product>/plans (page:web/prs,
     every plan as a table), its rows are the plan documents newest first, and it collapses. The product layout
     recognises the Plans page by its id (module:<project>-plans) and takes it and its sub-documents out of the
-    Documents tree (rule:plans-folder). Files do not move: a plan is still plan-<slug>.md in the project's docs
+    Documents tree (rule:prs-folder). Files do not move: a plan is still plan-<slug>.md in the project's docs
     folder, part-of the project's Plans page, so routes, the editor, the watcher, links and the plan's result stay
     as they are.
   alternatives: >
@@ -67,7 +67,7 @@ Plans become a **system folder** of the rail, like Inbox and Agents are system p
     "the document tree shows it under Plans" becomes "the rail's Plans folder shows it"; page:web/sidebar's
     menu order and rule:documents-tree gain the exception; ui-test:plans's "the tree shows Plans" check moves to
     ui-test:plans-folder.
-  affects: [req:wf2.ui.plans-folder, rule:plans-folder, page:web/plans, page:web/sidebar, rule:documents-tree, req:wf2.sessions.plan-doc]
+  affects: [req:wf2.ui.plans-folder, rule:prs-folder, page:web/prs, page:web/sidebar, rule:documents-tree, req:wf2.sessions.plan-doc]
   related-to: [decision:wf2.plans-folder, decision:wf2.plan-per-request]
   status: proposed
   date: 2026-09-18
@@ -78,31 +78,31 @@ While reading the prompt code I found that the "plan documents (follow-ups go he
 
 ## Tasks
 
-- [x] task:plans-folder-page `/<product>/plans` (page:web/plans): every plan of the product as the instance table (lib/instance-table#instanceTable for type plan, component:instance-table with the URL filters), header like Goals / Tasks. Part of pr:pr-small-update-plans-instead-creating-plans, part of req:wf2.ui.plans-folder. (session: 48c8885cd2)
-- [x] task:plans-folder-rail app/[product]/layout.tsx takes the Plans page (lib/plan-docs#plansPageId) out of every project's roots and collects its sub-documents (slug, project, title, icon, status, started) sorted newest first; Rail.tsx ends the menu with component:plan-folder (PlanFolder.tsx: entry to /<product>/plans, caret, rows, "no plans yet", `wf-plans-open` remembered); styles. Part of pr:pr-small-update-plans-instead-creating-plans, part of rule:plans-folder. (session: 48c8885cd2)
+- [x] task:plans-folder-page `/<product>/plans` (page:web/prs): every plan of the product as the instance table (lib/instance-table#instanceTable for type plan, component:instance-table with the URL filters), header like Goals / Tasks. Part of pr:pr-small-update-plans-instead-creating-plans, part of req:wf2.ui.plans-folder. (session: 48c8885cd2)
+- [x] task:plans-folder-rail app/[product]/layout.tsx takes the Plans page (lib/plan-docs#plansPageId) out of every project's roots and collects its sub-documents (slug, project, title, icon, status, started) sorted newest first; Rail.tsx ends the menu with component:pr-folder (PlanFolder.tsx: entry to /<product>/plans, caret, rows, "no plans yet", `wf-plans-open` remembered); styles. Part of pr:pr-small-update-plans-instead-creating-plans, part of rule:prs-folder. (session: 48c8885cd2)
 - [x] task:plans-folder-ui-test ui-test:plans-folder in Chrome via playwright-core: the menu ends with Plans; the rows are the plans newest first and open the plan page (the open one marked); the Plans page and the plans are not in the Documents tree; /<product>/plans lists every plan with its status; collapse is remembered over a reload; a product without plans shows "no plans yet". Part of pr:pr-small-update-plans-instead-creating-plans, part of req:wf2.ui.plans-folder. (session: 48c8885cd2)
-- [x] task:plans-folder-knowledge req:wf2.ui.plans-folder and rule:plans-folder shipped; component:rail's purpose and page:web/sidebar's menu order and display rules (dev-design) name the Plans folder; rule:documents-tree gains the exception; req:wf2.sessions.plan-doc says "the rail's Plans folder shows it"; ui-test:plans-folder on test-design. Part of pr:pr-small-update-plans-instead-creating-plans. (session: 48c8885cd2)
+- [x] task:plans-folder-knowledge req:wf2.ui.plans-folder and rule:prs-folder shipped; component:rail's purpose and page:web/sidebar's menu order and display rules (dev-design) name the Plans folder; rule:documents-tree gains the exception; req:wf2.sessions.plan-doc says "the rail's Plans folder shows it"; ui-test:plans-folder on test-design. Part of pr:pr-small-update-plans-instead-creating-plans. (session: 48c8885cd2)
 - [x] task:rail-split The person's follow-up (chat, after the build): the Documents section is sizable — Rail.tsx becomes two panes with a horizontal splitter between the menu (with the Plans folder) and Documents (req:wf2.ui.rail-split, rule:rail-split); drag sets the height, remembered; double-click resets; ui-test:rail-split 7 checks. Part of pr:pr-small-update-plans-instead-creating-plans. #done (session: 48c8885cd2)
-- [x] task:agent-prompt-plan-file lib/agent-prompt.ts: the "plan documents" line of the system prompt names the project's `plan.md` when it exists (never the first `plan-*.md` request plan). Part of pr:pr-small-update-plans-instead-creating-plans, related to rule:plan-doc. (session: 48c8885cd2)
+- [x] task:agent-prompt-plan-file lib/agent-prompt.ts: the "plan documents" line of the system prompt names the project's `plan.md` when it exists (never the first `plan-*.md` request plan). Part of pr:pr-small-update-plans-instead-creating-plans, related to rule:pr-doc. (session: 48c8885cd2)
 
 ## Result
 
-Plans is now a system folder at the end of the rail's menu (after Agents): the entry opens /<product>/plans — every plan of every project as the filterable table — and the rows beneath are the plan documents newest first (open one marked, status tooltip), collapsible and remembered. The project's Plans page and the plans under it no longer show in the Documents tree; on disk nothing moved (plan-<slug>.md stays under plans.md in the project's docs folder). Also: the agent prompt's 'plan documents' line names plan.md instead of a random plan-*.md. Code: PlanFolder.tsx, app/[product]/plans/page.tsx, layout.tsx#withoutPlans, Rail.tsx, TopBar.tsx, plan-doc.ts#plansPageId, agent-prompt.ts. Verified: ui-test:plans-folder 16/16 in Chrome, 191 unit tests, tsc clean; committed c8505f2. Knowledge: req:wf2.ui.plans-folder, rule:plans-folder, page:web/plans, component:plan-folder shipped; decision:wf2.plans-system-folder proposed on the plan document; 5 tasks done.
+Plans is now a system folder at the end of the rail's menu (after Agents): the entry opens /<product>/plans — every plan of every project as the filterable table — and the rows beneath are the plan documents newest first (open one marked, status tooltip), collapsible and remembered. The project's Plans page and the plans under it no longer show in the Documents tree; on disk nothing moved (plan-<slug>.md stays under plans.md in the project's docs folder). Also: the agent prompt's 'plan documents' line names plan.md instead of a random plan-*.md. Code: PlanFolder.tsx, app/[product]/prs/page.tsx, layout.tsx#withoutPlans, Rail.tsx, TopBar.tsx, plan-doc.ts#plansPageId, agent-prompt.ts. Verified: ui-test:plans-folder 16/16 in Chrome, 191 unit tests, tsc clean; committed c8505f2. Knowledge: req:wf2.ui.plans-folder, rule:prs-folder, page:web/prs, component:pr-folder shipped; decision:wf2.plans-system-folder proposed on the plan document; 5 tasks done.
 
 Blocks this plan produced:
 
 - added req:wf2.ui.plans-folder — Plans is a system folder at the top of the rail, not a page in the Documents tree
-- added page:web/plans — web/plans
-- added component:plan-folder — plan-folder
-- added rule:plans-folder — plans-folder
+- added page:web/prs — web/plans
+- added component:pr-folder — plan-folder
+- added rule:prs-folder — plans-folder
 - added decision:wf2.plans-system-folder — Plans is a system folder in the rail's menu; the plan files stay in the project's docs folder
-- added task:plans-folder-page — `/<product>/plans` (page:web/plans):
+- added task:plans-folder-page — `/<product>/plans` (page:web/prs):
 - added task:plans-folder-rail — app/[product]/layout.tsx takes the Plans page (lib/plan-docs#plansPageId) out of every project's roots and col
 - added task:plans-folder-ui-test — ui-test:plans-folder in Chrome via playwright-core:
-- added task:plans-folder-knowledge — req:wf2.ui.plans-folder and rule:plans-folder shipped;
+- added task:plans-folder-knowledge — req:wf2.ui.plans-folder and rule:prs-folder shipped;
 - added task:agent-prompt-plan-file — lib/agent-prompt.ts:
 - changed req:wf2.sessions.plan-doc — Every request that starts work becomes a plan document under the project's Plans page
-- changed lib:plan-doc — plan-doc
+- changed lib:pr-doc — plan-doc
 - changed component:rail — rail
 - changed page:web/sidebar — web/sidebar
 - added action:open-plans — Plans — the system folder at the end of the menu: the entry opens every plan as a table, the rows beneath open

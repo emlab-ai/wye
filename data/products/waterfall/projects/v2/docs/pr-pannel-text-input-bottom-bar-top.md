@@ -121,7 +121,7 @@ Blocks this plan produced:
 - added task:first-message-shown — lib:agent-host:
 - added task:first-message-fold — component:console:
 - added task:first-message-knowledge — After shipping:
-- added task:plan-type-agent-prop — The plan pages the app writes (plan:plan-…, type:plan) carry `agent:` and `session:` in their frontmatter;
+- added task:plan-type-agent-prop — The plan pages the app writes (plan:plan-…, type:pr) carry `agent:` and `session:` in their frontmatter;
 - changed component:console — console
 - added ui-test:first-message-fold — The console's first user row is the request; the wrapper opens from a fold
 - changed component:peek-panel — peek-panel

@@ -8,7 +8,7 @@ last-verified: 2026-09-19
 sources:
   - packages/web/src/lib/agent-host.ts        # buildPrompt, pump, restartFresh: how a request reaches a worker today
   - packages/web/src/lib/sessions.ts          # queue, claim, end hook
-  - packages/web/src/lib/plan-docs.ts         # a plan document per request
+  - packages/web/src/lib/pr-docs.ts         # a plan document per request
   - packages/web/src/lib/artifacts.ts         # what a session produced; block attribution
   - packages/web/src/lib/node-edit.ts         # PUT node: edits the defining line or card
   - packages/web/src/components/TrackList.tsx # the Tasks and Goals lists
@@ -45,7 +45,7 @@ its own are `decision:` blocks (proposed); what it cannot decide is a `question:
 ## What exists, and what the research says
 
 **Today.** A request from the command box or a "Send to agent" starts a chat session with a plan document
-(rule:plan-doc, decision:wf2.plan-per-request) and a queue (rule:session-queue); runners claim queued sessions
+(rule:pr-doc, decision:wf2.plan-per-request) and a queue (rule:session-queue); runners claim queued sessions
 (rule:agent-runner, op:api.sessions.claim); the Agents page lists workers with their plans; the Tasks page
 (component:track-list) lists task lines from every document with search and status; a task carries the sessions and
 documents it produced (rule:task-artifacts). What is missing: a work item is not a task (a request is a plan page; its

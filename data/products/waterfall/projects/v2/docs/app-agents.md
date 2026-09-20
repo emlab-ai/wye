@@ -87,37 +87,38 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   source: packages/web/src/lib/app-link.ts:1
   status: shipped
   related-to: [rule:session-page, decision:wf2.desktop-electron]
-- id: rule:plan-type-base
+- id: rule:pr-type-base
   statement: >
-    type:plan is declared in schema/base-ontology.md, read first for every product, so a plan page (`node:
-    plan:<slug>`) parses in any product: the app writes plan documents wherever a request is made, and a type the
-    app writes instances of is never a product-local card. schema/kinds.yaml lists plan as a base kind.
+    type:pr is declared in schema/base-ontology.md, read first for every product, so a PR page (`node: pr:<slug>`)
+    parses in any product: the app writes PR pages wherever a request is made, and a type the app writes instances
+    of is never a product-local card. schema/kinds.yaml lists pr as a base kind.
   source: schema/base-ontology.md; schema/kinds.yaml; lib/parse.js#parseFiles
   status: shipped
   verified-by: [test:page-node]
-  related-to: [rule:plan-doc, rule:page-node-line, rule:ontology.open-kinds]
-- id: rule:plan-doc
+  related-to: [rule:pr-doc, rule:page-node-line, rule:ontology.open-kinds]
+- id: rule:pr-doc
   statement: >
-    The plan document is written, not derived: lib:plan-doc makes the slug (`plan-` + the first words of the
-    request slugified, `-2`, `-3` on a collision in the project), the body from templates/docs/plan-request.md
-    (frontmatter `node: plan:<slug>`, `type: plan`, `session`, `agent`, `started`, `status`, `part-of:
-    module:<project>-plans`; Request / Context / Plan / Tasks / Result), the Result section from the session's
-    summary and the artifacts.blocks inside the plan's window (`started`…`finished`, minus the plan's own page and
-    the Plans page), and a session's plans from the graph (`plansOf`: plan nodes whose `session` names the id,
-    oldest first, tasks `part of` the plan counted). lib/plan-docs does the IO: `ensurePlansPage` writes
-    `plans.md` when missing; `createPlanDoc` runs for every session the POST creates (chat or queued) and for
-    every fresh item agent-host#restartFresh hands over — after `closePlanDoc` cancelled the plan the session left
-    unfinished — and stores `planDoc`; `finishPlanDoc` runs from lib:sessions' end hook (done / failed /
-    cancelled) and rewrites Result; `adoptPlanDoc` adds a handed-off session's id to `session`. The first
-    message always carries "The plan document" (agent-host#planDocNote: where it is, what goes where — tasks,
-    questions and decisions on the plan page; requirements, rules, components and pages on the entity's page,
-    embedded on the plan page); the plan-first protocol adds its steps when the tick is on. The sessions API
-    answers each session with `plans` (SessionPlan[]). `/<product>/sessions/<id>` redirects to the current plan
-    document when the session has one, else to `/changes`.
-  source: packages/web/src/lib/plan-doc.ts; packages/web/src/lib/plan-docs.ts; packages/web/src/lib/sessions.ts#onSessionEnd; packages/web/src/app/api/[product]/sessions/route.ts; packages/web/src/lib/agent-host.ts#planDocNote; packages/web/src/lib/agent-host.ts#restartFresh; templates/docs/plan-request.md
+    The PR page is written, not derived: lib:pr-doc makes the slug (`pr-` + the first words of the request
+    slugified, `-2`, `-3` on a collision in the project), the body from templates/docs/pr.md (frontmatter `node:
+    pr:<slug>`, `type: pr`, `session`, `agent`, `started`, `status`, `part-of: module:<project>-prs`; Request /
+    Context / Definition / Impact / Tasks / Result), the Result section from the session's summary and the
+    artifacts.blocks inside the PR's window (`started`…`finished`, minus the PR's own page and the PRs page), the
+    readiness list from the Definition and the Tasks (`readiness`), and a session's PRs from the graph (`prsOf`:
+    pr nodes whose `session` names the id, oldest first, tasks `part of` the PR counted). lib/pr-docs does the IO:
+    `ensurePrsPage` writes `prs.md` when missing; `createPrDoc` runs for a PR session (⌘P in PR mode, Ask Wye —
+    born refining) and for an assigned task's worker (born building), and for every fresh item
+    agent-host#restartFresh hands a PR conversation — after `closePrDoc` cancelled the PR the session left
+    unfinished — and stores `prDoc` (a stored `planDoc` is read as prDoc); an ad-hoc conversation gets no page.
+    `finishPrDoc` runs from lib:sessions' end hook (done / failed / cancelled) and rewrites Result; a librarian
+    leaving puts a refining PR back to draft; `adoptPrDoc` adds a handed-off session's id to `session`;
+    `approvePr` / `cancelPr` / `reopenPr` are the person's moves. The first message carries "The request page"
+    (agent-host#refiningNote for a librarian, #prDocNote for a worker: where it is, what goes where). The sessions
+    API answers each session with `prs` (SessionPr[]). `/<product>/sessions/<id>` redirects to the current PR page
+    when the session has one, else to `/changes`.
+  source: packages/web/src/lib/pr-doc.ts; packages/web/src/lib/pr-docs.ts; packages/web/src/lib/sessions.ts#onSessionEnd; packages/web/src/app/api/[product]/sessions/route.ts; packages/web/src/lib/agent-host.ts#prDocNote; packages/web/src/lib/agent-host.ts#refiningNote; packages/web/src/lib/agent-host.ts#restartFresh; templates/docs/pr.md
   status: shipped
-  verified-by: [test:web-lib#plan-doc, ui-test:plan-doc]
-  related-to: [rule:plan-first, rule:embed-line, rule:block-attribution]
+  verified-by: [test:web-lib#pr-doc, test:web-lib#pr-docs, ui-test:plan-doc]
+  related-to: [rule:embed-line, rule:block-attribution, decision:wf2.pr-lifecycle]
 - id: rule:column-frame
   statement: >
     The context column is a flex column: `.peek-nav` (the bar) is fixed at the top, `.peek-body` is the one scroll
@@ -398,7 +399,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     computed session page to see it as one thing. The person wants the one thing to be a page in the documents:
     created for the request, editable, in the tree, with the tasks, the context and later the result.
   choice: >
-    A plan document per palette request, created by the app at session start from a template (type:plan), a
+    A plan document per palette request, created by the app at session start from a template (type:pr), a
     sub-page of the document the request was made on. Tasks, questions and decisions of the plan live on it;
     requirements, rules and components are defined on the entity's page and embedded on the plan page so there
     is one source. The app appends the result when the session ends. The derived session page is retired; its
@@ -409,8 +410,8 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     every block — the drift decision:wf2.plan-is-a-page rejected, avoided here by embeds.
   consequences: >
     supersedes decision:wf2.session-page-derived; refines decision:wf2.plan-is-a-page (the plan is still a page
-    the two work on — now its own); req:wf2.sessions.plan-doc, req:wf2.sessions.plan-result, rule:plan-doc,
-    lib:plan-doc, type:plan; page:web/session, component:session-page, lib:session-page and
+    the two work on — now its own); req:wf2.sessions.plan-doc, req:wf2.sessions.plan-result, rule:pr-doc,
+    lib:pr-doc, type:pr; page:web/session, component:session-page, lib:session-page and
     op:api.sessions.page are removed; rule:plan-first's steps 2–3 change; sessions without a plan document keep
     the changes page only. Refined the same day by decision:wf2.plans-folder (the parent is the project's Plans
     page, not the source document) and decision:wf2.plan-per-request (every request, not only plan-first ones).
@@ -539,15 +540,16 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     index (a document's node may be a card elsewhere, so by id, not by file); `plainAppLinks(text, origin, titles)`
     → the same labels as text. localhost / 127.0.0.1 on the origin's port count as the origin. Tested (app-link.test).
   part-of: module:app-agents
-- id: lib:plan-doc
-  file: packages/web/src/lib/plan-doc.ts
+- id: lib:pr-doc
+  status: retired
+  file: packages/web/src/lib/pr-doc.ts
   side: server
   purpose: >
     Pure: `planSlug(request, taken)`, `planTitle`, `planDocBody(template, vars)`, `resultSection(session, window)`
     (summary + the blocks inside the plan's window), `withResult(markdown, section)` (the app owns what is under
     "## Result"), `planStatusOnEnd`, `getFrontmatter` / `setFrontmatter`, `plansOf(product, graph, sessionId)`
     (a worker's plans with task counts), `planDocPath`, `plansPageId(project)` (module:<project>-plans — the Plans page
-    the rail treats as a system folder, rule:plans-folder). Tested by test:web-lib#plan-doc (12 tests). The IO —
+    the rail treats as a system folder, rule:prs-folder). Tested by test:web-lib#plan-doc (12 tests). The IO —
     Plans page, create, finish, close, adopt — is lib/plan-docs.ts.
   part-of: module:app-agents
 ```

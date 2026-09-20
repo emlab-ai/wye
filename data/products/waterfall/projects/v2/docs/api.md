@@ -425,12 +425,12 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/propose/route.ts
   status: shipped
   part-of: module:api
-- id: op:api.plan
+- id: op:api.pr
   args: GET /api/<product>/plan?ref=; PATCH { ref, status }; POST { action: refresh }
   does: a plan's status, role, task and Definition state (total, agreed, open, missing, contradicted, defined, items); set the status; recompute defining ↔ defined for every plan. `wf plan` calls it.
   gate: none (local app)
-  source: packages/web/src/app/api/[product]/plan/route.ts; packages/web/src/lib/plan-docs.ts#planDefinition
-  status: shipped
+  source: packages/web/src/app/api/[product]/pr/route.ts; packages/web/src/lib/pr-docs.ts#planDefinition
+  status: retired
   part-of: module:api
 - id: op:api.explain
   args: POST /api/<product>/explain { id } | { text }
@@ -479,6 +479,20 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
     GET → { jev: { set, last4 } } (never the key). PUT { jev: { key } } → the same view; an empty key removes it.
   gate: none (local app)
   source: packages/web/src/app/api/settings/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.pr
+  args: GET | PATCH /api/<product>/pr
+  does: >
+    (decision&#58;wf2.pr-lifecycle, decision&#58;wf2.pr-approval-is-the-persons-click) — GET
+    ?ref=product/project/pr-x → the PR's status, Definition state (n blocks, k agreed, j open, contradicted,
+    missing), readiness (definition · agreed · impact · contradictions · tasks), who approved it and its request
+    task — the frontmatter `task:` when the PR was made for an existing task, else the `task:<slug>` line the
+    request wrote (rule&#58;pr-doc). PATCH { ref, action: 'approve' | 'cancel' | 'reopen', by? } — the person's
+    moves: approve sets approved + approved-by / approved-at and stops a live refining session; cancel ends it;
+    reopen puts it back to draft. PATCH { ref, status } sets a status outright.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/pr/route.ts
   status: proposed
   part-of: module:api
 ```

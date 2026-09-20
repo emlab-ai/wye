@@ -54,7 +54,7 @@ Every page of the app by area: its route, what it shows, its actions. The table 
     - action:hand-off:         continue the work under another agent (rule:agent-sessions)
   display-rules:
     - Runners online and working; Active / All filters; a row shows status, first line of the instruction, agent, mode, folder, age and refs
-    - a row is a worker: under its request line, every plan it is on or has done (component:plan-list — status, title → the plan page, tasks done / all, when), the current one marked; one agent works on many plans, one at a time (decision:wf2.plan-per-request)
+    - a row is a worker: under its request line, every plan it is on or has done (component:pr-list — status, title → the plan page, tasks done / all, when), the current one marked; one agent works on many plans, one at a time (decision:wf2.plan-per-request)
     - the console is the conversation: user messages (with images), the agent's replies as markdown, questions and permission cards, folded activity rows, subagents nested under their Task, turn ends with time and cost, `wf session log` lines and the `wf session done` summary in place by time (rule:console-flow)
     - a pending question is the agent waiting: nothing continues until Answer or Skip
 - id: page:skill/context-v2
@@ -270,11 +270,12 @@ Every page of the app by area: its route, what it shows, its actions. The table 
   purpose: >
     Create a product (title, description, icon) — writes data/products/<slug>/_product.md.
   part-of: module:pages
-- id: page:web/plans
+- id: page:web/prs
+  status: retired
   route: /<product>/plans
-  component: app/[product]/plans/page.tsx
+  component: app/[product]/prs/page.tsx
   purpose: >
-    Every plan of the product (type:plan, all projects) as the filterable instance table — status, tasks, session,
+    Every plan of the product (type:pr, all projects) as the filterable instance table — status, tasks, session,
     started, finished; a row opens the plan document. The page the rail's Plans folder opens (req:wf2.ui.plans-folder).
   part-of: module:pages
 - id: page:web/sidebar
@@ -294,12 +295,12 @@ Every page of the app by area: its route, what it shows, its actions. The table 
     - action:open-questions:  Questions — open question blocks and inbox questions
     - action:open-inbox:      Inbox — proposed blocks and raw notes awaiting review
     - action:open-sessions:   Agents — every conversation and run, and the runners (the rail and the top bar say "Agents", task:new-917) -(navigates)-> page:web/sessions
-    - action:open-plans:      Plans — the system folder at the end of the menu: the entry opens every plan as a table, the rows beneath open one plan document each, the caret collapses it (req:wf2.ui.plans-folder) -(navigates)-> page:web/plans
+    - action:open-plans:      Plans — the system folder at the end of the menu: the entry opens every plan as a table, the rows beneath open one plan document each, the caret collapses it (req:wf2.ui.plans-folder) -(navigates)-> page:web/prs
     - action:new-document:    + next to Documents creates a document under a parent
     - action:duplicate-document: right-click or ⋯ on a row → Duplicate: a copy next to the document, opened (rule:tree-menu) -(calls)-> op:api.docs.duplicate
     - action:delete-document: right-click or ⋯ on a row → Delete: confirm with the sub-document count, the subtree removed (rule:tree-menu) -(calls)-> op:api.docs.delete
   display-rules:
-    - menu order: Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inbox, Agents, Plans (a folder: the plan documents newest first, the open one marked, collapsed state remembered — rule:plans-folder); a horizontal splitter (rule:rail-split); then the Documents tree (rule:documents-tree); the rail is collapsible (rule:app-navigation)
+    - menu order: Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inbox, Agents, Plans (a folder: the plan documents newest first, the open one marked, collapsed state remembered — rule:prs-folder); a horizontal splitter (rule:rail-split); then the Documents tree (rule:documents-tree); the rail is collapsible (rule:app-navigation)
     - the rail lists documents, not nodes: root documents → sub-documents; the open document shows its ## outline beneath it
     - counts and lists refresh on graph, inbox and session change events (rule:live-refresh)
 ```
@@ -437,6 +438,14 @@ Every page of the app by area: its route, what it shows, its actions. The table 
   purpose: >
     The app's settings (Jev auto-linking design §0). Reached from every product's rail but not about one product:
     what is stored here applies to the whole app on this machine.
+  status: proposed
+  part-of: module:pages
+- id: page:web/prs
+  route: /<product>/prs
+  component: packages/web/src/app/[product]/prs/page.tsx
+  purpose: >
+    Every request of the product (type:pr, all projects) as the filterable instance table — the page the rail's PRs
+    folder opens (page&#58;web/prs, req:wf2.ui.plans-folder). A row opens the request.
   status: proposed
   part-of: module:pages
 ```

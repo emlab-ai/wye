@@ -143,7 +143,7 @@ Blocks this plan produced:
 - changed pr:pr-hide-noise-like-tasks-ok-keep — hide noise like this from tasks?
 - changed pr:pr-improve-context-window-click-element-would — improve context window, when i click to the element, i would like to be able to add…
 - changed pr:pr-pannel-text-input-bottom-bar-top — the pannel / text input at the bottom and bar on top must not be scrollable, content is…
-- changed type:plan — plan
+- changed type:pr — plan
 - changed pr:pr-table-horizontally-scrollable-just-take-100 — table should horizontally scrollable , not just take 100% width, in small screens it…
 - changed pr:pr-text-which-sent-agent-beginning-no — this text, which is sent to agent at the beginning, can you no show it, it is kind of…
 - changed pr:pr-told-show-card-additional-blocks-only — i told you not to show in the card, additional blocks only first one, the reset is in…
@@ -190,7 +190,7 @@ Blocks this plan produced:
 - added question:exec.agent-edits-pending — Does an agent's edit to an approved node wait for review before agents downstream see it as current?
 - added question:exec.impact-model — Which model judges impact, and what does a run cost?
 - added task:exec.task-props — type:task gains worker, priority, blocked-by (inverse blocks) and the review status;
-- added task:exec.request-task — The plan template and lib:plan-doc write the request as a task line with worker and session;
+- added task:exec.request-task — The plan template and lib:pr-doc write the request as a task line with worker and session;
 - added task:exec.work-api — op:api.work:
 - added task:exec.work-view — page:web/work replaces the Tasks entry:
 - added task:exec.assign — Assign on a row and on the task panel:
@@ -228,10 +228,10 @@ Blocks this plan produced:
 - changed rule:history-nav — ‹ › in the top bar call history.back / history.forward; ⌘[ / ⌘] (Ctrl on Windows) do the same. Whether there i
 - changed component:transcript-markdown — The one markdown renderer for conversation and session text: react-markdown with GFM and lib:remark-tags, `a` 
 - changed lib:app-link — Pure: `appLink(href, origin)` → null for a foreign URL, else `{ path, hash, kind: 'root' | 'doc' | 'node' | 's
-- changed rule:plan-type-base — type:plan is declared in schema/base-ontology.md, read first for every product, so a plan page (`node: plan:<s
-- changed rule:plan-doc — The plan document is written, not derived: lib:plan-doc makes the slug (`plan-` + the first words of the reque
-- changed lib:plan-doc — Pure: `planSlug(request, taken)`, `planTitle`, `planDocBody(template, vars)`, `resultSection(session, window)`
-- changed component:plan-list — A worker's work items (decision:wf2.plan-per-request): the session's plans oldest first — status pill, the tit
+- changed rule:pr-type-base — type:pr is declared in schema/base-ontology.md, read first for every product, so a plan page (`node: plan:<s
+- changed rule:pr-doc — The plan document is written, not derived: lib:pr-doc makes the slug (`plan-` + the first words of the reque
+- changed lib:pr-doc — Pure: `planSlug(request, taken)`, `planTitle`, `planDocBody(template, vars)`, `resultSection(session, window)`
+- changed component:pr-list — A worker's work items (decision:wf2.plan-per-request): the session's plans oldest first — status pill, the tit
 - changed component:doc-editor — The single-page BlockNote editor of a document (rule:single-page-editor): prose blocks, node cards and prose n
 - changed component:data-table — The "Data table" block of the editor (CollectionBlock, RowNode, TypeRow): a header with the type picker and on
 - changed component:document-reader — Read-only rendering of a document (server component). Shown until the editor hydrates, and used by anything th
@@ -300,10 +300,10 @@ Blocks this plan produced:
 - changed page:web/overview — Product overview: description, projects and goals, knowledge counts by kind.
 - changed page:web/project — Project overview: its documents; opens the main document directly when there is one.
 - changed page:web/new-product — Create a product (title, description, icon) — writes data/products/<slug>/_product.md.
-- changed page:web/plans — Every plan of the product (type:plan, all projects) as the filterable instance table — status, tasks, session,
+- changed page:web/prs — Every plan of the product (type:pr, all projects) as the filterable instance table — status, tasks, session,
 - changed component:shell — The app frame: a collapsible rail, the content, and — while a node, context or session is open — the right col
 - changed component:rail — The left rail: product switcher, menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inb
-- changed component:plan-folder — The rail's Plans system folder (req:wf2.ui.plans-folder): the entry to page:web/plans with a caret, and under 
+- changed component:pr-folder — The rail's Plans system folder (req:wf2.ui.plans-folder): the entry to page:web/prs with a caret, and under 
 - changed component:top-bar — The bar above the content, Notion style: sidebar control, back / forward (‹ ›, ⌘[ / ⌘] — rule:history-nav, req
 - changed component:doc-tree — Docmost-style document tree: chevron for documents with children, a dot for leaves, an emoji icon, the title. 
 - changed component:search — Rail search over document titles, headings and node ids/titles; a hit opens the document or the node.
@@ -413,7 +413,7 @@ Blocks this plan produced:
 - changed rule:documents-tree — The rail shows one Documents tree per product: every document with its sub-documents, regardless of the projec
 - changed rule:doc-tree-row-stable — The document tree's row is a module-level component (Row) that takes the tree's shared state as one prop; it i
 - changed rule:tree-menu — Every row of the Documents tree has a context menu — right-click, or the "⋯" shown on hover — with Duplicate a
-- changed rule:plans-folder — The rail treats a project's Plans page (`module:<project>-plans`, lib/plan-docs#plansPageId) as a system folde
+- changed rule:prs-folder — The rail treats a project's Plans page (`module:<project>-plans`, lib/plan-docs#plansPageId) as a system folde
 - changed rule:rail-split — The rail is two panes — `.rail-top` (menu, search, the Plans folder) and the Documents pane — with `.rail-spli
 - changed rule:block-links — Every block has a stable link: `<web>/<product>/<project>/d/<doc>#<anchor>` where the anchor is `n-<id>` for a
 - changed rule:agent-runner — External agents connect through the `wf` CLI (bin/wf.js) against the running web app. `wf agent listen --produ
@@ -483,7 +483,7 @@ Blocks this plan produced:
 - added task:exec.librarian-role — Session role on the record;
 - added task:exec.wye-context-card — The Context card in the context column:
 - added task:exec.wye-turns — The librarian's first turn (explain with tags, say when satisfied or contradicting), the question form along w
-- added task:exec.plan-definition — type:plan statuses and the Definition section in lib:plan-doc;
+- added task:exec.plan-definition — type:pr statuses and the Definition section in lib:pr-doc;
 - added task:exec.build — Build on a plan:
 - added task:exec.librarian-tests — test:librarian — recorded librarian turns on the YesSensei pilot:
 - added test:verdict-bench — verdict-bench

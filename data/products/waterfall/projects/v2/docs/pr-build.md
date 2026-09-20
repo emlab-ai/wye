@@ -377,7 +377,7 @@ Blocks this plan produced:
 - changed op:api.impact — api.impact
 - changed op:api.impact.apply — api.impact.apply
 - changed op:api.propose — api.propose
-- changed op:api.plan — api.plan
+- changed op:api.pr — api.plan
 - changed op:api.explain — api.explain
 - changed module:app-graph — Graph core and CLI
 - changed flag:strict — turns "shipped requirement has no test" and "source path not found" from warnings into errors
@@ -396,7 +396,7 @@ Blocks this plan produced:
 - changed component:command-box — The one command box (decision:wf2.one-command-box): ⌘P / Ctrl+P opens it with what the person is looking at (t
 - changed component:session-page — The body of page:web/session: head (agent, status, when, "open conversation"), the task (through component:tra
 - changed component:transcript-markdown — The one markdown renderer for conversation and session text: react-markdown with GFM and lib:remark-tags, `a` 
-- changed component:plan-list — A worker's work items (decision:wf2.plan-per-request): the session's plans oldest first — status pill, the tit
+- changed component:pr-list — A worker's work items (decision:wf2.plan-per-request): the session's plans oldest first — status pill, the tit
 - changed component:doc-editor — The single-page BlockNote editor of a document (rule:single-page-editor): prose blocks, node cards and prose n
 - changed component:data-table — The "Data table" block of the editor (CollectionBlock, RowNode, TypeRow): a header with the type picker and on
 - changed component:document-reader — Read-only rendering of a document (server component). Shown until the editor hydrates, and used by anything th
@@ -423,7 +423,7 @@ Blocks this plan produced:
 - changed component:add-type — \"+ add type\" on the Types index: writes a `type:<slug>` card (extends, purpose) into the product's ontology 
 - changed component:shell — The app frame: a collapsible rail, the content, and — while a node, context or session is open — the right col
 - changed component:rail — The left rail: product switcher, menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inb
-- changed component:plan-folder — The rail's Plans system folder (req:wf2.ui.plans-folder): the entry to page:web/plans with a caret, and under 
+- changed component:pr-folder — The rail's Plans system folder (req:wf2.ui.plans-folder): the entry to page:web/prs with a caret, and under 
 - changed component:top-bar — The bar above the content, Notion style: sidebar control, back / forward (‹ ›, ⌘[ / ⌘] — rule:history-nav, req
 - changed component:doc-tree — Docmost-style document tree: chevron for documents with children, a dot for leaves, an emoji icon, the title. 
 - changed component:search — Rail search over document titles, headings and node ids/titles; a hit opens the document or the node.
@@ -516,7 +516,7 @@ Blocks this plan produced:
 - changed page:web/overview — Product overview: description, projects and goals, knowledge counts by kind.
 - changed page:web/project — Project overview: its documents; opens the main document directly when there is one.
 - changed page:web/new-product — Create a product (title, description, icon) — writes data/products/<slug>/_product.md.
-- changed page:web/plans — Every plan of the product (type:plan, all projects) as the filterable instance table — status, tasks, session,
+- changed page:web/prs — Every plan of the product (type:pr, all projects) as the filterable instance table — status, tasks, session,
 - changed page:web/work — Every task of the product as one list, whoever holds it (req:exec.work-view): status, derived state, plan or g
 - changed goal:exec.work-and-impact — All work is one list, any worker can take any item, and an edit shows what it changes before it lands
 - changed goal:exec.define-first — A request is understood, explained and agreed as knowledge before anyone builds it

@@ -40,8 +40,8 @@ The request is module:prd-execution — the execution PRD, written 2026-09-19 af
 
 ![[goal:exec.define-first]]
 
-What exists that this builds on: rule:plan-doc and lib:plan-doc (`packages/web/src/lib/plan-doc.ts`, `plan-docs.ts`,
-`templates/docs/plan-request.md`) write a plan document per request; rule:session-queue and rule:agent-runner
+What exists that this builds on: rule:pr-doc and lib:pr-doc (`packages/web/src/lib/pr-doc.ts`, `plan-docs.ts`,
+`templates/docs/pr.md`) write a plan document per request; rule:session-queue and rule:agent-runner
 (`packages/web/src/lib/sessions.ts`, `bin/wf.js` `agent listen`, op:api.sessions.claim) queue and claim sessions;
 rule:task-artifacts (`packages/web/src/lib/artifacts.ts`) links tasks to sessions; rule:block-attribution
 (`packages/web/src/lib/watch.ts` + `graph-diff.ts`) diffs every rebuild against the graph the watcher last saw — the
@@ -57,7 +57,7 @@ with another prompt and a tool allow-list. task:memory.verdict-pass and task:mem
 E.5 depend on, are done.
 
 Parser facts that shape the work: a task line is `- [ ] task:x text (key: value, …) #status` (`lib/parse.js`
-prose nodes; the property group is the parenthesised tail); type:task today has `due` and `session`; type:plan has
+prose nodes; the property group is the parenthesised tail); type:task today has `due` and `session`; type:pr has
 `session`, `agent`, `started`, `finished`; TASK_STATUSES in `packages/web/src/lib/props.ts` is
 todo / open / in-progress / blocked / done.
 
@@ -252,7 +252,7 @@ enough to reverse:
   title: A rework verdict becomes a task on the project's backlog, not a "Follow up" plan document
   context: >
     decision:exec.impact-run says a rework task goes under the change's plan, else under a plan the app creates
-    ("Follow up: <node>"). A plan document is a request with a session (type:plan requires `session`); an app-made
+    ("Follow up: <node>"). A plan document is a request with a session (type:pr requires `session`); an app-made
     plan with no request and no session would be an empty page per rework.
   choice: >
     the rework task is captured like any backlog item (rule:capture-home): a task line with `change:` the record,
@@ -297,7 +297,7 @@ enough to reverse:
 ## Tasks
 
 - [x] task:exec.impl.task-props type:task gains worker, priority, blocked-by (inverse blocks), change, ready; `review` and `ready` join TASK_STATUSES / marks; the parser reads them from the property group; TrackList shows worker. part of pr:pr-build-one-too (task: exec.task-props, session: de966d3bd9)
-- [x] task:exec.impl.request-task the plan template and lib:plan-doc write the request as `task:<plan-slug>` with worker and session; the session's refs carry it; the end hook moves it to review or done. part of pr:pr-build-one-too (task: exec.request-task, session: de966d3bd9)
+- [x] task:exec.impl.request-task the plan template and lib:pr-doc write the request as `task:<plan-slug>` with worker and session; the session's refs carry it; the end hook moves it to review or done. part of pr:pr-build-one-too (task: exec.request-task, session: de966d3bd9)
 - [x] task:exec.impl.work-api lib/work.ts pure (derived state from session records: queued, working, stalled, unassigned; plan, goal, worker, sessions, produced counts) + op:api.work. part of pr:pr-build-one-too (task: exec.work-api, session: de966d3bd9)
 - [x] task:exec.impl.work-view page:web/work replaces the Tasks entry: rows, groups (status, goal, plan, document, worker), URL filters, nesting, "mine", done folded. part of pr:pr-build-one-too (task: exec.work-view, session: de966d3bd9)
 - [x] task:exec.impl.assign Assign on a row and on the task panel: worker picker (people from the product file, agents, runner pool), note, plan-first; creates or queues the session with the constraint packet; refuses done and blocked tasks; op:api.work.assign. part of pr:pr-build-one-too (task: exec.assign, session: de966d3bd9)
@@ -313,7 +313,7 @@ enough to reverse:
 - [x] task:exec.impl.librarian-role role on the session record; prompts/librarian-system.md; the host's tool allow-list per role; "Ask Wye" and "Explain" in the command box and on nodes; `wf explain`. part of pr:pr-build-one-too (task: exec.librarian-role, decision: exec.librarian-on-the-host, session: de966d3bd9)
 - [x] task:exec.impl.wye-context-card the Context card in the context column: the constraint packet and semantic hits grouped by kind, filling in live from the session's knowledge events; stays at the top. part of pr:pr-build-one-too (task: exec.wye-context-card, session: de966d3bd9)
 - [x] task:exec.impl.wye-turns the librarian's first turn (explain with tags), the question form along when / then / unless, `wf propose` writing proposed blocks to home documents (or the plan, decision:exec.definition-home-fallback) and embedding them under Definition with verdicts. part of pr:pr-build-one-too (task: exec.wye-turns, session: de966d3bd9)
-- [x] task:exec.impl.plan-definition type:plan statuses (proposed, defining, defined, building, done, cancelled) and the Definition section in lib:plan-doc; blocks and change records of a defining session embed automatically; `defined` computed; the plan page shows the list with status and diffs. part of pr:pr-build-one-too (task: exec.plan-definition, session: de966d3bd9)
+- [x] task:exec.impl.plan-definition type:pr statuses (proposed, defining, defined, building, done, cancelled) and the Definition section in lib:pr-doc; blocks and change records of a defining session embed automatically; `defined` computed; the plan page shows the list with status and diffs. part of pr:pr-build-one-too (task: exec.plan-definition, session: de966d3bd9)
 - [x] task:exec.impl.build Build on a plan: assign the request task with the Definition as context; unagreed blocks listed when not defined; the Result maps what was built to each block. part of pr:pr-build-one-too (task: exec.build, session: de966d3bd9)
 - [x] task:exec.impl.tests unit tests per lib (work states, plan-doc request task, change record, impact candidates, impact apply, rework task, capture); test:librarian on recorded turns with the fake judge; ui-test:work-view, ui-test:work-assign, ui-test:change-review, ui-test:ask-wye, ui-test:build-plan in Chrome (playwright-core). part of pr:pr-build-one-too (task: exec.librarian-tests, task: exec.ui-tests) (session: de966d3bd9; the librarian replay is task:exec.librarian-replay)
 
@@ -340,7 +340,7 @@ Blocks this plan produced:
 - added decision:exec.definition-home-fallback — When a proposed block has no home document yet, Wye writes it on the plan under Definition and says so
 - added question:exec.ask-wye-default — Does "Ask Wye" become the command box's default, replacing "New conversation · plan first"?
 - added task:exec.impl.task-props — type:task gains worker, priority, blocked-by (inverse blocks), change, ready;
-- added task:exec.impl.request-task — the plan template and lib:plan-doc write the request as `task:<plan-slug>` with worker and session;
+- added task:exec.impl.request-task — the plan template and lib:pr-doc write the request as `task:<plan-slug>` with worker and session;
 - added task:exec.impl.work-api — lib/work.ts pure (derived state from session records:
 - added task:exec.impl.work-view — page:web/work replaces the Tasks entry:
 - added task:exec.impl.assign — Assign on a row and on the task panel:
@@ -356,12 +356,12 @@ Blocks this plan produced:
 - added task:exec.impl.librarian-role — role on the session record;
 - added task:exec.impl.wye-context-card — the Context card in the context column:
 - added task:exec.impl.wye-turns — the librarian's first turn (explain with tags), the question form along when / then / unless, `wf propose` wri
-- added task:exec.impl.plan-definition — type:plan statuses (proposed, defining, defined, building, done, cancelled) and the Definition section in lib:
+- added task:exec.impl.plan-definition — type:pr statuses (proposed, defining, defined, building, done, cancelled) and the Definition section in lib:
 - added task:exec.impl.build — Build on a plan:
 - added task:exec.impl.tests — unit tests per lib (work states, plan-doc request task, change record, impact candidates, impact apply, rework
 - changed type:task — task
 - changed task:exec.task-props — type:task gains worker, priority, blocked-by (inverse blocks) and the review status;
-- changed task:exec.request-task — The plan template and lib:plan-doc write the request as a task line with worker and session;
+- changed task:exec.request-task — The plan template and lib:pr-doc write the request as a task line with worker and session;
 - changed task:exec.work-api — op:api.work:
 - changed task:exec.work-view — page:web/work replaces the Tasks entry:
 - changed task:exec.assign — Assign on a row and on the task panel:
@@ -391,7 +391,7 @@ Blocks this plan produced:
 - changed task:exec.librarian-role — Session role on the record;
 - changed task:exec.wye-context-card — The Context card in the context column:
 - changed task:exec.wye-turns — The librarian's first turn (explain with tags, say when satisfied or contradicting), the question form along w
-- changed task:exec.plan-definition — type:plan statuses and the Definition section in lib:plan-doc;
+- changed task:exec.plan-definition — type:pr statuses and the Definition section in lib:pr-doc;
 - changed task:exec.build — Build on a plan:
 - added module:app-work — Work, changes, impact and the librarian
 - added rule:work-state — A task's status is the word on its line (todo, open, in-progress, blocked, review, done — `#ready` a mark besi
@@ -431,7 +431,7 @@ Blocks this plan produced:
 - added op:api.impact — api.impact
 - added op:api.impact.apply — api.impact.apply
 - added op:api.propose — api.propose
-- added op:api.plan — api.plan
+- added op:api.pr — api.plan
 - added op:api.explain — api.explain
 - added flag:impact — impact
 - added flag:auto-take — auto-take

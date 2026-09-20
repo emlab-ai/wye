@@ -65,10 +65,10 @@ Blocks this plan produced:
 - changed task:exec.impl.librarian-role — role on the session record;
 - changed task:exec.librarian-role — Session role on the record;
 - changed task:exec.impl.wye-turns — the librarian's first turn (explain with tags), the question form along when / then / unless, `wf propose` wri
-- changed task:exec.impl.plan-definition — type:plan statuses (proposed, defining, defined, building, done, cancelled) and the Definition section in lib:
+- changed task:exec.impl.plan-definition — type:pr statuses (proposed, defining, defined, building, done, cancelled) and the Definition section in lib:
 - changed task:exec.wye-context-card — The Context card in the context column:
 - changed task:exec.wye-turns — The librarian's first turn (explain with tags, say when satisfied or contradicting), the question form along w
-- changed task:exec.plan-definition — type:plan statuses and the Definition section in lib:plan-doc;
+- changed task:exec.plan-definition — type:pr statuses and the Definition section in lib:pr-doc;
 - changed task:exec.impl.wye-context-card — the Context card in the context column:
 - changed task:exec.impl.build — Build on a plan:
 - changed task:exec.build — Build on a plan:
@@ -110,7 +110,7 @@ Blocks this plan produced:
 - added op:api.impact — api.impact
 - added op:api.impact.apply — api.impact.apply
 - added op:api.propose — api.propose
-- added op:api.plan — api.plan
+- added op:api.pr — api.plan
 - added op:api.explain — api.explain
 - added flag:impact — impact
 - added flag:auto-take — auto-take

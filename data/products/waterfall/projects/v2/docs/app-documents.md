@@ -302,7 +302,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     frontmatter, renumbered in tens), and a drop zone under the tree makes it top level. Moving under a document of
     another project moves the file into that project's docs folder. A document cannot be moved under itself. One
     exception: a project's Plans page and the plan documents under it are not in the tree — they are the rail's Plans
-    system folder (rule:plans-folder).
+    system folder (rule:prs-folder).
   source: packages/web/src/components/DocTree.tsx; packages/web/src/app/api/[product]/docs/move/route.ts; packages/web/src/lib/doc.ts#documentTree; packages/web/src/app/[product]/layout.tsx#withoutPlans
   status: shipped
 - id: rule:tree-menu

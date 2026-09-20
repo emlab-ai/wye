@@ -137,10 +137,10 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 - id: req:wf2.ui.plans-folder
   title: Plans is a system folder at the top of the rail, not a page in the Documents tree
   when: >
-    a product has plan documents (type:plan — one per request that starts work, req:wf2.sessions.plan-doc)
+    a product has plan documents (type:pr — one per request that starts work, req:wf2.sessions.plan-doc)
   then: >
     the rail's menu (Overview … Agents) ends with a "Plans" folder: the entry opens the product's Plans page
-    (page:web/plans — every plan of every project as a table with status, tasks done, session, started); beneath it
+    (page:web/prs — every plan of every project as a table with status, tasks done, session, started); beneath it
     the plan documents themselves, newest first, each a row with its icon and title that opens the plan page (the
     open one marked), a plan still `proposed` before a done one only by date; the folder collapses and expands with
     a caret and the choice is remembered per browser. The project's Plans page (`plans.md`) and the plans under it
@@ -148,7 +148,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
     docs folder, `part-of` the project's Plans page
   unless: the product has no plan yet — the folder shows "no plans yet" beneath the entry
   refines: [req:wf2.ui.sidebar, req:wf2.sessions.plan-doc]
-  satisfied-by: [component:rail, component:plan-folder, page:web/plans, rule:plans-folder]
+  satisfied-by: [component:rail, component:pr-folder, page:web/prs, rule:prs-folder]
   verified-by: [ui-test:plans-folder]
   status: shipped
 - id: req:wf2.ui.rail-split

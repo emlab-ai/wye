@@ -46,7 +46,7 @@ The editor's blocks and the components the pages are made of, by area.
     One agent session in the right column: what was sent, its status, and the live log (polled while active). The
     knowledge strip counts the blocks it changed (+added ~changed −removed ¶paragraphs, ↗ the changes page) and a
     "changes" fold under it holds component:session-changes. Under the head, "work" lists the session's plans
-  (component:plan-list) — the pages where its tasks and results are.
+  (component:pr-list) — the pages where its tasks and results are.
   part-of: module:components
 - id: component:session-changes
   file: packages/web/src/components/SessionChanges.tsx
@@ -65,7 +65,7 @@ The editor's blocks and the components the pages are made of, by area.
     column and shows its queue with states (component:queue-list, req:wf2.sessions.queue-on-agents); on hover it
     offers Stop (live rows) and Close (active rows), the header "Stop idle (n)" (req:wf2.sessions.stop-from-list);
     row actions refetch the list at once and never open the conversation; under the request line the row lists the
-  worker's plans (component:plan-list) — every work item it is on or has done, the current one marked.
+  worker's plans (component:pr-list) — every work item it is on or has done, the current one marked.
   part-of: module:components
 - id: component:queue-list
   file: packages/web/src/components/QueueList.tsx
@@ -117,8 +117,9 @@ The editor's blocks and the components the pages are made of, by area.
     line breaks. Used by component:console (user, assistant, summary rows), component:session-page (task, result)
     and component:session-view (instruction, result).
   part-of: module:components
-- id: component:plan-list
-  file: packages/web/src/components/PlanList.tsx
+- id: component:pr-list
+  status: retired
+  file: packages/web/src/components/PrList.tsx
   side: client
   purpose: >
     A worker's work items (decision:wf2.plan-per-request): the session's plans oldest first — status pill, the
@@ -357,14 +358,15 @@ The editor's blocks and the components the pages are made of, by area.
   side: client
   purpose: >
     The left rail: product switcher, menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Questions, Inbox, Agents) ending
-    with the Plans system folder (component:plan-folder — the plan documents the product layout took out of the tree,
-    rule:plans-folder), a horizontal splitter (rule:rail-split), then every project's documents as one tree (component:doc-tree).
+    with the Plans system folder (component:pr-folder — the plan documents the product layout took out of the tree,
+    rule:prs-folder), a horizontal splitter (rule:rail-split), then every project's documents as one tree (component:doc-tree).
   part-of: module:components
-- id: component:plan-folder
-  file: packages/web/src/components/PlanFolder.tsx
+- id: component:pr-folder
+  status: retired
+  file: packages/web/src/components/PrFolder.tsx
   side: client
   purpose: >
-    The rail's Plans system folder (req:wf2.ui.plans-folder): the entry to page:web/plans with a caret, and under it
+    The rail's Plans system folder (req:wf2.ui.plans-folder): the entry to page:web/prs with a caret, and under it
     the product's plan documents newest first as rows (icon, title, the open one marked); collapsed state remembered
     in localStorage (`wf-plans-open`). No drag, no menu — plans are made by requests, not by hand.
   part-of: module:components
@@ -570,6 +572,27 @@ The editor's blocks and the components the pages are made of, by area.
   purpose: >
     The Jev key (Jev auto-linking design §0): masked field, Save / Remove, and Test — one real question with the
     stored key, its round trip shown. A stored key is what switches auto-linking on; there is no other toggle.
+  status: proposed
+  part-of: module:components
+- id: component:pr-folder
+  file: packages/web/src/components/PrFolder.tsx
+  side: client
+  purpose: >
+    (no header comment)
+  status: proposed
+  part-of: module:components
+- id: component:pr-head
+  file: packages/web/src/components/PrHead.tsx
+  side: client
+  purpose: >
+    (no header comment)
+  status: proposed
+  part-of: module:components
+- id: component:pr-list
+  file: packages/web/src/components/PrList.tsx
+  side: client
+  purpose: >
+    (no header comment)
   status: proposed
   part-of: module:components
 ```

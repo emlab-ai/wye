@@ -65,7 +65,8 @@ Definition — the librarian
     bin/wf.js gains `plan build`; prompts/librarian-system.md and the host's librarian protocol gain the line;
     rule:build's "a librarian's hold does not refuse it" already covers the hand-over.
   date: 2026-09-20
-  status: proposed
+  status: superseded
+  superseded-by: decision:wf2.pr-approval-is-the-persons-click
   refines: decision:exec.wye-is-a-role
   affects: [decision:exec.wye-is-a-role, rule:build, req:exec.build-from-definition]
   by: agent:claude
@@ -98,7 +99,7 @@ Definition — the librarian
 - id: decision:exec.plan-lifecycle
   title: A plan goes proposed → defining → defined → building → done, and its Definition section is the set of blocks it will build
   context: >
-    type:plan today: proposed → building (after Proceed) → done | cancelled (rule:plan-doc). The person wants to agree
+    type:pr today: proposed → building (after Proceed) → done | cancelled (rule:pr-doc). The person wants to agree
     on all requirements first, then let it be implemented, and have every proposed change tracked so it can be built
     later — the v0.1 delta (entity:delta, "how a feature enters the graph before code") as a living page.
   choice: >
@@ -117,11 +118,86 @@ Definition — the librarian
     spec document per request (the plan is that document); statuses on the conversation rather than the plan (a
     plan outlives its sessions).
   consequences: >
-    type:plan gains statuses and the Definition section; lib:plan-doc writes and reads it; `defined` is computed from
-    the embedded blocks' statuses; Build is a dispatch with the definition as context; rule:plan-doc is refined.
+    type:pr gains statuses and the Definition section; lib:pr-doc writes and reads it; `defined` is computed from
+    the embedded blocks' statuses; Build is a dispatch with the definition as context; rule:pr-doc is refined.
   date: 2026-09-19
-  status: proposed
-  affects: [type:plan, rule:plan-doc, lib:plan-doc, req:exec.dispatch]
+  status: superseded
+  superseded-by: decision:wf2.pr-lifecycle
+  affects: [type:pr, rule:pr-doc, lib:pr-doc, req:exec.dispatch]
+  part-of: goal:exec.define-first
+- id: decision:wf2.pr-lifecycle
+  title: The plan document is the Prompt Request — draft → refining → approved → building → done | failed | cancelled, readiness computed
+  context: >
+    decision:exec.plan-lifecycle had a plan go proposed → defining → defined → building with `defined` computed from
+    the Definition. alex wanted a request to be one thing from typing it to its build: refined until it is clear,
+    approved explicitly, then built by an agent — and several built in parallel when they do not overlap.
+  choice: >
+    type:pr becomes type:pr (`pr:<slug>`, `pr-<slug>.md` under the project's PRs page), the same page renamed and
+    sharpened: Request / Context / Definition / Impact / Tasks / Result (the Plan section goes — prose to Context,
+    decisions and questions are blocks in Definition; Impact is new, for the scheduler). Statuses: draft (nobody on
+    it), refining (a librarian session is on it; back to draft when it leaves), approved (the person's click),
+    building (a worker session runs), done | failed | cancelled. Readiness is computed, never a status — definition ·
+    agreed · impact · no contradiction · tasks — shown as a list on the PR's head. Existing plan documents were
+    migrated in place (scripts/plans-to-prs).
+  alternatives: >
+    A PR next to plans (two folders, two types) — rejected: one concept. A UI rename only — rejected: the documents
+    and the CLI would say plan while the UI says PR. `queued` as a status — folded into approved: the approved PRs
+    are the queue, in order of approved-at.
+  consequences: >
+    lib:pr-doc / lib:pr-docs, op:api.pr, component:pr-head, component:pr-folder, page:web/prs; wye pr (plan as an
+    alias); type:pr in the base ontology; rule:pr-doc, rule:prs-folder, rule:pr-type-base refined. The scheduler
+    (scope from Definition + impact, N parallel runners from Settings) is the next deliverable.
+  date: 2026-09-20
+  status: approved
+  affects: [type:pr, rule:pr-doc, lib:pr-doc, lib:pr-docs, req:wf2.pr, op:api.pr, component:pr-head]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
+- id: decision:wf2.pr-approval-is-the-persons-click
+  title: A PR is approved by the person's click on its page — the librarian never approves and never builds
+  context: >
+    decision:exec.librarian-may-build let "build it" said to the librarian start the build. With PRs the build is
+    started by the scheduler from an approved PR; approval has to be one explicit act by the person.
+  choice: >
+    Approve on the PR's head (and wye pr approve): sets `status: approved`, `approved-by`, `approved-at`; when the
+    readiness list is not green the button names what is unagreed and a second click approves anyway. A live refining
+    session on the PR is told once and stopped (lib:pr-sessions). Cancel and Reopen are the person's too. The
+    librarian's brief says: when the person says build it, tell them the request is approved by the button on its
+    page and whether the readiness list is green.
+  alternatives: >
+    Automatic approval when the Definition is fully agreed — rejected: the person decides. Approve only when fully
+    agreed — rejected: building on proposals stays possible, said out loud.
+  consequences: >
+    decision:exec.librarian-may-build is superseded; Build on a task shows only when its PR is approved (until the
+    scheduler takes over).
+  date: 2026-09-20
+  status: approved
+  affects: [decision:exec.librarian-may-build, op:api.pr, component:pr-head, rule:build]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
+- id: decision:wf2.cmd-modes
+  title: ⌘P has two modes — PR (a request page with a refining session) and Ad-hoc (a conversation, no page)
+  context: >
+    The command box offered Task / Plan / Proposal and a "plan first" tick; every new conversation got a plan
+    document. With PRs the distinction that matters is whether a page exists at all.
+  choice: >
+    A mode row, remembered per browser: PR (default) — the page is created as draft, set refining, and a librarian
+    session refines it on the host with the refining brief (agent-host#refiningNote); the person lands on the page
+    with the conversation in the column. Ad-hoc — a conversation with a coding agent on what you are looking at, no
+    page; its blocks are still artifacts and consolidation still runs. A message into an existing conversation is
+    unchanged. Plan-first, the Wye target and the intent chips go.
+  alternatives: >
+    Ad-hoc as a quick PR that skips refining — rejected: a page nobody refines is noise. PR mode creating the page
+    only, refined by hand — rejected: the librarian is the point.
+  consequences: >
+    sessions POST takes `pr: true | false`; createPrDoc runs only for a librarian (refining) or an assigned task's
+    worker (building); restartFresh makes a new PR only on a PR conversation.
+  date: 2026-09-20
+  status: approved
+  affects: [component:command-box, op:api.sessions, rule:pr-doc]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
   part-of: goal:exec.define-first
 ```
 

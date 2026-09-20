@@ -161,7 +161,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
     message on a live conversation — with or without "plan first"
   then: >
     the app creates `plan-<slug>` in the project the request came from, a sub-page of that project's Plans page
-    (`plans.md`, module:<project>-plans, created when missing — decision:wf2.plans-folder), with the type:plan card
+    (`plans.md`, module:<project>-plans, created when missing — decision:wf2.plans-folder), with the type:pr card
     in its frontmatter (`session`, `agent`, `started`, `status: proposed`), the request verbatim under "Request"
     with the source document, node and refs as tags, and empty "Context", "Plan", "Tasks" and "Result" sections;
     the session record keeps the current `planDoc: <product/project/slug>`; the agent's first message names the
@@ -177,8 +177,30 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
     project — no document, the agent is told to plan on the subject's page
   status: shipped
   refines: req:wf2.ui.command-palette
-  satisfied-by: [type:plan, lib:plan-doc, rule:plan-doc]
+  satisfied-by: [type:pr, lib:pr-doc, rule:pr-doc]
   verified-by: [ui-test:plan-doc, ui-test:plans]
+- id: req:wf2.pr
+  title: A request is a Prompt Request — one page from typing it to its build, refined until clear, approved by the person, then built
+  when: >
+    the person opens ⌘P in PR mode and types what they want (or sends a block to Wye)
+  then: >
+    a PR page is created under the project's PRs page (pr:<slug>, Request / Context / Definition / Impact / Tasks /
+    Result) and a librarian refines it in the column — fills Context, proposes the Definition blocks in their home
+    documents, asks its questions on the page — until the readiness list on the PR's head is green (definition ·
+    agreed · impact · no contradiction · tasks); the person approves it there (Approve — with what is unagreed named
+    when the list is not green — Cancel, Reopen; wye pr approve from the CLI), and an approved PR is built by a
+    worker from its Definition; the rail's PRs folder shows every PR grouped refining · approved · building, the
+    ended ones under done; ad-hoc — the other ⌘P mode — is a conversation with a coding agent and makes no page
+  unless: >
+    the person cancels the PR — then it is cancelled and its refining session stopped; or the librarian leaves
+    before approval — then the PR is a draft again
+  status: shipped
+  refines: req:wf2.sessions.plan-doc
+  satisfied-by: [type:pr, lib:pr-doc, lib:pr-docs, lib:pr-sessions, op:api.pr, op:api.sessions, component:pr-head, component:pr-folder, component:pr-list, component:command-box, page:web/prs, rule:pr-doc, rule:prs-folder]
+  verified-by: [test:web-lib#pr-doc, test:web-lib#pr-docs, test:plans-to-prs, ui-test:pr]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-agents
 - id: req:wf2.sessions.plan-result
   title: The plan document ends with the result — the app's section, scoped to the plan
   when: >
@@ -194,7 +216,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   unless: the session has no plan document — nothing is written
   status: shipped
   refines: req:wf2.sessions.plan-doc
-  satisfied-by: [lib:plan-doc, rule:plan-doc]
+  satisfied-by: [lib:pr-doc, rule:pr-doc]
   verified-by: [ui-test:plan-doc, ui-test:plans]
 - id: req:wf2.console.first-message-is-the-request
   when: a conversation's first message goes to the agent (a new session, or a fresh restart with a queued item)
@@ -559,7 +581,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
     nothing.
   context: the slug is the URL and the node id (`plan:<slug>`); it should read as the request when it shows in a tag
   status: open
-  related-to: [req:wf2.sessions.plan-doc, rule:plan-doc]
+  related-to: [req:wf2.sessions.plan-doc, rule:pr-doc]
 - id: question:wf2.plan-doc-knowledge
   q: >
     Do requirements, rules and components an agent proposes stay on the entity's page (embedded on the plan) as

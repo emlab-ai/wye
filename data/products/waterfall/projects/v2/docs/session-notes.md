@@ -108,7 +108,7 @@ summary and the blocks it changed). Requirements, decisions and rules the agent 
 the entity lives and *embedded* on the plan page (`![[req:x]]`, rule:embed-line) — one source, no drift, which is
 what decision:wf2.plan-is-a-page rejected a plan document for.
 
-The document type is type:plan (a base type in `schema/base-ontology.md`, rule:plan-type-base). A plan document:
+The document type is type:pr (a base type in `schema/base-ontology.md`, rule:pr-type-base). A plan document:
 
 ```markdown
 ---
@@ -255,7 +255,7 @@ summary and the blocks it changed). Requirements, decisions and rules the agent 
 the entity lives and *embedded* on the plan page (`![[req:x]]`, rule:embed-line) — one source, no drift, which is
 what decision:wf2.plan-is-a-page rejected a plan document for.
 
-The document type is type:plan (a base type in `schema/base-ontology.md`, rule:plan-type-base). A plan document:
+The document type is type:pr (a base type in `schema/base-ontology.md`, rule:pr-type-base). A plan document:
 
 ```markdown
 ---

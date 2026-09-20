@@ -28,7 +28,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
     req:exec.wye-explains); the same request from a node's "Ask Wye" carries the node as the subject
   unless: the person chose "Do" or a live worker conversation, which behave as today
   status: shipped
-  satisfied-by: [component:command-box, op:api.sessions, lib:plan-doc, decision:exec.wye-is-a-role]
+  satisfied-by: [component:command-box, op:api.sessions, lib:pr-doc, decision:exec.wye-is-a-role]
   requires-tests: [test:server-services#ask-wye-creates-plan, ui-test:ask-wye]
   part-of: goal:exec.define-first
   verified-by: [ui-test:ask-wye]
@@ -85,7 +85,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   unless: the request is already satisfied, in which case the reply says so and proposes nothing
   status: shipped
   refines: req:exec.ask-wye
-  satisfied-by: [op:api.node, lib:plan-doc, rule:embed-line, op:api.verdicts]
+  satisfied-by: [op:api.node, lib:pr-doc, rule:embed-line, op:api.verdicts]
   requires-tests: [test:librarian#proposes-in-home-documents, test:web-lib#plan-definition-embeds]
   part-of: goal:exec.define-first
   verified-by: [ui-test:ask-wye]
@@ -95,7 +95,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   then: the plan's status becomes defined; the plan page and the Work view show "defined" with the counts; a change to any embedded block after that returns the plan to defining and says which block
   status: shipped
   refines: req:exec.ask-wye
-  satisfied-by: [lib:plan-doc, decision:exec.plan-lifecycle]
+  satisfied-by: [lib:pr-doc, decision:exec.plan-lifecycle]
   requires-tests: [test:web-lib#plan-defined-computed]
   part-of: goal:exec.define-first
   verified-by: [ui-test:ask-wye, test:web-lib#plan-doc]
@@ -110,7 +110,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   unless: the plan is not defined, in which case Build lists the unagreed blocks and asks to go ahead anyway
   status: shipped
   refines: req:exec.plan-defined
-  satisfied-by: [op:api.work.assign, lib:plan-doc, rule:task-artifacts]
+  satisfied-by: [op:api.work.assign, lib:pr-doc, rule:task-artifacts]
   requires-tests: [test:server-services#build-carries-definition, ui-test:build-plan]
   part-of: goal:exec.define-first
   verified-by: [ui-test:build-plan]
@@ -120,7 +120,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   then: the block or change record is embedded in the Definition automatically (the session id links them), so nothing proposed in the conversation exists only in the transcript; the plan page shows the Definition as a list with status per item and a diff for edits
   status: shipped
   refines: req:exec.plan-defined
-  satisfied-by: [lib:plan-doc, rule:block-attribution, store:changes]
+  satisfied-by: [lib:pr-doc, rule:block-attribution, store:changes]
   requires-tests: [test:web-lib#definition-tracks-session-blocks]
   part-of: goal:exec.define-first
   verified-by: [ui-test:ask-wye]

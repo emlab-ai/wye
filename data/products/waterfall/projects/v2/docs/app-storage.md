@@ -160,6 +160,35 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     visible to the next request); the browser only ever sees publicSettings().
   status: proposed
   part-of: module:app-storage
+- id: lib:pr-doc
+  file: packages/web/src/lib/pr-doc.ts
+  side: server
+  purpose: >
+    The plan document (req&#58;wf2.sessions.pr-doc, rule&#58;pr-doc): one per request that starts work — a new
+    session or a fresh-context message (decision:wf2.plan-per-request) — created by the app from
+    templates/docs/pr.md under the project's Plans page (decision:wf2.plans-folder), finished by the app with the
+    result. Pure: the slug, the body, the result section scoped to the plan's window, the frontmatter edits, a
+    session's plans read from the graph; the IO lives in lib/plan-docs.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:pr-docs
+  file: packages/web/src/lib/pr-docs.ts
+  side: server
+  purpose: >
+    Server-only IO for Prompt Requests (rule&#58;pr-doc): the project's PRs page (decision:wf2.plans-folder), a PR
+    page document for every request that starts work (decision:wf2.plan-per-request), the result written when the
+    build ends (decision:wf2.plan-result-owned-by-app). The shapes come from lib/pr-doc (pure).
+  status: proposed
+  part-of: module:app-storage
+- id: lib:pr-sessions
+  file: packages/web/src/lib/pr-sessions.ts
+  side: server
+  purpose: >
+    The sessions on a PR (decision&#58;wf2.pr-approval-is-the-persons-click): when the person approves or cancels,
+    the live refining session on it is told once and stopped. Kept apart from lib/pr-docs so that module stays free
+    of the agent host (which imports it).
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

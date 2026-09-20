@@ -10,8 +10,8 @@ sources:
   - packages/web/src/lib/changes.ts
   - packages/web/src/lib/impact-run.ts
   - packages/web/src/lib/explain.ts
-  - packages/web/src/lib/plan-doc.ts
-  - packages/web/src/lib/plan-docs.ts
+  - packages/web/src/lib/pr-doc.ts
+  - packages/web/src/lib/pr-docs.ts
   - lib/impact.js
   - prompts/librarian-system.md
   - packages/web/src/components/WorkList.tsx
@@ -51,7 +51,7 @@ enforces.
     `session:` names plus the ones whose refs name it. The app moves the status itself at two points only: to
     in-progress when a session takes the task (Assign spends the ready mark), and to review when the session that
     held it ends with the task not done (todo when that session failed or was cancelled).
-  source: packages/web/src/lib/work.ts#stateOf; packages/web/src/lib/work-io.ts#assignTask; packages/web/src/lib/plan-doc.ts#requestTaskStatusOnEnd
+  source: packages/web/src/lib/work.ts#stateOf; packages/web/src/lib/work-io.ts#assignTask; packages/web/src/lib/pr-doc.ts#requestTaskStatusOnEnd
   status: shipped
 - id: rule:work-nesting
   statement: >
@@ -59,7 +59,7 @@ enforces.
     template) or, for a plan created by an assignment, under the task the plan was assigned for (`task:` in the plan's
     frontmatter; the plan embeds it instead of writing a second request task); a sub-task (part of task:x) nests
     under its task. Roots and children are ordered by priority (lower first, unset last), then document and line.
-  source: packages/web/src/lib/work.ts#workItems; packages/web/src/lib/plan-doc.ts#planDocBody
+  source: packages/web/src/lib/work.ts#workItems; packages/web/src/lib/pr-doc.ts#planDocBody
   status: shipped
 - id: rule:assign-refusal
   statement: >
@@ -181,7 +181,7 @@ enforces.
     after every rebuild a plan in defining with an agreed Definition becomes defined, and a defined plan whose
     Definition is no longer agreed goes back to defining; other statuses stay. A librarian's session ending leaves
     the plan's status alone and puts the request task in review.
-  source: packages/web/src/lib/plan-doc.ts#definitionIds; packages/web/src/lib/plan-doc.ts#definitionState; packages/web/src/lib/plan-docs.ts#refreshPlanStatuses; packages/web/src/lib/plan-docs.ts#trackDefinitions; packages/web/src/app/api/[product]/propose/route.ts
+  source: packages/web/src/lib/pr-doc.ts#definitionIds; packages/web/src/lib/pr-doc.ts#definitionState; packages/web/src/lib/pr-docs.ts#refreshPlanStatuses; packages/web/src/lib/pr-docs.ts#trackDefinitions; packages/web/src/app/api/[product]/propose/route.ts
   status: shipped
 - id: rule:build
   statement: >
@@ -190,7 +190,7 @@ enforces.
     plan (its id added to the plan's `session:`, no new plan document), the plan's status becomes building, and when
     the session ends the Result lists each Definition block as implemented, changed or left; a librarian's hold on
     the request task does not refuse it; the dialog names the unagreed blocks and says "Build anyway".
-  source: packages/web/src/lib/work-io.ts#assignTask; packages/web/src/lib/plan-docs.ts#definitionContext; packages/web/src/lib/plan-docs.ts#finishPlanDoc
+  source: packages/web/src/lib/work-io.ts#assignTask; packages/web/src/lib/pr-docs.ts#definitionContext; packages/web/src/lib/pr-docs.ts#finishPlanDoc
   status: shipped
 - id: rule:todo-tasks
   statement: >
@@ -214,17 +214,18 @@ enforces.
   source: packages/web/src/components/TrackList.tsx; packages/web/src/lib/track.ts; packages/web/src/lib/doc.ts#nodeIndex; packages/web/src/components/DocEditor.tsx#RowNode
   status: shipped
   verified-by: [test:web-lib#import, test:web-lib#props]
-- id: rule:plans-folder
+- id: rule:prs-folder
   statement: >
-    The rail treats a project's Plans page (`module:<project>-plans`, lib/plan-docs#plansPageId) as a system folder:
-    the product layout takes it and its sub-documents out of the Documents tree and hands the plans (every project,
-    sorted by the plan card's `started` descending) to the Plans folder in the rail's menu, whose entry is
-    /<product>/plans. A plan document is found by the tree, not by its type: what sits under the Plans page is a
-    plan. Files stay in the project's docs folder (decision:wf2.plans-system-folder).
-  source: packages/web/src/app/[product]/layout.tsx#withoutPlans; packages/web/src/components/Rail.tsx; packages/web/src/components/PlanFolder.tsx; packages/web/src/app/[product]/plans/page.tsx; packages/web/src/lib/plan-doc.ts#plansPageId
+    The rail treats a project's PRs page (`module:<project>-prs`, lib/pr-doc#prsPageId) as a system folder: the
+    product layout takes it and its sub-documents out of the Documents tree and hands the PRs (every project, sorted
+    by the PR card's `started` descending) to the PRs folder in the rail's menu, whose entry is /<product>/prs; the
+    folder groups them by where they are — refining (draft and refining), approved, building — with the ended ones
+    folded under done. A PR is found by the tree, not by its type: what sits under the PRs page is a PR. Files stay
+    in the project's docs folder (decision:wf2.plans-system-folder).
+  source: packages/web/src/app/[product]/layout.tsx#withoutPrs; packages/web/src/components/Rail.tsx; packages/web/src/components/PrFolder.tsx; packages/web/src/app/[product]/prs/page.tsx; packages/web/src/lib/pr-doc.ts#prsPageId
   status: shipped
   verified-by: [ui-test:plans-folder]
-  related-to: [rule:documents-tree, rule:plan-doc]
+  related-to: [rule:documents-tree, rule:pr-doc]
 - id: rule:plan-first
   statement: >
     A session started from the command palette carries `plan: true`, and its first message ends with a plan-first
@@ -333,7 +334,7 @@ enforces.
     else; the Agents page keeps showing workers and their plans.
   date: 2026-09-19
   status: proposed
-  affects: [type:task, rule:plan-doc, rule:task-artifacts, page:web/sessions]
+  affects: [type:task, rule:pr-doc, rule:task-artifacts, page:web/sessions]
   part-of: goal:exec.work-and-impact
 - id: decision:exec.change-record
   title: Every edit of a typed node is written through, and a change record keeps the old and new value with a review state

@@ -70,7 +70,7 @@ export async function assignTask(scope: Scope, id: string, input: AssignInput): 
     const r = await editNode(scope, id, { props: { worker } });
     return r.ok ? { ok: true, worker } : { ok: false, error: 'invalid', message: r.message };
   }
-  // held by a librarian defining it (decision:exec.wye-is-a-role): Build hands the request to a builder anyway
+  // held by a librarian refining it (decision:exec.wye-is-a-role): Build hands the request to a builder anyway
   const heldByLibrarian = input.build && item.sessions.length > 0 && (await Promise.all(item.sessions.map(x => getSession(scope.product.dir, x.id)))).every(x => !x || x.role === 'librarian' || !['queued', 'running'].includes(x.status));
   if ((item.state === 'queued' || item.state === 'working') && !input.force && !heldByLibrarian) return { ok: false, error: 'held', message: `${item.worker ?? 'a worker'} holds it (${item.state}) — assign again to re-queue` };
   const node = scope.idx.byId.get(id)!;

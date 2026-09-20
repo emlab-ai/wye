@@ -138,6 +138,16 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
     are what every plan-first session does by hand — plan-work-in-progress-visibility is one.)
   covers: [req:wf2.sessions.plan-doc, req:wf2.sessions.plan-result]
   status: passed
+- id: ui-test:pr
+  title: The PR's head shows readiness and the person's moves; ⌘P offers PR and Ad-hoc
+  steps: >
+    1. Open a migrated draft PR (pr-have-lot-docs-now-about-wye): the head shows DRAFT, the five checks (✓ definition
+    ✗ agreed ✓ impact ✓ no contradiction ✓ tasks), the unagreed ids as tags, Approve and Cancel; the rail's PRs folder
+    lists it under refining and 23 under done. 2. ⌘P: the box shows the PR / Ad-hoc chips, PR on, "Start the PR ↵",
+    no target row. (Checked in Chrome on 2026-09-20 after the migration; the live refining session and Approve on a
+    scratch PR are covered by test:web-lib#pr-docs and left for the scheduler's UI test.)
+  covers: [req:wf2.pr]
+  status: passed
 - id: ui-test:first-message-fold
   title: The console's first user row is the request; the wrapper opens from a fold
   steps: >
@@ -266,6 +276,21 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
     - write-scratch-root: moved, retired, added, tightened; a second write changes nothing
     - real-tree: check() finds no uncovered file and no missing file
   count: 6
+- id: test:plans-to-prs
+  file: test/plans-to-prs.js
+  description: >
+    scripts/plans-to-prs (decision:wf2.pr-lifecycle) on a scratch product: a `type: plan` document becomes pr-<x>.md with
+    node pr:pr-<x>, type pr, its status mapped (refining when a running session holds it, else draft; done stays),
+    part-of the PRs page; plans.md becomes prs.md (module:<p>-prs, "PRs", view:pr); every plan:<x> and task:plan-<x>
+    reference in other documents is rewritten; a session's planDoc becomes prDoc with the new slug and its refs
+    follow; a second run changes nothing.
+  cases:
+    - documents: renamed, retyped, restatused, re-parented
+    - page: plans.md → prs.md with node, title and view
+    - references: prose tags and part-of props rewritten
+    - sessions: planDoc → prDoc, refs renamed
+    - idempotent: a second run reports no documents
+  count: 1
 - id: test:jev
   file: test/jev.js
   description: >
@@ -589,7 +614,7 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
     "no plans yet", /pftest/plans says "No plans yet" (2026-09-18, session 48c8885cd2: /tmp/wfpw/plans-folder.mjs,
     16 checks passed in Chrome at 1400×900; the scratch product is removed afterwards)
   status: passed
-  verifies: [req:wf2.ui.plans-folder, rule:plans-folder]
+  verifies: [req:wf2.ui.plans-folder, rule:prs-folder]
   last-run: 2026-09-18
 - id: ui-test:rail-split
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
