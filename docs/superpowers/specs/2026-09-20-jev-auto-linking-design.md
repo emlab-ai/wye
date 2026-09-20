@@ -1,6 +1,6 @@
 # Jev auto-linking — design
 
-2026-09-20. Optional: everything here is active only when `TYPESAFE_API_KEY` is set; without it every path behaves exactly as before.
+2026-09-20. Optional: everything here is active only when a Jev API key is stored in the app's settings; without it every path behaves exactly as before.
 
 ## What Jev is, and what it is for here
 
@@ -8,20 +8,31 @@ Jev (TypeSafe AI, `POST https://api.typesafe.ai/v1/systemone`, model `jev-latest
 
 So in Wye it **judges candidate links, never finds them**: candidates always come from the existing local semantic search (`packages/web/src/lib/semantic.ts`, MiniLM + keywords); Jev answers, per candidate, "is this text about it?" with a probability the product can threshold. Three flows get automatic links from that judgement: inbox items on arrival, document blocks on leaving the editor, consolidation cards before they are written.
 
+## 0. Settings page — where the key lives
+
+There is no settings page in the app today; product switches (`impact: manual`, `consolidate: on`) are `_product.md` frontmatter, which is committed — and the repo is public — so a key cannot live there.
+
+- Page `/<product>/settings`, reached from a "Settings ⚙" item at the bottom of the rail menu (inside the product shell like every other page; the page says the settings apply to the whole app on this machine, not to one product).
+- Section "Jev (TypeSafe AI)": one API key field — masked, showing `••••` + the last 4 characters when a key is stored — with Save, Remove and a **Test** button that makes one tiny `ask` call and shows "OK · 120 ms" or the error text. A stored key means Jev is on; there is no separate toggle.
+- Storage `data/_settings.json` (mode 0600, listed in `.gitignore`) through `packages/web/src/lib/settings.ts`: `readSettings()`, `writeSettings(patch)`, `jevKey()`. Routes: `GET /api/settings` → `{ jev: { set, last4 } }` (never the key), `PUT /api/settings { jev: { key } }` (empty string removes), `POST /api/settings/jev/test` → `{ ok, ms } | { error }`.
+- Every judging path runs in the app (the inbox add API, the editor's links route, consolidation), so the CLI never needs the key. `TYPESAFE_API_KEY` in the environment is only the fallback for tests and evals outside the app.
+
+Tests: `settings.test.ts` — round trip, mode, `last4` without the key, removal.
+
 ## 1. `lib/jev.js` — the module
 
 CommonJS at the repo root next to `judge.js` and `consolidate.js`, shared by the app (via `createRequire`, as `explain.ts` and `consolidate.ts` do), the CLI and the eval suite.
 
-- `enabled()` — `!!process.env.TYPESAFE_API_KEY`. The app reads `packages/web/.env.local`; the CLI the shell.
-- `ask(state, questions, { model, timeoutMs })` — one request `{ model, state, questions }`, `Authorization: Bearer <key>`, 10 s timeout, exponential backoff (3 tries) on 429 and 529, any other failure thrown. Callers catch and fall back to the un-judged result; a failure is logged once, never shown as an error to the person.
+- `jev({ key, model })` — a client bound to a key; `key` comes from `jevKey()` in the app, from `TYPESAFE_API_KEY` elsewhere. No key → `enabled` is false and every method returns the empty result without a call.
+- `ask(state, questions, { timeoutMs })` — one request `{ model, state, questions }`, `Authorization: Bearer <key>`, 10 s timeout, exponential backoff (3 tries) on 429 and 529, any other failure thrown. Callers catch and fall back to the un-judged result; a failure is logged once, never shown as an error to the person.
 - `judgeLinks(text, candidates: { id, text }[])` → `[{ id, p }]` in the candidates' order. One call, one `noul` question per candidate keyed by index, wording: *"Is the text specifically about, or does it directly depend on, this piece of knowledge: «<id>: <candidate text, ≤400 chars>»? Yes only if a reader of the text would want it linked."* Empty candidates → `[]` without a call.
 - `judgeKind(text)` → `{ kind, p }` — one `choice` over `decision | requirement | rule | question | note` with a one-line description of each as the option text.
-- `LINK_MIN = 0.85` — the single threshold above which a link is written automatically; below it a candidate is only a suggestion. `WF_JEV_MODEL` overrides the model (default `jev-latest`).
+- `LINK_MIN = 0.85` — the single threshold above which a link is written automatically; below it a candidate is only a suggestion. The model is `jev-latest` (`WF_JEV_MODEL` overrides).
 - `promptVersion` — a hash of the question wordings, recorded in the document cache (section 3) so a wording change invalidates it.
 
 The exact request/response JSON of the API is pinned first by a throwaway probe with the real key (scratchpad, not kept); the module and its tests follow what the probe shows.
 
-Tests `test/jev.js` (node test runner like the other root tests), `fetch` stubbed: request shape and auth header; parsing of noul and choice answers; retry on 429 then success; disabled → no call, `judgeLinks` returns `[]`.
+Tests `test/jev.js` (node test runner like the other root tests), `fetch` stubbed: request shape and auth header; parsing of noul and choice answers; retry on 429 then success; no key → no call, `judgeLinks` returns `[]`.
 
 ## 2. Inbox — linked on arrival
 
