@@ -562,7 +562,7 @@ function LinkNodeButton({ onRequest }: { onRequest: (r: LinkRequest) => void }) 
 // page for a base kind) and the word a tag — then offer to link every other plain "London" in the product.
 // What making a node returned: its id and, for a typed instance, the document it went to.
 type Made = { id: string; doc?: { href: string; title: string; created: boolean } };
-function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEverywhere }: { req: LinkRequest; onClose: () => void; apply: (id: string) => void; createDoc: (title: string) => Promise<string | null>; createNode: (type: string, title: string) => Promise<Made | null>; linkEverywhere: (text: string, id: string, docs: string[]) => Promise<number> }) {
+function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEverywhere }: { req: LinkRequest; onClose: () => void; apply: (id: string, asTag?: boolean) => void; createDoc: (title: string) => Promise<string | null>; createNode: (type: string, title: string) => Promise<Made | null>; linkEverywhere: (text: string, id: string, docs: string[]) => Promise<number> }) {
   const { index, ownTypes, product } = usePeek();
   const [q, setQ] = useState(req.text.trim());
   const [busy, setBusy] = useState(false);
@@ -582,8 +582,9 @@ function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEveryw
   const types = [...ownTypes.map(t => t.slug), ...['entity', 'value', 'person', 'team', 'goal', 'req', 'decision', 'question', 'task'].filter(k => !ownTypes.some(t => t.slug === k))];
   // "city: London" typed into the search picks the type and keeps the name
   const typed = q.match(/^([a-z][a-z-]*):\s*(.+)$/); const name = (typed && types.includes(typed[1]) ? typed[2] : q).trim(); const kind = typed && types.includes(typed[1]) ? typed[1] : type;
-  const linked = async (id: string, went?: Made['doc']) => {
-    apply(id);
+  const linked = async (id: string, went?: Made['doc'], made = false) => {
+    const word = req.text.trim().toLowerCase();
+    apply(id, made || (!!word && (index[id]?.title ?? '').trim().toLowerCase() === word)); // the word is the node: a tag
     // the rest of the product: where the same words are still plain
     const text = req.text.trim();
     if (text && text.length >= 2) { try { const r = await fetch(`/api/${product}/link-all?text=${encodeURIComponent(text)}&id=${encodeURIComponent(id)}`); const j = await r.json(); if (r.ok && j.count) { setAfter({ id, text, docs: j.docs, count: j.count, went }); return; } } catch { /* offer nothing */ } }
@@ -591,8 +592,8 @@ function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEveryw
     if (went) { setAfter({ id, text, docs: [], count: 0, done: 0, went }); setTimeout(onClose, 2400); return; }
     onClose();
   };
-  const create = async () => { setBusy(true); const id = await createDoc(name); setBusy(false); if (id) linked(id); };
-  const createTyped = async () => { if (!name) return; setBusy(true); const made = await createNode(kind, name); setBusy(false); if (made) linked(made.id, made.doc); };
+  const create = async () => { setBusy(true); const id = await createDoc(name); setBusy(false); if (id) linked(id, undefined, true); };
+  const createTyped = async () => { if (!name) return; setBusy(true); const made = await createNode(kind, name); setBusy(false); if (made) linked(made.id, made.doc, true); };
   const all = async () => { if (!after) return; setBusy(true); const n = await linkEverywhere(after.text, after.id, after.docs.map(d => `${d.project}/${d.doc}`)); setBusy(false); setAfter({ ...after, done: n }); setTimeout(onClose, 1600); };
   if (after) return (
     <div className="linknode" style={{ left: Math.min(req.x, window.innerWidth - 360), top: req.y }}>
@@ -843,14 +844,17 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     router.refresh();
     return j.count as number;
   };
-  const applyLink = (id: string) => {
+  const applyLink = (id: string, asTag = false) => {
     if (!linkReq) return;
-    // Restore the captured range (typing in the picker collapsed it), then use BlockNote's own createLink so the
-    // block's inline content stays consistent (a raw ProseMirror mark breaks BlockNote's block conversion).
+    // Restore the captured range (typing in the picker collapsed it). A word that IS the node — an instance made from
+    // it, or a node whose title is the word — becomes the smart tag; a phrase that points at some other node keeps
+    // its words as a link so the sentence still reads. BlockNote's own createLink keeps the block's inline content
+    // consistent (a raw ProseMirror mark breaks its block conversion).
     const tt = (editor as unknown as { _tiptapEditor: { view: { focus: () => void }; commands: { setTextSelection: (r: { from: number; to: number }) => boolean } } })._tiptapEditor;
     tt.view.focus();
     tt.commands.setTextSelection({ from: linkReq.from, to: linkReq.to });
-    editor.createLink(id, linkReq.text || id);
+    if (asTag) editor.insertInlineContent([{ type: 'tag', props: { id } }] as never);
+    else editor.createLink(id, linkReq.text || id);
     touched.current = true; changed();
   };
   // "@" inserts a tag for any node (or document) by id or title.
