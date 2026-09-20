@@ -657,6 +657,31 @@ computed and no review.
   affects: [decision:exec.wye-is-a-role, rule:build, req:exec.build-from-definition]
   by: agent:claude
   part-of: goal:exec.define-first
+- id: decision:exec.kind-by-nature
+  title: A block's kind is what it is — a requirement is an observable behaviour in the person's words; how the product does it is a rule or a decision
+  context: >
+    On 2026-09-20 the person read req:exec.wye-proposes in the Inbox — "Wye proposes the definition as blocks in
+    their home documents, embedded on the plan" — and said it is not a requirement: it is a statement of system
+    behaviour, a decision. Agents (this one included) had been writing mechanism as requirements because the
+    contract said what kinds exist, not how to tell them apart.
+  choice: >
+    Both prompts (prompts/agent-system.md, prompts/librarian-system.md) and the host's librarian protocol carry a
+    "Which kind a block is" section with one test: could a person check it from outside the product without reading
+    code — yes, a requirement (when / then / unless, outcome in the title, no component ids, no mechanism in `then`);
+    no and the code guarantees it — a rule with a source; no and someone chose it — a decision with alternatives.
+    req:exec.wye-proposes is rewritten as the example; the other mechanism-shaped requirements of this PRD are
+    re-kinded by task:exec.rekind.
+  alternatives: >
+    Leave the kinds to judgement (what produced the mistake); a linter that rejects ids in requirement titles (a
+    later shape on type:req, decision:memory.shapes).
+  consequences: >
+    Prompts grow by a section; a review of the E.1–E.5 requirements; a candidate shape for type:req.
+  date: 2026-09-20
+  status: proposed
+  affects: [rule:agent-contract, decision:exec.wye-is-a-role, req:exec.wye-proposes]
+  by: agent:claude
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
 - id: decision:exec.plan-lifecycle
   title: A plan goes proposed → defining → defined → building → done, and its Definition section is the set of blocks it will build
   context: >
@@ -744,15 +769,13 @@ computed and no review.
   part-of: goal:exec.define-first
   verified-by: [ui-test:ask-wye]
 - id: req:exec.wye-proposes
-  title: Wye proposes the definition as blocks in their home documents, embedded on the plan
-  when: the state is explained and the questions answered
+  title: The person gets the definition as reviewable blocks, each where it belongs, before anything is built
+  when: the state is explained and the person's answers are in
   then: >
-    it writes requirements (when / then / unless, refines, satisfied-by the existing mechanism where one exists),
-    decisions (with alternatives and what they affect), constraints, questions and task lines — each `status:
-    proposed` in the document where that kind lives (the PRD, the design, the module page), an edit of an existing node
-    as a change record (req:exec.change-kept) — and embeds every one in the plan's Definition; the verdict pass runs
-    on each (req:memory.verdicts) and the reply lists them with their verdicts; the person approves, edits or rejects
-    in the Inbox, on the plan page or by replying
+    the person sees the proposed requirements, decisions, constraints, questions and tasks — each a block they can
+    approve, edit or reject in the Inbox, on the plan's Definition or by replying — and finds each one in the
+    document where that kind of knowledge lives (a requirement in the PRD, a decision in the design), with its
+    verdicts against what already exists; an edit to an existing block shows old and new
   unless: the request is already satisfied, in which case the reply says so and proposes nothing
   status: shipped
   refines: req:exec.ask-wye
@@ -879,6 +902,7 @@ computed and no review.
 - [x] task:exec.wye-turns The librarian's first turn (explain with tags, say when satisfied or contradicting), the question form along when / then / unless and constraints (three at a time, skipped → question block), and `wf propose` writing proposed blocks to home documents and embedding them on the plan with verdicts. Part of goal:exec.define-first (req:exec.wye-explains, req:exec.wye-asks, req:exec.wye-proposes). Depends on task:memory.verdict-pass and task:memory.constraint-packet. (session: de966d3bd9)
 - [x] task:exec.plan-definition type:plan statuses and the Definition section in lib:plan-doc; blocks and change records of a defining session embed automatically; `defined` computed; the plan page shows the list with status and diffs. Part of goal:exec.define-first (decision:exec.plan-lifecycle, req:exec.plan-defined, req:exec.definition-tracked). (session: de966d3bd9)
 - [x] task:exec.build Build on a plan: assign the request task with the Definition as context; unagreed blocks listed when not defined; the Result maps what was built to each block. Part of goal:exec.define-first (req:exec.build-from-definition). (session: de966d3bd9)
+- [ ] task:exec.rekind Read every req: of this PRD against decision:exec.kind-by-nature: a block that describes how the product works becomes a rule (with source) or a decision, and the observable behaviour it served becomes the requirement, in the person's words; ids stay stable where the block stays a requirement. Part of goal:exec.define-first.
 - [ ] task:exec.librarian-tests test:librarian — recorded librarian turns on the YesSensei pilot: explains with tags, asks only unfilled slots, proposes into home documents, never edits code; ui-test:ask-wye and ui-test:build-plan in Chrome. Part of goal:exec.define-first.
 - [x] task:exec.ui-tests ui-test:work-view, ui-test:work-assign, ui-test:change-review in Chrome (playwright-core): assign a task and see it queued then working; edit a requirement with a sub-requirement and see the change card with the child's proposed update; revert. Part of goal:exec.work-and-impact. (session: de966d3bd9)
 <!-- /tasks -->

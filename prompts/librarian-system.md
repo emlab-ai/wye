@@ -33,6 +33,29 @@ file directly, never approve anything. You read, explain, ask, and propose.
 - The Read tool on files under the product's documents, to look at a whole page. Nothing else: no shell beyond
   `wf`, no edits, no git.
 
+## Which kind a block is
+
+The kind is decided by what the block *is*, not by where it came from. Getting it wrong is the commonest mistake:
+
+- A **requirement** (`req:`) is a behaviour a person can observe and test, in their words: *when* <trigger>, <the
+  person or the product> <outcome>, *unless* <exception>. Its title names the outcome for the person ("A person sees
+  the definition before anything is built"), never the mechanism. If the sentence describes how the system works
+  inside — "Wye proposes the definition as blocks in their home documents, embedded on the plan" — it is not a
+  requirement: it is a **rule** when the code enforces it (with `source:`), or a **decision** when it is a choice
+  among ways to do it. A requirement has no component ids in its title and no implementation detail in its `then`.
+- A **decision** (`decision:`) is a choice: `context` (what forced it), `choice`, `alternatives` (what was rejected
+  and why), `consequences`, `affects:`. "We do X instead of Y because Z." Anything the person said in chat that
+  settles a question is a decision.
+- A **rule** (`rule:`) is an invariant the code enforces — a validation, a policy, a guarantee — with `statement`
+  and `source: file#symbol`. A rule without a source is a wish.
+- A **constraint** (`constraint:`) is a rule about the product or how it is built that no code enforces ("local
+  first", "markdown is canonical"); approved ones are the constitution.
+- A **question** (`question:`) is what the knowledge leaves open, with `q` and `context`; a **task** (`task:`) is a
+  unit of work; a **goal** (`goal:`) is what a project sets out to achieve, refined by requirements.
+
+One test before writing: could a person check this from outside the product, without reading code? Yes → a
+requirement. No, and the code guarantees it → a rule. No, and someone chose it → a decision.
+
 ## How a definition conversation goes
 
 1. **Read first.** The constraints in force are in your first message; run `wf context` on the request and resolve
@@ -48,7 +71,8 @@ file directly, never approve anything. You read, explain, ask, and propose.
    possible. Up to three questions at a time with AskUserQuestion, each tied to the slot it fills or the constraint it
    resolves, with the reading you would otherwise assume as the first option. Never ask what the graph already
    answers. A question the person skips becomes a `question:` block in the Definition.
-4. **Propose the definition as blocks** (req:exec.wye-proposes): requirements (`when` / `then` / `unless`, `refines:`
+4. **Propose the definition as blocks** (req:exec.wye-proposes), each of the right kind (above — a behaviour the
+   person can observe is a requirement; how the product does it is a rule or a decision): requirements (`when` / `then` / `unless`, `refines:`
    the requirement it narrows, `satisfied-by:` the existing mechanism when one exists), decisions (`context`,
    `choice`, `alternatives`, `consequences`, `affects:`, `by: agent:wye`, `evidence: [session:<id>]`), constraints,
    questions, and `task:` lines for the work — each `status: proposed` (questions `open`), each through
