@@ -24,28 +24,28 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   does: >
     What a link or id points at — document, node, block or section, with drawing annotations — for agents (wf resolve).
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/resolve/route.ts
   part-of: module:api
 - id: op:api.agent-prompt
   args: GET /api/<product>/agent-prompt
   does: >
     The system prompt agents get: the contract plus the product's _agent.md.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/agent-prompt/route.ts
   part-of: module:api
 - id: op:api.sessions
   args: GET | POST /api/<product>/sessions
   does: >
     List sessions; create one (agent, instruction, refs, source, mode chat|run, cwd) — chats start their agent process at once.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/sessions/route.ts
   part-of: module:api
 - id: op:api.sessions.session
   args: GET | PATCH /api/<product>/sessions/<id>
   does: >
     A session; PATCH appends log lines, changes status or sets the result (runners, wf session log/done, Cancel).
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/sessions/[id]/route.ts
   part-of: module:api
 - id: op:api.sessions.message
   args: POST /api/<product>/sessions/<id>/message
@@ -55,14 +55,14 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
     rides on the item and is honoured when its turn comes (rule:clean-slate): at once when the agent is idle, after
     the open turn when it is busy; plan-first in that first message when `plan` is set.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/sessions/[id]/message/route.ts
   part-of: module:api
 - id: op:api.sessions.stream
   args: GET /api/<product>/sessions/<id>/stream
   does: >
     Server-sent events for a chat: the stored transcript, then live events, queue and pings.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/sessions/[id]/stream/route.ts
   part-of: module:api
 - id: op:api.sessions.changes
   args: GET /api/<product>/sessions/<id>/changes
@@ -79,37 +79,38 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
     ends, the waiting items are dropped, the session is cancelled), resume, permission (answer a request, including
     AskUserQuestion answers), batch one|all, unqueue, item (set or clear the fresh mark of a waiting item).
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/sessions/[id]/control/route.ts
   part-of: module:api
 - id: op:api.sessions.handoff
   args: POST /api/<product>/sessions/<id>/handoff
   does: >
     A new queued session for another agent that continues this one.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/sessions/[id]/handoff/route.ts
   part-of: module:api
 - id: op:api.sessions.file
   args: GET /api/<product>/sessions/<id>/file/<name>
   does: >
     A file attached to a session message (pasted image).
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/sessions/[id]/file/[name]/route.ts
   part-of: module:api
 - id: op:api.sessions.claim
   args: POST /api/<product>/sessions/claim
   does: >
     A runner takes the oldest queued session for its agent (204 when none).
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/sessions/claim/route.ts
   part-of: module:api
 - id: op:api.runners
   args: GET | POST /api/<product>/runners
   does: >
     Runners online; heartbeat and sign-off from wf agent listen.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/runners/route.ts
   part-of: module:api
 - id: op:api.sessions.page
+  status: retired
   args: GET /api/<product>/sessions/<id>/page
   does: >
     The session page's data — todo rows, blocks by kind, opened pages, counts — joined with the current graph.
@@ -140,21 +141,21 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   does: >
     Create a document from a template: { title, template, parent } → { slug }.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/[project]/doc/route.ts
   part-of: module:api
 - id: op:api.docs.read-write
   args: GET | PUT /api/<product>/<project>/doc/<slug>
   does: >
     Read a document (markdown + hash) and write it back whole or by segment with If-Match; rebuilds the graph and lints.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/[project]/doc/[slug]/route.ts
   part-of: module:api
 - id: op:api.assets.upload
   args: POST /api/<product>/<project>/asset
   does: >
     Upload a pasted or dropped image into docs/assets → { url: assets/<name> }.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/[project]/asset/route.ts
   part-of: module:api
 - id: op:api.assets.serve
   args: GET /<product>/<project>/d/assets/<file>
@@ -168,7 +169,7 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   does: >
     An Excalidraw scene and its exports: scene JSON, ?fmt=svg, ?fmt=png, ?fmt=md; PUT { json, svg, png?, description? }.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/[project]/drawing/[file]/route.ts
   part-of: module:api
 - id: op:node.edit
   args: product, node id; GET → the node, its relations, neighbourhood, type and properties; PUT { status?, text?, props?: { key: value | null } }
@@ -206,14 +207,14 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   does: >
     A node with its relations, neighbourhood, type and effective properties; PUT edits status, text or props of its defining line (records the session's artifact).
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/node/[id]/route.ts
   part-of: module:api
 - id: op:api.types.add
   args: POST /api/<product>/types
   does: >
     Add a type: card (extends, purpose) to the product's ontology document.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/types/route.ts
   part-of: module:api
 - id: op:api.view
   args: GET /api/<product>/view/<slug>
@@ -262,7 +263,7 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   does: >
     Inbox items: list, add (agents: wf inbox add), file into a document as a node, dismiss.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/inbox/route.ts
   part-of: module:api
 ```
 
@@ -305,21 +306,21 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   does: >
     Create a product: { title, description, icon } → data/products/<slug>/_product.md.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/products/route.ts
   part-of: module:api
 - id: op:api.projects.create
   args: POST /api/<product>/projects
   does: >
     Create a project (or goal) in a product: { title, kind, description }.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/projects/route.ts
   part-of: module:api
 - id: op:api.docs.move
   args: POST /api/<product>/docs/move
   does: >
     Move a document in the tree: sets part-of, moves the file into the parent's project, reorders.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/docs/move/route.ts
   part-of: module:api
 - id: op:api.docs.duplicate
   args: POST /api/<product>/docs/duplicate { id }
@@ -353,7 +354,7 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   does: >
     Server-sent events: what changed on disk (documents, graph, inbox, sessions), batched per 300 ms.
   gate: none (local app)
-  source: packages/web/src/app/api
+  source: packages/web/src/app/api/[product]/events/route.ts
   part-of: module:api
 ```
 
@@ -429,6 +430,23 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   gate: none (local app)
   source: packages/web/src/app/api/[product]/explain/route.ts; packages/web/src/lib/explain.ts
   status: shipped
+  part-of: module:api
+```
+
+<!-- /list:op -->
+
+## Unsorted
+
+<!-- list:op -->
+
+```yaml
+- id: op:api.inbox.name
+  args: GET | POST /api/<product>/inbox/<name>
+  does: >
+    GET → the item with a filing suggestion. POST { action: 'file', doc, project, id } | { action: 'dismiss' }.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/inbox/[name]/route.ts
+  status: proposed
   part-of: module:api
 ```
 

@@ -146,6 +146,17 @@ What this module must do is written where it was decided — the PRD and the dev
   statement: ctx check exits 0 when there are no errors and 1 otherwise, regardless of warnings.
   source: bin/ctx.js:92-98
   verified-by: []
+- id: rule:cards-in-step
+  statement: >
+    Every `.ts`/`.tsx` file under packages/web/src (tests excluded) is named by a component, lib, op or page card
+    — in `file:`, `source:` or `component:`, or through the route an op's `args:` or a page's `route:` maps to — and
+    every path such a card names exists; `npm test` fails otherwise until `npm run cards` (lib:cards) or a hand-written
+    card puts them back in step. Retired cards are exempt.
+  source: scripts/cards.js#check; test/cards.js
+  status: shipped
+  verified-by: [test:cards]
+  part-of: module:app-graph
+
 ```
 
 <!-- /list:rule -->
@@ -172,6 +183,18 @@ What this module must do is written where it was decided — the PRD and the dev
   side: server
   purpose: >
     The ctx CLI: build, site, get, neighbors, search, impact, packet, check, stats, reqs — the offline way to read and lint a product graph.
+  part-of: module:app-graph
+- id: lib:cards
+  file: scripts/cards.js
+  side: server
+  status: shipped
+  purpose: >
+    Keeps the component, lib, op and page cards in step with the files under packages/web/src
+    (decision:app.cards-generator, decision:app.cards-file-kinds): `--check` lists the files no card names and the
+    cards whose file is gone (exit 1 when either; test/cards.js runs it under npm test); `--write` adds a proposed
+    card per uncovered file with the header comment as its purpose, re-points a card whose file moved, retires a
+    card whose file was deleted, tightens an op card's `source:` to its route file. Never rewrites an existing
+    card's purpose.
   part-of: module:app-graph
 ```
 

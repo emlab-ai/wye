@@ -249,6 +249,23 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
     - strict-open-contradiction: an open contradiction touching a shipped node is an error under strict, a warning otherwise
     - exit-code: ok is false only on errors
   count: 7
+- id: test:cards
+  file: test/cards.js
+  description: >
+    The cards generator (scripts/cards.js, lib:cards, rule:cards-in-step): header extraction after 'use client' and the
+    imports (line and block comments, an id-first header), kind and id by path, route → file for op args and page
+    routes (dynamic segments, optional segments, query strings, trailing prose), path normalisation; write mode on a
+    scratch root (moved file re-pointed with its purpose kept, deleted file retired in place, new component, lib,
+    op and page cards under Unsorted or the importing module's Libraries, op source tightened, idempotent); then the
+    real tree — every file has a card and every card a file.
+  cases:
+    - header-of: use client and imports skipped, block comment joined, id-first header split
+    - escape-unknown: an undefined id is written kind&#58;slug, a defined one kept
+    - kind-and-id: page.tsx → page, route.ts → op, layout.tsx → component, collisions get the parameter name
+    - route-to-files: <x> matches any [segment], [/<x>] expands, ?query and prose ignored
+    - write-scratch-root: moved, retired, added, tightened; a second write changes nothing
+    - real-tree: check() finds no uncovered file and no missing file
+  count: 6
 ```
 
 ## Documents and editing

@@ -96,6 +96,7 @@ The editor's blocks and the components the pages are made of, by area.
     pasted or dropped go along; Enter runs, Shift+Enter breaks a line. Replaced SendToAgent.tsx and CommandPalette.tsx.
   part-of: module:components
 - id: component:session-page
+  status: retired
   file: packages/web/src/components/SessionPage.tsx
   side: client
   purpose: >
@@ -374,6 +375,7 @@ The editor's blocks and the components the pages are made of, by area.
     Docmost-style document tree: chevron for documents with children, a dot for leaves, an emoji icon, the title. Rows can be dragged: onto a row nests the document under it, between rows reorders, a zone under the tree makes it top level; a hover \"+\" adds a child; right-click or the hover \"⋯\" opens the row's menu — Duplicate, Delete (rule:tree-menu). The row is a module-level component so a drag survives the tree's re-render (rule:doc-tree-row-stable).
   part-of: module:components
 - id: component:search
+  status: retired
   file: packages/web/src/components/Search.tsx
   side: client
   purpose: >

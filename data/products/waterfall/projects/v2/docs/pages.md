@@ -28,7 +28,7 @@ Every page of the app by area: its route, what it shows, its actions. The table 
   part-of: module:pages
 - id: page:web/session
   route: /<product>/sessions/<id>
-  component: packages/web/src/app/[product]/sessions/[id]/page.tsx; packages/web/src/components/SessionPage.tsx
+  component: packages/web/src/app/[product]/sessions/[id]/page.tsx
   purpose: >
     A session as a page: the task (instruction, refs, source, the follow-up messages and their states), the page
     the plan was written on, the todo items that came out of it with their state now, every block it added or
@@ -78,7 +78,7 @@ Every page of the app by area: its route, what it shows, its actions. The table 
 ```yaml
 - id: page:web/node
   route: /p/<project>/d/<doc>#n-<id>   (a node's page is its definition inside its document; /p/<project>/n/<id> redirects there)
-  component: packages/web/src/app/p/[project]/d/[doc]/page.tsx; packages/web/src/components/Document.tsx; packages/web/src/components/NodeCard.tsx; packages/web/src/components/PeekPanel.tsx
+  component: packages/web/src/app/[product]/[project]/d/[doc]/page.tsx; packages/web/src/components/NodeCard.tsx; packages/web/src/components/PeekPanel.tsx
   reads: [op:graph.get, op:tasks.list, op:decisions.list, op:contradictions.list]
   actions:
     - action:edit-property:   change a yaml key in the properties panel (text, enum for status, id list with typeahead for edge keys)
@@ -178,7 +178,7 @@ Every page of the app by area: its route, what it shows, its actions. The table 
   part-of: module:pages
 - id: page:web/graph
   route: /p/<project>/graph?focus=<id>&preset=<name>
-  component: packages/web/src/app/p/[project]/graph/page.tsx; packages/web/src/components/GraphView.tsx
+  component: packages/web/src/app/[product]/graph/page.tsx; packages/web/src/components/GraphView.tsx
   reads: [op:graph.neighbors, op:graph.get]
   actions:
     - action:preset:          Requirements | Mechanics | Data | Drift | Everything (rule:graph-presets)
@@ -213,6 +213,7 @@ Every page of the app by area: its route, what it shows, its actions. The table 
 
 ```yaml
 - id: page:web/decisions
+  status: retired
   route: /p/<project>/decisions?node=<id>
   component: packages/web/src/app/p/[project]/decisions/page.tsx
   reads: [op:decisions.list, op:decisions.get]
@@ -225,6 +226,7 @@ Every page of the app by area: its route, what it shows, its actions. The table 
     - newest first; superseded decisions greyed with a link to the superseder
     - each card: clerk status, related nodes, contradictions found, delta with Apply / Reject (gate:delta-apply hides them for untrusted sessions)
 - id: page:web/contradictions
+  status: retired
   route: /p/<project>/contradictions?status=open
   component: packages/web/src/app/p/[project]/contradictions/page.tsx
   reads: [op:contradictions.list]
@@ -277,7 +279,7 @@ Every page of the app by area: its route, what it shows, its actions. The table 
   part-of: module:pages
 - id: page:web/sidebar
   route: every route; the left rail; first screen at phone width
-  component: packages/web/src/app/p/[project]/layout.tsx; packages/web/src/components/DocTree.tsx; packages/web/src/components/Search.tsx
+  component: packages/web/src/components/DocTree.tsx
   reads: [op:projects.list, op:graph.search, op:tasks.list, op:contradictions.list]
   actions:
     - action:search:          type to search document titles, headings, node ids and titles; a node hit opens its definition -(navigates)-> page:web/node
@@ -379,6 +381,7 @@ Every page of the app by area: its route, what it shows, its actions. The table 
   status: shipped
   part-of: module:pages
 - id: page:web/tasks
+  status: retired
   route: /p/<project>/tasks
   component: packages/web/src/app/p/[project]/tasks/page.tsx
   reads: [op:tasks.list, op:tasks.get, op:graph.packet]
@@ -388,6 +391,46 @@ Every page of the app by area: its route, what it shows, its actions. The table 
     - action:open-task:       shows links, packet, decisions, deltas
   display-rules:
     - columns follow value:task-status; a move that state:task-lifecycle forbids snaps back with the reason
+```
+
+<!-- /list:page -->
+
+## Unsorted
+
+<!-- list:page -->
+
+```yaml
+- id: page:web/constitution
+  route: /<product>/constitution
+  component: packages/web/src/app/[product]/constitution/page.tsx
+  purpose: >
+    The constitution (decision:memory.constraint-type): the product's constraint: blocks — approved ones are what
+    every agent prompt carries under "## Constitution"; proposed ones wait in the Inbox; retired ones are kept,
+    greyed.
+  status: proposed
+  part-of: module:pages
+- id: page:web/n-id
+  route: /<product>/n/<id>
+  component: packages/web/src/app/[product]/n/[id]/page.tsx
+  purpose: >
+    A node's page is its definition inside its document; the route stays for deep links.
+  status: proposed
+  part-of: module:pages
+- id: page:web/sessions-id-chat
+  route: /<product>/sessions/<id>/chat
+  component: packages/web/src/app/[product]/sessions/[id]/chat/page.tsx
+  purpose: >
+    A conversation as a page in the content column (its own tab): the same view the context column shows — header,
+    work, queue, transcript, message box — with the width of the page. The Agents page opens conversations here.
+  status: proposed
+  part-of: module:pages
+- id: page:web/home
+  route: /
+  component: packages/web/src/app/page.tsx
+  purpose: >
+    (no header comment)
+  status: proposed
+  part-of: module:pages
 ```
 
 <!-- /list:page -->

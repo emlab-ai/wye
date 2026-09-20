@@ -95,6 +95,33 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   purpose: >
     The Electron main process: owns the Next.js server as a child, waits until it answers, opens the window; agents are children of the server so everything dies together.
   part-of: module:app-storage
+- id: lib:asking
+  file: packages/web/src/lib/asking.ts
+  side: server
+  purpose: >
+    A live conversation waiting on the person (req:wf2.sessions.question-toast): the last permission request in its
+    transcript that no `note` answered — an AskUserQuestion (the question's text) or another tool's permission.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:constitution
+  file: packages/web/src/lib/constitution.ts
+  side: server
+  purpose: >
+    The constitution (decision:memory.constraint-type): the approved, current constraint: blocks of a product — the
+    small, stable set of rules every plan and agent action must respect. Read from the graph; nothing is stored
+    apart.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:retype
+  file: packages/web/src/lib/retype.ts
+  side: server
+  purpose: >
+    Changing a page's type changes its id (rule:doc-retype): the frontmatter node line takes the new kind and every
+    reference to the old id in the product's documents is rewritten to the new one — a whole-id match, so
+    `module&#58;platform-ops` and `module&#58;platform.x` are not touched by a rewrite of `module&#58;platform`.
+    Pure.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->
