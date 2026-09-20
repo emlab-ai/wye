@@ -683,3 +683,4 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .pr-acts { margin-left: auto; display: flex; gap: 6px; align-items: center; } .pr-acts button { background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 9px; font: 12px var(--font-b); color: var(--ink-2); cursor: pointer; } .pr-acts button:hover { border-color: var(--accent); color: var(--ink); } .pr-acts .pri { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); } .pr-acts button:disabled { opacity: .5; }
 .pr-head-why { margin: 6px 0 0; font-size: 12px; }
 .pr-head.s-approved { border-color: var(--accent); }
+.pr-questions { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); } .pr-questions .ask-actions .pri { background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); border-radius: 6px; padding: 3px 9px; font: 12px var(--font-b); cursor: pointer; }

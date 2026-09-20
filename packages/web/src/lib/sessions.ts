@@ -53,6 +53,20 @@ async function mutate<T>(productDir: string, id: string, fn: (s: Session) => T |
   if (!ID.test(id)) return null;
   return withFileLock(file(productDir, id), async () => { const s = await getSession(productDir, id); if (!s) return null; const r = await fn(s); await saveSession(productDir, s); return r; });
 }
+// Hooks around the agent's questions (decision:wf2.pr-questions-on-the-page): `onAsk` runs when a live session raises
+// an AskUserQuestion, `onAnswered` when the person answered it (from the console or the page); both keyed like the end hooks.
+export type AskInput = { questions?: { question: string; header?: string; multiSelect?: boolean; options?: { label: string; description?: string }[] }[]; answers?: Record<string, string> };
+export type AskHook = ((productDir: string, product: string, sessionId: string, requestId: string, input: AskInput) => Promise<void>) & { key?: string };
+const askHooks: AskHook[] = (globalThis as unknown as { __wfAskHooks?: AskHook[] }).__wfAskHooks ??= [];
+const answeredHooks: AskHook[] = (globalThis as unknown as { __wfAnsweredHooks?: AskHook[] }).__wfAnsweredHooks ??= [];
+for (const list of [askHooks, answeredHooks]) for (let i = list.length - 1; i >= 0; i--) if (!list[i].key) list.splice(i, 1);
+const register = (list: AskHook[], fn: AskHook, key: string) => { fn.key = key; const i = list.findIndex(h => h.key === key); if (i >= 0) list[i] = fn; else list.push(fn); };
+export function onAsk(fn: AskHook, key: string): void { register(askHooks, fn, key); }
+export function onAnswered(fn: AskHook, key: string): void { register(answeredHooks, fn, key); }
+export async function runAskHooks(kind: 'ask' | 'answered', productDir: string, product: string, sessionId: string, requestId: string, input: AskInput): Promise<void> {
+  for (const h of kind === 'ask' ? askHooks : answeredHooks) { try { await h(productDir, product, sessionId, requestId, input); } catch (e) { console.warn(`[wf] ${kind} hook ${h.key}: ${e instanceof Error ? e.message : e}`); } }
+}
+
 // Hooks run once a session reaches done / failed / cancelled (the plan document's result, rule:pr-doc); after the
 // record is saved, outside the file lock.
 export type EndHook = ((productDir: string, s: Session) => Promise<void>) & { key?: string };

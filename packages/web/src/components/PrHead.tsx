@@ -6,7 +6,8 @@ import { StatusPill } from './Pills';
 import { useMe } from './WorkList';
 
 type Readiness = { definition: boolean; agreed: boolean; impact: boolean; contradictions: boolean; tasks: boolean; ok: boolean; unagreed: string[]; contradicted: string[] };
-type Pr = { ref: string; node: string; num: number | null; title: string; label: string; status: string; task: string | null; session: string; approvedBy: string | null; approvedAt: string | null; readiness: Readiness; definition: { total: number; agreed: number } };
+type Q = { id: string; q: string; header?: string; options: { label: string; description?: string }[]; multi: boolean; status: string; answer?: string; by?: string; askedBy?: string };
+type Pr = { ref: string; node: string; num: number | null; title: string; label: string; status: string; task: string | null; session: string; approvedBy: string | null; approvedAt: string | null; readiness: Readiness; definition: { total: number; agreed: number }; questions: Q[] };
 
 const CHECKS: { key: keyof Readiness; label: string; why: string }[] = [
   { key: 'definition', label: 'definition', why: 'at least one block in Definition' },
@@ -40,6 +41,7 @@ export function PrHead({ product, prRef }: { product: string; prRef: string }) {
     await load();
   };
   const approve = () => { if (pr.readiness.ok || confirm) act('approve'); else setConfirm(true); };
+  const open_ = pr.questions.filter(q => q.status === 'open');
   const rd = pr.readiness;
   const ended = ['done', 'failed', 'cancelled'].includes(pr.status);
   return (
@@ -70,6 +72,36 @@ export function PrHead({ product, prRef }: { product: string; prRef: string }) {
         {rd.contradicted.length > 0 && <>· contradicted: {rd.contradicted.map(id => <span key={id}><SmartTag id={id} /> </span>)}</>}
       </p>}
       {msg && <p className="muted small">{msg}</p>}
+      {open_.length > 0 && <div className="pr-questions">
+        <p className="ask-lead">Wye is asking — the request goes on once you answer.</p>
+        {open_.map(q => <PageQuestion key={q.id} product={product} prRef={prRef} q={q} me={me} onDone={load} />)}
+      </div>}
     </section>
+  );
+}
+
+// One open question card of the page (decision:wf2.pr-questions-on-the-page): the options as buttons, "Other" as
+// free text; the answer goes on the card and, when the request's last card is answered, to the agent.
+function PageQuestion({ product, prRef, q, me, onDone }: { product: string; prRef: string; q: Q; me: string; onDone: () => void }) {
+  const [picked, setPicked] = useState<string[]>([]);
+  const [other, setOther] = useState('');
+  const [busy, setBusy] = useState(false);
+  const value = [...picked, ...(other.trim() ? [other.trim()] : [])].join(', ');
+  const toggle = (label: string) => setPicked(p => q.multi ? (p.includes(label) ? p.filter(x => x !== label) : [...p, label]) : [label]);
+  const send = async () => {
+    if (!value || busy) return; setBusy(true);
+    await fetch(`/api/${product}/pr`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ref: prRef, action: 'answer', id: q.id, answer: value, by: me || undefined }) });
+    setBusy(false); onDone();
+  };
+  return (
+    <div className="ask-q">
+      {q.header && <span className="ask-header">{q.header}</span>}
+      <p className="ask-text">{q.q}</p>
+      <ul className="ask-options" role={q.multi ? 'group' : 'radiogroup'}>
+        {q.options.map(o => { const on = picked.includes(o.label); return <li key={o.label}><button type="button" role={q.multi ? 'checkbox' : 'radio'} aria-checked={on} className={`ask-opt ${on ? 'on' : ''}`} onClick={() => toggle(o.label)}><i>{on ? '●' : '○'}</i><span><b>{o.label}</b>{o.description && <small>{o.description}</small>}</span></button></li>; })}
+        <li><label className="ask-other"><i>{other.trim() ? '●' : '○'}</i><input value={other} placeholder="Other — type your own answer" onChange={e => setOther(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') send(); }} /></label></li>
+      </ul>
+      <p className="ask-actions"><button className="pri" disabled={!value || busy} onClick={send}>{busy ? 'Sending…' : 'Answer'}</button> <SmartTag id={q.id} /></p>
+    </div>
   );
 }

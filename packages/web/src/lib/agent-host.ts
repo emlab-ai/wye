@@ -2,7 +2,7 @@
 // open, turns their streaming JSON into ChatEvents, persists them to the session and pushes them to subscribers.
 // Lives on globalThis so dev-server module reloads do not orphan the processes.
 import { spawn, type ChildProcess } from 'node:child_process';
-import { getSession, updateSession, appendTranscript, enqueue, takeFromQueue, markTurnEnd, queueMessage, imageLines, filesDir } from './sessions';
+import { getSession, updateSession, appendTranscript, enqueue, takeFromQueue, markTurnEnd, queueMessage, imageLines, filesDir, runAskHooks, type AskInput } from './sessions';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { queueView, type ChatEvent, type QueueItem, type QueueView, type Session, type TurnUsage } from './session-types';
@@ -14,6 +14,7 @@ import { createPrDoc, closePrDoc } from './pr-docs';
 import { firstUserEvent } from './transcript';
 import { packetFor } from './packet';
 import './consolidate';   // registers the session-end consolidation hook (decision:memory.consolidate-sessions)
+import './pr-questions';  // registers the ask / answered hooks that mirror a librarian's questions onto its PR page
 
 // `turn`: the queue items handed to the open turn — stamped done / failed when it ends (decision:wf2.queue-item-state);
 // `product` / `wfUrl` let the pump build a first message when a fresh item comes up (rule:clean-slate); `stopped`: the
@@ -63,7 +64,7 @@ This conversation refines the Prompt Request \`${prDoc}\` (node \`pr:${slug}\`, 
 - **Context**: what the request touches — modules, documents, nodes, code paths — as tags (\`kind:slug\`) and embeds (\`![[kind:slug]]\`), and what you understood, in prose (\`wye doc write\`, this section only).
 - **Definition**: every block the request needs — requirements (when / then / unless, in the person's words), decisions (a choice with alternatives), constraints, questions for what you cannot decide, tasks — proposed into their home documents with \`wye propose --pr ${prDoc}\` (they embed here by themselves); edits of existing blocks with \`wye node set\` under your session (they are tracked as change records and embedded too).
 - Say plainly when the request is already satisfied, partly, or contradicts a constraint or decision in force.
-- Ask at most three questions at a time, as question: blocks on the page, only for what the requirement shape leaves open or a constraint makes ambiguous, with the reading you would assume first.
+- Ask at most three questions at a time with the AskUserQuestion tool (a header, the question, options with a one-line description each, the reading you would assume first): the app puts them on the PR page as question cards and the person answers there — never ask in prose.
 The request is ready when its readiness list is green (\`wye pr ${prDoc}\`): a Definition, every block agreed, no open contradiction, at least one task. When it is, say so in one line and stop. Never edit code. Never approve and never build — approval is the person's click on the page; the build starts from there.`;
 }
 export function librarianProtocol(): string {
@@ -219,6 +220,8 @@ function onClaudeLine(l: Live, line: string) {
   if (type === 'control_request') {
     const req = j.request as Record<string, unknown>;
     emit(l, { kind: 'permission', requestId: String(j.request_id), name: String(req.tool_name ?? req.subtype ?? 'tool'), input: req.input, text: String(req.description ?? req.subtype ?? '') });
+    // the agent's questions go on the PR page too (decision:wf2.pr-questions-on-the-page)
+    if (req.tool_name === 'AskUserQuestion') void runAskHooks('ask', l.productDir, l.product, l.id, String(j.request_id), (req.input ?? {}) as AskInput);
     return;
   }
   // rate limits, hooks and the rest are noise for the console
@@ -278,6 +281,8 @@ export function answerPermission(id: string, requestId: string, allow: boolean, 
   const response = allow ? { behavior: 'allow', updatedInput: input ?? {} } : { behavior: 'deny', message: 'denied by the user in Wye' };
   l.proc.stdin!.write(JSON.stringify({ type: 'control_response', response: { subtype: 'success', request_id: requestId, response } }) + '\n');
   emit(l, { kind: 'note', text: `${allow ? 'allowed' : 'denied'} ${requestId}`, requestId, answered: allow ? 'allow' : 'deny', input: allow ? input : undefined });
+  const asked = (input as AskInput | undefined)?.answers;
+  if (allow && asked) void runAskHooks('answered', l.productDir, l.product, l.id, requestId, input as AskInput); // the page's cards take the answers
   return true;
 }
 // A fresh item comes up (rule:clean-slate, req:wf2.sessions.fresh-in-queue): end the process if one is up (the
