@@ -4,13 +4,13 @@
 import { ID_RE, cleanId } from './ids';
 import { splitDocument } from './doc';
 import { tagifyBlocks, unwrapParagraphs, type Inline, type InlineText, type InlineOther } from './mdflow';
-import { collectionKind, type AnyBlock, type NodeProps } from './serialize';
+import { collectionKind, collectionView, type AnyBlock, type NodeProps } from './serialize';
 import { EXTRA_GROUP } from './props';
 
 const TEXT_KEYS = ['title', 'statement', 'description', 'purpose', 'q', 'text', 'context', 'does', 'intent'];
 const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|review|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused|resolved|rejected|superseded|retired|dismissed|defining|defined|building|cancelled|failed)\b/;
 
-export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[]; images: { alt: string; url: string }[]; views: { slug: string; query: string }[]; embeds: string[]; tables: string[]; contents: string[] }
+export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[]; images: { alt: string; url: string }[]; views: { slug: string; query: string }[]; embeds: string[]; tables: { query: string; view: 'table' | 'list' }[]; contents: string[] }
 // How `expand` parses a block's lifted content: the whole pipeline again (prepare → BlockNote → expand), see importMarkdown
 export type ParseMd = (md: string) => AnyBlock[];
 
@@ -18,8 +18,8 @@ export type ParseMd = (md: string) => AnyBlock[];
 // A table region: ordinary node lines between <!-- goals --> and <!-- /goals --> (or tasks), or for any type
 // <!-- table:<slug> --> … <!-- /table:<slug> -->. The marker carries the kind of its rows and, after it, the table's
 // filters as key=value pairs in the view block's grammar (rule:table-filter): <!-- table:bug status=open q="login" -->
-export const COLLECTION_OPEN = /^<!--\s*(goals|tasks|table:[a-z][a-z0-9-]*)((?:\s+[^\s>][^>]*?)?)\s*-->\s*$/;
-export const COLLECTION_CLOSE = /^<!--\s*\/(goals|tasks|table:[a-z][a-z0-9-]*)\s*-->\s*$/;
+export const COLLECTION_OPEN = /^<!--\s*(goals|tasks|(?:table|list):[a-z][a-z0-9-]*)((?:\s+[^\s>][^>]*?)?)\s*-->\s*$/;
+export const COLLECTION_CLOSE = /^<!--\s*\/(goals|tasks|(?:table|list):[a-z][a-z0-9-]*)\s*-->\s*$/;
 
 export const DRAWING_LINE = /^!\[([^\]]*)\]\((\S+\.excalidraw)\)\s*$/;
 // A view: a live table of a type's instances with filters, one comment line, nothing stored (req:wf2.instances.view-block)
@@ -51,7 +51,7 @@ export function prepare(body: string): Prepared {
   const images: { alt: string; url: string }[] = [];
   const views: { slug: string; query: string }[] = [];
   const embeds: string[] = [];
-  const tables: string[] = []; // the filter query of every table marker that has one, by index
+  const tables: { query: string; view: 'table' | 'list' }[] = []; // the filter query and view of every table / list marker that carries one, by index
   const contents: string[] = []; // the content of every block that has some (req:ontology.content), de-indented, by index
   const parts: string[] = [];
   const liftDrawings = (text: string) => { let fence = false; return text.split('\n').map(l => {
@@ -60,7 +60,7 @@ export function prepare(body: string): Prepared {
     const m = l.match(DRAWING_LINE); if (m) { drawings.push({ title: m[1], src: m[2] }); return `\n%%DRAWING:${drawings.length - 1}%%\n`; }
     const v = l.match(VIEW_LINE); if (v) { views.push({ slug: v[1], query: v[2].trim() }); return `\n%%VIEW:${views.length - 1}%%\n`; }
     const e = l.match(EMBED_LINE); if (e) { embeds.push(cleanId(e[1])); return `\n%%EMBED:${embeds.length - 1}%%\n`; }
-    const o = l.match(COLLECTION_OPEN); if (o) { const q = o[2].trim(); if (!q) return `\n%%COLLECTION:${collectionKind(o[1])}%%\n`; tables.push(q); return `\n%%COLLECTION:${collectionKind(o[1])}:${tables.length - 1}%%\n`; }
+    const o = l.match(COLLECTION_OPEN); if (o) { const q = o[2].trim(); const view = collectionView(o[1]); if (!q && view === 'table') return `\n%%COLLECTION:${collectionKind(o[1])}%%\n`; tables.push({ query: q, view }); return `\n%%COLLECTION:${collectionKind(o[1])}:${tables.length - 1}%%\n`; }
     const c = l.match(COLLECTION_CLOSE); if (c) return `\n%%/COLLECTION%%\n`;
     return l;
   }).join('\n'); };
@@ -236,7 +236,7 @@ export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Pre
   for (const b of blocks) {
     const first = firstText(b);
     const cm = first.trim().match(/^%%COLLECTION:([a-z][a-z0-9-]*)(?::(\d+))?%%$/);
-    if (b.type === 'paragraph' && cm) { coll = { type: 'collection', props: cm[2] ? { kind: cm[1], query: tables[Number(cm[2])] ?? '' } : { kind: cm[1] }, children: [] }; out.push(coll); continue; }
+    if (b.type === 'paragraph' && cm) { const t = cm[2] ? tables[Number(cm[2])] : undefined; coll = { type: 'collection', props: t ? (t.view === 'list' ? { kind: cm[1], query: t.query, view: 'list' } : { kind: cm[1], query: t.query }) : { kind: cm[1] }, children: [] }; out.push(coll); continue; }
     if (b.type === 'paragraph' && /^%%\/COLLECTION%%$/.test(first.trim())) { coll = null; continue; }
     if ((b.type === 'paragraph') && /^%%DIVIDER%%$/.test(first.trim())) { push({ type: 'divider' }); continue; }
     const dm = first.trim().match(/^%%DRAWING:(\d+)%%$/);
@@ -258,7 +258,7 @@ export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Pre
     }
     const kids = takeContent(b);
     const pn = proseNode(b, yaml, drawings);
-    if (pn) { if (coll) pn.props = { ...pn.props, row: (coll.props as { kind: string }).kind }; push(withLinks(kids?.length ? { ...pn, children: kids } : pn)); continue; }
+    if (pn) { if (coll) { const cp = coll.props as { kind: string; view?: string }; pn.props = { ...pn.props, row: cp.view === 'list' ? '' : cp.kind }; } push(withLinks(kids?.length ? { ...pn, children: kids } : pn)); continue; }
     push(withLinks(kids?.length ? { ...b, children: kids } : b.children?.length ? { ...b, children: expand(b.children, yaml, drawings, images, views, embeds, tables, nested) } : b));
   }
   return (tagifyBlocks(out as never[]) as AnyBlock[]).map(b => unescapeBlock(imagifyBlock(b, images)));

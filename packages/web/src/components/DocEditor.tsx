@@ -237,7 +237,8 @@ function withSlug(editor: EditorLike, index: Record<string, unknown>, block: Any
 }
 
 // An empty row for a goals/tasks/type table: typing into it makes it a real item.
-const emptyRow = (kind: string) => ({ type: 'node', props: { kind, slug: '', status: kind === 'goal' ? 'proposed' : kind === 'task' ? 'open' : '', form: 'prose', textKey: 'text', body: '', extra: '', check: kind === 'task' ? 'todo' : '', list: 'bullet', row: kind }, content: [] as unknown[] });
+// a fresh row of a collection: in a table it renders as a row (`row: kind`), in a list as an ordinary block (rule:list-view)
+const emptyRow = (kind: string, view = 'table') => ({ type: 'node', props: { kind, slug: '', status: kind === 'goal' ? 'proposed' : kind === 'task' ? 'open' : '', form: 'prose', textKey: 'text', body: '', extra: '', check: kind === 'task' ? 'todo' : '', list: 'bullet', row: view === 'list' ? '' : kind }, content: [] as unknown[] });
 const rowText = (b: AnyBlock) => (Array.isArray(b.content) ? (b.content as { type: string; text?: string; props?: { id?: string } }[]).map(i => i.type === 'text' ? i.text ?? '' : i.type === 'tag' ? i.props?.id ?? '' : '').join('') : '').trim();
 
 // Every goals/tasks/type table ends with one empty row; a row that gained text gets its id, and a new empty row
@@ -247,10 +248,10 @@ function settleCollections(editor: EditorLike, taken: Set<string>, assignSlugs: 
   let changed = false;
   for (const b of editor.document as AnyBlock[]) {
     if (b.type !== 'collection') continue;
-    const kind = (b.props as { kind: string }).kind;
+    const { kind, view = 'table' } = b.props as { kind: string; view?: string };
     const kids = [...(b.children ?? [])] as AnyBlock[];
-    // Enter in a row makes a paragraph: inside a table every child is a row, so it becomes one (its text kept)
-    for (const k of kids) if (k.type !== 'node' && Array.isArray(k.content)) { editor.updateBlock(k, { type: 'node', props: emptyRow(kind).props, content: k.content }); k.type = 'node'; k.props = { ...emptyRow(kind).props }; changed = true; }
+    // Enter in a row makes a paragraph: inside a table or list every child is a node of the kind, so it becomes one (its text kept)
+    for (const k of kids) if (k.type !== 'node' && Array.isArray(k.content)) { editor.updateBlock(k, { type: 'node', props: emptyRow(kind, view).props, content: k.content }); k.type = 'node'; k.props = { ...emptyRow(kind, view).props }; changed = true; }
     // ids for rows that have text but no slug yet
     for (const k of kids) {
       if (k.type !== 'node') continue;
@@ -269,8 +270,8 @@ function settleCollections(editor: EditorLike, taken: Set<string>, assignSlugs: 
     const stray = assignSlugs ? kids.filter((k, i) => isEmpty(k) && i < kids.length - 1) : [];
     if (stray.length) { editor.removeBlocks(stray.map(k => String((k as { id?: string }).id))); changed = true; }
     const last = kids[kids.length - 1];
-    if (!last) { editor.updateBlock(b, { children: [emptyRow(kind)] }); changed = true; }
-    else if (!isEmpty(last)) { editor.insertBlocks([emptyRow(kind)], String((last as { id?: string }).id), 'after'); changed = true; }
+    if (!last) { editor.updateBlock(b, { children: [emptyRow(kind, view)] }); changed = true; }
+    else if (!isEmpty(last)) { editor.insertBlocks([emptyRow(kind, view)], String((last as { id?: string }).id), 'after'); changed = true; }
   }
   return changed;
 }
@@ -284,12 +285,13 @@ function TypeRowFor({ p, set, contentRef, block, editor }: { p: { kind: string; 
 
 // A table: one block for goals, tasks and every type the product declares; the header's type picker sets the kind
 // of its rows (decision:wf2.one-table-block). The rows are the block's children (nodes in row mode). The type can
-// change while no row has text — after that the rows have ids of that kind.
+// change while no row has text — after that the rows have ids of that kind. `view: list` shows the same children as
+// ordinary blocks under the same filter bar (rule:list-view); the header toggles between the two.
 const CollectionBlock = createReactBlockSpec(
-  { type: 'collection', propSchema: { kind: { default: 'goal' }, query: { default: '' } }, content: 'none' },
+  { type: 'collection', propSchema: { kind: { default: 'goal' }, query: { default: '' }, view: { default: 'table' } }, content: 'none' },
   {
     render: props => {
-      const { kind, query } = props.block.props as { kind: string; query: string };
+      const { kind, query, view } = props.block.props as { kind: string; query: string; view: string };
       const { ownTypes } = usePeek();
       const type = kind === 'goal' || kind === 'task' ? undefined : ownTypes.find(t => t.slug === kind);
       // the header re-renders on every editor change: whether the type can still change depends on the rows' text
@@ -300,20 +302,36 @@ const CollectionBlock = createReactBlockSpec(
       const options = ['goal', 'task', ...ownTypes.map(t => t.slug)]; if (!options.includes(kind)) options.push(kind);
       const setKind = (k: string) => {
         if (k === kind || locked) return;
-        for (const c of kids) if (c.type === 'node') props.editor.updateBlock(c as never, { props: { ...emptyRow(k).props, slug: '' } } as never);
-        props.editor.updateBlock(props.block, { props: { kind: k, query: '' } } as never);
+        for (const c of kids) if (c.type === 'node') props.editor.updateBlock(c as never, { props: { ...emptyRow(k, view).props, slug: '' } } as never);
+        props.editor.updateBlock(props.block, { props: { kind: k, query: '', view } } as never);
       };
+      // table ⇄ list: the same children, rendered as rows or as blocks (their `row` prop says which)
+      const setView = (v: string) => {
+        if (v === view) return;
+        for (const c of kids) if (c.type === 'node') props.editor.updateBlock(c as never, { props: { ...(c.props as object), row: v === 'list' ? '' : kind } } as never);
+        props.editor.updateBlock(props.block, { props: { kind, query, view: v } } as never);
+      };
+      const viewToggle = (
+        <button type="button" className="collection-view-toggle" title={view === 'list' ? 'show as a table' : 'show as blocks'} onMouseDown={e => e.stopPropagation()} onClick={() => setView(view === 'list' ? 'table' : 'list')}>{view === 'list' ? '▤ table' : '☰ list'}</button>
+      );
       const filter = useTableFilter(props.editor as unknown as EditorLike, props.block as unknown as AnyBlock, kids, type ?? (kind === 'goal' || kind === 'task' ? undefined : { slug: kind, cols: [] }), query);
       const picker = (
         <select className="collection-kind" value={kind} disabled={locked} title={locked ? 'rows already have ids of this type; start another table for another type' : 'the type of this table'} onChange={e => setKind(e.target.value)} onMouseDown={e => e.stopPropagation()}>
           {options.map(o => <option key={o} value={o}>{o === 'goal' ? 'Goals' : o === 'task' ? 'Tasks' : `${o[0].toUpperCase()}${o.slice(1)}s`}</option>)}
         </select>
       );
+      if (view === 'list') return (
+        <div className={`collection c-list c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
+          {filter.hide}
+          <div className="collection-list-head">{picker}{filter.toggle}{viewToggle}<span className="muted small">{kids.filter(k => k.type === 'node' && rowText(k)).length}</span></div>
+          {filter.bar}
+        </div>
+      );
       if (kind !== 'goal' && kind !== 'task') return (
         <div className={`collection c-type c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
           {filter.hide}{filter.bar}
           <div className="nrow nrow-head nrow-type" style={{ gridTemplateColumns: typeGrid(type ?? { slug: kind, cols: [] }) }}>
-            <div className="nrow-cell nrow-name">{picker}{!type && <span className="muted" title="the product declares no such type; rows are still written">?</span>}{filter.toggle}</div><div className="nrow-cell">Status</div>
+            <div className="nrow-cell nrow-name">{picker}{!type && <span className="muted" title="the product declares no such type; rows are still written">?</span>}{filter.toggle}{viewToggle}</div><div className="nrow-cell">Status</div>
             {(type?.cols ?? []).map(c => <div key={c.name} className="nrow-cell" title={c.ref ? `${c.type}` : c.type}>{c.name}</div>)}
           </div>
         </div>
@@ -322,7 +340,7 @@ const CollectionBlock = createReactBlockSpec(
         <div className={`collection c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
           {filter.hide}{filter.bar}
           <div className="nrow nrow-head">
-            <div className="nrow-cell nrow-name">{picker}{filter.toggle}</div><div className="nrow-cell">Status</div><div className="nrow-cell">{kind === 'goal' ? 'Target' : 'Due'}</div><div className="nrow-cell nrow-progress">Progress</div><div className="nrow-cell">Owner</div>
+            <div className="nrow-cell nrow-name">{picker}{filter.toggle}{viewToggle}</div><div className="nrow-cell">Status</div><div className="nrow-cell">{kind === 'goal' ? 'Target' : 'Due'}</div><div className="nrow-cell nrow-progress">Progress</div><div className="nrow-cell">Owner</div>
           </div>
         </div>
       );
@@ -784,11 +802,15 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   };
   if (typeof window !== 'undefined') (window as unknown as { __wfAnnotate: (id: string) => void }).__wfAnnotate = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock | undefined; if (b) imageToDrawing(b); };
   if (typeof window !== 'undefined') (window as unknown as { __wfCodeToDrawing: (id: string) => void }).__wfCodeToDrawing = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock | undefined; if (b) codeToDrawing(b); }; // dev inspection
-  const insertCollection = (kind: string) => { insertOrUpdateBlockForSlashMenu(editor, { type: 'collection', props: { kind }, children: [emptyRow(kind)] } as never); setTimeout(() => settle(), 0); touched.current = true; changed(); };
+  const insertCollection = (kind: string, view = 'table') => { insertOrUpdateBlockForSlashMenu(editor, { type: 'collection', props: { kind, view }, children: [emptyRow(kind, view)] } as never); setTimeout(() => settle(), 0); touched.current = true; changed(); };
   // one Table block: goals, tasks or any of the product's types — the type is picked in the table's header
   const collectionItems = [{
     title: 'Data table', group: 'Wye', subtext: `a table of goals, tasks${ownTypes.length ? ', ' + ownTypes.map(t => t.slug + 's').join(', ') : ''} — pick the type in its header; rows are nodes`,
     onItemClick: () => insertCollection('task'),
+  }, {
+    // the same block as a list: its rows are ordinary blocks, Enter adds one of the same kind, the filter bar on top (rule:list-view)
+    title: 'Data list', group: 'Wye', aliases: ['list', 'blocks', 'view'], subtext: `tasks, goals${ownTypes.length ? ', ' + ownTypes.map(t => t.slug + 's').join(', ') : ''} shown as blocks with a filter on top — a new block is one of the same kind`,
+    onItemClick: () => insertCollection('task', 'list'),
   }, {
     title: 'Instances view', group: 'Wye', subtext: 'a live, filterable list of every node of one type — pages, tasks, ' + (ownTypes[0]?.slug ?? 'decisions') + 's… — nothing is stored but the filters',
     onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'view', props: { slug: ownTypes[0]?.slug ?? 'task', query: '' } } as never); touched.current = true; changed(); },

@@ -150,7 +150,7 @@ describe('expand', () => {
     setKinds(['bug']);
     const src = 'Intro.\n\n<!-- table:bug status=open q="login page" -->\n- bug:login Login fails on Safari #open (severity: high)\n<!-- /table:bug -->\n\n<!-- goals owner=alex -->\n- goal:g1 First goal #on-track (owner: alex)\n<!-- /goals -->\n\nAfter.\n';
     const p = prepare(src);
-    expect(p.tables).toEqual(['status=open q="login page"', 'owner=alex']);
+    expect(p.tables).toEqual([{ query: 'status=open q="login page"', view: 'table' }, { query: 'owner=alex', view: 'table' }]);
     expect(p.md).toContain('%%COLLECTION:bug:0%%');
     expect(p.md).toContain('%%COLLECTION:goal:1%%');
     const parsed: { type: string; content: { type: string; text: string; styles: object }[] }[] = [];
@@ -248,5 +248,26 @@ describe('content (req:ontology.content)', () => {
       ['decision:c', [['bulletListItem', []]]],
     ]);
     expect((blocks[0].content as { text: string }[])[0].text).toBe('Text of a.');
+  });
+});
+
+describe('list regions (rule:list-view)', () => {
+  const parse = (md: string) => { const parsed: { type: string; content: { type: string; text: string; styles: object }[] }[] = []; for (const para of md.split(/\n\n+/).map(x => x.trim()).filter(Boolean)) { if (para.startsWith('- ')) for (const line of para.split('\n')) parsed.push({ type: 'bulletListItem', content: [t(line.replace(/^- /, ''))] }); else parsed.push({ type: 'paragraph', content: [t(para)] }); } return parsed; };
+  it('a <!-- list:task status=open --> region is a collection in list view whose rows are ordinary blocks, and writes back as a list', () => {
+    const src = 'Intro.\n\n<!-- list:task status=open -->\n- task:one Do one #open\n- task:two Did two #done\n<!-- /list:task -->\n\nAfter.\n';
+    const p = prepare(src);
+    expect(p.tables).toEqual([{ query: 'status=open', view: 'list' }]);
+    const blocks = expand(parse(p.md), p.yaml, p.drawings, p.images, p.views, p.embeds, p.tables);
+    const coll = blocks.find(b => b.type === 'collection')!;
+    expect(coll.props).toEqual({ kind: 'task', query: 'status=open', view: 'list' });
+    expect((coll.children ?? []).map(c => (c.props as { row?: string }).row)).toEqual(['', '']);
+    expect(blocksToMarkdown(blocks)).toBe(src);
+  });
+  it('a list block with no filters writes <!-- list:goal --> and reads back in list view', () => {
+    expect(blocksToMarkdown([{ type: 'collection', props: { kind: 'goal', query: '', view: 'list' }, children: [] }])).toBe('<!-- list:goal -->\n<!-- /list:goal -->\n');
+    const p = prepare('<!-- list:goal -->\n<!-- /list:goal -->\n');
+    expect(p.tables).toEqual([{ query: '', view: 'list' }]);
+    const blocks = expand(parse(p.md), p.yaml, p.drawings, p.images, p.views, p.embeds, p.tables);
+    expect(blocks[0].props).toEqual({ kind: 'goal', query: '', view: 'list' });
   });
 });

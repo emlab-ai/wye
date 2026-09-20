@@ -169,6 +169,39 @@ what they are in the file.
   satisfied-by: [rule:table-filter]
   verified-by: [ui-test:table-filter, test:web-lib#import]
   part-of: module:app-documents
+- id: req:wf2.editor.list-block
+  title: A data list shows one kind of block as ordinary blocks, filtered from the top, and a new block is one of the same kind
+  when: >
+    the person inserts a Data list (slash menu) or switches a data table to its list view, picks the kind (tasks,
+    goals, or a type the product declares) and reads or writes in it
+  then: >
+    the blocks of that kind show as they do anywhere in the document — checkbox, kind, id, status, properties,
+    their content folded — under the same filter bar the data table has (search, status, enum / bool / ref
+    values), the hidden ones stay in the file; Enter after a block, or typing into the trailing empty block,
+    adds a block of the same kind with an id; the header switches between list and table without changing the
+    blocks; the region is written as `<!-- list:<kind> [filters] --> … <!-- /list:<kind> -->`
+  unless: the region is a table — then it renders as rows as today (`<!-- tasks -->`, `<!-- table:bug -->`)
+  status: shipped
+  refines: [req:wf2.editor.table-filter]
+  related-to: [req:wf2.instances.view-block, rule:goals-and-tasks, rule:type-tables]
+  satisfied-by: [rule:list-view]
+  verified-by: [test:web-lib#import]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:app-documents
+- id: rule:list-view
+  statement: >
+    A collection block has a `view`: `table` (the default, rows in row mode) or `list` (the same children as
+    ordinary node blocks: their `row` prop is empty, so the node block renders its normal form). The marker says
+    which: `<!-- list:task status=open -->` … `<!-- /list:task -->` opens a list, `<!-- tasks -->` / `<!-- table:bug -->`
+    a table; the filters ride on the marker either way (rule:table-filter). settleCollections keeps one empty child
+    of the kind at the end and turns a paragraph made by Enter into a node of the kind, in the block's view. The
+    header's toggle rewrites every child's `row` prop and the block's view; the type picker and the filter toggle
+    are the same as the table's. The slash menu offers "Data list" next to "Data table".
+  source: packages/web/src/lib/import.ts#COLLECTION_OPEN; packages/web/src/lib/serialize.ts#collectionMarker; packages/web/src/components/DocEditor.tsx#CollectionBlock; packages/web/src/components/DocEditor.tsx#settleCollections
+  status: shipped
+  verified-by: [test:web-lib#import]
+  related-to: [rule:table-filter, rule:goals-and-tasks, rule:type-tables]
 - id: rule:table-filter
   statement: >
     A data table's filters live on its opening marker as key=value pairs in the view block's grammar —
