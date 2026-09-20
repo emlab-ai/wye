@@ -5,7 +5,7 @@ import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import type { InboxItem } from '@/lib/inbox';
 
-type Suggestion = { doc: string | null; project: string | null; kind: string; id: string; similar: { id: string; score: number }[] };
+type Suggestion = { doc: string | null; project: string | null; kind: string; id: string; similar: { id: string; score: number; p?: number }[] };
 type Docs = { file: string; slug: string; title: string; project: string }[];
 
 // Inbox items to review: each one can be filed into a document as a node (with a suggested document and id) or
@@ -59,7 +59,7 @@ export function InboxList({ product, initial }: { product: string; initial: Inbo
                 {i.status === 'filed' && i.node && <p className="muted">filed as <SmartTag id={i.node} /> in {i.filedTo}</p>}
                 {i.status === 'new' && (detail ? (
                   <div className="inbox-file form">
-                    {detail.suggestion.similar.length > 0 && <p className="muted inbox-similar">closest existing knowledge: {detail.suggestion.similar.map(s => <span key={s.id}><SmartTag id={s.id} /> <small>{Math.round(s.score * 100)}%</small> </span>)}— if one of these already says it, dismiss or refine that node instead.</p>}
+                    {detail.suggestion.similar.length > 0 && <p className="muted inbox-similar">closest existing knowledge: {detail.suggestion.similar.map(s => <span key={s.id}><SmartTag id={s.id} /> <small title={s.p !== undefined ? `Jev ${Math.round(s.p * 100)}% · search ${Math.round(s.score * 100)}%` : 'search'}>{Math.round((s.p ?? s.score) * 100)}%</small> </span>)}— if one of these already says it, dismiss or refine that node instead.</p>}
                     <label><span>document</span><select value={`${target.project}/${target.doc}`} onChange={e => { const [project, doc] = e.target.value.split('/'); setTarget(t => ({ ...t, project, doc })); }}>{detail.docs.map(d => <option key={d.file} value={`${d.project}/${d.slug}`}>{d.project} / {d.title}</option>)}</select></label>
                     <label><span>node id</span><input value={target.id} onChange={e => setTarget(t => ({ ...t, id: e.target.value }))} spellCheck={false} /></label>
                     <div className="sec-actions"><button className="pri" disabled={busy} onClick={() => act(i.name, { action: 'file', ...target })}>File as node</button><button disabled={busy} onClick={() => act(i.name, { action: 'task', project: target.project })} title="A task line on the backlog — the Work view's Unassigned group">As a task</button><button disabled={busy} onClick={() => act(i.name, { action: 'dismiss' })}>Dismiss</button>{msg && <span className="notice">{msg}</span>}</div>

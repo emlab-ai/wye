@@ -6,6 +6,8 @@ import { slugify } from './templates';
 import { writeAtomic, rebuild, withFileLock } from './write';
 import { REPO_ROOT } from './products';
 import { search } from './semantic';
+import { judgeText, confidentIds, type SearchFn } from './links';
+import { LINK_MIN, type JevClient } from './jev';
 import type { GraphData } from './graph';
 import { docRoute } from './doc';
 
@@ -51,6 +53,26 @@ export async function addInboxItem(productDir: string, input: { type?: string; t
   return name;
 }
 
+// Linked on arrival (Jev auto-linking design §2): the item's text against the closest knowledge, the confident ids
+// merged into refs (explicit ones first), an untyped note typed when Jev is sure. Runs after the add returned so
+// neither `wye inbox add` nor the UI waits for the call; a failure leaves the item as it was.
+export async function linkInboxItem(productDir: string, graph: GraphData, name: string, jev: JevClient, searchFn?: SearchFn): Promise<{ refs: string[]; type?: string }> {
+  if (!jev.enabled) return { refs: [] };
+  const item = (await listInboxItems(productDir)).find(i => i.name === name); if (!item) return { refs: [] };
+  const text = [item.title, item.body, ...Object.values(item.fields)].filter(Boolean).join('. ');
+  const hits = await judgeText(productDir, graph, text, { jev, limit: 15, exclude: item.refs, searchFn });
+  const refs = confidentIds(hits).filter(id => !item.refs.includes(id));
+  const patch: Record<string, string> = {};
+  if (refs.length) { patch.refs = [...item.refs, ...refs].join(', '); patch['linked-by'] = 'jev'; }
+  let type: string | undefined;
+  if (item.type === 'note') { // the head's default: the item came without a type (or as a note — a retype is still reviewed at filing)
+    const k = await jev.judgeKind(text).catch(() => ({ kind: 'note', p: 0 }));
+    if (k.p >= LINK_MIN() && ['decision', 'requirement', 'rule', 'question'].includes(k.kind)) { type = k.kind; patch.type = k.kind; }
+  }
+  if (Object.keys(patch).length) await patchHead(productDir, name, patch);
+  return { refs, ...(type ? { type } : {}) };
+}
+
 async function patchHead(productDir: string, name: string, patch: Record<string, string>): Promise<void> {
   const f = path.join(productDir, 'inbox', name);
   const md = await readFile(f, 'utf8'); const fm = md.match(/^---\n([\s\S]*?)\n---\n?/); if (!fm) return;
@@ -64,11 +86,12 @@ export async function markFiled(productDir: string, name: string, to: { file: st
 
 // Which document should an item go to, and as which node? The closest existing knowledge decides the document
 // (the one most of the top hits live in); the item's type decides the kind; the id comes from the title.
-export async function suggestFiling(productDir: string, graph: GraphData, product: string, item: InboxItem): Promise<{ doc: string | null; project: string | null; kind: string; id: string; similar: { id: string; score: number }[] }> {
+export async function suggestFiling(productDir: string, graph: GraphData, product: string, item: InboxItem, jev?: JevClient, searchFn?: SearchFn): Promise<{ doc: string | null; project: string | null; kind: string; id: string; similar: { id: string; score: number; p?: number }[] }> {
   const kind = item.type === 'requirement' ? 'req' : item.type === 'decision' ? 'decision' : item.type === 'rule' ? 'rule' : item.type === 'question' ? 'question' : 'note';
   const text = [item.title, item.body, ...Object.values(item.fields)].join('. ');
-  let hits: { id: string; score: number }[] = [];
-  try { hits = (await search(productDir, graph, text, { limit: 8 })).map(h => ({ id: h.id, score: h.score })); } catch { /* no model yet */ }
+  let hits: { id: string; score: number; p?: number }[] = [];
+  // with a Jev client the hits carry its probability (Jev auto-linking design §2), the percentage the filing view shows
+  try { hits = jev?.enabled ? await judgeText(productDir, graph, text, { jev, limit: 8, searchFn }) : (await (searchFn ?? search)(productDir, graph, text, { limit: 8 })).map(h => ({ id: h.id, score: h.score })); } catch { /* no model yet */ }
   const votes = new Map<string, number>();
   for (const h of hits) { const n = graph.nodes.find(x => x.id === h.id); const r = n && docRoute(n.file); if (r) votes.set(`${r.project}/${r.doc}`, (votes.get(`${r.project}/${r.doc}`) ?? 0) + h.score * (n!.kind === kind ? 1.5 : 1)); }
   // the kind's home document wins ties: decisions/rules → tech design, requirements/questions → prd

@@ -4,13 +4,14 @@ import { markFiled } from '@/lib/inbox';
 import { loadScope } from '@/lib/scope';
 import { dismissItem, fileItem, listInboxItems, suggestFiling } from '@/lib/inbox';
 import { documentTree, docRoute } from '@/lib/doc';
+import { jevClient } from '@/lib/jev';
 
 // GET → the item with a filing suggestion. POST { action: 'file', doc, project, id } | { action: 'dismiss' }.
 export async function GET(_req: Request, { params }: { params: Promise<{ product: string; name: string }> }) {
   const { product, name } = await params;
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const item = (await listInboxItems(scope.product.dir)).find(i => i.name === decodeURIComponent(name)); if (!item) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const suggestion = await suggestFiling(scope.product.dir, scope.graph, product, item);
+  const suggestion = await suggestFiling(scope.product.dir, scope.graph, product, item, await jevClient());
   const docs = [...documentTree(scope.graph).byFile.values()].map(d => ({ file: d.file, slug: d.slug, title: d.title, project: docRoute(d.file)?.project ?? '' })).filter(d => d.project);
   return NextResponse.json({ item, suggestion, docs });
 }
