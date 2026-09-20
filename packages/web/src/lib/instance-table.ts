@@ -2,12 +2,13 @@
 // applies to them (component:instance-table). Nothing here is stored: rows come from graph.json, the filter state
 // from the URL (or a view block's key=value line).
 import type { GraphData, GraphNode, PropDef } from './graph';
+import { HIDDEN_KINDS } from './graph';
 import { typeBySlug, instancesOf, nodeProps } from './types';
 import { docRoute } from './doc';
 
 export type ColumnKind = 'enum' | 'bool' | 'ref' | 'string';
 export interface Column { name: string; kind: ColumnKind; options?: string[]; ref?: string; many?: boolean }
-export interface InstanceRow { id: string; kind: string; title: string; status: string; file: string; doc: string; props: Record<string, string>; rels?: { verb: string; to: string }[] }
+export interface InstanceRow { id: string; kind: string; title: string; status: string; file: string; doc: string; props: Record<string, string>; rels?: { verb: string; to: string }[]; text?: string }
 export interface InstanceTable { slug: string; typed: boolean; columns: Column[]; rows: InstanceRow[]; statuses: [string, number][] }
 export interface Filters { q: string; status: string; group: string; sort: string; props: Record<string, string> }
 
@@ -25,15 +26,19 @@ function column(p: PropDef): Column {
 
 // Rows of one type (declared, base or own) or one bare kind. A bare kind has no columns; its rows carry their
 // non-structural relations instead, as the kind page always showed them.
+// `node` is every block of every kind (the search page, req:wf2.ui.search): no columns, the first lines of the text
+// on each row so a search can read it (the verdict, contradiction and generated kinds are left out)
+const SEARCH_HIDDEN = new Set([...HIDDEN_KINDS, 'verdict', 'contradiction', 'drift']);
 export function instanceTable(g: GraphData, slug: string): InstanceTable {
-  const t = typeBySlug(g, slug);
-  const nodes = t ? instancesOf(g, slug) : g.nodes.filter(n => n.defined && n.kind === slug).sort((a, b) => a.id.localeCompare(b.id));
+  const t = slug === 'node' ? undefined : typeBySlug(g, slug);
+  const nodes = t ? instancesOf(g, slug) : g.nodes.filter(n => n.defined && (slug === 'node' ? !SEARCH_HIDDEN.has(n.kind) : n.kind === slug)).sort((a, b) => a.id.localeCompare(b.id));
   const cols = t ? t.props.filter(p => (!NOT_COLUMNS.has(p.name) || p.from === t.id) && p.type !== 'text' && p.from !== 'type:node').map(column) : [];
   const rows = nodes.map((n): InstanceRow => {
     const r = docRoute(n.file);
     const row: InstanceRow = { id: n.id, kind: n.kind, title: n.title, status: n.status, file: n.file, doc: r ? `${r.project} / ${r.doc}` : n.file, props: {} };
     if (t) { for (const p of nodeProps(g, n)) if (cols.some(c => c.name === p.name) && p.value) row.props[p.name] = p.value; }
     else row.rels = g.edges.filter(e => e.from === n.id && e.verb !== 'mentions' && e.verb !== 'has').map(e => ({ verb: e.verb, to: e.to }));
+    if (slug === 'node') row.text = plain(nodeText(n)).slice(0, 400);
     return row;
   });
   const count = new Map<string, number>();
@@ -54,6 +59,12 @@ export function filtersToQuery(f: Filters): string {
   return p.toString().replace(/%3A/g, ':').replace(/%2F/g, '/');
 }
 
+// the readable text of a node: its text / statement / q / choice / description, else the body's values
+function nodeText(n: { body?: string }): string {
+  const b = n.body ?? '';
+  const m = b.match(/^(?:text|statement|q|choice|description|purpose|when|then):\s*>?\s*([\s\S]*?)(?=\n[a-z-]+:|$)/m);
+  return (m ? m[1] : b).replace(/\s+/g, ' ').trim();
+}
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');
 // a cell holds one value or a list `[a, b]`; a filter value matches the whole value or one item of the list
 const items = (v: string) => v.replace(/^\[|\]$/g, '').split(',').map(s => s.trim()).filter(Boolean);
@@ -62,7 +73,7 @@ const hasValue = (cell: string | undefined, want: string) => !!cell && (cell ===
 export function filterRows(rows: InstanceRow[], f: Filters): InstanceRow[] {
   const q = f.q.trim().toLowerCase();
   return rows.filter(r => {
-    if (q && !(r.id.toLowerCase().includes(q) || plain(r.title).toLowerCase().includes(q) || Object.values(r.props).some(v => v.toLowerCase().includes(q)))) return false;
+    if (q && !(r.id.toLowerCase().includes(q) || plain(r.title).toLowerCase().includes(q) || (r.text ?? '').toLowerCase().includes(q) || Object.values(r.props).some(v => v.toLowerCase().includes(q)))) return false;
     if (f.status && r.status !== f.status) return false;
     for (const [k, v] of Object.entries(f.props)) if (v && !hasValue(r.props[k], v)) return false;
     return true;

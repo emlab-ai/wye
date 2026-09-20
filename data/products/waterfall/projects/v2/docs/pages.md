@@ -243,6 +243,13 @@ Every page of the app by area: its route, what it shows, its actions. The table 
 <!-- list:page -->
 
 ```yaml
+- id: page:web/search
+  route: /<product>/search?q=&kind=
+  component: packages/web/src/app/[product]/search/page.tsx; packages/web/src/components/SearchPanel.tsx
+  purpose: >
+    Every block that matches a search, as blocks: the instances view over `node` (every kind) or one kind, with the
+    search in the URL. Opened by Enter in the ⌘F search panel (component:search-panel).
+  part-of: module:pages
 - id: page:web/overview
   route: /<product>
   component: app/[product]/page.tsx

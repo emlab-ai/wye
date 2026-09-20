@@ -19,6 +19,33 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 <!-- list:req -->
 
 ```yaml
+- id: req:wf2.ui.search
+  title: Search opens from anywhere with ⌘F and shows blocks, not links
+  when: the person presses ⌘F / Ctrl+F on any page
+  then: >
+    a search panel opens over the page; what they type searches every block's id, title and text, and a kind first
+    (`page: login`, `req:`, `decision: stop`) narrows to that kind; the hits are listed with kind, title, status,
+    where and a snippet, the highlighted hit's card is the preview beside them, ↑↓ move, a click opens the hit's
+    document, and Enter opens a Search page with every hit as blocks — the instances view over every kind (or the
+    named one) with the search in its URL, so a search is a link
+  unless: the screen is narrow, where the preview is left out
+  status: shipped
+  satisfied-by: [component:search-panel, page:web/search, component:instance-table]
+  verified-by: [ui-test:search]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-shell
+- id: decision:wf2.rail-fewer-entries
+  title: Graph, Questions and Search leave the rail — search is ⌘F, the graph and the questions stay at their routes
+  context: the person asked on 2026-09-20; the rail listed eleven entries and a search box that found only titles and ids.
+  choice: the rail keeps Overview, Goals, Work, Knowledge, Types, Constitution, Inbox, Agents and Plans; /<product>/graph and /<product>/questions stay reachable by link and from the Knowledge page; search is the ⌘F panel.
+  alternatives: keep the entries and add the shortcut (the person asked for fewer).
+  consequences: the rail's Search component is gone; the search panel and page replace it.
+  date: 2026-09-20
+  status: proposed
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  affects: [page:web/sidebar, req:wf2.ui.search]
 - id: req:wf2.ui.rail-resize
   title: The rail can be made wider or narrower
   when: the person drags the rail's right edge

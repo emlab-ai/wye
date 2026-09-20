@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DocTree, type TreeItem } from './DocTree';
-import { Search } from './Search';
 import { NewDoc } from './NewDoc';
 import { PlanFolder, type PlanItem } from './PlanFolder';
 
@@ -15,7 +14,6 @@ export type RailProject = { slug: string; title: string; icon: string; kind: str
 // then the Plans system folder — component:plan-folder), then every project's documents as one tree.
 export function Rail({ products, product, projects, plans, headings }: { products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; plans: PlanItem[]; headings: { doc: string; slug: string; text: string }[] }) {
   const path = usePathname(); const router = useRouter();
-  const [showSearch, setShowSearch] = useState(false);
   const [newIn, setNewIn] = useState<string | null>(null); // '' = top level, slug = under that document
   // every project's documents in one tree; a project is just the folder a document lives in
   const roots = projects.flatMap(p => p.roots);
@@ -51,19 +49,15 @@ export function Rail({ products, product, projects, plans, headings }: { product
       <div className="rail-top" ref={top} style={topH ? { flex: `0 0 ${topH}px`, maxHeight: 'none' } : undefined}>
       <ul className="rail-menu">
         {item(base, 'Overview', '⌂')}
-        <li><button onClick={() => setShowSearch(v => !v)} className={showSearch ? 'on' : ''}><i>⌕</i>Search</button></li>
         {item(`${base}/goals`, 'Goals', '◎')}
         {item(`${base}/work`, 'Work', '☑')}
         {item(`${base}/knowledge`, 'Knowledge', '◈')}
         {item(`${base}/types`, 'Types', '⬡')}
-        {item(`${base}/graph`, 'Graph', '⌬')}
         {item(`${base}/constitution`, 'Constitution', '§')}
-        {item(`${base}/questions`, 'Questions', '?')}
         {item(`${base}/inbox`, 'Inbox', '⇩')}
         {item(`${base}/sessions`, 'Agents', '⚡')}
         <PlanFolder product={product.slug} plans={plans} />
       </ul>
-      {showSearch && <div className="rail-search"><Search product={product.slug} projects={projects.map(p => ({ slug: p.slug, docs: p.docs }))} headings={headings} /></div>}
       </div>
       <div className="rail-split" ref={split} role="separator" aria-orientation="horizontal" title="Drag to resize; double-click to reset" onMouseDown={onSplit} onDoubleClick={resetSplit} />
       <div className="rail-pages-head"><span>Documents</span><button onClick={() => setNewIn(newIn === '' ? null : '')} title="New document">+</button></div>

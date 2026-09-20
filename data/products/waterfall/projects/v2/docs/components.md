@@ -329,6 +329,14 @@ The editor's blocks and the components the pages are made of, by area.
 <!-- list:component -->
 
 ```yaml
+- id: component:search-panel
+  file: packages/web/src/components/SearchPanel.tsx
+  side: client
+  purpose: >
+    The ⌘F search panel (req:wf2.ui.search): text or `kind: text`, hits on the left with kind, title, status, where and a
+    snippet, the highlighted hit's card (component:embed-block) as the preview on the right; ↑↓, Enter opens page:web/search
+    with every hit, ⌘Enter opens the hit, Esc closes. Reads /api/<product>/view/node once per opening.
+  part-of: module:components
 - id: component:shell
   file: packages/web/src/components/Shell.tsx
   side: client
