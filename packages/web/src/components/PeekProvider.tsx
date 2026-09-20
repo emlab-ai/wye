@@ -12,7 +12,7 @@ export type EditingContext = { docSlug: string; blockId: string; text: string; l
 export type StackEntry = { id: string; pinned: boolean };
 // A product's own type as the editor needs it: its slug and the properties a table of it shows (own and inherited,
 // the root type's left out).
-export type OwnType = { slug: string; cols: { name: string; type: string; enum: string[] | null; ref: string | null; required: boolean }[] };
+export type OwnType = { slug: string; plural?: string; cols: { name: string; type: string; enum: string[] | null; ref: string | null; required: boolean }[] };
 interface Ctx {
   product: string; index: Record<string, IndexEntry>;
   openId: string | null; stack: StackEntry[]; cursor: number;

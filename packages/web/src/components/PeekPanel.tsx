@@ -21,6 +21,7 @@ import { ExplainCard } from './ExplainCard';
 import { DocPeek } from './DocPeek';
 import { EmbeddedCard } from './EmbedBlock';
 import { TypeView } from './TypeView';
+import { Comments } from './Comments';
 import dynamic from 'next/dynamic';
 const DocEditor = dynamic(() => import('./DocEditor'), { ssr: false });
 import type { GraphNode, TypeDef } from '@/lib/graph';
@@ -95,7 +96,7 @@ function NodeView({ id }: { id: string }) {
   const entry = index[id];
   const def = hrefFor(id);
   const kind = id.split(':')[0];
-  const linkCount = d ? [...d.relations.out.filter(([v]) => v !== 'has'), ...d.relations.inc].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0) : 0;
+  const linkCount = d ? [...d.relations.out.filter(([v]) => v !== 'has'), ...withoutComments(d.relations.inc)].filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0) : 0;
   // the header: kind and id on the left (the type it belongs to after them), icon actions on the right — the way
   // Notion and Asana put a page's tools in one quiet row instead of a line of links
   const head = (
@@ -121,7 +122,8 @@ function NodeView({ id }: { id: string }) {
     <>
       {head}
       <DocPeek id={id} href={def.replace(/#.*$/, '')} />
-      {d && <><div className="peek-views"><h4>Links <span className="muted">{linkCount}</span></h4></div><Relations out={d.relations.out} inc={d.relations.inc} rows={rows} inverses={d.inverses} /></>}
+      <Comments key={`comments-${id}`} id={id} />
+      {d && <><div className="peek-views"><h4>Links <span className="muted">{linkCount}</span></h4></div><Relations out={d.relations.out} inc={withoutComments(d.relations.inc)} rows={rows} inverses={d.inverses} /></>}
     </>
   );
   return (
@@ -133,8 +135,9 @@ function NodeView({ id }: { id: string }) {
           {entry && (entry.kind === 'goal' || entry.kind === 'task') && <Tracking entry={entry} rows={rows} inc={d.relations.inc} />}
           {entry && entry.kind === 'task' && <TaskWork key={`work-${id}`} id={id} />}</>
         : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
-      {d && d.type && d.props && d.relations.inc.some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={d.relations.inc} inverses={d.inverses ?? {}} product={product} />}
+      {d && d.type && d.props && withoutComments(d.relations.inc).some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={withoutComments(d.relations.inc)} inverses={d.inverses ?? {}} product={product} />}
       {d && !d.self && d.node.defined && <NodeContent id={id} />}
+      {d && !d.self && d.node.defined && <Comments key={`comments-${id}`} id={id} />}
       {d && !d.self && d.node.defined && <ExplainCard key={`explain-${id}`} id={id} />}
       {d && (
         <div className="peek-views">
@@ -143,7 +146,7 @@ function NodeView({ id }: { id: string }) {
           <button className={`tool ${view === 'graph' ? 'on' : ''}`} onClick={() => setView(v => v === 'list' ? 'graph' : 'list')} title={view === 'graph' ? 'Show as a list' : 'Show as a graph'} aria-pressed={view === 'graph'}>⌬</button>
         </div>
       )}
-      {d && view === 'list' && <Relations out={d.relations.out} inc={d.relations.inc} rows={rows} inverses={d.inverses} />}
+      {d && view === 'list' && <Relations out={d.relations.out} inc={withoutComments(d.relations.inc)} rows={rows} inverses={d.inverses} />}
       {d && view === 'graph' && (d.graph.nodes.length > 1 ? <PeekGraph focus={id} nodes={d.graph.nodes} edges={d.graph.edges} onPick={open} /> : <p className="muted rels-empty">Nothing links to or from this node yet.</p>)}
       {/* what a goal's or task's sessions produced: last, folded (req:wf2.ui.produced-collapsed); keyed so the fold closes with the node */}
       {d && entry && (entry.kind === 'goal' || entry.kind === 'task') && entry.sessions && entry.sessions.length > 0 && <Produced key={id} sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}
@@ -188,6 +191,9 @@ function NodeContent({ id }: { id: string }) {
     </section>
   );
 }
+
+// The comments on a node have their own section; the `on` edges from comment: nodes stay out of Links and Properties.
+const withoutComments = (inc: [string, string[]][]): [string, string[]][] => inc.map(([v, ids]) => [v, v === 'on' ? ids.filter(x => !x.startsWith('comment:')) : ids] as [string, string[]]).filter(([, ids]) => ids.length);
 
 // Titles come from the graph as raw markdown; the list shows them plain.
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');

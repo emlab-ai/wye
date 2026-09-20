@@ -224,6 +224,15 @@ type means instances may carry properties the type does not declare without a wa
   props:
     statement: text
     about: list of node? -(inverse)-> lessons
+- id: type:comment
+  extends: type:node
+  purpose: >
+    a remark on a node — kept as a card in the Comments document of the node's project, never nested under the node;
+    `on:` names the node, and the node lists its comments as the inverse edge (decision:ontology.comment-is-a-ref)
+  open: true
+  props:
+    on: ref node -(inverse)-> comments
+    date: date?                                       # `by` comes from type:node
 - id: type:contradiction
   extends: type:node
   purpose: >
@@ -300,7 +309,8 @@ type means instances may carry properties the type does not declare without a wa
   open: true
   props:
     purpose: text?
-    home: string?
+    home: string?                                     # the document new instances are written to (decision:ontology.collection-document)
+    plural: string?                                   # the title of the type's collection document; else the English plural of its name
     open: bool?
     extends: ref type? -(inverse)-> extended-by
     props: text?

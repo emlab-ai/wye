@@ -194,7 +194,8 @@ What shipped, as requirements the tests verify and rules the code enforces. Stat
 | test:ontology | test/ontology.js | 30 |
 | test:blocks | test/blocks.js | 38 |
 | test:types-web | packages/web/src/lib/types.test.ts | 5 |
-| test:instances-web | packages/web/src/lib/instances.test.ts | 3 |
+| test:instances-web | packages/web/src/lib/instances.test.ts | 7 |
+| test:comments-web | packages/web/src/lib/comments.test.ts | 4 |
 | test:type-edit-web | packages/web/src/lib/type-edit.test.ts | 8 |
 
 ### Not in scope

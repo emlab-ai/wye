@@ -322,7 +322,8 @@ The editor's blocks and the components the pages are made of, by area.
   file: packages/web/src/components/AddInstance.tsx
   side: client
   purpose: >
-    \"+ add\" on a type page: writes a `<type>:<slug>` card with the type's required properties into the type's home document.
+    \"+ add\" on a type page: writes a `<type>:<slug>` row into the type's home document — its collection document, created
+    on the first instance and titled with the type's plural (decision:ontology.collection-document) — and says where it went.
   part-of: module:components
 - id: component:add-type
   file: packages/web/src/components/AddType.tsx
@@ -601,6 +602,16 @@ The editor's blocks and the components the pages are made of, by area.
   purpose: >
     The dispatcher's knobs (decision&#58;wf2.pr-scheduler): how many approved PRs build at once, and which agent
     builds.
+  status: proposed
+  part-of: module:components
+- id: component:comments
+  file: packages/web/src/components/Comments.tsx
+  side: client
+  purpose: >
+    A node's comments in the context column (req:ontology.comment-home): every surface that opens a node here — its
+    card, its row in a table, a column entry, its page — shows the comments made on it, oldest first, and a box to
+    add one. A comment is a row of the project's Comments document with `on:` the node
+    (decision:ontology.comment-is-a-ref); the list is the inverse edge, refetched on every graph change.
   status: proposed
   part-of: module:components
 ```

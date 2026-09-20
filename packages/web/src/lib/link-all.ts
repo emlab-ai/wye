@@ -27,6 +27,7 @@ function linkLine(line: string, phrase: string, id: string): [string, number] {
 export function linkAll(md: string, phrase: string, id: string): { md: string; count: number } {
   const p = phrase.trim(); if (!p || !id) return { md, count: 0 };
   const lines = md.split('\n'); let count = 0;
+  const own = new RegExp(`^\\s*(?:(?:[-*+]|\\d+[.)])\\s+)?(?:\\[[ xX]\\]\\s+)?${escape(id)}(?=\\s|$)`);
   let fence: string | null = null, fm = false, comment = false;
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
@@ -46,6 +47,7 @@ export function linkAll(md: string, phrase: string, id: string): { md: string; c
     }
     // a prose line: never the id at its start, never a `key: value` property group's keys
     if (/^\s*[|]/.test(l) && /^\s*\|[\s-:|]+\|\s*$/.test(l)) continue; // a table's rule row
+    if (own.test(l)) continue; // the node's own line — its title never links to itself (a collection row, rule:type-tables)
     const [v, n] = linkLine(l, p, id);
     if (n) { lines[i] = v; count += n; }
   }
@@ -53,4 +55,4 @@ export function linkAll(md: string, phrase: string, id: string): { md: string; c
 }
 
 // how many plain occurrences a document holds, without changing it
-export function countPlain(md: string, phrase: string): number { return linkAll(md, phrase, 'x:y').count; }
+export function countPlain(md: string, phrase: string, id = 'x:y'): number { return linkAll(md, phrase, id).count; }

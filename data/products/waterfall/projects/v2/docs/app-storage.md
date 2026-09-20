@@ -236,6 +236,17 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     once.
   status: proposed
   part-of: module:app-storage
+- id: lib:comments
+  file: packages/web/src/lib/comments.ts
+  side: server
+  purpose: >
+    Comments (decision:ontology.comment-is-a-ref, req:ontology.comment-home): a comment is a `comment:` row in the
+    Comments document of the project the commented node belongs to — one per project, created on the project's first
+    comment, holding one `<!-- table:comment -->` block — never nested under the node. `on:` names the node; the
+    node lists its comments as the inverse edge. The document is the collection document of type:comment
+    (lib/instances).
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

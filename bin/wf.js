@@ -10,6 +10,8 @@
 //   wye node <id> [--product p]           a node with its relations
 //   wye node set <id> --product p [--status s] [--text t] [--set key=value ...] [--unset key ...]
 //   wye node content <id> [--product p]   the blocks under the node (its content) as markdown; --file f | stdin replaces it
+//   wye node add <type>:<slug> --product p [--title "…"]   a new instance of a product type — a row in the type's collection
+//        document (created on the first instance, decision:ontology.collection-document); a base kind needs --doc project/doc
 //   wye verdicts <id ...> --product p     classify nodes against their neighbours now (duplicate | refines | consistent | contradicts)
 //   wye impact <id> --after "<new text>" --product p [--no-judge] [--json]   what an edit would reach and what each reached node
 //        needs (unaffected | update | rework | contradicts | ask) — run it before editing an approved node; nothing is written
@@ -139,6 +141,13 @@ const commands = {
     out(flags.json ? j : j.body);
   },
   async node() {
+    if (pos[1] === 'add') {
+      // a new instance (op:types.add): the app picks the document — the type's collection document — and says which
+      const id = pos[2] || die('wye node add <type>:<slug> [--title "…"] [--doc project/doc]'); const [kind, ...rest] = id.split(':'); const slug = rest.join(':');
+      if (!kind || !slug) die('the id is <type>:<slug>, e.g. city:london');
+      const j = await api('POST', `/api/${product()}/types/${kind}`, { slug, title: flags.title || '', home: flags.doc || undefined });
+      return out(flags.json ? j : `${j.id} added to ${j.doc ? `${j.doc.title} (${j.doc.project}/${j.doc.doc}${j.created ? ', new — the home of every ' + kind + ' from now on' : ''})` : j.file}`);
+    }
     if (pos[1] === 'content') {
       // the node's content (req:ontology.content): read as markdown of its own, or replaced from --file / stdin
       const id = pos[2] || die('wye node content <id> [--file f]');

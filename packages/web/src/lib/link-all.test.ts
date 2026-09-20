@@ -24,3 +24,11 @@ describe('linkAll (req:wf2.editor.entity-from-text)', () => {
   it('counts without changing', () => { expect(countPlain('London calling. London again.', 'London')).toBe(2); });
   it('is idempotent', () => { const once = linkAll('in London', 'London', 'city:london').md; expect(linkAll(once, 'London', 'city:london').count).toBe(0); });
 });
+
+it('never links a node\'s own line — a collection row keeps its plain title', () => {
+  const md = '<!-- table:city -->\n- city:madrid Madrid\n<!-- /table:city -->\n\nWe flew to Madrid.\n';
+  const r = linkAll(md, 'Madrid', 'city:madrid');
+  expect(r.count).toBe(1);
+  expect(r.md).toContain('- city:madrid Madrid\n');
+  expect(r.md).toContain('We flew to [Madrid](city:madrid).');
+});

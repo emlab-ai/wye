@@ -15,11 +15,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ product:
   const { product } = await params;
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const text = (new URL(req.url).searchParams.get('text') ?? '').trim();
+  const id = (new URL(req.url).searchParams.get('id') ?? '').trim(); // the node the phrase will link to: its own line does not count
   if (!text) return NextResponse.json({ error: 'invalid', message: 'text required' }, { status: 422 });
   const docs: { doc: string; project: string; title: string; count: number }[] = [];
   for (const m of scope.graph.modules) {
     let md = ''; try { md = await readFile(path.join(REPO_ROOT, m.file), 'utf8'); } catch { continue; }
-    const n = countPlain(md, text); const r = docRoute(m.file);
+    const n = countPlain(md, text, id || undefined); const r = docRoute(m.file);
     if (n && r) docs.push({ doc: r.doc, project: r.project, title: m.title, count: n });
   }
   return NextResponse.json({ text, docs, count: docs.reduce((a, d) => a + d.count, 0) });

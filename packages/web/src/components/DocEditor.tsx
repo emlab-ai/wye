@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState, type FocusEvent as ReactFocusEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, filterSuggestionItems, insertOrUpdateBlockForSlashMenu, getNodeById } from '@blocknote/core';
 import { useCreateBlockNote, createReactInlineContentSpec, createReactBlockSpec, FormattingToolbar, FormattingToolbarController, getFormattingToolbarItems, SuggestionMenuController, getDefaultReactSlashMenuItems, useBlockNoteEditor, useComponentsContext, SideMenuController, SideMenu, DragHandleMenu, RemoveBlockItem, BlockColorsItem, useExtensionState, useEditorSelectionChange, useEditorChange } from '@blocknote/react';
 import { SideMenuExtension } from '@blocknote/core/extensions';
@@ -8,6 +9,7 @@ import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
 import { expand, importMarkdown } from '@/lib/import';
 import { EditorScope } from './EditorScope';
+import { pluralTitle } from '@/lib/instances';
 import { blocksToMarkdown, inlineToMarkdown, type AnyBlock } from '@/lib/serialize';
 import type { Inline } from '@/lib/mdflow';
 import { CARD_KINDS } from '@/lib/kinds';
@@ -318,7 +320,7 @@ const CollectionBlock = createReactBlockSpec(
       const filter = useTableFilter(props.editor as unknown as EditorLike, props.block as unknown as AnyBlock, kids, type ?? (kind === 'goal' || kind === 'task' ? undefined : { slug: kind, cols: [] }), query);
       const picker = (
         <select className="collection-kind" value={kind} disabled={locked} title={locked ? 'rows already have ids of this type; start another table for another type' : 'the type of this table'} onChange={e => setKind(e.target.value)} onMouseDown={e => e.stopPropagation()}>
-          {options.map(o => <option key={o} value={o}>{o === 'goal' ? 'Goals' : o === 'task' ? 'Tasks' : `${o[0].toUpperCase()}${o.slice(1)}s`}</option>)}
+          {options.map(o => <option key={o} value={o}>{pluralTitle({ slug: o, plural: ownTypes.find(t => t.slug === o)?.plural })}</option>)}
         </select>
       );
       if (view === 'list') return (
@@ -558,32 +560,37 @@ function LinkNodeButton({ onRequest }: { onRequest: (r: LinkRequest) => void }) 
 // The ⌁ node picker (req:wf2.editor.entity-from-text): link the selection to a node, make a new document from it, or
 // make a NEW NODE of a chosen type from it — "London" becomes city:london, its card on the type's home page (or this
 // page for a base kind) and the word a tag — then offer to link every other plain "London" in the product.
-function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEverywhere }: { req: LinkRequest; onClose: () => void; apply: (id: string) => void; createDoc: (title: string) => Promise<string | null>; createNode: (type: string, title: string) => Promise<string | null>; linkEverywhere: (text: string, id: string, docs: string[]) => Promise<number> }) {
+// What making a node returned: its id and, for a typed instance, the document it went to.
+type Made = { id: string; doc?: { href: string; title: string; created: boolean } };
+function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEverywhere }: { req: LinkRequest; onClose: () => void; apply: (id: string) => void; createDoc: (title: string) => Promise<string | null>; createNode: (type: string, title: string) => Promise<Made | null>; linkEverywhere: (text: string, id: string, docs: string[]) => Promise<number> }) {
   const { index, ownTypes, product } = usePeek();
   const [q, setQ] = useState(req.text.trim());
   const [busy, setBusy] = useState(false);
   const [type, setType] = useState(ownTypes[0]?.slug ?? 'entity');
   // after a link: every other plain occurrence of the phrase, per document, and the offer to link them all
-  const [after, setAfter] = useState<{ id: string; text: string; docs: { doc: string; project: string; title: string; count: number }[]; count: number; done?: number } | null>(null);
+  const [after, setAfter] = useState<{ id: string; text: string; docs: { doc: string; project: string; title: string; count: number }[]; count: number; done?: number; went?: Made['doc'] } | null>(null);
   const hits = useMemo(() => { const n = q.trim().toLowerCase(); if (!n) return []; return Object.values(index).filter(e => e.id.toLowerCase().includes(n) || e.title.toLowerCase().includes(n)).slice(0, 8); }, [q, index]);
   const types = [...ownTypes.map(t => t.slug), ...['entity', 'value', 'person', 'team', 'goal', 'req', 'decision', 'question', 'task'].filter(k => !ownTypes.some(t => t.slug === k))];
-  const linked = async (id: string) => {
+  const linked = async (id: string, went?: Made['doc']) => {
     apply(id);
     // the rest of the product: where the same words are still plain
-    const text = req.text.trim(); if (!text || text.length < 2) { onClose(); return; }
-    try { const r = await fetch(`/api/${product}/link-all?text=${encodeURIComponent(text)}`); const j = await r.json(); if (r.ok && j.count) { setAfter({ id, text, docs: j.docs, count: j.count }); return; } } catch { /* offer nothing */ }
+    const text = req.text.trim();
+    if (text && text.length >= 2) { try { const r = await fetch(`/api/${product}/link-all?text=${encodeURIComponent(text)}&id=${encodeURIComponent(id)}`); const j = await r.json(); if (r.ok && j.count) { setAfter({ id, text, docs: j.docs, count: j.count, went }); return; } } catch { /* offer nothing */ } }
+    // nothing else to link: a new instance still says where it went (req:ontology.instance-home), then the picker closes
+    if (went) { setAfter({ id, text, docs: [], count: 0, done: 0, went }); setTimeout(onClose, 2400); return; }
     onClose();
   };
   const create = async () => { setBusy(true); const id = await createDoc(q.trim()); setBusy(false); if (id) linked(id); };
-  const createTyped = async () => { setBusy(true); const id = await createNode(type, q.trim()); setBusy(false); if (id) linked(id); };
+  const createTyped = async () => { setBusy(true); const made = await createNode(type, q.trim()); setBusy(false); if (made) linked(made.id, made.doc); };
   const all = async () => { if (!after) return; setBusy(true); const n = await linkEverywhere(after.text, after.id, after.docs.map(d => `${d.project}/${d.doc}`)); setBusy(false); setAfter({ ...after, done: n }); setTimeout(onClose, 1600); };
   if (after) return (
     <div className="linknode" style={{ left: Math.min(req.x, window.innerWidth - 360), top: req.y }}>
       <div className="linknode-sel">“{after.text}” → <code>{after.id}</code></div>
+      {after.went && <p className="linknode-note">a row in <Link href={after.went.href}>{after.went.title}</Link>{after.went.created ? ` — new, the home of every ${after.id.split(':')[0]} from now on` : ''}</p>}
       {after.done === undefined ? <>
         <p className="linknode-note">{after.count} other plain “{after.text}” in {after.docs.length} document{after.docs.length === 1 ? '' : 's'}: {after.docs.slice(0, 5).map(d => `${d.title} (${d.count})`).join(', ')}{after.docs.length > 5 ? ', …' : ''}</p>
         <div className="sec-actions"><button className="pri" disabled={busy} onMouseDown={e => { e.preventDefault(); all(); }}>Link them all</button><button className="linkish" onMouseDown={e => { e.preventDefault(); onClose(); }}>Only this one</button></div>
-      </> : <p className="linknode-note">linked {after.done} place{after.done === 1 ? '' : 's'} — the documents rebuild</p>}
+      </> : after.count > 0 && <p className="linknode-note">linked {after.done} place{after.done === 1 ? '' : 's'} — the documents rebuild</p>}
     </div>
   );
   return (
@@ -592,7 +599,7 @@ function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEveryw
       <input autoFocus value={q} placeholder="search id or title, or a new document title…" onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { if (hits[0]) linked(hits[0].id); else if (q.trim()) createTyped(); } if (e.key === 'Escape') onClose(); }} />
       <ul>
         {hits.map(h => <li key={h.id}><button onMouseDown={e => { e.preventDefault(); linked(h.id); }}><span>{h.id}</span><small>{h.title}</small></button></li>)}
-        {q.trim() && <li className="linknode-new"><button className="create" disabled={busy} onMouseDown={e => { e.preventDefault(); createTyped(); }}><span>+ new <b>{type}</b> “{q.trim()}”</span><small>a {type}:{q.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')} card, and this word becomes its tag</small></button><select value={type} onMouseDown={e => e.stopPropagation()} onChange={e => setType(e.target.value)} title="the type of the new node">{types.map(t => <option key={t} value={t}>{t}</option>)}</select></li>}
+        {q.trim() && <li className="linknode-new"><button className="create" disabled={busy} onMouseDown={e => { e.preventDefault(); createTyped(); }}><span>+ new <b>{type}</b> “{q.trim()}”</span><small>{type}:{q.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')} in {ownTypes.some(t => t.slug === type) ? `the ${type} collection document` : 'this document'}, and this word becomes its tag</small></button><select value={type} onMouseDown={e => e.stopPropagation()} onChange={e => setType(e.target.value)} title="the type of the new node">{types.map(t => <option key={t} value={t}>{t}</option>)}</select></li>}
         {q.trim() && <li><button className="create" disabled={busy} onMouseDown={e => { e.preventDefault(); create(); }}><span>+ new document “{q.trim()}”</span><small>creates a page under this one and links to it</small></button></li>}
       </ul>
     </div>
@@ -801,16 +808,18 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     router.refresh();
     return j.node as string;
   };
-  // a new node of a type from the selection (req:wf2.editor.entity-from-text): its card goes to the type's home
-  // page, or to this page for a base kind (the route takes `home`)
-  const createNode = async (type: string, title: string): Promise<string | null> => {
+  // a new node of a type from the selection (req:wf2.editor.entity-from-text): a row in the type's collection document
+  // (decision:ontology.collection-document — the route says which, so the picker can tell the person), or a card on
+  // this page for a base kind (the route takes `home`)
+  const createNode = async (type: string, title: string): Promise<Made | null> => {
     const idSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     if (!idSlug) return null;
     const r = await fetch(`/api/${product}/types/${type}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug: idSlug, title, home: `${project}/${slug}` }) });
     const j = await r.json().catch(() => ({}));
-    if (r.status === 409) return `${type}:${idSlug}`;
+    if (r.status === 409) return { id: `${type}:${idSlug}` };
     if (!r.ok) { setLintMsg(`could not create ${type}: ${j.message ?? j.error}`); return null; }
-    return j.id as string;
+    if (j.doc && !(j.doc.project === project && j.doc.doc === slug)) router.refresh(); // a new document in the rail
+    return { id: j.id as string, doc: j.doc ? { href: `/${product}/${j.doc.project}/d/${j.doc.doc}`, title: j.doc.title, created: !!j.created } : undefined };
   };
   // every other plain occurrence in the product, this document included: the pending save goes first, the bulk
   // rewrite follows, and the editor takes the new body from disk like any external change
@@ -877,11 +886,11 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const insertCollection = (kind: string, view = 'table') => { insertOrUpdateBlockForSlashMenu(editor, { type: 'collection', props: { kind, view }, children: [emptyRow(kind, view)] } as never); setTimeout(() => settle(), 0); touched.current = true; changed(); };
   // one Table block: goals, tasks or any of the product's types — the type is picked in the table's header
   const collectionItems = [{
-    title: 'Data table', group: 'Wye', subtext: `a table of goals, tasks${ownTypes.length ? ', ' + ownTypes.map(t => t.slug + 's').join(', ') : ''} — pick the type in its header; rows are nodes`,
+    title: 'Data table', group: 'Wye', subtext: `a table of goals, tasks${ownTypes.length ? ', ' + ownTypes.map(t => pluralTitle(t).toLowerCase()).join(', ') : ''} — pick the type in its header; rows are nodes`,
     onItemClick: () => insertCollection('task'),
   }, {
     // the same block as a list: its rows are ordinary blocks, Enter adds one of the same kind, the filter bar on top (rule:list-view)
-    title: 'Data list', group: 'Wye', aliases: ['list', 'blocks', 'view'], subtext: `tasks, goals${ownTypes.length ? ', ' + ownTypes.map(t => t.slug + 's').join(', ') : ''} shown as blocks with a filter on top — a new block is one of the same kind`,
+    title: 'Data list', group: 'Wye', aliases: ['list', 'blocks', 'view'], subtext: `tasks, goals${ownTypes.length ? ', ' + ownTypes.map(t => pluralTitle(t).toLowerCase()).join(', ') : ''} shown as blocks with a filter on top — a new block is one of the same kind`,
     onItemClick: () => insertCollection('task', 'list'),
   }, {
     title: 'Instances view', group: 'Wye', subtext: 'a live, filterable list of every node of one type — pages, tasks, ' + (ownTypes[0]?.slug ?? 'decisions') + 's… — nothing is stored but the filters',

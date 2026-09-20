@@ -18,3 +18,34 @@ export function appendCard(md: string, card: string): string {
   }
   return md.replace(/\s*$/, '') + '\n\n```yaml\n' + card + '\n```\n';
 }
+
+// --- the type's collection document (decision:ontology.collection-document, req:ontology.instance-home) ---
+
+// The document's title: the type card's `plural:`, else the English plural of the type's name — city → Cities,
+// bug → Bugs, box → Boxes, test-case → Test cases.
+export function pluralTitle(t: Pick<TypeDef, 'slug' | 'plural'>): string {
+  if (t.plural?.trim()) return t.plural.trim();
+  const words = t.slug.split(/[-_]+/).filter(Boolean);
+  const last = words[words.length - 1] ?? t.slug;
+  const plural = /[^aeiou]y$/.test(last) ? last.slice(0, -1) + 'ies' : /(s|x|z|ch|sh)$/.test(last) ? last + 'es' : last + 's';
+  const title = [...words.slice(0, -1), plural].join(' ');
+  return title.charAt(0).toUpperCase() + title.slice(1);
+}
+// The blank template's placeholder paragraph becomes the type's table block, and the document card says what it holds.
+export function collectionDoc(blank: string, slug: string): string {
+  return blank
+    .replace(/^Write here\..*$/m, `<!-- table:${slug} -->\n<!-- /table:${slug} -->`)
+    .replace(/^purpose: >\n  What this document covers, for whom\.$/m, `purpose: every ${slug} of the product, one row each — the home of type:${slug}`);
+}
+// A row goes before the type's closing table marker; a document without the type's table gets one at the end.
+export function appendRow(md: string, slug: string, row: string): string {
+  const close = new RegExp(`^<!--\\s*/table:${slug}\\s*-->\\s*$`, 'm');
+  const m = md.match(close);
+  if (m && m.index !== undefined) return md.slice(0, m.index) + row + '\n' + md.slice(m.index);
+  return md.replace(/\s*$/, '') + `\n\n<!-- table:${slug} -->\n${row}\n<!-- /table:${slug} -->\n`;
+}
+export const hasTable = (md: string, slug: string) => new RegExp(`^<!--\\s*/table:${slug}\\s*-->\\s*$`, 'm').test(md);
+// A table row is a prose node line: the id, then the title as its text (rule:type-tables).
+export function newInstanceRow(id: string, title: string): string {
+  return `- ${id} ${title.trim() || id.split(':').slice(1).join(':')}`;
+}

@@ -8,6 +8,7 @@ import { StatusPill } from './Pills';
 import { Linkified } from './IdLink';
 import { assetBase, docRoute } from '@/lib/doc';
 import { EMPTY_FILTERS, filterRows, filtersToQuery, groupRows, sortRows, type Filters, type InstanceRow, type InstanceTable as Table } from '@/lib/instance-table';
+import { pluralTitle } from '@/lib/instances';
 
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');
 const items = (v: string) => v.replace(/^\[|\]$/g, '').split(',').map(s => s.trim()).filter(Boolean);
@@ -51,7 +52,7 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
     <div className={`itable ${readOnly ? 'ro' : ''}`}>
       <div className="track-tools itable-tools">
         <div className="itable-row">
-          <input type="search" placeholder={`Search ${table.slug}s…`} value={f.q} onChange={e => set({ q: e.target.value })} />
+          <input type="search" placeholder={`Search ${pluralTitle({ slug: table.slug }).toLowerCase()}…`} value={f.q} onChange={e => set({ q: e.target.value })} />
           <div className="chips"><span className="chips-label">group by</span>
             <button className={`chip ${!f.group ? 'on' : ''}`} onClick={() => set({ group: '' })}>none</button>
             {groupable.map(g => <button key={g} className={`chip ${f.group === g ? 'on' : ''}`} onClick={() => set({ group: f.group === g ? '' : g })}>{g === 'doc' ? 'document' : g}</button>)}

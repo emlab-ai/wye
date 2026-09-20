@@ -220,3 +220,28 @@ Work that is planned but on no plan document yet, by area, and the tasks past pa
 - [ ] task:exec.rekind Read every req: of this PRD against decision:exec.kind-by-nature: a block that describes how the product works becomes a rule (with source) or a decision, and the observable behaviour it served becomes the requirement, in the person's words; ids stay stable where the block stays a requirement. Part of goal:exec.define-first.
 - [x] task:exec.ui-tests ui-test:work-view, ui-test:work-assign, ui-test:change-review in Chrome (playwright-core): assign a task and see it queued then working; edit a requirement with a sub-requirement and see the change card with the child's proposed update; revert. Part of goal:exec.work-and-impact. (session: de966d3bd9)
 <!-- /tasks -->
+
+```yaml
+- id: task:ontology.collection-document
+  text: >
+    The first instance of a product type creates its collection document (plural title, one `<!-- table:<slug> -->`
+    block) in the project that declares the type, writes `home:` on the type card and appends the instance as a row;
+    every path — op:types.add ("+ add" on the type page, `wf`), the ⌁ node picker's NEW NODE from selected text —
+    goes through it and tells the person which document the instance went to. decision:ontology.collection-document,
+    req:ontology.instance-home; touches op:types.add, component:new-doc, component:doc-editor, page:web/types;
+    tests in test:instances-web and ui-test:page-node.
+  status: done
+  part-of: pr:27
+  related-to: [decision:ontology.collection-document, req:ontology.instance-home]
+  session: 9a1382cd4e
+```
+
+```yaml
+- id: task:ontology.comments-document
+  text: >
+    type:comment in the base ontology (extends node; `on: ref node -(inverse)-> comments`, `by`, `date`); a comment action on a node's card, table row, context column entry and page that writes a `comment:` card to the Comments document of the node's project (one per project, created on that project's first comment) with `on:` the node; the node shows its comments where it is drawn. Takes the comment half of task:ontology.child-nodes-design, which keeps the content model. decision:ontology.comment-is-a-ref, req:ontology.comment-home.
+  status: done
+  part-of: pr:27
+  related-to: [decision:ontology.comment-is-a-ref, req:ontology.comment-home, task:ontology.child-nodes-design]
+  session: 9a1382cd4e
+```

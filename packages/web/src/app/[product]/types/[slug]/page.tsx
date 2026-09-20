@@ -6,6 +6,7 @@ import { instanceTable, parseFilters } from '@/lib/instance-table';
 import { InstanceTable } from '@/components/InstanceTable';
 import { docRoute } from '@/lib/doc';
 import { AddInstance } from '@/components/AddInstance';
+import { pluralTitle } from '@/lib/instances';
 
 // A type's page: its properties (own and inherited), its subtypes, and every instance as a table with one column per
 // property — the database view, derived from the documents, never stored.
@@ -21,16 +22,20 @@ export default async function TypePage({ params, searchParams }: { params: Promi
   // the instances as a filterable table (component:instance-table); the toolbar state comes from the URL
   const table = instanceTable(scope.graph, slug);
   const filters = parseFilters(query, table.columns.map(c => c.name));
-  // where a new instance is written: the type's home document, else the document that declares the type
-  const homeFile = t.home ? scope.graph.modules.find(m => m.id === t.home || m.file.endsWith('/' + t.home.replace(/^module:/, '') + '.md'))?.file ?? '' : (isBaseType(t) ? '' : t.file);
+  // where a new instance is written (req:ontology.instance-home): the type's home document; a product type without one
+  // gets its collection document — titled with its plural — on the first instance (decision:ontology.collection-document);
+  // a base type's instances are written in the documents
+  const homeFile = t.home ? scope.graph.modules.find(m => m.id === t.home || m.file.endsWith('/' + t.home.replace(/^module:/, '') + '.md'))?.file ?? '' : '';
   const homeRoute = homeFile ? docRoute(homeFile) : null;
+  const homeTitle = homeFile ? scope.graph.modules.find(m => m.file === homeFile)?.title || homeRoute?.doc || homeFile : '';
+  const base = isBaseType(t);
   return (
     <div className="page type-page">
       <header className="doc-head">
         <p className="crumbs"><Link href={`/${product}/knowledge`}>Knowledge</Link> / <Link href={`/${product}/types`}>Types</Link> / {t.chain.slice(0, -1).map(id => <span key={id}><Link href={`/${product}/types/${id.slice(5)}`}>{id.slice(5)}</Link> › </span>)}{slug}</p>
         <h1 className="prop-in h1" style={{ margin: 0 }}><span className={`tag k-type`}><i />type:{slug}</span></h1>
         {t.purpose && <p className="lede">{t.purpose}</p>}
-        <p className="sub">{t.extends ? <>extends <Link href={`/${product}/types/${t.extends.slice(5)}`}>{t.extends}</Link> · </> : 'the root type · '}{instances.length} instance{instances.length === 1 ? '' : 's'}{r ? <> · declared in <Link href={`/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(t.id)}`}>{r.project} / {r.doc}</Link></> : ' · base ontology (schema/base-ontology.md)'}{t.open && ' · open: instances may carry undeclared properties'}</p>
+        <p className="sub">{t.extends ? <>extends <Link href={`/${product}/types/${t.extends.slice(5)}`}>{t.extends}</Link> · </> : 'the root type · '}{instances.length} instance{instances.length === 1 ? '' : 's'}{r ? <> · declared in <Link href={`/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(t.id)}`}>{r.project} / {r.doc}</Link></> : ' · base ontology (schema/base-ontology.md)'}{homeRoute && <> · instances in <Link href={`/${product}/${homeRoute.project}/d/${homeRoute.doc}`}>{homeTitle}</Link></>}{t.open && ' · open: instances may carry undeclared properties'}</p>
       </header>
 
       <section className="kind-section">
@@ -54,7 +59,7 @@ export default async function TypePage({ params, searchParams }: { params: Promi
       <section className="kind-section">
         <h2>Instances <span className="muted">{instances.length}</span></h2>
         {instances.length > 0 && <InstanceTable product={product} table={table} initial={filters} urlState />}
-        {homeFile ? <AddInstance product={product} slug={slug} required={t.props.filter(p => p.required && !['title', 'status', 'text'].includes(p.name)).map(p => p.name)} home={homeRoute ? `${homeRoute.project} / ${homeRoute.doc}` : homeFile} />
+        {!base ? <AddInstance product={product} slug={slug} required={t.props.filter(p => p.required && !['title', 'status', 'text'].includes(p.name)).map(p => p.name)} home={homeRoute ? { href: `/${product}/${homeRoute.project}/d/${homeRoute.doc}`, title: homeTitle } : null} plural={pluralTitle(t)} />
           : <p className="muted">{instances.length ? '' : 'No instances yet. '}Instances of base types are written in the documents.</p>}
       </section>
     </div>

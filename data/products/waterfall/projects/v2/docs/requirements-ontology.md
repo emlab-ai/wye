@@ -169,3 +169,61 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 ```
 
 <!-- /list:question -->
+
+```yaml
+- id: req:ontology.instance-home
+  title: A new instance of a type lands in the type's own collection document
+  when: >
+    a person creates an instance of one of the product's own types — from a selected word or phrase (⌁ node → new
+    node of that type), from "+ add" on the type page, or with `wf`
+  then: >
+    the instance appears as a row of the type's table in the type's collection document (a document named after the
+    type in the plural, e.g. Cities for city), created on the first instance if it does not exist yet, and every
+    later instance of the type goes to the same document whichever way it is created; the type page and the
+    instance's tag both open it, so the person always knows where London went
+  unless: >
+    the type already names a home document — then the instance goes there, as today; a base kind (goal, decision,
+    question, task…) keeps landing on the current page
+  status: shipped
+  refines: req:ontology.type-page
+  related-to: [req:wf2.editor.entity-from-text, question:wf2.page-instance-add]
+  satisfied-by: [op:types.add, rule:collection-document]
+  by: alex
+  evidence: [session:bb9a0a8af9]
+  verified-by: [test:instances-web]
+```
+
+  verdict:f7999d384264 refines req:ontology.type-page — B specifies that A's undefined 'type's home document' is the collection document (plural-named, created on first instance). (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:ontology.type-page req:ontology.instance-home)
+
+  verdict:a4ab2c5826d6 duplicate decision:ontology.collection-document — Both describe the same feature: instances collect in a type's collection document (plural-named) created on first instance, with `home:` set as the type's default landing point. (kind: duplicate, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:ontology.collection-document req:ontology.instance-home)
+
+  contradiction:waterfall.a4ab2c5826d6 req:ontology.instance-home duplicates decision:ontology.collection-document — Both describe the same feature: instances collect in a type's collection document (plural-named) created on first instance, with `home:` set as the type's default landing point. #open (between: req:ontology.instance-home decision:ontology.collection-document, conflict: static, reason: Both describe the same feature: instances collect in a type's collection document  plural-named  created on first instance  with `home:` set as the type's default landing point.)
+
+```yaml
+- id: req:ontology.comment-home
+  title: A comment made on any node lands in the Comments document and points back at the node
+  when: >
+    a person adds a comment on a node — from its card, its row in a table, the context column or its page
+  then: >
+    the comment appears in the Comments document of the project the node belongs to (one Comments document per project, created on the project's first comment) as a comment with the node it was made on, who wrote it and when; the node shows its comments where the person clicked, and the project's Comments document lists every comment with the node each one is on
+  unless: >
+    the person is writing a plain paragraph under a block in the editor — that stays the block's content
+    (req:ontology.content), not a comment
+  status: shipped
+  refines: req:ontology.content
+  related-to: [question:ontology.child-nodes, goal:ontology.graph-editor]
+  by: alex
+  evidence: [session:bb9a0a8af9]
+  satisfied-by: [rule:comment-row, op:api.comments, component:comments]
+  verified-by: [test:comments-web]
+```
+
+  verdict:344704eb5ce7 duplicate decision:ontology.comment-is-a-ref — Both state comments are stored in a Comments document with a reference back to the node; identical proposal despite different document types. (kind: duplicate, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:ontology.comment-is-a-ref req:ontology.comment-home)
+
+  contradiction:waterfall.344704eb5ce7 req:ontology.comment-home duplicates decision:ontology.comment-is-a-ref — Both state comments are stored in a Comments document with a reference back to the node; identical proposal despite different document types. #open (between: req:ontology.comment-home decision:ontology.comment-is-a-ref, conflict: static, reason: Both state comments are stored in a Comments document with a reference back to the node; identical proposal despite different document types.)
+
+  verdict:3b8dc8b9d832 contradicts decision:ontology.uniform-content — A (2026-09-18) says comments are blocks in parent's content; B says comments go to Comments document; later decision reversed the earlier stance. (kind: contradicts, conflict: dynamic, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:ontology.uniform-content req:ontology.comment-home)
+
+  contradiction:waterfall.3b8dc8b9d832 req:ontology.comment-home contradicts decision:ontology.uniform-content — A (2026-09-18) says comments are blocks in parent's content; B says comments go to Comments document; later decision reversed the earlier stance. #open (between: req:ontology.comment-home decision:ontology.uniform-content, conflict: dynamic, reason: A  2026-09-18  says comments are blocks in parent's content; B says comments go to Comments document; later decision reversed the earlier stance.)
+
+  verdict:d4a2627d0295 refines decision:wf2.graph-editor-is-a-goal — A identifies comment type and behavior as missing from the current design; B provides the concrete mechanism for how comments work and where they land. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:wf2.graph-editor-is-a-goal req:ontology.comment-home)

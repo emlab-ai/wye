@@ -293,11 +293,14 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   gate: none (local app)
   source: packages/web/src/app/api/[product]/types/route.ts; packages/web/src/lib/type-edit.ts; packages/web/src/lib/types.ts
 - id: op:types.add
-  args: product, type slug; body { slug, title? } (POST /api/<product>/types/<slug>); PUT { props, scalars } edits the type card
+  args: product, type slug; body { slug, title?, home? } (POST /api/<product>/types/<slug>); PUT { props, scalars } edits the type card
   does: >
-    appends a `<type>:<slug>` card with the type's required properties as empty keys to the type's home document (its
-    `home:` module, else the document that declares it; base types have none) and rebuilds the graph; PUT rewrites the
-    card's props block and scalar keys (purpose, extends, open) in place under the file lock
+    writes a new instance and answers where it went (`doc`, `created`, `row`). A product type's instance is a row of
+    the type's collection document (rule:collection-document): the document `home:` on the type card names, else one
+    titled with the type's plural, created in the project that declares the type on the first instance and written as
+    `home:` on the card; a home document without the type's table takes a card as before. A base kind's card goes to
+    `home` (project/doc — the page the caller is on); 409 when the id exists, 422 without a home. PUT rewrites the
+    card's props block and scalar keys (purpose, extends, open, home, plural) in place under the file lock
   gate: none (local app)
   source: packages/web/src/app/api/[product]/types/[slug]/route.ts; packages/web/src/lib/instances.ts; packages/web/src/lib/type-edit.ts
 ```
@@ -493,6 +496,17 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
     reopen puts it back to draft. PATCH { ref, status } sets a status outright.
   gate: none (local app)
   source: packages/web/src/app/api/[product]/pr/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.comments
+  args: GET | POST /api/<product>/comments
+  does: >
+    Comments (req:ontology.comment-home, decision:ontology.comment-is-a-ref). GET ?on=<id> → the comments on a node,
+    oldest first. POST { on, text, by?, session?, project? } → a `comment:` row in the Comments document of the
+    node's project (one per project, created on its first comment) with `on:` the node; answers with the comment and
+    where it went.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/comments/route.ts
   status: proposed
   part-of: module:api
 ```

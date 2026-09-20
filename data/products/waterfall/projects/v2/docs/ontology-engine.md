@@ -82,6 +82,38 @@ Ontology
     sent to the browser and the published site (ctx site --blocks keeps them).
   source: packages/web/src/lib/graph.ts:14; lib/graph.js; bin/ctx.js
   status: proposed
+- id: rule:collection-document
+  statement: >
+    A product type's instances collect in one document (req:ontology.instance-home): the first instance written through
+    op:types.add — "+ add" on the type page, the ⌁ picker's NEW NODE from selected text, `wye node add` — creates the
+    type's collection document in the project that declares the type, titled with the type card's `plural:` else the
+    English plural of its name (city → Cities, box → Boxes, test-case → Test cases; lib/instances#pluralTitle), holding
+    one `<!-- table:<slug> -->` block (rule:type-tables), and writes `home: module:<slug>` on the type card (lib/type-edit
+    #setTypeProps) so every later instance lands there; an existing document of that slug is taken as it is and gets
+    the table. A type whose card already names a home keeps it — a row when that document has the type's table, a
+    card otherwise. A base kind has no collection: its card goes to the page the caller names. The route answers with
+    the document (`doc`, `created`, `row`) and every path shows it: the type page's "+ add" and "instances in", the
+    picker's after-note, the CLI's line. The instance's own row never links to itself (lib/link-all).
+  source: packages/web/src/app/api/[product]/types/[slug]/route.ts#POST; packages/web/src/lib/instances.ts#pluralTitle; packages/web/src/lib/instances.ts#collectionDoc; packages/web/src/lib/instances.ts#appendRow; lib/parse.js#collectTypes
+  status: shipped
+  verified-by: [test:instances-web, test:web-lib#link-all]
+  governs: [op:types.add, page:web/types, component:add-instance, component:doc-editor]
+  related-to: [rule:type-tables, decision:ontology.collection-document]
+- id: rule:comment-row
+  statement: >
+    A comment is a row of the Comments document of the project the commented node belongs to (req:ontology.comment-home):
+    `- comment:<node slug>-<4 hex> <text on one line> (on: <id>, by: <who>, date: <yyyy-mm-dd>)` inside that document's
+    `<!-- table:comment -->` block — the document is type:comment's collection document, `comments.md` in the project's
+    docs, created from the blank template on the project's first comment. `on` is the ref property of type:comment
+    (schema/base-ontology.md), so the node's comments are its inverse edge `comments`; a `#` or a trailing parenthesis
+    in the text is softened so the line stays one node. The comment is never nested under the node. `by` is the
+    caller's name, `agent:<session>` for a session, else "person"; the writer claims the write so the change record
+    names it.
+  source: packages/web/src/lib/comments.ts#commentRow; packages/web/src/lib/comments.ts#addComment; packages/web/src/app/api/[product]/comments/route.ts; schema/base-ontology.md
+  status: shipped
+  verified-by: [test:comments-web]
+  governs: [op:api.comments, component:comments, lib:comments]
+  related-to: [decision:ontology.comment-is-a-ref, rule:collection-document]
 ```
 
 <!-- /list:rule -->
@@ -357,6 +389,93 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
   date: 2026-09-17
   related-to: [module:ontology-design, decision:ontology.types-are-cards]
   session: 94ac3cf3e0
+- id: decision:ontology.comments-in-column
+  title: A node's comments are shown and made in the context column, whichever surface opened the node
+  context: >
+    req:ontology.comment-home wants a comment action on a node's card, its row in a table, the context column entry and
+    its page, and the node to show its comments where the person clicked. Every one of those surfaces already opens the
+    node in the context column (rule:table-rows, rule:connected-cards); a comment box on each surface would be four
+    boxes for one action.
+  choice: >
+    One Comments section in the column's node view (component:comments): the comments on the node oldest first with who
+    and when, a box to add one (⌘↵ sends), and after a write the document it went to — "in Comments — new, every comment
+    of this project goes there" on the project's first. The section sits under the node's content and before Explain,
+    for typed nodes and for document nodes alike; the `on` edges from comment: nodes stay out of Links and Properties
+    since the section shows them. Cards, rows and pages reach it by opening the node, as they do for everything else.
+  alternatives: >
+    a comment box inline on every card and table row (four copies of one control, and the editor's blocks would grow
+    a form); a comment as a child block typed under the node (rejected by decision:ontology.comment-is-a-ref).
+  consequences: >
+    component:comments, op:api.comments, lib:comments, rule:comment-row; the column is the one place to read and write
+    comments, so a surface that does not open the column (the graph view) has no comment action yet.
+  status: proposed
+  date: 2026-09-20
+  by: agent:9a1382cd4e
+  evidence: [session:9a1382cd4e]
+  affects: [req:ontology.comment-home, component:comments]
+  related-to: [decision:ontology.comment-is-a-ref, module:ontology-design]
 ```
 
 <!-- /list:decision -->
+
+```yaml
+- id: decision:ontology.collection-document
+  title: A type's instances collect in a document of their own, created on the first instance and set as the type's home
+  context: >
+    op:types.add and the ⌁ node picker write a new instance to the type's home document, else the document that
+    declares the type — so city:London made from selected text lands in ontology.md next to type:city, and the
+    person cannot tell where it went (pr:27). decision:ontology.new-type-home settled where a *type* goes, not
+    where its instances go.
+  choice: >
+    The first instance of a product type creates the type's collection document in the project that declares the
+    type — titled with the type's `plural:` if the type card sets one, else the English plural of its title
+    (city → Cities, bug → Bugs, box → Boxes) — holding one `<!-- table:<slug> -->` block (rule:type-tables), writes
+    `home:` on the type card so every later path (⌁ node, "+ add", `wf`) lands there, and appends the instance as
+    a row with its properties in the trailing group. A type whose card already names a home keeps it. The person
+    may rename or move the document; the `home:` link follows.
+  alternatives: >
+    create the document when the type is created (an empty document per type the person may never use);
+    only the from-text gesture uses it while "+ add" and `wf` keep the declaring document (two homes for one
+    type); one yaml card per instance instead of a table (more room per instance, but a collection reads as a
+    table and the type page already shows one).
+  consequences: >
+    op:types.add grows the create-on-first-instance step and the `home:` write; component:new-doc is reused for
+    the document; the type page's "+ add" and the picker's NEW NODE say which document the instance went to;
+    question:wf2.page-instance-add stays open — a row may later become a page.
+  status: proposed
+  date: 2026-09-20
+  by: alex
+  evidence: [session:bb9a0a8af9]
+  affects: [op:types.add, decision:ontology.new-type-home, req:ontology.type-page, req:wf2.editor.entity-from-text, req:ontology.instance-home, rule:type-tables]
+  related-to: [module:ontology-design, question:wf2.page-instance-add]
+  session: bb9a0a8af9
+```
+
+  verdict:559ce8883f01 refines req:wf2.editor.entity-from-text — A states instances land on "the type's home page" without specifying what that is; B provides the concrete decision that the home is a collection document created on first instance. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:wf2.editor.entity-from-text decision:ontology.collection-document)
+
+  verdict:da09b6a39ad7 refines req:ontology.instance-home — Both describe instances collecting in a type's collection document by plural name; B adds implementation details (home: link, project location, renaming support, table format). (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:ontology.instance-home decision:ontology.collection-document)
+
+```yaml
+- id: decision:ontology.comment-is-a-ref
+  title: A comment is a card in the product's Comments document with `on:` the node — not a child block under it
+  context: >
+    decision:ontology.uniform-content (2026-09-18) made a comment a block of type comment in its parent's content and rejected "a comment: card anywhere with on: <id>". On pr:27 (2026-09-20) the person asked the opposite: clicking any node and adding a comment stores it in a Comments document with a link to the node — and, in the same session, that the Comments document is per project, not per product, so a project's comments travel with its documents. The two cannot both hold for comments.
+  choice: >
+    For comments only, the rejected alternative is the choice: `type:comment` (extends node) carries `on: ref node -(inverse)-> comments`, `by` and `date`, and every comment is a `comment:` card in the Comments document of the project the commented node belongs to — one Comments document per project, not per product, created on that project's first comment, one `<!-- table:comment -->` block or a card list — never nested under the node. A node's comments are the inverse edge, shown on the node wherever it is drawn. The uniform content model stays for everything else: content is what sits under a node; a comment is related, not contained.
+  alternatives: >
+    keep the child-block model and make the Comments document a generated view (the comment would be spread over
+    every document, and a comment on a paragraph would change that document's text); write the comment as a child
+    when made inside a document and to the Comments document otherwise (two shapes for one type).
+  consequences: >
+    decision:ontology.uniform-content is narrowed — its "a comment is a block of type comment in its parent's
+    content" no longer holds; task:ontology.child-nodes-design loses its comment half to
+    task:ontology.comments-document and keeps the content model; question:ontology.child-nodes is answered
+    differently than recorded.
+  status: proposed
+  date: 2026-09-20
+  by: alex
+  evidence: [session:bb9a0a8af9]
+  affects: [decision:ontology.uniform-content, task:ontology.child-nodes-design, type:comment, question:ontology.child-nodes, req:ontology.comment-home, goal:ontology.graph-editor]
+  related-to: [module:ontology-design]
+  session: bb9a0a8af9
+```
