@@ -176,6 +176,29 @@ Definition — the librarian
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
   part-of: goal:exec.define-first
+- id: decision:wf2.req-free-text
+  title: A requirement is free text in the person's words — when / then / unless is not a template
+  context: >
+    type:req was defined as "when <trigger>, <actor> <outcome> [unless <exception>]" and every prompt (the librarian,
+    the worker, describe-module) made the agents fill those three slots. alex: requirements must be free-form text.
+  choice: >
+    A requirement is a `title` and free prose in `text` — a paragraph or a few: who it is for, what they get, what it
+    replaces, what must never happen — in the person's words, no mechanism. `when`, `then`, `unless` stay as optional
+    keys for the ones a person chose to write that way; nothing asks for them. The card renders `text` as prose
+    under the title (component:node-cards); the inbox files a requirement's body as `text`; the prompts and the base
+    ontology say so. Existing when / then / unless requirements stay as they are.
+  alternatives: >
+    Drop the three keys and rewrite the 200 existing requirements — rejected: they read fine and nothing depends on
+    the keys. Keep the template — rejected by alex.
+  consequences: >
+    Questions from the librarian no longer come "along the requirement shape" but for what the request leaves
+    unsaid; describe-module writes free-text requirements from code.
+  date: 2026-09-21
+  status: approved
+  affects: [type:req, prompt:librarian-system, prompt:agent-system, component:node-cards, lib:inbox]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
 - id: decision:wf2.pr-scheduler
   title: Approved PRs are built by the app — a dispatcher, N parallel runners, no two overlapping scopes at once
   context: >

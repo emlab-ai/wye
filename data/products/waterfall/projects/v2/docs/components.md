@@ -614,6 +614,15 @@ The editor's blocks and the components the pages are made of, by area.
     (decision:ontology.comment-is-a-ref); the list is the inverse edge, refetched on every graph change.
   status: proposed
   part-of: module:components
+- id: component:inbox-projects
+  file: packages/web/src/components/InboxProjects.tsx
+  side: client
+  purpose: >
+    The Inbox per project (req&#58;wf2.inbox.per-project): chips — every project, then each one — narrow the changes
+    and the review queue to one project's documents; notes (no document yet) show only under all. The choice is in
+    the URL.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

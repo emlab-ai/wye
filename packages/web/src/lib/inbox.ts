@@ -114,7 +114,7 @@ export async function fileItem(productDir: string, product: string, item: InboxI
   const f = item.fields;
   const lines: (string | null)[] = [`- id: ${target.id}`];
   if (kind === 'decision') lines.push(y('title', item.title), y('context', f.context || item.body), y('choice', f.choice), y('alternatives', f.alternatives), y('consequences', f.consequences), '  status: approved', `  date: ${today}`);
-  else if (kind === 'req') lines.push(y('title', item.title), y('when', f.when), y('then', f.then || item.body), y('unless', f.unless), '  status: proposed');
+  else if (kind === 'req') lines.push(y('title', item.title), y('text', item.body), y('when', f.when), y('then', f.then), y('unless', f.unless), '  status: proposed');
   else if (kind === 'rule') lines.push(y('statement', f.statement || item.body || item.title), y('source', f.source), '  status: proposed');
   else if (kind === 'question') lines.push(y('q', f.q || item.body || item.title), '  status: question');
   else lines.push(y('title', item.title), y('text', item.body));

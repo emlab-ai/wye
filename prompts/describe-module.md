@@ -6,9 +6,9 @@ page (Systems › <module>) lists the libraries and operations the code declares
 
 1. **What the module does** — the `purpose:` on its module card, in two or three sentences, for a person.
 2. **Requirements** — every behaviour a person can observe, on the module's requirements page, inside its
-   `<!-- list:req -->` region: `req:<module>.<slug>` cards with `title`, `when`, `then`, `unless`, `status`
+   `<!-- list:req -->` region: `req:<module>.<slug>` cards with `title`, `text` (free prose, in the person's words), `status`
    (`shipped` when the code does it, `proposed` when it should and does not, `question` when you cannot tell),
-   `refines` where one narrows another. In the person's words: no component names, no mechanism in `then`
+   `refines` where one narrows another. In the person's words: no component names, no mechanism in the text
    (decision:exec.kind-by-nature). A test before writing one: could a person check it from outside, without
    reading code? Yes → a requirement. No, and the code guarantees it → a rule. No, and someone chose it → a decision.
 3. **The map to the code** — for each requirement, `satisfied-by:` the cards that deliver it: the `lib:`,

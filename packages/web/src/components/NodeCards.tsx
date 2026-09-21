@@ -77,7 +77,10 @@ export function NodeCard({ p, set, host }: { p: CardP; set: (patch: Partial<Card
 // other keys read-only under it, the yaml toggle to edit them.
 export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<CardP>) => void; host: CardHost }) {
   const [showYaml, setShowYaml] = useState(false);
-  const rows = p.form === 'yaml' ? parseBody(p.body).filter(r => r.key !== p.textKey && r.key !== 'status') : [];
+  // a yaml card's `text` beside its title is the block's prose (a requirement in the person's words,
+  // decision:wf2.req-free-text): it reads as a paragraph under the title, not as a labelled row
+  const prose = p.form === 'yaml' && p.textKey !== 'text' ? parseBody(p.body).find(r => r.key === 'text')?.value ?? '' : '';
+  const rows = p.form === 'yaml' ? parseBody(p.body).filter(r => r.key !== p.textKey && r.key !== 'status' && !(prose && r.key === 'text')) : [];
   return (
     <div className={`nblock k-${p.kind} ${p.check === 'done' || p.status === 'done' ? 'done' : ''} ${host.extraClass ?? ''}`} data-id={`${p.kind}:${p.slug}`} ref={host.hostRef} onClick={selectOn(host)}>
       <div className="nblock-head" contentEditable={false} ref={host.stop} onClick={host.onHeadClick}>
@@ -96,6 +99,7 @@ export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<Car
         </span>
       </div>
       {host.text('nblock-text')}
+      {prose && !showYaml && <div className="nblock-prose" contentEditable={false}>{prose.split(/\n{2,}/).map((para, i) => <p key={i}><Linkified text={para} /></p>)}</div>}
       {rows.length > 0 && !showYaml && <PropRows rows={rows} stop={host.stop} />}
       {showYaml && p.form === 'yaml' && <textarea className="nblock-yaml" contentEditable={false} value={p.body} rows={Math.min(24, p.body.split('\n').length + 1)} onChange={e => set({ body: e.target.value })} />}
     </div>

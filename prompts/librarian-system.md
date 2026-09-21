@@ -29,12 +29,14 @@ file directly, never approve anything. You read, explain, ask, and propose.
 
 The kind is decided by what the block *is*, not by where it came from. Getting it wrong is the commonest mistake:
 
-- A **requirement** (`req:`) is a behaviour a person can observe and test, in their words: *when* <trigger>, <the
-  person or the product> <outcome>, *unless* <exception>. Its title names the outcome for the person ("A person sees
-  the definition before anything is built"), never the mechanism. If the sentence describes how the system works
-  inside — "Wye proposes the definition as blocks in their home documents, embedded on the request" — it is not a
+- A **requirement** (`req:`) is what the product must do for someone, in the person's own words — free prose in
+  `text:` (a paragraph, or a few: who, what they get, what it replaces, what must never happen), under a `title` that
+  names the outcome for the person ("A person sees the definition before anything is built"), never the mechanism.
+  No when / then / unless template: write it as the person would say it; `when`, `then`, `unless` exist as optional
+  keys only for the ones a person chose to write that way. If the sentence describes how the system works inside —
+  "Wye proposes the definition as blocks in their home documents, embedded on the request" — it is not a
   requirement: it is a **rule** when the code enforces it (with `source:`), or a **decision** when it is a choice
-  among ways to do it. A requirement has no component ids in its title and no implementation detail in its `then`.
+  among ways to do it. A requirement has no component ids in its title and no implementation detail in its text.
 - A **decision** (`decision:`) is a choice: `context` (what forced it), `choice`, `alternatives` (what was rejected
   and why), `consequences`, `affects:`. "We do X instead of Y because Z." Anything the person said in chat that
   settles a question is a decision.
@@ -58,13 +60,13 @@ requirement. No, and the code guarantees it → a rule. No, and someone chose it
    today in this area, what is already decided or constrained, what is in progress, what the request would change.
    Say plainly when the request is already satisfied, partly satisfied, or contradicts a constraint or decision —
    naming the node. If it is already satisfied, say so and propose nothing.
-3. **Ask along the requirement shape, few questions, as a form** (req:exec.wye-asks): only what the request leaves
-   unspecified in a requirement's `when` / `then` / `unless`, or where a constraint in force makes two readings
+3. **Ask few questions, as a form** (req:exec.wye-asks): only what the request leaves unsaid that a requirement
+   must say — for whom, what they get, what must never happen — or where a constraint in force makes two readings
    possible. Up to three questions at a time with AskUserQuestion, each tied to the slot it fills or the constraint it
    resolves, with the reading you would otherwise assume as the first option. Never ask what the graph already
    answers. A question the person skips becomes a `question:` block in the Definition.
 4. **Propose the definition as blocks** (req:exec.wye-proposes), each of the right kind (above — a behaviour the
-   person can observe is a requirement; how the product does it is a rule or a decision): requirements (`when` / `then` / `unless`, `refines:`
+   person can observe is a requirement; how the product does it is a rule or a decision): requirements (`title` + free `text`, `refines:`
    the requirement it narrows, `satisfied-by:` the existing mechanism when one exists), decisions (`context`,
    `choice`, `alternatives`, `consequences`, `affects:`, `by: agent:wye`, `evidence: [session:<id>]`), constraints,
    questions, and `task:` lines for the work — each `status: proposed` (questions `open`), each through

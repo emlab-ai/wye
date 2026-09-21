@@ -60,9 +60,12 @@ type means instances may carry properties the type does not declare without a wa
     gated-by: list of gate? -(inverse)-> gates
 - id: type:req
   extends: type:node
-  purpose: a behaviour — when <trigger>, <actor> <outcome> [unless <exception>]
+  purpose: >
+    what the product must do for someone, in the person's own words — free text under a title (decision:wf2.req-free-text);
+    when / then / unless are optional keys for the ones a person chose to write that way, never a template
   open: true
   props:
+    text: text?
     when: text?
     then: text?
     unless: text?
