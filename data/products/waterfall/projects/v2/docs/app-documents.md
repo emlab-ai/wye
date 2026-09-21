@@ -327,7 +327,10 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     way), Copy link, Send to agent, Delete; a typed node also has Open in column, Expire
     (`until: today` — the node stops holding, decision:memory.bitemporal) and, for a task, Mark done. Escape, a press
     outside or a scroll closes it; the close handler checks the target, as rule:tree-menu does. The drag handle's own
-    menu stays for the block-type actions (colours, turn into drawing, annotate).
+    menu stays for the block-type actions (colours, turn into drawing, annotate). A smart tag inside a block has its
+    own menu: Inline as a block (the tag leaves the sentence and the node's card follows the block as an embed — a
+    block that was only the tag becomes the embed), Open in column, Open the document, Copy id, Unlink (the id stays
+    as text), Remove.
   source: packages/web/src/components/DocEditor.tsx#BlockContextMenu
   status: shipped
 - id: rule:doc-gone-in-place

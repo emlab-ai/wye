@@ -155,6 +155,33 @@ function CommentPop({ at, on, product, onClose }: { at: { x: number; y: number }
   );
 }
 
+// A smart tag's context menu (rule:block-menu): the tag is a reference inside a sentence — Inline as a block puts the
+// node's card on the page instead (an embed after this block, the tag gone), Open in column, Open the document, Copy id,
+// Unlink (the id stays as text), Remove.
+type TagMenu = { id: string; block: AnyBlock; nth: number; x: number; y: number };
+function TagContextMenu({ menu, onClose, act }: { menu: TagMenu; onClose: () => void; act: (what: 'inline' | 'open' | 'doc' | 'copy' | 'unlink' | 'remove', m: TagMenu) => void }) {
+  const el = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const close = (e: Event) => { if (!(e.target instanceof Node && el.current?.contains(e.target))) onClose(); };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('mousedown', close); document.addEventListener('keydown', key); window.addEventListener('scroll', onClose, true);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', key); window.removeEventListener('scroll', onClose, true); };
+  }, [onClose]);
+  const item = (label: string, what: Parameters<typeof act>[0], cls = '') => <button role="menuitem" className={cls} onMouseDown={e => e.preventDefault()} onClick={() => { act(what, menu); onClose(); }}>{label}</button>;
+  const x = Math.min(menu.x, (typeof window !== 'undefined' ? window.innerWidth : 9999) - 200), y = Math.min(menu.y, (typeof window !== 'undefined' ? window.innerHeight : 9999) - 220);
+  return (
+    <div ref={el} className="pg-menu block-menu" role="menu" style={{ left: x, top: y }}>
+      <div className="menu-head muted">{menu.id}</div>
+      {item('Inline as a block', 'inline')}
+      {item('Open in column', 'open')}
+      {item('Open the document', 'doc')}
+      {item('Copy id', 'copy')}
+      {item('Unlink (keep the id as text)', 'unlink')}
+      {item('Remove', 'remove', 'danger')}
+    </div>
+  );
+}
+
 // Drag-handle menu entry on every block: copy its link.
 function CopyLinkItem() {
   const Components = useComponentsContext()!;
@@ -1063,8 +1090,17 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const [blockMenu, setBlockMenu] = useState<BlockMenu | null>(null);
   const [commentPop, setCommentPop] = useState<{ x: number; y: number; on: string } | null>(null);
   const closeCommentPop = useCallback(() => setCommentPop(null), []);
+  const [tagMenu, setTagMenu] = useState<TagMenu | null>(null);
+  const closeTagMenu = useCallback(() => setTagMenu(null), []);
   const onContextMenu = (e: React.MouseEvent) => {
     const t = e.target as HTMLElement;
+    // a smart tag inside a block: its own menu
+    const tagEl = t.closest('[data-inline-content-type="tag"]') as HTMLElement | null;
+    if (tagEl) {
+      const outer = tagEl.closest('.bn-block-outer[data-id]') as HTMLElement | null; const b = outer && (editor.getBlock(outer.dataset.id!) as unknown as AnyBlock | undefined);
+      const id = (tagEl.querySelector('a.tag')?.getAttribute('href') ?? '').replace(/^#tag:/, '');
+      if (b && id) { const all = [...(outer!.querySelector('.bn-block-content')?.querySelectorAll('[data-inline-content-type="tag"]') ?? [])]; e.preventDefault(); e.stopPropagation(); setTagMenu({ id, block: b, nth: Math.max(0, all.indexOf(tagEl)), x: e.clientX, y: e.clientY }); return; }
+    }
     if (t.closest('a, input, select, textarea, button, .pg-menu, .bn-suggestion-menu')) return;
     const outer = t.closest('.bn-block-outer[data-id]') as HTMLElement | null; if (!outer) return;
     const b = editor.getBlock(outer.dataset.id!) as unknown as AnyBlock | undefined; if (!b) return;
@@ -1090,6 +1126,30 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     else { let text = ''; try { text = await navigator.clipboard.readText(); } catch { toast('Nothing to paste — copy a block first'); return; } if (!text.trim()) return; blocks = importMarkdown(text, src => editor.tryParseMarkdownToBlocks(src) as unknown as AnyBlock[]); for (const x of blocks) reslug(x); }
     if (!blocks.length) return;
     editor.insertBlocks(blocks as never[], id, 'after'); touched.current = true; changed();
+  };
+  const tagAct = (what: 'inline' | 'open' | 'doc' | 'copy' | 'unlink' | 'remove', m: TagMenu) => {
+    const cur = editor.getBlock(String((m.block as { id?: string }).id)) as unknown as AnyBlock | undefined; if (!cur) return;
+    const content = Array.isArray(cur.content) ? (cur.content as { type: string; props?: { id?: string } }[]) : [];
+    // the nth tag inline of the block, by its position among the tags (two tags with one id can sit in one sentence)
+    let seen = -1; const at = content.findIndex(it => it.type === 'tag' && ++seen === m.nth);
+    const without = (repl?: unknown) => {
+      const next: unknown[] = [...content]; if (at >= 0) next.splice(at, 1, ...(repl ? [repl] : []));
+      // the two text runs the tag sat between join, the doubled space it leaves goes
+      if (!repl && at > 0 && at < next.length) { const a = next[at - 1] as { type: string; text?: string; styles?: object }, b = next[at] as { type: string; text?: string; styles?: object }; if (a.type === 'text' && b.type === 'text' && JSON.stringify(a.styles) === JSON.stringify(b.styles)) next.splice(at - 1, 2, { ...a, text: `${a.text ?? ''}${b.text ?? ''}`.replace(/  +/g, ' ') }); }
+      return next as typeof content;
+    };
+    if (what === 'open') { openPeek(m.id); return; }
+    if (what === 'doc') { const h = hrefFor(m.id); if (h) router.push(h); else openPeek(m.id); return; }
+    if (what === 'copy') { navigator.clipboard?.writeText(m.id).then(() => toast('Copied ' + m.id)).catch(() => toast(m.id)); return; }
+    if (what === 'unlink') { editor.updateBlock(cur as never, { content: without({ type: 'text', text: m.id, styles: {} }) } as never); touched.current = true; changed(); return; }
+    if (what === 'remove') { editor.updateBlock(cur as never, { content: without() } as never); touched.current = true; changed(); return; }
+    if (what === 'inline') {
+      // the reference becomes the node itself on the page: the tag leaves the sentence, an embed follows the block
+      const rest = without(); const empty = !rest.some(it => it.type !== 'text' || ((it as { text?: string }).text ?? '').trim());
+      if (empty && cur.type !== 'node') editor.updateBlock(cur as never, { type: 'embed', props: { node: m.id } } as never);
+      else { editor.updateBlock(cur as never, { content: rest } as never); editor.insertBlocks([{ type: 'embed', props: { node: m.id } } as never], cur as never, 'after'); }
+      touched.current = true; changed();
+    }
   };
   const blockAct = (what: BlockAct, b: AnyBlock) => {
     const id = String((b as { id?: string }).id); const np = b.type === 'node' ? b.props as unknown as { kind: string; slug: string; form: string; body: string } : null;
@@ -1195,6 +1255,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
           if (doc) router.push(doc.replace(/#.*$/, '')); else openPeek(href);
         }
       }}>
+      {tagMenu && <TagContextMenu menu={tagMenu} onClose={closeTagMenu} act={tagAct} />}
       {blockMenu && <BlockContextMenu menu={blockMenu} onClose={closeBlockMenu} act={blockAct} canPaste={!!CLIP || typeof navigator !== 'undefined' && !!navigator.clipboard?.readText} />}
       {commentPop && <CommentPop at={commentPop} on={commentPop.on} product={product} onClose={closeCommentPop} />}
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}{!lintMsg && elsewhere > 0 && <span className="muted" title="ctx check finds an error in another document of the product — not in this one">{elsewhere} check error{elsewhere === 1 ? '' : 's'} elsewhere</span>}</div>
