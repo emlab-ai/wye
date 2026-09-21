@@ -530,6 +530,24 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   - consequence:wf2.clean-slate rule:clean-slate and rule:idle-stop; component:command-box (default "new", remembered agent, the tick), op:api.sessions.message takes `fresh`, agent-host#startChat reuses the Live entry so subscribers survive a restart and the old process's close handler no longer touches a replaced process; rule:agent-sessions, action:command-palette and decision:wf2.one-command-box's "defaults to the most recent active conversation" are superseded; ui-test:command-palette extended.
 
 ```yaml
+- id: decision:wf2.column-is-content
+  title: A node's column is one page — properties, comments, then its content with the kind's pre-defined blocks as real, deletable blocks; the derived parts fold under it
+  status: proposed
+  date: 2026-09-21
+  by: alex
+  affects: [req:wf2.ui.node-content, req:wf2.ui.node-page, component:peek-panel, component:node-editor, component:instance-table, lib:instance-table]
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+```
+
+  - choice:wf2.column-is-content The column renders a node top to bottom like a Notion page: the head (kind, id, tools), the properties as rows with "+ Add a property", Comments (the same block as on a page), then the content — frameless, the node's text its big first line, the editor's bar out of the way — and under the content a ghost row "Add · Requirements · Tasks · Sub-goals" (a goal), "When · Then · Unless · Tests" (a requirement), "Context · Alternative · Choice · Consequence" (a decision), "Answer" (a question), "Sub-tasks" (a task): each is a real block written into the node's content markdown on a click (a `view:` block with `part-of=<id>`, a child line, a heading) and nothing else — deletable, movable, re-addable. Last, folded under a thin rule: Linked from, Links (list / graph), Explain, Hooks, Produced. lib/node-blocks says which blocks a kind has and which are missing; `part-of` rides on every instance row so a view can filter on it; a table inside the column starts with its filters folded.
+
+  - context:wf2.column-is-content The column was a stack of fixed sections — a boxed Content editor with its own bar, then generated Tracking / Requirements / Tasks tables for a goal, Comments, Explain, Hooks, Linked from, Links — none of them movable or removable, and the text read like a form field. The person asked for a Notion page: everything content, a few pre-defined blocks, all editable (2026-09-21).
+
+  - alternative:wf2.column-is-content Keep generated sections and only restyle them (not deletable); insert the pre-defined blocks on first open (a write on a read — a page would change by being looked at); declare the blocks on the type card now (the right home, later — the map is in lib/node-blocks until types carry a `content:` template).
+
+  - consequence:wf2.column-is-content A goal's Requirements is a block in its markdown, not a query the column runs; the old generated goal sections are gone; `part-of=<id>` is a filter every view accepts; type cards will get a `content:` template so a product type can declare its own pre-defined blocks (task:ontology.type-content-template).
+
+```yaml
 - id: decision:wf2.import-code-is-a-session
   title: Import from code writes a page and a task and hands it to an agent at once; the scan happens in the session
   status: proposed

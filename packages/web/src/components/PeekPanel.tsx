@@ -18,11 +18,11 @@ import { Produced } from './Produced';
 import { TaskWork } from './TaskWork';
 import { ChangedBadge } from './ChangedBadge';
 import { ExplainCard } from './ExplainCard';
+import { suggest } from '@/lib/node-blocks';
+import { PageComments } from './PageHead';
 import { DocPeek } from './DocPeek';
 import { EmbeddedCard } from './EmbeddedCard';
 import { TypeView } from './TypeView';
-import { InstanceTable } from './InstanceTable';
-import { EMPTY_FILTERS, type InstanceTable as Table } from '@/lib/instance-table';
 import { Comments } from './Comments';
 import { HooksSection } from './HooksSection';
 import { CodeView } from './CodeView';
@@ -139,6 +139,10 @@ function NodeView({ id }: { id: string }) {
       {d && <><div className="peek-views"><h4>Links <span className="muted">{linkCount}</span></h4></div><Relations out={d.relations.out} inc={withoutComments(d.relations.inc)} rows={rows} inverses={d.inverses} /></>}
     </>
   );
+  // One page, top to bottom (decision:wf2.column-is-content): the head, the properties, comments, then the content —
+  // frameless, the node's text its first block, the kind's pre-defined blocks offered under it — and last, folded,
+  // what is derived: linked from, links, explain, hooks, produced.
+  const isNode = d && !d.self && d.node.defined;
   return (
     <>
       {head}
@@ -147,26 +151,34 @@ function NodeView({ id }: { id: string }) {
         ? <><NodeEditor key={id} id={id} body={d.node.body} form={d.node.form ?? 'yaml'} type={d.type} props={d.props ?? []} entry={entry} relations={d.relations.out} onSaved={() => setTick(t => t + 1)} />
           {entry && entry.kind === 'task' && <TaskWork key={`work-${id}`} id={id} />}</>
         : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
-      {d && !d.self && d.node.defined && <NodeContent id={id} />}
-      {/* a goal: what serves it as data tables under its content — requirements, then tasks; sub-goals in the tracking block */}
-      {d && !d.self && entry && (entry.kind === 'goal' || entry.kind === 'task') && <Tracking entry={entry} rows={rows} inc={d.relations.inc} />}
-      {d && !d.self && entry?.kind === 'goal' && <PartsTable key={`reqs-${id}`} id={id} kind="req" label="Requirements" ids={(d.relations.inc.find(([v]) => v === 'part-of')?.[1] ?? []).filter(x => x.startsWith('req:'))} />}
-      {d && !d.self && entry?.kind === 'goal' && <PartsTable key={`tasks-${id}`} id={id} kind="task" label="Tasks" ids={(d.relations.inc.find(([v]) => v === 'part-of')?.[1] ?? []).filter(x => x.startsWith('task:'))} />}
-      {d && !d.self && d.node.defined && <Comments key={`comments-${id}`} id={id} />}
-      {d && !d.self && d.node.defined && <ExplainCard key={`explain-${id}`} id={id} />}
-      {d && !d.self && d.node.defined && <HooksSection key={`hooks-${id}`} id={id} />}
-      {d && d.type && d.props && withoutComments(d.relations.inc).some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={withoutComments(d.relations.inc)} inverses={d.inverses ?? {}} product={product} folded />}
-      {d && (
-        <div className="peek-views">
-          <h4>Links <span className="muted">{linkCount}</span></h4>
-          {view === 'graph' && <span className="seg small" title="how many hops from this node"><button className={depth === 1 ? 'on' : ''} onClick={() => setDepth(1)}>1 hop</button><button className={depth === 2 ? 'on' : ''} onClick={() => setDepth(2)}>2 hops</button></span>}
-          <button className={`tool ${view === 'graph' ? 'on' : ''}`} onClick={() => setView(v => v === 'list' ? 'graph' : 'list')} title={view === 'graph' ? 'Show as a list' : 'Show as a graph'} aria-pressed={view === 'graph'}>⌬</button>
-        </div>
+      {isNode && <PageComments key={`comments-${id}`} product={product} node={id} />}
+      {isNode && <NodeContent id={id} kind={entry?.kind ?? kind} />}
+      {isNode && (
+        <details className="peek-footer" key={`foot-${id}`}>
+          <summary>
+            <span>Linked from <b>{withoutComments(d.relations.inc).filter(([v]) => v !== 'mentions').reduce((n, [, ids]) => n + ids.length, 0)}</b></span>
+            <span>Links <b>{linkCount}</b></span>
+            <span className="muted">explain · hooks{entry && (entry.kind === 'goal' || entry.kind === 'task') && entry.sessions?.length ? ' · produced' : ''}</span>
+          </summary>
+          {d.type && d.props && withoutComments(d.relations.inc).some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={withoutComments(d.relations.inc)} inverses={d.inverses ?? {}} product={product} folded />}
+          <div className="peek-views">
+            <h4>Links <span className="muted">{linkCount}</span></h4>
+            {view === 'graph' && <span className="seg small" title="how many hops from this node"><button className={depth === 1 ? 'on' : ''} onClick={() => setDepth(1)}>1 hop</button><button className={depth === 2 ? 'on' : ''} onClick={() => setDepth(2)}>2 hops</button></span>}
+            <button className={`tool ${view === 'graph' ? 'on' : ''}`} onClick={() => setView(v => v === 'list' ? 'graph' : 'list')} title={view === 'graph' ? 'Show as a list' : 'Show as a graph'} aria-pressed={view === 'graph'}>⌬</button>
+          </div>
+          {view === 'list' && <Relations out={d.relations.out} inc={withoutComments(d.relations.inc)} rows={rows} inverses={d.inverses} />}
+          {view === 'graph' && (d.graph.nodes.length > 1 ? <PeekGraph focus={id} nodes={d.graph.nodes} edges={d.graph.edges} onPick={open} /> : <p className="muted rels-empty">Nothing links to or from this node yet.</p>)}
+          <ExplainCard key={`explain-${id}`} id={id} />
+          <HooksSection key={`hooks-${id}`} id={id} />
+          {entry && (entry.kind === 'goal' || entry.kind === 'task') && entry.sessions && entry.sessions.length > 0 && <Produced key={id} sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}
+        </details>
       )}
-      {d && view === 'list' && <Relations out={d.relations.out} inc={withoutComments(d.relations.inc)} rows={rows} inverses={d.inverses} />}
-      {d && view === 'graph' && (d.graph.nodes.length > 1 ? <PeekGraph focus={id} nodes={d.graph.nodes} edges={d.graph.edges} onPick={open} /> : <p className="muted rels-empty">Nothing links to or from this node yet.</p>)}
-      {/* what a goal's or task's sessions produced: last, folded (req:wf2.ui.produced-collapsed); keyed so the fold closes with the node */}
-      {d && entry && (entry.kind === 'goal' || entry.kind === 'task') && entry.sessions && entry.sessions.length > 0 && <Produced key={id} sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}
+      {d && !d.node.defined && !d.self && (
+        <>
+          <div className="peek-views"><h4>Links <span className="muted">{linkCount}</span></h4></div>
+          <Relations out={d.relations.out} inc={withoutComments(d.relations.inc)} rows={rows} inverses={d.inverses} />
+        </>
+      )}
     </>
   );
 }
@@ -185,10 +197,11 @@ function Related({ open, setOpen, sub }: { open: boolean; setOpen: (v: boolean) 
 // The node's content (req:wf2.ui.node-content): the blocks under its defining line in the document's own editor,
 // scoped to the node (decision:wf2.content-editor-scoped) — loaded from the content route with the document's
 // hash, refetched on every graph change (the editor ignores a refetch while a save of its own is pending).
-function NodeContent({ id }: { id: string }) {
+function NodeContent({ id, kind }: { id: string; kind: string }) {
   const { product } = usePeek();
   const [c, setC] = useState<{ text: string; content: string; bodyHash: string; project: string; doc: string; children: string[] } | null | 'none'>(null);
   const [version, setVersion] = useState(0);
+  const [busy, setBusy] = useState<string | null>(null);
   useEffect(() => {
     const h = (e: Event) => { if ((e as CustomEvent<{ kinds: string[] }>).detail.kinds.includes('graph')) setVersion(v => v + 1); };
     window.addEventListener('wf:change', h); return () => window.removeEventListener('wf:change', h);
@@ -201,10 +214,24 @@ function NodeContent({ id }: { id: string }) {
   if (c === 'none' || !c) return null;
   // the node's text is the first block, its content follows (decision:wf2.text-is-first-block)
   const body = c.text.trim() ? c.text.trim() + (c.content.trim() ? '\n\n' + c.content : '\n') : c.content;
+  // the kind's pre-defined blocks the content lacks — a goal's Requirements, a question's Answer — offered as ghosts;
+  // a click appends the block to the content through the content route (one write, hash-checked)
+  const missing = suggest(kind, id, c.content);
+  const add = async (key: string) => {
+    const b = missing.find(x => x.key === key); if (!b) return;
+    setBusy(key);
+    const content = (c.content.replace(/\s*$/, '') + '\n\n' + b.markdown(id)).replace(/^\n+/, '') + '\n';
+    const r = await fetch(`/api/${product}/node/${encodeURIComponent(id)}/content`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content, ifMatch: c.bodyHash }) });
+    setBusy(null);
+    if (r.ok) setVersion(v => v + 1);
+  };
   return (
-    <section className="content">
-      <h4>Content{c.children.length > 0 && <span className="muted">{c.children.length} block{c.children.length === 1 ? '' : 's'}</span>}{id.startsWith('question:') && <span className="muted" title="a question's content is its answer; a decision block under it resolves it">— the answer</span>}</h4>
+    <section className="content content-page">
       <div className="content-editor"><DocEditor key={id} product={product} project={c.project} slug={c.doc} body={body} ifMatch={c.bodyHash} scope={id} /></div>
+      {missing.length > 0 && <div className="content-suggest" aria-label="Add a block">
+        <span className="muted">Add</span>
+        {missing.map(b => <button key={b.key} type="button" className="doc-ghost" disabled={busy !== null} onClick={() => add(b.key)}>{busy === b.key ? '…' : `+ ${b.label}`}</button>)}
+      </div>}
     </section>
   );
 }
@@ -290,48 +317,7 @@ function Properties({ type, props, inc, inverses, product, folded = false }: { t
   );
 }
 
-// What serves a goal, as the kind's data table under its content (the rows part of the goal) — requirements, then
-// tasks — filter, group and tick as on the kind's page; the tracking section keeps sub-goals.
-function PartsTable({ id, kind, label, ids }: { id: string; kind: string; label: string; ids: string[] }) {
-  const { product } = usePeek();
-  const [table, setTable] = useState<Table | null>(null);
-  useEffect(() => {
-    let live = true;
-    if (!ids.length) { setTable(null); return; }
-    fetch(`/api/${product}/view/${kind}`).then(r => r.ok ? r.json() : null).then((t: Table | null) => { if (live && t) { const rows = t.rows.filter(r => ids.includes(r.id)); const count = new Map<string, number>(); for (const r of rows) if (r.status) count.set(r.status, (count.get(r.status) ?? 0) + 1); setTable({ ...t, rows, statuses: [...count].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])) }); } }).catch(() => {});
-    return () => { live = false; };
-  }, [product, id, kind, ids.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!ids.length || !table) return null;
-  const done = table.rows.filter(r => ['done', 'complete', 'shipped'].includes(r.status)).length;
-  return (
-    <section className="goal-tasks">
-      <h4>{label} <span className="muted">{done}/{table.rows.length}</span></h4>
-      <InstanceTable product={product} table={table} initial={{ ...EMPTY_FILTERS, group: 'status' }} />
-    </section>
-  );
-}
 
-// Goal / task tracking: status, target, owner, progress and what contributes to it.
-function Tracking({ entry, rows, inc }: { entry: IndexEntry; rows: Rows; inc: [string, string[]][] }) {
-  const parts = (inc.find(([v]) => v === 'part-of')?.[1] ?? []).map(id => rows.index[id]).filter(Boolean);
-  const byKind = (k: string) => parts.filter(p => p.kind === k);
-  const done = (p: IndexEntry) => ['done', 'complete', 'shipped'].includes(p.status) || (p.progress ?? 0) >= 100;
-  return (
-    <section className="tracking">
-      {entry.kind === 'goal' && (['goal'] as const).map(k => {
-        const items = byKind(k); if (!items.length) return null;
-        const label = 'Sub-goals';
-        return (
-          <div key={k} className="tracking-parts">
-            <RelHead label={label} ids={items.map(p => p.id)} rows={rows} count={`${items.filter(done).length}/${items.length}`} />
-            <ul>{items.map(p => <RelRow key={p.id} id={p.id} rows={rows} className={done(p) ? 'done' : ''} extra={p.progress !== undefined && k === 'goal' ? <span className="tpct">{p.progress}%</span> : undefined} />)}</ul>
-          </div>
-        );
-      })}
-
-    </section>
-  );
-}
 
 // The text of a node body for a session: its text/statement/description line.
 function nodeText(body: string): string {

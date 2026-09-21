@@ -1,4 +1,6 @@
 'use client';
+import { useContext } from 'react';
+import { EditorScope } from './EditorScope';
 import { useEffect, useRef, useState } from 'react';
 import { createReactBlockSpec } from '@blocknote/react';
 import { usePeek } from './PeekProvider';
@@ -24,6 +26,7 @@ export const ViewBlock = createReactBlockSpec(
   {
     render: props => {
       const { slug, query: rawQuery } = props.block.props as { slug: string; query: string };
+      const scope = useContext(EditorScope);   // inside a node's column: the table starts folded (decision:wf2.column-is-content)
       // `as=table` on the line asks for the table; the block form is the default (req:wf2.instances.view-as-blocks)
       const asTable = /(^|\s)as=table(\s|$)/.test(rawQuery);
       // `scope=project` keeps the rows of this document's project; the default is the whole product (decision:wf2.views-are-pages)
@@ -67,7 +70,7 @@ export const ViewBlock = createReactBlockSpec(
             </select>
             {err && <span className="bad">{err}</span>}
           </div>
-          {scoped && initial && <InstanceTable product={product} table={scoped} initial={initial} onChange={onChange} as={asTable ? 'table' : 'list'} readOnly />}
+          {scoped && initial && <InstanceTable product={product} table={scoped} initial={initial} onChange={onChange} as={asTable ? 'table' : 'list'} readOnly compact={!!scope} />}
           {scoped && !scoped.rows.length && <p className="muted small">No {slug}s yet.</p>}
         </div>
       );

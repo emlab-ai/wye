@@ -245,3 +245,4 @@ Work that is planned but on no plan document yet, by area, and the tasks past pa
   related-to: [decision:ontology.comment-is-a-ref, req:ontology.comment-home, task:ontology.child-nodes-design]
   session: 9a1382cd4e
 ```
+- [ ] task:ontology.type-content-template A type card declares `content:` — the pre-defined blocks its instances offer in the column — so lib/node-blocks reads the type instead of a map by base kind (decision:wf2.column-is-content). Part of module:ontology-design.

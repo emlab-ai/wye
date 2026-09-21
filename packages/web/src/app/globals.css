@@ -674,7 +674,24 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 
 /* the content editor in the column (req:wf2.ui.node-content): the page's editor, compact, scoped to one node */
 .peek .content { margin: 18px 0 4px; } .peek .content h4 { margin: 0 0 4px; }
-.content-editor { border: 1px solid var(--line); border-radius: 8px; background: var(--paper, transparent); }
+.content-editor { border: 0; border-radius: 0; background: transparent; }
+/* the column is one page (decision:wf2.column-is-content): the content sits under the properties with no frame, the
+   editor's bar out of the way, the node's text as the big first line; the derived parts fold under a thin rule */
+.peek .content-page { margin: 14px 0 0; padding-top: 10px; border-top: 1px solid var(--line); }
+.content-page .doc-editor-bar { position: absolute; right: 0; top: -30px; }
+.content-page .doc-editor { position: relative; }
+.content-page .bn-editor { padding-left: 0; padding-right: 0; background: transparent !important; }
+.content-page .bn-container, .content-page .bn-editor, .content-page .doc-editor { background: transparent !important; --bn-colors-editor-background: transparent; }
+.peek .page-comments { margin: 14px 0 0; padding-top: 10px; max-width: none; }
+.content-page .bn-editor > .bn-block-group > .bn-block-outer:first-child .bn-inline-content { font-size: 20px; font-weight: 700; letter-spacing: -.01em; line-height: 1.3; }
+.content-suggest { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 8px; font-size: 12px; } .content-suggest .doc-ghost { opacity: .75; } .content-suggest:hover .doc-ghost { opacity: 1; }
+.ne-addprop .doc-ghost { opacity: .6; } .ne:hover .ne-addprop .doc-ghost, .ne-addprop .doc-ghost:focus { opacity: 1; }
+.ne-addprop-form { display: flex; gap: 6px; align-items: center; width: 100%; } .ne-addprop-form .ne-in { flex: 1; min-width: 0; } .ne-addprop-form .pri { background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); border-radius: 6px; padding: 3px 10px; font: 12px var(--font-b); cursor: pointer; }
+.itable-fold { display: flex; align-items: center; gap: 8px; margin: 2px 0 4px; }
+.peek-footer { margin: 18px 0 0; border-top: 1px solid var(--line); padding-top: 6px; }
+.peek-footer > summary { display: flex; gap: 14px; align-items: center; list-style: none; cursor: pointer; padding: 6px 0; font: 13px var(--font-b); color: var(--ink-2); } .peek-footer > summary::-webkit-details-marker { display: none; }
+.peek-footer > summary::before { content: '▸'; font-size: 11px; color: var(--muted); } .peek-footer[open] > summary::before { content: '▾'; }
+.peek-footer > summary b { font-weight: 600; color: var(--ink); margin-left: 3px; }
 .content-editor .doc-editor { margin: 0; } .content-editor .doc-editor-bar { padding: 2px 10px 0; min-height: 0; font-size: 11px; justify-content: flex-end; flex-wrap: wrap; } .content-editor .doc-editor-bar .save-state.idle { display: none; } .content-editor { position: relative; } .content-editor .bn-editor { padding-inline: 10px; padding-block: 6px; min-height: 40px; font-size: 14px; }
 /* a card's fold (req:wf2.ui.card-preview): the count of blocks under the node in its header; an embed's preview under the text */
 .nblock-fold { border: 1px solid var(--line); background: transparent; color: var(--ink-2); font: 11px var(--font-m); border-radius: 10px; padding: 0 7px; line-height: 17px; cursor: pointer; white-space: nowrap; } .nblock-fold:hover { border-color: var(--ink-2); } .nblock-fold.folded { color: var(--muted); }

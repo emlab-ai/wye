@@ -37,6 +37,10 @@ export function instanceTable(g: GraphData, slug: string): InstanceTable {
     const r = docRoute(n.file);
     const row: InstanceRow = { id: n.id, kind: n.kind, title: n.title, status: n.status, file: n.file, doc: r ? `${r.project} / ${r.doc}` : n.file, props: {} };
     if (t) { for (const p of nodeProps(g, n)) if (cols.some(c => c.name === p.name) && p.value) row.props[p.name] = p.value; }
+    // `part-of` rides on every row (a root property, never a column) so a view can say `part-of=goal:x` — the block a
+    // goal's Requirements / Tasks are (decision:wf2.column-is-content)
+    const partOf = g.edges.filter(e => e.from === n.id && e.verb === 'part-of').map(e => e.to);
+    if (partOf.length) row.props['part-of'] = partOf.length === 1 ? partOf[0] : `[${partOf.join(', ')}]`;
     else row.rels = g.edges.filter(e => e.from === n.id && e.verb !== 'mentions' && e.verb !== 'has').map(e => ({ verb: e.verb, to: e.to }));
     if (slug === 'node') row.text = plain(nodeText(n)).slice(0, 400);
     return row;
@@ -50,7 +54,7 @@ export function instanceTable(g: GraphData, slug: string): InstanceTable {
 export function parseFilters(params: URLSearchParams | Record<string, string | undefined>, columns: string[]): Filters {
   const get = (k: string) => (params instanceof URLSearchParams ? params.get(k) : params[k]) ?? '';
   const props: Record<string, string> = {};
-  for (const c of columns) if (get(c)) props[c] = get(c);
+  for (const c of [...columns, 'part-of']) if (get(c)) props[c] = get(c);
   return { q: get('q'), status: get('status'), group: get('group'), sort: get('sort'), props };
 }
 export function filtersToQuery(f: Filters): string {

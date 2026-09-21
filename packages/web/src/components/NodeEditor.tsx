@@ -31,6 +31,7 @@ const glyph = (f: Field) => f.name === 'status' ? '◔' : f.type === 'progress' 
 export function NodeEditor({ id, body, form, type, props, entry, relations = [], onSaved }: { id: string; body: string; form: string; type: TypeDef | null; props: NodeProp[]; entry?: IndexEntry; relations?: [string, string[]][]; onSaved: () => void }) {
   const { product, index, open: openNode } = usePeek(); const router = useRouter();
   const [addingFor, setAddingFor] = useState<string | null>(null); const [addText, setAddText] = useState('');
+  const [addProp, setAddProp] = useState<{ name: string; value: string } | null>(null);
   const kind = id.split(':')[0]; const prose = form === 'prose';
   const rows = parseBody(body);
   const get = (k: string) => rows.find(r => r.key === k)?.value ?? '';
@@ -153,6 +154,15 @@ export function NodeEditor({ id, body, form, type, props, entry, relations = [],
             <dt title={f.from === 'tracking' ? 'tracking field' : f.from && f.from !== 'type:node' ? (f.from === type?.id ? `declared on ${f.from}` : `inherited from ${f.from}`) : f.from ? 'the text' : 'a key this card carries'}><i>{glyph(f)}</i>{f.name}{f.required && !(vals[f.name] ?? '').trim() && <b className="bad" title="required">*</b>}</dt>
             <dd>{value(f)}</dd>
           </div>))}
+        {/* a property the type does not declare (an open type, or a note the person wants on this node): name and value, written to the card */}
+        <div className="ne-more ne-addprop"><dt /><dd>
+          {addProp === null ? <button className="doc-ghost" onClick={() => setAddProp({ name: '', value: '' })}>+ Add a property</button>
+            : <span className="ne-addprop-form">
+              <input autoFocus className="ne-in" placeholder="name" value={addProp.name} onChange={e => setAddProp({ ...addProp, name: e.target.value.replace(/[^A-Za-z0-9_-]/g, '') })} onKeyDown={e => { if (e.key === 'Escape') setAddProp(null); }} />
+              <input className="ne-in" placeholder="value" value={addProp.value} onChange={e => setAddProp({ ...addProp, value: e.target.value })} onKeyDown={e => { if (e.key === 'Enter' && addProp.name) { save({ props: { [addProp.name]: addProp.value } }); setAddProp(null); } if (e.key === 'Escape') setAddProp(null); }} />
+              <button className="pri" disabled={!addProp.name} onClick={() => { save({ props: { [addProp.name]: addProp.value } }); setAddProp(null); }}>Add</button>
+            </span>}
+        </dd></div>
         {hidden.length > 0 && <div className="ne-more"><dt /><dd><button className="linkish" onClick={() => setMore(m => !m)}>{more ? '▾ hide empty properties' : `▸ ${hidden.length} more propert${hidden.length === 1 ? 'y' : 'ies'}`}</button></dd></div>}
       </dl>
       {state !== 'idle' && <p className={`track-state ${state}`} role="status">{state === 'saving' ? 'Saving…' : state === 'saved' ? `Saved to ${prose ? 'the line' : 'the card'} in the document` : `Could not save: ${msg}`}</p>}

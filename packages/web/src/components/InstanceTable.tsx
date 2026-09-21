@@ -16,7 +16,7 @@ const items = (v: string) => v.replace(/^\[|\]$/g, '').split(',').map(s => s.tri
 // Every instance of one type (or node of one kind) as a filterable table: search, status chips with counts, a chip
 // row per enum / bool column, a select per ref column, group by, sort by column. The filter state is the caller's:
 // a page keeps it in the URL (urlState), a view block in its key=value line (onChange).
-export function InstanceTable({ product, table, initial, urlState, onChange, readOnly, as = 'table' }: { product: string; table: Table; initial?: Filters; urlState?: boolean; onChange?: (f: Filters) => void; as?: 'table' | 'list'; readOnly?: boolean }) {
+export function InstanceTable({ product, table, initial, urlState, onChange, readOnly, as = 'table', compact = false }: { product: string; table: Table; initial?: Filters; urlState?: boolean; onChange?: (f: Filters) => void; as?: 'table' | 'list'; readOnly?: boolean; compact?: boolean }) {
   const { open, openId, index } = usePeek();
   const [f, setF] = useState<Filters>(initial ?? EMPTY_FILTERS);
   useEffect(() => { setF(initial ?? EMPTY_FILTERS); }, [initial]);
@@ -48,9 +48,13 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
         <td className="itable-doc">{href ? <Link href={href} onClick={e => e.stopPropagation()}>{r.doc}</Link> : <span className="muted">{r.doc}</span>}</td>
       </tr>);
   };
+  // the filter tools fold behind one line — "n of N · filter" — and unfold on a click; a table inside a node's column
+  // (a goal's Requirements block) starts folded, a page's table starts open
+  const [tools, setTools] = useState(!compact);
   return (
-    <div className={`itable ${readOnly ? 'ro' : ''}`}>
-      <div className="track-tools itable-tools">
+    <div className={`itable ${readOnly ? 'ro' : ''} ${compact ? 'compact' : ''}`}>
+      {compact && <div className="itable-fold"><span className="muted small">{rows.length}{active ? ` of ${table.rows.length}` : ''} {pluralTitle({ slug: table.slug }).toLowerCase()}</span><button className={`collection-filter-toggle ${tools ? 'on' : ''}`} onClick={() => setTools(t => !t)} aria-expanded={tools}>{tools ? '▾ filter' : '▸ filter'}</button></div>}
+      {tools && <div className="track-tools itable-tools">
         <div className="itable-row">
           <input type="search" placeholder={`Search ${pluralTitle({ slug: table.slug }).toLowerCase()}…`} value={f.q} onChange={e => set({ q: e.target.value })} />
           <div className="chips"><span className="chips-label">group by</span>
@@ -73,7 +77,7 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
             </select>
           </div>) : null; })}
         {active && <div className="chips"><span className="muted small">{rows.length} of {table.rows.length}</span><button className="linkish" onClick={() => set({ ...EMPTY_FILTERS, group: f.group, sort: f.sort })}>clear filters</button></div>}
-      </div>
+      </div>}
       {as === 'list' ? (
         // the block form (rule:view-block, req:wf2.instances.view-as-blocks): every instance as its own card, editable in place
         <div className="ilist">

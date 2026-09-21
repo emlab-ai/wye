@@ -28,6 +28,10 @@ Who Wye is for and what they come to do; the goals the product sets out to reach
 
   A requestf that reaches an agent carries the complete set of rules, constraints, approved decisions and goals that govern what it touches, with superseded and rejected ones filtered out by construction; every decision, requirement and rule written by anyone is classified against its neighbours before a person sees it in the Inbox; decisions carry time, supersession and evidence; what a session decided is consolidated into the documents even when the agent forgot to write it; and what is done leaves default retrieval.
 
+  ## Requirements
+
+  <!-- view:req part-of=goal:memory.validated-asks -->
+
 ```yaml
 - id: goal:ontology.graph-editor
   title: The document is a graph editor

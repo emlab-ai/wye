@@ -335,6 +335,16 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     dark page never flashes light.
   status: proposed
   part-of: module:app-storage
+- id: lib:node-blocks
+  file: packages/web/src/lib/node-blocks.ts
+  side: server
+  purpose: >
+    The pre-defined blocks a node's content can carry, by kind (decision&#58;wf2.column-is-content): what the column
+    used to render as fixed sections — a goal's Requirements and Tasks, a question's answer, a decision's parts —
+    are blocks in the node's content markdown now: deletable, movable, re-addable. `suggest` says which are missing
+    so the column can offer them; nothing is written until the person clicks.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->
