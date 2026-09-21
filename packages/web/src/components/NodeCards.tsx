@@ -12,7 +12,8 @@ import { Linkified } from './IdLink';
 export type CardP = { kind: string; slug: string; status: string; form: string; body: string; textKey: string; extra: string; check: string; row: string };
 export type CardHost = {
   text: (className: string) => ReactNode;      // the node's text: editor content or an embed's text area
-  peek: () => void;                            // open the node in the context column
+  peek: () => void;                            // select the node (the column shows it) — a click on the pill
+  open?: () => void;                           // go into the node: the column opens it one level deeper (the ›)
   copyLink: () => void;
   send: () => void;
   stop?: (el: HTMLElement | null) => void;     // the editor stops its own mouse/key handling at the header
@@ -92,6 +93,7 @@ export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<Car
         <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{(STATUSES.includes(p.status) ? [] : [p.status]).concat(STATUSES).map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
         {p.form === 'prose' && <input className={`nblock-extra ${p.extra ? '' : 'hover-only'}`} value={p.extra} placeholder="key: value" onChange={e => set({ extra: e.target.value })} />}
         <FoldToggle host={host} />
+        {host.open && <button type="button" className="nblock-open" title="Open in the column — one level deeper" onClick={host.open}>open ›</button>}
         <span className="nblock-tools hover-only">
           {p.form === 'yaml' && <button type="button" className="nblock-send" onClick={() => setShowYaml(v => !v)}>{showYaml ? 'hide yaml' : 'yaml'}</button>}
           <button type="button" className="nblock-send" title="Copy a link to this node" onClick={host.copyLink}>⧉</button>
@@ -99,7 +101,7 @@ export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<Car
         </span>
       </div>
       {host.text('nblock-text')}
-      {prose && !showYaml && <div className="nblock-prose" contentEditable={false}>{prose.split(/\n{2,}/).map((para, i) => <p key={i}><Linkified text={para} /></p>)}</div>}
+      {prose && !showYaml && <div className="nblock-prose" contentEditable={false} ref={host.stop}><ProseArea className="nblock-prose-ta" value={prose} onChange={v => set({ body: setBodyField(p.body, 'text', v) })} /></div>}
       {rows.length > 0 && !showYaml && <PropRows rows={rows} stop={host.stop} />}
       {showYaml && p.form === 'yaml' && <textarea className="nblock-yaml" contentEditable={false} value={p.body} rows={Math.min(24, p.body.split('\n').length + 1)} onChange={e => set({ body: e.target.value })} />}
     </div>
@@ -122,6 +124,7 @@ export function QuestionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
         <button type="button" className="qnode-mark" title="Open this question in the panel" onClick={host.peek}>Q</button>
         <select className={`status-sel s-${status} ${status === 'open' ? 'hover-only' : ''}`} value={status} onChange={e => set({ status: e.target.value })} title="status">{['open', 'resolved', 'rejected'].map(st => <option key={st} value={st}>{st}</option>)}</select>
         <FoldToggle host={host} />
+        {host.open && <button type="button" className="nblock-open" title="Open in the column — one level deeper" onClick={host.open}>open ›</button>}
         <span className="qnode-acts hover-only">
           <button type="button" className="nblock-send" title="Copy a link to this question" onClick={host.copyLink}>⧉</button>
           <button type="button" className="nblock-send" title="Send this question to an agent" onClick={host.send}>⇢</button>
@@ -154,13 +157,12 @@ export function QuestionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
 
 // A decision card: context, choice and alternatives are what matters (rule:card-essence); consequences, date, affects
 // and every other key sit in "details" with the id and the yaml, like the question card.
-const DECISION_ESSENCE = ['context', 'choice', 'alternatives', 'consequences'];
 export function DecisionCard({ p, set, host }: { p: CardP; set: (patch: Partial<CardP>) => void; host: CardHost }) {
   const [details, setDetails] = useState(false);
   const rows = parseBody(p.body);
   const get = (k: string) => rows.find(r => r.key === k)?.value ?? '';
   const id = `${p.kind}:${p.slug}`;
-  const others = rows.filter(r => !['id', 'title', 'status', 'text', p.textKey, ...DECISION_ESSENCE].includes(r.key));
+  const others = rows.filter(r => !['id', 'title', 'status', 'text', p.textKey].includes(r.key));
   return (
     <div className={`nblock k-decision dnode s-${p.status} ${host.extraClass ?? ''}`} data-id={id} ref={host.hostRef} onClick={selectOn(host)}>
       <div className="nblock-head" contentEditable={false} ref={host.stop} onClick={host.onHeadClick}>
@@ -168,6 +170,7 @@ export function DecisionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
         <input className="nblock-slug" value={p.slug} spellCheck={false} readOnly={host.slugReadOnly} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />
         <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{STATUSES.map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
         <FoldToggle host={host} />
+        {host.open && <button type="button" className="nblock-open" title="Open in the column — one level deeper" onClick={host.open}>open ›</button>}
         <span className="nblock-tools hover-only">
           <button type="button" className="nblock-send" title="Copy a link to this decision" onClick={host.copyLink}>⧉</button>
           <button type="button" className="nblock-send" title="Send this decision to an agent" onClick={host.send}>⇢</button>
@@ -178,8 +181,7 @@ export function DecisionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
       {/* a decision is its title and free text (decision:wf2.decision-free-text): `text` as prose, and the card's
           content blocks below it — alternative: / choice: / consequence: children where wanted. The ADR keys older
           cards carry read as prose paragraphs, not as a form; the yaml under details edits them. */}
-      {get('text') && <div className="nblock-prose" contentEditable={false}>{get('text').split(/\n{2,}/).map((para, i) => <p key={i}><Linkified text={para} /></p>)}</div>}
-      {DECISION_ESSENCE.filter(k => get(k)).map(k => <p key={k} className="nblock-prose dnode-legacy" contentEditable={false}><span className="muted">{k} — </span><Linkified text={get(k)} /></p>)}
+      {get('text') && <div className="nblock-prose" contentEditable={false} ref={host.stop}><ProseArea className="nblock-prose-ta" value={get('text')} onChange={v => set({ body: setBodyField(p.body, 'text', v) })} /></div>}
       {details && (
         <div className="qnode-details" contentEditable={false} ref={host.stop}>
           {others.length > 0 && <PropRows rows={others} />}

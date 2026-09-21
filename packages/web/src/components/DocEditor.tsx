@@ -494,6 +494,7 @@ function EditorCard({ p, set, contentRef, block, editor }: { p: CardP; set: (pat
     text: cls => <div className={cls} ref={contentRef} />,
     // the pill selects like the rest of the card; the card's text places the caret and the onSelect below does the rest
     peek: () => { if (p.slug) emit('wf:select', hostRef.current, id); },
+    open: () => { if (p.slug) emit('wf:peek', hostRef.current, id); },
     copyLink: () => copyBlockLink(block, hostRef.current),
     send: () => sendBlock(block, hostRef.current),
     stop: stopEditorEvents,
@@ -632,7 +633,9 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   useEffect(() => {
     const el = rootRef.current; if (!el) return;
     const peek = (e: Event) => { e.stopPropagation(); openPeek((e as CustomEvent<string>).detail); };
-    const sel = (e: Event) => { e.stopPropagation(); if (scoped) openPeek((e as CustomEvent<string>).detail); else select((e as CustomEvent<string>).detail); };
+    // in a content editor a click on a child block selects nothing and opens nothing (decision:ontology.depth-by-navigation
+    // refined): going a level deeper is the card's "open ›" (wf:peek), never a click on it
+    const sel = (e: Event) => { e.stopPropagation(); if (!scoped) select((e as CustomEvent<string>).detail); };
     el.addEventListener('wf:peek', peek); el.addEventListener('wf:select', sel);
     return () => { el.removeEventListener('wf:peek', peek); el.removeEventListener('wf:select', sel); };
   }, [openPeek, select, scoped]);
