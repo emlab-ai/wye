@@ -279,3 +279,10 @@ describe('list regions (rule:list-view)', () => {
     expect(blocks[0].props).toEqual({ kind: 'goal', query: '', view: 'list' });
   });
 });
+
+describe('restoreCode', () => {
+  it('gives a code block its verbatim text back: angles, backslashes, pipes and lifted links', async () => {
+    const { restoreCode, BS, PIPE } = await import('./import');
+    expect(restoreCode(`a &lt; b ${BS}n ${PIPE} ⟦kitchen items|entity:kitchen-item⟧`)).toBe('a < b \\n | [kitchen items](entity:kitchen-item)');
+  });
+});

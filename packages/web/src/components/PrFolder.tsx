@@ -36,7 +36,7 @@ export function PrFolder({ product, prs }: { product: string; prs: PrItem[] }) {
       {open && <ul className="pf-list">
         {groups.map(([st, rows]) => rows.length > 0 && <li key={st} className={`pf-group pf-${st}`}><span className="pf-group-head muted">{st} <small>{rows.length}</small></span><ul className="pf-list">{rows.map(row)}</ul></li>)}
         {!prs.length && <li className="pf-empty muted">no PRs yet</li>}
-        {ended.length > 0 && <li className="pf-done"><button className="pf-done-head" onClick={toggleDone} aria-expanded={showDone}>{showDone ? '▾' : '▸'} done <small>{ended.length}</small></button>{showDone && <ul className="pf-list">{ended.map(row)}</ul>}</li>}
+        {ended.length > 0 && <li className="pf-done"><button className="pf-done-head" onClick={toggleDone} aria-expanded={showDone}><i>{showDone ? '▾' : '▸'}</i><span>done <small>{ended.length}</small></span></button>{showDone && <ul className="pf-list">{ended.map(row)}</ul>}</li>}
       </ul>}
     </li>
   );

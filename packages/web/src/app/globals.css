@@ -425,6 +425,28 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .comment-add { display: flex; gap: 10px; align-items: center; } .comment-add input { flex: 1; min-width: 0; border: 1px solid transparent; background: transparent; color: var(--ink); font: 14px var(--font-b); padding: 6px 8px; border-radius: 6px; } .comment-add input:hover { border-color: var(--line); } .comment-add input:focus { border-color: var(--accent); outline: none; background: var(--ground); }
 .comment-add .pri { background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); border-radius: 6px; padding: 4px 10px; font: 12px var(--font-b); cursor: pointer; }
 @media (prefers-color-scheme: dark) { .tag-chip { background: hsl(var(--h) 30% 26%); color: hsl(var(--h) 50% 88%); } }
+.bn-block-content[data-content-type="codeBlock"] { display: block; width: 100%; }
+.code-block { position: relative; display: block; width: 100%; margin: 6px 0; border-radius: 10px; overflow: hidden; background: var(--sunk); border: 1px solid var(--line); }
+.code-block > section, .code-block .monaco-editor { width: 100% !important; }
+.code-block .monaco-editor, .code-block .monaco-editor .margin, .code-block .monaco-editor-background { background: transparent !important; }
+.code-lang { position: absolute; right: 8px; top: 6px; z-index: 2; opacity: 0; font: 11px var(--font-m); color: var(--muted); background: var(--surface); border: 1px solid var(--line-2); border-radius: 5px; padding: 1px 4px; }
+.code-block:hover .code-lang, .code-lang:focus { opacity: 1; }
+@media (prefers-color-scheme: dark) { .code-block { background: #141614; border-color: #2a2e2a; } }
+/* New page (component:new-page): the sheet */
+.np-back { align-items: stretch; padding: 28px 40px; }
+.modal.np-sheet { width: min(1100px, 100%); margin: 0 auto; display: flex; flex-direction: column; padding: 14px 22px 22px; min-height: 0; }
+.np-top { display: flex; align-items: center; gap: 8px; font: 14px var(--font-b); }
+.np-parent { appearance: none; -webkit-appearance: none; border: 0; background: none; color: var(--ink); font: 600 14px var(--font-b); cursor: pointer; padding: 4px 6px; border-radius: 6px; max-width: 320px; } .np-parent:hover { background: var(--sunk); }
+.np-spacer { flex: 1; } .np-x { border: 0; background: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 0 6px; border-radius: 6px; } .np-x:hover { background: var(--sunk); color: var(--ink); }
+.np-title { margin: 60px 0 0 96px; border: 0; background: none; color: var(--ink); font: 700 40px/1.15 var(--font-b); letter-spacing: -.02em; outline: none; width: calc(100% - 96px); } .np-title::placeholder { color: var(--line-2); }
+.np-body { flex: 1; min-height: 160px; cursor: text; }
+.np-start { margin-left: 96px; } .np-start > .muted { font: 13px var(--font-b); display: block; margin-bottom: 8px; }
+.np-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.np-chip { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; border: 1px solid var(--line-2); border-radius: 20px; background: var(--surface); color: var(--ink); font: 500 13.5px var(--font-b); cursor: pointer; } .np-chip:hover, .np-chip.on { border-color: var(--accent); background: var(--accent-soft); }
+.np-chip i { font-style: normal; color: var(--ink-2); }
+.np-picks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; } .np-picks button { border: 1px solid var(--line-2); border-radius: 8px; background: var(--ground); color: var(--ink-2); padding: 5px 10px; font: 12.5px var(--font-m); cursor: pointer; } .np-picks button:hover { border-color: var(--accent); color: var(--ink); }
+.np-import { margin-top: 8px; } .np-import .newdoc-form { margin: 8px 0 0; border-color: var(--line-2); }
+@media (max-width: 800px) { .np-back { padding: 10px; } .np-title, .np-start { margin-left: 0; width: 100%; } }
 /* Import… (component:import-docs): the dialog under the Documents head */
 .import-form { display: block; }
 .import-form > label { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; align-items: center; margin: 6px 0; }
@@ -613,7 +635,10 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 
 /* the rail's PRs system folder (component:request-folder): a menu entry with a caret, the requests as rows beneath, grouped by where they are */
 .pr-folder .pf-head { display: flex; align-items: center; gap: 2px; position: relative; } .pr-folder .pf-head a { flex: 1; } .pr-folder .pf-head.on a { background: var(--sunk); }
-.rail-menu .pf-caret { position: absolute; left: -7px; top: 50%; transform: translateY(-50%); width: 16px; height: 20px; padding: 0; justify-content: center; color: var(--muted); font-size: 12px; }   /* the fold caret sits in the left gutter, like the document tree's */
+.rail-menu .pf-caret { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 18px; height: 22px; padding: 0; justify-content: center; color: var(--ink-2); font-size: 11px; opacity: 0; border-radius: 4px; }   /* the fold caret takes the icon's slot on hover (Notion-style), so nothing floats in the gutter */
+.rail-menu .pf-head:hover .pf-caret, .rail-menu .pf-caret:focus-visible { opacity: 1; }
+.rail-menu .pf-head:hover > a > i { opacity: 0; }
+.rail-menu .pf-caret:hover { background: var(--line); }
 .rail-menu .pf-caret:hover { color: var(--ink); }
 .rail-menu .pf-add { flex: none; width: 22px; height: 24px; padding: 0; justify-content: center; color: var(--muted); font-size: 14px; opacity: 0; }
 .rail-menu .pf-head:hover .pf-add { opacity: 1; }
@@ -623,10 +648,11 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .rail-menu .pf-row.on .pg-link { background: var(--sunk); font-weight: 600; }
 .pf-row .pg-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pf-empty { padding: 4px 8px 4px 36px; font-size: 13px; }
-.pf-group { list-style: none; } .pf-group-head { display: block; padding: 3px 8px 1px 36px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; } .pf-group-head small { opacity: .7; }
+.pf-group { list-style: none; } .pf-group-head { display: block; padding: 3px 8px 1px 38px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; } .pf-group-head small { opacity: .7; }
 /* PRs that ended fold under "done" (decision:memory.forgetting) */
 .pf-done { list-style: none; }
-.pf-done-head { display: flex; align-items: center; gap: 6px; padding: 3px 8px 3px 36px; background: none; border: 0; color: var(--muted); font-size: 12px; cursor: pointer; width: 100%; text-align: left; }
+.pf-done-head { display: flex; align-items: center; gap: 10px; padding: 3px 8px 3px 10px; background: none; border: 0; color: var(--muted); font-size: 12px; cursor: pointer; width: 100%; text-align: left; border-radius: 8px; }
+.pf-done-head i { width: 18px; text-align: center; font-style: normal; font-size: 10px; color: var(--muted); }
 .pf-done-head:hover { color: var(--ink); }
 .pf-done-head small { opacity: .7; }
 .pf-done .pf-row .pg-link { opacity: .7; }

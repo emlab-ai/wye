@@ -1,5 +1,6 @@
 'use client';
 import { SelectionMenu } from './SelectionMenu';
+import { CodeBlock } from './CodeBlock';
 import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent as ReactFocusEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -613,7 +614,7 @@ function EditorCard({ p, set, contentRef, block, editor }: { p: CardP; set: (pat
   return <>{hide}<NodeCard p={p} set={set} host={host} /></>;
 }
 
-const schema = BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, node: NodeBlock(), drawing: DrawingBlock(), collection: CollectionBlock(), view: ViewBlock(), embed: EmbedBlock() }, inlineContentSpecs: { ...defaultInlineContentSpecs, tag: Tag, img: InlineImage } });
+const schema = BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, codeBlock: CodeBlock(), node: NodeBlock(), drawing: DrawingBlock(), collection: CollectionBlock(), view: ViewBlock(), embed: EmbedBlock() }, inlineContentSpecs: { ...defaultInlineContentSpecs, tag: Tag, img: InlineImage } });
 
 // Drag-handle menu entry on code blocks: turn an ASCII diagram into an editable drawing.
 function ToDrawingItem({ convert }: { convert: (b: AnyBlock) => void }) {
@@ -1234,7 +1235,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   // Drawings: a new empty scene, or the current code block turned into a monospace text element (ASCII diagrams).
   const codeToDrawing = async (cur: AnyBlock) => {
     if (cur.type !== 'codeBlock') { setLintMsg('put the cursor in a code block first'); return; }
-    const text = ((cur.content ?? []) as { type: string; text?: string }[]).map(i => i.text ?? '').join('');
+    const text = String((cur.props as { code?: string }).code ?? '') || ((cur.content ?? []) as { type: string; text?: string }[]).map(i => i.text ?? '').join('');
     const slug = newDrawingSlug();
     const ok = await sceneFromText(product, project, slug, text);
     if (!ok) { setLintMsg('could not create the drawing'); return; }

@@ -783,6 +783,26 @@ The editor's blocks and the components the pages are made of, by area.
     everything else.
   status: proposed
   part-of: module:components
+- id: component:code-block
+  file: packages/web/src/components/CodeBlock.tsx
+  side: client
+  purpose: >
+    A code block is Monaco — the editor the column shows files in (req&#58;wf2.editor.code-monaco): highlighting by
+    language, a language picker on hover, the height following the lines. The code lives in the block's `code` prop
+    (the default block kept it as inline text; lib/serialize and lib/import read both), so the markdown is the same
+    ``` fence as before.
+  status: proposed
+  part-of: module:components
+- id: component:new-page
+  file: packages/web/src/components/NewPage.tsx
+  side: client
+  purpose: >
+    New page, the way Notion opens one (req&#58;wf2.page.new-dialog): a large sheet with "Add to <parent>" on top,
+    the title as a big placeholder, and "Get started with" underneath — a template, a typed page, Import… (markdown,
+    a folder, or code: the same dialog as the rail's ↥), or Ask an agent. Enter on the title makes a blank page;
+    everything goes through the document route (op&#58;doc.create) and the import route.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

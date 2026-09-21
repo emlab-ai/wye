@@ -44,7 +44,16 @@ export function SelectionMenu({ actions }: { actions: SelectionMenuActions }) {
   const typed = block?.type === 'node';
   const toggle = (name: string) => { editor.toggleStyles({ [name]: true } as never); editor.focus(); };
   const clear = () => { editor.removeStyles({ bold: true, italic: true, underline: true, strike: true, code: true, textColor: 'default', backgroundColor: 'default' } as never); editor.focus(); };
-  const setType = (t: typeof TYPES[number]) => { if (block && !typed) editor.updateBlock(block as never, { type: t.type, props: t.props ?? {} } as never); setTypes(false); editor.focus(); };
+  const setType = (t: typeof TYPES[number]) => {
+    if (block && !typed) {
+      // a code block keeps its text in the `code` prop (component:code-block): the paragraph's text goes there
+      const items = (editor.getBlock(block.id as never)?.content ?? []) as { type: string; text?: string; content?: { text?: string }[] }[];
+      const plain = Array.isArray(items) ? items.map(i => i.type === 'text' ? i.text ?? '' : i.type === 'link' ? (i.content ?? []).map(c => c.text ?? '').join('') : '').join('') : '';
+      const props = t.type === 'codeBlock' ? { code: plain } : t.props ?? {};
+      editor.updateBlock(block as never, { type: t.type, props } as never);
+    }
+    setTypes(false); editor.focus();
+  };
   const applyLink = () => { const url = (link ?? '').trim(); if (url) editor.createLink(/^[a-z][a-z0-9+.-]*:|^\//i.test(url) ? url : `https://${url}`); setLink(null); editor.focus(); };
   const on = (k: string) => (styles[k] ? 'on' : '');
 

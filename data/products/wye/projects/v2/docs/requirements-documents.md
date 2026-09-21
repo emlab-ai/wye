@@ -536,6 +536,36 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - then:wf2.editor.selection-menu a popover shows the block's type on top (Normal text › heading 1–3, bullet / numbered / check list, quote, code block; a typed block keeps its shape), the text styles (bold, italic, underline, strike, code, clear), a URL link, ⌁ node and ▣ block, Comment on the block, and Ask an agent — in place of a row of toolbar buttons
 
+```yaml
+- id: req:wf2.page.new-dialog
+  title: New page opens as a sheet — Add to a parent, the title, and Get started with a template, a typed page, an import or an agent
+  status: shipped
+  refines: req:wf2.page.create-typed
+  satisfied-by: [component:new-page, component:import-docs, op:doc.create, op:api.import]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-documents
+```
+
+  - when:wf2.page.new-dialog the person presses + on Documents, ↥, or drops files on the rail
+
+  - then:wf2.page.new-dialog a sheet opens over the app: "Add to" with the parent page (and the folder when the product has several), the title as a large placeholder (Enter makes a blank page), and "Get started with": Ask an agent (the page is made and attached to the command box), Import… (the markdown / folder / code import inside the sheet), Template (prd, dev design, test design, plan), Typed page (the product's own types), Blank
+
+```yaml
+- id: req:wf2.editor.code-monaco
+  title: A code block is the same editor the column shows files in
+  status: shipped
+  refines: req:wf2.code-preview
+  satisfied-by: [component:code-block, component:code-view, lib:serialize, lib:import]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-documents
+```
+
+  - when:wf2.editor.code-monaco a document has a ``` fence, or a block is turned into a code block
+
+  - then:wf2.editor.code-monaco it renders as Monaco with the fence's language (a picker on hover), editable, its height following the lines; the code is the block's `code` property and the markdown stays the same fence — links, angle brackets and pipes verbatim
+
 ## Open questions
 
 <!-- list:question -->

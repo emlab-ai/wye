@@ -112,7 +112,7 @@ export function blocksToMarkdown(blocks: AnyBlock[]): string {
         push(...listLines(b, 0, n), ...kids); if (kids.length && !isItem(kids[kids.length - 1])) blank(); break;
       }
       case 'table': { blank(); push(...tableLines(b)); blank(); break; }
-      case 'codeBlock': { blank(); const lang = String((b.props as { language?: string })?.language ?? ''); push('```' + (lang === 'text' ? '' : lang)); push(...plainText(b.content as Inline[]).split('\n')); push('```'); blank(); break; }
+      case 'codeBlock': { blank(); const cp = (b.props ?? {}) as { language?: string; code?: string }; const lang = String(cp.language ?? ''); push('```' + (lang === 'text' ? '' : lang)); push(...(cp.code ?? (Array.isArray(b.content) ? plainText(b.content as Inline[]) : '')).split('\n')); push('```'); blank(); break; } // the code is the `code` prop (component:code-block); inline text is the older shape
       case 'quote': { blank(); push(...inlineToMarkdown(b.content as Inline[]).split('\n').map(l => '> ' + l)); blank(); break; }
       case 'divider': { blank(); push('---'); blank(); break; }
       case 'collection': { // a goals/tasks/type table: its rows are node blocks, written as plain list lines inside comment markers

@@ -253,7 +253,7 @@ export function expand(blocks: AnyBlock[], yaml: Prepared['yaml'], drawings: Pre
         const n = nodePropsFromChunk(chunk);
         const kids = k === chunks.length - 1 && ym[2] && nested ? nested.parseMd(nested.contents[Number(ym[2])] ?? '') : undefined;
         if (n) push({ type: 'node', props: n.props as unknown as Record<string, unknown>, content: [text(n.text)], ...(kids?.length ? { children: kids } : {}) });
-        else push({ type: 'codeBlock', props: { language: 'yaml' }, content: [text(chunk.body)] });
+        else push({ type: 'codeBlock', props: { language: 'yaml', code: chunk.body }, content: [] });
       });
       continue;
     }
@@ -299,8 +299,14 @@ function imagifyBlock(b: AnyBlock, images: Prepared['images']): AnyBlock {
 function unescapeInline(items: Inline[]): Inline[] {
   return items.map(it => it.type === 'text' ? { ...it, text: (it as InlineText).text.replace(/&lt;/g, '<').split(BS).join('\\').split(PIPE).join('|') } : (it.type !== 'tag' && Array.isArray((it as { content?: unknown }).content)) ? { ...it, content: unescapeInline((it as { content: Inline[] }).content) } : it);
 }
+// A code block's text (its `code` prop, component:code-block) gets the same restorations: the escaped "<", the held
+// backslashes and pipes, and the lifted links back to `[label](id)` — code is verbatim, never tags.
+export function restoreCode(text: string): string {
+  return text.replace(/&lt;/g, '<').split(BS).join('\\').split(PIPE).join('|').replace(/⟦([^|⟧]+)\|([^⟧]+)⟧/g, '[$1]($2)');
+}
 function unescapeBlock(b: AnyBlock): AnyBlock {
   let nb = b;
+  if (nb.type === 'codeBlock' && typeof (nb.props as { code?: unknown })?.code === 'string') nb = { ...nb, props: { ...nb.props, code: restoreCode((nb.props as { code: string }).code) } };
   if (Array.isArray(nb.content)) nb = { ...nb, content: unescapeInline(nb.content as Inline[]) };
   const tc = nb.content as { rows?: { cells: unknown[] }[] } | undefined;
   if (tc && Array.isArray(tc.rows)) nb = { ...nb, content: { ...tc, rows: tc.rows.map(r => ({ ...r, cells: r.cells.map(c => Array.isArray(c) ? unescapeInline(c as Inline[]) : (c && typeof c === 'object' && Array.isArray((c as { content?: unknown }).content)) ? { ...(c as object), content: unescapeInline((c as { content: Inline[] }).content) } : c) })) } };
