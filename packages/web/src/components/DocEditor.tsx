@@ -859,10 +859,19 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   // "@" inserts a tag for any node (or document) by id or title.
   const mentionItems = (q: string) => {
     const n = q.trim().toLowerCase();
+    // rank: the id starts with the query (`task` → task:…, `task:pr` → task:pr-27), then the slug does, then the id
+    // contains it, then the title does — so `@task` lists tasks before nodes that merely mention them
+    const rank = (e: { id: string; title: string }) => {
+      const id = e.id.toLowerCase();
+      if (id.startsWith(n)) return 0;
+      if (id.slice(id.indexOf(':') + 1).startsWith(n)) return 1;
+      if (id.includes(n)) return 2;
+      return e.title.toLowerCase().includes(n) ? 3 : 9;
+    };
     return Object.values(index)
-      .filter(e => e.id.toLowerCase().includes(n) || e.title.toLowerCase().includes(n))
-      .sort((a, b) => Number(b.defined) - Number(a.defined) || a.id.length - b.id.length)
-      .slice(0, 10)
+      .map(e => ({ e, r: rank(e) })).filter(x => x.r < 9)
+      .sort((a, b) => a.r - b.r || Number(b.e.defined) - Number(a.e.defined) || a.e.id.length - b.e.id.length)
+      .slice(0, 10).map(x => x.e)
       .map(e => ({ title: e.id, subtext: e.title, group: 'Link a node', onItemClick: () => { editor.insertInlineContent([{ type: 'tag', props: { id: e.id } }, ' '] as never); touched.current = true; changed(); } }));
   };
   // base kinds, then the product's own types (its type: cards) — an instance is a prose line `team:slug …`
@@ -941,7 +950,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
         }
       }}>
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}{!lintMsg && elsewhere > 0 && <span className="muted" title="ctx check finds an error in another document of the product — not in this one">{elsewhere} check error{elsewhere === 1 ? '' : 's'} elsewhere</span>}</div>
-      <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false}>
+      <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false} emojiPicker={false}>
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><AnnotateItem annotate={imageToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
         <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /><AskAgentButton onRequest={r => setAskReq({ ...r, doc: slug, project, pageLink: `${location.origin}/${product}/${project}/d/${slug}`, refs: [...new Set([...r.refs, `module:${slug}`])] })} /></FormattingToolbar>} />
         <SuggestionMenuController triggerCharacter="/" getItems={async q => {
