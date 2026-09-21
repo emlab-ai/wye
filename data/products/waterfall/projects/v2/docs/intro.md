@@ -281,5 +281,6 @@ data/products/<product>/_build/graph.json                 generated: the product
 ```
 
 Wye's own definition is `data/products/waterfall` — the app is described in itself, and every change to it goes
-through the loop above. Install: `npm install && ./install.sh` links `wye` and the skills; `npm run dev` runs the
+through the loop above. (The product slug is still `waterfall`, the project's first name: ids, links and sessions
+refer to product:waterfall, and a product slug never changes.) Install: `npm install && ./install.sh` links `wye` and the skills; `npm run dev` runs the
 app; `npm run desktop` opens it in its own window (module:app-shell).

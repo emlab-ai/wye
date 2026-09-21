@@ -96,7 +96,7 @@ document, dependency or readiness.
 ## Install and run
 
 ```bash
-git clone … waterfall && cd waterfall
+git clone https://github.com/emlab-ai/wye.git && cd wye
 npm install
 ./install.sh              # links `wye` into ~/.local/bin and the Claude Code skills into ~/.claude/skills
 wye build --root data/products/waterfall && wye check --root data/products/waterfall
@@ -105,7 +105,8 @@ npm run dev               # the app at http://localhost:3000 (npx --workspace=pa
 
 `npm run desktop` opens the app in its own window (Electron); it starts the server on 3456 if none is running and
 quits it on exit. Wye's own definition lives in `data/products/waterfall` — the app is described in itself, and every
-change to it goes through the loop above.
+change to it goes through the loop above. (The product slug is still `waterfall`, the project's first name: ids,
+links and sessions refer to `product:waterfall`, and a product slug never changes.)
 
 ### Data layout
 
