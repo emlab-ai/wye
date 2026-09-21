@@ -52,7 +52,9 @@ export function subscribe(id: string, fn: (e: ChatEvent) => void): () => void {
 
 // The request page of a build (rule:pr-doc): a worker building a request works on its page — the tasks live there
 // and the app writes the result. An ad-hoc conversation has no page: nothing is written unless the person asks.
-export function prDocNote(prDoc?: string): string {
+export function prDocNote(prDoc?: string, s?: Session): string {
+  // a task whose own document is the work (an import): no request page — the page is where everything goes
+  if (!prDoc && s?.task && s.source?.doc) return `\n## Your page\nThis task fills the document \`${s.source.link ?? `${s.product}/${s.source.project}/${s.source.doc}`}\` — the page the task sits on. Write there (wye doc write, wye node set); no request page exists for this work. Tick the task when the page is done: \`wye node set ${s.task} --status done\`.`;
   if (!prDoc) return '\n## This conversation\nAn ad-hoc conversation: no request page. Nothing is written unless the person asks; the blocks you do write (wye node set, wye propose, wye doc write under this session) are tracked as this session\'s artifacts.';
   const [product, project, slug] = prDoc.split('/');
   return `\n## The request page\nYou are building the Prompt Request \`${prDoc}\` (node \`pr:${slug}\`, file data/products/${product}/projects/${project}/docs/${slug}.md, under the project's PRs page). Its **Definition** is what was agreed — build that, nothing more. Under **Tasks** the request itself is a task line (\`task:${slug}\`, in progress, your name as worker — the Work view lists it; the app moves it to review when this session ends, or leave it done with \`wye node set task:${slug} --status done\`); add \`- [ ] task:<product>.<slug> … part of pr:${slug}\` lines for the work and tick them with \`wye node set task:… --status done\` as you go — that is what the person watches. Put what you found under **Context** (tags \`kind:slug\`, embeds \`![[kind:slug]]\`); decisions you had to take as \`decision:\` blocks. The app writes **Result** (your \`wye session done\` summary and the blocks this request produced) when the session ends.`;
@@ -136,7 +138,7 @@ export async function buildPrompt(product: string, s: Session, wfUrl: string, pr
     parts.push(`\n## How to work\n- The Wye CLI is \`wye\` (WYE_URL=${wfUrl}, WYE_PRODUCT=${product}). Read: \`wye packet --for "<text>"\`, \`wye context "<text>"\`, \`wye resolve <link|id>\`, \`wye node <id>\`, \`wye doc <product/project/doc>\`, \`wye work list\`, \`wye impact <id> --after "<text>"\`. Propose: \`wye propose <product/project/doc> --pr ${s.prDoc ?? '<pr ref>'}\` with a yaml card on stdin (\`--file f\` works too). Report: \`wye session log ${s.id} "<line>"\`, \`wye verdicts <id …>\`, \`wye pr ${s.prDoc ?? '<pr ref>'}\`; end with \`wye session done ${s.id} "<summary>"\`.\n- The person replies here; their answers to your questions are decisions — record them as \`decision:\` blocks (by: the person, evidence: session:${s.id}) with \`wye propose\`.`);
     return parts.join('\n');
   }
-  parts.push(prDocNote(s.prDoc));
+  parts.push(prDocNote(s.prDoc, s));
   parts.push(`\n## How to work\n- The Wye CLI is \`wye\` (WYE_URL=${wfUrl}, WYE_PRODUCT=${product}). Read: \`wye resolve <link|id>\`, \`wye doc <product/project/doc>\`, \`wye node <id>\`, \`wye context "<text>"\`. Write: \`wye node set <id> --status s --set key=value\`, \`wye doc write <product/project/doc> --file f\`.\n- Product documents live under ${REPO_ROOT}/data/products/${product}/projects/<project>/docs/ (markdown; a line that starts with an id defines that node; keep ids stable). Run \`wye check --root data/products/${product}\` from ${REPO_ROOT} after editing them.\n- This is a conversation: the person can reply here. Ask when something is unclear; say plainly what you changed.`);
   return parts.join('\n');
 }
