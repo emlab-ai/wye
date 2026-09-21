@@ -2,7 +2,8 @@
 // open, turns their streaming JSON into ChatEvents, persists them to the session and pushes them to subscribers.
 // Lives on globalThis so dev-server module reloads do not orphan the processes.
 import { spawn, type ChildProcess } from 'node:child_process';
-import { getSession, updateSession, appendTranscript, enqueue, takeFromQueue, markTurnEnd, queueMessage, imageLines, filesDir, runAskHooks, type AskInput } from './sessions';
+import { getSession, updateSession, appendTranscript, enqueue, takeFromQueue, markTurnEnd, queueMessage, imageLines, filesDir, runAskHooks, onSessionEnd, type AskInput } from './sessions';
+import { agentSettings, readSettings } from './settings';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { queueView, type ChatEvent, type QueueItem, type QueueView, type Session, type TurnUsage } from './session-types';
@@ -22,7 +23,7 @@ import './hooks-run';     // registers the session-end events of the hooks engin
 // `turn`: the queue items handed to the open turn — stamped done / failed when it ends (decision:wf2.queue-item-state);
 // `product` / `wfUrl` let the pump build a first message when a fresh item comes up (rule:clean-slate); `stopped`: the
 // person ended the process, so its exit must not rewrite the recorded status.
-type Live = { id: string; productDir: string; product: string; wfUrl: string; agent: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string; known: Set<string>; model?: string; codexError?: string; codexUsage?: TurnUsage; idle?: ReturnType<typeof setTimeout>; turn: string[]; stopped?: boolean };
+type Live = { id: string; productDir: string; product: string; wfUrl: string; agent: string; role?: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string; known: Set<string>; model?: string; codexError?: string; codexUsage?: TurnUsage; idle?: ReturnType<typeof setTimeout>; turn: string[]; stopped?: boolean };
 const g = globalThis as unknown as { __wfAgentHost?: Map<string, Live> };
 const live = () => (g.__wfAgentHost ??= new Map<string, Live>());
 
@@ -145,12 +146,38 @@ export async function buildPrompt(product: string, s: Session, wfUrl: string, pr
 // instruction — a fresh restart (restartFresh) sends the new request that way; `shown` is the part of it the console
 // shows as the person's words (req:wf2.console.first-message-is-the-request), the instruction when absent. The Live entry is reused when one
 // exists so the console's subscribers keep receiving events across a restart.
+// The slot gate (rule:agent-slots): worker sessions the app hosts never exceed Settings › Agents › parallel runners,
+// whoever starts them — a task assignment, a hook, an import, the PR dispatcher. A start that finds every slot taken
+// leaves the session `queued` with a line saying so; the oldest queued worker starts when any session ends. A
+// librarian conversation is the person talking and is not gated; a resume is not a new slot.
+type Waiting = { productDir: string; product: string; id: string; opts: { wfUrl: string; firstMessage?: string; shown?: string; images?: string[] } };
+const waiting = (): Waiting[] => ((globalThis as unknown as { __wfSlotQueue?: Waiting[] }).__wfSlotQueue ??= []);
+function runningWorkers(): number { return [...live().values()].filter(l => l.role !== 'librarian' && !l.stopped && (!!l.proc || l.agent === 'codex')).length; }
+export async function startQueued(): Promise<void> {
+  const { parallel } = agentSettings(await readSettings());
+  while (waiting().length && runningWorkers() < parallel) {
+    const w = waiting().shift()!;
+    const s = await getSession(w.productDir, w.id); if (!s || s.status !== 'queued') continue;
+    await updateSession(w.productDir, w.id, { line: 'a slot is free' });
+    await startChat(w.productDir, w.product, w.id, w.opts);
+  }
+}
+onSessionEnd(async () => { await startQueued(); }, 'agent-slots');
+
 export async function startChat(productDir: string, product: string, id: string, opts: { wfUrl: string; firstMessage?: string; shown?: string; images?: string[]; resume?: boolean }): Promise<Session | null> {
   const s = await getSession(productDir, id); if (!s) return null;
   if (live().get(id)?.proc) return s;
+  if (!opts.resume && s.role !== 'librarian') {
+    const { parallel } = agentSettings(await readSettings());
+    const n = runningWorkers();
+    if (n >= parallel && !waiting().some(w => w.id === id)) {
+      waiting().push({ productDir, product, id, opts });
+      return updateSession(productDir, id, { status: 'queued', line: `waiting for a slot — ${n} of ${parallel} agent${parallel === 1 ? '' : 's'} running (Settings › Agents)` });
+    }
+  }
   const cwd = s.cwd || REPO_ROOT;
   const l: Live = live().get(id) ?? { id, productDir, product, wfUrl: opts.wfUrl, agent: s.agent, cwd, proc: null, subs: new Set(), pending: [], flush: null, turnBusy: false, pumping: false, known: new Set(), turn: [] };
-  Object.assign(l, { product, wfUrl: opts.wfUrl, agent: s.agent, cwd, proc: null, stopped: false, agentSessionId: s.agentSessionId, turnBusy: false, pumping: false, codexThread: s.agent === 'codex' ? s.agentSessionId : undefined, model: undefined, known: new Set([...(s.artifacts?.docs ?? []), ...(s.artifacts?.nodes ?? []), ...(s.artifacts?.blocks ?? []).flatMap(b => [b.id, `${b.id}@${b.at}`])]) });
+  Object.assign(l, { product, wfUrl: opts.wfUrl, agent: s.agent, role: s.role, cwd, proc: null, stopped: false, agentSessionId: s.agentSessionId, turnBusy: false, pumping: false, codexThread: s.agent === 'codex' ? s.agentSessionId : undefined, model: undefined, known: new Set([...(s.artifacts?.docs ?? []), ...(s.artifacts?.nodes ?? []), ...(s.artifacts?.blocks ?? []).flatMap(b => [b.id, `${b.id}@${b.at}`])]) });
   live().set(id, l);
   return startProcess(l, s, product, opts);
 }
@@ -358,10 +385,13 @@ function armIdleStop(l: Live) {
 }
 // Stop ends the process; the recorded status is the caller's business (Stop: done, the context comes back with
 // Resume; Close: cancelled — req:wf2.sessions.stop-from-list), so the exit handler leaves it alone.
-export function stopChat(id: string, note = 'stopped by the user — Resume or a message continues with the same context'): boolean {
+// `hard`: the session is over (cancelled / failed / done from outside) — SIGKILL after the grace, and it leaves the
+// slot queue if it was waiting.
+export function stopChat(id: string, note = 'stopped by the user — Resume or a message continues with the same context', hard = false): boolean {
+  const qi = waiting().findIndex(w => w.id === id); if (qi >= 0) waiting().splice(qi, 1);
   const l = live().get(id); if (!l) return false;
   clearIdle(l); l.stopped = true;
-  if (l.proc) { l.proc.stdin?.end(); const p = l.proc; setTimeout(() => p.kill(), 1500); }
+  if (l.proc) { l.proc.stdin?.end(); const p = l.proc; setTimeout(() => { p.kill(); if (hard) setTimeout(() => { try { p.kill('SIGKILL'); } catch { /* gone */ } }, 3000); }, 1500); }
   emit(l, { kind: 'note', text: note });
   return true;
 }

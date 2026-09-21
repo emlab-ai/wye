@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { stopChat } from '@/lib/agent-host';
 import { getProduct } from '@/lib/products';
 import { getSession, updateSession, type SessionStatus } from '@/lib/sessions';
 import { openInSession, liveState } from '@/lib/agent-host';
@@ -28,6 +29,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ produc
   }
   const ok: SessionStatus[] = ['queued', 'running', 'done', 'failed', 'cancelled'];
   if (body.status && !ok.includes(body.status)) return NextResponse.json({ error: 'invalid', message: 'bad status' }, { status: 422 });
+  // a terminal status ends the hosted process too (rule:agent-slots): cancelled or failed from the page or the CLI
+  // must not leave a claude running in the repo, and the slot it held goes to the next queued session
+  if (body.status && ['cancelled', 'failed', 'done'].includes(body.status)) stopChat(id, `${body.status} — process ended`, true);
   const s = await updateSession(p.dir, id, body); if (!s) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   return NextResponse.json(s);
 }

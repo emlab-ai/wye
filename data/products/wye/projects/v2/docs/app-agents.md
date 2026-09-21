@@ -74,6 +74,20 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   status: shipped
   verified-by: [test:web-lib#session-page, ui-test:session-page]
   related-to: [rule:block-attribution, decision:wf2.session-page-derived]
+- id: rule:agent-slots
+  title: agent-slots
+  statement: >
+    Worker sessions the app hosts never exceed Settings › Agents › parallel runners, whoever starts them — a task
+    assignment, a hook, an import, the PR dispatcher: `startChat` (lib/agent-host) counts the live worker sessions
+    (a librarian conversation is the person talking and is not counted; a resume is not a new slot) and a start
+    that finds every slot taken leaves the session `queued` with "waiting for a slot — n of N agents running"; the
+    oldest queued worker starts when any session ends (onSessionEnd, key agent-slots). A terminal status set from
+    outside — Cancel on the session page, `wye session done | fail` — ends the hosted process (stopChat, hard:
+    SIGKILL after the grace) and takes the session out of the slot queue, so no agent outlives its session.
+  source: packages/web/src/lib/agent-host.ts#startChat
+  status: shipped
+  verified-by: [test:web-lib#agent-host]
+  related-to: [rule:agent-sessions, decision:wf2.pr-scheduler, decision:wf2.import-code-is-a-session]
 - id: rule:app-link
   title: app-link
   statement: >
