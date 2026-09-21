@@ -19,6 +19,13 @@ The full definition is the tree under module:wf2; this page is the door.
 
 ![A document in Wye: prose, a module card, and the column beside it](assets/intro-document.png)
 
+## The name
+
+A *wye* is the written name of the letter Y, and a Y-shaped junction: in plumbing a wye fitting joins two flows into
+one at a shallow angle, so neither is throttled. That is the picture — the person's flow (what the product is for,
+what was decided) and the agent's flow (what the code does, what it found) joining in one definition, so that
+together they move more than either would alone. Hence the icon.
+
 ## Why I built it
 
 For me this started as a thought experiment, not a product: **what is the best future way for a human to interact

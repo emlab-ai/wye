@@ -28,6 +28,13 @@ once per node unless `once: false`; `status: paused` switches it off; the node's
   do: task "Define test cases for {{title}}" --worker agent --skill skill:define-tests
   once: true
   status: active
+- id: hook:import-analyse
+  title: An imported document is read by an agent and rewritten into typed blocks, all proposed
+  on: module.created
+  where: status=imported
+  do: task "Import {{title}}" --worker agent --skill skill:import
+  once: true
+  status: active
 - id: hook:test-proposed-note
   title: A proposed test is announced
   on: test.created

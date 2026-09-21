@@ -81,4 +81,9 @@ describe('replaceBody', () => {
     expect(r.md).toBe('---\nnode: module:m\ntitle: Module M\nstatus: proposed\n---\n\n# New\n\nbody\n');
     expect(replaceBody(md, 'stale', 'x').error).toBe('conflict');
   });
+  it('a body that carries its own front matter is merged, not doubled: named keys win, the rest stays', () => {
+    const cur = bodyOf(md);
+    const r = replaceBody(md, hashOf(cur), '---\nnode: module:m\nstatus: analysed\nsource: import/x.md\n---\n\n# New\n\nbody\n');
+    expect(r.md).toBe('---\nnode: module:m\ntitle: Module M\nstatus: analysed\nsource: import/x.md\n---\n\n# New\n\nbody\n');
+  });
 });

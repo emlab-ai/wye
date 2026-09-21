@@ -560,6 +560,25 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/folder/route.ts
   status: proposed
   part-of: module:api
+- id: op:api.import
+  args: POST /api/<product>/<project>/import
+  does: >
+    POST multipart: every "file" part is a markdown file, its name the path inside the import (a folder drop keeps
+    "notes/2026/plan.md"); fields `parent` (a document slug), `analyse` ("0" declines the agent). Writes the
+    documents (lib&#58;import-docs), rebuilds, returns what landed and what was skipped. The agent comes after,
+    through hook:import-analyse on `module.created where status=imported` (req:wf2.import.markdown).
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/[project]/import/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.import-code
+  args: POST /api/<product>/import-code
+  does: >
+    (no header comment)
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/import-code/route.ts
+  status: proposed
+  part-of: module:api
 ```
 
 <!-- /list:op -->

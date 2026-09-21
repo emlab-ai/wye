@@ -21,13 +21,13 @@ One card per results file: the suite, the graph and git shas, the model, the jud
   title: "own — 2026-09-21 (replayed)"
   suite: own
   date: 2026-09-21
-  graph-sha: "93bd8e184eb8"
-  git: "25afe389f7c2"
+  graph-sha: "865d89cb0e3e"
+  git: "85c42d2231a5"
   model: "claude-haiku-4-5-20251001"
   judge: "claude-haiku-4-5-20251001 @ 6d31662f"
   prompts: "verdict 6d31662f, impact 291a2d1d, consolidation 1d527194"
   gate: passed
-  truth: "truth-wye-93bd8e184eb8.json: requirements 73, supersessions 2, commits 0, sessions 19, consolidation 31"
+  truth: "truth-wye-865d89cb0e3e.json: requirements 73, supersessions 2, commits 0, sessions 19, consolidation 31"
   truth: "errors: packet: recording missing in eval/recorded/semantic-wye.json for context \"A request from the command palette can carry images\" — run once with --live (WATERFALL_LIVE=1); currency: recording missing in eval/recorded/semantic-wye.json for context \"The session page is derived from the session and the graph, \" — run once with --live (WATERFALL_LIVE=1); impact: recording missing in eval/recorded/semantic-wye.json for context \"Show which part of the knowledge base a session changed: Sho\" — run once with --live (WATERFALL_LIVE=1)"
 ```
 

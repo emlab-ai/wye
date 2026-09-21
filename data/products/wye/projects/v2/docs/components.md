@@ -742,6 +742,26 @@ The editor's blocks and the components the pages are made of, by area.
     nothing outside a product lands on the products that exist.
   status: proposed
   part-of: module:components
+- id: component:import-docs
+  file: packages/web/src/components/ImportDocs.tsx
+  side: client
+  purpose: >
+    Import… on the Documents head, and the drop zone the rail shows for files (component&#58;import-docs,
+    req:wf2.import.markdown, req&#58;wf2.import.code). Two modes: markdown files or a folder of them become
+    documents of a project — unchanged, the tree kept — and, when "Analyse with agent" stays on, a hook hands each
+    one to an agent with the Import skill; From code points at a folder of source and gets a feature's definition
+    read from it, its describe tasks handed to an agent with the Describe-module skill.
+  status: proposed
+  part-of: module:components
+- id: component:imported-notice
+  file: packages/web/src/components/ImportedNotice.tsx
+  side: client
+  purpose: >
+    The bar an imported document shows while no agent has read it (req:wf2.import.analyse): `imported` waits for the
+    hook, `raw` declined it; Analyse runs hook:import-analyse on the page's node now — one session with the Import
+    skill, its blocks proposed.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

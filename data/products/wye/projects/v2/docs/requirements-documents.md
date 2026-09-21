@@ -453,6 +453,57 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
 <!-- /list:req -->
 
+```yaml
+- id: req:wf2.import.markdown
+  title: Markdown files and folders become documents of a project, unchanged, in one gesture
+  status: proposed
+  refines: req:wf2.ui.node-page
+  satisfied-by: [lib:import-docs, op:api.import, component:import-docs]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC, pr:30]
+  part-of: module:req-documents
+```
+
+  - when:wf2.import.markdown the person picks Import… on the Documents +, drops .md files or a folder on the rail, or runs `wye import <file|dir>`
+
+  - then:wf2.import.markdown each .md file becomes a document of the chosen project — the original text untouched, front matter added (node, type module, title from the first heading or the file name, status imported, source: the original path, part-of for a folder's tree); a folder's subfolders become parent documents so the tree survives; images the files reference are copied into the project's assets; a slug that exists gets a numeric suffix; the graph rebuilds and the files are readable, editable and linkable at once
+
+  - unless:wf2.import.markdown a file is not markdown or is larger than 1 MB — then it is skipped and named in the result; existing front matter is merged, never replaced
+
+```yaml
+- id: req:wf2.import.analyse
+  title: An imported document is read by an agent and rewritten in place into typed blocks, all proposed
+  status: proposed
+  refines: req:wf2.import.markdown
+  satisfied-by: [skill:import, hook:import-analyse]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC, pr:30]
+  part-of: module:req-documents
+```
+
+  - when:wf2.import.analyse a document lands with status imported and "Analyse with agent" was left on (the default)
+
+  - then:wf2.import.analyse a hook starts one worker session per document with the Import skill: the agent reads the document, the product's types and the knowledge nearest to it, decides the kind of each thing the text states (a behaviour → req, a choice → decision, a rule no code enforces → constraint, a persisted thing → entity, a domain statement → fact, work → task, open → question), proposes type: cards on the Ontology page when the text needs a kind the product lacks and instances in the type's collection document, and rewrites the document in place — prose kept, the extracted things typed blocks where they stood, status proposed, by agent, evidence the session, linked to the existing nodes rather than duplicated; the document's status becomes analysed and every block waits in the Inbox
+
+  - unless:wf2.import.analyse "Analyse with agent" was unticked (the document lands with status raw and nothing runs), the hook is paused, or no agent is configured — then the document stays as imported and "Analyse" on the page or the hook's Run now does it later; an agent that fails leaves the document as imported with its session linked
+
+```yaml
+- id: req:wf2.import.code
+  title: A folder of source becomes a feature's definition, and an agent maps each module to requirements
+  status: proposed
+  refines: req:wf2.import.markdown
+  satisfied-by: [op:api.import-code, component:import-docs, lib:init, skill:describe-module]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC, pr:30]
+  part-of: module:req-documents
+```
+
+  - when:wf2.import.code the person picks From code in Import…, names the feature and points at a folder (relative to the product's repo or absolute), or runs `wye import --code <dir> --name "…"`
+
+  - then:wf2.import.code the feature's definition is read from the code without a model — a project named after it with the layered tree, every module, page, component, library, operation and test the folder shows, shallow, and a describe task per module — and, with "Describe with agent" on, each describe task goes to the default agent with the Describe-module skill: the requirements in the person's words, each mapped to the code that delivers it and its tests (reverse engineering)
+
+  - unless:wf2.import.code the folder does not exist — then nothing is written; pages that exist already are kept, never overwritten
+
 ## Open questions
 
 <!-- list:question -->

@@ -314,6 +314,17 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     code-like extension, with its `#symbol` / `:line` kept. A `<placeholder>` in the path is not a file.
   status: proposed
   part-of: module:app-storage
+- id: lib:import-docs
+  file: packages/web/src/lib/import-docs.ts
+  side: server
+  purpose: >
+    Import markdown files — one file or a folder tree — as documents of a project (req:wf2.import.markdown,
+    decision:wf2.import-lands-first-agent-rewrites-in-place). `plan` is pure: given the files (path + text) and what
+    the project already has, it says which documents to write with what front matter and where the tree's folders
+    become parent documents. `write` puts them on disk. No model here: the agent comes after, through the hook on
+    `module.created where status=imported`.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

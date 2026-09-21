@@ -372,6 +372,26 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .rail-split { flex: none; height: 9px; margin: 2px 0 0; cursor: row-resize; position: relative; } .rail-split::after { content: ''; position: absolute; left: 0; right: 0; top: 4px; height: 1px; background: var(--line); transition: background .15s, height .15s; } .rail-split:hover::after, body.resizing-y .rail-split::after { background: var(--accent); height: 2px; }
 body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y iframe { pointer-events: none; }
 .rail-pages-head button { background: none; border: 1px solid var(--line-2); border-radius: 5px; width: 22px; height: 22px; color: var(--ink-2); cursor: pointer; }
+.rail-pages-tools { display: inline-flex; gap: 4px; }
+.rail-body { position: relative; }
+.rail-body.file-over { outline: 2px dashed var(--accent); outline-offset: -4px; border-radius: 8px; }
+.rail-filedrop { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 500 13px var(--font-b); color: var(--accent); background: color-mix(in srgb, var(--ground) 85%, transparent); z-index: 2; pointer-events: none; }
+.imported-notice { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0 14px; padding: 8px 12px; border: 1px dashed var(--accent); border-radius: 8px; font: 13px var(--font-b); color: var(--ink-2); }
+.imported-notice .pri { background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); border-radius: 6px; padding: 3px 10px; font: 12px var(--font-b); cursor: pointer; }
+/* Import… (component:import-docs): the dialog under the Documents head */
+.import-form { display: block; }
+.import-form > label { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; align-items: center; margin: 6px 0; }
+.import-form > label.check { grid-template-columns: max-content 1fr; font: 12.5px var(--font-b); color: var(--ink-2); }
+.import-form > label.check input { width: auto; }
+.import-modes { display: flex; gap: 2px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
+.import-modes button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 4px 10px; font: 500 12.5px var(--font-b); color: var(--muted); cursor: pointer; }
+.import-modes button.on { color: var(--ink); border-bottom-color: var(--accent); }
+.import-pick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
+.import-pick button { background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 9px; font: 12px var(--font-b); color: var(--ink-2); cursor: pointer; }
+.import-list { list-style: none; margin: 4px 0 6px; padding: 0; max-height: 160px; overflow: auto; font-size: 12.5px; }
+.import-list li { display: flex; gap: 6px; align-items: baseline; padding: 1px 0; min-width: 0; }
+.import-list li code, .import-list li a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.import-form .small { font-size: 12px; margin: 2px 0 6px; }
 .pg-tree, .pg-tree ul { list-style: none; margin: 0; padding: 0; }
 .pg-row { display: flex; align-items: center; gap: 4px; padding-right: 8px; border-radius: 8px; margin: 1px 6px; }
 .pg-row:hover { background: var(--sunk); } .pg-row.on { background: var(--sunk); }

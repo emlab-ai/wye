@@ -46,11 +46,23 @@ export function insertYamlAfterSegment(md: string, segment: number, body: string
 }
 
 // Replace everything after the frontmatter (the editor owns the whole body).
+// A body that arrives with a front matter of its own (an agent that read the whole file and wrote it back whole)
+// is not doubled: its keys are merged into the document's front matter — a key it names wins, one it omits stays —
+// and the rest is the body.
 export function replaceBody(md: string, ifMatch: string, body: string): WriteResult {
   const fm = md.match(/^---\n([\s\S]*?)\n---\n?/);
-  const head = fm ? fm[0] : '';
+  let head = fm ? fm[0] : '';
   const current = md.slice(head.length);
   if (hashOf(current) !== ifMatch) return { md, error: 'conflict', current };
+  const own = body.match(/^---\n([\s\S]*?)\n---\n?/);
+  if (own) {
+    body = body.slice(own[0].length);
+    if (head) {
+      const patch: Record<string, string> = {};
+      for (const l of own[1].split('\n')) { const m = l.match(/^([\w-]+):\s*(.*)$/); if (m) patch[m[1]] = m[2]; }
+      const merged = patchFrontmatter(head, patch); if (!merged.error) head = merged.md;
+    } else head = own[0];
+  }
   return { md: head + (head && !head.endsWith('\n') ? '\n' : '') + '\n' + body.replace(/^\n+/, '').replace(/\n*$/, '\n') };
 }
 export function bodyOf(md: string): string { const fm = md.match(/^---\n([\s\S]*?)\n---\n?/); return md.slice(fm ? fm[0].length : 0); }

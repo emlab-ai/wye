@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DocTree, type TreeItem } from './DocTree';
 import { NewDoc } from './NewDoc';
+import { ImportDocs, filesOfDrop, type Picked } from './ImportDocs';
 import { PrFolder, type PrItem } from './PrFolder';
 import { SkillFolder, type SkillItem } from './SkillFolder';
 
@@ -16,6 +17,10 @@ export type RailProject = { slug: string; title: string; icon: string; kind: str
 export function Rail({ products, product, projects, prs, views = [], skills = [], skillsPage = null, headings }: { skills?: SkillItem[]; skillsPage?: { project: string; slug: string } | null; views?: { slug: string; title: string; icon: string; project: string }[]; products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; prs: PrItem[]; headings: { doc: string; slug: string; text: string }[] }) {
   const path = usePathname(); const router = useRouter();
   const [newIn, setNewIn] = useState<string | null>(null); // '' = top level, slug = under that document
+  // Import… (component:import-docs): the dialog, opened by its button or by files dropped on the documents area
+  const [importing, setImporting] = useState<Picked[] | null>(null);
+  const [fileOver, setFileOver] = useState(false);
+  const hasFiles = (e: React.DragEvent) => [...e.dataTransfer.types].includes('Files');
   // every project's documents in one tree; a project is just the folder a document lives in
   const roots = projects.flatMap(p => p.roots);
   const docs = projects.flatMap(p => p.docs.map(d => ({ ...d, project: p.slug })));
@@ -39,7 +44,7 @@ export function Rail({ products, product, projects, prs, views = [], skills = []
   const resetSplit = () => { setTop(null); try { localStorage.removeItem('wf-rail-split'); } catch { /* ignore */ } };
   return (
     <nav className="rail" ref={nav}>
-      <div className="rail-ws"><span className="rail-ws-mark">W</span><span className="rail-ws-name">Wye</span><button className="rail-close" onClick={() => window.dispatchEvent(new CustomEvent('wf:rail', { detail: 'toggle' }))} title="Close the sidebar (⌘\\)" aria-label="Close sidebar">«</button></div>
+      <div className="rail-ws"><span className="rail-ws-mark">Y</span><span className="rail-ws-name">Wye</span><button className="rail-close" onClick={() => window.dispatchEvent(new CustomEvent('wf:rail', { detail: 'toggle' }))} title="Close the sidebar (⌘\\)" aria-label="Close sidebar">«</button></div>
       <div className="rail-space">
         <span className="rail-space-mark">{product.icon || product.title.slice(0, 2).toUpperCase()}</span>
         <select className="rail-space-sel" value={product.slug} onChange={e => router.push(e.target.value === '__new' ? '/new' : `/${e.target.value}`)}>
@@ -62,9 +67,14 @@ export function Rail({ products, product, projects, prs, views = [], skills = []
       </ul>
       </div>
       <div className="rail-split" ref={split} role="separator" aria-orientation="horizontal" title="Drag to resize; double-click to reset" onMouseDown={onSplit} onDoubleClick={resetSplit} />
-      <div className="rail-pages-head"><span>Documents</span><button onClick={() => setNewIn(newIn === '' ? null : '')} title="New document">+</button></div>
+      <div className="rail-pages-head"><span>Documents</span><span className="rail-pages-tools"><button onClick={() => { setNewIn(null); setImporting(importing ? null : []); }} title="Import markdown files, a folder, or code" aria-label="Import">↥</button><button onClick={() => { setImporting(null); setNewIn(newIn === '' ? null : ''); }} title="New document">+</button></span></div>
+      {importing !== null && <ImportDocs product={product.slug} project={projects[0]?.slug ?? ''} projects={projects.map(p => ({ slug: p.slug, title: p.title }))} docs={docs} initial={importing} onClose={() => setImporting(null)} />}
       {newIn !== null && <NewDoc product={product.slug} project={docs.find(d => d.slug === newIn)?.project ?? projects[0]?.slug ?? ''} projects={projects.map(p => ({ slug: p.slug, title: p.title }))} docs={docs} defaultParent={newIn} open onClose={() => setNewIn(null)} />}
-      <div className="rail-body">
+      <div className={`rail-body ${fileOver ? 'file-over' : ''}`}
+        onDragOver={e => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; if (!fileOver) setFileOver(true); }}
+        onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setFileOver(false); }}
+        onDrop={async e => { if (!hasFiles(e)) return; e.preventDefault(); setFileOver(false); const got = await filesOfDrop(e.dataTransfer); if (got.length) { setNewIn(null); setImporting(got); } }}>
+        {fileOver && <div className="rail-filedrop">drop to import as documents</div>}
         <DocTree product={product.slug} roots={roots} onAddChild={d => setNewIn(d.slug)} />
         {!roots.length && <p className="muted" style={{ padding: '6px 16px', fontSize: 13 }}>No documents yet. Press + to create one.</p>}
       </div>

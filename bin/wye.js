@@ -57,6 +57,10 @@
 //   wye work add "<text>" --product p [--part-of <id>] [--ready]   a task line on the backlog (under the node when --part-of names one)
 //   wye work next --product p [--goal <id>]   the oldest ready, unblocked, unassigned task
 //   wye work assign <task> --worker <person|claude-code|codex|runner> --product p [--note "…"] [--force]
+//   wye import <file|dir> --product p [--project x] [--parent doc] [--no-analyse]   markdown files (a folder's tree kept) as
+//        documents, then an agent extracts their types, requirements, facts and decisions as proposed blocks (skill:import)
+//   wye import --code <dir> --name "<feature>" --product p [--no-analyse]   a feature's definition read from its code, its
+//        modules described by an agent (skill:describe-module) — reverse engineering
 //   wye eval own | compare | public <adapter> | judge | report   the benchmarks (module:benchmarks): tier 1 on the product's own
 //        history with the CI gate, the with-and-without harness, the public adapters, the judge set's κ, the latest / previous / delta
 //   wye agent listen --product p --agent claude-code|codex [--cmd "<command>"] [--name n] [--once] [--take-ready [--goal <id>]]
@@ -367,6 +371,41 @@ const commands = {
     for (const h of j.hooks) console.log(`${h.id.padEnd(30)} ${h.status.padEnd(7)} on ${h.on}${Object.keys(h.where).length ? ' where ' + Object.entries(h.where).map(([k, v]) => `${k}=${v}`).join(' ') : ''} → ${h.actions.map(a => a.kind === 'run' ? `run ${a.skill}` : a.kind === 'add' ? `add ${a.template}${a.to ? ' to ' + a.to : ''}` : a.kind).join('; ')}${h.once ? '' : ' (every time)'} · fired ${h.firings}×`);
     if (j.firings.length) { console.log(''); for (const f of j.firings) console.log(`${f.at.slice(0, 16).replace('T', ' ')} ${f.hook} on ${f.node} (${f.event})${f.depth ? ` depth ${f.depth}` : ''}: ${f.actions.map(a => a.error ? `${a.kind} failed — ${a.error}` : `${a.kind}${a.added?.length ? ' ' + a.added.join(', ') : ''}${a.session ? ` → session ${a.session}` : ''}`).join('; ')}`); }
   },
+  // wye import <file|dir> --product p [--project x] [--parent doc] [--no-analyse]   markdown files as documents (the tree
+  // kept), then hook:import-analyse hands each to an agent with skill:import unless --no-analyse (req:wf2.import.markdown);
+  // wye import --code <dir> --name "<feature>" --product p [--no-analyse]   a feature's definition read from its code, the
+  // describe tasks handed to an agent with skill:describe-module (req:wf2.import.code)
+  async import() {
+    const p = product();
+    if (flags.code) {
+      const name = flags.name || die('wye import --code <dir> --name "<feature>" --product p [--no-analyse]');
+      const j = await api('POST', `/api/${p}/import-code`, { name, path: String(flags.code), analyse: !flags['no-analyse'] });
+      if (flags.json) return out(j);
+      console.log(`${j.written} page(s) written in project ${j.project}${j.skipped ? ` (${j.skipped} existed and were kept)` : ''}: ${j.areas.length} module(s)`);
+      for (const a of j.areas) { const t = j.tasks.find(x => x.id.endsWith('.' + a.slug)); console.log(`  ${a.slug.padEnd(20)} ${String(a.files).padStart(5)} files  ${a.dir}${t ? (t.session ? `  → session ${t.session}` : `  · ${t.error}`) : ''}`); }
+      return;
+    }
+    const src = pos[1] || die('wye import <file|dir> --product p [--project x] [--parent doc] [--no-analyse]  |  wye import --code <dir> --name "…"');
+    const proj = flags.project || 'v2';
+    const abs = path.resolve(String(src));
+    const st = fs.statSync(abs);
+    const files = [];
+    const walk = (dir, rel) => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { if (e.name.startsWith('.') || e.name === 'node_modules') continue; const r = rel ? `${rel}/${e.name}` : e.name; if (e.isDirectory()) walk(path.join(dir, e.name), r); else if (/\.(md|markdown|png|jpe?g|gif|webp|svg)$/i.test(e.name)) files.push({ rel: r, abs: path.join(dir, e.name) }); } };
+    if (st.isDirectory()) walk(abs, ''); else files.push({ rel: path.basename(abs), abs });
+    if (!files.length) die(`nothing to import under ${abs}`);
+    const fd = new FormData();
+    for (const f of files) fd.append(f.rel, new Blob([fs.readFileSync(f.abs)]), f.rel);
+    if (flags.parent) fd.append('parent', String(flags.parent));
+    fd.append('analyse', flags['no-analyse'] ? '0' : '1');
+    const r = await fetch(`${WF_URL}/api/${p}/${proj}/import`, { method: 'POST', body: fd });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) die(`import → ${r.status}: ${j.message || j.error}`);
+    if (flags.json) return out(j);
+    const docs = j.docs.filter(d => !d.folder);
+    console.log(`${docs.length} document(s) imported into ${p}/${proj}${j.docs.length > docs.length ? ` (${j.docs.length - docs.length} folder page(s))` : ''}${j.assets.length ? `, ${j.assets.length} image(s)` : ''}${j.analyse ? ' — an agent analyses each; its blocks arrive in the Inbox as proposed' : ' — not analysed (Analyse on each page)'}`);
+    for (const d of docs) console.log(`  ${d.slug.padEnd(32)} ${d.title}${d.from ? `  ← ${d.from}` : ''}`);
+    for (const x of j.skipped) console.log(`  skipped ${x.path}: ${x.reason}`);
+  },
   async explain() {
     // one librarian turn on a node or a text (req:exec.explain-anywhere, op:api.explain): the current state, nothing proposed
     const what = pos[1] || (await readStdin()); if (!what.trim()) die('wye explain <id | "text">');
@@ -510,6 +549,8 @@ if (GRAPH_CMDS.has(pos[0]) || pos[0] === 'graph') {
 
 (async () => {
   const c = commands[pos[0]];
-  if (!c) { console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(2, 40).filter(l => l.startsWith('//')).map(l => l.replace(/^\/\/ ?/, '')).join('\n')); process.exit(pos[0] ? 1 : 0); }
+  if (!c) { // the help is this file's leading comment, whole — every command up to the first line of code
+    const lines = fs.readFileSync(__filename, 'utf8').split('\n').slice(2); const end = lines.findIndex(l => !l.startsWith('//'));
+    console.log(lines.slice(0, end < 0 ? undefined : end).map(l => l.replace(/^\/\/ ?/, '')).join('\n')); process.exit(pos[0] ? 1 : 0); }
   try { await c(); } catch (e) { die(e.message); }
 })();

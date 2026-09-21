@@ -530,6 +530,24 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   - consequence:wf2.clean-slate rule:clean-slate and rule:idle-stop; component:command-box (default "new", remembered agent, the tick), op:api.sessions.message takes `fresh`, agent-host#startChat reuses the Live entry so subscribers survive a restart and the old process's close handler no longer touches a replaced process; rule:agent-sessions, action:command-palette and decision:wf2.one-command-box's "defaults to the most recent active conversation" are superseded; ui-test:command-palette extended.
 
 ```yaml
+- id: decision:wf2.import-lands-first-agent-rewrites-in-place
+  title: Import writes markdown as documents unchanged, then a hook's agent session rewrites each one in place into proposed blocks
+  status: proposed
+  date: 2026-09-21
+  by: alex
+  affects: [req:wf2.import.markdown, req:wf2.import.analyse, decision:wf2.hooks-and-skills, rule:inbox-review]
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC, pr:30]
+```
+
+  - choice:wf2.import-lands-first-agent-rewrites-in-place Two steps with no model between them and the person's review after: (1) `POST /api/<product>/<project>/import` (lib:import-docs) writes each file as a document with front matter added and the tree kept — real pages before any agent runs; (2) a shipped hook (`on: module.created where: status=imported do: task "Import {{title}}" --worker agent --skill skill:import`) starts one worker session per document with the shipped Import skill, which rewrites the document in place through `wye doc write` (hash-checked), everything it adds proposed. The Inbox shows the new blocks and the document's diff; git holds the original.
+
+  - context:wf2.import-lands-first-agent-rewrites-in-place The person wants to bring existing markdown — a file, a folder — into a product and have the requirements, facts, decisions, entities and the types they need extracted, without retyping (2026-09-21). Everything needed exists: lib/import (markdown → blocks), skills as documents, hooks that start a session with a skill on a node, the Inbox for proposed blocks, `wye type add` / `wye node add` for types and instances.
+
+  - alternative:wf2.import-lands-first-agent-rewrites-in-place Keep the original and append an "Extracted" section — the page reads twice; extract into the kinds' home pages only and leave the source raw — the source page stops being the place where its knowledge lives; run the model inside the route (no session, no skill) — not editable, not pausable, not reviewable as a session.
+
+  - consequence:wf2.import-lands-first-agent-rewrites-in-place skill:import joins the base skills (prompts/import.md); hook:import-analyse joins the shipped Hooks page; `wye import`; a document status `imported` → `analysed` (or `raw` when analysis was declined); an imported document's page shows "Analyse" while it is imported or raw.
+
+```yaml
 - id: decision:wf2.desktop-electron
   title: Waterfall ships as an Electron desktop app that owns the app server and the agent processes
   status: approved
