@@ -6,6 +6,7 @@
 //   <data>/products/<product>/inbox/                 (dropped inputs, not processed yet)
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 
 export const DATA_ROOT = path.resolve(process.cwd(), process.env.WATERFALL_DATA ?? '../../data');
 export const REPO_ROOT = path.resolve(process.cwd(), '../..');
@@ -31,11 +32,20 @@ async function dirs(p: string): Promise<string[]> {
   try { return (await readdir(p, { withFileTypes: true })).filter(e => e.isDirectory() && !e.name.startsWith('_') && !e.name.startsWith('.')).map(e => e.name).sort(); } catch { return []; }
 }
 
+// A product's folder (decision:wf2.product-folder): by default the registry entry itself, <data>/products/<slug>; with
+// `root: <path>` in _product.md, that folder holds everything but _product.md — the projects and their documents, the
+// graph, sessions, changes, hooks, inbox — so a product's knowledge can live beside its code (~ is the home folder).
+export function resolveRoot(root: string): string { return path.resolve(root.replace(/^~(?=$|\/)/, os.homedir())); }
+export const registryDir = (slug: string) => path.join(DATA_ROOT, 'products', slug);
+const dirSlugs = new Map<string, string>(); // product folder → slug, for the callers that only hold the folder
+export function slugOfDir(productDir: string): string { return dirSlugs.get(path.resolve(productDir)) ?? path.basename(productDir); }
 export async function listProducts(): Promise<Product[]> {
   const base = path.join(DATA_ROOT, 'products');
   return Promise.all((await dirs(base)).map(async slug => {
-    const dir = path.join(base, slug);
-    return { slug, dir, graphPath: path.join(dir, '_build/graph.json'), meta: await readMeta(path.join(dir, '_product.md'), slug) };
+    const meta = await readMeta(path.join(base, slug, '_product.md'), slug);
+    const dir = meta.settings.root ? resolveRoot(meta.settings.root) : path.join(base, slug);
+    dirSlugs.set(dir, slug);
+    return { slug, dir, graphPath: path.join(dir, '_build/graph.json'), meta };
   }));
 }
 export async function getProduct(slug: string): Promise<Product | undefined> {

@@ -7,7 +7,7 @@
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { REPO_ROOT } from './products';
+import { REPO_ROOT, slugOfDir } from './products';
 import { onSessionEnd, updateSession } from './sessions';
 import type { Session, ChatEvent } from './session-types';
 import { loadGraph } from './load';
@@ -104,6 +104,6 @@ export async function consolidateSession(productDir: string, product: string, s:
 onSessionEnd(async (productDir, s) => {
   if (s.status !== 'done' || !s.prDoc) return;
   if (!(await consolidateEnabled(productDir))) return;
-  const product = path.basename(productDir);
+  const product = slugOfDir(productDir);
   void consolidateSession(productDir, product, s).then(r => updateSession(productDir, s.id, { line: r.filed.length ? `consolidation: ${r.filed.length} block(s) the conversation decided but nobody wrote — filed as proposed on ${r.doc}: ${r.filed.join(', ')}` : `consolidation: ${r.candidates.length ? 'everything the conversation decided was written' : 'nothing to consolidate'}` })).catch(e => updateSession(productDir, s.id, { line: `consolidation failed: ${e instanceof Error ? e.message : e}` }));
 }, 'consolidate');

@@ -6,9 +6,10 @@
 // spent. A PR that has to wait knows why (the head and the PRs folder show it). pickNext is pure.
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { REPO_ROOT } from './products';
+import { REPO_ROOT, slugOfDir } from './products';
 import { loadScope, type Scope } from './scope';
 import { getFrontmatter, prNumberOf, requestTaskId } from './pr-doc';
+import { readPrDoc } from './pr-docs';
 import { parseScope, overlap } from './pr-scope';
 import { readSettings, agentSettings } from './settings';
 import { listSessions, updateSession, onSessionEnd } from './sessions';
@@ -72,14 +73,14 @@ export async function dispatch(product: string, wfUrl?: string): Promise<{ start
     let rows = await prRows(scope);
     if (rows.stale.length) {
       // a build whose session is gone without ending the PR: back to approved, so it is picked up again
-      for (const ref of rows.stale) { const file = path.join(REPO_ROOT, `data/products/${ref.replace(/^([^/]+)\/([^/]+)\/(.+)$/, '$1/projects/$2/docs/$3')}.md`); try { await writeAtomic(file, setFrontmatter(await readFile(file, 'utf8'), 'status', 'approved')); } catch { /* gone */ } }
+      for (const ref of rows.stale) { const at = await readPrDoc(product, ref); if (!at) continue; const file = at.file; try { await writeAtomic(file, setFrontmatter(await readFile(file, 'utf8'), 'status', 'approved')); } catch { /* gone */ } }
       await rebuild(scope.product.dir); scope = (await loadScope(product)) ?? scope; rows = await prRows(scope);
     }
     const { start, waiting } = pickNext(rows.approved, rows.building, Math.max(0, parallel - rows.building.length));
     const started: string[] = [];
     for (const ref of start) {
       const slug = ref.split('/')[2];
-      let md: string; try { md = await readFile(path.join(REPO_ROOT, `data/products/${ref.replace(/^([^/]+)\/([^/]+)\/(.+)$/, '$1/projects/$2/docs/$3')}.md`), 'utf8'); } catch { continue; }
+      const at = await readPrDoc(product, ref); if (!at) continue; const md = at.md;
       const task = getFrontmatter(md, 'task') ?? (md.includes(`${requestTaskId(slug)} `) ? requestTaskId(slug) : null);
       if (!task) { waiting[ref] = 'no request task to build'; continue; }
       const r = await assignTask(scope, task, { worker: agent, build: ref, wfUrl: st.wfUrl, by: 'dispatcher', force: true });
@@ -102,7 +103,7 @@ export function notifyDispatch(product: string, wfUrl?: string): void {
 
 // registered once (agent-host imports this module): a build's session ending frees a slot; every 30 s each product
 // with an approved PR is looked at again (a dev reload replaces the tick)
-onSessionEnd(async (productDir) => { notifyDispatch(path.basename(productDir)); }, 'dispatch');
+onSessionEnd(async (productDir) => { notifyDispatch(slugOfDir(productDir)); }, 'dispatch');
 if (state().tick) clearInterval(state().tick);
 state().tick = setInterval(async () => {
   try {

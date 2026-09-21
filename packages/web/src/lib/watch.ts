@@ -3,6 +3,7 @@
 // the graph (agents may edit files without running ctx build). Lives on globalThis across dev reloads.
 import { watch, type FSWatcher } from 'node:fs';
 import path from 'node:path';
+import { slugOfDir } from './products';
 import { buildProduct, builtAt, onBuilt } from './build';
 import { creditDocumentChange, creditBlockChanges } from './artifacts';
 import { diffGraphs } from './graph-diff';
@@ -57,7 +58,7 @@ export function ensureWatch(productDir: string) {
           const docs = [...(s.changedDocs.get(productDir) ?? [])]; s.changedDocs.get(productDir)?.clear();
           try {
             if (builtAt(productDir) < at) await buildProduct(productDir);
-            for (const d of docs) await creditDocumentChange(productDir, path.basename(productDir), d).catch(() => {});
+            for (const d of docs) await creditDocumentChange(productDir, slugOfDir(productDir), d).catch(() => {});
           } finally { s.rebuilding.delete(productDir); }
         }, 400));
       }
@@ -81,8 +82,8 @@ onBuilt(async (productDir, before, after) => {
   const fileOf = new Map(after.nodes.map(n => [n.id, n.file]));
   const attribution = new Map(changes.map(c => { const c0 = takeClaim(c.id, fileOf.get(c.id) ?? ''); return [c.id, c0 ? { by: c0.by, session: c0.session, silent: c0.silent } : running.length === 1 ? { by: `agent:${running[0].id}`, session: running[0].id } : { by: 'person' }]; }));
   const who = (id: string) => attribution.get(id) ?? { by: 'person' };
-  const records = await recordChanges(productDir, path.basename(productDir), before, after, changes, who).catch(e => { console.log(`[wf] changes: ${e instanceof Error ? e.message : e}`); return []; });
-  if (records.length) scheduleImpact(productDir, path.basename(productDir), records, m => console.log(`[wf] ${m}`));
+  const records = await recordChanges(productDir, slugOfDir(productDir), before, after, changes, who).catch(e => { console.log(`[wf] changes: ${e instanceof Error ? e.message : e}`); return []; });
+  if (records.length) scheduleImpact(productDir, slugOfDir(productDir), records, m => console.log(`[wf] ${m}`));
   // hooks (decision:wf2.hooks-and-skills): what the diff means — created, status:<x>, linked:<verb> — fires the
   // product's hooks; a change a hook's session made carries its firing depth, so chains stop at the cap
   if (await hooksEnabled()) {
@@ -91,14 +92,14 @@ onBuilt(async (productDir, before, after) => {
       const depths = new Map<string, number | null>();
       const withDepth = [];
       for (const ev of events) { const sid = attribution.get(ev.id)?.session; if (!depths.has(sid ?? '')) depths.set(sid ?? '', await depthOfSession(productDir, sid)); withDepth.push({ ...ev, depth: depths.get(sid ?? '') }); }
-      await fire(path.basename(productDir), withDepth);
+      await fire(slugOfDir(productDir), withDepth);
     })().catch(e => console.log(`[wf] hooks: ${e instanceof Error ? e.message : e}`));
   }
   // a librarian's blocks land in its request's Definition (req:exec.definition-tracked) — the writes here come back through this listener
-  try { const scope = await loadScope(path.basename(productDir)); if (scope) { await trackDefinitions(scope, running, changes.map(c => ({ ...c, session: attribution.get(c.id)?.session }))); const rescoped = await refreshStaleScopes(scope); if (rescoped.length) console.log(`[wf] scope: ${rescoped.join(', ')}`); } } catch (e) { console.log(`[wf] definition: ${e instanceof Error ? e.message : e}`); }
+  try { const scope = await loadScope(slugOfDir(productDir)); if (scope) { await trackDefinitions(scope, running, changes.map(c => ({ ...c, session: attribution.get(c.id)?.session }))); const rescoped = await refreshStaleScopes(scope); if (rescoped.length) console.log(`[wf] scope: ${rescoped.join(', ')}`); } } catch (e) { console.log(`[wf] definition: ${e instanceof Error ? e.message : e}`); }
   // the write-time verdict pass (decision:memory.write-time-verdict): new or changed knowledge is classified
   // against its neighbours; runs detached, writes its lines under the nodes, which come back through the watcher
-  scheduleVerdicts(productDir, path.basename(productDir), changes, m => console.log(`[wf] ${m}`));
+  scheduleVerdicts(productDir, slugOfDir(productDir), changes, m => console.log(`[wf] ${m}`));
 }, 'watch');
 
 export function subscribeChanges(productDir: string, fn: Listener): () => void {
