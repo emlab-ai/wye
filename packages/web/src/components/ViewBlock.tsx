@@ -56,6 +56,17 @@ export const ViewBlock = createReactBlockSpec(
       const setAs = (t: boolean) => props.editor.updateBlock(props.block, { props: { query: [query, t ? 'as=table' : '', scopeProject ? 'scope=project' : ''].filter(Boolean).join(' ') } } as never);
       const setScope = (proj: boolean) => props.editor.updateBlock(props.block, { props: { query: [query, asTable ? 'as=table' : '', proj ? 'scope=project' : ''].filter(Boolean).join(' ') } } as never);
       const scoped = table && scopeProject && project ? { ...table, rows: table.rows.filter(r => r.file.includes(`/projects/${project}/`)) } : table;
+      // a new instance from the list's empty last line: the document this view is in as its home (a base kind has no
+      // collection), `part-of` from the view's own filter so the row lands where the list shows it
+      const docSlug = (hostRef.current?.closest('.doc-editor') as HTMLElement | null)?.dataset.doc ?? '';
+      const onNew = async (title: string): Promise<string | null> => {
+        const idSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
+        if (!idSlug) return 'a title, please';
+        const partOf = (query.match(/(?:^|\s)part-of=("([^"]*)"|(\S+))/) ?? [])[2] ?? (query.match(/(?:^|\s)part-of=("([^"]*)"|(\S+))/) ?? [])[3];
+        const r = await fetch(`/api/${product}/types/${slug}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug: partOf ? `${partOf.slice(partOf.indexOf(':') + 1)}.${idSlug}` : idSlug, title, home: project && docSlug ? `${project}/${docSlug}` : undefined, props: partOf ? { 'part-of': partOf } : {} }) });
+        if (!r.ok) { const j = await r.json().catch(() => ({})); return j.message ?? j.error ?? 'could not write'; }
+        setVersion(v => v + 1); return null;
+      };
       return (
         <div className="view-block" contentEditable={false} ref={el => { stop(el); (hostRef as React.MutableRefObject<HTMLDivElement | null>).current = el; }}>
           <div className="view-head">
@@ -70,7 +81,7 @@ export const ViewBlock = createReactBlockSpec(
             </select>
             {err && <span className="bad">{err}</span>}
           </div>
-          {scoped && initial && <InstanceTable product={product} table={scoped} initial={initial} onChange={onChange} as={asTable ? 'table' : 'list'} readOnly compact={!!scope} />}
+          {scoped && initial && <InstanceTable product={product} table={scoped} initial={initial} onChange={onChange} as={asTable ? 'table' : 'list'} readOnly compact={!!scope} onNew={onNew} />}
           {scoped && !scoped.rows.length && <p className="muted small">No {slug}s yet.</p>}
         </div>
       );

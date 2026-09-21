@@ -1,10 +1,11 @@
 // New instance cards for a type: the card body, and where it goes in the home document.
 import type { TypeDef } from './graph';
 
-export function newInstanceCard(t: TypeDef, id: string, title: string): string {
-  const skip = new Set(['title', 'status', 'text']);
+export function newInstanceCard(t: TypeDef, id: string, title: string, extra: Record<string, string> = {}): string {
+  const skip = new Set(['title', 'status', 'text', ...Object.keys(extra)]);
   const lines = [`- id: ${id}`];
   if (title) lines.push(`  title: ${title}`);
+  for (const [k, v] of Object.entries(extra)) lines.push(`  ${k}: ${v}`);
   for (const p of t.props) if (p.required && !skip.has(p.name)) lines.push(`  ${p.name}: ${p.many ? '[]' : ''}`.trimEnd());
   return lines.join('\n');
 }
@@ -46,6 +47,7 @@ export function appendRow(md: string, slug: string, row: string): string {
 }
 export const hasTable = (md: string, slug: string) => new RegExp(`^<!--\\s*/table:${slug}\\s*-->\\s*$`, 'm').test(md);
 // A table row is a prose node line: the id, then the title as its text (rule:type-tables).
-export function newInstanceRow(id: string, title: string): string {
-  return `- ${id} ${title.trim() || id.split(':').slice(1).join(':')}`;
+export function newInstanceRow(id: string, title: string, extra: Record<string, string> = {}): string {
+  const props = Object.entries(extra).map(([k, v]) => `${k}: ${v}`).join(', ');
+  return `- ${id} ${title.trim() || id.split(':').slice(1).join(':')}${props ? ` (${props})` : ''}`;
 }

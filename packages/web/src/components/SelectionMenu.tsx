@@ -39,6 +39,10 @@ export function SelectionMenu({ actions }: { actions: SelectionMenuActions }) {
   type Blk = { id: string; type: string; props?: Record<string, unknown> };
   const blockAt = (): Blk | null => { try { return editor.getTextCursorPosition().block as unknown as Blk; } catch { return null; } };
   const block = blockAt();
+  // BlockNote raises the toolbar for a node selection too — a click on a view, a card, an image selects the block —
+  // and there is nothing to format then: the menu is for selected text only
+  let selected = ''; try { selected = editor.getSelectedText(); } catch { selected = ''; }
+  if (!selected.trim()) return null;
   const styles = editor.getActiveStyles() as Record<string, boolean | string | undefined>;
   const current = TYPES.find(t => block && t.type === block.type && (!t.props || (block.props as { level?: number })?.level === (t.props as { level?: number }).level)) ?? (block?.type === 'node' ? { key: 'node', label: 'Typed block', type: 'node' } : TYPES[0]);
   const typed = block?.type === 'node';

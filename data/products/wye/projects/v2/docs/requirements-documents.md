@@ -583,6 +583,21 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - unless:wf2.table.row-is-the-row the collection is switched to its list view — then each row is a block and its content shows under it as on any page
 
+```yaml
+- id: req:wf2.instances.list-new-line
+  title: A list view always ends with an empty line to type the next instance into
+  status: shipped
+  refines: req:wf2.instances.view-as-blocks
+  satisfied-by: [component:instance-table, component:view-block, op:api.types.add]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-documents
+```
+
+  - when:wf2.instances.list-new-line a view is shown as a list and the person types a title into its last, empty line and presses Enter (or leaves the line)
+
+  - then:wf2.instances.list-new-line a new instance of the view's kind is written — a product type's to its collection document, a base kind's to the document the view is in — carrying the view's own `part-of` filter when it has one (so a requirement typed under a goal's Requirements is part of that goal, its slug under the goal's), the list shows it, and the empty line is there again for the next one
+
 ## Open questions
 
 <!-- list:question -->

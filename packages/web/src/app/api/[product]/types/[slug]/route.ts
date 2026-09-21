@@ -19,7 +19,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const { product, slug: typeSlug } = await params;
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const t = typeBySlug(scope.graph, typeSlug); if (!t) return NextResponse.json({ error: 'not_found', message: 'unknown type' }, { status: 404 });
-  const body = (await req.json()) as { slug?: string; title?: string; home?: string };
+  const body = (await req.json()) as { slug?: string; title?: string; home?: string; props?: Record<string, string> };
+  // extra keys the caller wants on the new instance — a list under a goal writes `part-of: goal:x` so the row lands
+  // where the list shows it (req:wf2.instances.list-new-line)
+  const extra = Object.fromEntries(Object.entries(body.props ?? {}).filter(([k, v]) => /^[a-z][a-z0-9-]*$/i.test(k) && typeof v === 'string' && v.trim()));
   const slug = (body.slug ?? '').trim();
   if (!/^[a-z0-9][a-z0-9_.-]*$/.test(slug)) return NextResponse.json({ error: 'invalid', message: 'slug must be lowercase letters, digits, dots or dashes' }, { status: 422 });
   const id = `${typeSlug}:${slug}`;
@@ -57,7 +60,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     const md = await readFile(abs, 'utf8');
     // a row of the type's table when the document has one (a product type's collection always does), else a card
     row = created || hasTable(md, typeSlug);
-    await writeAtomic(abs, row ? appendRow(md, typeSlug, newInstanceRow(id, body.title ?? '')) : appendCard(md, newInstanceCard(t, id, body.title ?? '')));
+    await writeAtomic(abs, row ? appendRow(md, typeSlug, newInstanceRow(id, body.title ?? '', extra)) : appendCard(md, newInstanceCard(t, id, body.title ?? '', extra)));
   });
   await rebuild(scope.product.dir);
   const route = docRoute(file);

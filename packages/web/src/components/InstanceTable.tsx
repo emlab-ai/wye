@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
@@ -16,7 +16,7 @@ const items = (v: string) => v.replace(/^\[|\]$/g, '').split(',').map(s => s.tri
 // Every instance of one type (or node of one kind) as a filterable table: search, status chips with counts, a chip
 // row per enum / bool column, a select per ref column, group by, sort by column. The filter state is the caller's:
 // a page keeps it in the URL (urlState), a view block in its key=value line (onChange).
-export function InstanceTable({ product, table, initial, urlState, onChange, readOnly, as = 'table', compact = false }: { product: string; table: Table; initial?: Filters; urlState?: boolean; onChange?: (f: Filters) => void; as?: 'table' | 'list'; readOnly?: boolean; compact?: boolean }) {
+export function InstanceTable({ product, table, initial, urlState, onChange, readOnly, as = 'table', compact = false, onNew }: { product: string; table: Table; initial?: Filters; urlState?: boolean; onChange?: (f: Filters) => void; as?: 'table' | 'list'; readOnly?: boolean; compact?: boolean; onNew?: (title: string) => Promise<string | null> }) {
   const { open, openId, index } = usePeek();
   const [f, setF] = useState<Filters>(initial ?? EMPTY_FILTERS);
   useEffect(() => { setF(initial ?? EMPTY_FILTERS); }, [initial]);
@@ -83,6 +83,7 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
         <div className="ilist">
           {(groups ?? [['', rows]] as [string, InstanceRow[]][]).map(([k, rs]) => <ListGroup key={k} label={k ? (k.startsWith(k.split(':')[0] + ':') && index[k] ? label(k) : k) : ''} rows={rs} closed={/^(done|complete|retired|superseded|rejected|dismissed)$/.test(k)} />)}
           {!rows.length && <p className="muted">No {table.slug}s match.</p>}
+          {onNew && <NewLine slug={table.slug} onNew={onNew} />}
         </div>
       ) : (
       <div className="ttable"><table className="type-instances itable-grid">
@@ -124,4 +125,34 @@ function GroupRows({ label, count, span, children }: { label: string; count: num
     <tr className="itable-group" onClick={() => setClosed(c => !c)}><td colSpan={span}><span className="tchev">{closed ? '▸' : '▾'}</span>{label}<small className="muted"> {count}</small></td></tr>
     {!closed && children}
   </>);
+}
+
+// The list's last line is always empty: type a title, Enter, and a new instance is written where the list shows it —
+// its `part-of` when the list is filtered by one (req:wf2.instances.list-new-line). The line stays for the next one.
+function NewLine({ slug, onNew }: { slug: string; onNew: (title: string) => Promise<string | null> }) {
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const ref = useRef<HTMLInputElement>(null);
+  const latest = useRef({ text, busy }); latest.current = { text, busy };
+  const submit = async () => {
+    const t = latest.current.text.trim(); if (!t || latest.current.busy) return;
+    setBusy(true); setErr('');
+    const e = await onNew(t); setBusy(false);
+    if (e) { setErr(e); return; }
+    setText('');
+  };
+  // a view block stops native keydown at its wrapper so ProseMirror never sees it — React's onKeyDown (listening at
+  // the root) never fires there either; the input listens natively, before the wrapper
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const key = (e: KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); void submit(); } if (e.key === 'Escape') setText(''); };
+    el.addEventListener('keydown', key); return () => el.removeEventListener('keydown', key);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="ilist-new">
+      <input ref={ref} value={text} placeholder={`New ${slug}…`} disabled={busy} onChange={e => setText(e.target.value)} onBlur={() => { if (latest.current.text.trim()) void submit(); }} />
+      {err && <span className="notice">{err}</span>}
+    </div>
+  );
 }

@@ -687,6 +687,7 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .content-suggest { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 8px; font-size: 12px; } .content-suggest .doc-ghost { opacity: .75; } .content-suggest:hover .doc-ghost { opacity: 1; }
 .ne-addprop .doc-ghost { opacity: .6; } .ne:hover .ne-addprop .doc-ghost, .ne-addprop .doc-ghost:focus { opacity: 1; }
 .ne-addprop-form { display: flex; gap: 6px; align-items: center; width: 100%; } .ne-addprop-form .ne-in { flex: 1; min-width: 0; } .ne-addprop-form .pri { background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); border-radius: 6px; padding: 3px 10px; font: 12px var(--font-b); cursor: pointer; }
+.ilist-new { margin: 2px -8px 0; padding: 4px 8px; border-radius: 8px; } .ilist-new:hover, .ilist-new:focus-within { background: var(--sunk); } .ilist-new input { width: 100%; border: 0; background: transparent; color: var(--ink); font: 14px var(--font-b); padding: 4px 6px; outline: none; } .ilist-new input::placeholder { color: var(--muted); }
 .itable-fold { display: flex; align-items: center; gap: 8px; margin: 2px 0 4px; }
 .peek-footer { margin: 18px 0 0; border-top: 1px solid var(--line); padding-top: 6px; }
 .peek-footer > summary { display: flex; gap: 14px; align-items: center; list-style: none; cursor: pointer; padding: 6px 0; font: 13px var(--font-b); color: var(--ink-2); } .peek-footer > summary::-webkit-details-marker { display: none; }
