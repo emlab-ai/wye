@@ -176,6 +176,32 @@ Definition — the librarian
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
   part-of: goal:exec.define-first
+- id: decision:ontology.one-of-many-of
+  title: A property is one of / many of a type or of values — oneOf[...] and manyOf[...] beside ref, list of and enum
+  context: >
+    The property grammar had `ref <type>`, `list of <type>` and `enum [a, b]`; a multi-select of values did not exist,
+    the type page took the value type as free text, and a many-link was edited as comma-separated text. alex: types
+    need enums and links — an employee's manager is oneOf[manager], manyOf for a multi-select.
+  choice: >
+    Two spellings for the same things: `oneOf[manager]` = `ref manager`, `manyOf[team]` = `list of team` when the one
+    name in the brackets is a declared type; `oneOf[junior, senior]` = `enum [junior, senior]`; `manyOf[js, go]` is
+    new — a multi-select of values (`enum` with `many`), checked item by item. The type page picks the value type from
+    a list (string · text · number · date · month · yes / no · one of type → · many of type → · one of values · many
+    of values · list of strings) with the target type or the values beside it; an instance edits one of type as a
+    select, many of type as tags with × and an "+ add" picker of that type's instances, one of values as a select,
+    many of values as toggles — on cards in the column and on a document's properties alike.
+  alternatives: >
+    Only the new spellings — rejected: the base ontology and every product card use the old ones. A JSON schema for
+    properties — rejected: the yaml card is the type.
+  consequences: >
+    lib/parse.js reads the type names first so oneOf[x] can tell a type from a value; lib/graph.js validates a
+    multi-select item by item; component:type-view, component:node-editor, component:doc-props.
+  date: 2026-09-21
+  status: approved
+  affects: [type:node, lib:parse, component:type-view, component:node-editor, component:doc-props]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
 - id: decision:wf2.req-free-text
   title: A requirement is free text in the person's words — when / then / unless is not a template
   context: >
