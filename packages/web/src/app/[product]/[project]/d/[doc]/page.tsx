@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { isRscRequest } from '@/lib/request';
 import { loadScope, treeFor } from '@/lib/scope';
 import { loadMarkdown } from '@/lib/load';
@@ -11,10 +10,12 @@ import { DocProps } from '@/components/DocProps';
 import { PrHead } from '@/components/PrHead';
 import { LiveDocument } from '@/components/LiveDocument';
 import { DocNotFound } from '@/components/DocNotFound';
+import { GoneNotice } from '@/components/GoneNotice';
 
 export default async function DocPage({ params }: { params: Promise<{ product: string; project: string; doc: string }> }) {
   const { product, project, doc } = await params;
-  const scope = await loadScope(product, project); if (!scope) notFound();
+  const scope = await loadScope(product, project);
+  if (!scope) { const all = await loadScope(product); return <GoneNotice what="project" slug={project} product={product} projects={(all?.projects ?? []).map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} />; }
   const tree = treeFor(scope, project);
   // a document that is not there — never was, or was deleted outside the app while open — is a notice in place of the
   // content, not a 404 boundary: the layout (top bar, rail, tabs) stays and the next live refresh brings the document

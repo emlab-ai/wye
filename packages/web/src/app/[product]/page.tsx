@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { loadScope, treeFor } from '@/lib/scope';
 import { HIDDEN_KINDS } from '@/lib/graph';
 import { KIND_LABELS } from '@/lib/knowledge';
@@ -7,7 +6,7 @@ import { KIND_LABELS } from '@/lib/knowledge';
 // Product overview: description, projects, and the knowledge counts.
 export default async function ProductPage({ params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
-  const scope = await loadScope(product); if (!scope) notFound();
+  const scope = await loadScope(product); if (!scope) return null; // the layout shows the notice
   const counts: Record<string, number> = {};
   for (const n of scope.graph.nodes) if (n.defined && !HIDDEN_KINDS.has(n.kind) && n.kind !== 'module') counts[n.kind] = (counts[n.kind] ?? 0) + 1;
   return (

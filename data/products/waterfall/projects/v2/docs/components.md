@@ -717,6 +717,15 @@ The editor's blocks and the components the pages are made of, by area.
     person names — beside the code, in a shared drive — everything but the registry entry moves there.
   status: proposed
   part-of: module:components
+- id: component:gone-notice
+  file: packages/web/src/components/GoneNotice.tsx
+  side: server
+  purpose: >
+    A product or project that is not here (decision:wf2.deleted-outside-stays-put): the notice is a page of the app
+    with the way out — never the framework's bare 404. A product goes when its folder is removed or moved without
+    the app (a scratch product deleted, a git checkout); a project when its folder leaves the product.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { GoneNotice } from '@/components/GoneNotice';
 import { loadScope, treeFor } from '@/lib/scope';
 
 // Project overview: its pages. Opens the main page directly when there is one.
 export default async function ProjectPage({ params }: { params: Promise<{ product: string; project: string }> }) {
   const { product, project } = await params;
-  const scope = await loadScope(product, project); if (!scope || !scope.project) notFound();
+  const scope = await loadScope(product, project);
+  if (!scope || !scope.project) { const all = await loadScope(product); return <GoneNotice what="project" slug={project} product={product} projects={(all?.projects ?? []).map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} />; }
   const tree = treeFor(scope, project);
   const docs = [...tree.byFile.values()].filter(d => d.file.includes(`/projects/${project}/docs/`)).sort((a, b) => a.title.localeCompare(b.title));
   const p = scope.project;

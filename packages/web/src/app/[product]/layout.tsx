@@ -1,4 +1,3 @@
-import { notFound } from 'next/navigation';
 import { isRscRequest } from '@/lib/request';
 import type { ReactNode } from 'react';
 import { Rail } from '@/components/Rail';
@@ -21,10 +20,14 @@ import { prsPageId } from '@/lib/pr-doc';
 import { ensureBaseSkills, ensureHooksPage, hooksPageId, skillsPageId } from '@/lib/skills';
 import type { SkillItem } from '@/components/SkillFolder';
 import { waitingReasons } from '@/lib/dispatch';
+import { GoneNotice } from '@/components/GoneNotice';
 
 export default async function ProductLayout({ children, params }: { children: ReactNode; params: Promise<{ product: string }> }) {
   const { product } = await params;
-  const scope = await loadScope(product); if (!scope) notFound();
+  const scope = await loadScope(product);
+  // a product that is not here — moved, removed, a slug mistyped — is a page of the app, not a bare 404
+  // (decision:wf2.deleted-outside-stays-put): what exists is one click away
+  if (!scope) return <GoneNotice what="product" slug={product} products={(await listProducts()).map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} />;
   // a refresh or a client navigation (an RSC request) carries no node index: the provider fetches it (decision:wf2.parse-cache)
   const rsc = await isRscRequest();
   const products = await listProducts();
