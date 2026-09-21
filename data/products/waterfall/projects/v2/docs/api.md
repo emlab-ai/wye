@@ -523,7 +523,7 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   args: GET | POST /api/<product>/skills
   does: >
     (decision&#58;wf2.hooks-and-skills) — GET → the product's skills (id, title, role, takes, status, document); GET
-    ?id=skill:x → one skill with its body (what `wye skill <id>` prints). POST { title, project?, role? } → a new
+    ?id=<skill> → one skill with its body (what `wye skill <id>` prints). POST { title, project?, role? } → a new
     skill document from the template under the project's Skills page; returns { slug, project }.
   gate: none (local app)
   source: packages/web/src/app/api/[product]/skills/route.ts
