@@ -714,4 +714,6 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 /* the parts of a requirement and of a decision take their parent's colour, softer */
 :root { --k-when: var(--k-req); --k-then: var(--k-req); --k-unless: var(--k-req); --k-context: var(--k-decision); --k-choice: var(--k-decision); --k-alternative: var(--k-decision); --k-consequence: var(--k-decision); } .nblock-part .pill.k { opacity: .75; }
 
-.review-group-head { display: flex; align-items: baseline; gap: 8px; } .review-group-acts { margin-left: auto; display: flex; gap: 6px; }
+.review-group-head { display: flex; align-items: baseline; gap: 8px; } .review-group-acts { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; } .review-group-acts button { white-space: nowrap; }
+
+.fold-toggle { padding: 0 4px; color: var(--muted); font-size: 12px; } .fold-toggle:hover { color: var(--ink); } .change-item.folded { padding-bottom: 6px; } .change-fold { display: flex; align-items: center; gap: 8px; font-size: 12px; margin: 2px 0 0 26px; } .change-fold .review-acts.inline { margin: 0 0 0 auto; } .review-group-acts .danger { color: var(--bad); }
