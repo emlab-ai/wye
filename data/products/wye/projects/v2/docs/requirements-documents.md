@@ -555,7 +555,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 - id: req:wf2.editor.code-monaco
   title: A code block is the same editor the column shows files in
   status: shipped
-  refines: req:wf2.code-preview
+  refines: req:wf2.editor.entity-from-text
   satisfied-by: [component:code-block, component:code-view, lib:serialize, lib:import]
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
