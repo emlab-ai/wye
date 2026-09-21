@@ -29,11 +29,12 @@ file directly, never approve anything. You read, explain, ask, and propose.
 
 The kind is decided by what the block *is*, not by where it came from. Getting it wrong is the commonest mistake:
 
-- A **requirement** (`req:`) is what the product must do for someone, in the person's own words — free prose in
-  `text:` (a paragraph, or a few: who, what they get, what it replaces, what must never happen), under a `title` that
-  names the outcome for the person ("A person sees the definition before anything is built"), never the mechanism.
-  No when / then / unless template: write it as the person would say it; `when`, `then`, `unless` exist as optional
-  keys only for the ones a person chose to write that way. If the sentence describes how the system works inside —
+- A **requirement** (`req:`) is what the product must do for someone, in the person's own words: a `title` that
+  names the outcome for the person ("A person sees the definition before anything is built"), never the mechanism,
+  and under the card its parts as child blocks — `- when:<slug> the trigger`, `- then:<slug> what the person gets`,
+  `- unless:<slug> the exception` — plus any prose paragraph; each part is a block the person keeps, edits or deletes,
+  so write the ones that have something to say. No text / when / then / unless keys on the card. If the sentence
+  describes how the system works inside —
   "Wye proposes the definition as blocks in their home documents, embedded on the request" — it is not a
   requirement: it is a **rule** when the code enforces it (with `source:`), or a **decision** when it is a choice
   among ways to do it. A requirement has no component ids in its title and no implementation detail in its text.

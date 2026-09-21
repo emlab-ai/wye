@@ -195,7 +195,7 @@ Definition — the librarian
   part-of: goal:exec.define-first
 ```
 
-  - choice:wf2.req-free-text A requirement is a `title` and free prose in `text` — a paragraph or a few: who it is for, what they get, what it replaces, what must never happen — in the person's words, no mechanism. `when`, `then`, `unless` stay as optional keys for the ones a person chose to write that way; nothing asks for them. The card renders `text` as prose under the title (component:node-cards); the inbox files a requirement's body as `text`; the prompts and the base ontology say so. Existing when / then / unless requirements stay as they are.
+  - choice:wf2.req-free-text A requirement is its title and its content — under the card, child blocks of three types in the base ontology, when / then / unless (the trigger, the outcome, the exception), plus any prose paragraph; a new requirement is born with the three under it, blocks the person edits or deletes. Every existing requirement's text / when / then / unless keys were moved into those child blocks (205 cards); no card carries them. The librarian, the worker, describe-module and the inbox write the card and its child lines; the card shows the name and the properties, the content is read and edited in the column (decision:wf2.card-is-name-and-properties).
 
   - context:wf2.req-free-text type:req was defined as "when <trigger>, <actor> <outcome> [unless <exception>]" and every prompt (the librarian, the worker, describe-module) made the agents fill those three slots. alex: requirements must be free-form text.
 

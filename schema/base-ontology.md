@@ -61,8 +61,10 @@ type means instances may carry properties the type does not declare without a wa
 - id: type:req
   extends: type:node
   purpose: >
-    what the product must do for someone, in the person's own words — free text under a title (decision:wf2.req-free-text);
-    when / then / unless are optional keys for the ones a person chose to write that way, never a template
+    what the product must do for someone, in the person's own words — a title, and its content: born with `when:`,
+    `then:` and `unless:` child blocks (each a block the person keeps, edits or deletes) and any prose
+    (decision:wf2.req-free-text, decision:wf2.card-is-name-and-properties). text / when / then / unless as keys on the
+    card are the old form, read but never written
   open: true
   props:
     text: text?
@@ -210,6 +212,18 @@ type means instances may carry properties the type does not declare without a wa
     consequences: text?
     governs: list of node? -(inverse)-> governed-by
     affects: list of node? -(inverse)-> affected-by
+- id: type:when
+  extends: type:node
+  purpose: the trigger of a requirement — a child block of it
+  open: true
+- id: type:then
+  extends: type:node
+  purpose: the outcome of a requirement — a child block of it
+  open: true
+- id: type:unless
+  extends: type:node
+  purpose: the exception of a requirement — a child block of it
+  open: true
 - id: type:context
   extends: type:node
   purpose: what forced a decision — a child block of it

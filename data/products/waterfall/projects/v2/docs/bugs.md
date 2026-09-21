@@ -47,20 +47,17 @@ content blocks for Claude, `--image` for Codex). The command box (action:command
 ```yaml
 - id: req:wf2.ui.palette-images
   title: A request from the command palette can carry images
-  when: >
-    a person pastes or drops one or more images into the ⌘P command box before pressing Enter
-  then: >
-    thumbnails appear under the text with a remove button (up to 8, like the session composer); on Enter the
-    images are saved as the session's files (store:session-files) and reach the agent in the first message —
-    Claude as image content blocks, Codex as --image paths, and as file paths listed under the instruction so
-    an agent run by wf agent listen can read them — and the first user event in the console shows them
-  unless: >
-    the clipboard holds no image (plain text pastes as before)
   status: shipped
   refines: req:wf2.ui.command-palette
   satisfied-by: [action:command-palette, store:session-files]
   verified-by: [ui-test:command-palette]
 ```
+
+  - when:wf2.ui.palette-images a person pastes or drops one or more images into the ⌘P command box before pressing Enter
+
+  - then:wf2.ui.palette-images thumbnails appear under the text with a remove button (up to 8, like the session composer); on Enter the images are saved as the session's files (store:session-files) and reach the agent in the first message — Claude as image content blocks, Codex as --image paths, and as file paths listed under the instruction so an agent run by wf agent listen can read them — and the first user event in the console shows them
+
+  - unless:wf2.ui.palette-images the clipboard holds no image (plain text pastes as before)
 
 ```yaml
 - id: decision:wf2.palette-images-are-session-files

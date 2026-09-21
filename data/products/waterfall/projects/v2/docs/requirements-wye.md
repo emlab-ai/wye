@@ -20,72 +20,97 @@ order: 25
 ```yaml
 - id: req:wf2.self
   title: v2 is built through its own graph
-  when: a v2 requirement is implemented
-  then: it flips from proposed to shipped in this graph with real sources and a verified-by test, and graph.check strict runs in CI on every PR
   status: proposed
   satisfied-by: [entity:module-doc, flag:strict]
   requires-tests: []
   see: req:wf.self
 
+```
+
+  - when:wf2.self a v2 requirement is implemented
+
+  - then:wf2.self it flips from proposed to shipped in this graph with real sources and a verified-by test, and graph.check strict runs in CI on every PR
+
+```yaml
 - id: req:wf2.self.phases
   title: Three phases, each with an exit criterion in this PRD
-  when: a phase is planned
-  then: its plan names the requirement ids it ships (phase 1 store, serve, write, api, tasks, decisions, cli; phase 2 ui and structural contradictions; phase 3 clerk and semantic contradictions) and the phase closes when they are shipped and strict check is green
   status: proposed
   requires-tests: []
   refines: req:wf2.self
 
+```
+
+  - when:wf2.self.phases a phase is planned
+
+  - then:wf2.self.phases its plan names the requirement ids it ships (phase 1 store, serve, write, api, tasks, decisions, cli; phase 2 ui and structural contradictions; phase 3 clerk and semantic contradictions) and the phase closes when they are shipped and strict check is green
+
+```yaml
 - id: req:wf2.self.fixture
   title: A fresh checkout tests something
-  when: the test suite runs without the YesSensei repo present
-  then: an in-repo fixture (a trimmed copy of the inventory pilot) drives the parser, writer and check tests, so the suite never exits green with zero assertions
   status: proposed
   satisfied-by: [test:core-parser]
   requires-tests: [test:core-parser#fixture-present]
   resolves: [drift:waterfall.7]
   refines: req:wf2.self
+```
+
+  - when:wf2.self.fixture the test suite runs without the YesSensei repo present
+
+  - then:wf2.self.fixture an in-repo fixture (a trimmed copy of the inventory pilot) drives the parser, writer and check tests, so the suite never exits green with zero assertions
+
+```yaml
 - id: req:wf2.definition.one-place-per-kind
   title: A person finds every kind of block in one known place
-  when: a person opens the product's Documents tree
-  then: >
-    they see one tree — Wye, PRD, Design (a module page per area), Tests, Research, Archive, with TODO, Bugs and Plans
-    as intake — and every requirement and open question is in the PRD under its area, every rule, decision, component,
-    lib and op on its area's Design page, every research essay under Research; no kind is defined in two places
-  unless: the block is retired — then it is under Archive
   status: proposed
   part-of: goal:exec.define-first
   satisfied-by: [decision:wf2.definition-shape, rule:documents-tree]
+```
+
+  - when:wf2.definition.one-place-per-kind a person opens the product's Documents tree
+
+  - then:wf2.definition.one-place-per-kind they see one tree — Wye, PRD, Design (a module page per area), Tests, Research, Archive, with TODO, Bugs and Plans as intake — and every requirement and open question is in the PRD under its area, every rule, decision, component, lib and op on its area's Design page, every research essay under Research; no kind is defined in two places
+
+  - unless:wf2.definition.one-place-per-kind the block is retired — then it is under Archive
+
+```yaml
 - id: req:wf2.definition.what-wye-is
   title: A person reads what Wye is on one page
-  when: a person opens the Wye page
-  then: >
-    they read, without mechanism, what Wye is for, the goals it pursues, the constitution (the approved constraints)
-    and the product-level decisions of record; every area of the product is named there with a link to its PRD
-    section and its Design page
   status: proposed
   part-of: goal:exec.define-first
   satisfied-by: [decision:wf2.definition-shape]
+```
+
+  - when:wf2.definition.what-wye-is a person opens the Wye page
+
+  - then:wf2.definition.what-wye-is they read, without mechanism, what Wye is for, the goals it pursues, the constitution (the approved constraints) and the product-level decisions of record; every area of the product is named there with a link to its PRD section and its Design page
+
+```yaml
 - id: req:wf2.definition.links-survive
   title: Every link still works after the move
-  when: a block has moved to its new home, or been retired
-  then: >
-    its id is unchanged, every tag and embed that named it still resolves to it, `ctx check` is green with no dangling
-    reference, and the same nodes answer `wf packet` and `wf context` for a text as before — minus the retired ones
-  unless: the block was retired — then it still resolves, marked retired, and is hidden from default retrieval
   status: proposed
   part-of: goal:exec.define-first
   satisfied-by: [decision:wf2.superseded-layers, decision:memory.forgetting]
+```
+
+  - when:wf2.definition.links-survive a block has moved to its new home, or been retired
+
+  - then:wf2.definition.links-survive its id is unchanged, every tag and embed that named it still resolves to it, `ctx check` is green with no dangling reference, and the same nodes answer `wf packet` and `wf context` for a text as before — minus the retired ones
+
+  - unless:wf2.definition.links-survive the block was retired — then it still resolves, marked retired, and is hidden from default retrieval
+
+```yaml
 - id: req:wf2.definition.pages-hold-only-definition
   title: A definition page holds only the definition
-  when: a person reads the Wye page, the PRD, a Design page or the Tests page
-  then: >
-    they see only that page's kinds of blocks and the prose that explains them — no session's plan, log or request
-    sections, no pasted plan document — and the page's title names Wye, not Waterfall v2
-  unless: the page is a plan document under Plans, which holds exactly that
   status: proposed
   part-of: goal:exec.define-first
   satisfied-by: [decision:wf2.definition-leftovers]
 ```
+
+  - when:wf2.definition.pages-hold-only-definition a person reads the Wye page, the PRD, a Design page or the Tests page
+
+  - then:wf2.definition.pages-hold-only-definition they see only that page's kinds of blocks and the prose that explains them — no session's plan, log or request sections, no pasted plan document — and the page's title names Wye, not Waterfall v2
+
+  - unless:wf2.definition.pages-hold-only-definition the page is a plan document under Plans, which holds exactly that
 
 <!-- /list:req -->
 

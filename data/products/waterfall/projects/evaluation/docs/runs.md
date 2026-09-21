@@ -21,14 +21,14 @@ One card per results file: the suite, the graph and git shas, the model, the jud
   title: "own — 2026-09-21 (replayed)"
   suite: own
   date: 2026-09-21
-  graph-sha: "3b4bc606bd56"
-  git: "82c10885c805"
+  graph-sha: "e1473aa8ab93"
+  git: "b1f9960d9ae5"
   model: "claude-haiku-4-5-20251001"
   judge: "claude-haiku-4-5-20251001 @ 6d31662f"
   prompts: "verdict 6d31662f, impact 291a2d1d, consolidation 1d527194"
   gate: passed
-  truth: "truth-waterfall-3b4bc606bd56.json: requirements 72, supersessions 2, commits 79, sessions 18, consolidation 30"
-  truth: "errors: packet: recording missing in eval/recorded/semantic-waterfall.json for context \"Every request that starts work becomes a plan document under\" — run once with --live (WATERFALL_LIVE=1); currency: recording missing in eval/recorded/semantic-waterfall.json for context \"The definition of Wye is by kind on top and by area inside —\" — run once with --live (WATERFALL_LIVE=1); impact: recording missing in eval/recorded/semantic-waterfall.json for context \"The Inbox per project (req&#58;wf2.inbox.per-project): chips\" — run once with --live (WATERFALL_LIVE=1)"
+  truth: "truth-waterfall-e1473aa8ab93.json: requirements 72, supersessions 2, commits 79, sessions 18, consolidation 30"
+  truth: "errors: packet: recording missing in eval/recorded/semantic-waterfall.json for context \"A request from the command palette can carry images\" — run once with --live (WATERFALL_LIVE=1); currency: recording missing in eval/recorded/semantic-waterfall.json for context \"The definition of Wye is by kind on top and by area inside —\" — run once with --live (WATERFALL_LIVE=1); impact: recording missing in eval/recorded/semantic-waterfall.json for context \"The Inbox per project (req&#58;wf2.inbox.per-project): chips\" — run once with --live (WATERFALL_LIVE=1)"
 ```
 
 ## Scores
@@ -37,14 +37,14 @@ One card per number, with the previous run, the delta in points, the tolerance i
 
 ```yaml
 - id: eval-score:2026-09-21-own.contradictions-recall
-  title: "contradictions.recall 18.2%"
+  title: "contradictions.recall 16.7%"
   run: eval-run:2026-09-21-own
   name: "contradictions.recall"
-  value: "18.2%"
-  n: 11
+  value: "16.7%"
+  n: 6
   tolerance: 5
   kappa: "n/a"
-  what: "drift pairs judged contradicts; by conflict: static 1, dynamic 1; 1 unjudged"
+  what: "drift pairs judged contradicts; by conflict: static 1; 6 unjudged"
 - id: eval-score:2026-09-21-own.contradictions-precision
   title: "contradictions.precision n/a"
   run: eval-run:2026-09-21-own

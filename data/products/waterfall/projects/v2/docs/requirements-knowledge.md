@@ -21,53 +21,51 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 ```yaml
 - id: req:wf2.instances.filter
   title: A type's or kind's instances are one filterable table
-  when: >
-    a person opens /<product>/types/<slug> or /<product>/knowledge/<kind> (from Types, Knowledge, a type: tag or a link)
-  then: >
-    the instances show as one table with a toolbar: search over id, title and every property value; status chips
-    with counts; one filter per enum, ref or bool property the type declares (a chip row for enums and bools, a
-    select of instances for a ref); group by document, status or any enum / ref property; sort by any column;
-    a column per declared property and one for the document. The toolbar state is in the URL
-    (?q=&status=&group=&sort=&<prop>=) so a filtered list can be pasted as a link. A row opens the node in the
-    context column; ↗ opens its definition.
-  unless: >
-    the kind has no declared type (e.g. lib, op) or the type declares no properties — then the toolbar has search,
-    status and document only, and the table shows the node's relations as the last column (what the kind page shows today)
   status: shipped
   satisfied-by: [component:instance-table, page:web/types, page:web/knowledge]
   verified-by: [test:web-lib#instance-table, ui-test:instance-table]
   part-of: req:ontology.type-page
+```
+
+  - when:wf2.instances.filter a person opens /<product>/types/<slug> or /<product>/knowledge/<kind> (from Types, Knowledge, a type: tag or a link)
+
+  - then:wf2.instances.filter the instances show as one table with a toolbar: search over id, title and every property value; status chips with counts; one filter per enum, ref or bool property the type declares (a chip row for enums and bools, a select of instances for a ref); group by document, status or any enum / ref property; sort by any column; a column per declared property and one for the document. The toolbar state is in the URL (?q=&status=&group=&sort=&<prop>=) so a filtered list can be pasted as a link. A row opens the node in the context column; ↗ opens its definition.
+
+  - unless:wf2.instances.filter the kind has no declared type (e.g. lib, op) or the type declares no properties — then the toolbar has search, status and document only, and the table shows the node's relations as the last column (what the kind page shows today)
+
+```yaml
 - id: req:wf2.instances.view-as-blocks
   title: An instances view shows its instances as blocks unless asked for a table
-  when: a document holds an instances view (`<!-- view:<type> -->`) of any type
-  then: >
-    every instance that passes the filters is shown as its own block — the same card its page shows, editable in
-    place — under the view's filter bar and groups; `as=table` on the line, or the header's toggle, gives the table
   status: shipped
   refines: req:wf2.instances.view-block
   satisfied-by: [component:view-block, component:instance-table, component:embed-block]
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
   part-of: module:req-knowledge
+```
+
+  - when:wf2.instances.view-as-blocks a document holds an instances view (`<!-- view:<type> -->`) of any type
+
+  - then:wf2.instances.view-as-blocks every instance that passes the filters is shown as its own block — the same card its page shows, editable in place — under the view's filter bar and groups; `as=table` on the line, or the header's toggle, gives the table
+
+```yaml
 - id: req:wf2.instances.view-block
   title: A document holds a live view of a type's instances
-  when: >
-    a person types "/view" in a document (slash menu item "Instances view", group Waterfall) and picks a type in the
-    block's header, or sets filters on the table inside it
-  then: >
-    the block shows component:instance-table for that type, live from the graph, read-only; the markdown is one
-    HTML-comment line `<!-- view:<slug> status=open group=owner -->` (the toolbar state as key=value), invisible to
-    other markdown readers and not a node; a row opens the node in the context column
-  unless: >
-    the type is no longer declared — the block keeps its line and says "type:<slug> is not declared"
   status: shipped
   satisfied-by: [component:instance-table, component:view-block, rule:view-block]
   verified-by: [test:web-lib#import, ui-test:instance-table]
   related-to: [rule:type-tables, decision:wf2.one-table-block]
+```
+
+  - when:wf2.instances.view-block a person types "/view" in a document (slash menu item "Instances view", group Waterfall) and picks a type in the block's header, or sets filters on the table inside it
+
+  - then:wf2.instances.view-block the block shows component:instance-table for that type, live from the graph, read-only; the markdown is one HTML-comment line `<!-- view:<slug> status=open group=owner -->` (the toolbar state as key=value), invisible to other markdown readers and not a node; a row opens the node in the context column
+
+  - unless:wf2.instances.view-block the type is no longer declared — the block keeps its line and says "type:<slug> is not declared"
+
+```yaml
 - id: req:wf2.ui.graph
   title: The graph is a mind map around a focus
-  when: the graph view opens with a focus node
-  then: the focus sits in the centre with refines and has edges laid out as a tree and other structural verbs as cross-links; mentions are hidden; presets Requirements, Mechanics, Data, Drift and Everything change the visible set; click opens the node page in a side panel and double-click re-centres
   status: unverified
   note: read-only first slice shipped 2026-09-14 (packages/web); no automated page test yet, server-backed data and editing pending
   satisfied-by: [page:web/graph, rule:mindmap-layout, rule:graph-presets]
@@ -75,16 +73,25 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   see: req:wf.view.graph
   refines: req:wf2.ui
 
+```
+
+  - when:wf2.ui.graph the graph view opens with a focus node
+
+  - then:wf2.ui.graph the focus sits in the centre with refines and has edges laid out as a tree and other structural verbs as cross-links; mentions are hidden; presets Requirements, Mechanics, Data, Drift and Everything change the visible set; click opens the node page in a side panel and double-click re-centres
+
+```yaml
 - id: req:wf2.ui.graph-edit
   title: The mind map is editable
-  when: the user drags from one node's handle to another, deletes a selected edge, renames a node inline, or chooses Add child
-  then: the change is sent through graph.patch or graph.create (an edge drag asks for the verb) and appears only after the file changes and the SSE event arrives
   status: proposed
   satisfied-by: [page:web/graph, action:drag-edge, action:delete-edge, action:rename-node, action:add-child]
   requires-tests: [test:web-components#graph-edit-calls-api, ui-test:graph-edit]
   refines: req:wf2.ui.graph
 
 ```
+
+  - when:wf2.ui.graph-edit the user drags from one node's handle to another, deletes a selected edge, renames a node inline, or chooses Add child
+
+  - then:wf2.ui.graph-edit the change is sent through graph.patch or graph.create (an edge drag asks for the verb) and appears only after the file changes and the SSE event arrives
 
 <!-- /list:req -->
 

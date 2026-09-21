@@ -868,11 +868,15 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   // base kinds, then the product's own types (its type: cards) — an instance is a prose line `team:slug …`
   const fresh = () => `new-${Math.floor(Math.random() * 900 + 100)}`;
   const child = (kind: string, text: string) => ({ type: 'node', props: { kind, slug: fresh(), form: 'prose', textKey: 'text', check: '', status: '' }, content: [{ type: 'text', text, styles: { italic: true } }] });
-  // a decision is born with its parts as child blocks (decision:wf2.decision-free-text) — blocks, so any of them can go
-  const DECISION_PARTS: [string, string][] = [['context', 'what forced it'], ['choice', 'what was chosen, and why'], ['alternative', 'a way not taken, and why not'], ['consequence', 'what follows']];
+  // a decision or a requirement is born with its parts as child blocks (decision:wf2.decision-free-text,
+  // decision:wf2.req-free-text) — blocks, so any of them can go
+  const PARTS: Record<string, [string, string][]> = {
+    decision: [['context', 'what forced it'], ['choice', 'what was chosen, and why'], ['alternative', 'a way not taken, and why not'], ['consequence', 'what follows']],
+    req: [['when', 'the trigger — when …'], ['then', 'the outcome — the person gets …'], ['unless', 'the exception — unless …']],
+  };
   const nodeItems = [...CARD_KINDS, ...ownKinds].map(kind => ({
-    title: `${kind} block`, group: 'Wye', subtext: kind === 'decision' ? 'a new decision with its context, choice, alternative and consequence blocks under it' : `a new ${kind} written as prose`,
-    onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'node', props: { kind, slug: fresh(), form: 'prose', textKey: 'text', check: kind === 'task' ? 'todo' : '', status: kind === 'task' ? 'open' : kind === 'decision' ? 'proposed' : '' }, ...(kind === 'decision' ? { children: DECISION_PARTS.map(([k, t]) => child(k, t)) } : {}) } as never); },
+    title: `${kind} block`, group: 'Wye', subtext: PARTS[kind] ? `a new ${kind} with its ${PARTS[kind].map(([k]) => k).join(', ')} blocks under it` : `a new ${kind} written as prose`,
+    onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'node', props: { kind, slug: fresh(), form: 'prose', textKey: 'text', check: kind === 'task' ? 'todo' : '', status: kind === 'task' ? 'open' : PARTS[kind] ? 'proposed' : '' }, ...(PARTS[kind] ? { children: PARTS[kind].map(([k, t]) => child(k, t)) } : {}) } as never); },
   }));
 
   // Drawings: a new empty scene, or the current code block turned into a monospace text element (ASCII diagrams).

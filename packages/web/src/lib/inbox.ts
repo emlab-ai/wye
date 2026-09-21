@@ -114,7 +114,7 @@ export async function fileItem(productDir: string, product: string, item: InboxI
   const f = item.fields;
   const lines: (string | null)[] = [`- id: ${target.id}`];
   if (kind === 'decision') lines.push(y('title', item.title), '  status: approved', `  date: ${today}`); // its parts follow as child blocks (decision:wf2.decision-free-text)
-  else if (kind === 'req') lines.push(y('title', item.title), y('text', item.body), y('when', f.when), y('then', f.then), y('unless', f.unless), '  status: proposed');
+  else if (kind === 'req') lines.push(y('title', item.title), '  status: proposed'); // its parts follow as child blocks (decision:wf2.req-free-text)
   else if (kind === 'rule') lines.push(y('statement', f.statement || item.body || item.title), y('source', f.source), '  status: proposed');
   else if (kind === 'question') lines.push(y('q', f.q || item.body || item.title), '  status: question');
   else lines.push(y('title', item.title), y('text', item.body));
@@ -123,7 +123,8 @@ export async function fileItem(productDir: string, product: string, item: InboxI
   // a decision's parts as child blocks under the card, each one a block the person keeps or deletes
   const one = (t?: string) => (t ?? '').replace(/\s+/g, ' ').trim();
   const slug = target.id.slice(target.id.indexOf(':') + 1);
-  const parts = kind === 'decision' ? [['choice', one(f.choice || item.body)], ['context', one(f.context)], ['alternative', one(f.alternatives)], ['consequence', one(f.consequences)]].filter(([, t]) => t).map(([k, t]) => `  - ${k}:${slug} ${t}`) : [];
+  const parts = kind === 'decision' ? [['choice', one(f.choice || item.body)], ['context', one(f.context)], ['alternative', one(f.alternatives)], ['consequence', one(f.consequences)]].filter(([, t]) => t).map(([k, t]) => `  - ${k}:${slug} ${t}`)
+    : kind === 'req' ? [...(one(item.body) && !f.then ? [`  ${one(item.body)}`] : []), ...[['when', one(f.when)], ['then', one(f.then || (f.when ? item.body : ''))], ['unless', one(f.unless)]].filter(([, t]) => t).map(([k, t]) => `  - ${k}:${slug} ${t}`)] : [];
   const block = '\n\n```yaml\n' + lines.filter(Boolean).join('\n') + '\n```\n' + (parts.length ? '\n' + parts.join('\n\n') + '\n' : '');
   await withFileLock(abs, async () => { const md = await readFile(abs, 'utf8'); await writeAtomic(abs, md.replace(/\s+$/, '') + block); });
   await rebuild(productDir);

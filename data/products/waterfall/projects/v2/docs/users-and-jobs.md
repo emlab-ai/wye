@@ -13,7 +13,6 @@ order: 11
 
 Who Wye is for and what they come to do; the goals the product sets out to reach.
 
-
 ## Goals
 
 <!-- list:goal -->
@@ -27,7 +26,7 @@ Who Wye is for and what they come to do; the goals the product sets out to reach
   depends-on: [req:wf2.clerk, req:wf2.contradictions, module:ontology-design]
 ```
 
-  A request that reaches an agent carries the complete set of rules, constraints, approved decisions and goals that govern what it touches, with superseded and rejected ones filtered out by construction; every decision, requirement and rule written by anyone is classified against its neighbours before a person sees it in the Inbox; decisions carry time, supersession and evidence; what a session decided is consolidated into the documents even when the agent forgot to write it; and what is done leaves default retrieval.
+  A requestf that reaches an agent carries the complete set of rules, constraints, approved decisions and goals that govern what it touches, with superseded and rejected ones filtered out by construction; every decision, requirement and rule written by anyone is classified against its neighbours before a person sees it in the Inbox; decisions carry time, supersession and evidence; what a session decided is consolidated into the documents even when the agent forgot to write it; and what is done leaves default retrieval.
 
 ```yaml
 - id: goal:ontology.graph-editor
@@ -42,7 +41,8 @@ Who Wye is for and what they come to do; the goals the product sets out to reach
 
 ```yaml
 - id: goal:exec.work-and-impact
-  title: All work is one list, any worker can take any item, and an edit shows what it changes before it lands
+  title: >
+    All work is one list, any worker can take any item, and an edit shows what it changes before it lands
   status: proposed
   owner: alex
   part-of: module:users-and-jobs
@@ -62,4 +62,7 @@ Who Wye is for and what they come to do; the goals the product sets out to reach
 
   The person tells Wye what they want in their own words; Wye finds what the product already knows about it and shows it in the context column, explains the current state in plain language with the nodes as tags, asks the few questions the requirement shape needs, proposes requirements, decisions, questions and tasks as blocks, and keeps them as one definition on the request's plan until every block is agreed; then the plan is built by any worker from that definition, and every change the conversation proposed is tracked as part of it.
 
+- goal:adsf adsf #proposed
 <!-- /list:goal -->
+
+a
