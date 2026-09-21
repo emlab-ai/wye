@@ -80,13 +80,13 @@ Decisions this plan makes on its own, and what it cannot decide:
   session: ffab751604
 ```
 
-  DocEditor gains a scope: given a node id it loads the node's content markdown (GET /api/<product>/node/<id>/content: the nested lines de-indented, the document's hash) into the same schema and saves it back with PUT …/node/<id>/content (if-match on the document, the ctx check gate) which re-indents the markdown under the defining line and rebuilds the graph. Same slash menu, same import/serialize, same slug assignment for new typed blocks; the only differences are the load and save paths and that its root is a node, not a document.
+  - choice:wf2.content-editor-scoped DocEditor gains a scope: given a node id it loads the node's content markdown (GET /api/<product>/node/<id>/content: the nested lines de-indented, the document's hash) into the same schema and saves it back with PUT …/node/<id>/content (if-match on the document, the ctx check gate) which re-indents the markdown under the defining line and rebuilds the graph. Same slash menu, same import/serialize, same slug assignment for new typed blocks; the only differences are the load and save paths and that its root is a node, not a document.
 
-  **Context** — req:wf2.ui.node-content wants the page's editor inside the column, for any node, recursively. DocEditor loads a whole document and saves it whole; the column shows one node whose content is a slice of a document.
+  - context:wf2.content-editor-scoped req:wf2.ui.node-content wants the page's editor inside the column, for any node, recursively. DocEditor loads a whole document and saves it whole; the column shows one node whose content is a slice of a document.
 
-  **Alternatives** — A separate lighter editor for content (two editors that drift); writing children as op:node.edit patches one block at a time (loses ordering and nested structure); editing content only on the document page (the column stays read-only — not what was asked).
+  - alternative:wf2.content-editor-scoped A separate lighter editor for content (two editors that drift); writing children as op:node.edit patches one block at a time (loses ordering and nested structure); editing content only on the document page (the column stays read-only — not what was asked).
 
-  **Consequences** — two new routes under api/[product]/node/[id]/content; DocEditor's load/save are parameterised (a `scope` prop); a node open in the column and its document open behind it can both edit the same lines — the second write fails if-match and that editor reloads on the next graph event, as today for an outside change.
+  - consequence:wf2.content-editor-scoped two new routes under api/[product]/node/[id]/content; DocEditor's load/save are parameterised (a `scope` prop); a node open in the column and its document open behind it can both edit the same lines — the second write fails if-match and that editor reloads on the next graph event, as today for an outside change.
 
 ```yaml
 - id: decision:wf2.related-collapsed-default
@@ -97,13 +97,13 @@ Decisions this plan makes on its own, and what it cannot decide:
   session: ffab751604
 ```
 
-  A "Related" heading with a show/hide button; collapsed by default; ContextPanel does not mount (so no request goes out) until it is shown; the state lives in PeekProvider and in localStorage (`wf-related`), so it holds across blocks, pages and reloads until the person closes it again.
+  - choice:wf2.related-collapsed-default A "Related" heading with a show/hide button; collapsed by default; ContextPanel does not mount (so no request goes out) until it is shown; the state lives in PeekProvider and in localStorage (`wf-related`), so it holds across blocks, pages and reloads until the person closes it again.
 
-  **Context** — The Related list (rule:context-panel) shows up under every selected block and searches on every caret move; the person asked for it hidden behind a button.
+  - context:wf2.related-collapsed-default The Related list (rule:context-panel) shows up under every selected block and searches on every caret move; the person asked for it hidden behind a button.
 
-  **Alternatives** — Collapsed every time the block changes (a click per block, tiring for someone who wants it); still searching while hidden (wasted requests); removing Related (it is what "+ link" is for).
+  - alternative:wf2.related-collapsed-default Collapsed every time the block changes (a click per block, tiring for someone who wants it); still searching while hidden (wasted requests); removing Related (it is what "+ link" is for).
 
-  **Consequences** — fewer context requests; ui-test:block-select's Related checks open it first
+  - consequence:wf2.related-collapsed-default fewer context requests; ui-test:block-select's Related checks open it first
 
 ```yaml
 - id: decision:wf2.text-is-first-block
@@ -114,13 +114,13 @@ Decisions this plan makes on its own, and what it cannot decide:
   session: ffab751604
 ```
 
-  The column shows the kind and id, the properties (status, the type's properties, tracking fields, inverses), then Content: one editor whose first block is the node's text and whose following blocks are its content. A save splits the editor's blocks: the first block's inline text becomes the node's text (op:node.edit's patch of the defining line or the yaml card's text key), the rest its content (op:node.content), in one write under one hash. An empty or non-text first block leaves the text as it was.
+  - choice:wf2.text-is-first-block The column shows the kind and id, the properties (status, the type's properties, tracking fields, inverses), then Content: one editor whose first block is the node's text and whose following blocks are its content. A save splits the editor's blocks: the first block's inline text becomes the node's text (op:node.edit's patch of the defining line or the yaml card's text key), the rest its content (op:node.content), in one write under one hash. An empty or non-text first block leaves the text as it was.
 
-  **Context** — The first build showed a node in the column as a title field, then its properties, then a Content editor: the text on top and the content below were two things. The person (session ffab751604, 2026-09-18): the text and the content are the same thing; properties go on top, then the content, and the node's text — "When i select a bug…" for bug:when-i-select-a — must be a text block inside the content field.
+  - context:wf2.text-is-first-block The first build showed a node in the column as a title field, then its properties, then a Content editor: the text on top and the content below were two things. The person (session ffab751604, 2026-09-18): the text and the content are the same thing; properties go on top, then the content, and the node's text — "When i select a bug…" for bug:when-i-select-a — must be a text block inside the content field.
 
-  **Alternatives** — Keeping the title field above the editor (two things for one field); making the text the card's header only (then the text is not a block and cannot be edited like one).
+  - alternative:wf2.text-is-first-block Keeping the title field above the editor (two things for one field); making the text the card's header only (then the text is not a block and cannot be edited like one).
 
-  **Consequences** — NodeEditor loses its title field; the content route's GET returns the node's text and its PUT takes `text` with `content`; an embed's card and the page's card keep the text in their own slot as before.
+  - consequence:wf2.text-is-first-block NodeEditor loses its title field; the content route's GET returns the node's text and its PUT takes `text` with `content`; an embed's card and the page's card keep the text in their own slot as before.
 
 ```yaml
 - id: question:wf2.content-of-block-nodes

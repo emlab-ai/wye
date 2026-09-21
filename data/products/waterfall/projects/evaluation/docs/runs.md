@@ -21,13 +21,13 @@ One card per results file: the suite, the graph and git shas, the model, the jud
   title: "own — 2026-09-21 (replayed)"
   suite: own
   date: 2026-09-21
-  graph-sha: "16dd88442819"
-  git: "d75ff58a379b"
+  graph-sha: "3b4bc606bd56"
+  git: "82c10885c805"
   model: "claude-haiku-4-5-20251001"
   judge: "claude-haiku-4-5-20251001 @ 6d31662f"
   prompts: "verdict 6d31662f, impact 291a2d1d, consolidation 1d527194"
   gate: passed
-  truth: "truth-waterfall-16dd88442819.json: requirements 72, supersessions 2, commits 79, sessions 18, consolidation 30"
+  truth: "truth-waterfall-3b4bc606bd56.json: requirements 72, supersessions 2, commits 79, sessions 18, consolidation 30"
   truth: "errors: packet: recording missing in eval/recorded/semantic-waterfall.json for context \"Every request that starts work becomes a plan document under\" — run once with --live (WATERFALL_LIVE=1); currency: recording missing in eval/recorded/semantic-waterfall.json for context \"The definition of Wye is by kind on top and by area inside —\" — run once with --live (WATERFALL_LIVE=1); impact: recording missing in eval/recorded/semantic-waterfall.json for context \"The Inbox per project (req&#58;wf2.inbox.per-project): chips\" — run once with --live (WATERFALL_LIVE=1)"
 ```
 
@@ -46,11 +46,11 @@ One card per number, with the previous run, the delta in points, the tolerance i
   kappa: "n/a"
   what: "drift pairs judged contradicts; by conflict: static 1, dynamic 1; 1 unjudged"
 - id: eval-score:2026-09-21-own.contradictions-precision
-  title: "contradictions.precision 100%"
+  title: "contradictions.precision n/a"
   run: eval-run:2026-09-21-own
   name: "contradictions.precision"
-  value: "100%"
-  n: 2
+  value: "n/a"
+  n: 0
   tolerance: 5
   kappa: "n/a"
   what: "same-kind neighbour pairs left alone (precision proxy)"

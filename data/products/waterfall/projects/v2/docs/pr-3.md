@@ -99,13 +99,13 @@ task below records the fix to make.
   date: 2026-09-18
 ```
 
-  The app creates `plans.md` (module:<project>-plans, title Plans, a view of type:pr) in the project when the first plan is made, and every plan document is `part-of` it. The source document, node and refs stay as tags under the plan's Request. The two plan documents that exist move under it.
+  - choice:wf2.plans-folder The app creates `plans.md` (module:<project>-plans, title Plans, a view of type:pr) in the project when the first plan is made, and every plan document is `part-of` it. The source document, node and refs stay as tags under the plan's Request. The two plan documents that exist move under it.
 
-  **Context** — question:wf2.plan-doc-parent asked whether a plan sits under the document the request was made on or under one Plans page. The request asks for a Plans folder: one place where all work, in progress and done, is found.
+  - context:wf2.plans-folder question:wf2.plan-doc-parent asked whether a plan sits under the document the request was made on or under one Plans page. The request asks for a Plans folder: one place where all work, in progress and done, is found.
 
-  **Alternatives** — Under the source document — a module's plans sit with the module, but nothing lists all work; a docs/plans/ subfolder on disk — the document routes and the watcher are flat, and a page as folder is what the tree already does.
+  - alternative:wf2.plans-folder Under the source document — a module's plans sit with the module, but nothing lists all work; a docs/plans/ subfolder on disk — the document routes and the watcher are flat, and a page as folder is what the tree already does.
 
-  **Consequences** — resolves question:wf2.plan-doc-parent; req:wf2.sessions.plan-doc and rule:pr-doc say "under the project's Plans page"; lib:pr-doc's parent lookup changes.
+  - consequence:wf2.plans-folder resolves question:wf2.plan-doc-parent; req:wf2.sessions.plan-doc and rule:pr-doc say "under the project's Plans page"; lib:pr-doc's parent lookup changes.
 
 ```yaml
 - id: decision:wf2.plan-per-request
@@ -115,13 +115,13 @@ task below records the fix to make.
   date: 2026-09-18
 ```
 
-  Every new session and every fresh-context message creates a plan document, whatever the plan-first tick; the tick only adds the propose-before-building protocol. A plain follow-up message continues the current plan. A plan left unfinished when a fresh request comes is finished as cancelled. The session record keeps the current `planDoc`; the list of a worker's plans is read from the graph (plan nodes with `session: <id>`), so a plan made by hand or moved counts too.
+  - choice:wf2.plan-per-request Every new session and every fresh-context message creates a plan document, whatever the plan-first tick; the tick only adds the propose-before-building protocol. A plain follow-up message continues the current plan. A plan left unfinished when a fresh request comes is finished as cancelled. The session record keeps the current `planDoc`; the list of a worker's plans is read from the graph (plan nodes with `session: <id>`), so a plan made by hand or moved counts too.
 
-  **Context** — A session is the conversation with one worker; the person clears its context and sends new work on it (rule:clean-slate). With one `planDoc` per session created only when "plan first" is on, a fresh request without the tick gets no plan and an earlier plan is forgotten by the record.
+  - context:wf2.plan-per-request A session is the conversation with one worker; the person clears its context and sends new work on it (rule:clean-slate). With one `planDoc` per session created only when "plan first" is on, a fresh request without the tick gets no plan and an earlier plan is forgotten by the record.
 
-  **Alternatives** — Only plan-first requests get a plan — quick requests leave no trace of what a worker did; keep `plans[]` on the session record — a second copy of what the documents say.
+  - alternative:wf2.plan-per-request Only plan-first requests get a plan — quick requests leave no trace of what a worker did; keep `plans[]` on the session record — a second copy of what the documents say.
 
-  **Consequences** — a probe request also leaves a plan page (small, cancelled or done); the sessions API joins the graph; rule:pr-doc, req:wf2.sessions.plan-doc change; the first message always names the plan document.
+  - consequence:wf2.plan-per-request a probe request also leaves a plan page (small, cancelled or done); the sessions API joins the graph; rule:pr-doc, req:wf2.sessions.plan-doc change; the first message always names the plan document.
 
 ```yaml
 - id: decision:wf2.plan-result-owned-by-app
@@ -131,13 +131,13 @@ task below records the fix to make.
   date: 2026-09-18
 ```
 
-  Result is rewritten each time the plan ends: the summary, the blocks credited to the session with `at` between the plan's `started` and `finished`, a paragraph count. Notes the person wants to keep go under Plan, not Result.
+  - choice:wf2.plan-result-owned-by-app Result is rewritten each time the plan ends: the summary, the blocks credited to the session with `at` between the plan's `started` and `finished`, a paragraph count. Notes the person wants to keep go under Plan, not Result.
 
-  **Context** — The Result was appended on every end, so a session that ended, was restarted and ended again carries the result three times; and it listed every block credited to the session, which for a long-lived worker is other plans' work too.
+  - context:wf2.plan-result-owned-by-app The Result was appended on every end, so a session that ended, was restarted and ended again carries the result three times; and it listed every block credited to the session, which for a long-lived worker is other plans' work too.
 
-  **Alternatives** — keep appending and de-duplicate by text — fragile; a Result per end — noise.
+  - alternative:wf2.plan-result-owned-by-app keep appending and de-duplicate by text — fragile; a Result per end — noise.
 
-  **Consequences** — req:wf2.sessions.plan-result's "appends below" clause goes; type:pr gets `started`; the plan's blocks are still only as exact as lib:artifacts' crediting (see task:artifacts-credit-by-session).
+  - consequence:wf2.plan-result-owned-by-app req:wf2.sessions.plan-result's "appends below" clause goes; type:pr gets `started`; the plan's blocks are still only as exact as lib:artifacts' crediting (see task:artifacts-credit-by-session).
 
 ## Tasks
 

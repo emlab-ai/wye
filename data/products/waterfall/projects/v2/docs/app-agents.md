@@ -258,13 +258,13 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   affects: [rule:agent-runner, rule:agent-contract, rule:librarian-tools]
 ```
 
-  `bin/wye.js` is the command (package bin, install.sh link, the agents' allow-lists); `bin/wf.js` holds the code and stays linked as `wf` for sessions and documents that still say it. Every prompt, skill, README line and app string says `wye`; the environment variables keep their names (WF_URL, WF_PRODUCT, WF_SESSION) so running agents are not cut off. Documents written before the rename keep `wf` in their prose; new ones say `wye`.
+  - choice:wf2.cli-is-wye `bin/wye.js` is the command (package bin, install.sh link, the agents' allow-lists); `bin/wf.js` holds the code and stays linked as `wf` for sessions and documents that still say it. Every prompt, skill, README line and app string says `wye`; the environment variables keep their names (WF_URL, WF_PRODUCT, WF_SESSION) so running agents are not cut off. Documents written before the rename keep `wf` in their prose; new ones say `wye`.
 
-  **Context** — The product was renamed Wye (decision:waterfall.rename-scope) and the CLI kept its old name, wf. The person asked for the rename on 2026-09-20.
+  - context:wf2.cli-is-wye The product was renamed Wye (decision:waterfall.rename-scope) and the CLI kept its old name, wf. The person asked for the rename on 2026-09-20.
 
-  **Alternatives** — Rename the file and the environment variables in one go (breaks the sessions in flight and every old plan); keep wf (the product is not called that).
+  - alternative:wf2.cli-is-wye Rename the file and the environment variables in one go (breaks the sessions in flight and every old plan); keep wf (the product is not called that).
 
-  **Consequences** — two links on PATH for a while; a later sweep removes the alias and renames the env vars.
+  - consequence:wf2.cli-is-wye two links on PATH for a while; a later sweep removes the alias and renames the env vars.
 
 ```yaml
 - id: decision:wf2.attribution-derived-not-written
@@ -274,13 +274,13 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   related-to: [rule:task-artifacts, req:wf2.sessions.knowledge-changes, task:session-knowledge-changes]
 ```
 
-  Attribution is derived — a graph diff at every rebuild, stored on the running sessions' artifacts — and the documents are not rewritten for it. The session id stays the run id; the session's Changes list is the filter. `session:` keeps being written where it already is: on the tasks a session works on (rule:task-artifacts) and on the decisions, questions and requirements an agent writes with a `session:` key itself.
+  - choice:wf2.attribution-derived-not-written Attribution is derived — a graph diff at every rebuild, stored on the running sessions' artifacts — and the documents are not rewritten for it. The session id stays the run id; the session's Changes list is the filter. `session:` keeps being written where it already is: on the tasks a session works on (rule:task-artifacts) and on the decisions, questions and requirements an agent writes with a `session:` key itself.
 
-  **Context** — task:session-knowledge-changes proposes attaching a run id to every block a session adds or modifies, like a commit hash, and filtering by it. Two places can hold it: the block's own line (`(session: <id>)` in its property group, `session:` on a card) or the session's record.
+  - context:wf2.attribution-derived-not-written task:session-knowledge-changes proposes attaching a run id to every block a session adds or modifies, like a commit hash, and filtering by it. Two places can hold it: the block's own line (`(session: <id>)` in its property group, `session:` on a card) or the session's record.
 
-  **Alternatives** — Write `(session: <id>)` onto every touched block — git-visible and it survives a deleted session file, but every requirement, rule and paragraph line grows a trailing id per session that touched it, the app's own rewrite would itself be a change to credit, and a person's edit in the editor while an agent runs would be stamped with the agent's id. Can be added later as an explicit "stamp" step if the derived list proves short-lived.
+  - alternative:wf2.attribution-derived-not-written Write `(session: <id>)` onto every touched block — git-visible and it survives a deleted session file, but every requirement, rule and paragraph line grows a trailing id per session that touched it, the app's own rewrite would itself be a change to credit, and a person's edit in the editor while an agent runs would be stamped with the agent's id. Can be added later as an explicit "stamp" step if the derived list proves short-lived.
 
-  **Consequences** — lib:artifacts gains blocks; the graph is diffed on rebuild (lib:graph-diff, pure, tested); the strip, the turn-done row, the session row and wf session show read the blocks; attribution stays coarse when several sessions run at once (all of them are credited, as for documents today) — the API path with x-wf-session is exact.
+  - consequence:wf2.attribution-derived-not-written lib:artifacts gains blocks; the graph is diffed on rebuild (lib:graph-diff, pure, tested); the strip, the turn-done row, the session row and wf session show read the blocks; attribution stays coarse when several sessions run at once (all of them are credited, as for documents today) — the API path with x-wf-session is exact.
 
 ```yaml
 - id: decision:wf2.fresh-is-a-queue-property
@@ -292,13 +292,13 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   session: 181e88ad1f
 ```
 
-  `fresh` (and `plan`) live on the QueueItem. The message route only enqueues; the pump, when the next item to hand over is fresh, does what restartFresh did — ends the process, forgets the agent's session id, writes the "context cleared" note — and starts a new process with that item as its first message. Idle agent: immediate, as before. Busy agent: after the open turn's `result`. The tick appears in the console's message box too, off by default, and a waiting item's fresh mark can be toggled from the queue list. Batch mode splits at a fresh item.
+  - choice:wf2.fresh-is-a-queue-property `fresh` (and `plan`) live on the QueueItem. The message route only enqueues; the pump, when the next item to hand over is fresh, does what restartFresh did — ends the process, forgets the agent's session id, writes the "context cleared" note — and starts a new process with that item as its first message. Idle agent: immediate, as before. Busy agent: after the open turn's `result`. The tick appears in the console's message box too, off by default, and a waiting item's fresh mark can be toggled from the queue list. Batch mode splits at a fresh item.
 
-  **Context** — rule:clean-slate implemented "clear context first" as an immediate restart: the message route calls `restartFresh`, which ends the running process, before enqueueing. With an idle agent that is what the person means. With a busy agent it ends the task in progress — the person wanted the *next* task to start clean, not the current one to stop. decision:wf2.clean-slate also kept the tick out of the console's own message box, reasoning that the console is where context is wanted; but the console is also where the person queues the next task while watching the current one.
+  - context:wf2.fresh-is-a-queue-property rule:clean-slate implemented "clear context first" as an immediate restart: the message route calls `restartFresh`, which ends the running process, before enqueueing. With an idle agent that is what the person means. With a busy agent it ends the task in progress — the person wanted the *next* task to start clean, not the current one to stop. decision:wf2.clean-slate also kept the tick out of the console's own message box, reasoning that the console is where context is wanted; but the console is also where the person queues the next task while watching the current one.
 
-  **Alternatives** — Keep the immediate restart and only disable the tick while the agent is busy — the person cannot express "clean slate for the next task" at all; a separate "restart when idle" action next to Stop — two controls for one intent; keep the tick out of the console — the person has to open ⌘P and pick the conversation in "to" to say what a tick next to the message box could say.
+  - alternative:wf2.fresh-is-a-queue-property Keep the immediate restart and only disable the tick while the agent is busy — the person cannot express "clean slate for the next task" at all; a separate "restart when idle" action next to Stop — two controls for one intent; keep the tick out of the console — the person has to open ⌘P and pick the conversation in "to" to say what a tick next to the message box could say.
 
-  **Consequences** — rule:clean-slate is refined (the restart moves from the route to the pump; the console box gets the tick); decision:wf2.clean-slate's "no tick in the console" is superseded; QueueItem gains fresh, plan, state fields (rule:session-queue refined); op:api.sessions.message keeps `fresh` / `plan` but enqueues them; op:api.sessions.control gains `item` (set fresh on a waiting item), `close` and `stop` stays.
+  - consequence:wf2.fresh-is-a-queue-property rule:clean-slate is refined (the restart moves from the route to the pump; the console box gets the tick); decision:wf2.clean-slate's "no tick in the console" is superseded; QueueItem gains fresh, plan, state fields (rule:session-queue refined); op:api.sessions.message keeps `fresh` / `plan` but enqueues them; op:api.sessions.control gains `item` (set fresh on a waiting item), `close` and `stop` stays.
 
 ```yaml
 - id: decision:wf2.queue-item-state
@@ -310,13 +310,13 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   session: 181e88ad1f
 ```
 
-  The host remembers the ids of the items it handed to the open turn (`Live.turn`); on `result` it stamps them `doneAt` (or `failedAt` when `is_error`), on a process exit during a turn `failedAt` with the exit code as `error`; Codex the same on its process close. The states in the UI are derived: waiting = no sentAt, working = sentAt and neither doneAt nor failedAt, done, failed. The list API already returns the queue; the console's `queue` SSE event carries every item with its state instead of the pending ones only.
+  - choice:wf2.queue-item-state The host remembers the ids of the items it handed to the open turn (`Live.turn`); on `result` it stamps them `doneAt` (or `failedAt` when `is_error`), on a process exit during a turn `failedAt` with the exit code as `error`; Codex the same on its process close. The states in the UI are derived: waiting = no sentAt, working = sentAt and neither doneAt nor failedAt, done, failed. The list API already returns the queue; the console's `queue` SSE event carries every item with its state instead of the pending ones only.
 
-  **Context** — Items today carry `addedAt` and `sentAt`; nothing records that the turn an item opened has ended, so no view can say "done" or "failed" per task. The transcript has the `result` events, but joining items to results by time is brittle (a batch is one turn; a fresh restart is a turn without an item).
+  - context:wf2.queue-item-state Items today carry `addedAt` and `sentAt`; nothing records that the turn an item opened has ended, so no view can say "done" or "failed" per task. The transcript has the `result` events, but joining items to results by time is brittle (a batch is one turn; a fresh restart is a turn without an item).
 
-  **Alternatives** — Derive done from the transcript (result events after sentAt) — brittle, see context; keep a separate per-item status field written by hand — the same thing with more ways to drift.
+  - alternative:wf2.queue-item-state Derive done from the transcript (result events after sentAt) — brittle, see context; keep a separate per-item status field written by hand — the same thing with more ways to drift.
 
-  **Consequences** — QueueItem { …, fresh?, plan?, doneAt?, failedAt?, error? }; sessions#markTurnEnd; notifyQueue sends all items; Console and SessionList read the same shape (a shared `queueState(item)` in lib/session-types).
+  - consequence:wf2.queue-item-state QueueItem { …, fresh?, plan?, doneAt?, failedAt?, error? }; sessions#markTurnEnd; notifyQueue sends all items; Console and SessionList read the same shape (a shared `queueState(item)` in lib/session-types).
 
 ```yaml
 - id: decision:wf2.session-page-derived
@@ -327,13 +327,13 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   session: efee530d46
 ```
 
-  A derived page at /<product>/sessions/<id>. The plan keeps living on the subject's page as typed blocks (decision:wf2.plan-is-a-page); the session page is the lens that shows the task, the todo items and the blocks with their state today. Nothing new is stored: the `open` events already say where the plan was written, the block attribution already says what was added or changed, the graph says where each stands.
+  - choice:wf2.session-page-derived A derived page at /<product>/sessions/<id>. The plan keeps living on the subject's page as typed blocks (decision:wf2.plan-is-a-page); the session page is the lens that shows the task, the todo items and the blocks with their state today. Nothing new is stored: the `open` events already say where the plan was written, the block attribution already says what was added or changed, the graph says where each stands.
 
-  **Context** — A "dedicated page for each plan" could be a document written per session (a plan.md next to the subject's page) or a view computed from what already exists: the session record (instruction, queue, transcript's open events, block attribution, result) and the current graph (status of every block now).
+  - context:wf2.session-page-derived A "dedicated page for each plan" could be a document written per session (a plan.md next to the subject's page) or a view computed from what already exists: the session record (instruction, queue, transcript's open events, block attribution, result) and the current graph (status of every block now).
 
-  **Alternatives** — A plan document per session — a second copy of the blocks that drifts from the subject's page, and one more document in the tree per request (rejected already in decision:wf2.plan-is-a-page); a "plan" tab in the right column only — too narrow for a task list plus blocks by kind, and not linkable.
+  - alternative:wf2.session-page-derived A plan document per session — a second copy of the blocks that drifts from the subject's page, and one more document in the tree per request (rejected already in decision:wf2.plan-is-a-page); a "plan" tab in the right column only — too narrow for a task list plus blocks by kind, and not linkable.
 
-  **Consequences** — page:web/session, component:session-page, lib:session-page, op:api.sessions.page; the session head and the Agents rows link the page; the console's "opened" line navigates client-side.
+  - consequence:wf2.session-page-derived page:web/session, component:session-page, lib:session-page, op:api.sessions.page; the session head and the Agents rows link the page; the console's "opened" line navigates client-side.
 
 ```yaml
 - id: decision:wf2.transcript-app-links
@@ -344,13 +344,13 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   related-to: [req:wf2.transcript.app-links, rule:app-link]
 ```
 
-  Keep the URLs in the prompt as they are; change only the rendering. lib:app-link parses an app URL's path (`/<product>/<project>/d/<doc>#n-<id>`, `/<product>/sessions/<id>`, `/`) into a label and an in-app path, with the origin taken from the page at render time; component:transcript-markdown renders the label as a link (client-side navigation) and the node part as a tag. The desktop shell blocks navigation away from its origin and opens such URLs in the system browser.
+  - choice:wf2.transcript-app-links Keep the URLs in the prompt as they are; change only the rendering. lib:app-link parses an app URL's path (`/<product>/<project>/d/<doc>#n-<id>`, `/<product>/sessions/<id>`, `/`) into a label and an in-app path, with the origin taken from the page at render time; component:transcript-markdown renders the label as a link (client-side navigation) and the node part as a tag. The desktop shell blocks navigation away from its origin and opens such URLs in the system browser.
 
-  **Context** — The desktop app loads http://localhost:3456; the web app can be opened on any host that reaches the server. The agent's first message carries the app's URLs (they are what `wf resolve` takes), so they must stay in the text the agent gets, but a person reading the transcript should see the todo page and the task, not the address of their own machine.
+  - context:wf2.transcript-app-links The desktop app loads http://localhost:3456; the web app can be opened on any host that reaches the server. The agent's first message carries the app's URLs (they are what `wf resolve` takes), so they must stay in the text the agent gets, but a person reading the transcript should see the todo page and the task, not the address of their own machine.
 
-  **Alternatives** — Rewrite the prompt to omit URLs — the agent needs them for `wf resolve` and the session link; a special `waterfall://` scheme in the desktop — two forms of the same link, and the web would still show localhost; rendering only in the desktop — the web has the same raw URLs.
+  - alternative:wf2.transcript-app-links Rewrite the prompt to omit URLs — the agent needs them for `wf resolve` and the session link; a special `waterfall://` scheme in the desktop — two forms of the same link, and the web would still show localhost; rendering only in the desktop — the web has the same raw URLs.
 
-  **Consequences** — component:transcript-markdown, lib:app-link, rule:app-link; component:console and component:session-page render through it; packages/desktop/main.js gains a `will-navigate` handler; ui-test:app-links.
+  - consequence:wf2.transcript-app-links component:transcript-markdown, lib:app-link, rule:app-link; component:console and component:session-page render through it; packages/desktop/main.js gains a `will-navigate` handler; ui-test:app-links.
 
 ```yaml
 - id: decision:wf2.plan-is-a-document
@@ -362,13 +362,13 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   session: 672f4fdf3d
 ```
 
-  A plan document per palette request, created by the app at session start from a template (type:pr), a sub-page of the document the request was made on. Tasks, questions and decisions of the plan live on it; requirements, rules and components are defined on the entity's page and embedded on the plan page so there is one source. The app appends the result when the session ends. The derived session page is retired; its route redirects to the plan document.
+  - choice:wf2.plan-is-a-document A plan document per palette request, created by the app at session start from a template (type:pr), a sub-page of the document the request was made on. Tasks, questions and decisions of the plan live on it; requirements, rules and components are defined on the entity's page and embedded on the plan page so there is one source. The app appends the result when the session ends. The derived session page is retired; its route redirects to the plan document.
 
-  **Context** — decision:wf2.plan-is-a-page put the plan on the subject's page and decision:wf2.session-page-derived added a computed session page to see it as one thing. The person wants the one thing to be a page in the documents: created for the request, editable, in the tree, with the tasks, the context and later the result.
+  - context:wf2.plan-is-a-document decision:wf2.plan-is-a-page put the plan on the subject's page and decision:wf2.session-page-derived added a computed session page to see it as one thing. The person wants the one thing to be a page in the documents: created for the request, editable, in the tree, with the tasks, the context and later the result.
 
-  **Alternatives** — Keep the derived page and add a "save as document" — two shapes of the same thing; keep the plan on the subject's page only — the person cannot find or scope one request later; a plan document with copies of every block — the drift decision:wf2.plan-is-a-page rejected, avoided here by embeds.
+  - alternative:wf2.plan-is-a-document Keep the derived page and add a "save as document" — two shapes of the same thing; keep the plan on the subject's page only — the person cannot find or scope one request later; a plan document with copies of every block — the drift decision:wf2.plan-is-a-page rejected, avoided here by embeds.
 
-  **Consequences** — supersedes decision:wf2.session-page-derived; refines decision:wf2.plan-is-a-page (the plan is still a page the two work on — now its own); req:wf2.sessions.plan-doc, req:wf2.sessions.plan-result, rule:pr-doc, lib:pr-doc, type:pr; page:web/session, component:session-page, lib:session-page and op:api.sessions.page are removed; rule:plan-first's steps 2–3 change; sessions without a plan document keep the changes page only. Refined the same day by decision:wf2.plans-folder (the parent is the project's Plans page, not the source document) and decision:wf2.plan-per-request (every request, not only plan-first ones).
+  - consequence:wf2.plan-is-a-document supersedes decision:wf2.session-page-derived; refines decision:wf2.plan-is-a-page (the plan is still a page the two work on — now its own); req:wf2.sessions.plan-doc, req:wf2.sessions.plan-result, rule:pr-doc, lib:pr-doc, type:pr; page:web/session, component:session-page, lib:session-page and op:api.sessions.page are removed; rule:plan-first's steps 2–3 change; sessions without a plan document keep the changes page only. Refined the same day by decision:wf2.plans-folder (the parent is the project's Plans page, not the source document) and decision:wf2.plan-per-request (every request, not only plan-first ones).
 
 ```yaml
 - id: decision:wf2.first-message-shown-as-request
@@ -380,13 +380,13 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   session: c2bbac979d
 ```
 
-  lib:agent-host emits the `user` event with `text` = the instruction (what the person or the batch said) and a new `prompt` field = the full message sent; component:console renders `text` as today and, when `prompt` differs, a collapsed `<details>` "what the agent received" with the prompt. The message to the agent does not change; Codex and Claude paths and agent-host#restartFresh do the same. Old transcripts are untouched.
+  - choice:wf2.first-message-shown-as-request lib:agent-host emits the `user` event with `text` = the instruction (what the person or the batch said) and a new `prompt` field = the full message sent; component:console renders `text` as today and, when `prompt` differs, a collapsed `<details>` "what the agent received" with the prompt. The message to the agent does not change; Codex and Claude paths and agent-host#restartFresh do the same. Old transcripts are untouched.
 
-  **Context** — The first message an agent gets is the request wrapped in the Waterfall preamble (product line, Context, plan-first, How to work). The console shows the event's text, so the person sees the preamble as if they had typed it. Where to cut: in the host when the event is emitted, in the console by recognising the wrapper's headings, or by moving the wrapper out of the message into the system prompt.
+  - context:wf2.first-message-shown-as-request The first message an agent gets is the request wrapped in the Waterfall preamble (product line, Context, plan-first, How to work). The console shows the event's text, so the person sees the preamble as if they had typed it. Where to cut: in the host when the event is emitted, in the console by recognising the wrapper's headings, or by moving the wrapper out of the message into the system prompt.
 
-  **Alternatives** — Strip in the console by heading markers — fragile when the wrapper's wording changes and wrong for old rows; move the wrapper into the system prompt — the plan-first section is per request (its plan document) and Codex has no system-prompt flag, so the message would still carry it; hide the wrapper entirely — the person could no longer see what the agent was told when a session goes wrong.
+  - alternative:wf2.first-message-shown-as-request Strip in the console by heading markers — fragile when the wrapper's wording changes and wrong for old rows; move the wrapper into the system prompt — the plan-first section is per request (its plan document) and Codex has no system-prompt flag, so the message would still carry it; hide the wrapper entirely — the person could no longer see what the agent was told when a session goes wrong.
 
-  **Consequences** — ChatEvent gains `prompt?: string`; lib:transcript's dedupe still compares `text`; component:console's user row gets a fold; a `shown` text accompanies `firstMessage` in agent-host#startChat.
+  - consequence:wf2.first-message-shown-as-request ChatEvent gains `prompt?: string`; lib:transcript's dedupe still compares `text`; component:console's user row gets a fold; a `shown` text accompanies `firstMessage` in agent-host#startChat.
 
 ```yaml
 - id: decision:wf2.agents-via-cli
@@ -395,13 +395,13 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   date: 2026-09-16
 ```
 
-  One `wf` CLI (read, write, sessions, runner) talking to the Next.js API; runners are plain processes started next to the code they work on; skills teach Claude Code the CLI.
+  - choice:wf2.agents-via-cli One `wf` CLI (read, write, sessions, runner) talking to the Next.js API; runners are plain processes started next to the code they work on; skills teach Claude Code the CLI.
 
-  **Context** — Claude Code and Codex both run shell commands well; sessions, links and knowledge must reach any agent the same way, and writes must go through the app so the graph rebuilds and locks hold.
+  - context:wf2.agents-via-cli Claude Code and Codex both run shell commands well; sessions, links and knowledge must reach any agent the same way, and writes must go through the app so the graph rebuilds and locks hold.
 
-  **Alternatives** — [MCP server per agent — more tooling to keep in sync and Codex support differs, agents editing markdown directly — bypasses locks and rebuilds and loses the session log, a message queue — unnecessary for a local-first tool]
+  - alternative:wf2.agents-via-cli [MCP server per agent — more tooling to keep in sync and Codex support differs, agents editing markdown directly — bypasses locks and rebuilds and loses the session log, a message queue — unnecessary for a local-first tool]
 
-  **Consequences** — The web app must be running for agents to work; an MCP wrapper can be added later on top of the same API.
+  - consequence:wf2.agents-via-cli The web app must be running for agents to work; an MCP wrapper can be added later on top of the same API.
 
 <!-- /list:decision -->
 

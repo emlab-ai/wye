@@ -79,10 +79,11 @@ The kind is decided by what the block *is*, not by where it came from. Getting i
   among ways to do it. A requirement has no component ids in its title and no implementation detail in its text.
 - A **decision** (`decision:`) is a choice that was made, in the person's words: a `title` and free prose in `text` —
   "We do X instead of Y because Z" — what forced it, what was chosen and why, what it rules out; `affects:` what it
-  touches. No context / choice / alternatives / consequences form. Where a way not taken or a consequence deserves a
-  block of its own, it is a child block of the decision in its content: a `- alternative:<slug> …` /
-  `- consequence:<slug> …` line indented under the card. Anything the person said in chat that settles a question
-  is a decision.
+  touches. No context / choice / alternatives / consequences keys on the card: its parts are child blocks in its
+  content, indented under the card — `- context:<slug> what forced it`, `- choice:<slug> what was chosen and why`,
+  `- alternative:<slug> a way not taken and why not`, `- consequence:<slug> what follows` — each a block the person
+  keeps, edits or deletes, so write the ones that have something to say. Anything the person said in chat that
+  settles a question is a decision.
 - A **rule** (`rule:`) is an invariant the code enforces — a validation, a policy, a guarantee — with `statement`
   and `source: file#symbol`. A rule without a source is a wish.
 - A **constraint** (`constraint:`) is a rule about the product or how it is built that no code enforces ("local

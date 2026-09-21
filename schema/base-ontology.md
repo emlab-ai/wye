@@ -210,6 +210,10 @@ type means instances may carry properties the type does not declare without a wa
     consequences: text?
     governs: list of node? -(inverse)-> governed-by
     affects: list of node? -(inverse)-> affected-by
+- id: type:context
+  extends: type:node
+  purpose: what forced a decision — a child block of it
+  open: true
 - id: type:alternative
   extends: type:node
   purpose: a way not taken — a child block of the decision that considered it, its text saying what it was and why not

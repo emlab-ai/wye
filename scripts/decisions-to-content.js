@@ -1,12 +1,14 @@
 'use strict';
-// One-off (decision:wf2.decision-free-text): a decision's ADR keys become its content blocks. For every yaml decision
-// card with context / choice / alternatives / consequences: the choice as the first paragraph of the card's content,
-// then "**Context** — …", "**Alternatives** — …", "**Consequences** — …" paragraphs (each editable in place), and the
-// four keys removed from the card. Goes through the running app (op:node.content, op:node.edit) so the same write
+// One-off (decision:wf2.decision-free-text): a card's prose keys become its content blocks. By default a decision's
+// context / choice / alternatives / consequences: the choice as the first paragraph of the card's content, then
+// "**Context** — …", "**Alternatives** — …", "**Consequences** — …" paragraphs (each editable in place), and the
+// four keys removed from the card. `--kind goal --keys description` moves a goal's description the same way. Goes through the running app (op:node.content, op:node.edit) so the same write
 // path, rebuild and change records apply. Usage: node scripts/decisions-to-content.js --product waterfall [--dry]
 const fs = require('fs'); const path = require('path');
 const WF = process.env.WF_URL || 'http://localhost:3456';
-const KEYS = ['choice', 'context', 'alternatives', 'consequences'];
+const argv = process.argv.slice(2);
+const KIND = argv.includes('--kind') ? argv[argv.indexOf('--kind') + 1] : 'decision';
+const KEYS = argv.includes('--keys') ? argv[argv.indexOf('--keys') + 1].split(',') : ['choice', 'context', 'alternatives', 'consequences'];
 const LABEL = { context: 'Context', alternatives: 'Alternatives', consequences: 'Consequences' };
 
 function valuesOf(body) {
@@ -21,21 +23,20 @@ async function main() {
   const args = process.argv.slice(2); const dry = args.includes('--dry'); const product = args[args.indexOf('--product') + 1];
   if (!product) { console.error('usage: node scripts/decisions-to-content.js --product <slug> [--dry]'); process.exit(1); }
   const g = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'products', product, '_build', 'graph.json'), 'utf8'));
-  const todo = g.nodes.filter(n => n.kind === 'decision' && n.defined && (n.form ?? 'yaml') !== 'prose' && KEYS.some(k => new RegExp(`^${k}:`, 'm').test(n.body)));
-  console.log(`${product}: ${todo.length} decision(s) to move`);
+  const todo = g.nodes.filter(n => n.kind === KIND && n.defined && (n.form ?? 'yaml') !== 'prose' && KEYS.some(k => new RegExp(`^${k}:`, 'm').test(n.body)));
+  console.log(`${product}: ${todo.length} ${KIND}(s) to move`);
   let done = 0;
   for (const n of todo) {
     const v = valuesOf(n.body);
     const paras = [];
-    if (v.choice) paras.push(v.choice);
-    for (const k of ['context', 'alternatives', 'consequences']) if (v[k]) paras.push(`**${LABEL[k]}** — ${v[k]}`);
+    for (const k of KEYS) if (v[k]) paras.push(LABEL[k] ? `**${LABEL[k]}** — ${v[k]}` : v[k]);
     if (!paras.length) continue;
     if (dry) { console.log(`  ${n.id}: ${paras.length} paragraph(s)`); continue; }
     try {
       const cur = await api('GET', `/api/${product}/node/${encodeURIComponent(n.id)}/content`);
       const content = [paras.join('\n\n'), (cur.content ?? '').trim()].filter(Boolean).join('\n\n');
       await api('PUT', `/api/${product}/node/${encodeURIComponent(n.id)}/content`, { content, ifMatch: cur.bodyHash });
-      await api('PUT', `/api/${product}/node/${encodeURIComponent(n.id)}`, { props: { choice: null, context: null, alternatives: null, consequences: null } });
+      await api('PUT', `/api/${product}/node/${encodeURIComponent(n.id)}`, { props: Object.fromEntries(KEYS.map(k => [k, null])) });
       done++; if (done % 10 === 0) console.log(`  ${done}/${todo.length}`);
     } catch (e) { console.log(`  ${n.id}: ${e.message}`); }
   }

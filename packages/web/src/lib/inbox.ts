@@ -113,14 +113,18 @@ export async function fileItem(productDir: string, product: string, item: InboxI
   const today = new Date().toISOString().slice(0, 10);
   const f = item.fields;
   const lines: (string | null)[] = [`- id: ${target.id}`];
-  if (kind === 'decision') lines.push(y('title', item.title), y('text', [item.body, f.choice, f.context ? `Context: ${f.context}` : '', f.alternatives ? `Alternatives: ${f.alternatives}` : '', f.consequences ? `Consequences: ${f.consequences}` : ''].filter(Boolean).join('\n\n')), '  status: approved', `  date: ${today}`); // free text (decision:wf2.decision-free-text)
+  if (kind === 'decision') lines.push(y('title', item.title), '  status: approved', `  date: ${today}`); // its parts follow as child blocks (decision:wf2.decision-free-text)
   else if (kind === 'req') lines.push(y('title', item.title), y('text', item.body), y('when', f.when), y('then', f.then), y('unless', f.unless), '  status: proposed');
   else if (kind === 'rule') lines.push(y('statement', f.statement || item.body || item.title), y('source', f.source), '  status: proposed');
   else if (kind === 'question') lines.push(y('q', f.q || item.body || item.title), '  status: question');
   else lines.push(y('title', item.title), y('text', item.body));
   if (item.refs.length) lines.push(`  related-to: [${item.refs.join(', ')}]`);
   lines.push(`  from: inbox ${item.name}${item.session ? ` (session ${item.session})` : ''}`);
-  const block = '\n\n```yaml\n' + lines.filter(Boolean).join('\n') + '\n```\n';
+  // a decision's parts as child blocks under the card, each one a block the person keeps or deletes
+  const one = (t?: string) => (t ?? '').replace(/\s+/g, ' ').trim();
+  const slug = target.id.slice(target.id.indexOf(':') + 1);
+  const parts = kind === 'decision' ? [['choice', one(f.choice || item.body)], ['context', one(f.context)], ['alternative', one(f.alternatives)], ['consequence', one(f.consequences)]].filter(([, t]) => t).map(([k, t]) => `  - ${k}:${slug} ${t}`) : [];
+  const block = '\n\n```yaml\n' + lines.filter(Boolean).join('\n') + '\n```\n' + (parts.length ? '\n' + parts.join('\n\n') + '\n' : '');
   await withFileLock(abs, async () => { const md = await readFile(abs, 'utf8'); await writeAtomic(abs, md.replace(/\s+$/, '') + block); });
   await rebuild(productDir);
   await patchHead(productDir, item.name, { status: 'filed', 'filed-to': target.file, node: target.id });

@@ -23,6 +23,7 @@ kinds:
   drift:    { purpose: a contradiction between two nodes. Rows of the Drift table become drift:<module>.<n> nodes with contradicts edges }
   question: { purpose: behaviour the code leaves unspecified }
   decision: { purpose: a choice that was made, in the person's words — a title and free text, with alternative / choice / consequence child blocks where they help }
+  context: { purpose: what forced a decision — a child block of it }
   alternative: { purpose: a way not taken — a child block of a decision }
   choice: { purpose: what was chosen — a child block of a decision when wanted as a block of its own }
   consequence: { purpose: what follows from a decision — a child block of it }

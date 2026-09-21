@@ -70,13 +70,13 @@ content blocks for Claude, `--image` for Codex). The command box (action:command
   affects: [action:command-palette, store:session-files, req:wf2.ui.palette-images]
 ```
 
-  The session-create route accepts `images` (name + data URL) and saves them with the same saveAttachment as the message route, into <id>-files; the session record lists their file names; buildPrompt lists their absolute paths under the instruction and startChat sends them as image content (Claude) or --image (Codex) with the first message, the way pump does for later messages.
+  - choice:wf2.palette-images-are-session-files The session-create route accepts `images` (name + data URL) and saves them with the same saveAttachment as the message route, into <id>-files; the session record lists their file names; buildPrompt lists their absolute paths under the instruction and startChat sends them as image content (Claude) or --image (Codex) with the first message, the way pump does for later messages.
 
-  **Context** — Images pasted into a document become assets next to the document (store:assets); images sent in a chat become the session's files (store:session-files). A palette request is the first message of a chat session, so it must pick one of the two.
+  - context:wf2.palette-images-are-session-files Images pasted into a document become assets next to the document (store:assets); images sent in a chat become the session's files (store:session-files). A palette request is the first message of a chat session, so it must pick one of the two.
 
-  **Alternatives** — Store them as document assets in the open document's folder — wrong owner: the request may come from any page, and the image belongs to the session, not to the knowledge; or start the session empty and send the images as a second queued message — the agent would read the instruction without the screenshot it refers to.
+  - alternative:wf2.palette-images-are-session-files Store them as document assets in the open document's folder — wrong owner: the request may come from any page, and the image belongs to the session, not to the knowledge; or start the session empty and send the images as a second queued message — the agent would read the instruction without the screenshot it refers to.
 
-  **Consequences** — One code path for attachments (Console and CommandPalette share the paste/drop/thumbnail logic); a runner session gets the images as paths it can open with Read; the Session type grows an optional `images` list.
+  - consequence:wf2.palette-images-are-session-files One code path for attachments (Console and CommandPalette share the paste/drop/thumbnail logic); a runner session gets the images as paths it can open with Read; the Session type grows an optional `images` list.
 
 - [x] task:palette-paste-ui Command box: paste and drop handlers, thumbnail strip with remove, Enter sends `images` with the request; the paste/thumbnail code shared with Console (one small hook or component). Part of req:wf2.ui.palette-images.
 - [x] task:palette-images-api Session-create route accepts `images` (≤ 8, name + data URL), saves them with saveAttachment into store:session-files, keeps their names on the Session (`images`); buildPrompt lists the paths under the instruction; startChat sends them with the first message for Claude (content blocks) and Codex (--image) and the first console event shows them. Part of req:wf2.ui.palette-images.

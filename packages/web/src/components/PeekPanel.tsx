@@ -21,6 +21,8 @@ import { ExplainCard } from './ExplainCard';
 import { DocPeek } from './DocPeek';
 import { EmbeddedCard } from './EmbedBlock';
 import { TypeView } from './TypeView';
+import { InstanceTable } from './InstanceTable';
+import { EMPTY_FILTERS, type InstanceTable as Table } from '@/lib/instance-table';
 import { Comments } from './Comments';
 import dynamic from 'next/dynamic';
 const DocEditor = dynamic(() => import('./DocEditor'), { ssr: false });
@@ -137,6 +139,7 @@ function NodeView({ id }: { id: string }) {
         : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
       {d && d.type && d.props && withoutComments(d.relations.inc).some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={withoutComments(d.relations.inc)} inverses={d.inverses ?? {}} product={product} />}
       {d && !d.self && d.node.defined && <NodeContent id={id} />}
+      {d && !d.self && entry?.kind === 'goal' && <GoalTasks key={`tasks-${id}`} id={id} ids={(d.relations.inc.find(([v]) => v === 'part-of')?.[1] ?? []).filter(x => x.startsWith('task:'))} />}
       {d && !d.self && d.node.defined && <Comments key={`comments-${id}`} id={id} />}
       {d && !d.self && d.node.defined && <ExplainCard key={`explain-${id}`} id={id} />}
       {d && (
@@ -265,6 +268,27 @@ function Properties({ type, props, inc, inverses, product }: { type: TypeDef; pr
   );
 }
 
+// A goal's tasks as the task data table (the rows part of the goal), under its content — filter, group and tick
+// as on the Work page; the tracking section above keeps sub-goals and requirements.
+function GoalTasks({ id, ids }: { id: string; ids: string[] }) {
+  const { product } = usePeek();
+  const [table, setTable] = useState<Table | null>(null);
+  useEffect(() => {
+    let live = true;
+    if (!ids.length) { setTable(null); return; }
+    fetch(`/api/${product}/view/task`).then(r => r.ok ? r.json() : null).then((t: Table | null) => { if (live && t) { const rows = t.rows.filter(r => ids.includes(r.id)); const count = new Map<string, number>(); for (const r of rows) if (r.status) count.set(r.status, (count.get(r.status) ?? 0) + 1); setTable({ ...t, rows, statuses: [...count].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])) }); } }).catch(() => {});
+    return () => { live = false; };
+  }, [product, id, ids.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!ids.length || !table) return null;
+  const done = table.rows.filter(r => ['done', 'complete', 'shipped'].includes(r.status)).length;
+  return (
+    <section className="goal-tasks">
+      <h4>Tasks <span className="muted">{done}/{table.rows.length}</span></h4>
+      <InstanceTable product={product} table={table} initial={{ ...EMPTY_FILTERS, group: 'status' }} />
+    </section>
+  );
+}
+
 // Goal / task tracking: status, target, owner, progress and what contributes to it.
 function Tracking({ entry, rows, inc }: { entry: IndexEntry; rows: Rows; inc: [string, string[]][] }) {
   const parts = (inc.find(([v]) => v === 'part-of')?.[1] ?? []).map(id => rows.index[id]).filter(Boolean);
@@ -272,9 +296,9 @@ function Tracking({ entry, rows, inc }: { entry: IndexEntry; rows: Rows; inc: [s
   const done = (p: IndexEntry) => ['done', 'complete', 'shipped'].includes(p.status) || (p.progress ?? 0) >= 100;
   return (
     <section className="tracking">
-      {entry.kind === 'goal' && (['goal', 'task', 'req'] as const).map(k => {
+      {entry.kind === 'goal' && (['goal', 'req'] as const).map(k => {
         const items = byKind(k); if (!items.length) return null;
-        const label = k === 'goal' ? 'Sub-goals' : k === 'task' ? 'Tasks' : 'Requirements';
+        const label = k === 'goal' ? 'Sub-goals' : 'Requirements';
         return (
           <div key={k} className="tracking-parts">
             <RelHead label={label} ids={items.map(p => p.id)} rows={rows} count={`${items.filter(done).length}/${items.length}`} />

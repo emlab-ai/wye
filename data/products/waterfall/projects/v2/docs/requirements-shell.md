@@ -60,13 +60,13 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   affects: [page:web/goals, page:web/tasks, page:web/work, component:view-block, constraint:wf2.no-custom-pages]
 ```
 
-  The app writes `goals.md` and `work.md` once into the project that holds Plans (`<!-- view:goal -->`, `<!-- view:task group=status -->`), the rail's Goals and Work link to them, they leave the Documents tree like Plans, and /goals and /work redirect to them. The view block gains `scope`: `product` (the default — every block of every project) or `project` (this document's project), set in its header next to blocks / table. A list region (`<!-- list:… -->`) is the same idea with scope = the page's own blocks.
+  - choice:wf2.views-are-pages The app writes `goals.md` and `work.md` once into the project that holds Plans (`<!-- view:goal -->`, `<!-- view:task group=status -->`), the rail's Goals and Work link to them, they leave the Documents tree like Plans, and /goals and /work redirect to them. The view block gains `scope`: `product` (the default — every block of every project) or `project` (this document's project), set in its header next to blocks / table. A list region (`<!-- list:… -->`) is the same idea with scope = the page's own blocks.
 
-  **Context** — Goals and Work were pages of their own (a tracking list, a work board) — against constraint:wf2.no-custom-pages. The person asked on 2026-09-20 that they use the standard view component with a property saying the content is parsed from the entire project.
+  - context:wf2.views-are-pages Goals and Work were pages of their own (a tracking list, a work board) — against constraint:wf2.no-custom-pages. The person asked on 2026-09-20 that they use the standard view component with a property saying the content is parsed from the entire project.
 
-  **Alternatives** — Keep the custom pages (rejected by the constraint); a scope=page on the view (that is the list region).
+  - alternative:wf2.views-are-pages Keep the custom pages (rejected by the constraint); a scope=page on the view (that is the list region).
 
-  **Consequences** — The Work page loses the live queued / working state and the Assign button on its rows until the task block shows them (task:wf2.task-block-state); groups of done blocks fold and cards page by forty, because every card is a live embed.
+  - consequence:wf2.views-are-pages The Work page loses the live queued / working state and the Assign button on its rows until the task block shows them (task:wf2.task-block-state); groups of done blocks fold and cards page by forty, because every card is a live embed.
 
 ```yaml
 - id: decision:wf2.rail-fewer-entries
@@ -78,13 +78,13 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   affects: [page:web/sidebar, req:wf2.ui.search]
 ```
 
-  the rail keeps Overview, Goals, Work, Knowledge, Types, Constitution, Inbox, Agents and Plans; /<product>/graph and /<product>/questions stay reachable by link and from the Knowledge page; search is the ⌘F panel.
+  - choice:wf2.rail-fewer-entries the rail keeps Overview, Goals, Work, Knowledge, Types, Constitution, Inbox, Agents and Plans; /<product>/graph and /<product>/questions stay reachable by link and from the Knowledge page; search is the ⌘F panel.
 
-  **Context** — the person asked on 2026-09-20; the rail listed eleven entries and a search box that found only titles and ids.
+  - context:wf2.rail-fewer-entries the person asked on 2026-09-20; the rail listed eleven entries and a search box that found only titles and ids.
 
-  **Alternatives** — keep the entries and add the shortcut (the person asked for fewer).
+  - alternative:wf2.rail-fewer-entries keep the entries and add the shortcut (the person asked for fewer).
 
-  **Consequences** — the rail's Search component is gone; the search panel and page replace it.
+  - consequence:wf2.rail-fewer-entries the rail's Search component is gone; the search panel and page replace it.
 
 ```yaml
 - id: req:wf2.ui.rail-resize

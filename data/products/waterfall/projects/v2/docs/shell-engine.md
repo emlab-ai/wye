@@ -26,13 +26,13 @@ Shell and navigation
   session: 8aa3926e18
 ```
 
-  A single "Data table" item inserts a table of tasks; its header holds a select with goals, tasks and every type the product declares, and picking one re-kinds the (still empty) rows. Once a row has text the picker locks — the rows have ids of that kind, and changing the kind would change ids other nodes may link. Goals and tasks keep their columns (status, target/due, progress, owner); a type table shows the type's properties. The markdown is unchanged: <!-- goals -->, <!-- tasks -->, <!-- table:<slug> -->.
+  - choice:wf2.one-table-block A single "Data table" item inserts a table of tasks; its header holds a select with goals, tasks and every type the product declares, and picking one re-kinds the (still empty) rows. Once a row has text the picker locks — the rows have ids of that kind, and changing the kind would change ids other nodes may link. Goals and tasks keep their columns (status, target/due, progress, owner); a type table shows the type's properties. The markdown is unchanged: <!-- goals -->, <!-- tasks -->, <!-- table:<slug> -->.
 
-  **Context** — Every own type got its own "<Type>s table" slash item next to Goals table and Tasks table; with ten types the menu filled with tables (bug:no-need-to-add).
+  - context:wf2.one-table-block Every own type got its own "<Type>s table" slash item next to Goals table and Tasks table; with ten types the menu filled with tables (bug:no-need-to-add).
 
-  **Alternatives** — Keep one item per type — the menu grows with the ontology; a kind property edited as text — no discovery of what types exist; let the type change with rows present — silent id changes.
+  - alternative:wf2.one-table-block Keep one item per type — the menu grows with the ontology; a kind property edited as text — no discovery of what types exist; let the type change with rows present — silent id changes.
 
-  **Consequences** — the Tasks page and rule:type-tables say "Data table"; ui-test:table-rows covers the picker
+  - consequence:wf2.one-table-block the Tasks page and rule:type-tables say "Data table"; ui-test:table-rows covers the picker
 
 ```yaml
 - id: decision:wf2.one-command-box
@@ -42,13 +42,13 @@ Shell and navigation
   affects: [action:command-palette, component:command-box, rule:agent-sessions, req:wf2.ui.command-palette]
 ```
 
-  One component, CommandBox (the palette's look, in the middle of the screen), opened by ⌘P with the cursor's context or by any "Send to agent" with the block's text, refs and source prefilled. It has the union of the two: the request text (Enter runs, Shift+Enter a new line), the context tags, pasted or dropped images, a "to" picker (active conversations, new conversation, queue for a runner) that defaults to the most recent active conversation when one is live and to a new conversation otherwise, and for a new conversation the agent, the working folder and the plan-first tick. requestSend() and ⌘P both open it; SendToAgentHost and CommandPalette go away.
+  - choice:wf2.one-command-box One component, CommandBox (the palette's look, in the middle of the screen), opened by ⌘P with the cursor's context or by any "Send to agent" with the block's text, refs and source prefilled. It has the union of the two: the request text (Enter runs, Shift+Enter a new line), the context tags, pasted or dropped images, a "to" picker (active conversations, new conversation, queue for a runner) that defaults to the most recent active conversation when one is live and to a new conversation otherwise, and for a new conversation the agent, the working folder and the plan-first tick. requestSend() and ⌘P both open it; SendToAgentHost and CommandPalette go away.
 
-  **Context** — Two dialogs start work for an agent: the command palette (⌘P: a request, plan-first, agent, folder, pasted images, always a new conversation) and "Send to agent" (block menus, node views, question and review lists, the top bar: a target — an active conversation, a new one or a runner — agent, folder, an instruction prefilled with the block). They drifted: only the palette takes images and plans first; only the dialog can send into a running conversation; Enter runs in one, ⌘↵ in the other.
+  - context:wf2.one-command-box Two dialogs start work for an agent: the command palette (⌘P: a request, plan-first, agent, folder, pasted images, always a new conversation) and "Send to agent" (block menus, node views, question and review lists, the top bar: a target — an active conversation, a new one or a runner — agent, folder, an instruction prefilled with the block). They drifted: only the palette takes images and plans first; only the dialog can send into a running conversation; Enter runs in one, ⌘↵ in the other.
 
-  **Alternatives** — Keep two dialogs and copy features across — they would drift again; make ⌘P open the Send dialog — its form-style layout is heavy for a one-line request and has no plan-first or images.
+  - alternative:wf2.one-command-box Keep two dialogs and copy features across — they would drift again; make ⌘P open the Send dialog — its form-style layout is heavy for a one-line request and has no plan-first or images.
 
-  **Consequences** — component:command-box replaces the Send-to-agent dialog (SendToAgent.tsx) and action:command-palette's own box; the message route already takes images; sending into an active conversation from ⌘P becomes possible; rule:agent-sessions and req:wf2.ui.command-palette refer to the one box; ui-test:command-palette covers both entry points.
+  - consequence:wf2.one-command-box component:command-box replaces the Send-to-agent dialog (SendToAgent.tsx) and action:command-palette's own box; the message route already takes images; sending into an active conversation from ⌘P becomes possible; rule:agent-sessions and req:wf2.ui.command-palette refer to the one box; ui-test:command-palette covers both entry points.
 
 <!-- /list:decision -->
 

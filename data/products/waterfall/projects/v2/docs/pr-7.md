@@ -58,13 +58,13 @@ What does *not* change: an embedded card inside the column (a connected row open
   session: 367dedec3c
 ```
 
-  Click = select. Every typed block in a document (card, row, embed) selects on a click anywhere in it, tags and links excepted; selecting brings the column to its Context root, which shows the selected node. The chip stack stays for navigation (tags, rows, graph nodes push); the pill in a document selects like the rest of the block.
+  - choice:wf2.block-click-selects Click = select. Every typed block in a document (card, row, embed) selects on a click anywhere in it, tags and links excepted; selecting brings the column to its Context root, which shows the selected node. The chip stack stays for navigation (tags, rows, graph nodes push); the pill in a document selects like the rest of the block.
 
-  **Context** — Only the pill opened a block's node; the Context root followed the caret but was hidden whenever a session or node was open in the column, and an embed's text area moved no caret. The person expects a block to behave as one node: click it, see it.
+  - context:wf2.block-click-selects Only the pill opened a block's node; the Context root followed the caret but was hidden whenever a session or node was open in the column, and an embed's text area moved no caret. The person expects a block to behave as one node: click it, see it.
 
-  **Alternatives** — (a) Push the node on the chip stack on every block click — every block touched while editing becomes a chip and the bar fills up; the root already exists for "the node under the cursor". (b) Only change the pill's hit area to the whole header — still not the text, which is what the person clicks. (c) Follow keyboard caret moves too, pulling the column off a session while typing — too eager; a click is a deliberate pointing act.
+  - alternative:wf2.block-click-selects (a) Push the node on the chip stack on every block click — every block touched while editing becomes a chip and the bar fills up; the root already exists for "the node under the cursor". (b) Only change the pill's hit area to the whole header — still not the text, which is what the person clicks. (c) Follow keyboard caret moves too, pulling the column off a session while typing — too eager; a click is a deliberate pointing act.
 
-  **Consequences** — req:wf2.ui.block-select and rule:block-select on page:web/context-column; `focused` state on PeekProvider; the column leaves a session view on a block click (the session's chip stays); an embed in the column keeps its edit-in-place behaviour.
+  - consequence:wf2.block-click-selects req:wf2.ui.block-select and rule:block-select on page:web/context-column; `focused` state on PeekProvider; the column leaves a session view on a block click (the session's chip stays); an embed in the column keeps its edit-in-place behaviour.
 
 ```yaml
 - id: decision:wf2.graph-editor-is-a-goal
@@ -75,13 +75,13 @@ What does *not* change: an embedded card inside the column (a connected row open
   session: 367dedec3c
 ```
 
-  Record it as goal:ontology.graph-editor on the ontology design with four task lines (block-select now, paragraph-select, child-nodes-design, children-in-column) and one open question on the markdown form of a child node (question:ontology.child-nodes). This plan ships the first step only.
-  
-  **Context** — "Document is node, blocks are nodes, any node can have child nodes like comments" is already the model (req:ontology.blocks shipped 2026-09-17). What is missing is UI — block selection, opening a paragraph's block node, children under a node — and one piece of ontology: a comment type and the markdown form of a child.
-  
-  **Alternatives** — Build comments in this session too — no decided markdown form for a child node, so it would be guessed; or leave the vision in chat — lost.
-  
-  **Consequences** — The goal's tasks carry the follow-ups; question:ontology.child-nodes waits for a decision before task:ontology.child-nodes-design starts.
+  - choice:wf2.graph-editor-is-a-goal Record it as goal:ontology.graph-editor on the ontology design with four task lines (block-select now, paragraph-select, child-nodes-design, children-in-column) and one open question on the markdown form of a child node (question:ontology.child-nodes). This plan ships the first step only.
+
+  - context:wf2.graph-editor-is-a-goal "Document is node, blocks are nodes, any node can have child nodes like comments" is already the model (req:ontology.blocks shipped 2026-09-17). What is missing is UI — block selection, opening a paragraph's block node, children under a node — and one piece of ontology: a comment type and the markdown form of a child.
+
+  - alternative:wf2.graph-editor-is-a-goal Build comments in this session too — no decided markdown form for a child node, so it would be guessed; or leave the vision in chat — lost.
+
+  - consequence:wf2.graph-editor-is-a-goal The goal's tasks carry the follow-ups; question:ontology.child-nodes waits for a decision before task:ontology.child-nodes-design starts.
 
 ![[question:ontology.child-nodes]]
 

@@ -48,17 +48,24 @@ export function candidateCard(id: string, c: Candidate, s: Pick<Session, 'id'>, 
   const evidence = c.evidence.length ? c.evidence.map(n => `session:${s.id}#${n}`).join(', ') : `session:${s.id}`;
   const by = c.by === 'agent' ? `agent:${agentName}` : 'person';
   const lines = [`- id: ${id}`, `  title: ${c.title.replace(/:/g, ' -')}`];
-  if (c.kind === 'decision') lines.push(y('text', [c.text, c.context ? `Context: ${c.context}` : ''].filter(Boolean).join(' ')), `  date: ${date}`); // free text (decision:wf2.decision-free-text)
+  if (c.kind === 'decision') lines.push(`  date: ${date}`); // its parts follow the card as child blocks (decision:wf2.decision-free-text)
   else if (c.kind === 'question') lines.push(y('q', c.text || c.title), y('context', c.context));
   else lines.push(y('statement', c.text || c.title), y('context', c.context));
   if (related.length) lines.push(`  related-to: [${related.join(', ')}]`); // the knowledge Jev is sure the card is about (Jev auto-linking design §4)
   lines.push(`  status: ${c.kind === 'question' ? 'open' : 'proposed'}`, `  by: ${by}`, `  evidence: [${evidence}]`, `  part-of: ${planId}`);
   return lines.filter(Boolean).join('\n');
 }
+// A decision's parts as child lines under its card (decision:wf2.decision-free-text): choice (its text), context.
+export function decisionParts(id: string, c: Candidate): string[] {
+  if (c.kind !== 'decision') return [];
+  const slug = id.slice(id.indexOf(':') + 1); const one = (t: string) => t.replace(/\s+/g, ' ').trim();
+  return [...(c.text ? [`  - choice:${slug} ${one(c.text)}`] : []), ...(c.context ? [`  - context:${slug} ${one(c.context)}`] : [])];
+}
 
 // Put the cards into the plan document's Plan section (a yaml fence at its end), before Tasks
-export function insertIntoPlanSection(md: string, cards: string[]): string {
-  const block = '```yaml\n' + cards.join('\n') + '\n```';
+// Each card in a fence of its own, its child lines (a decision's parts) indented under the fence.
+export function insertIntoPlanSection(md: string, cards: string[], parts: string[][] = []): string {
+  const block = cards.map((c, i) => '```yaml\n' + c + '\n```' + (parts[i]?.length ? '\n\n' + parts[i].join('\n\n') : '')).join('\n\n');
   const i = md.indexOf('\n## Plan'); if (i < 0) return md.replace(/\n*$/, '\n\n## Plan\n\n' + block + '\n');
   const j = md.indexOf('\n## ', i + 8);
   const end = j < 0 ? md.length : j;
@@ -80,16 +87,16 @@ export async function consolidateSession(productDir: string, product: string, s:
   const file = path.join(REPO_ROOT, page.file);
   const taken = new Set(graph.nodes.map(n => n.id));
   const date = new Date().toISOString().slice(0, 10);
-  const filed: string[] = []; const cards: string[] = [];
+  const filed: string[] = []; const cards: string[] = []; const parts: string[][] = [];
   // each card linked before it is written when a Jev key is stored (Jev auto-linking design §4); a failure leaves the card unlinked
   const jev = opts.jev ?? await jevClient();
   for (const c of candidates) {
     const id = candidateSlug(product, c, taken); taken.add(id); filed.push(id);
     let related: string[] = [];
     if (jev.enabled) { try { related = confidentIds(await judgeText(productDir, graph, `${c.title}. ${c.text}`, { jev, searchFn: opts.searchFn })); } catch (e) { console.warn('jev: consolidation link failed —', e instanceof Error ? e.message : e); } }
-    cards.push(candidateCard(id, c, s, page.id, s.agent, date, related));
+    cards.push(candidateCard(id, c, s, page.id, s.agent, date, related)); parts.push(decisionParts(id, c));
   }
-  await withFileLock(file, async () => { const md = await readFile(file, 'utf8'); await writeAtomic(file, insertIntoPlanSection(md, cards)); });
+  await withFileLock(file, async () => { const md = await readFile(file, 'utf8'); await writeAtomic(file, insertIntoPlanSection(md, cards, parts)); });
   return { candidates, filed, doc: s.prDoc };
 }
 

@@ -64,13 +64,13 @@ relations scroll.
   date: 2026-09-18
 ```
 
-  The bar and the message box are the only fixed parts; the session header and the conversation are one scroll. The chip in the bar names the session, so the person always knows where they are; the header is one scroll-up away.
+  - choice:wf2.column-frame-header-scrolls The bar and the message box are the only fixed parts; the session header and the conversation are one scroll. The chip in the bar names the session, so the person always knows where they are; the header is one scroll-up away.
 
-  **Context** — The request pins the bar at the top and the message box at the bottom. The session header between them (status, knowledge strip, changes fold, instruction) can be half a screen tall; pinning it too would leave the conversation a few lines high on a laptop.
+  - context:wf2.column-frame-header-scrolls The request pins the bar at the top and the message box at the bottom. The session header between them (status, knowledge strip, changes fold, instruction) can be half a screen tall; pinning it too would leave the conversation a few lines high on a laptop.
 
-  **Alternatives** — [pin the header too and scroll only the log — squeezes the conversation under a tall header, fold the header into the bar — a second design change the request did not ask for]
+  - alternative:wf2.column-frame-header-scrolls [pin the header too and scroll only the log — squeezes the conversation under a tall header, fold the header into the bar — a second design change the request did not ask for]
 
-  **Consequences** — The console's stick-to-bottom follows the column's scroller instead of its own log; the console has no fixed height.
+  - consequence:wf2.column-frame-header-scrolls The console's stick-to-bottom follows the column's scroller instead of its own log; the console has no fixed height.
 
 ## Tasks
 

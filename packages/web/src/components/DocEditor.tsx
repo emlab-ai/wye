@@ -477,7 +477,7 @@ function EditorCard({ p, set, contentRef, block, editor }: { p: CardP; set: (pat
   const hostRef = useRef<HTMLDivElement>(null);
   const id = `${p.kind}:${p.slug}`;
   const open = () => { if (p.slug) emit('wf:select', hostRef.current, id); };
-  const { fold, hide } = useFold(block, open, p.kind === 'question');
+  const { fold, hide } = useFold(block, open, p.kind === 'question' || p.kind === 'decision' || p.kind === 'goal'); // their content is the card
   const bn = useBlockNoteEditor();
   const bid = String((block as { id?: string }).id);
   // a question's answer count follows the editor, not the render's block: the placeholder goes as soon as the first
@@ -870,9 +870,13 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       .map(e => ({ title: e.id, subtext: e.title, group: 'Link a node', onItemClick: () => { editor.insertInlineContent([{ type: 'tag', props: { id: e.id } }, ' '] as never); touched.current = true; changed(); } }));
   };
   // base kinds, then the product's own types (its type: cards) — an instance is a prose line `team:slug …`
+  const fresh = () => `new-${Math.floor(Math.random() * 900 + 100)}`;
+  const child = (kind: string, text: string) => ({ type: 'node', props: { kind, slug: fresh(), form: 'prose', textKey: 'text', check: '', status: '' }, content: [{ type: 'text', text, styles: { italic: true } }] });
+  // a decision is born with its parts as child blocks (decision:wf2.decision-free-text) — blocks, so any of them can go
+  const DECISION_PARTS: [string, string][] = [['context', 'what forced it'], ['choice', 'what was chosen, and why'], ['alternative', 'a way not taken, and why not'], ['consequence', 'what follows']];
   const nodeItems = [...CARD_KINDS, ...ownKinds].map(kind => ({
-    title: `${kind} block`, group: 'Wye', subtext: `a new ${kind} written as prose`,
-    onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'node', props: { kind, slug: `new-${Math.floor(Math.random() * 900 + 100)}`, form: 'prose', textKey: 'text', check: kind === 'task' ? 'todo' : '', status: kind === 'task' ? 'open' : '' } } as never); },
+    title: `${kind} block`, group: 'Wye', subtext: kind === 'decision' ? 'a new decision with its context, choice, alternative and consequence blocks under it' : `a new ${kind} written as prose`,
+    onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'node', props: { kind, slug: fresh(), form: 'prose', textKey: 'text', check: kind === 'task' ? 'todo' : '', status: kind === 'task' ? 'open' : kind === 'decision' ? 'proposed' : '' }, ...(kind === 'decision' ? { children: DECISION_PARTS.map(([k, t]) => child(k, t)) } : {}) } as never); },
   }));
 
   // Drawings: a new empty scene, or the current code block turned into a monospace text element (ASCII diagrams).
