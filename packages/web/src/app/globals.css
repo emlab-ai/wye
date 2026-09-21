@@ -109,6 +109,9 @@ code, pre { font-family: var(--font-m); }
 .pill.s.on-track, .pill.s.done, .pill.s.complete { color: var(--ok); border-color: var(--ok); } .pill.s.at-risk, .pill.s.in-progress { color: var(--warn); border-color: var(--warn); } .pill.s.off-track, .pill.s.blocked { color: var(--bad); border-color: var(--bad); }
 /* rows of a collection are the block's children: no indentation, no side gutter */
 .bn-block:has(> .react-renderer.node-collection) > .bn-block-group { margin-left: 0 !important; padding-left: 0 !important; border-left: 0 !important; }
+/* a table row is the row only: the blocks under a row (its content — questions, notes, sub-tasks) stay in the file and
+   show in the column's Content, never inside the table (req:wf2.table.row-is-the-row) */
+.bn-block:has(> .react-renderer > .bn-block-content[data-row]:not([data-row=""])) > .bn-block-group { display: none !important; }
 .bn-block:has(> .react-renderer.node-collection) > .bn-block-group .bn-block-outer { margin: 0 !important; } .bn-block:has(> .react-renderer.node-collection) > .bn-block-group .bn-block-outer::before { display: none !important; } .bn-block:has(> .react-renderer.node-collection) > .bn-block-group .bn-block-content[data-content-type="node"] { padding: 0 !important; }
 .bn-block-content[data-content-type="collection"] { padding: 0 !important; }
 /* a table wider than the editor scrolls sideways as one block — header and rows keep their column minima (rule:table-scroll) */

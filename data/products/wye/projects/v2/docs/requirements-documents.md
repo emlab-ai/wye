@@ -566,6 +566,23 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - then:wf2.editor.code-monaco it renders as Monaco with the fence's language (a picker on hover), editable, its height following the lines; the code is the block's `code` property and the markdown stays the same fence — links, angle brackets and pipes verbatim
 
+```yaml
+- id: req:wf2.table.row-is-the-row
+  title: A table row shows the row only; the blocks under it live in the column
+  status: shipped
+  refines: req:wf2.editor.table-scroll
+  satisfied-by: [component:doc-editor, component:node-cards]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-documents
+```
+
+  - when:wf2.table.row-is-the-row an instance in a type's table (a city in Cities, a goal in Goals) has content blocks under it — a question, a note, sub-tasks — added in the column's Content editor or written in the file
+
+  - then:wf2.table.row-is-the-row the table renders the row and its columns only; the content stays in the document under the row's line and is shown and edited in the column (open ›), never as blocks nested inside the table
+
+  - unless:wf2.table.row-is-the-row the collection is switched to its list view — then each row is a block and its content shows under it as on any page
+
 ## Open questions
 
 <!-- list:question -->
