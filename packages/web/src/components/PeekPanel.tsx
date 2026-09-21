@@ -220,7 +220,17 @@ function RelRow({ id, rows, extra, className }: { id: string; rows: Rows; extra?
 }
 
 // A group heading: its label, count, and the cards / tags toggle that opens or closes every defined row at once.
-function RelHead({ label, ids, rows, count }: { label: string; ids: string[]; rows: Rows; count?: React.ReactNode }) {
+// One group of links (Part of, Depends on, …): collapsed by default — the label and the count — and its rows on a click.
+function RelGroup({ label, ids, rows }: { label: string; ids: string[]; rows: Rows }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className={`rel-group ${open ? 'open' : ''}`}>
+      <RelHead label={<button className="rel-fold" onClick={() => setOpen(o => !o)} aria-expanded={open}>{open ? '▾' : '▸'} {label}</button>} ids={ids} rows={rows} />
+      {open && <ul>{ids.map(id => <RelRow key={id} id={id} rows={rows} />)}</ul>}
+    </section>
+  );
+}
+function RelHead({ label, ids, rows, count }: { label: React.ReactNode; ids: string[]; rows: Rows; count?: React.ReactNode }) {
   const can = ids.filter(id => rows.index[id]?.defined === true);
   const all = can.length > 0 && can.every(id => rows.opened.has(id));
   return <h5>{label} <span className="muted">{count ?? ids.length}</span>{can.length > 0 && <button className="rel-all" onClick={() => rows.toggle(can, !all)} title={all ? 'Show these as tags' : 'Show these as cards'}>{all ? 'tags' : 'cards'}</button>}</h5>;
@@ -238,12 +248,7 @@ function Relations({ out, inc, rows, inverses = {} }: { out: [string, string[]][
   if (!total) return <p className="muted rels-empty">Nothing links to or from this node yet.</p>;
   return (
     <div className="rels">
-      {groups.map(g => (
-        <section key={g.key}>
-          <RelHead label={g.label} ids={g.ids} rows={rows} />
-          <ul>{[...g.ids].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)).map(id => <RelRow key={id} id={id} rows={rows} />)}</ul>
-        </section>
-      ))}
+      {groups.map(g => <RelGroup key={g.key} label={g.label} ids={[...g.ids].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))} rows={rows} />)}
     </div>
   );
 }
