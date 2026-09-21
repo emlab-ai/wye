@@ -2,6 +2,7 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import { usePeek } from './PeekProvider';
+import { useDark } from '@/lib/theme';
 
 // A file of the product's code in the column (req:wf2.code-preview): Monaco — the open-source VS Code editor — read
 // only, the language by extension, the line a `#symbol` or `:line` names revealed and lit. The file is fetched from
@@ -30,7 +31,7 @@ export function CodeView({ file }: { file: string }) {
     fetch(`/api/${product}/code?path=${encodeURIComponent(file)}`).then(async r => { const j = await r.json(); if (!live) return; if (!r.ok) setErr(j.message ?? j.error); else setCode(j); }).catch(e => { if (live) setErr(String(e)); });
     return () => { live = false; };
   }, [file, product]);
-  const dark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  const dark = useDark();
   const onMount = (ed: unknown) => {
     const e = ed as NonNullable<typeof editorRef.current>; editorRef.current = e;
     const line = code?.line; if (!line) return;

@@ -803,6 +803,14 @@ The editor's blocks and the components the pages are made of, by area.
     everything goes through the document route (op&#58;doc.create) and the import route.
   status: proposed
   part-of: module:components
+- id: component:theme-switch
+  file: packages/web/src/components/ThemeSwitch.tsx
+  side: client
+  purpose: >
+    Appearance (req&#58;wf2.ui.theme): three choices on the Settings page; the rail's ☾/☀ button flips between light
+    and dark.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

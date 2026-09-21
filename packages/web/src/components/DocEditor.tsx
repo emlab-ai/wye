@@ -1,5 +1,6 @@
 'use client';
 import { SelectionMenu } from './SelectionMenu';
+import { useDark } from '@/lib/theme';
 import { CodeBlock } from './CodeBlock';
 import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent as ReactFocusEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
@@ -871,7 +872,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   // the editor leaving the page (the document's file deleted outside the app, the page swapped for its not-found
   // notice) takes its pending save with it: edits never recreate a deleted file (decision:wf2.deleted-outside-drops-edits)
   useEffect(() => () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } }, []);
-  const theme = useMemo(() => (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'), []);
+  const dark = useDark(); const theme = dark ? 'dark' : 'light';   // follows the app's theme (lib/theme), not the OS alone
 
   // Publish the block under the cursor (its plain text and the ids it already carries) as the editing context for
   // the Context panel; the insert callback drops a tag at the current cursor position.

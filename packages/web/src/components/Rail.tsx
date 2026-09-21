@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { DocTree, type TreeItem } from './DocTree';
 import { NewPage } from './NewPage';
 import { filesOfDrop, type Picked } from './ImportDocs';
+import { ThemeButton } from './ThemeSwitch';
 import { PrFolder, type PrItem } from './PrFolder';
 import { SkillFolder, type SkillItem } from './SkillFolder';
 
@@ -44,7 +45,7 @@ export function Rail({ products, product, projects, prs, views = [], skills = []
   const resetSplit = () => { setTop(null); try { localStorage.removeItem('wf-rail-split'); } catch { /* ignore */ } };
   return (
     <nav className="rail" ref={nav}>
-      <div className="rail-ws"><span className="rail-ws-mark">Y</span><span className="rail-ws-name">Wye</span><button className="rail-close" onClick={() => window.dispatchEvent(new CustomEvent('wf:rail', { detail: 'toggle' }))} title="Close the sidebar (⌘\\)" aria-label="Close sidebar">«</button></div>
+      <div className="rail-ws"><span className="rail-ws-mark">Y</span><span className="rail-ws-name">Wye</span><ThemeButton /><button className="rail-close" onClick={() => window.dispatchEvent(new CustomEvent('wf:rail', { detail: 'toggle' }))} title="Close the sidebar (⌘\\)" aria-label="Close sidebar">«</button></div>
       <div className="rail-space">
         <span className="rail-space-mark">{product.icon || product.title.slice(0, 2).toUpperCase()}</span>
         <select className="rail-space-sel" value={product.slug} onChange={e => router.push(e.target.value === '__new' ? '/new' : `/${e.target.value}`)}>

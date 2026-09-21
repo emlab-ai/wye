@@ -1,7 +1,8 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { createReactBlockSpec } from '@blocknote/react';
 import { MonacoEditor } from './CodeView';
+import { useDark } from '@/lib/theme';
 
 // A code block is Monaco — the editor the column shows files in (req:wf2.editor.code-monaco): highlighting by
 // language, a language picker on hover, the height following the lines. The code lives in the block's `code` prop
@@ -13,8 +14,7 @@ const monacoLang = (l: string) => ALIAS[l] ?? l;
 const LINE = 19, PAD = 16;
 
 function CodeBlockView({ code, language, editable, onCode, onLanguage }: { code: string; language: string; editable: boolean; onCode: (v: string) => void; onLanguage: (v: string) => void }) {
-  const [dark, setDark] = useState(false);
-  useEffect(() => { const m = window.matchMedia?.('(prefers-color-scheme: dark)'); if (!m) return; setDark(m.matches); const f = (e: MediaQueryListEvent) => setDark(e.matches); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []);
+  const dark = useDark();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [lines, setLines] = useState(Math.max(3, code.split('\n').length));
   const height = Math.min(600, lines * LINE + PAD);

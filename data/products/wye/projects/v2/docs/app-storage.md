@@ -325,6 +325,16 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     `module.created where status=imported`.
   status: proposed
   part-of: module:app-storage
+- id: lib:theme
+  file: packages/web/src/lib/theme.ts
+  side: client
+  purpose: >
+    The app's theme (req&#58;wf2.ui.theme): the person's choice — system, light or dark — in localStorage
+    `wf-theme`, applied as `data-theme` on <html> (the CSS palette hangs on it). `system` follows
+    prefers-color-scheme and moves with it. The inline script in the root layout applies it before first paint so a
+    dark page never flashes light.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

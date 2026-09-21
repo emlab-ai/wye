@@ -200,3 +200,18 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - then:wf2.ui.phone the sidebar becomes the first screen and pages and the graph open full screen, as the v0.1 viewer does
 
 <!-- /list:req -->
+
+```yaml
+- id: req:wf2.ui.theme
+  title: The person picks light, dark or system; the whole app follows, including the editors
+  status: shipped
+  satisfied-by: [lib:theme, component:theme-switch, page:web/settings]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-shell
+```
+
+  - when:wf2.ui.theme the person presses ☾ / ☀ in the rail's head, or picks System / Light / Dark under Settings › Appearance
+
+  - then:wf2.ui.theme the palette switches at once — the pages, the editor, code blocks and file previews (Monaco), drawings — and the choice is kept in the browser; a page loads in the chosen theme without a light flash; System follows the OS and moves with it
+

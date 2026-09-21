@@ -1,4 +1,5 @@
 'use client';
+import { useDark } from '@/lib/theme';
 import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { createPortal } from 'react-dom';
 import { createReactBlockSpec } from '@blocknote/react';
@@ -61,7 +62,7 @@ function DrawingEditor({ doc, src, title, onClose, onSaved }: { doc: { product: 
   const [initial, setInitial] = useState<Record<string, unknown> | null | undefined>(undefined);
   const apiRef = useRef<ExcalidrawAPI | null>(null);
   const [busy, setBusy] = useState(false);
-  const dark = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const dark = useDark();
   useEffect(() => { fetch(api(doc, src)).then(r => r.ok ? r.json() : null).then(j => setInitial(j ? { elements: j.elements ?? [], appState: { ...(j.appState ?? {}), collaborators: new Map() }, files: j.files ?? {}, scrollToContent: true } : null)); }, [doc, src]);
   const done = async () => {
     const a = apiRef.current; if (!a) { onClose(); return; }
