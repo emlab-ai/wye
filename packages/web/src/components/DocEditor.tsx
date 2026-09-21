@@ -626,6 +626,41 @@ function LinkNodeButton({ onRequest }: { onRequest: (r: LinkRequest) => void }) 
   );
 }
 
+// "▣ block": the selection becomes a typed block (req:wf2.editor.make-block) — a long document is reshaped into the
+// graph passage by passage. Whole blocks selected: the first becomes the node (its text), the rest its content; a
+// passage inside a paragraph: it leaves the paragraph and becomes the node after it. The kind is picked here.
+type MakeBlockRequest = { x: number; y: number };
+function MakeBlockButton({ onRequest }: { onRequest: (r: MakeBlockRequest) => void }) {
+  const Components = useComponentsContext()!;
+  return (
+    <Components.FormattingToolbar.Button className="bn-button" label="Make a block" mainTooltip="Turn the selection into a typed block (a requirement, a decision, a task…)" onClick={() => {
+      const sel = window.getSelection(); const rect = sel && sel.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : { left: 200, bottom: 200 };
+      onRequest({ x: rect.left, y: rect.bottom + 6 });
+    }}>▣ block</Components.FormattingToolbar.Button>
+  );
+}
+const BLOCK_KINDS = ['req', 'decision', 'task', 'question', 'rule', 'constraint', 'goal', 'lesson', 'test', 'ui-test', 'entity', 'comment'];
+function MakeBlockPicker({ req, onClose, pick }: { req: MakeBlockRequest; onClose: () => void; pick: (kind: string) => void }) {
+  const { ownKinds } = usePeek();
+  const el = useRef<HTMLDivElement>(null);
+  const [q, setQ] = useState('');
+  useEffect(() => {
+    const close = (e: Event) => { if (!(e.target instanceof Node && el.current?.contains(e.target))) onClose(); };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('mousedown', close); document.addEventListener('keydown', key);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', key); };
+  }, [onClose]);
+  const kinds = [...new Set([...BLOCK_KINDS, ...ownKinds])].filter(k => !q.trim() || k.includes(q.trim().toLowerCase()));
+  const x = Math.min(req.x, (typeof window !== 'undefined' ? window.innerWidth : 9999) - 260), y = Math.min(req.y, (typeof window !== 'undefined' ? window.innerHeight : 9999) - 320);
+  return (
+    <div ref={el} className="pg-menu block-menu make-block" style={{ left: x, top: y }} onMouseDown={e => e.stopPropagation()}>
+      <div className="menu-head muted">make the selection a block of</div>
+      <input autoFocus value={q} placeholder="kind…" onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && kinds[0]) { pick(kinds[0]); onClose(); } }} />
+      <div className="make-block-kinds">{kinds.map(k => <button key={k} role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => { pick(k); onClose(); }}><i className="pill k" style={{ background: `var(--k-${k}, var(--k-other))` }}>{k}</i></button>)}</div>
+    </div>
+  );
+}
+
 // The ⌁ node picker (req:wf2.editor.entity-from-text): link the selection to a node, make a new document from it, or
 // make a NEW NODE of a chosen type from it — "London" becomes city:london, its card on the type's home page (or this
 // page for a base kind) and the word a tag — then offer to link every other plain "London" in the product.
@@ -721,6 +756,17 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     // defaultPasteHandler — returning undefined kills text paste everywhere, task:new-286)
     pasteHandler: ({ event, editor: ed, defaultPasteHandler }) => {
       const files = [...(event.clipboardData?.files ?? [])].filter(f => f.type.startsWith('image/'));
+      // a copied block link (…/d/<doc>#n-<id>) pasted on its own line becomes a reference block — an embed of that
+      // node (req:wf2.editor.reference-block); inside a sentence it stays a link
+      const text = (event.clipboardData?.getData('text/plain') ?? '').trim();
+      const lm = !files.length && text && !text.includes('\n') ? text.match(/^https?:\/\/[^\s]+\/d\/[^\s#]+#n-([^\s]+)$/) : null;
+      if (lm) {
+        const id = decodeURIComponent(lm[1]);
+        const cur = ed.getTextCursorPosition().block as unknown as AnyBlock;
+        const empty = Array.isArray(cur.content) && !rowText(cur).trim();
+        if (empty && cur.type !== 'node') { ed.updateBlock(cur as never, { type: 'embed', props: { node: id } } as never); touched.current = true; changed(); return true; }
+        if (cur.type !== 'node') { ed.insertBlocks([{ type: 'embed', props: { node: id } } as never], cur as never, 'after'); touched.current = true; changed(); return true; }
+      }
       if (!files.length) return defaultPasteHandler();
       const cur = ed.getTextCursorPosition().block as unknown as AnyBlock;
       if (cur.type !== 'node') return defaultPasteHandler();
@@ -746,6 +792,36 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const [elsewhere, setElsewhere] = useState(0); // the product check's errors that are not this document's
   const [loadError, setLoadError] = useState<string | null>(null);
   const [linkReq, setLinkReq] = useState<LinkRequest | null>(null);
+  const [makeReq, setMakeReq] = useState<MakeBlockRequest | null>(null);
+  // the selection → a node block of `kind` (req:wf2.editor.make-block)
+  const makeBlock = (kind: string) => {
+    const tt = (editor as unknown as { _tiptapEditor: { state: { selection: { from: number; to: number } }; commands: { deleteSelection: () => boolean } } })._tiptapEditor;
+    const text = editor.getSelectedText().trim();
+    const selected = (editor.getSelection()?.blocks ?? []) as unknown as AnyBlock[];
+    const taken = new Set(Object.keys(index));
+    // <kind>:<product>.<first words>, as a captured task is named (lib/work-io), unique in the product
+    const slugFor = (t: string) => { const base = `${product}.${slugify(t.split(/\s+/).slice(0, 6).join(' ')) || kind}`; let sl = base; let n = 2; while (taken.has(`${kind}:${sl}`)) sl = `${base}-${n++}`; return sl; };
+    const node = (content: unknown, children: AnyBlock[] = []) => ({ type: 'node', props: { kind, slug: slugFor(text || rowTextOf(content)), form: 'prose', textKey: 'text', status: '', check: '', list: 'bullet', body: '', extra: '' }, content, ...(children.length ? { children } : {}) });
+    const rowTextOf = (c: unknown) => (Array.isArray(c) ? c : []).map((i: { type: string; text?: string; props?: { id?: string } }) => i.type === 'text' ? i.text ?? '' : i.type === 'tag' ? i.props?.id ?? '' : '').join('');
+    const whole = selected.length > 1 || (selected.length === 1 && text && rowTextOf(selected[0].content).trim() === text);
+    if (whole && selected.length) {
+      // the first block is the node, the others its content; a typed block among them stays what it is
+      const [first, ...rest] = selected;
+      if (first.type === 'node') { toast('That is a block already'); return; }
+      const kids = rest.map(b => ({ ...JSON.parse(JSON.stringify(b)), id: undefined })) as AnyBlock[];
+      for (const k of kids) delete (k as { id?: string }).id;
+      editor.replaceBlocks([first as never, ...rest.map(b => b as never)], [node(first.content, kids) as never]);
+    } else {
+      if (!text) { toast('Select some text first'); return; }
+      const cur = editor.getTextCursorPosition().block as unknown as AnyBlock;
+      if (cur.type === 'node') { toast('Select a whole card to change it; a passage of a card becomes a block under it'); return; }
+      // the passage leaves the paragraph and becomes the node after it
+      tt.commands.deleteSelection();
+      editor.insertBlocks([node([{ type: 'text', text, styles: {} }]) as never], String((cur as { id?: string }).id), 'after');
+    }
+    touched.current = true; changed();
+    void tt.state.selection;
+  };
   const [askReq, setAskReq] = useState<AskRequest | null>(null);
   const hash = useRef(ifMatch);
   const lastExported = useRef<string | null>(null);
@@ -790,7 +866,19 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   useEffect(() => { if (scoped) return; setShowContext(true); return () => { setEditing(null); setShowContext(false); }; }, [setEditing, setShowContext, scoped]);
 
   // ids already used in this product (so a new row never collides)
-  const settle = (assignSlugs = false) => { const taken = new Set(Object.keys(index)); for (const b of editor.document as unknown as AnyBlock[]) for (const k of b.children ?? []) if (k.type === 'node') { const p = k.props as unknown as { kind: string; slug: string }; if (p.slug) taken.add(`${p.kind}:${p.slug}`); } return settleCollections(editor as never, taken, assignSlugs); };
+  // Enter at the end of a node block splits it and BlockNote copies the props — two blocks with one id; the empty
+  // split-off one becomes a plain paragraph (a second block with text is left alone: a person may mean it)
+  const dedupeNodes = () => {
+    const seen = new Set<string>(); let changedAny = false;
+    const walk = (bs: AnyBlock[]) => { for (const b of bs) {
+      if (b.type === 'node') { const p = b.props as unknown as { kind: string; slug: string; row?: string }; const key = `${p.kind}:${p.slug}`;
+        if (p.slug && !p.row && seen.has(key) && !rowText(b).trim() && !(b.children?.length)) { editor.updateBlock(b as never, { type: 'paragraph', props: {} } as never); changedAny = true; }
+        else if (p.slug && !p.row) seen.add(key); }
+      if (b.children?.length) walk(b.children as AnyBlock[]); } };
+    walk(editor.document as unknown as AnyBlock[]);
+    return changedAny;
+  };
+  const settle = (assignSlugs = false) => { const taken = new Set(Object.keys(index)); for (const b of editor.document as unknown as AnyBlock[]) for (const k of b.children ?? []) if (k.type === 'node') { const p = k.props as unknown as { kind: string; slug: string }; if (p.slug) taken.add(`${p.kind}:${p.slug}`); } const d = dedupeNodes(); return settleCollections(editor as never, taken, assignSlugs) || d; };
   const load = (md: string) => {
     loading.current = true;
     try {
@@ -1112,16 +1200,25 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}{!lintMsg && elsewhere > 0 && <span className="muted" title="ctx check finds an error in another document of the product — not in this one">{elsewhere} check error{elsewhere === 1 ? '' : 's'} elsewhere</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false} emojiPicker={false}>
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><AnnotateItem annotate={imageToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
-        <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /><AskAgentButton onRequest={r => setAskReq({ ...r, doc: slug, project, pageLink: `${location.origin}/${product}/${project}/d/${slug}`, refs: [...new Set([...r.refs, `module:${slug}`])] })} /></FormattingToolbar>} />
+        <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /><MakeBlockButton onRequest={setMakeReq} /><AskAgentButton onRequest={r => setAskReq({ ...r, doc: slug, project, pageLink: `${location.origin}/${product}/${project}/d/${slug}`, refs: [...new Set([...r.refs, `module:${slug}`])] })} /></FormattingToolbar>} />
         <SuggestionMenuController triggerCharacter="/" getItems={async q => {
           // "Image in this block": a file picked from disk goes into the current node block's text (paste does the same)
           let inNode = false; try { inNode = (editor.getTextCursorPosition().block as unknown as AnyBlock).type === 'node'; } catch { /* no cursor */ }
           const imageItems = inNode ? [{ title: 'Image in this block', group: 'Wye', subtext: 'a screenshot inside this bug / task / requirement, as part of its text', onItemClick: () => imageInput.current?.click() }] : [];
+          // "/task:ui.tasks" — a reference to an existing block: an embed of it here (req:wf2.editor.reference-block); the
+          // query after the colon narrows the nodes of that kind by id or title
+          const rm = q.match(/^([a-z][a-z0-9-]*):(.*)$/);
+          if (rm) {
+            const kind = rm[1], n = rm[2].toLowerCase();
+            const hits = Object.values(index).filter(e => e.kind === kind && e.defined && (!n || e.id.toLowerCase().includes(n) || e.title.toLowerCase().includes(n))).sort((a, b) => Number(a.id.slice(kind.length + 1).startsWith(n) ? 0 : 1) - Number(b.id.slice(kind.length + 1).startsWith(n) ? 0 : 1) || a.id.length - b.id.length).slice(0, 12);
+            return hits.map(e => ({ title: e.id, subtext: e.title, group: `Reference a ${kind}`, onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'embed', props: { node: e.id } } as never); touched.current = true; changed(); } }));
+          }
           return filterSuggestionItems([...getDefaultReactSlashMenuItems(editor), ...imageItems, ...nodeItems, ...collectionItems, ...drawingItems], q);
         }} />
         <SuggestionMenuController triggerCharacter="@" minQueryLength={1} getItems={async q => mentionItems(q)} />
       </BlockNoteView>
       <input ref={imageInput} type="file" accept="image/*" multiple hidden onChange={e => { const fs = [...(e.target.files ?? [])]; e.target.value = ''; if (fs.length) void insertInlineImages(fs); }} />
+      {makeReq && <MakeBlockPicker req={makeReq} onClose={() => setMakeReq(null)} pick={makeBlock} />}
       {linkReq && <LinkNodePicker req={linkReq} onClose={() => setLinkReq(null)} apply={applyLink} createDoc={createDoc} createNode={createNode} linkEverywhere={linkEverywhere} />}
       {askReq && <AskAgentBox req={askReq} onClose={() => setAskReq(null)} />}
     </div>
