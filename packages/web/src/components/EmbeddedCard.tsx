@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import { NodeCard, contentBlocks, type CardP, type CardHost } from './NodeCards';
@@ -9,6 +10,12 @@ import { cardFromNode, cardText, cardPatchToNodePatch, type ApiNode } from '@/li
 import { setBodyField } from '@/lib/yaml-form';
 import { requestSend } from './CommandBox';
 import type { NodePatch } from '@/lib/node-edit';
+
+// the card's text becomes the block editor on a click (req:wf2.editor.embed-text-is-editor): the same scoped DocEditor
+// the column uses — the node's text its first block, its content after — so the selection menu, @ tags, links and
+// slash blocks work in a card exactly as on a page. Loaded lazily: DocEditor imports the embed block, which imports
+// this file.
+const ScopedEditor = dynamic(() => import('./DocEditor'), { ssr: false, loading: () => <div className="embed-text muted">…</div> });
 
 // An embedded node (component:embed-block, decision:wf2.embed-renders-source-card): the node's card rendered with
 // the same components its source page uses, editable in place. There is one store — the node's defining line or
@@ -73,12 +80,26 @@ export function EmbeddedCard({ id, badge, className, inEditor }: { id: string; b
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(flush, 700);
   };
+  // the editor mounts on the first click into the text, with the node's text and content from the content route
+  const [editing, setEditing] = useState<'loading' | { project: string; doc: string; body: string; hash: string } | null>(null);
+  useEffect(() => { setEditing(null); }, [id]);
+  const activate = async () => {
+    if (editing) return; setEditing('loading');
+    const r = await fetch(`/api/${product}/node/${encodeURIComponent(id)}/content`); const j = r.ok ? await r.json() as { text: string; content: string; bodyHash: string; project: string; doc: string } : null;
+    if (!j) { setEditing(null); return; }
+    const body = j.text.trim() ? j.text.trim() + (j.content.trim() ? '\n\n' + j.content : '\n') : j.content;
+    setEditing({ project: j.project, doc: j.doc, body, hash: j.bodyHash });
+  };
   const e = index[id];
   const from = e?.file ? e.file.split('/').pop()?.replace(/\.md$/, '') : '';
   if (missing || !p && e && !e.defined) return <div className={`embed embed-stub ${className ?? ''}`} contentEditable={false}>{badge}<SmartTag id={id} /><span className="muted small">not defined — referenced only</span></div>;
   if (!p) return <div className={`embed ${className ?? ''}`} contentEditable={false}>{badge}<SmartTag id={id} /><span className="muted small">loading…</span></div>;
   const host: CardHost = {
-    text: cls => <textarea className={`${cls} embed-text`} value={text} rows={1} spellCheck={false} onChange={ev => { setText(ev.target.value); set({ body: setBodyField(p.body, p.textKey, ev.target.value) }); }} />,
+    text: cls => editing
+      ? <div className={`${cls} embed-editor`} onClick={e => e.stopPropagation()} onFocus={e => e.stopPropagation()} onBlur={e => e.stopPropagation()}>
+          {editing === 'loading' ? <div className="embed-text muted">…</div> : <ScopedEditor product={product} project={editing.project} slug={editing.doc} body={editing.body} ifMatch={editing.hash} scope={id} autoFocus />}
+        </div>
+      : <textarea className={`${cls} embed-text`} value={text} rows={1} spellCheck={false} readOnly onMouseDown={e => { e.preventDefault(); void activate(); }} onFocus={() => void activate()} onChange={ev => { setText(ev.target.value); set({ body: setBodyField(p.body, p.textKey, ev.target.value) }); }} />,
     // in a document the pill selects like the rest of the card (rule:block-select, the .embed click below); in the column it pushes
     peek: () => inEditor ? select(id) : open(id),
     copyLink: async () => { const url = `${location.origin}${hrefFor(id) ?? ''}`; try { await navigator.clipboard.writeText(url); } catch { /* clipboard unavailable */ } },

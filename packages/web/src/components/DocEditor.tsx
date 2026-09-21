@@ -745,7 +745,7 @@ function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEveryw
 // `scope`: the editor edits one node's content (decision:wf2.content-editor-scoped) — the blocks under its defining
 // line in `slug` — loaded and saved through the node's content route instead of the document's; it publishes no
 // editing context, and a click on a child block opens the child in the column (decision:ontology.depth-by-navigation).
-export default function DocEditor({ product, project, slug, body, ifMatch, fallback, scope = null }: { product: string; project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode; scope?: string | null }) {
+export default function DocEditor({ product, project, slug, body, ifMatch, fallback, scope = null, autoFocus = false }: { product: string; project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode; scope?: string | null; autoFocus?: boolean }) {
   const router = useRouter();
   const { open: openPeek, select, setFocused, index, hrefFor, setEditing, setShowContext, ownKinds, ownTypes } = usePeek();
   const scoped = scope !== null;
@@ -943,7 +943,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     if (lastExported.current !== null && norm(lastExported.current) === norm(body)) return;
     if (timer.current) return; // the person is mid-edit: their save goes out first, the next refresh brings the merge
     load(body);
-    if (!ready) setReady(true);
+    if (!ready) { setReady(true); if (autoFocus) setTimeout(() => { try { const last = (editor.document as unknown as AnyBlock[])[0]; editor.focus(); if (last) editor.setTextCursorPosition(last as never, 'end'); } catch { /* not mounted */ } }, 50); }   // an embedded card's editor opens where the click was going: in the text
     // a link to a block: find it by anchor and bring it into view
     const frag = typeof location !== 'undefined' ? location.hash.replace(/^#/, '') : '';
     if (frag) setTimeout(() => {

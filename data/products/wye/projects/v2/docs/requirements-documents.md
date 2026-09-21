@@ -598,6 +598,23 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - then:wf2.instances.list-new-line a new instance of the view's kind is written — a product type's to its collection document, a base kind's to the document the view is in — carrying the view's own `part-of` filter when it has one (so a requirement typed under a goal's Requirements is part of that goal, its slug under the goal's), the list shows it, and the empty line is there again for the next one
 
+```yaml
+- id: req:wf2.editor.embed-text-is-editor
+  title: A card's text is the block editor wherever the card is shown — a view, an embed, a list — with the same menu, tags and links as a page
+  status: shipped
+  refines: req:wf2.editor.selection-menu
+  satisfied-by: [component:embedded-card, component:doc-editor]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-documents
+```
+
+  - when:wf2.editor.embed-text-is-editor the person clicks into the text of a card shown in a view, a list or an embed on any page
+
+  - then:wf2.editor.embed-text-is-editor the text becomes the scoped block editor the column uses — the node's text its first block, its content after — with the selection menu, @ tags, links, slash blocks and saving through the node's content, the cursor where the click was going; the card's other fields stay as they are
+
+  - unless:wf2.editor.embed-text-is-editor the node is referenced only — then there is nothing to edit
+
 ## Open questions
 
 <!-- list:question -->
