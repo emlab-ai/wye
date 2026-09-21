@@ -60,10 +60,10 @@ One card per number, with the previous run, the delta in points, the tolerance i
 
 One card per pair; the arms' scores stay hidden until every run is marked (the mark is blind).
 
-_none yet_
+*none yet*
 
 ## Public benchmarks
 
 One card per public benchmark row: ours beside the published numbers, with the source.
 
-_none yet_
+*none yet*

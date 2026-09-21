@@ -26,7 +26,7 @@ import { filterRows, parseViewQuery, viewQuery, EMPTY_FILTERS, type Filters, typ
 import { slugify } from '@/lib/templates';
 import { blockHash } from '@/lib/anchors';
 import { applyLinks, blockText, blockLinked, type LinkBlock } from '@/lib/apply-links';
-import { headingSlug, DONE_STATUSES } from '@/lib/doc';
+import { headingSlug, docNodeOf, DONE_STATUSES } from '@/lib/doc';
 import { ProgressBar } from './Progress';
 import { requestSend } from './CommandBox';
 import { AskAgentBox, type AskRequest } from './AskAgent';
@@ -92,7 +92,10 @@ function toast(text: string) {
 // in the column, comment (the column with its Comments section), expire (`until: today` — the node stops holding,
 // decision:memory.bitemporal), copy link, send to agent. Escape, a press outside or a scroll closes it.
 type BlockMenu = { block: AnyBlock; x: number; y: number };
-function BlockContextMenu({ menu, onClose, act }: { menu: BlockMenu; onClose: () => void; act: (what: 'delete' | 'clone' | 'open' | 'comment' | 'expire' | 'copy' | 'send' | 'done', b: AnyBlock) => void }) {
+type BlockAct = 'delete' | 'clone' | 'open' | 'comment' | 'expire' | 'copy' | 'send' | 'done' | 'copyBlock' | 'cut' | 'paste';
+// the in-app clipboard: the blocks last copied or cut here, pasted whole (the system clipboard gets their markdown)
+let CLIP: { blocks: AnyBlock[]; cut: boolean } | null = null;
+function BlockContextMenu({ menu, onClose, act, canPaste }: { menu: BlockMenu; onClose: () => void; act: (what: BlockAct, b: AnyBlock) => void; canPaste: boolean }) {
   const el = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const close = (e: Event) => { if (!(e.target instanceof Node && el.current?.contains(e.target))) onClose(); };
@@ -109,13 +112,45 @@ function BlockContextMenu({ menu, onClose, act }: { menu: BlockMenu; onClose: ()
     <div ref={el} className="pg-menu block-menu" role="menu" style={{ left: x, top: y }}>
       {typed && <div className="menu-head muted">{np!.kind}:{np!.slug}</div>}
       {typed && item('Open in column', 'open')}
-      {typed && item('Comment…', 'comment')}
+      {item('Comment…', 'comment')}
       {np?.kind === 'task' && np.status !== 'done' && item('Mark done', 'done')}
       {typed && item('Expire (until today)', 'expire')}
+      {item('Copy', 'copyBlock')}
+      {item('Cut', 'cut')}
+      {canPaste && item('Paste after', 'paste')}
       {item('Clone', 'clone')}
       {item('Copy link', 'copy')}
       {item('Send to agent', 'send')}
       {item('Delete', 'delete', 'danger')}
+    </div>
+  );
+}
+
+// A comment on a plain block (a paragraph, a list item — anything that is not a typed node): the block's node in the
+// graph is `block:<doc>.<hash>` (rule:block-node); the column cannot show it yet (task:ontology.block-peek), so the
+// comment is taken here, where the menu was, and goes to the project's Comments document like any other.
+function CommentPop({ at, on, product, onClose }: { at: { x: number; y: number }; on: string; product: string; onClose: () => void }) {
+  const el = useRef<HTMLDivElement>(null);
+  const [text, setText] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+  useEffect(() => {
+    const close = (e: Event) => { if (!(e.target instanceof Node && el.current?.contains(e.target))) onClose(); };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('mousedown', close); document.addEventListener('keydown', key);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', key); };
+  }, [onClose]);
+  const post = async () => {
+    const t = text.trim(); if (!t || busy) return; setBusy(true); setErr('');
+    const r = await fetch(`/api/${product}/comments`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ on, text: t }) });
+    const j = await r.json().catch(() => ({})); setBusy(false);
+    if (!r.ok) { setErr(j.message ?? 'could not write the comment'); return; }
+    toast(j.doc ? `Comment saved in ${j.doc.title}` : 'Comment saved'); onClose();
+  };
+  const x = Math.min(at.x, (typeof window !== 'undefined' ? window.innerWidth : 9999) - 320), y = Math.min(at.y, (typeof window !== 'undefined' ? window.innerHeight : 9999) - 140);
+  return (
+    <div ref={el} className="pg-menu comment-pop" style={{ left: x, top: y }} onMouseDown={e => e.stopPropagation()}>
+      <div className="menu-head muted">comment on this block</div>
+      <textarea autoFocus rows={3} value={text} placeholder="Say it… (⌘↩ posts)" onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void post(); } }} />
+      <div className="sec-actions"><button className="pri" disabled={busy || !text.trim()} onClick={post}>{busy ? 'saving…' : 'Post'}</button><button onClick={onClose}>Cancel</button>{err && <span className="notice">{err}</span>}</div>
     </div>
   );
 }
@@ -934,6 +969,8 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const fresh = () => `new-${Math.floor(Math.random() * 900 + 100)}`;
   // the block under a right-click: BlockNote wraps every block in .bn-block-outer[data-id]; the innermost one is the block
   const [blockMenu, setBlockMenu] = useState<BlockMenu | null>(null);
+  const [commentPop, setCommentPop] = useState<{ x: number; y: number; on: string } | null>(null);
+  const closeCommentPop = useCallback(() => setCommentPop(null), []);
   const onContextMenu = (e: React.MouseEvent) => {
     const t = e.target as HTMLElement;
     if (t.closest('a, input, select, textarea, button, .pg-menu, .bn-suggestion-menu')) return;
@@ -948,10 +985,28 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     const props = np.form === 'yaml' ? { ...b.props, body: setBodyField(np.body ?? '', key, value) } : { ...b.props, extra: withExtra(np.extra ?? '', key, value) };
     editor.updateBlock(b as never, { props } as never);
   };
-  const blockAct = (what: 'delete' | 'clone' | 'open' | 'comment' | 'expire' | 'copy' | 'send' | 'done', b: AnyBlock) => {
+  // a block (with its children) as its own markdown, for the system clipboard; a typed node pasted while its original is
+  // still there gets a fresh slug, like a clone; a cut one keeps its id
+  const reslug = (x: AnyBlock) => { delete (x as { id?: string }).id; if (x.type === 'node') { const cp = x.props as unknown as { kind: string; slug: string; form: string; body: string }; if (cp.slug) { const sl = `${cp.slug.replace(/-copy(-\d+)?$/, '')}-copy`; if (cp.form === 'yaml' && cp.body) cp.body = cp.body.replace(/^id:\s*.*$/m, `id: ${cp.kind}:${sl}`); cp.slug = sl; } } for (const k of x.children ?? []) reslug(k); };
+  const stripIds = (x: AnyBlock) => { delete (x as { id?: string }).id; for (const k of x.children ?? []) stripIds(k); };
+  const pasteAfter = async (id: string) => {
+    let blocks: AnyBlock[] = [];
+    if (CLIP) { blocks = JSON.parse(JSON.stringify(CLIP.blocks)) as AnyBlock[]; for (const x of blocks) (CLIP.cut ? stripIds : reslug)(x); if (CLIP.cut) CLIP = null; }
+    else { let text = ''; try { text = await navigator.clipboard.readText(); } catch { toast('Nothing to paste — copy a block first'); return; } if (!text.trim()) return; blocks = importMarkdown(text, src => editor.tryParseMarkdownToBlocks(src) as unknown as AnyBlock[]); for (const x of blocks) reslug(x); }
+    if (!blocks.length) return;
+    editor.insertBlocks(blocks as never[], id, 'after'); touched.current = true; changed();
+  };
+  const blockAct = (what: BlockAct, b: AnyBlock) => {
     const id = String((b as { id?: string }).id); const np = b.type === 'node' ? b.props as unknown as { kind: string; slug: string; form: string; body: string } : null;
     const nodeId = np?.slug ? `${np.kind}:${np.slug}` : '';
     if (what === 'delete') { editor.removeBlocks([id]); touched.current = true; changed(); return; }
+    if (what === 'copyBlock' || what === 'cut') {
+      CLIP = { blocks: [JSON.parse(JSON.stringify(b))], cut: what === 'cut' };
+      const md = blocksToMarkdown([b]); navigator.clipboard?.writeText(md).catch(() => {});
+      if (what === 'cut') { editor.removeBlocks([id]); touched.current = true; changed(); }
+      toast(what === 'cut' ? 'Cut — paste it after another block' : 'Copied'); return;
+    }
+    if (what === 'paste') { void pasteAfter(id); return; }
     if (what === 'clone') {
       // a copy after the block; a typed node gets a fresh slug so the copy is its own node (the same id would redefine it)
       const copy = JSON.parse(JSON.stringify({ ...b, id: undefined })) as AnyBlock;
@@ -960,7 +1015,13 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       editor.insertBlocks([copy as never], id, 'after'); touched.current = true; changed(); return;
     }
     if (what === 'open' && nodeId) { openPeek(nodeId); return; }
-    if (what === 'comment') { if (nodeId) { openPeek(nodeId); setTimeout(() => { const ta = document.querySelector('.peek .comments textarea, .peek .comments input') as HTMLElement | null; ta?.focus(); }, 400); } else toast('Comments go on typed blocks — make it a node first'); return; }
+    if (what === 'comment') {
+      if (nodeId) { openPeek(nodeId); setTimeout(() => { const ta = document.querySelector('.peek .comments textarea, .peek .comments input') as HTMLElement | null; ta?.focus(); }, 400); return; }
+      // a plain block: its graph node is block:<doc node slug>.<hash of its text> (rule:block-node)
+      const docId = docNodeOf(index, slug) ?? `module:${slug}`; const docKey = docId.slice(docId.indexOf(':') + 1);
+      const on = `block:${docKey}.${blockHash(b.type === 'embed' ? `![[${(b.props as { node?: string }).node ?? ''}]]` : rowText(b))}`;
+      setCommentPop({ x: blockMenu?.x ?? 0, y: blockMenu?.y ?? 0, on }); return;
+    }
     if (what === 'expire' && np) { setNodeProp(b, 'until', new Date().toISOString().slice(0, 10)); touched.current = true; changed(); return; }
     if (what === 'done' && np) { editor.updateBlock(b as never, { props: { ...b.props, status: 'done', check: (b.props as { check?: string }).check ? 'done' : (b.props as { check?: string }).check } } as never); touched.current = true; changed(); return; }
     if (what === 'copy') { void copyBlockLink(b, rootRef.current); return; }
@@ -1039,7 +1100,8 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
           if (doc) router.push(doc.replace(/#.*$/, '')); else openPeek(href);
         }
       }}>
-      {blockMenu && <BlockContextMenu menu={blockMenu} onClose={closeBlockMenu} act={blockAct} />}
+      {blockMenu && <BlockContextMenu menu={blockMenu} onClose={closeBlockMenu} act={blockAct} canPaste={!!CLIP || typeof navigator !== 'undefined' && !!navigator.clipboard?.readText} />}
+      {commentPop && <CommentPop at={commentPop} on={commentPop.on} product={product} onClose={closeCommentPop} />}
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}{!lintMsg && elsewhere > 0 && <span className="muted" title="ctx check finds an error in another document of the product — not in this one">{elsewhere} check error{elsewhere === 1 ? '' : 's'} elsewhere</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false} emojiPicker={false}>
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><AnnotateItem annotate={imageToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
