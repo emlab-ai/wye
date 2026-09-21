@@ -324,7 +324,9 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     markdown to the system one), Paste after (the copied blocks, or the system clipboard's markdown imported — a
     typed node pasted while its original stands gets a fresh slug, a cut one keeps its id), Clone (a copy after the
     block; a typed node gets a fresh `-copy` slug so the copy is its own node, its children re-slugged the same
-    way), Copy link, Send to agent, Delete; a typed node also has Open in column, Expire
+    way), Copy link, Send to agent, Link › <kind> (a new block of that kind — comment, req, question, decision, task,
+    a product's own type… — under the node as its content, to type into; on an embed it is appended in the node's
+    own document and the node opens in the column), Delete; a typed node also has Open in column, Expire
     (`until: today` — the node stops holding, decision:memory.bitemporal) and, for a task, Mark done. Escape, a press
     outside or a scroll closes it; the close handler checks the target, as rule:tree-menu does. The drag handle's own
     menu stays for the block-type actions (colours, turn into drawing, annotate). A smart tag inside a block has its
