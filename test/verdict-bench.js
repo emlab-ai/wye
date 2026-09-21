@@ -4,7 +4,7 @@
 // kind. Precision proxy: a fixed sample of same-kind pairs that share a neighbour and are not in any drift row —
 // the share the judge leaves alone. Verdicts are recorded in test/fixtures/verdict-bench.json, so CI replays them
 // without a model; WATERFALL_LIVE=1 asks the model for pairs the record does not have (a new model or prompt).
-//   node test/verdict-bench.js [--root data/products/waterfall] [--negatives 30] [--json]
+//   node test/verdict-bench.js [--root data/products/wye] [--negatives 30] [--json]
 const path = require('path');
 const fs = require('fs');
 const { parseFiles } = require('../lib/parse');
@@ -13,7 +13,7 @@ const { judgePairs, nodeText, promptHash, DEFAULT_MODEL } = require('../lib/judg
 
 const argv = process.argv.slice(2);
 const opt = (n, d) => { const i = argv.indexOf('--' + n); return i === -1 ? d : argv[i + 1]; };
-const ROOT = opt('root', 'data/products/waterfall');
+const ROOT = opt('root', 'data/products/wye');
 const RECORD = path.join(__dirname, 'fixtures', 'verdict-bench.json');
 const LIVE = process.env.WATERFALL_LIVE === '1';
 const files = [];

@@ -21,7 +21,7 @@ describe('dedupeUserEvents', () => {
 });
 
 describe('firstUserEvent', () => {
-  const prompt = 'You are working on the product "waterfall"…\n\n## Instruction\nfix the bar\n\n## How to work\n- wf …';
+  const prompt = 'You are working on the product "wye"…\n\n## Instruction\nfix the bar\n\n## How to work\n- wf …';
   it('shows the instruction and keeps the whole message on prompt', () => {
     expect(firstUserEvent(prompt, 'fix the bar', ['/api/x/a.png'])).toEqual({ kind: 'user', text: 'fix the bar', prompt, images: ['/api/x/a.png'] });
   });

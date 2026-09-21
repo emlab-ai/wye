@@ -105,11 +105,11 @@ describe('prsOf', () => {
     edges: [{ from: 'task:a1', to: 'pr:1', verb: 'part-of' }, { from: 'task:a2', to: 'pr:1', verb: 'part-of' }, { from: 'task:a3', to: 'pr:1', verb: 'part-of' }, { from: 'task:a3', to: 'pr:2', verb: 'mentions' }],
   };
   it('lists a session\'s plans from the graph, oldest first, with their task counts', () => {
-    expect(prsOf('waterfall', graph, 's1')).toEqual([
-      { ref: 'waterfall/v2/pr-1', node: 'pr:1', title: '#1 t pr:1', status: 'draft', started: '2026-09-18T10:00:00Z', finished: undefined, tasks: { done: 1, total: 3 } },
-      { ref: 'waterfall/v2/pr-2', node: 'pr:2', title: '#2 t pr:2', status: 'done', started: '2026-09-18T12:00:00Z', finished: '2026-09-18', tasks: { done: 0, total: 0 } },
+    expect(prsOf('wye', graph, 's1')).toEqual([
+      { ref: 'wye/v2/pr-1', node: 'pr:1', title: '#1 t pr:1', status: 'draft', started: '2026-09-18T10:00:00Z', finished: undefined, tasks: { done: 1, total: 3 } },
+      { ref: 'wye/v2/pr-2', node: 'pr:2', title: '#2 t pr:2', status: 'done', started: '2026-09-18T12:00:00Z', finished: '2026-09-18', tasks: { done: 0, total: 0 } },
     ]);
-    expect(prsOf('waterfall', graph, 'nobody')).toEqual([]);
+    expect(prsOf('wye', graph, 'nobody')).toEqual([]);
   });
 });
 

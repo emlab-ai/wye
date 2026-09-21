@@ -1,6 +1,6 @@
 # eval/ — the benchmarks harness
 
-The contract is the Benchmarks page of the Evaluation project (`data/products/waterfall/projects/evaluation/docs/benchmarks.md`,
+The contract is the Benchmarks page of the Evaluation project (`data/products/wye/projects/evaluation/docs/benchmarks.md`,
 module:benchmarks); this folder is its code (lib:eval). `wye eval …` runs it; `test/eval.js` replays it in CI.
 
     wye eval own [--suite packet|currency|contradictions|impact|consolidation|all] [--live] [--build-truth] [--baseline "<why>"]

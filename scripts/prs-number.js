@@ -2,7 +2,7 @@
 // One-off (decision:wf2.pr-numbers): PRs are numbered like pull requests. Per product, every pr document whose slug is
 // not a number gets one — one more than the highest number in use, in `started` order (oldest first): the file
 // pr-<words>.md → pr-<n>.md, node pr:<words> → pr:<n>, task:pr-<words> → task:pr-<n>, every reference in the
-// product's documents, every session's prDoc and refs. Usage: node scripts/prs-number.js --product waterfall | --all [--dry]
+// product's documents, every session's prDoc and refs. Usage: node scripts/prs-number.js --product wye | --all [--dry]
 const fs = require('fs'); const path = require('path');
 
 const walk = (dir) => { let out = []; for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name); if (e.isDirectory()) { if (!['_build', '_sessions', 'node_modules', '.git'].includes(e.name)) out = out.concat(walk(p)); } else out.push(p); } return out; };

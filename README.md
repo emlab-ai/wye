@@ -10,7 +10,7 @@ what governs a request before it works, writes what it decided as blocks for rev
 against the constraints in force. Markdown in git is the only source of truth; the app, the `wye` CLI and the graph
 are views and doors onto it.
 
-![A document in Wye: prose, a module card, and the column beside it](data/products/waterfall/projects/v2/docs/assets/intro-document.png)
+![A document in Wye: prose, a module card, and the column beside it](data/products/wye/projects/v2/docs/assets/intro-document.png)
 
 ## Why I built it
 
@@ -44,36 +44,36 @@ request?* is a graph traversal, not a search.
 what refines it, what satisfies it (a component, an operation, a library), what verifies it (a test), who wrote it
 and where the evidence is. Click `open ›` and the node opens in the column with its relations editable in place.
 
-![Requirements cards with a node opened in the column](data/products/waterfall/projects/v2/docs/assets/intro-requirements.png)
+![Requirements cards with a node opened in the column](data/products/wye/projects/v2/docs/assets/intro-requirements.png)
 
 **The constitution.** Constraints are product rules no code enforces. The approved ones go verbatim into every
 agent's system prompt and into the constraint packet of every request.
 
-![The Constitution page](data/products/waterfall/projects/v2/docs/assets/intro-constitution.png)
+![The Constitution page](data/products/wye/projects/v2/docs/assets/intro-constitution.png)
 
 **A Prompt Request.** One page per request: the head shows readiness (definition, agreed, impact, no contradiction,
 tasks) and the person's Approve. The scope — every node the build may touch — is computed from the definition and
 the structural impact, and overlapping PRs are not built in parallel.
 
-![The head of a Prompt Request](data/products/waterfall/projects/v2/docs/assets/intro-pr.png)
+![The head of a Prompt Request](data/products/wye/projects/v2/docs/assets/intro-pr.png)
 
 **The Inbox.** Everything an agent (or you) wrote that nobody approved yet: proposed decisions, requirements, rules,
 edits of existing blocks shown as diffs, open questions. Approving changes the block's status in its document — the
 Inbox is a view, not a store.
 
-![The Inbox with pending edits](data/products/waterfall/projects/v2/docs/assets/intro-inbox.png)
+![The Inbox with pending edits](data/products/wye/projects/v2/docs/assets/intro-inbox.png)
 
 **Knowledge and Types.** Everything the product knows, by kind; and every kind as a type with its properties,
 instances and where it was declared.
 
-![The Knowledge page](data/products/waterfall/projects/v2/docs/assets/intro-knowledge.png)
+![The Knowledge page](data/products/wye/projects/v2/docs/assets/intro-knowledge.png)
 
-![The Types page](data/products/waterfall/projects/v2/docs/assets/intro-types.png)
+![The Types page](data/products/wye/projects/v2/docs/assets/intro-types.png)
 
 **Work.** Every task wherever it was written — a plan, a PR, a definition page — as one board, grouped by status,
 document, dependency or readiness.
 
-![The Work board](data/products/waterfall/projects/v2/docs/assets/intro-work.png)
+![The Work board](data/products/wye/projects/v2/docs/assets/intro-work.png)
 
 ## The loop
 
@@ -99,14 +99,13 @@ document, dependency or readiness.
 git clone https://github.com/emlab-ai/wye.git && cd wye
 npm install
 ./install.sh              # links `wye` into ~/.local/bin and the Claude Code skills into ~/.claude/skills
-wye build --root data/products/waterfall && wye check --root data/products/waterfall
+wye build --root data/products/wye && wye check --root data/products/wye
 npm run dev               # the app at http://localhost:3000 (npx --workspace=packages/web next dev -p 3456 for the port the CLI and desktop expect)
 ```
 
 `npm run desktop` opens the app in its own window (Electron); it starts the server on 3456 if none is running and
-quits it on exit. Wye's own definition lives in `data/products/waterfall` — the app is described in itself, and every
-change to it goes through the loop above. (The product slug is still `waterfall`, the project's first name: ids,
-links and sessions refer to `product:waterfall`, and a product slug never changes.)
+quits it on exit. Wye's own definition lives in `data/products/wye` — the app is described in itself, and every
+change to it goes through the loop above.
 
 ### Data layout
 
@@ -211,7 +210,7 @@ Wye is memory for agents, and the memory is honest by construction rather than b
 - **Status is earned.** `shipped` needs a `verified-by`; a rule needs a `source`; a superseded node names its
   successor. `wye check` says so.
 
-The evaluation project (`data/products/waterfall/projects/evaluation`) measures this against public memory
+The evaluation project (`data/products/wye/projects/evaluation`) measures this against public memory
 benchmarks and against Wye's own history — with and without the memory — so the claims above have numbers.
 
 ## Prompt Requests
@@ -241,9 +240,9 @@ like any other. Wye ships four: *Analyse a request*, *Build a request*, *Define 
 and at session end; what fired is on the Hooks page and in `wye hooks`.
 
 The Claude Code skills in `skills/` (linked by `install.sh`) teach an agent the contract from the other side:
-`waterfall-agent` (resolve a Wye link or id, read and write documents and nodes, report on a session),
-`waterfall-context` (query the graph before code, describe the change before building, `wye check` before done),
-`waterfall-describe-module` (the inventory process behind `wye deepen`), `wf-restore` (continue a session by id).
+`wye-agent` (resolve a Wye link or id, read and write documents and nodes, report on a session),
+`wye-context` (query the graph before code, describe the change before building, `wye check` before done),
+`wye-describe-module` (the inventory process behind `wye deepen`), `wye-restore` (continue a session by id).
 
 ## The command line
 
@@ -307,7 +306,7 @@ templates/docs/          skeletons: prd, dev-design, test-design, plan, pr, skil
 viewer/index.html        the phone-first viewer (reqs tree · force graph · text)
 test/                    node tests over the parser, ontology, memory, impact, evals; packages/web has vitest
 eval/                    the benchmark harness and public adapters
-data/products/waterfall  Wye's own definition — the app described in itself
+data/products/wye  Wye's own definition — the app described in itself
 ```
 
 `npm test` runs everything.

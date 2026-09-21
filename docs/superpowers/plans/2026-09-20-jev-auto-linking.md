@@ -428,7 +428,7 @@ TopBar `PAGE_ICONS`: add `settings: '⚙'`.
 
 - [ ] **Step 2: Check it in the app**
 
-Run: `npm run dev` (port 3456 per `packages/web`), open `http://localhost:3456/waterfall/settings`. Paste the key, Save → `•••• xxxx` placeholder; Test → `OK · nnn ms · jev-1.x`; confirm `data/_settings.json` exists with mode `-rw-------` and `git status` does not list it.
+Run: `npm run dev` (port 3456 per `packages/web`), open `http://localhost:3456/wye/settings`. Paste the key, Save → `•••• xxxx` placeholder; Test → `OK · nnn ms · jev-1.x`; confirm `data/_settings.json` exists with mode `-rw-------` and `git status` does not list it.
 
 - [ ] **Step 3: Commit**
 
@@ -718,7 +718,7 @@ Expected: PASS
 
 - [ ] **Step 5: Try it live**
 
-With the key stored: `node bin/wf.js inbox add --product waterfall --title "test jev" <<< "Every block is a node — the parser treats each yaml card as a node with an id."` then `node bin/wf.js inbox list --product waterfall` → the new item shows refs like `decision:ontology.every-block-is-a-node…`. Dismiss it afterwards from the Inbox page.
+With the key stored: `node bin/wf.js inbox add --product wye --title "test jev" <<< "Every block is a node — the parser treats each yaml card as a node with an id."` then `node bin/wf.js inbox list --product wye` → the new item shows refs like `decision:ontology.every-block-is-a-node…`. Dismiss it afterwards from the Inbox page.
 
 - [ ] **Step 6: Commit**
 
@@ -895,7 +895,7 @@ In `DocEditor.tsx`:
 
 - [ ] **Step 6: Check it in the app**
 
-`npm run dev`; open a scratch document in the `waterfall` product (create one under a project), type a paragraph that plainly refers to an existing decision (e.g. "the parser treats each yaml card as a node with its own id, every block is a node"), click outside the editor. Expected: within a second the paragraph ends with a tag for the matching node, the save state goes through "saving → saved", `_build/jev.json` has one entry. Click back in and out: no second call (no new entry, no duplicate tag). Delete the scratch document afterwards.
+`npm run dev`; open a scratch document in the `wye` product (create one under a project), type a paragraph that plainly refers to an existing decision (e.g. "the parser treats each yaml card as a node with its own id, every block is a node"), click outside the editor. Expected: within a second the paragraph ends with a tag for the matching node, the save state goes through "saving → saved", `_build/jev.json` has one entry. Click back in and out: no second call (no new entry, no duplicate tag). Delete the scratch document afterwards.
 
 - [ ] **Step 7: Run the web tests and commit**
 
@@ -1015,12 +1015,12 @@ git commit -m "consolidation: each candidate card is linked before it is written
 ### Task 9: Knowledge + full test run
 
 **Files:**
-- Modify: `data/products/waterfall/projects/v2/docs/app-agents.md` (or the document that holds `req:wf2.editor.entity-from-text` — find it with `grep -rn "entity-from-text" data/products/waterfall`): add `req:wf2.link.jev` (the requirement: automatic links from a stored Jev key, three flows, threshold), `decision:wf2.jev-judges-never-finds` (candidates from the local search, Jev only judges), `decision:wf2.jev-key-in-settings` (the key in `data/_settings.json` behind a settings page, never in `_product.md`), `decision:wf2.editor-links-on-blur` (applied in the editor, never by the server, because of the `ifMatch` autosave), each as a yaml card in the repo's style; cards for `lib:jev`, `lib:links`, `lib:settings`, `component:settings-jev`, `op:api.settings`, `op:api.links`, `page:settings` — or run `npm run cards` which adds the component/lib/op/page cards under Unsorted, then move them.
-- Run: `npm test` (root: runs the root scripts including `test/jev.js`, then the web suite) and `node bin/ctx.js check --root data/products/waterfall` (subcommand first).
+- Modify: `data/products/wye/projects/v2/docs/app-agents.md` (or the document that holds `req:wf2.editor.entity-from-text` — find it with `grep -rn "entity-from-text" data/products/wye`): add `req:wf2.link.jev` (the requirement: automatic links from a stored Jev key, three flows, threshold), `decision:wf2.jev-judges-never-finds` (candidates from the local search, Jev only judges), `decision:wf2.jev-key-in-settings` (the key in `data/_settings.json` behind a settings page, never in `_product.md`), `decision:wf2.editor-links-on-blur` (applied in the editor, never by the server, because of the `ifMatch` autosave), each as a yaml card in the repo's style; cards for `lib:jev`, `lib:links`, `lib:settings`, `component:settings-jev`, `op:api.settings`, `op:api.links`, `page:settings` — or run `npm run cards` which adds the component/lib/op/page cards under Unsorted, then move them.
+- Run: `npm test` (root: runs the root scripts including `test/jev.js`, then the web suite) and `node bin/ctx.js check --root data/products/wye` (subcommand first).
 
 - [ ] **Step 1: Cards and check**
 
-Run `npm run cards`, then `node bin/ctx.js check --root data/products/waterfall` — expected: no errors. Write the four knowledge cards.
+Run `npm run cards`, then `node bin/ctx.js check --root data/products/wye` — expected: no errors. Write the four knowledge cards.
 
 - [ ] **Step 2: Full tests**
 
@@ -1030,6 +1030,6 @@ Expected: every root script prints its `ok` line; vitest passes.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add data/products/waterfall
+git add data/products/wye
 git commit -m "knowledge: req:wf2.link.jev and the three decisions behind it (Jev judges, never finds; the key in the app's settings; links applied in the editor on blur), cards for lib:jev, lib:links, lib:settings, op:api.settings, op:api.links, page:settings, component:settings-jev"
 ```

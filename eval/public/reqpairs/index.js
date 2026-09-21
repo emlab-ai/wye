@@ -79,12 +79,12 @@ async function run(opts) {
         const results = [];
         for (const name of names) { const file = path.join(DATA, name + '.csv'); if (!fs.existsSync(file)) { log(`${name}: no ${file}`); continue; } results.push(await runSet(name, { live, model, sampleN: opts.sample, log, file })); }
         const report = { title: 'Requirement pairs — the verdict judge', source: SOURCE, published: 'macro-F1, fine-tuned transformers: WorldVista 0.908, PURE 0.948, UAV 0.877', judge: `${model} @ ${judge.promptHash()} (the Inbox\'s judge prompt)`, rows: results.map(r => ({ name: r.set, ours: r.macroF1 === null ? null : Math.round(r.macroF1 * 1000) / 1000, n: r.n, theirs: { published: PUBLISHED[r.set] ?? '—' }, note: `${Object.entries(r.per).map(([c, p]) => `${c} F1 ${p.f1.toFixed(2)} (n ${p.support})`).join(', ')}${r.unjudged ? `; ${r.unjudged} unjudged` : ''}` })), notes: ['conflict ↔ contradicts, duplicate ↔ duplicate, neutral ↔ consistent or refines', '--sample stratifies by label so every conflict is in'] };
-        const P = loadProduct('waterfall');
+        const P = loadProduct('wye');
         const scores = Object.fromEntries(results.filter(r => r.macroF1 !== null).map(r => [`reqpairs.${r.set}.macro-f1`, { value: r.macroF1, n: r.n, judge: true }]));
         const { file } = writeResult(P.productDir, 'public-reqpairs', { graphSha: null, gitSha: P.gitSha, live, model, promptHashes: { verdict: judge.promptHash() }, judge: { model, prompt: judge.promptHash() }, scores, runs: results.map(r => ({ set: r.set, n: r.n, confusion: r.confusion, per: r.per, rows: r.rows })), report }, { baseline: 'public benchmarks are not gated' });
         return { report, results, file };
     }
-    if (opts.reportIt) { const P = loadProduct('waterfall'); const r = listResults(P.productDir, 'public-reqpairs')[0]; return r ? { report: r.data.report, file: r.file, results: r.data.runs } : { report: null }; }
+    if (opts.reportIt) { const P = loadProduct('wye'); const r = listResults(P.productDir, 'public-reqpairs')[0]; return r ? { report: r.data.report, file: r.file, results: r.data.runs } : { report: null }; }
     throw new Error('wye eval public reqpairs --fetch | --run --set <name> | --report');
 }
 function print(r) {

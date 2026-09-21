@@ -4,7 +4,7 @@
 // refining when a running session holds it, else draft; the rest unchanged), part-of → the PRs page; the Plans page
 // plans.md → prs.md (module:<p>-prs, "PRs", view:pr); every reference plan:<x> anywhere in the product's documents →
 // pr:<x> (and task:plan-<x> → task:pr-<x>); every session's planDoc → prDoc with the new slug, its refs likewise.
-// Usage: node scripts/plans-to-prs.js --product waterfall | --all [--dry]
+// Usage: node scripts/plans-to-prs.js --product wye | --all [--dry]
 const fs = require('fs'); const path = require('path');
 
 const walk = (dir) => { let out = []; for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name); if (e.isDirectory()) { if (!['_build', '_sessions', 'node_modules', '.git'].includes(e.name)) out = out.concat(walk(p)); } else out.push(p); } return out; };

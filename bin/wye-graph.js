@@ -27,7 +27,7 @@ const argv = process.argv.slice(2);
 const cmd = argv[0];
 const opt = (name, def) => { const i = argv.indexOf('--' + name); if (i === -1) return def; const v = argv[i + 1]; return v === undefined || v.startsWith('--') ? true : v; };
 const positional = argv.slice(1).filter((a, i, arr) => !a.startsWith('-') && !(arr[i - 1] && arr[i - 1].startsWith('--') && !['--strict', '--structural', '--json', '--all', '--deep', '--explain', '--semantic'].includes(arr[i - 1])));
-const ROOT = opt('root', process.env.CTX_ROOT || (require('fs').existsSync('data/products/waterfall') ? 'data/products/waterfall' : 'docs/context-graph'));
+const ROOT = opt('root', process.env.CTX_ROOT || (require('fs').existsSync('data/products/wye') ? 'data/products/wye' : 'docs/context-graph'));
 const BUILD = path.join(ROOT, '_build');
 const graphFile = opt('graph', path.join(BUILD, 'graph.json'));
 

@@ -14,7 +14,7 @@
 
 - Work on main; commit per task with the session attribution lines.
 - No `node:` imports outside `lib/load.ts` and `lib/write.ts` (server-only).
-- Every write: re-read file → locate span by index → compare sha256 of the current span text with `ifMatch` → apply → write `<file>.tmp-<pid>` → rename → run `node <waterfall>/bin/ctx.js build` in the project root.
+- Every write: re-read file → locate span by index → compare sha256 of the current span text with `ifMatch` → apply → write `<file>.tmp-<pid>` → rename → run `node <wye>/bin/ctx.js build` in the project root.
 - Yaml chunks written back keep list style: if the original chunk started with `- id:`, the new body's first line is prefixed `- ` and the rest `  `.
 
 ## Tasks

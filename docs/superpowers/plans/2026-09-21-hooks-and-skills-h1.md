@@ -41,5 +41,5 @@
 - Commit.
 
 ### Task 5: knowledge + live check
-- Cards via `npm run cards`; `req:wf2.hooks`, `decision:wf2.hooks-and-skills`; the example harness in the waterfall product (`hooks.md` in v2 with `hook:req-approved-tests` paused? — active, `once`), `ctx check` 0 errors (besides pr-28's).
+- Cards via `npm run cards`; `req:wf2.hooks`, `decision:wf2.hooks-and-skills`; the example harness in the wye product (`hooks.md` in v2 with `hook:req-approved-tests` paused? — active, `once`), `ctx check` 0 errors (besides pr-28's).
 - Live: scratch product, approve a requirement → a session starts with `skill:define-tests`; `add test-card` on a template appends a proposed card. Commit.

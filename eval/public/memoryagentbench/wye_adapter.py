@@ -21,7 +21,7 @@ import os
 import subprocess
 import time
 
-WYE_ROOT = os.environ.get("WYE_ROOT", os.path.expanduser("~/Projects/waterfall"))
+WYE_ROOT = os.environ.get("WYE_ROOT", os.path.expanduser("~/Projects/wye"))
 WF_URL = os.environ.get("WF_URL", "http://localhost:3456")
 PRODUCT = "eval-mab"
 

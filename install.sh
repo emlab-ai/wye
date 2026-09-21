@@ -8,6 +8,7 @@ mkdir -p "$BIN" "$SKILLS"
 chmod +x "$HERE/bin/wye.js" "$HERE/bin/wye-graph.js"
 ln -sfn "$HERE/bin/wye.js" "$BIN/wye"
 rm -f "$BIN/wf" "$BIN/ctx"   # the old names, gone: it is `wye` (decision:wf2.cli-is-wye)
+rm -f "$SKILLS/waterfall-agent" "$SKILLS/waterfall-context" "$SKILLS/waterfall-describe-module" "$SKILLS/wf-restore"   # the old skill names
 for s in "$HERE"/skills/*/; do
     name="$(basename "$s")"
     ln -sfn "${s%/}" "$SKILLS/$name"

@@ -115,11 +115,11 @@ async function run(opts) {
         const hop = /_mh_/.test(name) ? 'mh' : 'sh'; const tier = name.split('_').pop();
         const theirs = {}; for (const [who, v] of Object.entries(PUBLISHED.table3)) theirs[who + ' (Table 3)'] = v[hop]; for (const [who, v] of Object.entries(PUBLISHED.table10)) if (v[hop][tier] !== undefined) theirs[`${who} (Table 10, ${tier})`] = v[hop][tier];
         const report = { title: `MemoryAgentBench — conflict resolution, ${name}`, source: SOURCE, published: 'Table 3 (GPT-4o-mini backbone; main) and Table 10 (per context length); accuracy = substring exact match', judge: 'none for the score (substring exact match); the judge adjudicates supersession at write time', rows: [{ name: `FactConsolidation ${hop.toUpperCase()} accuracy (${tier})`, ours: acc, n: rows.length, theirs, note: tier === '6k' ? 'the 6k tier has no published row; the 32k numbers are the nearest' : '' }], notes: [`adjudication: ${added.pairs} candidate pairs sharing a subject, ${added.judged} judged, ${added.superseded} facts superseded at write time`, `retrieval: the app's search, ${10} hits with the currency filter on; reader ${model}, ten questions per call`, 'wye_adapter.py runs the same adapter inside their harness (methods/); the numbers here come from the standalone runner'] };
-        const P = loadProduct('waterfall'); const eP = loadProduct(PRODUCT);
+        const P = loadProduct('wye'); const eP = loadProduct(PRODUCT);
         const { file } = writeResult(P.productDir, 'public-memoryagentbench', { graphSha: eP.graphSha, gitSha: P.gitSha, live, model, promptHashes: { verdict: judge.promptHash() }, judge: { model, prompt: judge.promptHash() }, scores: { [`memoryagentbench.fc-${hop}-${tier}`]: { value: acc === null ? null : acc / 100, n: rows.length } }, runs: rows, meta: added, report }, { baseline: 'public benchmarks are not gated' });
         return { report, rows, file, added };
     }
-    if (opts.reportIt) { const P = loadProduct('waterfall'); const r = listResults(P.productDir, 'public-memoryagentbench')[0]; return r ? { report: r.data.report, file: r.file, rows: r.data.runs } : { report: null }; }
+    if (opts.reportIt) { const P = loadProduct('wye'); const r = listResults(P.productDir, 'public-memoryagentbench')[0]; return r ? { report: r.data.report, file: r.file, rows: r.data.runs } : { report: null }; }
     throw new Error('wye eval public memoryagentbench --fetch | --run --competency cr | --report');
 }
 function print(r) {

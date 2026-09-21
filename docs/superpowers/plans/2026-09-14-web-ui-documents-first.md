@@ -649,7 +649,7 @@ export default async function DocPage({ params }: { params: Promise<{ project: s
 .linked { margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--line); } .linked ul { padding-left: 18px; }
 ```
 
-- [ ] **Step 4: Verify** `curl -s localhost:3456/p/waterfall/d/prd | grep -c 'class="card"'` ≥ 50. Commit `"web: document page rendering prose, cards and smart tags"`.
+- [ ] **Step 4: Verify** `curl -s localhost:3456/p/wye/d/prd | grep -c 'class="card"'` ≥ 50. Commit `"web: document page rendering prose, cards and smart tags"`.
 
 ---
 

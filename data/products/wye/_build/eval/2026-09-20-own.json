@@ -1,0 +1,6079 @@
+{
+  "suite": "own",
+  "date": "2026-09-20",
+  "graphSha": "b781bf999603",
+  "gitSha": "881041eac918",
+  "live": true,
+  "model": "claude-haiku-4-5-20251001",
+  "promptHashes": {
+    "verdict": "6d31662f",
+    "impact": "291a2d1d",
+    "consolidation": "1d527194"
+  },
+  "judge": {
+    "model": "claude-haiku-4-5-20251001",
+    "prompt": "6d31662f",
+    "kappa": null,
+    "n": 0,
+    "note": "no agreement run yet — wye eval judge --agreement"
+  },
+  "truth": {
+    "file": "truth-wye-b781bf999603.json",
+    "requirements": 64,
+    "supersessions": 1,
+    "commits": 68,
+    "sessions": 18,
+    "consolidation": 24
+  },
+  "scores": {
+    "packet.recall": {
+      "value": 0.612,
+      "n": 64,
+      "note": "share of the governing set (rules, gates, constraints, decisions on the requirement) in the constraint packet, macro over requirements",
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "vector.recall@10": {
+      "value": 0.697,
+      "n": 64,
+      "note": "the same set in the top-10 semantic hits",
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "vector.recall@20": {
+      "value": 0.757,
+      "n": 64,
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "vector.tests-recall@10": {
+      "value": 0.036,
+      "n": 56,
+      "note": "tests on verified-by in the top-10 (the packet never carries tests)",
+      "gated": false,
+      "previous": null
+    },
+    "packet.size-median": {
+      "value": 53,
+      "n": 64,
+      "unit": "count",
+      "gated": false,
+      "previous": null
+    },
+    "currency.mrr": {
+      "value": 1,
+      "n": 1,
+      "note": "mean reciprocal rank of the current node when the superseded title is the query",
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "currency.superseded-served": {
+      "value": 0,
+      "n": 1,
+      "unit": "count",
+      "lowerIsBetter": true,
+      "note": "ended nodes in the hits (should be 0)",
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "contradictions.recall": {
+      "value": 0.167,
+      "n": 12,
+      "judge": {
+        "model": "claude-haiku-4-5-20251001",
+        "prompt": "6d31662f",
+        "kappa": null,
+        "n": 0
+      },
+      "note": "drift pairs judged contradicts; by conflict: static 1, dynamic 1; 0 unjudged",
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "contradictions.precision": {
+      "value": 1,
+      "n": 30,
+      "judge": {
+        "model": "claude-haiku-4-5-20251001",
+        "prompt": "6d31662f",
+        "kappa": null,
+        "n": 0
+      },
+      "note": "same-kind neighbour pairs left alone (precision proxy)",
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "impact.structural.recall@5": {
+      "value": 0.184,
+      "n": 86,
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "impact.structural.recall@10": {
+      "value": 0.257,
+      "n": 86,
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "impact.semantic.recall@5": {
+      "value": 0.204,
+      "n": 86,
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "impact.semantic.recall@10": {
+      "value": 0.265,
+      "n": 86,
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "impact.blended.recall@5": {
+      "value": 0.191,
+      "n": 86,
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "impact.blended.recall@10": {
+      "value": 0.304,
+      "n": 86,
+      "note": "structure first, then the semantic hits it missed — what the app runs",
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "consolidation.recall": {
+      "value": 0.191,
+      "n": 94,
+      "judge": {
+        "model": "claude-haiku-4-5-20251001",
+        "prompt": "6d31662f",
+        "kappa": null,
+        "n": 0
+      },
+      "note": "18 of 94 hidden decision blocks over 24 sessions came back as candidates (word overlap ≥ 0.5); the misses a person marks real are the second set (eval/own/consolidation-labels.json)",
+      "tolerance": 5,
+      "previous": null,
+      "delta": null
+    },
+    "consolidation.recall-loose": {
+      "value": 0.277,
+      "n": 94,
+      "judge": {
+        "model": "claude-haiku-4-5-20251001",
+        "prompt": "6d31662f",
+        "kappa": null,
+        "n": 0
+      },
+      "gated": false,
+      "note": "the same with word overlap ≥ 0.35 — the matcher's slack, not a second claim",
+      "previous": null
+    },
+    "consolidation.candidates-per-session": {
+      "value": 2.083,
+      "n": 24,
+      "unit": "count",
+      "gated": false,
+      "previous": null
+    }
+  },
+  "runs": {
+    "packet": [
+      {
+        "id": "req:wf2.sessions.block-attribution",
+        "governing": [
+          "rule:block-attribution"
+        ],
+        "seeds": [
+          "rule:block-attribution",
+          "req:wf2.sessions.changes-page",
+          "req:wf2.sessions.knowledge-changes",
+          "lib:artifacts",
+          "rule:task-artifacts",
+          "decision:exec.changes-from-the-rebuild-diff"
+        ],
+        "packetSize": 85,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.sessions.page",
+        "governing": [
+          "rule:session-page"
+        ],
+        "seeds": [
+          "rule:session-page",
+          "page:web/session",
+          "component:session-page",
+          "req:wf2.sessions.plan-doc",
+          "req:wf2.sessions.changes-page",
+          "rule:plan-first"
+        ],
+        "packetSize": 80,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.ui.history-nav",
+        "governing": [
+          "rule:history-nav"
+        ],
+        "seeds": [
+          "rule:history-nav",
+          "task:history-nav",
+          "component:top-bar",
+          "rule:app-navigation",
+          "rule:app-link",
+          "rule:column-frame"
+        ],
+        "packetSize": 74,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.transcript.app-links",
+        "governing": [
+          "rule:app-link"
+        ],
+        "seeds": [
+          "decision:wf2.transcript-app-links",
+          "rule:app-link",
+          "lib:app-link",
+          "component:transcript-markdown",
+          "task:transcript-markdown",
+          "task:app-link-lib"
+        ],
+        "packetSize": 8,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.sessions.plan-doc",
+        "governing": [
+          "decision:wf2.plan-per-request",
+          "decision:wf2.plans-folder",
+          "decision:wf2.plans-system-folder",
+          "rule:plan-doc"
+        ],
+        "seeds": [
+          "rule:plan-first",
+          "rule:plan-doc",
+          "decision:wf2.plan-per-request",
+          "req:wf2.ui.plans-folder",
+          "req:exec.request-is-a-task",
+          "req:wf2.sessions.page"
+        ],
+        "packetSize": 79,
+        "packetRecall": 0.25,
+        "vectorRecall": 0.75,
+        "vectorRecall20": 0.75,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:wf2.plan-per-request",
+          "decision:wf2.plans-folder",
+          "decision:wf2.plans-system-folder"
+        ],
+        "vectorMissed": [
+          "decision:wf2.plans-system-folder"
+        ]
+      },
+      {
+        "id": "req:wf2.sessions.plan-result",
+        "governing": [
+          "decision:wf2.plan-result-owned-by-app",
+          "rule:plan-doc"
+        ],
+        "seeds": [
+          "rule:plan-doc",
+          "decision:wf2.plan-result-owned-by-app",
+          "req:wf2.sessions.plan-doc",
+          "task:plan-doc-result",
+          "req:wf2.sessions.page",
+          "decision:wf2.plan-per-request"
+        ],
+        "packetSize": 26,
+        "packetRecall": 0.5,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:wf2.plan-result-owned-by-app"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.console.first-message-is-the-request",
+        "governing": [
+          "decision:wf2.first-message-shown-as-request"
+        ],
+        "seeds": [
+          "decision:wf2.first-message-shown-as-request",
+          "component:console",
+          "decision:wf2.clean-slate",
+          "rule:clean-slate",
+          "rule:console-flow",
+          "component:command-box"
+        ],
+        "packetSize": 72,
+        "packetRecall": 0,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:wf2.first-message-shown-as-request"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.editor.table-scroll",
+        "governing": [
+          "decision:wf2.table-scroll-not-shrink",
+          "rule:table-scroll"
+        ],
+        "seeds": [
+          "decision:wf2.table-scroll-not-shrink",
+          "rule:table-scroll",
+          "component:data-table",
+          "req:wf2.editor.table-filter",
+          "ui-test:table-scroll",
+          "component:peek-panel"
+        ],
+        "packetSize": 25,
+        "packetRecall": 0.5,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 1,
+        "packetMissed": [
+          "decision:wf2.table-scroll-not-shrink"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.editor.table-filter",
+        "governing": [
+          "decision:wf2.table-filter-hides-rows",
+          "decision:wf2.table-filter-on-marker",
+          "rule:table-filter"
+        ],
+        "seeds": [
+          "rule:table-filter",
+          "decision:wf2.table-filter-on-marker",
+          "component:data-table",
+          "decision:wf2.table-filter-hides-rows",
+          "req:wf2.instances.filter",
+          "component:instance-table"
+        ],
+        "packetSize": 13,
+        "packetRecall": 0.333,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:wf2.table-filter-hides-rows",
+          "decision:wf2.table-filter-on-marker"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.editor.list-block",
+        "governing": [
+          "rule:list-view"
+        ],
+        "seeds": [
+          "req:wf2.editor.table-filter",
+          "rule:table-filter",
+          "decision:wf2.table-filter-on-marker",
+          "rule:list-view",
+          "decision:wf2.one-table-block",
+          "req:wf2.instances.filter"
+        ],
+        "packetSize": 72,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.cards.decision-essence",
+        "governing": [
+          "decision:wf2.card-essence",
+          "rule:card-essence"
+        ],
+        "seeds": [
+          "decision:wf2.card-essence",
+          "rule:card-essence",
+          "task:decision-card",
+          "rule:node-page-layout",
+          "rule:question-decision-nodes",
+          "decision:wf2.answer-is-content"
+        ],
+        "packetSize": 75,
+        "packetRecall": 0.5,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": null,
+        "packetMissed": [
+          "decision:wf2.card-essence"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.embeds.insert",
+        "governing": [
+          "decision:wf2.embed-syntax"
+        ],
+        "seeds": [
+          "decision:wf2.embed-syntax",
+          "component:embed-block",
+          "req:wf2.embeds.render",
+          "req:wf2.embeds.edit-sync",
+          "rule:inline-images",
+          "task:embed-slash"
+        ],
+        "packetSize": 73,
+        "packetRecall": 0,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:wf2.embed-syntax"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.embeds.render",
+        "governing": [
+          "decision:wf2.embed-renders-source-card"
+        ],
+        "seeds": [
+          "decision:wf2.embed-renders-source-card",
+          "component:node-cards",
+          "component:embed-block",
+          "req:wf2.ui.card-preview",
+          "decision:wf2.connected-rows-expand-to-cards",
+          "req:wf2.embeds.edit-sync"
+        ],
+        "packetSize": 18,
+        "packetRecall": 0,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:wf2.embed-renders-source-card"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.page.node",
+        "governing": [
+          "decision:wf2.page-node-typed"
+        ],
+        "seeds": [
+          "decision:wf2.page-node-typed",
+          "req:wf2.page.retype",
+          "rule:page-node-line",
+          "component:doc-props",
+          "req:wf2.page.header-card",
+          "req:ontology.types"
+        ],
+        "packetSize": 22,
+        "packetRecall": 0,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:wf2.page-node-typed"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.instances.view-block",
+        "governing": [
+          "rule:view-block"
+        ],
+        "seeds": [
+          "rule:view-block",
+          "component:view-block",
+          "req:ontology.type-table",
+          "req:wf2.instances.filter",
+          "rule:type-tables",
+          "decision:wf2.one-instance-table"
+        ],
+        "packetSize": 78,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.ui.tree-menu",
+        "governing": [
+          "rule:tree-menu"
+        ],
+        "seeds": [
+          "rule:tree-menu",
+          "lib:doc-ops",
+          "action:delete-document",
+          "action:duplicate-document",
+          "component:doc-tree",
+          "req:wf2.ui.node-content"
+        ],
+        "packetSize": 76,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.ui.plans-folder",
+        "governing": [
+          "decision:wf2.plans-system-folder",
+          "rule:plans-folder"
+        ],
+        "seeds": [
+          "decision:wf2.plans-system-folder",
+          "req:wf2.sessions.plan-doc",
+          "component:plan-folder",
+          "decision:wf2.plans-folder",
+          "rule:plans-folder",
+          "page:web/plans"
+        ],
+        "packetSize": 78,
+        "packetRecall": 0.5,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:wf2.plans-system-folder"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.ui.rail-split",
+        "governing": [
+          "rule:rail-split"
+        ],
+        "seeds": [
+          "rule:rail-split",
+          "rule:app-navigation",
+          "component:shell",
+          "rule:documents-tree",
+          "component:rail",
+          "component:plan-folder"
+        ],
+        "packetSize": 78,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 1,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.ui.palette-images",
+        "governing": [
+          "decision:wf2.palette-images-are-session-files"
+        ],
+        "seeds": [
+          "store:session-files",
+          "task:palette-paste-ui",
+          "bug:palette-paste-images",
+          "decision:wf2.palette-images-are-session-files",
+          "task:palette-images-knowledge",
+          "task:palette-images-api"
+        ],
+        "packetSize": 1,
+        "packetRecall": 0,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:wf2.palette-images-are-session-files"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.ui.column-frame",
+        "governing": [
+          "rule:column-frame"
+        ],
+        "seeds": [
+          "rule:column-frame",
+          "decision:wf2.column-frame-header-scrolls",
+          "component:peek-panel",
+          "rule:console-flow",
+          "req:wf2.ui.produced-collapsed",
+          "component:console"
+        ],
+        "packetSize": 75,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.ui.connected-cards",
+        "governing": [
+          "rule:connected-cards"
+        ],
+        "seeds": [
+          "decision:wf2.connected-rows-expand-to-cards",
+          "rule:connected-cards",
+          "req:wf2.ui.node-content",
+          "req:wf2.ui.edit-in-context",
+          "component:peek-panel",
+          "req:wf2.ui.block-select"
+        ],
+        "packetSize": 23,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.ui.block-select",
+        "governing": [
+          "decision:wf2.block-click-selects",
+          "rule:block-select"
+        ],
+        "seeds": [
+          "decision:wf2.block-click-selects",
+          "rule:block-select",
+          "req:wf2.ui.node-content",
+          "task:ontology.paragraph-select",
+          "task:ontology.block-select",
+          "req:wf2.ui.card-preview"
+        ],
+        "packetSize": 27,
+        "packetRecall": 0.5,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:wf2.block-click-selects"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.ui.node-content",
+        "governing": [
+          "decision:ontology.depth-by-navigation",
+          "decision:wf2.content-editor-scoped",
+          "decision:wf2.text-is-first-block",
+          "rule:content-editor"
+        ],
+        "seeds": [
+          "req:wf2.ui.card-preview",
+          "rule:content-editor",
+          "decision:wf2.content-editor-scoped",
+          "decision:ontology.uniform-content",
+          "question:wf2.content-of-block-nodes",
+          "req:wf2.ui.block-select"
+        ],
+        "packetSize": 30,
+        "packetRecall": 0.25,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:ontology.depth-by-navigation",
+          "decision:wf2.content-editor-scoped",
+          "decision:wf2.text-is-first-block"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.ui.card-preview",
+        "governing": [
+          "decision:ontology.depth-by-navigation",
+          "decision:wf2.answer-is-content",
+          "decision:wf2.card-shows-no-content",
+          "rule:card-fold"
+        ],
+        "seeds": [
+          "decision:wf2.card-shows-no-content",
+          "rule:card-fold",
+          "component:node-cards",
+          "req:wf2.ui.node-content",
+          "rule:card-essence",
+          "decision:wf2.answer-is-content"
+        ],
+        "packetSize": 23,
+        "packetRecall": 0.25,
+        "vectorRecall": 0.75,
+        "vectorRecall20": 0.75,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:ontology.depth-by-navigation",
+          "decision:wf2.answer-is-content",
+          "decision:wf2.card-shows-no-content"
+        ],
+        "vectorMissed": [
+          "decision:ontology.depth-by-navigation"
+        ]
+      },
+      {
+        "id": "req:wf2.ui.related-collapsed",
+        "governing": [
+          "decision:wf2.related-collapsed-default",
+          "rule:related-collapsed"
+        ],
+        "seeds": [
+          "decision:wf2.related-collapsed-default",
+          "req:wf2.ui.block-select",
+          "decision:wf2.connected-rows-expand-to-cards",
+          "req:wf2.ui.node-content",
+          "req:wf2.ui.connected-cards",
+          "decision:wf2.produced-not-remembered"
+        ],
+        "packetSize": 22,
+        "packetRecall": 0.5,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:wf2.related-collapsed-default"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.ui.produced-collapsed",
+        "governing": [
+          "rule:produced-collapsed"
+        ],
+        "seeds": [
+          "decision:wf2.produced-kept-collapsed",
+          "component:produced",
+          "rule:task-artifacts",
+          "req:wf2.sessions.knowledge-changes",
+          "req:exec.done-comes-back",
+          "req:wf2.sessions.page"
+        ],
+        "packetSize": 85,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:memory.verdicts",
+        "governing": [
+          "decision:memory.consistent-verdicts-in-the-log"
+        ],
+        "seeds": [
+          "decision:memory.write-time-verdict",
+          "decision:memory.consistent-verdicts-in-the-log",
+          "task:memory.verdict-pass",
+          "req:exec.wye-proposes",
+          "req:exec.change-validated",
+          "req:exec.impact-contradiction"
+        ],
+        "packetSize": 46,
+        "packetRecall": 0,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:memory.consistent-verdicts-in-the-log"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:exec.wye-asks",
+        "governing": [
+          "decision:exec.wye-is-a-role",
+          "rule:agent-questions"
+        ],
+        "seeds": [
+          "goal:exec.define-first",
+          "req:exec.wye-proposes",
+          "req:memory.intake-packet",
+          "req:exec.wye-context",
+          "task:exec.wye-turns",
+          "question:exec.definition-home"
+        ],
+        "packetSize": 52,
+        "packetRecall": 0.5,
+        "vectorRecall": 0.5,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:exec.wye-is-a-role"
+        ],
+        "vectorMissed": [
+          "rule:agent-questions"
+        ]
+      },
+      {
+        "id": "req:ontology.content",
+        "governing": [
+          "decision:ontology.content-markdown",
+          "rule:content-lines",
+          "rule:ontology.content"
+        ],
+        "seeds": [
+          "decision:ontology.content-markdown",
+          "rule:ontology.content",
+          "req:ontology.blocks",
+          "decision:ontology.uniform-content",
+          "rule:content-lines",
+          "lib:node-content"
+        ],
+        "packetSize": 22,
+        "packetRecall": 0.667,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:ontology.content-markdown"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:exec.work-view",
+        "governing": [
+          "decision:exec.order-is-document-then-priority"
+        ],
+        "seeds": [
+          "page:web/work",
+          "req:wf2.sessions.plan-doc",
+          "rule:goals-and-tasks",
+          "component:plan-list",
+          "req:wf2.ui.plans-folder",
+          "decision:exec.task-is-the-unit"
+        ],
+        "packetSize": 79,
+        "packetRecall": 0,
+        "vectorRecall": 0,
+        "vectorRecall20": 0,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:exec.order-is-document-then-priority"
+        ],
+        "vectorMissed": [
+          "decision:exec.order-is-document-then-priority"
+        ]
+      },
+      {
+        "id": "req:exec.work-states",
+        "governing": [
+          "rule:task-artifacts"
+        ],
+        "seeds": [
+          "rule:work-state",
+          "decision:exec.task-is-the-unit",
+          "req:exec.work-view",
+          "rule:process-is-active",
+          "req:exec.dispatch",
+          "req:exec.request-is-a-task"
+        ],
+        "packetSize": 93,
+        "packetRecall": 1,
+        "vectorRecall": 0,
+        "vectorRecall20": 0,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": [
+          "rule:task-artifacts"
+        ]
+      },
+      {
+        "id": "req:exec.dispatch",
+        "governing": [
+          "decision:exec.backlog-is-unassigned-work",
+          "decision:exec.impact-run",
+          "decision:exec.plan-lifecycle",
+          "rule:session-queue"
+        ],
+        "seeds": [
+          "rule:assign-refusal",
+          "decision:exec.task-is-the-unit",
+          "req:exec.ready-for-runners",
+          "task:exec.assign",
+          "req:exec.request-is-a-task",
+          "decision:wf2.clean-slate"
+        ],
+        "packetSize": 90,
+        "packetRecall": 0.25,
+        "vectorRecall": 0.25,
+        "vectorRecall20": 0.25,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:exec.backlog-is-unassigned-work",
+          "decision:exec.impact-run",
+          "decision:exec.plan-lifecycle"
+        ],
+        "vectorMissed": [
+          "decision:exec.backlog-is-unassigned-work",
+          "decision:exec.impact-run",
+          "decision:exec.plan-lifecycle"
+        ]
+      },
+      {
+        "id": "req:exec.request-is-a-task",
+        "governing": [
+          "rule:plan-doc"
+        ],
+        "seeds": [
+          "decision:exec.task-is-the-unit",
+          "req:wf2.sessions.plan-doc",
+          "rule:agent-sessions",
+          "req:exec.dispatch",
+          "req:wf2.sessions.clean-slate",
+          "decision:wf2.plan-is-a-page"
+        ],
+        "packetSize": 81,
+        "packetRecall": 1,
+        "vectorRecall": 0,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": [
+          "rule:plan-doc"
+        ]
+      },
+      {
+        "id": "req:exec.done-comes-back",
+        "governing": [
+          "rule:task-artifacts"
+        ],
+        "seeds": [
+          "task:exec.task-result",
+          "component:task-work",
+          "rule:task-artifacts",
+          "req:wf2.ui.produced-collapsed",
+          "req:wf2.sessions.page",
+          "rule:work-state"
+        ],
+        "packetSize": 104,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:exec.change-kept",
+        "governing": [
+          "decision:exec.changes-from-the-rebuild-diff",
+          "rule:block-attribution"
+        ],
+        "seeds": [
+          "decision:exec.change-record",
+          "rule:change-record",
+          "decision:exec.changes-from-the-rebuild-diff",
+          "store:changes",
+          "task:exec.change-store",
+          "req:exec.change-review"
+        ],
+        "packetSize": 42,
+        "packetRecall": 0.5,
+        "vectorRecall": 0.5,
+        "vectorRecall20": 0.5,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:exec.changes-from-the-rebuild-diff"
+        ],
+        "vectorMissed": [
+          "rule:block-attribution"
+        ]
+      },
+      {
+        "id": "req:exec.change-review",
+        "governing": [
+          "rule:atomic-file-write"
+        ],
+        "seeds": [
+          "decision:exec.change-record",
+          "req:exec.change-kept",
+          "rule:change-review",
+          "component:change-card",
+          "req:exec.impact-patch",
+          "component:changed-badge"
+        ],
+        "packetSize": 41,
+        "packetRecall": 1,
+        "vectorRecall": 0,
+        "vectorRecall20": 0,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": [
+          "rule:atomic-file-write"
+        ]
+      },
+      {
+        "id": "req:exec.review-readable",
+        "governing": [
+          "rule:review-readable"
+        ],
+        "seeds": [
+          "rule:review-readable",
+          "lib:review-summary",
+          "component:change-card",
+          "req:exec.wye-proposes",
+          "req:exec.impact-set",
+          "req:memory.verdicts"
+        ],
+        "packetSize": 55,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:exec.impact-patch",
+        "governing": [
+          "rule:atomic-file-write"
+        ],
+        "seeds": [
+          "rule:impact-apply",
+          "decision:exec.impact-run",
+          "req:exec.impact-set",
+          "decision:exec.change-record",
+          "component:impact-card",
+          "req:exec.change-validated"
+        ],
+        "packetSize": 47,
+        "packetRecall": 1,
+        "vectorRecall": 0,
+        "vectorRecall20": 0,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": [
+          "rule:atomic-file-write"
+        ]
+      },
+      {
+        "id": "req:exec.impact-rework",
+        "governing": [
+          "decision:exec.rework-on-the-backlog"
+        ],
+        "seeds": [
+          "decision:exec.rework-on-the-backlog",
+          "decision:exec.impact-run",
+          "req:exec.capture",
+          "rule:impact-run",
+          "goal:exec.work-and-impact",
+          "decision:exec.change-record"
+        ],
+        "packetSize": 60,
+        "packetRecall": 0,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:exec.rework-on-the-backlog"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:exec.impact-for-agents",
+        "governing": [
+          "rule:agent-contract"
+        ],
+        "seeds": [
+          "task:exec.impact-cli",
+          "decision:exec.impact-run",
+          "rule:impact-run",
+          "decision:exec.impact-trigger",
+          "decision:memory.instructions-compiled",
+          "decision:exec.change-record"
+        ],
+        "packetSize": 56,
+        "packetRecall": 1,
+        "vectorRecall": 0,
+        "vectorRecall20": 0,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": [
+          "rule:agent-contract"
+        ]
+      },
+      {
+        "id": "req:exec.ready-for-runners",
+        "governing": [
+          "rule:agent-runner"
+        ],
+        "seeds": [
+          "rule:take-ready",
+          "req:exec.dispatch",
+          "question:exec.auto-dispatch",
+          "decision:exec.backlog-is-unassigned-work",
+          "task:exec.take-ready",
+          "req:exec.work-states"
+        ],
+        "packetSize": 39,
+        "packetRecall": 1,
+        "vectorRecall": 0,
+        "vectorRecall20": 0,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": [
+          "rule:agent-runner"
+        ]
+      },
+      {
+        "id": "req:exec.backlog-for-agents",
+        "governing": [
+          "rule:agent-contract"
+        ],
+        "seeds": [
+          "decision:exec.backlog-is-unassigned-work",
+          "task:exec.capture",
+          "req:exec.capture",
+          "decision:exec.task-is-the-unit",
+          "task:exec.take-ready",
+          "rule:capture-home"
+        ],
+        "packetSize": 39,
+        "packetRecall": 1,
+        "vectorRecall": 0,
+        "vectorRecall20": 0,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": [
+          "rule:agent-contract"
+        ]
+      },
+      {
+        "id": "req:exec.ask-wye",
+        "governing": [
+          "decision:exec.wye-is-a-role"
+        ],
+        "seeds": [
+          "question:exec.ask-wye-default",
+          "req:exec.wye-context",
+          "decision:wf2.clean-slate",
+          "goal:exec.define-first",
+          "req:wf2.sessions.plan-doc",
+          "decision:wf2.plan-is-a-page"
+        ],
+        "packetSize": 103,
+        "packetRecall": 0,
+        "vectorRecall": 0,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:exec.wye-is-a-role"
+        ],
+        "vectorMissed": [
+          "decision:exec.wye-is-a-role"
+        ]
+      },
+      {
+        "id": "req:exec.wye-context",
+        "governing": [
+          "rule:context-panel"
+        ],
+        "seeds": [
+          "component:context-card",
+          "task:exec.wye-context-card",
+          "req:exec.ask-wye",
+          "goal:exec.define-first",
+          "req:exec.wye-explains",
+          "req:wf2.sessions.plan-doc"
+        ],
+        "packetSize": 54,
+        "packetRecall": 1,
+        "vectorRecall": 0,
+        "vectorRecall20": 0,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": [
+          "rule:context-panel"
+        ]
+      },
+      {
+        "id": "req:exec.wye-explains",
+        "governing": [
+          "decision:exec.wye-is-a-role"
+        ],
+        "seeds": [
+          "goal:exec.define-first",
+          "req:exec.wye-context",
+          "req:exec.wye-proposes",
+          "req:memory.intake-packet",
+          "req:exec.ask-wye",
+          "rule:plan-first"
+        ],
+        "packetSize": 102,
+        "packetRecall": 0,
+        "vectorRecall": 0,
+        "vectorRecall20": 0,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:exec.wye-is-a-role"
+        ],
+        "vectorMissed": [
+          "decision:exec.wye-is-a-role"
+        ]
+      },
+      {
+        "id": "req:exec.wye-proposes",
+        "governing": [
+          "decision:exec.definition-home-fallback",
+          "decision:exec.kind-by-nature",
+          "rule:embed-line"
+        ],
+        "seeds": [
+          "decision:exec.plan-lifecycle",
+          "req:exec.review-readable",
+          "goal:exec.define-first",
+          "rule:review-readable",
+          "rule:definition",
+          "decision:exec.kind-by-nature"
+        ],
+        "packetSize": 65,
+        "packetRecall": 0.333,
+        "vectorRecall": 0.333,
+        "vectorRecall20": 0.667,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:exec.definition-home-fallback",
+          "decision:exec.kind-by-nature"
+        ],
+        "vectorMissed": [
+          "decision:exec.definition-home-fallback",
+          "rule:embed-line"
+        ]
+      },
+      {
+        "id": "req:exec.plan-defined",
+        "governing": [
+          "decision:exec.plan-lifecycle"
+        ],
+        "seeds": [
+          "rule:definition",
+          "decision:exec.plan-lifecycle",
+          "req:exec.build-from-definition",
+          "task:exec.plan-definition",
+          "rule:build",
+          "req:exec.definition-tracked"
+        ],
+        "packetSize": 36,
+        "packetRecall": 0,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:exec.plan-lifecycle"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:exec.build-from-definition",
+        "governing": [
+          "decision:exec.librarian-may-build",
+          "rule:task-artifacts"
+        ],
+        "seeds": [
+          "decision:exec.plan-lifecycle",
+          "rule:build",
+          "task:exec.build",
+          "decision:exec.librarian-may-build",
+          "req:exec.plan-defined",
+          "rule:definition"
+        ],
+        "packetSize": 34,
+        "packetRecall": 0.5,
+        "vectorRecall": 0.5,
+        "vectorRecall20": 0.5,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:exec.librarian-may-build"
+        ],
+        "vectorMissed": [
+          "rule:task-artifacts"
+        ]
+      },
+      {
+        "id": "req:exec.definition-tracked",
+        "governing": [
+          "rule:block-attribution"
+        ],
+        "seeds": [
+          "decision:exec.plan-lifecycle",
+          "req:exec.wye-proposes",
+          "task:exec.plan-definition",
+          "rule:definition",
+          "decision:memory.consolidate-sessions",
+          "req:exec.ask-wye"
+        ],
+        "packetSize": 58,
+        "packetRecall": 0,
+        "vectorRecall": 0,
+        "vectorRecall20": 0,
+        "testsRecall": 0,
+        "packetMissed": [
+          "rule:block-attribution"
+        ],
+        "vectorMissed": [
+          "rule:block-attribution"
+        ]
+      },
+      {
+        "id": "req:exec.explain-anywhere",
+        "governing": [
+          "decision:exec.wye-is-a-role"
+        ],
+        "seeds": [
+          "req:exec.ask-wye",
+          "lib:explain",
+          "component:explain-card",
+          "req:exec.wye-context",
+          "req:exec.wye-explains",
+          "goal:exec.define-first"
+        ],
+        "packetSize": 50,
+        "packetRecall": 0,
+        "vectorRecall": 0,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:exec.wye-is-a-role"
+        ],
+        "vectorMissed": [
+          "decision:exec.wye-is-a-role"
+        ]
+      },
+      {
+        "id": "req:wf2.sessions.clean-slate",
+        "governing": [
+          "decision:wf2.clean-slate",
+          "rule:clean-slate"
+        ],
+        "seeds": [
+          "decision:wf2.clean-slate",
+          "rule:clean-slate",
+          "req:wf2.sessions.fresh-in-queue",
+          "rule:agent-sessions",
+          "component:command-box",
+          "task:clear-context"
+        ],
+        "packetSize": 71,
+        "packetRecall": 0.5,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "decision:wf2.clean-slate"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf2.sessions.idle-stop",
+        "governing": [
+          "decision:wf2.clean-slate",
+          "rule:idle-stop"
+        ],
+        "seeds": [
+          "rule:idle-stop",
+          "req:wf2.sessions.stop-from-list",
+          "decision:wf2.clean-slate",
+          "task:idle-stop",
+          "lib:agent-host",
+          "rule:agent-host"
+        ],
+        "packetSize": 72,
+        "packetRecall": 0.5,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": null,
+        "packetMissed": [
+          "decision:wf2.clean-slate"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf.describe.reqs-first",
+        "governing": [
+          "rule:req-needs-satisfied-by"
+        ],
+        "seeds": [
+          "decision:memory.constraint-type",
+          "task:app.trace-requirements",
+          "question:wf2.plan-doc-knowledge",
+          "req:exec.wye-proposes",
+          "req:wf.describe",
+          "req:wf.view.reqs"
+        ],
+        "packetSize": 44,
+        "packetRecall": 1,
+        "vectorRecall": 0,
+        "vectorRecall20": 0,
+        "testsRecall": null,
+        "packetMissed": [],
+        "vectorMissed": [
+          "rule:req-needs-satisfied-by"
+        ]
+      },
+      {
+        "id": "req:wf.describe.sources",
+        "governing": [
+          "rule:rule-needs-source"
+        ],
+        "seeds": [
+          "rule:rule-needs-source",
+          "req:wf.lint",
+          "decision:memory.constraint-type",
+          "rule:source-path-resolves",
+          "req:wf.lint.constraints",
+          "decision:memory.shapes"
+        ],
+        "packetSize": 37,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": null,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf.describe.honest-status",
+        "governing": [
+          "rule:shipped-needs-test"
+        ],
+        "seeds": [
+          "rule:shipped-needs-test",
+          "flag:strict",
+          "state:req-verification",
+          "req:wf.query.reqs-tree",
+          "req:wf.pipeline.status",
+          "req:wf.lint"
+        ],
+        "packetSize": 12,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": null,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf.describe.drift",
+        "governing": [
+          "decision:memory.benchmark",
+          "decision:memory.code-source",
+          "rule:drift-table-parsed"
+        ],
+        "seeds": [
+          "decision:memory.benchmark",
+          "req:wf2.contradictions.structural",
+          "rule:structural-import",
+          "req:wf2.contradictions",
+          "question:memory.benchmark-positives",
+          "decision:memory.consistent-verdicts-in-the-log"
+        ],
+        "packetSize": 39,
+        "packetRecall": 0.333,
+        "vectorRecall": 0.667,
+        "vectorRecall20": 0.667,
+        "testsRecall": null,
+        "packetMissed": [
+          "decision:memory.benchmark",
+          "decision:memory.code-source"
+        ],
+        "vectorMissed": [
+          "decision:memory.code-source"
+        ]
+      },
+      {
+        "id": "req:wf.graph",
+        "governing": [
+          "rule:edge-from-typed-key",
+          "rule:explicit-edge-syntax",
+          "rule:node-detection"
+        ],
+        "seeds": [
+          "lib:core.parse",
+          "entity:graph",
+          "decision:wf2.content-editor-scoped",
+          "req:wf2.write.create",
+          "decision:wf2.graph-editor-is-a-goal",
+          "decision:wf2.embed-syntax"
+        ],
+        "packetSize": 24,
+        "packetRecall": 1,
+        "vectorRecall": 0.333,
+        "vectorRecall20": 0.333,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": [
+          "rule:edge-from-typed-key",
+          "rule:explicit-edge-syntax"
+        ]
+      },
+      {
+        "id": "req:wf.graph.fields",
+        "governing": [
+          "rule:ambiguous-field-names",
+          "rule:field-generation",
+          "rule:field-mentions-index"
+        ],
+        "seeds": [
+          "rule:field-mentions-index",
+          "rule:field-generation",
+          "rule:ambiguous-field-names",
+          "question:ontology.q4",
+          "req:wf.view.fields",
+          "decision:wf2.text-is-first-block"
+        ],
+        "packetSize": 19,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf.graph.stable-ids",
+        "governing": [
+          "rule:id-syntax"
+        ],
+        "seeds": [
+          "rule:prose-nodes",
+          "constraint:wf2.one-defining-place",
+          "req:wf2.page.retype",
+          "rule:id-syntax",
+          "req:wf.query.suffix",
+          "lib:anchors"
+        ],
+        "packetSize": 96,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf.graph.stubs-visible",
+        "governing": [
+          "rule:stub-nodes"
+        ],
+        "seeds": [
+          "rule:stub-targets-warn",
+          "rule:stub-severity",
+          "req:wf.lint",
+          "req:wf.describe.drift",
+          "decision:wf2.card-shows-no-content",
+          "rule:stub-nodes"
+        ],
+        "packetSize": 45,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": null,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf.query.packet",
+        "governing": [
+          "rule:packet-ranking"
+        ],
+        "seeds": [
+          "rule:packet-task-seeds",
+          "req:wf2.api.packet-task",
+          "entity:packet",
+          "req:exec.wye-context",
+          "decision:memory.constraint-packet",
+          "req:memory.intake-packet"
+        ],
+        "packetSize": 35,
+        "packetRecall": 0,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [
+          "rule:packet-ranking"
+        ],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf.query.impact",
+        "governing": [
+          "rule:impact-closure"
+        ],
+        "seeds": [
+          "rule:impact-closure",
+          "decision:exec.impact-run",
+          "rule:impact-candidates",
+          "rule:graph-presets",
+          "req:exec.impact-sub-items",
+          "req:exec.impact-set"
+        ],
+        "packetSize": 53,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": []
+      },
+      {
+        "id": "req:wf.lint",
+        "governing": [
+          "rule:req-needs-satisfied-by",
+          "rule:rule-needs-source",
+          "rule:shipped-needs-test",
+          "rule:source-path-resolves",
+          "rule:stub-nodes"
+        ],
+        "seeds": [
+          "req:wf2.contradictions.strict",
+          "req:wf.lint.ci",
+          "rule:strict-open-contradiction",
+          "req:wf.describe.drift",
+          "rule:check-exit-code",
+          "req:wf.describe.sources"
+        ],
+        "packetSize": 31,
+        "packetRecall": 1,
+        "vectorRecall": 0,
+        "vectorRecall20": 0,
+        "testsRecall": 0,
+        "packetMissed": [],
+        "vectorMissed": [
+          "rule:req-needs-satisfied-by",
+          "rule:rule-needs-source",
+          "rule:shipped-needs-test",
+          "rule:source-path-resolves",
+          "rule:stub-nodes"
+        ]
+      },
+      {
+        "id": "req:wf.lint.source-roots",
+        "governing": [
+          "rule:source-path-resolves"
+        ],
+        "seeds": [
+          "rule:source-path-resolves",
+          "entity:module-doc",
+          "req:wf.graph.multi-module",
+          "flag:source-roots",
+          "rule:page-node-line",
+          "rule:document-tree"
+        ],
+        "packetSize": 91,
+        "packetRecall": 1,
+        "vectorRecall": 1,
+        "vectorRecall20": 1,
+        "testsRecall": null,
+        "packetMissed": [],
+        "vectorMissed": []
+      }
+    ],
+    "currency": [
+      {
+        "old": "decision:wf2.session-page-derived",
+        "current": "decision:wf2.plan-is-a-document",
+        "query": "The session page is derived from the session and the graph, not a plan document",
+        "rank": 1,
+        "hidden": 122,
+        "superseded": [],
+        "top": [
+          "decision:wf2.plan-is-a-document",
+          "task:session-page-retire",
+          "rule:session-page",
+          "req:wf2.sessions.plan-result",
+          "rule:plan-doc"
+        ]
+      }
+    ],
+    "contradictions": {
+      "misses": [
+        {
+          "drift": "drift:wf2.1",
+          "pair": [
+            "entity:delta",
+            "req:wf.pipeline"
+          ],
+          "got": "refines",
+          "reason": "B describes the workflow and process for using deltas (proposed status, review, approval) that A structurally defines."
+        },
+        {
+          "drift": "drift:wf2.2",
+          "pair": [
+            "rule:viewer-no-server",
+            "page:viewer/graph"
+          ],
+          "got": "consistent",
+          "reason": "B is the page reference implementing the static-page rule A describes."
+        },
+        {
+          "drift": "drift:wf2.3",
+          "pair": [
+            "page:skill/context",
+            "req:wf2.api.skills"
+          ],
+          "got": "refines",
+          "reason": "B specifies how agents receive the contract A describes, adding implementation details (CLAUDE.md snippet, rewritten skills)."
+        },
+        {
+          "drift": "drift:wf2.4",
+          "pair": [
+            "state:node-lifecycle",
+            "state:task-lifecycle"
+          ],
+          "got": "consistent",
+          "reason": "These are different entities describing different lifecycles that can coexist independently."
+        },
+        {
+          "drift": "drift:wf2.9",
+          "pair": [
+            "entity:project",
+            "req:wf2.store"
+          ],
+          "got": "refines",
+          "reason": "B details the storage architecture for projects A defines, specifying markdown for artifacts and SQLite for tasks/decisions/contradictions."
+        },
+        {
+          "drift": "drift:wye.3",
+          "pair": [
+            "entity:delta",
+            "page:skill/context"
+          ],
+          "got": "consistent",
+          "reason": "B references delta as one principle in a larger contract; it does not contradict or narrow A's definition of delta."
+        },
+        {
+          "drift": "drift:wye.4",
+          "pair": [
+            "rule:inventory-gate-shorthand",
+            "module:wye"
+          ],
+          "got": "consistent",
+          "reason": "A is a specific rule about gate mapping that serves B's broader purpose of describing products without code."
+        },
+        {
+          "drift": "drift:wye.8",
+          "pair": [
+            "action:search-graph",
+            "op:ctx.search"
+          ],
+          "got": "refines",
+          "reason": "B provides the detailed ranking weights (id ×5, title ×3, etc.) for the search hits A describes."
+        },
+        {
+          "drift": "drift:wye.9",
+          "pair": [
+            "req:wf.query.packet",
+            "rule:packet-ranking"
+          ],
+          "got": "refines",
+          "reason": "B specifies the ranking formula (hops + seedIndex×0.1) and emission order that implements the 'nearest-first' requirement in A; both require nodes to sort requirements first, stop at budget, and end with source files."
+        },
+        {
+          "drift": "drift:wye.13",
+          "pair": [
+            "rule:id-syntax",
+            "rule:node-detection"
+          ],
+          "got": "consistent",
+          "reason": "A defines the syntax of valid ids (format, regex, aliases); B defines detection rules for finding nodes in source—different concerns that do not conflict."
+        }
+      ],
+      "falseAlarms": []
+    },
+    "impact": [
+      {
+        "kind": "commit",
+        "ref": "881041eac918",
+        "date": "2026-09-20",
+        "query": "store:eval-results",
+        "expected": [
+          "task:memory.eval-truth",
+          "task:memory.eval-judge-set",
+          "task:memory.eval-moosedev-import",
+          "task:memory.eval-reqpairs-loader",
+          "task:memory.eval-mab-adapter",
+          "task:memory.eval-cli",
+          "task:memory.eval-recordings",
+          "constraint:wf2.no-custom-pages",
+          "decision:wf2.cli-is-wye",
+          "decision:memory.public-benchmarks",
+          "decision:memory.evaluation",
+          "req:memory.eval-compare",
+          "req:memory.eval-page",
+          "task:memory.eval-compare",
+          "task:memory.eval-cards",
+          "decision:memory.eval-build-scope",
+          "decision:memory.eval-tolerance",
+          "decision:memory.eval-first-live-runs",
+          "req:memory.eval-gate"
+        ],
+        "structural5": 0.211,
+        "structural10": 0.211,
+        "semantic5": 0.263,
+        "semantic10": 0.421,
+        "blended5": 0.211,
+        "blended10": 0.421,
+        "candidates": 6,
+        "missed10": [
+          "task:memory.eval-truth",
+          "task:memory.eval-judge-set",
+          "task:memory.eval-moosedev-import",
+          "task:memory.eval-reqpairs-loader",
+          "task:memory.eval-mab-adapter",
+          "constraint:wf2.no-custom-pages",
+          "decision:wf2.cli-is-wye",
+          "decision:memory.public-benchmarks",
+          "req:memory.eval-compare",
+          "task:memory.eval-compare",
+          "task:memory.eval-cards"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "a2424982cfbc",
+        "date": "2026-09-20",
+        "query": "req:wf2.editor.list-block",
+        "expected": [
+          "rule:list-view"
+        ],
+        "structural5": 1,
+        "structural10": 1,
+        "semantic5": 1,
+        "semantic10": 1,
+        "blended5": 1,
+        "blended10": 1,
+        "candidates": 10,
+        "missed10": []
+      },
+      {
+        "kind": "commit",
+        "ref": "b3f3222cc247",
+        "date": "2026-09-20",
+        "query": "decision:exec.kind-by-nature",
+        "expected": [
+          "req:exec.wye-proposes",
+          "task:exec.rekind"
+        ],
+        "structural5": 0.5,
+        "structural10": 0.5,
+        "semantic5": 0.5,
+        "semantic10": 1,
+        "blended5": 0.5,
+        "blended10": 0.5,
+        "candidates": 27,
+        "missed10": [
+          "task:exec.rekind"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "9e735ed6db4e",
+        "date": "2026-09-20",
+        "query": "rule:review-readable",
+        "expected": [
+          "req:exec.review-readable"
+        ],
+        "structural5": 1,
+        "structural10": 1,
+        "semantic5": 1,
+        "semantic10": 1,
+        "blended5": 1,
+        "blended10": 1,
+        "candidates": 6,
+        "missed10": []
+      },
+      {
+        "kind": "commit",
+        "ref": "a646508771d1",
+        "date": "2026-09-20",
+        "query": "rule:review-readable",
+        "expected": [
+          "component:change-card",
+          "lib:review-summary",
+          "req:exec.review-readable"
+        ],
+        "structural5": 0.667,
+        "structural10": 1,
+        "semantic5": 0.667,
+        "semantic10": 1,
+        "blended5": 0.667,
+        "blended10": 1,
+        "candidates": 6,
+        "missed10": []
+      },
+      {
+        "kind": "commit",
+        "ref": "92547d4b16de",
+        "date": "2026-09-20",
+        "query": "store:eval-results",
+        "expected": [
+          "task:memory.eval-truth",
+          "task:memory.eval-judge-set",
+          "task:memory.eval-moosedev-import",
+          "task:memory.eval-reqpairs-loader",
+          "task:memory.eval-mab-adapter",
+          "task:memory.eval-cli",
+          "task:memory.eval-recordings",
+          "decision:memory.instructions-compiled",
+          "req:memory.instruction-patch",
+          "req:memory.instructions-in-prompt",
+          "decision:memory.public-benchmarks",
+          "decision:memory.evaluation",
+          "req:memory.eval-benchmarks",
+          "req:memory.eval-compare",
+          "req:memory.eval-page",
+          "question:memory.eval-judge",
+          "task:memory.instructions",
+          "task:memory.eval-suite",
+          "task:memory.eval-compare",
+          "task:memory.eval-public",
+          "decision:memory.eval-build-scope",
+          "decision:memory.eval-tolerance",
+          "decision:memory.eval-first-live-runs",
+          "req:memory.eval-gate",
+          "decision:exec.librarian-may-build"
+        ],
+        "structural5": 0.16,
+        "structural10": 0.16,
+        "semantic5": 0.2,
+        "semantic10": 0.32,
+        "blended5": 0.16,
+        "blended10": 0.32,
+        "candidates": 6,
+        "missed10": [
+          "task:memory.eval-truth",
+          "task:memory.eval-judge-set",
+          "task:memory.eval-moosedev-import",
+          "task:memory.eval-reqpairs-loader",
+          "task:memory.eval-mab-adapter",
+          "decision:memory.instructions-compiled",
+          "req:memory.instruction-patch",
+          "req:memory.instructions-in-prompt",
+          "decision:memory.public-benchmarks",
+          "req:memory.eval-benchmarks",
+          "req:memory.eval-compare",
+          "question:memory.eval-judge",
+          "task:memory.instructions",
+          "task:memory.eval-suite",
+          "task:memory.eval-compare",
+          "task:memory.eval-public",
+          "decision:exec.librarian-may-build"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "cdb0d1d953ab",
+        "date": "2026-09-19",
+        "query": "rule:card-fold",
+        "expected": [
+          "rule:card-essence",
+          "req:wf2.ui.card-preview",
+          "decision:wf2.answer-is-content",
+          "task:plan-why-t-type-space-typing-answer",
+          "task:wf2.prose-area",
+          "task:wf2.answer-content",
+          "task:wf2.details-q-once",
+          "task:wf2.answer-rules",
+          "task:wf2.prose-newlines"
+        ],
+        "structural5": 0.222,
+        "structural10": 0.333,
+        "semantic5": 0.333,
+        "semantic10": 0.333,
+        "blended5": 0.222,
+        "blended10": 0.333,
+        "candidates": 12,
+        "missed10": [
+          "rule:card-essence",
+          "task:plan-why-t-type-space-typing-answer",
+          "task:wf2.prose-area",
+          "task:wf2.answer-content",
+          "task:wf2.details-q-once",
+          "task:wf2.prose-newlines"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "a95dec6921cc",
+        "date": "2026-09-19",
+        "query": "decision:wye.strip-yessensei-before-push",
+        "expected": [
+          "question:wye.public-repo-data",
+          "task:wye.rename-code",
+          "task:wye.strip-yessensei",
+          "task:wye.yessensei-own-repo"
+        ],
+        "structural5": 0.25,
+        "structural10": 0.25,
+        "semantic5": 0.25,
+        "semantic10": 0.25,
+        "blended5": 0.25,
+        "blended10": 0.25,
+        "candidates": 1,
+        "missed10": [
+          "task:wye.rename-code",
+          "task:wye.strip-yessensei",
+          "task:wye.yessensei-own-repo"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "b17857e266e4",
+        "date": "2026-09-19",
+        "query": "task:memory.impl.idle-consolidation",
+        "expected": [
+          "task:memory.impl.supersession-chain",
+          "task:memory.impl.benchmark-positives",
+          "task:memory.impl.switch-on",
+          "task:memory.impl.consolidated-blocks-in-changes"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 3,
+        "missed10": [
+          "task:memory.impl.supersession-chain",
+          "task:memory.impl.benchmark-positives",
+          "task:memory.impl.switch-on",
+          "task:memory.impl.consolidated-blocks-in-changes"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "1bdbe91d5234",
+        "date": "2026-09-19",
+        "query": "task:memory.impl.verdicts",
+        "expected": [
+          "task:memory.impl.benchmark",
+          "task:memory.impl.consolidate",
+          "task:memory.impl.lint-deep"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 0,
+        "missed10": [
+          "task:memory.impl.benchmark",
+          "task:memory.impl.consolidate",
+          "task:memory.impl.lint-deep"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "9e0200b443e3",
+        "date": "2026-09-19",
+        "query": "contradiction:wye.e0f217651378",
+        "expected": [
+          "task:memory.benchmark",
+          "task:memory.consolidate"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 1,
+        "missed10": [
+          "task:memory.benchmark",
+          "task:memory.consolidate"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "6869fe44f761",
+        "date": "2026-09-19",
+        "query": "lib:consolidate",
+        "expected": [
+          "flag:verdicts",
+          "flag:consolidate",
+          "flag:judge-model"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 1,
+        "missed10": [
+          "flag:verdicts",
+          "flag:consolidate",
+          "flag:judge-model"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "5c008310bb71",
+        "date": "2026-09-19",
+        "query": "decision:memory.benchmark",
+        "expected": [
+          "task:memory.verdict-pass",
+          "task:memory.lint-deep",
+          "test:verdict-bench",
+          "test:memory",
+          "test:verdicts",
+          "test:packet",
+          "question:memory.benchmark-positives"
+        ],
+        "structural5": 0.143,
+        "structural10": 0.143,
+        "semantic5": 0,
+        "semantic10": 0.143,
+        "blended5": 0.143,
+        "blended10": 0.143,
+        "candidates": 28,
+        "missed10": [
+          "task:memory.verdict-pass",
+          "task:memory.lint-deep",
+          "test:memory",
+          "test:verdicts",
+          "test:packet",
+          "question:memory.benchmark-positives"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "7f1b09953ca6",
+        "date": "2026-09-19",
+        "query": "op:api.verdicts",
+        "expected": [
+          "req:memory.verdicts",
+          "task:memory.decision-statuses",
+          "task:memory.forgetting",
+          "task:memory.shapes",
+          "decision:memory.consistent-verdicts-in-the-log",
+          "task:memory.impl.decision-statuses"
+        ],
+        "structural5": 0.167,
+        "structural10": 0.167,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0.167,
+        "blended10": 0.167,
+        "candidates": 25,
+        "missed10": [
+          "task:memory.decision-statuses",
+          "task:memory.forgetting",
+          "task:memory.shapes",
+          "decision:memory.consistent-verdicts-in-the-log",
+          "task:memory.impl.decision-statuses"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "fef30baeed00",
+        "date": "2026-09-19",
+        "query": "decision:wf2.plan-is-a-document",
+        "expected": [
+          "decision:memory.statuses-stay-with-the-person",
+          "task:memory.impl.bitemporal",
+          "task:memory.impl.constraint-type",
+          "task:memory.impl.packet",
+          "task:memory.impl.shapes",
+          "task:memory.impl.forgetting"
+        ],
+        "structural5": 0.167,
+        "structural10": 0.167,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0.167,
+        "blended10": 0.167,
+        "candidates": 4,
+        "missed10": [
+          "task:memory.impl.bitemporal",
+          "task:memory.impl.constraint-type",
+          "task:memory.impl.packet",
+          "task:memory.impl.shapes",
+          "task:memory.impl.forgetting"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "40697f44c67d",
+        "date": "2026-09-19",
+        "query": "req:memory.intake-packet",
+        "expected": [
+          "req:memory.current-by-construction",
+          "task:memory.constraint-packet",
+          "task:memory.bitemporal-props",
+          "task:memory.constraint-type"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0.25,
+        "semantic10": 0.25,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 23,
+        "missed10": [
+          "req:memory.current-by-construction",
+          "task:memory.constraint-packet",
+          "task:memory.bitemporal-props",
+          "task:memory.constraint-type"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "9fc319f3d07f",
+        "date": "2026-09-19",
+        "query": "op:api.context",
+        "expected": [
+          "op:api.packet"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 24,
+        "missed10": [
+          "op:api.packet"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "d60126282afb",
+        "date": "2026-09-19",
+        "query": "decision:wye.rename-scope",
+        "expected": [
+          "question:wye.rename-slug",
+          "question:wye.public-repo-data",
+          "task:wye.rename-code",
+          "task:wye.rename-remote",
+          "task:wye.rename-slug",
+          "task:wye.rename-folder"
+        ],
+        "structural5": 0.167,
+        "structural10": 0.167,
+        "semantic5": 0.333,
+        "semantic10": 0.333,
+        "blended5": 0.167,
+        "blended10": 0.333,
+        "candidates": 4,
+        "missed10": [
+          "task:wye.rename-code",
+          "task:wye.rename-remote",
+          "task:wye.rename-slug",
+          "task:wye.rename-folder"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "9d4d520a991c",
+        "date": "2026-09-18",
+        "query": "component:produced",
+        "expected": [
+          "page:web/context-column",
+          "req:wf2.ui.produced-collapsed",
+          "rule:produced-collapsed",
+          "rule:task-artifacts",
+          "decision:wf2.produced-kept-collapsed",
+          "decision:wf2.produced-not-remembered",
+          "task:wf2.produced-bottom",
+          "task:wf2.produced-collapsed",
+          "task:wf2.produced-test",
+          "task:wf2.produced-knowledge",
+          "ui-test:node-content"
+        ],
+        "structural5": 0.182,
+        "structural10": 0.364,
+        "semantic5": 0.182,
+        "semantic10": 0.273,
+        "blended5": 0.182,
+        "blended10": 0.364,
+        "candidates": 14,
+        "missed10": [
+          "page:web/context-column",
+          "rule:produced-collapsed",
+          "rule:task-artifacts",
+          "decision:wf2.produced-not-remembered",
+          "task:wf2.produced-bottom",
+          "task:wf2.produced-collapsed",
+          "task:wf2.produced-test"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "a06b140f7750",
+        "date": "2026-09-18",
+        "query": "component:node-cards",
+        "expected": [
+          "rule:card-fold",
+          "req:wf2.ui.card-preview",
+          "decision:wf2.card-shows-no-content",
+          "task:wf2.card-no-content",
+          "task:wf2.card-no-content-verify",
+          "ui-test:node-content"
+        ],
+        "structural5": 0.167,
+        "structural10": 0.667,
+        "semantic5": 0.5,
+        "semantic10": 0.5,
+        "blended5": 0.167,
+        "blended10": 0.667,
+        "candidates": 17,
+        "missed10": [
+          "rule:card-fold",
+          "task:wf2.card-no-content"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "d919e273b3e4",
+        "date": "2026-09-18",
+        "query": "component:node-editor",
+        "expected": [
+          "page:web/context-column",
+          "rule:content-editor",
+          "op:node.content",
+          "decision:wf2.text-is-first-block",
+          "task:wf2.content-text-first",
+          "ui-test:node-content"
+        ],
+        "structural5": 0.167,
+        "structural10": 0.167,
+        "semantic5": 0.167,
+        "semantic10": 0.167,
+        "blended5": 0.167,
+        "blended10": 0.167,
+        "candidates": 23,
+        "missed10": [
+          "page:web/context-column",
+          "rule:content-editor",
+          "op:node.content",
+          "task:wf2.content-text-first",
+          "ui-test:node-content"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "6ca312a445c3",
+        "date": "2026-09-18",
+        "query": "req:wf2.ui.rail-split",
+        "expected": [
+          "component:rail",
+          "page:web/sidebar",
+          "rule:rail-split",
+          "task:rail-split",
+          "ui-test:rail-split"
+        ],
+        "structural5": 0.8,
+        "structural10": 1,
+        "semantic5": 0.4,
+        "semantic10": 0.6,
+        "blended5": 0.8,
+        "blended10": 1,
+        "candidates": 9,
+        "missed10": []
+      },
+      {
+        "kind": "commit",
+        "ref": "6f09f7763a4d",
+        "date": "2026-09-18",
+        "query": "req:wf2.sessions.plan-doc",
+        "expected": [
+          "lib:plan-doc",
+          "req:wf2.ui.plans-folder",
+          "page:web/plans",
+          "component:rail",
+          "component:plan-folder",
+          "page:web/sidebar",
+          "action:open-plans",
+          "rule:documents-tree",
+          "rule:plans-folder",
+          "decision:wf2.plans-system-folder",
+          "task:plans-folder-page",
+          "task:plans-folder-rail",
+          "task:plans-folder-ui-test",
+          "task:plans-folder-knowledge",
+          "task:agent-prompt-plan-file",
+          "ui-test:plans-folder"
+        ],
+        "structural5": 0.125,
+        "structural10": 0.313,
+        "semantic5": 0.063,
+        "semantic10": 0.063,
+        "blended5": 0.125,
+        "blended10": 0.313,
+        "candidates": 100,
+        "missed10": [
+          "page:web/sidebar",
+          "action:open-plans",
+          "rule:documents-tree",
+          "rule:plans-folder",
+          "decision:wf2.plans-system-folder",
+          "task:plans-folder-page",
+          "task:plans-folder-rail",
+          "task:plans-folder-ui-test",
+          "task:plans-folder-knowledge",
+          "task:agent-prompt-plan-file",
+          "ui-test:plans-folder"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "4e83e93a0300",
+        "date": "2026-09-18",
+        "query": "component:data-table",
+        "expected": [
+          "req:wf2.editor.table-filter",
+          "rule:table-filter",
+          "decision:wf2.table-filter-on-marker",
+          "decision:wf2.table-filter-hides-rows",
+          "question:wf2.table-filter-sort",
+          "task:table-filter-req",
+          "task:table-filter-marker",
+          "task:table-filter-toolbar",
+          "task:table-filter-rule",
+          "task:table-filter-ui-test",
+          "ui-test:table-filter"
+        ],
+        "structural5": 0.273,
+        "structural10": 0.364,
+        "semantic5": 0.182,
+        "semantic10": 0.273,
+        "blended5": 0.273,
+        "blended10": 0.545,
+        "candidates": 6,
+        "missed10": [
+          "task:table-filter-req",
+          "task:table-filter-marker",
+          "task:table-filter-toolbar",
+          "task:table-filter-ui-test",
+          "ui-test:table-filter"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "afb99e88df2f",
+        "date": "2026-09-18",
+        "query": "question:ontology.child-nodes",
+        "expected": [
+          "decision:ontology.uniform-content",
+          "task:ontology.child-nodes-design",
+          "task:ontology.children-in-column"
+        ],
+        "structural5": 0.333,
+        "structural10": 0.333,
+        "semantic5": 0.667,
+        "semantic10": 0.667,
+        "blended5": 0.333,
+        "blended10": 0.667,
+        "candidates": 3,
+        "missed10": [
+          "task:ontology.children-in-column"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "b6e310dede1f",
+        "date": "2026-09-18",
+        "query": "page:web/context-column",
+        "expected": [
+          "action:select-block",
+          "req:wf2.ui.block-select",
+          "rule:block-select",
+          "goal:ontology.graph-editor",
+          "question:ontology.child-nodes",
+          "task:ontology.block-select",
+          "task:ontology.paragraph-select",
+          "task:ontology.child-nodes-design",
+          "task:ontology.children-in-column",
+          "decision:wf2.block-click-selects",
+          "decision:wf2.graph-editor-is-a-goal",
+          "task:block-select-provider",
+          "task:block-select-blocks",
+          "task:block-select-ui-test",
+          "task:block-select-knowledge",
+          "ui-test:block-select"
+        ],
+        "structural5": 0,
+        "structural10": 0.063,
+        "semantic5": 0,
+        "semantic10": 0.063,
+        "blended5": 0,
+        "blended10": 0.063,
+        "candidates": 14,
+        "missed10": [
+          "action:select-block",
+          "req:wf2.ui.block-select",
+          "rule:block-select",
+          "goal:ontology.graph-editor",
+          "question:ontology.child-nodes",
+          "task:ontology.block-select",
+          "task:ontology.paragraph-select",
+          "task:ontology.child-nodes-design",
+          "task:ontology.children-in-column",
+          "decision:wf2.graph-editor-is-a-goal",
+          "task:block-select-provider",
+          "task:block-select-blocks",
+          "task:block-select-ui-test",
+          "task:block-select-knowledge",
+          "ui-test:block-select"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "ad8ddc4ce881",
+        "date": "2026-09-18",
+        "query": "component:peek-panel",
+        "expected": [
+          "page:web/context-column",
+          "req:wf2.ui.connected-cards",
+          "rule:connected-cards",
+          "decision:wf2.connected-rows-expand-to-cards",
+          "task:connected-cards-rows",
+          "task:connected-cards-groups",
+          "task:connected-cards-css",
+          "task:connected-cards-ui-test",
+          "task:connected-cards-knowledge",
+          "ui-test:connected-cards"
+        ],
+        "structural5": 0.1,
+        "structural10": 0.1,
+        "semantic5": 0.2,
+        "semantic10": 0.2,
+        "blended5": 0.1,
+        "blended10": 0.1,
+        "candidates": 34,
+        "missed10": [
+          "page:web/context-column",
+          "rule:connected-cards",
+          "decision:wf2.connected-rows-expand-to-cards",
+          "task:connected-cards-rows",
+          "task:connected-cards-groups",
+          "task:connected-cards-css",
+          "task:connected-cards-ui-test",
+          "task:connected-cards-knowledge",
+          "ui-test:connected-cards"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "7a88d4bbebe1",
+        "date": "2026-09-18",
+        "query": "req:wf2.ui.tree-menu",
+        "expected": [
+          "component:doc-tree",
+          "lib:doc-ops",
+          "op:api.docs.duplicate",
+          "op:api.docs.delete",
+          "page:web/sidebar",
+          "action:duplicate-document",
+          "action:delete-document",
+          "rule:tree-menu",
+          "test:doc-ops",
+          "ui-test:tree-menu"
+        ],
+        "structural5": 0.5,
+        "structural10": 0.8,
+        "semantic5": 0.5,
+        "semantic10": 0.5,
+        "blended5": 0.5,
+        "blended10": 0.8,
+        "candidates": 14,
+        "missed10": [
+          "action:duplicate-document",
+          "action:delete-document"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "27f0f02f9f23",
+        "date": "2026-09-18",
+        "query": "component:doc-tree",
+        "expected": [
+          "question:wf2.bugs-cards-dropped",
+          "rule:doc-tree-row-stable",
+          "ui-test:doc-tree-dnd"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0.333,
+        "semantic10": 0.333,
+        "blended5": 0,
+        "blended10": 0.333,
+        "candidates": 5,
+        "missed10": [
+          "question:wf2.bugs-cards-dropped",
+          "ui-test:doc-tree-dnd"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "f00f9a4d32d1",
+        "date": "2026-09-18",
+        "query": "component:doc-editor",
+        "expected": [
+          "component:data-table",
+          "req:wf2.editor.table-scroll",
+          "rule:table-scroll",
+          "decision:wf2.table-scroll-not-shrink",
+          "task:table-scroll-css",
+          "task:table-scroll-ui-test",
+          "task:table-scroll-knowledge",
+          "ui-test:table-scroll"
+        ],
+        "structural5": 0,
+        "structural10": 0.125,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0.125,
+        "candidates": 22,
+        "missed10": [
+          "component:data-table",
+          "req:wf2.editor.table-scroll",
+          "rule:table-scroll",
+          "decision:wf2.table-scroll-not-shrink",
+          "task:table-scroll-css",
+          "task:table-scroll-ui-test",
+          "ui-test:table-scroll"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "a04e807d4ad9",
+        "date": "2026-09-18",
+        "query": "rule:plan-type-base",
+        "expected": [
+          "task:plan-type-agent-prop"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 1,
+        "semantic10": 1,
+        "blended5": 0,
+        "blended10": 1,
+        "candidates": 1,
+        "missed10": []
+      },
+      {
+        "kind": "commit",
+        "ref": "83ba490142c2",
+        "date": "2026-09-18",
+        "query": "component:peek-panel",
+        "expected": [
+          "page:web/context-column",
+          "req:wf2.ui.column-frame",
+          "rule:column-frame",
+          "decision:wf2.column-frame-header-scrolls",
+          "task:column-frame-layout",
+          "task:column-frame-follow",
+          "task:column-frame-ui-test",
+          "task:column-frame-knowledge",
+          "ui-test:column-frame"
+        ],
+        "structural5": 0.111,
+        "structural10": 0.111,
+        "semantic5": 0.111,
+        "semantic10": 0.222,
+        "blended5": 0.111,
+        "blended10": 0.111,
+        "candidates": 34,
+        "missed10": [
+          "page:web/context-column",
+          "rule:column-frame",
+          "decision:wf2.column-frame-header-scrolls",
+          "task:column-frame-layout",
+          "task:column-frame-follow",
+          "task:column-frame-ui-test",
+          "task:column-frame-knowledge",
+          "ui-test:column-frame"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "7cb7b05558a9",
+        "date": "2026-09-18",
+        "query": "component:console",
+        "expected": [
+          "req:wf2.console.first-message-is-the-request",
+          "decision:wf2.first-message-shown-as-request",
+          "ui-test:first-message-fold",
+          "task:first-message-shown",
+          "task:first-message-fold",
+          "task:first-message-knowledge"
+        ],
+        "structural5": 0.167,
+        "structural10": 0.333,
+        "semantic5": 0.333,
+        "semantic10": 0.333,
+        "blended5": 0.167,
+        "blended10": 0.333,
+        "candidates": 43,
+        "missed10": [
+          "ui-test:first-message-fold",
+          "task:first-message-shown",
+          "task:first-message-fold",
+          "task:first-message-knowledge"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "1e73b650801d",
+        "date": "2026-09-18",
+        "query": "component:doc-props",
+        "expected": [
+          "decision:wf2.page-node-typed",
+          "req:wf2.page.node",
+          "req:wf2.page.header-card",
+          "req:wf2.page.retype",
+          "req:wf2.page.create-typed",
+          "rule:page-node-line",
+          "rule:doc-retype",
+          "test:page-node",
+          "test:retype",
+          "ui-test:page-node",
+          "question:wf2.page-instance-add",
+          "task:page-node-parse",
+          "task:page-node-web-helper",
+          "task:page-node-header",
+          "task:page-node-retype",
+          "task:page-node-create",
+          "task:page-node-types-page",
+          "task:page-node-ui-test",
+          "task:page-node-knowledge",
+          "store:documents",
+          "task:plan-type-agent-prop",
+          "task:new-226",
+          "task:idle-agent-timeout"
+        ],
+        "structural5": 0.217,
+        "structural10": 0.391,
+        "semantic5": 0.13,
+        "semantic10": 0.217,
+        "blended5": 0.217,
+        "blended10": 0.391,
+        "candidates": 14,
+        "missed10": [
+          "req:wf2.page.node",
+          "req:wf2.page.create-typed",
+          "rule:page-node-line",
+          "rule:doc-retype",
+          "test:page-node",
+          "question:wf2.page-instance-add",
+          "task:page-node-parse",
+          "task:page-node-web-helper",
+          "task:page-node-create",
+          "task:page-node-types-page",
+          "store:documents",
+          "task:plan-type-agent-prop",
+          "task:new-226",
+          "task:idle-agent-timeout"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "5609c69ff3dc",
+        "date": "2026-09-18",
+        "query": "component:node-cards",
+        "expected": [
+          "req:wf2.cards.decision-essence",
+          "rule:card-essence",
+          "component:embed-block",
+          "decision:wf2.embed-syntax",
+          "decision:wf2.embed-renders-source-card",
+          "req:wf2.embeds.insert",
+          "req:wf2.embeds.render",
+          "req:wf2.embeds.edit-sync",
+          "req:wf2.sessions.changes-cards",
+          "rule:embed-line",
+          "question:wf2.embed-paragraphs",
+          "ui-test:embeds",
+          "task:embed-syntax",
+          "task:node-cards-module",
+          "task:embed-block",
+          "task:embed-slash",
+          "task:embed-reader",
+          "task:session-changes-cards",
+          "task:embeds-ui-test",
+          "lib:embed"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0.1,
+        "semantic10": 0.2,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 17,
+        "missed10": [
+          "req:wf2.cards.decision-essence",
+          "rule:card-essence",
+          "component:embed-block",
+          "decision:wf2.embed-syntax",
+          "decision:wf2.embed-renders-source-card",
+          "req:wf2.embeds.insert",
+          "req:wf2.embeds.render",
+          "req:wf2.embeds.edit-sync",
+          "req:wf2.sessions.changes-cards",
+          "rule:embed-line",
+          "question:wf2.embed-paragraphs",
+          "ui-test:embeds",
+          "task:embed-syntax",
+          "task:node-cards-module",
+          "task:embed-block",
+          "task:embed-slash",
+          "task:embed-reader",
+          "task:session-changes-cards",
+          "task:embeds-ui-test",
+          "lib:embed"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "bfe4a6e42bcd",
+        "date": "2026-09-18",
+        "query": "component:session-view",
+        "expected": [
+          "component:session-list",
+          "page:web/session",
+          "component:session-page",
+          "lib:session-page",
+          "op:api.sessions.page",
+          "req:wf2.sessions.page",
+          "req:wf2.ui.history-nav",
+          "rule:session-page",
+          "rule:history-nav",
+          "decision:wf2.session-page-derived",
+          "question:wf2.session-page-per-item",
+          "task:session-page-lib",
+          "task:session-page",
+          "task:history-nav",
+          "task:session-page-ui-test",
+          "component:top-bar",
+          "test:web-lib",
+          "ui-test:session-page"
+        ],
+        "structural5": 0.056,
+        "structural10": 0.056,
+        "semantic5": 0.056,
+        "semantic10": 0.111,
+        "blended5": 0.056,
+        "blended10": 0.111,
+        "candidates": 8,
+        "missed10": [
+          "component:session-list",
+          "page:web/session",
+          "component:session-page",
+          "lib:session-page",
+          "op:api.sessions.page",
+          "req:wf2.ui.history-nav",
+          "rule:session-page",
+          "rule:history-nav",
+          "decision:wf2.session-page-derived",
+          "question:wf2.session-page-per-item",
+          "task:session-page-lib",
+          "task:history-nav",
+          "task:session-page-ui-test",
+          "component:top-bar",
+          "test:web-lib",
+          "ui-test:session-page"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "69f8223dcc9a",
+        "date": "2026-09-18",
+        "query": "component:console",
+        "expected": [
+          "component:session-list",
+          "component:queue-list",
+          "component:command-box",
+          "lib:agent-host",
+          "lib:session-types",
+          "op:api.sessions.message",
+          "op:api.sessions.control",
+          "req:wf2.sessions.stop-from-list",
+          "req:wf2.sessions.queue-on-agents",
+          "req:wf2.sessions.fresh-in-queue",
+          "decision:wf2.fresh-is-a-queue-property",
+          "decision:wf2.queue-item-state",
+          "question:wf2.close-keeps-record",
+          "ui-test:agents-queue",
+          "task:queue-item-state",
+          "task:fresh-at-take-time",
+          "task:agents-queue-rows",
+          "task:agent-stop-from-list",
+          "task:agents-queue-ui-test",
+          "page:web/sessions",
+          "action:stop-resume",
+          "action:see-queue",
+          "rule:clean-slate",
+          "rule:agent-host",
+          "rule:session-queue"
+        ],
+        "structural5": 0.08,
+        "structural10": 0.08,
+        "semantic5": 0.04,
+        "semantic10": 0.12,
+        "blended5": 0.08,
+        "blended10": 0.08,
+        "candidates": 43,
+        "missed10": [
+          "component:session-list",
+          "component:queue-list",
+          "component:command-box",
+          "lib:agent-host",
+          "lib:session-types",
+          "op:api.sessions.message",
+          "op:api.sessions.control",
+          "req:wf2.sessions.stop-from-list",
+          "decision:wf2.fresh-is-a-queue-property",
+          "decision:wf2.queue-item-state",
+          "question:wf2.close-keeps-record",
+          "ui-test:agents-queue",
+          "task:queue-item-state",
+          "task:fresh-at-take-time",
+          "task:agents-queue-rows",
+          "task:agent-stop-from-list",
+          "task:agents-queue-ui-test",
+          "page:web/sessions",
+          "action:stop-resume",
+          "action:see-queue",
+          "rule:clean-slate",
+          "rule:agent-host",
+          "rule:session-queue"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "17dfa046c519",
+        "date": "2026-09-18",
+        "query": "component:session-view",
+        "expected": [
+          "component:session-changes",
+          "lib:graph-diff",
+          "lib:session-changes",
+          "op:api.sessions.changes",
+          "req:wf2.sessions.block-attribution",
+          "req:wf2.sessions.changes-page",
+          "page:web/session-changes",
+          "rule:block-attribution",
+          "task:graph-diff",
+          "task:block-attribution",
+          "task:session-changes-view",
+          "task:session-changes-ui-test",
+          "lib:artifacts",
+          "page:web/sessions",
+          "action:see-knowledge",
+          "test:web-lib",
+          "ui-test:session-changes",
+          "task:session-knowledge-changes"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0.167,
+        "semantic10": 0.222,
+        "blended5": 0,
+        "blended10": 0.056,
+        "candidates": 8,
+        "missed10": [
+          "component:session-changes",
+          "lib:graph-diff",
+          "lib:session-changes",
+          "op:api.sessions.changes",
+          "req:wf2.sessions.block-attribution",
+          "page:web/session-changes",
+          "rule:block-attribution",
+          "task:graph-diff",
+          "task:block-attribution",
+          "task:session-changes-view",
+          "task:session-changes-ui-test",
+          "lib:artifacts",
+          "page:web/sessions",
+          "action:see-knowledge",
+          "test:web-lib",
+          "ui-test:session-changes",
+          "task:session-knowledge-changes"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "f92f82b8c89d",
+        "date": "2026-09-18",
+        "query": "decision:wf2.card-essence",
+        "expected": [
+          "req:wf2.cards.decision-essence",
+          "rule:card-essence",
+          "ui-test:decision-card",
+          "task:decision-card",
+          "task:decision-card-ui-test"
+        ],
+        "structural5": 0.8,
+        "structural10": 1,
+        "semantic5": 0.6,
+        "semantic10": 0.6,
+        "blended5": 0.8,
+        "blended10": 1,
+        "candidates": 9,
+        "missed10": []
+      },
+      {
+        "kind": "commit",
+        "ref": "b0d7dcb5a9de",
+        "date": "2026-09-18",
+        "query": "component:session-changes",
+        "expected": [
+          "component:command-box",
+          "lib:agent-host",
+          "op:api.sessions.message",
+          "req:wf2.sessions.block-attribution",
+          "req:wf2.sessions.changes-page",
+          "decision:wf2.attribution-derived-not-written",
+          "question:wf2.attribution-several-sessions",
+          "task:graph-diff",
+          "task:block-attribution",
+          "task:session-changes-view",
+          "task:session-changes-ui-test",
+          "page:web/sessions",
+          "action:command-palette",
+          "rule:process-is-active",
+          "rule:clean-slate",
+          "rule:idle-stop",
+          "rule:agent-sessions",
+          "decision:wf2.clean-slate",
+          "task:clean-slate-default",
+          "task:clear-context",
+          "task:idle-stop",
+          "req:wf2.sessions.clean-slate",
+          "req:wf2.sessions.idle-stop",
+          "ui-test:command-palette",
+          "task:new-453",
+          "task:idle-agent-timeout"
+        ],
+        "structural5": 0.077,
+        "structural10": 0.115,
+        "semantic5": 0.115,
+        "semantic10": 0.115,
+        "blended5": 0.077,
+        "blended10": 0.115,
+        "candidates": 15,
+        "missed10": [
+          "component:command-box",
+          "lib:agent-host",
+          "op:api.sessions.message",
+          "req:wf2.sessions.block-attribution",
+          "decision:wf2.attribution-derived-not-written",
+          "question:wf2.attribution-several-sessions",
+          "task:graph-diff",
+          "task:block-attribution",
+          "page:web/sessions",
+          "action:command-palette",
+          "rule:process-is-active",
+          "rule:clean-slate",
+          "rule:idle-stop",
+          "rule:agent-sessions",
+          "decision:wf2.clean-slate",
+          "task:clean-slate-default",
+          "task:clear-context",
+          "task:idle-stop",
+          "req:wf2.sessions.clean-slate",
+          "req:wf2.sessions.idle-stop",
+          "ui-test:command-palette",
+          "task:new-453",
+          "task:idle-agent-timeout"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "39cd3637c894",
+        "date": "2026-09-17",
+        "query": "page:web/knowledge",
+        "expected": [
+          "component:instance-table",
+          "component:view-block",
+          "lib:instance-table",
+          "op:api.view",
+          "req:wf2.instances.filter",
+          "req:wf2.instances.view-block",
+          "decision:wf2.one-instance-table",
+          "question:wf2.view-block-now",
+          "decision:wf2.view-block-now",
+          "rule:view-block",
+          "task:instance-table",
+          "task:instance-view-block",
+          "task:instance-table-ui-test",
+          "page:web/types",
+          "test:web-lib",
+          "ui-test:instance-table",
+          "task:new-453",
+          "task:session-knowledge-changes",
+          "task:idle-agent-timeout"
+        ],
+        "structural5": 0.263,
+        "structural10": 0.421,
+        "semantic5": 0.158,
+        "semantic10": 0.263,
+        "blended5": 0.263,
+        "blended10": 0.421,
+        "candidates": 11,
+        "missed10": [
+          "component:instance-table",
+          "component:view-block",
+          "lib:instance-table",
+          "op:api.view",
+          "req:wf2.instances.view-block",
+          "question:wf2.view-block-now",
+          "rule:view-block",
+          "task:instance-view-block",
+          "task:new-453",
+          "task:session-knowledge-changes",
+          "task:idle-agent-timeout"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "89648e774f92",
+        "date": "2026-09-17",
+        "query": "rule:inline-images",
+        "expected": [
+          "task:new-917",
+          "task:new-453",
+          "task:new-286"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 4,
+        "missed10": [
+          "task:new-917",
+          "task:new-453",
+          "task:new-286"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "1ba12925f6bc",
+        "date": "2026-09-17",
+        "query": "page:web/sidebar",
+        "expected": [
+          "action:open-sessions",
+          "page:web/sessions",
+          "rule:process-is-active",
+          "rule:agent-sessions",
+          "task:new-917",
+          "task:new-453",
+          "task:session-knowledge-changes",
+          "task:idle-agent-timeout"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 32,
+        "missed10": [
+          "action:open-sessions",
+          "page:web/sessions",
+          "rule:process-is-active",
+          "rule:agent-sessions",
+          "task:new-917",
+          "task:new-453",
+          "task:session-knowledge-changes",
+          "task:idle-agent-timeout"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "4c281458faa8",
+        "date": "2026-09-17",
+        "query": "component:command-box",
+        "expected": [
+          "page:web/sessions",
+          "action:command-palette",
+          "rule:agent-sessions",
+          "decision:wf2.one-command-box",
+          "rule:plan-first",
+          "ui-test:command-palette",
+          "task:new-441",
+          "task:session-knowledge-changes",
+          "task:one-command-box"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0.222,
+        "semantic10": 0.333,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 56,
+        "missed10": [
+          "page:web/sessions",
+          "action:command-palette",
+          "rule:agent-sessions",
+          "decision:wf2.one-command-box",
+          "rule:plan-first",
+          "ui-test:command-palette",
+          "task:new-441",
+          "task:session-knowledge-changes",
+          "task:one-command-box"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "7a91f8336df9",
+        "date": "2026-09-17",
+        "query": "page:web/sessions",
+        "expected": [
+          "action:see-usage",
+          "task:new-441"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 5,
+        "missed10": [
+          "action:see-usage",
+          "task:new-441"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "ae33aa7d1d32",
+        "date": "2026-09-17",
+        "query": "component:console",
+        "expected": [
+          "page:web/sessions",
+          "action:see-knowledge",
+          "rule:console-flow",
+          "req:wf2.sessions.knowledge-changes",
+          "task:new-226",
+          "task:session-knowledge-changes"
+        ],
+        "structural5": 0.167,
+        "structural10": 0.167,
+        "semantic5": 0.167,
+        "semantic10": 0.333,
+        "blended5": 0.167,
+        "blended10": 0.167,
+        "candidates": 43,
+        "missed10": [
+          "page:web/sessions",
+          "action:see-knowledge",
+          "rule:console-flow",
+          "task:new-226",
+          "task:session-knowledge-changes"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "a0a3bce8e19a",
+        "date": "2026-09-17",
+        "query": "component:console",
+        "expected": [
+          "task:new-441",
+          "task:new-917",
+          "task:new-453",
+          "task:new-954"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 43,
+        "missed10": [
+          "task:new-441",
+          "task:new-917",
+          "task:new-453",
+          "task:new-954"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "32298fc4df89",
+        "date": "2026-09-17",
+        "query": "store:session-files",
+        "expected": [
+          "task:new-826",
+          "req:wf2.ui.palette-images",
+          "decision:wf2.palette-images-are-session-files",
+          "task:palette-paste-ui",
+          "task:palette-images-api",
+          "task:palette-images-knowledge",
+          "page:web/sessions",
+          "action:command-palette",
+          "ui-test:command-palette"
+        ],
+        "structural5": 0.556,
+        "structural10": 0.778,
+        "semantic5": 0.444,
+        "semantic10": 0.556,
+        "blended5": 0.556,
+        "blended10": 0.778,
+        "candidates": 9,
+        "missed10": [
+          "task:new-826",
+          "page:web/sessions"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "8b52dd3b577b",
+        "date": "2026-09-17",
+        "query": "op:session.open",
+        "expected": [
+          "decision:wf2.plan-is-a-page",
+          "rule:plan-first",
+          "task:plan-as-page",
+          "task:open-from-runner",
+          "task:plan-page-comments",
+          "req:wf2.ui.command-palette",
+          "test:open-target-web",
+          "ui-test:command-palette"
+        ],
+        "structural5": 0.25,
+        "structural10": 0.625,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0.25,
+        "blended10": 0.625,
+        "candidates": 17,
+        "missed10": [
+          "decision:wf2.plan-is-a-page",
+          "rule:plan-first",
+          "test:open-target-web"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "94bb60b07ff0",
+        "date": "2026-09-17",
+        "query": "page:web/sessions",
+        "expected": [
+          "action:command-palette",
+          "decision:wf2.plan-first-is-a-prompt",
+          "rule:plan-first",
+          "task:palette-recent-commands",
+          "req:wf2.ui.command-palette",
+          "ui-test:command-palette"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 5,
+        "missed10": [
+          "action:command-palette",
+          "decision:wf2.plan-first-is-a-prompt",
+          "rule:plan-first",
+          "task:palette-recent-commands",
+          "req:wf2.ui.command-palette",
+          "ui-test:command-palette"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "61fc17bb0d53",
+        "date": "2026-09-17",
+        "query": "component:node-editor",
+        "expected": [
+          "rule:node-page-layout",
+          "req:wf2.ui.edit-in-context"
+        ],
+        "structural5": 0.5,
+        "structural10": 1,
+        "semantic5": 0.5,
+        "semantic10": 1,
+        "blended5": 0.5,
+        "blended10": 1,
+        "candidates": 23,
+        "missed10": []
+      },
+      {
+        "kind": "commit",
+        "ref": "0c6c55b2ec90",
+        "date": "2026-09-17",
+        "query": "component:node-editor",
+        "expected": [
+          "op:node.edit",
+          "req:wf2.ui.edit-in-context",
+          "test:node-edit-web",
+          "ui-test:table-rows"
+        ],
+        "structural5": 0.25,
+        "structural10": 0.75,
+        "semantic5": 0,
+        "semantic10": 0.25,
+        "blended5": 0.25,
+        "blended10": 0.75,
+        "candidates": 23,
+        "missed10": [
+          "op:node.edit"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "01905663717f",
+        "date": "2026-09-17",
+        "query": "rule:type-tables",
+        "expected": [
+          "decision:wf2.one-table-block",
+          "ui-test:table-rows"
+        ],
+        "structural5": 0,
+        "structural10": 0.5,
+        "semantic5": 0,
+        "semantic10": 0.5,
+        "blended5": 0,
+        "blended10": 0.5,
+        "candidates": 27,
+        "missed10": [
+          "ui-test:table-rows"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "a131e2cefc49",
+        "date": "2026-09-17",
+        "query": "rule:type-tables",
+        "expected": [
+          "rule:table-rows",
+          "task:ui-tests-in-ci",
+          "ui-test:table-rows"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 27,
+        "missed10": [
+          "rule:table-rows",
+          "task:ui-tests-in-ci",
+          "ui-test:table-rows"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "e24432296e40",
+        "date": "2026-09-17",
+        "query": "rule:type-tables",
+        "expected": [
+          "rule:inline-images",
+          "req:wf2.ui.image-in-block"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 27,
+        "missed10": [
+          "rule:inline-images",
+          "req:wf2.ui.image-in-block"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "6544888e2b88",
+        "date": "2026-09-17",
+        "query": "rule:type-tables",
+        "expected": [
+          "task:ontology.type-table",
+          "req:ontology.type-table"
+        ],
+        "structural5": 1,
+        "structural10": 1,
+        "semantic5": 0.5,
+        "semantic10": 0.5,
+        "blended5": 1,
+        "blended10": 1,
+        "candidates": 27,
+        "missed10": []
+      },
+      {
+        "kind": "commit",
+        "ref": "f69f74603691",
+        "date": "2026-09-17",
+        "query": "page:web/types",
+        "expected": [
+          "action:add-type",
+          "op:types.create",
+          "task:ontology.add-type",
+          "test:type-edit-web",
+          "req:ontology.add-type",
+          "decision:ontology.new-type-home",
+          "task:duplicate-user-event"
+        ],
+        "structural5": 0.286,
+        "structural10": 0.429,
+        "semantic5": 0,
+        "semantic10": 0.143,
+        "blended5": 0.286,
+        "blended10": 0.429,
+        "candidates": 21,
+        "missed10": [
+          "action:add-type",
+          "op:types.create",
+          "decision:ontology.new-type-home",
+          "task:duplicate-user-event"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "8d44db6dae7d",
+        "date": "2026-09-17",
+        "query": "rule:agent-host",
+        "expected": [
+          "task:duplicate-user-event"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 20,
+        "missed10": [
+          "task:duplicate-user-event"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "b09a8e29e7a0",
+        "date": "2026-09-17",
+        "query": "test:annotations-web",
+        "expected": [
+          "rule:drawings",
+          "rule:image-annotations",
+          "task:image-annotation",
+          "req:wf2.ui.annotate-images",
+          "decision:wf2.annotations-text-and-png"
+        ],
+        "structural5": 0.8,
+        "structural10": 0.8,
+        "semantic5": 0.8,
+        "semantic10": 1,
+        "blended5": 0.8,
+        "blended10": 1,
+        "candidates": 6,
+        "missed10": []
+      },
+      {
+        "kind": "commit",
+        "ref": "05206de127f7",
+        "date": "2026-09-17",
+        "query": "task:ontology.types",
+        "expected": [
+          "task:ontology.inverses",
+          "task:ontology.blocks",
+          "task:ontology.kinds-yaml-generated",
+          "task:ontology.unique",
+          "task:ontology.ref-slot-picker",
+          "task:ontology.block-peek",
+          "task:ontology.spike",
+          "test:ontology",
+          "test:blocks",
+          "test:types-web",
+          "test:instances-web",
+          "req:ontology.types",
+          "req:ontology.inverses",
+          "req:ontology.check",
+          "req:ontology.type-page",
+          "req:ontology.blocks",
+          "rule:ontology.open-kinds",
+          "rule:ontology.narrow-only",
+          "rule:ontology.open-types",
+          "rule:ontology.inverse-generated",
+          "rule:ontology.block-id",
+          "rule:ontology.hidden-kinds",
+          "decision:ontology.types-product-local",
+          "decision:ontology.blocks-all-documents",
+          "decision:ontology.block-owned-links",
+          "decision:ontology.open-types",
+          "decision:ontology.base-ontology-referenced",
+          "task:do-research-and-expand"
+        ],
+        "structural5": 0.107,
+        "structural10": 0.214,
+        "semantic5": 0.036,
+        "semantic10": 0.107,
+        "blended5": 0.107,
+        "blended10": 0.214,
+        "candidates": 26,
+        "missed10": [
+          "task:ontology.kinds-yaml-generated",
+          "task:ontology.block-peek",
+          "test:ontology",
+          "test:blocks",
+          "test:types-web",
+          "test:instances-web",
+          "req:ontology.inverses",
+          "req:ontology.check",
+          "req:ontology.type-page",
+          "req:ontology.blocks",
+          "rule:ontology.open-kinds",
+          "rule:ontology.narrow-only",
+          "rule:ontology.open-types",
+          "rule:ontology.inverse-generated",
+          "rule:ontology.block-id",
+          "rule:ontology.hidden-kinds",
+          "decision:ontology.types-product-local",
+          "decision:ontology.blocks-all-documents",
+          "decision:ontology.block-owned-links",
+          "decision:ontology.open-types",
+          "decision:ontology.base-ontology-referenced",
+          "task:do-research-and-expand"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "0cec383ec143",
+        "date": "2026-09-17",
+        "query": "rule:inbox-review",
+        "expected": [
+          "decision:wf2.typed-blocks-in-documents",
+          "task:ontology.types",
+          "task:ontology.inverses",
+          "task:ontology.blocks",
+          "task:ontology.spike",
+          "decision:ontology.ids-kind-slug",
+          "decision:ontology.types-are-cards",
+          "decision:ontology.inverses-generated",
+          "decision:ontology.inheritance-at-parse",
+          "decision:ontology.blocks-last-phase",
+          "question:ontology.q1",
+          "question:ontology.q2",
+          "question:ontology.q3",
+          "question:ontology.q4"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0.071,
+        "semantic10": 0.071,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 24,
+        "missed10": [
+          "decision:wf2.typed-blocks-in-documents",
+          "task:ontology.types",
+          "task:ontology.inverses",
+          "task:ontology.blocks",
+          "task:ontology.spike",
+          "decision:ontology.ids-kind-slug",
+          "decision:ontology.types-are-cards",
+          "decision:ontology.inverses-generated",
+          "decision:ontology.inheritance-at-parse",
+          "decision:ontology.blocks-last-phase",
+          "question:ontology.q1",
+          "question:ontology.q2",
+          "question:ontology.q3",
+          "question:ontology.q4"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "83b41b22813b",
+        "date": "2026-09-17",
+        "query": "rule:live-refresh",
+        "expected": [
+          "rule:questions-view"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 1,
+        "missed10": [
+          "rule:questions-view"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "34f70a8dc131",
+        "date": "2026-09-17",
+        "query": "rule:session-queue",
+        "expected": [
+          "rule:subagents-in-console"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 20,
+        "missed10": [
+          "rule:subagents-in-console"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "c226cf7f7d37",
+        "date": "2026-09-17",
+        "query": "rule:agent-contract",
+        "expected": [
+          "rule:inbox-review",
+          "rule:app-navigation"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 45,
+        "missed10": [
+          "rule:inbox-review",
+          "rule:app-navigation"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "e2c67c187f43",
+        "date": "2026-09-17",
+        "query": "rule:agent-host",
+        "expected": [
+          "decision:wf2.desktop-electron"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 20,
+        "missed10": [
+          "decision:wf2.desktop-electron"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "fae9d2376b43",
+        "date": "2026-09-16",
+        "query": "rule:block-links",
+        "expected": [
+          "rule:agent-runner",
+          "decision:wf2.agents-via-cli",
+          "task:livestream",
+          "task:session-runner"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 26,
+        "missed10": [
+          "rule:agent-runner",
+          "decision:wf2.agents-via-cli",
+          "task:livestream",
+          "task:session-runner"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "5a2f98a65f7a",
+        "date": "2026-09-16",
+        "query": "rule:agent-sessions",
+        "expected": [
+          "task:livestream",
+          "task:session-runner"
+        ],
+        "structural5": 0.5,
+        "structural10": 0.5,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0.5,
+        "blended10": 0.5,
+        "candidates": 14,
+        "missed10": [
+          "task:livestream"
+        ]
+      },
+      {
+        "kind": "commit",
+        "ref": "113c91e3b4c1",
+        "date": "2026-09-16",
+        "query": "rule:context-panel",
+        "expected": [
+          "decision:wf2.local-semantic-search"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 1,
+        "semantic10": 1,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 17,
+        "missed10": [
+          "decision:wf2.local-semantic-search"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "53f99bfd98",
+        "date": "2026-09-17",
+        "query": "task:session-knowledge-changes",
+        "expected": [
+          "req:wf2.sessions.block-attribution",
+          "req:wf2.sessions.changes-page",
+          "task:new-441"
+        ],
+        "structural5": 0.667,
+        "structural10": 0.667,
+        "semantic5": 0.667,
+        "semantic10": 0.667,
+        "blended5": 0.667,
+        "blended10": 0.667,
+        "candidates": 9,
+        "missed10": [
+          "task:new-441"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "6fdfc7ab9d",
+        "date": "2026-09-18",
+        "query": "req:wf2.sessions.stop-from-list",
+        "expected": [
+          "req:wf2.sessions.queue-on-agents",
+          "req:wf2.sessions.fresh-in-queue",
+          "decision:wf2.fresh-is-a-queue-property",
+          "decision:wf2.queue-item-state",
+          "question:wf2.close-keeps-record",
+          "ui-test:agents-queue",
+          "task:queue-item-state",
+          "task:fresh-at-take-time",
+          "task:agents-queue-rows",
+          "task:agent-stop-from-list",
+          "task:agents-queue-ui-test",
+          "task:session-knowledge-changes"
+        ],
+        "structural5": 0.25,
+        "structural10": 0.333,
+        "semantic5": 0,
+        "semantic10": 0.167,
+        "blended5": 0.25,
+        "blended10": 0.333,
+        "candidates": 14,
+        "missed10": [
+          "req:wf2.sessions.queue-on-agents",
+          "req:wf2.sessions.fresh-in-queue",
+          "decision:wf2.fresh-is-a-queue-property",
+          "decision:wf2.queue-item-state",
+          "task:queue-item-state",
+          "task:fresh-at-take-time",
+          "task:agents-queue-rows",
+          "task:session-knowledge-changes"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "efee530d46",
+        "date": "2026-09-18",
+        "query": "page:web/session",
+        "expected": [
+          "component:session-page",
+          "lib:session-page",
+          "op:api.sessions.page",
+          "req:wf2.sessions.page",
+          "req:wf2.ui.history-nav",
+          "decision:wf2.session-page-derived",
+          "question:wf2.session-page-per-item",
+          "task:session-page-lib",
+          "task:session-page",
+          "task:history-nav",
+          "task:session-page-ui-test",
+          "component:session-view",
+          "component:session-list",
+          "rule:session-page",
+          "rule:history-nav",
+          "component:top-bar",
+          "ui-test:session-page",
+          "test:web-lib"
+        ],
+        "structural5": 0.222,
+        "structural10": 0.389,
+        "semantic5": 0.222,
+        "semantic10": 0.278,
+        "blended5": 0.222,
+        "blended10": 0.389,
+        "candidates": 13,
+        "missed10": [
+          "lib:session-page",
+          "op:api.sessions.page",
+          "req:wf2.ui.history-nav",
+          "question:wf2.session-page-per-item",
+          "task:history-nav",
+          "component:session-view",
+          "component:session-list",
+          "rule:session-page",
+          "rule:history-nav",
+          "component:top-bar",
+          "test:web-lib"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "7cfac7ea80",
+        "date": "2026-09-18",
+        "query": "component:embed-block",
+        "expected": [
+          "decision:wf2.embed-syntax",
+          "decision:wf2.embed-renders-source-card",
+          "req:wf2.embeds.insert",
+          "req:wf2.embeds.render",
+          "req:wf2.embeds.edit-sync",
+          "req:wf2.sessions.changes-cards",
+          "rule:embed-line",
+          "question:wf2.embed-paragraphs",
+          "ui-test:embeds",
+          "task:embed-syntax",
+          "task:node-cards-module",
+          "task:embed-block",
+          "task:embed-slash",
+          "task:embed-reader",
+          "task:session-changes-cards",
+          "task:embeds-ui-test",
+          "req:wf2.cards.decision-essence",
+          "component:node-cards",
+          "rule:card-essence",
+          "lib:embed"
+        ],
+        "structural5": 0.2,
+        "structural10": 0.2,
+        "semantic5": 0.15,
+        "semantic10": 0.25,
+        "blended5": 0.2,
+        "blended10": 0.2,
+        "candidates": 38,
+        "missed10": [
+          "decision:wf2.embed-syntax",
+          "decision:wf2.embed-renders-source-card",
+          "rule:embed-line",
+          "question:wf2.embed-paragraphs",
+          "ui-test:embeds",
+          "task:embed-syntax",
+          "task:node-cards-module",
+          "task:embed-block",
+          "task:embed-slash",
+          "task:embed-reader",
+          "task:session-changes-cards",
+          "task:embeds-ui-test",
+          "req:wf2.cards.decision-essence",
+          "component:node-cards",
+          "rule:card-essence",
+          "lib:embed"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "3805823665",
+        "date": "2026-09-18",
+        "query": "rule:plan-type-base",
+        "expected": [
+          "type:plan",
+          "task:plan-type-agent-prop",
+          "component:session-view",
+          "component:session-list",
+          "req:wf2.sessions.plan-doc",
+          "req:wf2.sessions.plan-result",
+          "rule:plan-doc",
+          "lib:plan-doc",
+          "component:plan-list",
+          "ui-test:plan-doc",
+          "decision:wf2.plan-is-a-document",
+          "question:wf2.plan-doc-parent",
+          "task:plan-doc-lib",
+          "task:plan-doc-create",
+          "task:plan-first-prompt",
+          "task:plan-doc-result",
+          "task:plan-doc-links",
+          "task:session-page-retire",
+          "task:plan-doc-ui-test",
+          "task:plan-doc-knowledge",
+          "page:web/sessions",
+          "ui-test:plans"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0.045,
+        "semantic10": 0.091,
+        "blended5": 0,
+        "blended10": 0.091,
+        "candidates": 1,
+        "missed10": [
+          "type:plan",
+          "component:session-view",
+          "component:session-list",
+          "req:wf2.sessions.plan-doc",
+          "req:wf2.sessions.plan-result",
+          "rule:plan-doc",
+          "lib:plan-doc",
+          "component:plan-list",
+          "ui-test:plan-doc",
+          "decision:wf2.plan-is-a-document",
+          "question:wf2.plan-doc-parent",
+          "task:plan-doc-lib",
+          "task:plan-doc-create",
+          "task:plan-doc-result",
+          "task:plan-doc-links",
+          "task:session-page-retire",
+          "task:plan-doc-ui-test",
+          "task:plan-doc-knowledge",
+          "page:web/sessions",
+          "ui-test:plans"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "01b14dc871",
+        "date": "2026-09-18",
+        "query": "component:data-table",
+        "expected": [
+          "req:wf2.editor.table-scroll",
+          "rule:table-scroll",
+          "decision:wf2.table-scroll-not-shrink",
+          "task:table-scroll-css",
+          "task:table-scroll-ui-test",
+          "task:table-scroll-knowledge",
+          "ui-test:table-scroll",
+          "component:doc-editor"
+        ],
+        "structural5": 0.25,
+        "structural10": 0.25,
+        "semantic5": 0.125,
+        "semantic10": 0.125,
+        "blended5": 0.25,
+        "blended10": 0.375,
+        "candidates": 6,
+        "missed10": [
+          "req:wf2.editor.table-scroll",
+          "task:table-scroll-css",
+          "task:table-scroll-ui-test",
+          "task:table-scroll-knowledge",
+          "ui-test:table-scroll"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "9091132439",
+        "date": "2026-09-18",
+        "query": "component:doc-tree",
+        "expected": [
+          "bug:doc-tree-dnd",
+          "rule:doc-tree-row-stable",
+          "ui-test:doc-tree-dnd",
+          "question:wf2.bugs-cards-dropped",
+          "req:wf2.ui.palette-images",
+          "decision:wf2.palette-images-are-session-files"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0.333,
+        "semantic10": 0.333,
+        "blended5": 0,
+        "blended10": 0.333,
+        "candidates": 5,
+        "missed10": [
+          "ui-test:doc-tree-dnd",
+          "question:wf2.bugs-cards-dropped",
+          "req:wf2.ui.palette-images",
+          "decision:wf2.palette-images-are-session-files"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "edd6ae474d",
+        "date": "2026-09-18",
+        "query": "decision:wf2.connected-rows-expand-to-cards",
+        "expected": [
+          "task:connected-cards-rows",
+          "task:connected-cards-groups",
+          "task:connected-cards-css",
+          "task:connected-cards-ui-test",
+          "task:connected-cards-knowledge",
+          "component:peek-panel",
+          "page:web/context-column",
+          "req:wf2.ui.connected-cards",
+          "rule:connected-cards",
+          "ui-test:connected-cards"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0.3,
+        "semantic10": 0.3,
+        "blended5": 0.3,
+        "blended10": 0.3,
+        "candidates": 0,
+        "missed10": [
+          "task:connected-cards-rows",
+          "task:connected-cards-groups",
+          "task:connected-cards-css",
+          "task:connected-cards-ui-test",
+          "task:connected-cards-knowledge",
+          "page:web/context-column",
+          "ui-test:connected-cards"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "367dedec3c",
+        "date": "2026-09-18",
+        "query": "page:web/context-column",
+        "expected": [
+          "action:select-block",
+          "req:wf2.ui.block-select",
+          "rule:block-select",
+          "goal:ontology.graph-editor",
+          "question:ontology.child-nodes",
+          "task:ontology.block-select",
+          "task:ontology.paragraph-select",
+          "task:ontology.children-in-column",
+          "decision:wf2.block-click-selects",
+          "decision:wf2.graph-editor-is-a-goal",
+          "task:block-select-provider",
+          "task:block-select-blocks",
+          "task:block-select-ui-test",
+          "task:block-select-knowledge",
+          "task:ontology.child-nodes-design",
+          "ui-test:block-select",
+          "task:table-filter-marker"
+        ],
+        "structural5": 0,
+        "structural10": 0.059,
+        "semantic5": 0,
+        "semantic10": 0.059,
+        "blended5": 0,
+        "blended10": 0.059,
+        "candidates": 14,
+        "missed10": [
+          "action:select-block",
+          "req:wf2.ui.block-select",
+          "rule:block-select",
+          "goal:ontology.graph-editor",
+          "question:ontology.child-nodes",
+          "task:ontology.block-select",
+          "task:ontology.paragraph-select",
+          "task:ontology.children-in-column",
+          "decision:wf2.graph-editor-is-a-goal",
+          "task:block-select-provider",
+          "task:block-select-blocks",
+          "task:block-select-ui-test",
+          "task:block-select-knowledge",
+          "task:ontology.child-nodes-design",
+          "ui-test:block-select",
+          "task:table-filter-marker"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "48c8885cd2",
+        "date": "2026-09-18",
+        "query": "req:wf2.ui.plans-folder",
+        "expected": [
+          "page:web/plans",
+          "component:plan-folder",
+          "rule:plans-folder",
+          "decision:wf2.plans-system-folder",
+          "task:plans-folder-page",
+          "task:plans-folder-rail",
+          "task:plans-folder-ui-test",
+          "task:plans-folder-knowledge",
+          "task:agent-prompt-plan-file",
+          "req:wf2.sessions.plan-doc",
+          "lib:plan-doc",
+          "component:rail",
+          "page:web/sidebar",
+          "action:open-plans",
+          "rule:documents-tree",
+          "ui-test:plans-folder"
+        ],
+        "structural5": 0.313,
+        "structural10": 0.563,
+        "semantic5": 0.25,
+        "semantic10": 0.313,
+        "blended5": 0.313,
+        "blended10": 0.563,
+        "candidates": 39,
+        "missed10": [
+          "task:plans-folder-rail",
+          "task:plans-folder-knowledge",
+          "task:agent-prompt-plan-file",
+          "lib:plan-doc",
+          "page:web/sidebar",
+          "action:open-plans",
+          "rule:documents-tree"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "7205676ec8",
+        "date": "2026-09-18",
+        "query": "decision:wf2.text-is-first-block",
+        "expected": [
+          "task:wf2.content-text-first",
+          "task:new-428",
+          "page:web/context-column",
+          "rule:content-editor",
+          "op:node.content",
+          "component:node-editor",
+          "ui-test:node-content",
+          "req:wf2.ui.produced-collapsed",
+          "rule:produced-collapsed",
+          "decision:wf2.produced-kept-collapsed",
+          "decision:wf2.produced-not-remembered",
+          "task:wf2.produced-bottom",
+          "task:wf2.produced-collapsed",
+          "task:wf2.produced-test",
+          "task:wf2.produced-knowledge",
+          "component:node-cards",
+          "rule:card-fold",
+          "req:wf2.ui.card-preview",
+          "decision:wf2.card-shows-no-content",
+          "task:wf2.card-no-content",
+          "task:wf2.card-no-content-verify",
+          "component:produced",
+          "rule:task-artifacts"
+        ],
+        "structural5": 0.13,
+        "structural10": 0.217,
+        "semantic5": 0.13,
+        "semantic10": 0.13,
+        "blended5": 0.13,
+        "blended10": 0.217,
+        "candidates": 20,
+        "missed10": [
+          "task:new-428",
+          "page:web/context-column",
+          "req:wf2.ui.produced-collapsed",
+          "rule:produced-collapsed",
+          "decision:wf2.produced-kept-collapsed",
+          "decision:wf2.produced-not-remembered",
+          "task:wf2.produced-bottom",
+          "task:wf2.produced-collapsed",
+          "task:wf2.produced-test",
+          "task:wf2.produced-knowledge",
+          "component:node-cards",
+          "rule:card-fold",
+          "req:wf2.ui.card-preview",
+          "decision:wf2.card-shows-no-content",
+          "task:wf2.card-no-content",
+          "task:wf2.card-no-content-verify",
+          "component:produced",
+          "rule:task-artifacts"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "a4dbc39398",
+        "date": "2026-09-18",
+        "query": "page:web/context-column",
+        "expected": [
+          "rule:content-editor",
+          "op:node.content",
+          "component:node-editor",
+          "task:wf2.content-text-first",
+          "ui-test:node-content",
+          "req:wf2.ui.produced-collapsed",
+          "rule:produced-collapsed",
+          "decision:wf2.produced-kept-collapsed",
+          "decision:wf2.produced-not-remembered",
+          "task:wf2.produced-bottom",
+          "task:wf2.produced-collapsed",
+          "task:wf2.produced-test",
+          "task:wf2.produced-knowledge",
+          "component:node-cards",
+          "rule:card-fold",
+          "req:wf2.ui.card-preview",
+          "decision:wf2.card-shows-no-content",
+          "task:wf2.card-no-content",
+          "task:wf2.card-no-content-verify"
+        ],
+        "structural5": 0,
+        "structural10": 0.158,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0.158,
+        "candidates": 14,
+        "missed10": [
+          "component:node-editor",
+          "task:wf2.content-text-first",
+          "req:wf2.ui.produced-collapsed",
+          "rule:produced-collapsed",
+          "decision:wf2.produced-kept-collapsed",
+          "decision:wf2.produced-not-remembered",
+          "task:wf2.produced-bottom",
+          "task:wf2.produced-collapsed",
+          "task:wf2.produced-test",
+          "task:wf2.produced-knowledge",
+          "component:node-cards",
+          "rule:card-fold",
+          "req:wf2.ui.card-preview",
+          "decision:wf2.card-shows-no-content",
+          "task:wf2.card-no-content",
+          "task:wf2.card-no-content-verify"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "c8eadd53da",
+        "date": "2026-09-18",
+        "query": "req:wf2.ui.produced-collapsed",
+        "expected": [
+          "rule:produced-collapsed",
+          "decision:wf2.produced-kept-collapsed",
+          "decision:wf2.produced-not-remembered",
+          "task:wf2.produced-bottom",
+          "task:wf2.produced-collapsed",
+          "task:wf2.produced-test",
+          "task:wf2.produced-knowledge",
+          "component:node-cards",
+          "rule:card-fold",
+          "req:wf2.ui.card-preview",
+          "decision:wf2.card-shows-no-content",
+          "task:wf2.card-no-content",
+          "task:wf2.card-no-content-verify",
+          "ui-test:node-content",
+          "component:produced",
+          "page:web/context-column",
+          "rule:task-artifacts"
+        ],
+        "structural5": 0.176,
+        "structural10": 0.294,
+        "semantic5": 0.176,
+        "semantic10": 0.235,
+        "blended5": 0.176,
+        "blended10": 0.294,
+        "candidates": 24,
+        "missed10": [
+          "decision:wf2.produced-not-remembered",
+          "task:wf2.produced-bottom",
+          "task:wf2.produced-collapsed",
+          "task:wf2.produced-test",
+          "component:node-cards",
+          "rule:card-fold",
+          "req:wf2.ui.card-preview",
+          "decision:wf2.card-shows-no-content",
+          "task:wf2.card-no-content",
+          "task:wf2.card-no-content-verify",
+          "page:web/context-column",
+          "rule:task-artifacts"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "5e84bc193c",
+        "date": "2026-09-19",
+        "query": "task:plan-why-t-type-space-typing-answer",
+        "expected": [
+          "decision:wf2.answer-is-content",
+          "task:wf2.prose-area",
+          "task:wf2.answer-content",
+          "task:wf2.details-q-once",
+          "task:wf2.answer-rules",
+          "task:app.trace-requirements",
+          "rule:card-fold",
+          "rule:card-essence",
+          "req:wf2.ui.card-preview",
+          "task:wf2.prose-newlines"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0.2,
+        "semantic10": 0.3,
+        "blended5": 0.2,
+        "blended10": 0.3,
+        "candidates": 0,
+        "missed10": [
+          "task:wf2.prose-area",
+          "task:wf2.answer-content",
+          "task:wf2.details-q-once",
+          "task:wf2.answer-rules",
+          "task:app.trace-requirements",
+          "rule:card-fold",
+          "task:wf2.prose-newlines"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "a95bf7bbe0",
+        "date": "2026-09-19",
+        "query": "decision:memory.eval-build-scope",
+        "expected": [
+          "decision:memory.eval-tolerance",
+          "decision:memory.eval-first-live-runs",
+          "req:memory.eval-gate",
+          "task:memory.eval-cli",
+          "task:memory.eval-recordings",
+          "decision:memory.eval-build-plan"
+        ],
+        "structural5": 0.167,
+        "structural10": 0.333,
+        "semantic5": 0.333,
+        "semantic10": 0.5,
+        "blended5": 0.167,
+        "blended10": 0.333,
+        "candidates": 27,
+        "missed10": [
+          "decision:memory.eval-first-live-runs",
+          "task:memory.eval-cli",
+          "task:memory.eval-recordings",
+          "decision:memory.eval-build-plan"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "c0fe94a84d",
+        "date": "2026-09-20",
+        "query": "task:plan-reply-single-word-pong-nothing-else",
+        "expected": [
+          "task:plan-reply-single-word-pong-nothing-else-2",
+          "task:plan-have-lot-docs-now-about-wye"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 0,
+        "missed10": [
+          "task:plan-reply-single-word-pong-nothing-else-2",
+          "task:plan-have-lot-docs-now-about-wye"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "c5379d1524",
+        "date": "2026-09-20",
+        "query": "task:plan-reply-single-word-pong-nothing-else-2",
+        "expected": [
+          "task:plan-have-lot-docs-now-about-wye"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0,
+        "semantic10": 0,
+        "blended5": 0,
+        "blended10": 0,
+        "candidates": 0,
+        "missed10": [
+          "task:plan-have-lot-docs-now-about-wye"
+        ]
+      },
+      {
+        "kind": "session",
+        "ref": "d4d72bd04a",
+        "date": "2026-09-20",
+        "query": "task:plan-have-lot-docs-now-about-wye",
+        "expected": [
+          "task:plan-reply-single-word-pong-nothing-else-2",
+          "rule:agent-host",
+          "task:plan-reply-single-word-pong-nothing-else",
+          "decision:wf2.definition-shape",
+          "decision:wf2.superseded-layers",
+          "req:wf2.definition.one-place-per-kind",
+          "decision:wf2.definition-leftovers",
+          "req:wf2.definition.what-wye-is",
+          "req:wf2.definition.links-survive",
+          "req:wf2.definition.pages-hold-only-definition",
+          "question:wf2.definition.id-prefixes",
+          "question:wf2.definition.constitution-status",
+          "task:wf2.definition.wye-page",
+          "task:wf2.definition.prd",
+          "task:wf2.definition.design",
+          "task:wf2.definition.tests-research-archive",
+          "task:wf2.definition.leftovers",
+          "task:wf2.definition.verify",
+          "contradiction:wye.3e8a0f2aadb1"
+        ],
+        "structural5": 0,
+        "structural10": 0,
+        "semantic5": 0.053,
+        "semantic10": 0.158,
+        "blended5": 0.053,
+        "blended10": 0.158,
+        "candidates": 0,
+        "missed10": [
+          "task:plan-reply-single-word-pong-nothing-else-2",
+          "rule:agent-host",
+          "task:plan-reply-single-word-pong-nothing-else",
+          "decision:wf2.superseded-layers",
+          "req:wf2.definition.one-place-per-kind",
+          "decision:wf2.definition-leftovers",
+          "req:wf2.definition.links-survive",
+          "req:wf2.definition.pages-hold-only-definition",
+          "question:wf2.definition.id-prefixes",
+          "question:wf2.definition.constitution-status",
+          "task:wf2.definition.prd",
+          "task:wf2.definition.design",
+          "task:wf2.definition.tests-research-archive",
+          "task:wf2.definition.leftovers",
+          "task:wf2.definition.verify",
+          "contradiction:wye.3e8a0f2aadb1"
+        ]
+      }
+    ],
+    "consolidation": [
+      {
+        "session": "64813dfdab",
+        "hidden": 2,
+        "candidates": 3,
+        "found": 0,
+        "foundLoose": 0,
+        "items": [
+          {
+            "id": "decision:wf2.column-frame-header-scrolls",
+            "title": "A session's header scrolls with the conversation; only the bar and the message box are pinned",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Pages are typed nodes with editable properties and smart retyping",
+              "score": 0.125
+            }
+          },
+          {
+            "id": "decision:wf2.first-message-shown-as-request",
+            "title": "The user row shows the instruction; the full prompt rides on the event behind a fold",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Waterfall links in transcripts are in-app navigable",
+              "score": 0.159
+            }
+          }
+        ]
+      },
+      {
+        "session": "181e88ad1f",
+        "hidden": 2,
+        "candidates": 2,
+        "found": 1,
+        "foundLoose": 2,
+        "items": [
+          {
+            "id": "decision:wf2.fresh-is-a-queue-property",
+            "title": "Clear context\" is a property of the queued item, honoured by the pump",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "Fresh context rides on queued item, honored at turn time",
+              "score": 0.552
+            }
+          },
+          {
+            "id": "decision:wf2.queue-item-state",
+            "title": "A queue item keeps its state on the session record; the turn end marks it",
+            "found": false,
+            "loose": true,
+            "match": {
+              "title": "QueueItem records turn completion timestamps and errors",
+              "score": 0.444
+            }
+          }
+        ]
+      },
+      {
+        "session": "efee530d46",
+        "hidden": 1,
+        "candidates": 0,
+        "found": 0,
+        "foundLoose": 0,
+        "items": [
+          {
+            "id": "decision:wf2.session-page-derived",
+            "title": "The session page is derived from the session and the graph, not a plan document",
+            "found": false,
+            "loose": false,
+            "match": null
+          }
+        ]
+      },
+      {
+        "session": "7cfac7ea80",
+        "hidden": 2,
+        "candidates": 3,
+        "found": 1,
+        "foundLoose": 2,
+        "items": [
+          {
+            "id": "decision:wf2.embed-syntax",
+            "title": "An embed is a line `![[kind:slug]]`",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "embed-line syntax references blocks as ![[kind:slug]]",
+              "score": 0.5
+            }
+          },
+          {
+            "id": "decision:wf2.embed-renders-source-card",
+            "title": "An embed renders the source card with the source's own components; edits go through op:node.edit",
+            "found": false,
+            "loose": true,
+            "match": {
+              "title": "embedded cards render source page's card format",
+              "score": 0.419
+            }
+          }
+        ]
+      },
+      {
+        "session": "672f4fdf3d",
+        "hidden": 1,
+        "candidates": 0,
+        "found": 0,
+        "foundLoose": 0,
+        "items": [
+          {
+            "id": "decision:wf2.plan-is-a-document",
+            "title": "A plan is a document of its own — plan-<slug> under the page it was asked on — not a derived session page",
+            "found": false,
+            "loose": false,
+            "match": null
+          }
+        ]
+      },
+      {
+        "session": "07aa6645ad",
+        "hidden": 5,
+        "candidates": 4,
+        "found": 4,
+        "foundLoose": 4,
+        "items": [
+          {
+            "id": "decision:wf2.column-frame-header-scrolls",
+            "title": "A session's header scrolls with the conversation; only the bar and the message box are pinned",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "Session header scrolls, bar and box pinned in context column",
+              "score": 0.667
+            }
+          },
+          {
+            "id": "decision:wf2.first-message-shown-as-request",
+            "title": "The user row shows the instruction; the full prompt rides on the event behind a fold",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Session header scrolls, bar and box pinned in context column",
+              "score": 0.15
+            }
+          },
+          {
+            "id": "decision:wf2.plans-folder",
+            "title": "Every plan document is a sub-page of one Plans page per project",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "Plan document created for every session",
+              "score": 0.6
+            }
+          },
+          {
+            "id": "decision:wf2.plan-per-request",
+            "title": "A plan document for every request that starts work; a worker's history is its list of plans",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "Plan document created for every session",
+              "score": 0.6
+            }
+          },
+          {
+            "id": "decision:wf2.plan-result-owned-by-app",
+            "title": "The app owns a plan's Result section and scopes the blocks to the plan's time window",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "App owns plan Result section generation",
+              "score": 0.8
+            }
+          }
+        ]
+      },
+      {
+        "session": "c2bbac979d",
+        "hidden": 2,
+        "candidates": 3,
+        "found": 1,
+        "foundLoose": 1,
+        "items": [
+          {
+            "id": "decision:wf2.column-frame-header-scrolls",
+            "title": "A session's header scrolls with the conversation; only the bar and the message box are pinned",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Wrapper always sent unchanged to agent",
+              "score": 0.211
+            }
+          },
+          {
+            "id": "decision:wf2.first-message-shown-as-request",
+            "title": "The user row shows the instruction; the full prompt rides on the event behind a fold",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "First message shown as request; wrapper hidden in fold",
+              "score": 0.606
+            }
+          }
+        ]
+      },
+      {
+        "session": "01b14dc871",
+        "hidden": 1,
+        "candidates": 2,
+        "found": 0,
+        "foundLoose": 1,
+        "items": [
+          {
+            "id": "decision:wf2.table-scroll-not-shrink",
+            "title": "A narrow data table scrolls sideways; columns keep their minimum widths",
+            "found": false,
+            "loose": true,
+            "match": {
+              "title": "palette-images card overflows at narrow widths",
+              "score": 0.4
+            }
+          }
+        ]
+      },
+      {
+        "session": "9091132439",
+        "hidden": 1,
+        "candidates": 3,
+        "found": 0,
+        "foundLoose": 0,
+        "items": [
+          {
+            "id": "decision:wf2.palette-images-are-session-files",
+            "title": "Palette images are session attachments, not inbox assets",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Add tree context menu with duplicate and delete actions",
+              "score": 0.125
+            }
+          }
+        ]
+      },
+      {
+        "session": "bd2ece3698",
+        "hidden": 6,
+        "candidates": 5,
+        "found": 0,
+        "foundLoose": 2,
+        "items": [
+          {
+            "id": "decision:wf2.table-filter-on-marker",
+            "title": "A data table keeps its filters on its marker line, like a view block",
+            "found": false,
+            "loose": true,
+            "match": {
+              "title": "Table filter query lives on the marker",
+              "score": 0.438
+            }
+          },
+          {
+            "id": "decision:wf2.table-filter-hides-rows",
+            "title": "A filter hides rows in the editor; the rows stay children of the table and stay in the file",
+            "found": false,
+            "loose": true,
+            "match": {
+              "title": "Filtered rows are hidden, not removed",
+              "score": 0.423
+            }
+          },
+          {
+            "id": "decision:wf2.connected-rows-expand-to-cards",
+            "title": "A connected row expands in place into the node's embedded card",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "New rows get slug on first keystroke, so cursor row must never be hidden",
+              "score": 0.222
+            }
+          },
+          {
+            "id": "decision:wf2.block-click-selects",
+            "title": "A click anywhere on a block selects it; the column's Context root shows the node",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Use zero-height+clipped instead of display:none for ProseMirror rows",
+              "score": 0.167
+            }
+          },
+          {
+            "id": "decision:wf2.graph-editor-is-a-goal",
+            "title": "The graph-editor vision is a goal on the ontology design, built in steps",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "New rows get slug on first keystroke, so cursor row must never be hidden",
+              "score": 0.111
+            }
+          },
+          {
+            "id": "decision:ontology.uniform-content",
+            "title": "Every node has the same `content` field — a list of child blocks — and everything else related is a ref",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Filtered rows are hidden, not removed",
+              "score": 0.115
+            }
+          }
+        ]
+      },
+      {
+        "session": "edd6ae474d",
+        "hidden": 1,
+        "candidates": 1,
+        "found": 0,
+        "foundLoose": 1,
+        "items": [
+          {
+            "id": "decision:wf2.connected-rows-expand-to-cards",
+            "title": "A connected row expands in place into the node's embedded card",
+            "found": false,
+            "loose": true,
+            "match": {
+              "title": "stub-nodes-no-expand-toggle",
+              "score": 0.462
+            }
+          }
+        ]
+      },
+      {
+        "session": "367dedec3c",
+        "hidden": 2,
+        "candidates": 3,
+        "found": 1,
+        "foundLoose": 2,
+        "items": [
+          {
+            "id": "decision:wf2.block-click-selects",
+            "title": "A click anywhere on a block selects it; the column's Context root shows the node",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "Block click selects and shows node in context column",
+              "score": 1
+            }
+          },
+          {
+            "id": "decision:wf2.graph-editor-is-a-goal",
+            "title": "The graph-editor vision is a goal on the ontology design, built in steps",
+            "found": false,
+            "loose": true,
+            "match": {
+              "title": "Document as a graph editor with nodes and child nodes",
+              "score": 0.4
+            }
+          }
+        ]
+      },
+      {
+        "session": "48c8885cd2",
+        "hidden": 1,
+        "candidates": 2,
+        "found": 0,
+        "foundLoose": 0,
+        "items": [
+          {
+            "id": "decision:wf2.plans-system-folder",
+            "title": "Plans is a system folder in the rail's menu; the plan files stay in the project's docs folder",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Horizontal splitter between menu and documents sections",
+              "score": 0.242
+            }
+          }
+        ]
+      },
+      {
+        "session": "ffab751604",
+        "hidden": 4,
+        "candidates": 5,
+        "found": 4,
+        "foundLoose": 4,
+        "items": [
+          {
+            "id": "decision:ontology.content-markdown",
+            "title": "Content is written indented under the defining line — two spaces per level, the same rules at every level",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "Content stored as indented markdown nesting",
+              "score": 0.5
+            }
+          },
+          {
+            "id": "decision:ontology.depth-by-navigation",
+            "title": "Going deeper is navigation in the column, not nesting inside it",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "Content editor scoped to single node",
+              "score": 0.571
+            }
+          },
+          {
+            "id": "decision:wf2.content-editor-scoped",
+            "title": "The column's content editor is the document editor scoped to one node, over one store",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "Content editor scoped to single node",
+              "score": 0.8
+            }
+          },
+          {
+            "id": "decision:wf2.related-collapsed-default",
+            "title": "Related is closed by default, runs no search while closed, and remembers the choice per browser",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "Related search results hidden by default",
+              "score": 0.6
+            }
+          }
+        ]
+      },
+      {
+        "session": "7205676ec8",
+        "hidden": 4,
+        "candidates": 0,
+        "found": 0,
+        "foundLoose": 0,
+        "items": [
+          {
+            "id": "decision:wf2.text-is-first-block",
+            "title": "A node's text is the first block of its content; the column shows properties first, then the content",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:wf2.produced-kept-collapsed",
+            "title": "Produced stays on a task, folded at the bottom of the column",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:wf2.produced-not-remembered",
+            "title": "The Produced fold is not remembered across nodes",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:wf2.card-shows-no-content",
+            "title": "A card shows none of its content; the count chip opens the details",
+            "found": false,
+            "loose": false,
+            "match": null
+          }
+        ]
+      },
+      {
+        "session": "a4dbc39398",
+        "hidden": 3,
+        "candidates": 2,
+        "found": 0,
+        "foundLoose": 0,
+        "items": [
+          {
+            "id": "decision:wf2.produced-kept-collapsed",
+            "title": "Produced stays on a task, folded at the bottom of the column",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Arrow keys skip content blocks on page view",
+              "score": 0.2
+            }
+          },
+          {
+            "id": "decision:wf2.produced-not-remembered",
+            "title": "The Produced fold is not remembered across nodes",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Arrow keys skip content blocks on page view",
+              "score": 0.1
+            }
+          },
+          {
+            "id": "decision:wf2.card-shows-no-content",
+            "title": "A card shows none of its content; the count chip opens the details",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Arrow keys skip content blocks on page view",
+              "score": 0.3
+            }
+          }
+        ]
+      },
+      {
+        "session": "c8eadd53da",
+        "hidden": 3,
+        "candidates": 1,
+        "found": 0,
+        "foundLoose": 0,
+        "items": [
+          {
+            "id": "decision:wf2.produced-kept-collapsed",
+            "title": "Produced stays on a task, folded at the bottom of the column",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Empty session groups don't display bare headings",
+              "score": 0.167
+            }
+          },
+          {
+            "id": "decision:wf2.produced-not-remembered",
+            "title": "The Produced fold is not remembered across nodes",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Empty session groups don't display bare headings",
+              "score": 0.042
+            }
+          },
+          {
+            "id": "decision:wf2.card-shows-no-content",
+            "title": "A card shows none of its content; the count chip opens the details",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Empty session groups don't display bare headings",
+              "score": 0
+            }
+          }
+        ]
+      },
+      {
+        "session": "f92e5b9b59",
+        "hidden": 22,
+        "candidates": 3,
+        "found": 2,
+        "foundLoose": 2,
+        "items": [
+          {
+            "id": "decision:wye.rename-scope",
+            "title": "Rename to Wye in code and brand; keep the CLIs and the product slug",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "Rename brand strings but keep infrastructure identifiers",
+              "score": 0.5
+            }
+          },
+          {
+            "id": "decision:memory.constraint-packet",
+            "title": "A request's first message carries the constraints in force, computed structurally, not found by the agent",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Concurrent session commits preserved during git history rewrite",
+              "score": 0.13
+            }
+          },
+          {
+            "id": "decision:memory.bitemporal",
+            "title": "Every node can say since when and until when it holds, and what superseded it; current means not ended",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Concurrent session commits preserved during git history rewrite",
+              "score": 0.13
+            }
+          },
+          {
+            "id": "decision:memory.write-time-verdict",
+            "title": "A new decision, requirement, rule or constraint is classified against its neighbours when it is written, before the Inbox",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Concurrent session commits preserved during git history rewrite",
+              "score": 0.13
+            }
+          },
+          {
+            "id": "decision:memory.constraint-type",
+            "title": "A constraint is its own type — a product rule without a code source — and the approved ones are the constitution every agent sees",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Rewrite git history to remove yessensei data before public push",
+              "score": 0.103
+            }
+          },
+          {
+            "id": "decision:memory.consolidate-sessions",
+            "title": "When a session ends, what it decided is extracted from the transcript and diffed against what was written",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Concurrent session commits preserved during git history rewrite",
+              "score": 0.261
+            }
+          },
+          {
+            "id": "decision:memory.forgetting",
+            "title": "Done work leaves default retrieval; nothing is deleted",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Concurrent session commits preserved during git history rewrite",
+              "score": 0.13
+            }
+          },
+          {
+            "id": "decision:memory.evidence",
+            "title": "A decision, requirement, rule or constraint names its evidence",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Concurrent session commits preserved during git history rewrite",
+              "score": 0.13
+            }
+          },
+          {
+            "id": "decision:memory.shapes",
+            "title": "The checks ctx enforces per type are declared on the type, not in the linter",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Rewrite git history to remove yessensei data before public push",
+              "score": 0.103
+            }
+          },
+          {
+            "id": "decision:memory.benchmark",
+            "title": "The 78 existing contradicts edges are the regression set for the verdict pass",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Concurrent session commits preserved during git history rewrite",
+              "score": 0.087
+            }
+          },
+          {
+            "id": "decision:memory.code-source",
+            "title": "Code files are a second source of nodes — a comment whose first token is an id defines that node, with the same grammar as a prose line",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Rename brand strings but keep infrastructure identifiers",
+              "score": 0.077
+            }
+          },
+          {
+            "id": "decision:memory.model-calls-via-cli",
+            "title": "The verdict pass and the consolidation run call the agent CLI the app already runs, one-shot",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Rewrite git history to remove yessensei data before public push",
+              "score": 0.103
+            }
+          },
+          {
+            "id": "decision:exec.task-is-the-unit",
+            "title": "The task is the unit of work; a plan is a request with its tasks; a session is a worker's shift",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Concurrent session commits preserved during git history rewrite",
+              "score": 0.174
+            }
+          },
+          {
+            "id": "decision:exec.change-record",
+            "title": "Every edit of a typed node is written through, and a change record keeps the old and new value with a review state",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Concurrent session commits preserved during git history rewrite",
+              "score": 0.217
+            }
+          },
+          {
+            "id": "decision:exec.impact-run",
+            "title": "An edit's impact is computed structurally with semantic seeding, then a model judges each reached node and proposes its update",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Concurrent session commits preserved during git history rewrite",
+              "score": 0.13
+            }
+          },
+          {
+            "id": "decision:exec.impact-trigger",
+            "title": "Impact runs after the person stops editing a typed node, never on every keystroke, and only when something is reached",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Rewrite git history to remove yessensei data before public push",
+              "score": 0.103
+            }
+          },
+          {
+            "id": "decision:memory.statuses-stay-with-the-person",
+            "title": "The decision-status pass adds supersedes links; approving the 60 proposed decisions stays with the person",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Concurrent session commits preserved during git history rewrite",
+              "score": 0.087
+            }
+          },
+          {
+            "id": "decision:exec.backlog-is-unassigned-work",
+            "title": "The backlog is the unassigned tasks; the inbox folder stays raw material; a task marked ready may be taken by a runner",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Rewrite git history to remove yessensei data before public push",
+              "score": 0.172
+            }
+          },
+          {
+            "id": "decision:exec.wye-is-a-role",
+            "title": "Wye is a session role — the librarian — with the clerk's guardrails, not a new runtime",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Concurrent session commits preserved during git history rewrite",
+              "score": 0.174
+            }
+          },
+          {
+            "id": "decision:exec.plan-lifecycle",
+            "title": "A plan goes proposed → defining → defined → building → done, and its Definition section is the set of blocks it will build",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Concurrent session commits preserved during git history rewrite",
+              "score": 0.174
+            }
+          },
+          {
+            "id": "decision:memory.consistent-verdicts-in-the-log",
+            "title": "Only verdicts that are not \"consistent\" are written under the node; consistent ones stay in the judge log",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Concurrent session commits preserved during git history rewrite",
+              "score": 0.043
+            }
+          },
+          {
+            "id": "decision:wye.strip-yessensei-before-push",
+            "title": "Strip data/products/yessensei from history before the first push to the public repo",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "Rewrite git history to remove yessensei data before public push",
+              "score": 0.75
+            }
+          }
+        ]
+      },
+      {
+        "session": "9f3d83809b",
+        "hidden": 9,
+        "candidates": 0,
+        "found": 0,
+        "foundLoose": 0,
+        "items": [
+          {
+            "id": "decision:memory.model-calls-via-cli",
+            "title": "The verdict pass and the consolidation run call the agent CLI the app already runs, one-shot",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:exec.task-is-the-unit",
+            "title": "The task is the unit of work; a plan is a request with its tasks; a session is a worker's shift",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:exec.change-record",
+            "title": "Every edit of a typed node is written through, and a change record keeps the old and new value with a review state",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:exec.impact-run",
+            "title": "An edit's impact is computed structurally with semantic seeding, then a model judges each reached node and proposes its update",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:exec.impact-trigger",
+            "title": "Impact runs after the person stops editing a typed node, never on every keystroke, and only when something is reached",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:exec.backlog-is-unassigned-work",
+            "title": "The backlog is the unassigned tasks; the inbox folder stays raw material; a task marked ready may be taken by a runner",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:exec.wye-is-a-role",
+            "title": "Wye is a session role — the librarian — with the clerk's guardrails, not a new runtime",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:exec.plan-lifecycle",
+            "title": "A plan goes proposed → defining → defined → building → done, and its Definition section is the set of blocks it will build",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:memory.consistent-verdicts-in-the-log",
+            "title": "Only verdicts that are not \"consistent\" are written under the node; consistent ones stay in the judge log",
+            "found": false,
+            "loose": false,
+            "match": null
+          }
+        ]
+      },
+      {
+        "session": "de966d3bd9",
+        "hidden": 9,
+        "candidates": 2,
+        "found": 2,
+        "foundLoose": 2,
+        "items": [
+          {
+            "id": "decision:exec.build-order",
+            "title": "The execution PRD is built E.1 → E.4 → E.2 → E.3 → E.5, one commit per area, model pieces behind flags",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Rework tasks land on backlog not \"Follow up\" plan",
+              "score": 0.19
+            }
+          },
+          {
+            "id": "decision:exec.changes-from-the-rebuild-diff",
+            "title": "Change records are made from the watcher's rebuild diff, not by every writer; writers only tag who",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Later button uses ⌥↵ instead of ⇧↵",
+              "score": 0.167
+            }
+          },
+          {
+            "id": "decision:exec.impact-through-the-judge",
+            "title": "Impact judgements go through lib/judge.js's model call with their own prompt, cache and budget",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Rework tasks land on backlog not \"Follow up\" plan",
+              "score": 0.143
+            }
+          },
+          {
+            "id": "decision:exec.librarian-on-the-host",
+            "title": "The librarian is Claude Code on the existing host with its own system prompt and a tool allow-list; one clean session per request",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Later button uses ⌥↵ instead of ⇧↵",
+              "score": 0.111
+            }
+          },
+          {
+            "id": "decision:exec.order-is-document-then-priority",
+            "title": "Within a plan the order of task lines is the order; across plans `priority` orders, lower first",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Rework tasks land on backlog not \"Follow up\" plan",
+              "score": 0.167
+            }
+          },
+          {
+            "id": "decision:exec.definition-home-fallback",
+            "title": "When a proposed block has no home document yet, Wye writes it on the plan under Definition and says so",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Rework tasks land on backlog not \"Follow up\" plan",
+              "score": 0.19
+            }
+          },
+          {
+            "id": "decision:wf2.answer-is-content",
+            "title": "A question's answer is its content, edited with the block editor; no `answer:` key",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Later button uses ⌥↵ instead of ⇧↵",
+              "score": 0.278
+            }
+          },
+          {
+            "id": "decision:exec.later-is-alt-enter",
+            "title": "Later in the command box is a button and ⌥↵; ⇧↵ stays a new line",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "Later button uses ⌥↵ instead of ⇧↵",
+              "score": 0.5
+            }
+          },
+          {
+            "id": "decision:exec.rework-on-the-backlog",
+            "title": "A rework verdict becomes a task on the project's backlog, not a \"Follow up\" plan document",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "Rework tasks land on backlog not \"Follow up\" plan",
+              "score": 0.667
+            }
+          }
+        ]
+      },
+      {
+        "session": "5e84bc193c",
+        "hidden": 1,
+        "candidates": 2,
+        "found": 1,
+        "foundLoose": 1,
+        "items": [
+          {
+            "id": "decision:wf2.answer-is-content",
+            "title": "A question's answer is its content, edited with the block editor; no `answer:` key",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "Answer is now content: blocks under question are the answer",
+              "score": 0.6
+            }
+          }
+        ]
+      },
+      {
+        "session": "b9b458ace4",
+        "hidden": 5,
+        "candidates": 0,
+        "found": 0,
+        "foundLoose": 0,
+        "items": [
+          {
+            "id": "decision:exec.later-is-alt-enter",
+            "title": "Later in the command box is a button and ⌥↵; ⇧↵ stays a new line",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:exec.rework-on-the-backlog",
+            "title": "A rework verdict becomes a task on the project's backlog, not a \"Follow up\" plan document",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:memory.instructions-compiled",
+            "title": "Agent instructions are typed blocks compiled from lessons, proposed as patches with evidence, reviewed like any change, and injected in full",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:memory.evaluation",
+            "title": "Every memory claim has a benchmark on Wye's own history, a with-and-without run, and a page that shows both",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:memory.public-benchmarks",
+            "title": "Two public benchmarks now — MOOSEDev bench and the requirement-pair conflict sets — a MemoryAgentBench adapter next, LongMemEval-V2 later",
+            "found": false,
+            "loose": false,
+            "match": null
+          }
+        ]
+      },
+      {
+        "session": "a95bf7bbe0",
+        "hidden": 4,
+        "candidates": 0,
+        "found": 0,
+        "foundLoose": 0,
+        "items": [
+          {
+            "id": "decision:memory.eval-build-scope",
+            "title": "The benchmarks harness is built whole, in the page's order — tier 1, judge set, tier 2, public, page",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:memory.eval-tolerance",
+            "title": "A suite fails the run when its score drops more than 5 points below the previous file",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:memory.eval-first-live-runs",
+            "title": "The build includes the first live runs on haiku, with the recordings committed",
+            "found": false,
+            "loose": false,
+            "match": null
+          },
+          {
+            "id": "decision:memory.eval-build-plan",
+            "title": "The benchmarks build runs from plan:plan-build, reopened; plan-build-2 is the same request and is cancelled",
+            "found": false,
+            "loose": false,
+            "match": null
+          }
+        ]
+      },
+      {
+        "session": "d4d72bd04a",
+        "hidden": 3,
+        "candidates": 4,
+        "found": 1,
+        "foundLoose": 2,
+        "items": [
+          {
+            "id": "decision:wf2.definition-shape",
+            "title": "The definition of Wye is by kind on top and by area inside — one Wye page, one PRD, one Design parent with a module page per area, Tests, Research, Archive",
+            "found": true,
+            "loose": true,
+            "match": {
+              "title": "Wye definition structure: organize by kind on top, by area inside",
+              "score": 0.75
+            }
+          },
+          {
+            "id": "decision:wf2.superseded-layers",
+            "title": "The v0.1 and 2026-09-14 layers are sorted block by block — what exists moves, what was never built is retired, the emptied pages go to Archive",
+            "found": false,
+            "loose": true,
+            "match": {
+              "title": "Migrate existing blocks with same ID, retire never-built design to Archive",
+              "score": 0.385
+            }
+          },
+          {
+            "id": "decision:wf2.definition-leftovers",
+            "title": "Session leftovers leave the definition pages and every page says Wye — ids and the product slug stay",
+            "found": false,
+            "loose": false,
+            "match": {
+              "title": "Extract Plan sections from module pages, mark done plans, preserve IDs",
+              "score": 0.333
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "meta": {
+    "packet": {
+      "seeds": 6,
+      "k": 10,
+      "hops": 2
+    },
+    "currency": {},
+    "contradictions": {
+      "models": [
+        "claude-haiku-4-5-20251001 @ 6d31662f"
+      ],
+      "positives": 12,
+      "negatives": 30,
+      "byConflict": {
+        "missed": 10,
+        "static": 1,
+        "dynamic": 1
+      },
+      "recording": "test/fixtures/verdict-bench.json"
+    },
+    "impact": {
+      "commits": 68,
+      "sessions": 18,
+      "note": "candidates on the graph as it is now, not at the commit"
+    },
+    "consolidation": {
+      "model": "claude-haiku-4-5-20251001",
+      "prompt": "1d527194",
+      "calls": 1,
+      "recording": "eval/recorded/consolidation.json",
+      "misses": [
+        {
+          "session": "64813dfdab",
+          "id": "decision:wf2.column-frame-header-scrolls",
+          "title": "A session's header scrolls with the conversation; only the bar and the message box are pinned"
+        },
+        {
+          "session": "64813dfdab",
+          "id": "decision:wf2.first-message-shown-as-request",
+          "title": "The user row shows the instruction; the full prompt rides on the event behind a fold"
+        },
+        {
+          "session": "181e88ad1f",
+          "id": "decision:wf2.queue-item-state",
+          "title": "A queue item keeps its state on the session record; the turn end marks it"
+        },
+        {
+          "session": "efee530d46",
+          "id": "decision:wf2.session-page-derived",
+          "title": "The session page is derived from the session and the graph, not a plan document"
+        },
+        {
+          "session": "7cfac7ea80",
+          "id": "decision:wf2.embed-renders-source-card",
+          "title": "An embed renders the source card with the source's own components; edits go through op:node.edit"
+        },
+        {
+          "session": "672f4fdf3d",
+          "id": "decision:wf2.plan-is-a-document",
+          "title": "A plan is a document of its own — plan-<slug> under the page it was asked on — not a derived session page"
+        },
+        {
+          "session": "07aa6645ad",
+          "id": "decision:wf2.first-message-shown-as-request",
+          "title": "The user row shows the instruction; the full prompt rides on the event behind a fold"
+        },
+        {
+          "session": "c2bbac979d",
+          "id": "decision:wf2.column-frame-header-scrolls",
+          "title": "A session's header scrolls with the conversation; only the bar and the message box are pinned"
+        },
+        {
+          "session": "01b14dc871",
+          "id": "decision:wf2.table-scroll-not-shrink",
+          "title": "A narrow data table scrolls sideways; columns keep their minimum widths"
+        },
+        {
+          "session": "9091132439",
+          "id": "decision:wf2.palette-images-are-session-files",
+          "title": "Palette images are session attachments, not inbox assets"
+        },
+        {
+          "session": "bd2ece3698",
+          "id": "decision:wf2.table-filter-on-marker",
+          "title": "A data table keeps its filters on its marker line, like a view block"
+        },
+        {
+          "session": "bd2ece3698",
+          "id": "decision:wf2.table-filter-hides-rows",
+          "title": "A filter hides rows in the editor; the rows stay children of the table and stay in the file"
+        },
+        {
+          "session": "bd2ece3698",
+          "id": "decision:wf2.connected-rows-expand-to-cards",
+          "title": "A connected row expands in place into the node's embedded card"
+        },
+        {
+          "session": "bd2ece3698",
+          "id": "decision:wf2.block-click-selects",
+          "title": "A click anywhere on a block selects it; the column's Context root shows the node"
+        },
+        {
+          "session": "bd2ece3698",
+          "id": "decision:wf2.graph-editor-is-a-goal",
+          "title": "The graph-editor vision is a goal on the ontology design, built in steps"
+        },
+        {
+          "session": "bd2ece3698",
+          "id": "decision:ontology.uniform-content",
+          "title": "Every node has the same `content` field — a list of child blocks — and everything else related is a ref"
+        },
+        {
+          "session": "edd6ae474d",
+          "id": "decision:wf2.connected-rows-expand-to-cards",
+          "title": "A connected row expands in place into the node's embedded card"
+        },
+        {
+          "session": "367dedec3c",
+          "id": "decision:wf2.graph-editor-is-a-goal",
+          "title": "The graph-editor vision is a goal on the ontology design, built in steps"
+        },
+        {
+          "session": "48c8885cd2",
+          "id": "decision:wf2.plans-system-folder",
+          "title": "Plans is a system folder in the rail's menu; the plan files stay in the project's docs folder"
+        },
+        {
+          "session": "7205676ec8",
+          "id": "decision:wf2.text-is-first-block",
+          "title": "A node's text is the first block of its content; the column shows properties first, then the content"
+        },
+        {
+          "session": "7205676ec8",
+          "id": "decision:wf2.produced-kept-collapsed",
+          "title": "Produced stays on a task, folded at the bottom of the column"
+        },
+        {
+          "session": "7205676ec8",
+          "id": "decision:wf2.produced-not-remembered",
+          "title": "The Produced fold is not remembered across nodes"
+        },
+        {
+          "session": "7205676ec8",
+          "id": "decision:wf2.card-shows-no-content",
+          "title": "A card shows none of its content; the count chip opens the details"
+        },
+        {
+          "session": "a4dbc39398",
+          "id": "decision:wf2.produced-kept-collapsed",
+          "title": "Produced stays on a task, folded at the bottom of the column"
+        },
+        {
+          "session": "a4dbc39398",
+          "id": "decision:wf2.produced-not-remembered",
+          "title": "The Produced fold is not remembered across nodes"
+        },
+        {
+          "session": "a4dbc39398",
+          "id": "decision:wf2.card-shows-no-content",
+          "title": "A card shows none of its content; the count chip opens the details"
+        },
+        {
+          "session": "c8eadd53da",
+          "id": "decision:wf2.produced-kept-collapsed",
+          "title": "Produced stays on a task, folded at the bottom of the column"
+        },
+        {
+          "session": "c8eadd53da",
+          "id": "decision:wf2.produced-not-remembered",
+          "title": "The Produced fold is not remembered across nodes"
+        },
+        {
+          "session": "c8eadd53da",
+          "id": "decision:wf2.card-shows-no-content",
+          "title": "A card shows none of its content; the count chip opens the details"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:memory.constraint-packet",
+          "title": "A request's first message carries the constraints in force, computed structurally, not found by the agent"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:memory.bitemporal",
+          "title": "Every node can say since when and until when it holds, and what superseded it; current means not ended"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:memory.write-time-verdict",
+          "title": "A new decision, requirement, rule or constraint is classified against its neighbours when it is written, before the Inbox"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:memory.constraint-type",
+          "title": "A constraint is its own type — a product rule without a code source — and the approved ones are the constitution every agent sees"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:memory.consolidate-sessions",
+          "title": "When a session ends, what it decided is extracted from the transcript and diffed against what was written"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:memory.forgetting",
+          "title": "Done work leaves default retrieval; nothing is deleted"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:memory.evidence",
+          "title": "A decision, requirement, rule or constraint names its evidence"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:memory.shapes",
+          "title": "The checks ctx enforces per type are declared on the type, not in the linter"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:memory.benchmark",
+          "title": "The 78 existing contradicts edges are the regression set for the verdict pass"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:memory.code-source",
+          "title": "Code files are a second source of nodes — a comment whose first token is an id defines that node, with the same grammar as a prose line"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:memory.model-calls-via-cli",
+          "title": "The verdict pass and the consolidation run call the agent CLI the app already runs, one-shot"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:exec.task-is-the-unit",
+          "title": "The task is the unit of work; a plan is a request with its tasks; a session is a worker's shift"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:exec.change-record",
+          "title": "Every edit of a typed node is written through, and a change record keeps the old and new value with a review state"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:exec.impact-run",
+          "title": "An edit's impact is computed structurally with semantic seeding, then a model judges each reached node and proposes its update"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:exec.impact-trigger",
+          "title": "Impact runs after the person stops editing a typed node, never on every keystroke, and only when something is reached"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:memory.statuses-stay-with-the-person",
+          "title": "The decision-status pass adds supersedes links; approving the 60 proposed decisions stays with the person"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:exec.backlog-is-unassigned-work",
+          "title": "The backlog is the unassigned tasks; the inbox folder stays raw material; a task marked ready may be taken by a runner"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:exec.wye-is-a-role",
+          "title": "Wye is a session role — the librarian — with the clerk's guardrails, not a new runtime"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:exec.plan-lifecycle",
+          "title": "A plan goes proposed → defining → defined → building → done, and its Definition section is the set of blocks it will build"
+        },
+        {
+          "session": "f92e5b9b59",
+          "id": "decision:memory.consistent-verdicts-in-the-log",
+          "title": "Only verdicts that are not \"consistent\" are written under the node; consistent ones stay in the judge log"
+        },
+        {
+          "session": "9f3d83809b",
+          "id": "decision:memory.model-calls-via-cli",
+          "title": "The verdict pass and the consolidation run call the agent CLI the app already runs, one-shot"
+        },
+        {
+          "session": "9f3d83809b",
+          "id": "decision:exec.task-is-the-unit",
+          "title": "The task is the unit of work; a plan is a request with its tasks; a session is a worker's shift"
+        },
+        {
+          "session": "9f3d83809b",
+          "id": "decision:exec.change-record",
+          "title": "Every edit of a typed node is written through, and a change record keeps the old and new value with a review state"
+        },
+        {
+          "session": "9f3d83809b",
+          "id": "decision:exec.impact-run",
+          "title": "An edit's impact is computed structurally with semantic seeding, then a model judges each reached node and proposes its update"
+        },
+        {
+          "session": "9f3d83809b",
+          "id": "decision:exec.impact-trigger",
+          "title": "Impact runs after the person stops editing a typed node, never on every keystroke, and only when something is reached"
+        },
+        {
+          "session": "9f3d83809b",
+          "id": "decision:exec.backlog-is-unassigned-work",
+          "title": "The backlog is the unassigned tasks; the inbox folder stays raw material; a task marked ready may be taken by a runner"
+        },
+        {
+          "session": "9f3d83809b",
+          "id": "decision:exec.wye-is-a-role",
+          "title": "Wye is a session role — the librarian — with the clerk's guardrails, not a new runtime"
+        },
+        {
+          "session": "9f3d83809b",
+          "id": "decision:exec.plan-lifecycle",
+          "title": "A plan goes proposed → defining → defined → building → done, and its Definition section is the set of blocks it will build"
+        },
+        {
+          "session": "9f3d83809b",
+          "id": "decision:memory.consistent-verdicts-in-the-log",
+          "title": "Only verdicts that are not \"consistent\" are written under the node; consistent ones stay in the judge log"
+        },
+        {
+          "session": "de966d3bd9",
+          "id": "decision:exec.build-order",
+          "title": "The execution PRD is built E.1 → E.4 → E.2 → E.3 → E.5, one commit per area, model pieces behind flags"
+        },
+        {
+          "session": "de966d3bd9",
+          "id": "decision:exec.changes-from-the-rebuild-diff",
+          "title": "Change records are made from the watcher's rebuild diff, not by every writer; writers only tag who"
+        },
+        {
+          "session": "de966d3bd9",
+          "id": "decision:exec.impact-through-the-judge",
+          "title": "Impact judgements go through lib/judge.js's model call with their own prompt, cache and budget"
+        },
+        {
+          "session": "de966d3bd9",
+          "id": "decision:exec.librarian-on-the-host",
+          "title": "The librarian is Claude Code on the existing host with its own system prompt and a tool allow-list; one clean session per request"
+        },
+        {
+          "session": "de966d3bd9",
+          "id": "decision:exec.order-is-document-then-priority",
+          "title": "Within a plan the order of task lines is the order; across plans `priority` orders, lower first"
+        },
+        {
+          "session": "de966d3bd9",
+          "id": "decision:exec.definition-home-fallback",
+          "title": "When a proposed block has no home document yet, Wye writes it on the plan under Definition and says so"
+        },
+        {
+          "session": "de966d3bd9",
+          "id": "decision:wf2.answer-is-content",
+          "title": "A question's answer is its content, edited with the block editor; no `answer:` key"
+        },
+        {
+          "session": "b9b458ace4",
+          "id": "decision:exec.later-is-alt-enter",
+          "title": "Later in the command box is a button and ⌥↵; ⇧↵ stays a new line"
+        },
+        {
+          "session": "b9b458ace4",
+          "id": "decision:exec.rework-on-the-backlog",
+          "title": "A rework verdict becomes a task on the project's backlog, not a \"Follow up\" plan document"
+        },
+        {
+          "session": "b9b458ace4",
+          "id": "decision:memory.instructions-compiled",
+          "title": "Agent instructions are typed blocks compiled from lessons, proposed as patches with evidence, reviewed like any change, and injected in full"
+        },
+        {
+          "session": "b9b458ace4",
+          "id": "decision:memory.evaluation",
+          "title": "Every memory claim has a benchmark on Wye's own history, a with-and-without run, and a page that shows both"
+        },
+        {
+          "session": "b9b458ace4",
+          "id": "decision:memory.public-benchmarks",
+          "title": "Two public benchmarks now — MOOSEDev bench and the requirement-pair conflict sets — a MemoryAgentBench adapter next, LongMemEval-V2 later"
+        },
+        {
+          "session": "a95bf7bbe0",
+          "id": "decision:memory.eval-build-scope",
+          "title": "The benchmarks harness is built whole, in the page's order — tier 1, judge set, tier 2, public, page"
+        },
+        {
+          "session": "a95bf7bbe0",
+          "id": "decision:memory.eval-tolerance",
+          "title": "A suite fails the run when its score drops more than 5 points below the previous file"
+        },
+        {
+          "session": "a95bf7bbe0",
+          "id": "decision:memory.eval-first-live-runs",
+          "title": "The build includes the first live runs on haiku, with the recordings committed"
+        },
+        {
+          "session": "a95bf7bbe0",
+          "id": "decision:memory.eval-build-plan",
+          "title": "The benchmarks build runs from plan:plan-build, reopened; plan-build-2 is the same request and is cancelled"
+        },
+        {
+          "session": "d4d72bd04a",
+          "id": "decision:wf2.superseded-layers",
+          "title": "The v0.1 and 2026-09-14 layers are sorted block by block — what exists moves, what was never built is retired, the emptied pages go to Archive"
+        },
+        {
+          "session": "d4d72bd04a",
+          "id": "decision:wf2.definition-leftovers",
+          "title": "Session leftovers leave the definition pages and every page says Wye — ids and the product slug stay"
+        }
+      ]
+    }
+  },
+  "errors": [],
+  "previousFile": null,
+  "gate": {
+    "passed": true,
+    "drops": []
+  }
+}

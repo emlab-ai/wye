@@ -164,13 +164,13 @@ async function run(opts) {
     if (opts.runIt) {
         const live = !!opts.live || process.env.WATERFALL_LIVE === '1';
         const rows = await runTasks({ live, model, passes: opts.judgePasses || 3, limit: opts.limit, log });
-        const P = loadProduct('waterfall'); const eP = fs.existsSync(PRODUCT_DIR) ? loadProduct(PRODUCT) : null;
+        const P = loadProduct('wye'); const eP = fs.existsSync(PRODUCT_DIR) ? loadProduct(PRODUCT) : null;
         const report = reportOf(rows, model);
         const scores = Object.fromEntries(report.rows.filter(r => r.ours !== null).map(r => [`moosedev.${r.name.replace(/[^a-z]+/g, '-').replace(/-$/, '')}`, { value: r.ours, n: r.n, judge: r.name !== 'relevance (+ currency)' }]));
         const { file } = writeResult(P.productDir, 'public-moosedev', { graphSha: eP ? eP.graphSha : null, gitSha: P.gitSha, live, model, promptHashes: { judge: 'moosedev/regrade_judge.py' }, judge: { model, prompt: 'their judge prompt, vendored' }, scores, runs: rows, report }, { baseline: 'public benchmarks are not gated' });
         return { rows, report, file };
     }
-    if (opts.reportIt) { const { listResults } = require('../../lib/results'); const P = loadProduct('waterfall'); const r = listResults(P.productDir, 'public-moosedev')[0]; if (!r) return { report: null }; return { report: r.data.report, file: r.file, rows: r.data.runs }; }
+    if (opts.reportIt) { const { listResults } = require('../../lib/results'); const P = loadProduct('wye'); const r = listResults(P.productDir, 'public-moosedev')[0]; if (!r) return { report: null }; return { report: r.data.report, file: r.file, rows: r.data.runs }; }
     throw new Error('wye eval public moosedev --fetch | --import | --run | --report');
 }
 function print(r) {

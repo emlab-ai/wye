@@ -1,6 +1,6 @@
 # Web UI rewrite — documents first
 
-Date: 2026-09-14. Status: approved in discussion. Supersedes §7 (Web UI) of `2026-09-14-waterfall-v2-design.md` for the reading experience; the graph page and the editing plans there stand.
+Date: 2026-09-14. Status: approved in discussion. Supersedes §7 (Web UI) of `2026-09-14-wye-v2-design.md` for the reading experience; the graph page and the editing plans there stand.
 
 ## 1. Goal
 

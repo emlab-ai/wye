@@ -1,0 +1,18 @@
+{
+  "id": "7c03be543b",
+  "hook": "hook:req-approved-tests",
+  "title": "An approved requirement gets a task to define its test cases, and an agent starts on it",
+  "node": "req:wf2.ui.tasks",
+  "event": "status:approved",
+  "at": "2026-09-21T12:41:14.214Z",
+  "depth": 0,
+  "actions": [
+    {
+      "kind": "task",
+      "added": [
+        "task:wye.define-test-cases-for-tasks-are"
+      ],
+      "session": "940c3784f0"
+    }
+  ]
+}

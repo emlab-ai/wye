@@ -77,15 +77,15 @@ assert.strictEqual(kappa([]), null);
 // `wye eval own --live`; CI without them skips the replay rather than judging nothing)
 (async () => {
     const own = require('../eval/own');
-    const root = path.join(__dirname, '..', 'data', 'products', 'waterfall');
-    const hasTruth = fs.readdirSync(path.join(__dirname, '..', 'eval', 'own')).some(f => f.startsWith('truth-waterfall-')) || fs.existsSync(path.join(root, 'projects'));
-    if (!hasTruth || !fs.existsSync(path.join(__dirname, '..', 'eval', 'recorded', 'semantic-waterfall.json'))) { console.log('ok — eval lib (no recordings to replay)'); return; }
+    const root = path.join(__dirname, '..', 'data', 'products', 'wye');
+    const hasTruth = fs.readdirSync(path.join(__dirname, '..', 'eval', 'own')).some(f => f.startsWith('truth-wye-')) || fs.existsSync(path.join(root, 'projects'));
+    if (!hasTruth || !fs.existsSync(path.join(__dirname, '..', 'eval', 'recorded', 'semantic-wye.json'))) { console.log('ok — eval lib (no recordings to replay)'); return; }
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wf-eval-replay-'));
     // replay into a scratch results folder so the test never writes the product's real results
-    const { loadProduct } = require('../eval/lib/product'); const P = loadProduct('waterfall');
+    const { loadProduct } = require('../eval/lib/product'); const P = loadProduct('wye');
     process.env.WF_EVAL_DIR = path.join(tmp, 'eval');
     let r;
-    try { r = await own.run({ product: 'waterfall', suite: 'packet,currency,impact,contradictions', live: false, log: () => {} }); } finally { delete process.env.WF_EVAL_DIR; }
+    try { r = await own.run({ product: 'wye', suite: 'packet,currency,impact,contradictions', live: false, log: () => {} }); } finally { delete process.env.WF_EVAL_DIR; }
     const missing = r.errors.filter(e => /recording missing/.test(e));
     assert.ok(!r.errors.filter(e => !/recording missing/.test(e)).length, 'suites ran: ' + r.errors.join('; '));
     // test:eval#packet-completeness, #currency, #contradictions, #impact-cochange (#consolidation replays only when its recording covers every session)

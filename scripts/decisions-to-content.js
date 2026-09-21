@@ -3,7 +3,7 @@
 // context / choice / alternatives / consequences: the choice as the first paragraph of the card's content, then
 // "**Context** — …", "**Alternatives** — …", "**Consequences** — …" paragraphs (each editable in place), and the
 // four keys removed from the card. `--kind goal --keys description` moves a goal's description the same way. Goes through the running app (op:node.content, op:node.edit) so the same write
-// path, rebuild and change records apply. Usage: node scripts/decisions-to-content.js --product waterfall [--dry]
+// path, rebuild and change records apply. Usage: node scripts/decisions-to-content.js --product wye [--dry]
 const fs = require('fs'); const path = require('path');
 const WF = process.env.WF_URL || 'http://localhost:3456';
 const argv = process.argv.slice(2);

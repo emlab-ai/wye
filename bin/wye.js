@@ -36,7 +36,7 @@
 //   wye session done|fail <id> --product p ["result"]     finish a session
 //   wye session handoff <id> --product p --agent a ["note"]  continue it under another agent
 //   wye session open <id> --product p <product/project/doc[#node] | url>   navigate the person's browser to a page
-//   wye session take <id> --product p       mark it running under you (interactive pick-up, e.g. /wf-restore)
+//   wye session take <id> --product p       mark it running under you (interactive pick-up, e.g. /wye-restore)
 //   wye propose [<product/project/doc>] --pr <product/project/pr-x> --product p (a yaml card with `- id: kind:slug` on stdin or --file f)
 //        one proposed block into the document where its kind lives, embedded on the request's Definition; without a
 //        document it is defined on the request under Definition (decision:exec.definition-home-fallback)
@@ -436,7 +436,7 @@ const commands = {
       // the Wye contract: claude takes it as an appended system prompt, other agents get it on top of the prompt
       let system = ''; try { system = await (await fetch(`${WF_URL}/api/${p}/agent-prompt`)).text(); } catch { /* no contract available */ }
       let fullCmd = cmd; let fullPrompt = prompt;
-      if (system && agent === 'claude-code') { const f = path.join(os.tmpdir(), `wf-system-${s.id}.md`); fs.writeFileSync(f, system); fullCmd = `${cmd} --append-system-prompt-file "${f}" --add-dir "${flags['waterfall-root'] || process.env.WF_ROOT || process.cwd()}"`; }
+      if (system && agent === 'claude-code') { const f = path.join(os.tmpdir(), `wf-system-${s.id}.md`); fs.writeFileSync(f, system); fullCmd = `${cmd} --append-system-prompt-file "${f}" --add-dir "${flags['wye-root'] || process.env.WF_ROOT || process.cwd()}"`; }
       else if (system) fullPrompt = `${system}\n\n---\n\n${prompt}`;
       await log([`runner ${name} starting: ${fullCmd}`]);
       const code = await runCommand(fullCmd, fullPrompt, log, flags.cwd || process.cwd(), p, s.id);

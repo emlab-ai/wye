@@ -31,7 +31,7 @@ export function CommandBox() {
   const [target, setTarget] = useState<string>('new'); // session id | 'new' | 'runner'
   const [agent, setAgent] = useState(AGENTS[0].id);
   const [cwd, setCwd] = useState('');
-  const [defaults, setDefaults] = useState<{ cwd: string; waterfall: string }>({ cwd: '', waterfall: '' });
+  const [defaults, setDefaults] = useState<{ cwd: string; wye: string }>({ cwd: '', wye: '' });
   const [mode, setModeState] = useState<'pr' | 'adhoc'>('pr');
   const [attachTo, setAttachTo] = useState<Attach>({ skills: [], hooks: [] }); // skills / hooks for the request (decision:wf2.hooks-and-skills)
   const setMode = (m: 'pr' | 'adhoc') => { setModeState(m); try { localStorage.setItem('wf-cmd-mode', m); } catch { /* ignore */ } };
@@ -65,14 +65,14 @@ export function CommandBox() {
       try {
         const j = await (await fetch(`/api/${product}/sessions`)).json();
         const active = (j.sessions as Live[]).filter(s => s.mode === 'chat' && s.live).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-        setSessions(active); setDefaults(j.defaults ?? { cwd: '', waterfall: '' });
+        setSessions(active); setDefaults(j.defaults ?? { cwd: '', wye: '' });
         let remembered = '', lastAgent = '', lastMode = ''; try { remembered = localStorage.getItem(`wf-cwd-${product}`) ?? ''; lastAgent = localStorage.getItem(`wf-agent-${product}`) ?? ''; lastMode = localStorage.getItem('wf-cmd-mode') ?? ''; } catch { /* ignore */ }
         if (lastMode === 'adhoc' || lastMode === 'pr') setModeState(lastMode);
         // on a PR page with a live conversation the box talks to that PR (decision:wf2.pr-talk); else a clean slate (rule:clean-slate)
         const here = m ? index[docNodeOf(index, m[2]) ?? ''] : undefined;
         const mine = here?.kind === 'pr' ? active.find(s => (here.sessions ?? []).includes(s.id)) : undefined;
         if (mine) { setTarget(mine.id); setModeState('adhoc'); } else setTarget('new');
-        setCwd(c => c || remembered || j.defaults?.cwd || j.defaults?.waterfall || '');
+        setCwd(c => c || remembered || j.defaults?.cwd || j.defaults?.wye || '');
         if (AGENTS.some(a => a.id === lastAgent)) setAgent(lastAgent);
       } catch { setSessions([]); setTarget('new'); }
     })();

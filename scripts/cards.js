@@ -11,7 +11,7 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const SRC = 'packages/web/src';
-const DOCS = 'data/products/waterfall/projects/v2/docs';
+const DOCS = 'data/products/wye/projects/v2/docs';
 const KINDS = ['component', 'lib', 'op', 'page'];
 const HOME = { component: 'components.md', op: 'api.md', page: 'pages.md', libFallback: 'app-storage.md' };
 
@@ -183,7 +183,7 @@ const yamlText = (s) => /[:#'"{}[\]]|^\s|\s$/.test(s) || s === '' ? JSON.stringi
 // Ids the header names that no document defines are escaped (`kind&#58;slug`, as the definition does) so the card
 // does not reference an undescribed node; the person restores the colon when the node is written.
 function definedIds(root) {
-  try { return new Set(require(path.join(root, 'data/products/waterfall/_build/graph.json')).nodes.filter((n) => n.defined !== false).map((n) => n.id)); }
+  try { return new Set(require(path.join(root, 'data/products/wye/_build/graph.json')).nodes.filter((n) => n.defined !== false).map((n) => n.id)); }
   catch { return null; }
 }
 function escapeUnknown(text, defined) {

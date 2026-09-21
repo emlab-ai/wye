@@ -16,7 +16,7 @@
 - Session records keep working: `Session.prDoc` is the field; a stored `planDoc` is read as `prDoc` when `prDoc` is absent (`sessions.ts` `getSession` / `listSessions` normalise on read).
 - Ids: `pr:<slug>`, files `pr-<slug>.md`, the PRs page `prs.md` = `module:<project>-prs`.
 - `wye plan …` keeps working as an alias of `wye pr …` printing `plan is now pr` once to stderr.
-- Every step green: `cd packages/web && npx tsc --noEmit -p . && npx vitest run`, and `npm test` at the end of each task; `node bin/ctx.js check --root data/products/waterfall` 0 errors after the migration.
+- Every step green: `cd packages/web && npx tsc --noEmit -p . && npx vitest run`, and `npm test` at the end of each task; `node bin/ctx.js check --root data/products/wye` 0 errors after the migration.
 - Commit to `main` per task, message in the repo's style.
 
 ---
@@ -174,7 +174,7 @@ Run: `cd packages/web && npx tsc --noEmit -p . && npx vitest run` — fix until 
 
 - [ ] **Step 3: Run the app once**
 
-`npm run dev`; open `/waterfall/requests` (page renders, empty until Task 3 migrates); the rail shows "Requests"; ⌘P still sends (names only changed).
+`npm run dev`; open `/wye/requests` (page renders, empty until Task 3 migrates); the rail shows "Requests"; ⌘P still sends (names only changed).
 
 - [ ] **Step 4: Commit Tasks 1+2**
 
@@ -189,7 +189,7 @@ git commit -m "pr: the plan document is the Prompt Request — pr:<slug> / pr-<s
 
 **Files:**
 - Create: `scripts/plans-to-prs.js`, `test/plans-to-prs.js` (add to the root "test" script)
-- Run on: `data/products/waterfall` (and any other product under `data/products` with `type: plan` documents — `test`, the eval products are scratch and gitignored: skip them unless they have plan docs; the script takes `--product` or `--all`)
+- Run on: `data/products/wye` (and any other product under `data/products` with `type: plan` documents — `test`, the eval products are scratch and gitignored: skip them unless they have plan docs; the script takes `--product` or `--all`)
 
 **Interfaces:** `migrate(productDir, { dry }) → { docs: string[]; refs: number; sessions: number; pages: string[] }` (exported for the test).
 
@@ -237,7 +237,7 @@ console.log('plans-to-prs: ok');
 // refining when a running session holds it, else draft; the rest unchanged), part-of → the PRs page; the
 // Plans page plans.md → requests.md (module:<p>-prs, "Requests", view:pr); every reference plan:<x> anywhere in
 // the product's documents → pr:<x>; every session's planDoc → prDoc with the new slug, its refs likewise.
-// Usage: node scripts/plans-to-prs.js --product waterfall | --all [--dry]
+// Usage: node scripts/plans-to-prs.js --product wye | --all [--dry]
 const fs = require('fs'); const path = require('path');
 
 const walk = (dir) => { let out = []; for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const p = path.join(dir, e.name); if (e.isDirectory()) { if (!['_build', 'node_modules', '.git'].includes(e.name)) out = out.concat(walk(p)); } else out.push(p); } return out; };
@@ -306,12 +306,12 @@ if (require.main === module) {
 
 - [ ] **Step 3: Test, dry-run, run, check**
 
-Run: `node test/plans-to-prs.js` → `plans-to-prs: ok`. Then `node scripts/plans-to-prs.js --all --dry` (read the counts), `node scripts/plans-to-prs.js --all`, `node bin/ctx.js check --root data/products/waterfall` (0 errors; compare warnings with before), `grep -rn "plan:plan-\|type: plan\b" data/products/waterfall` → nothing. Also `data/products/waterfall/projects/v2/docs/prd-execution.md:110` `type:plan` card → `type:pr` with the new statuses in its comment. Also the PRs page for each project: there is `plans.md` in `v2` (and wherever the script found one).
+Run: `node test/plans-to-prs.js` → `plans-to-prs: ok`. Then `node scripts/plans-to-prs.js --all --dry` (read the counts), `node scripts/plans-to-prs.js --all`, `node bin/ctx.js check --root data/products/wye` (0 errors; compare warnings with before), `grep -rn "plan:plan-\|type: plan\b" data/products/wye` → nothing. Also `data/products/wye/projects/v2/docs/prd-execution.md:110` `type:plan` card → `type:pr` with the new statuses in its comment. Also the PRs page for each project: there is `plans.md` in `v2` (and wherever the script found one).
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add scripts/plans-to-prs.js test/plans-to-prs.js package.json data/products/waterfall
+git add scripts/plans-to-prs.js test/plans-to-prs.js package.json data/products/wye
 git commit -m "pr: the 27 plan documents migrated to Prompt Requests (scripts/plans-to-prs — files, nodes, statuses, the PRs page, every reference, the sessions' prDoc), ctx check green"
 ```
 
@@ -503,11 +503,11 @@ git commit -m "⌘P: two modes — PR (the request page, a refining librarian se
 - Modify: the v2 docs — `req:wf2.pr` (requirements-shell or app-agents, where `req:wf2.sessions.plan-doc` lives: rewrite that req as `req:wf2.pr.document`, keep the id with `superseded-by` if the repo's convention asks; simplest: rewrite in place and rename the id, updating references with a grep), `rule:pr-doc` (was `rule:plan-doc`), `decision:exec.plan-lifecycle` → superseded by `decision:wf2.pr-lifecycle` (draft → refining → approved → building), `decision:wf2.pr-approval-is-the-persons-click`, `decision:wf2.cmd-modes`, `decision:exec.librarian-may-build` → `status: superseded`, `superseded-by: decision:wf2.pr-approval-is-the-persons-click`; `rule:plans-folder` → `rule:requests-folder`; cards via `npm run cards` (`component:pr-head`, `component:request-folder`, `component:pr-list`, `lib:pr-doc`, `lib:pr-docs`, `lib:pr-sessions`, `op:api.pr`, `page:web/requests`, retired plan ones re-pointed by the generator); `test:plans-to-prs` card.
 - UI test: `ui-test:pr` — a playwright-core script in the scratchpad against the dev server on a scratch product (`zz-ui-pr`, gitignored): ⌘P PR mode creates `pr-…` and the head shows `refining`; Approve on a draft asks once (unagreed) and sets `approved`; Ad-hoc creates no document. Record the result as `ui-test:pr` in `test-design.md`.
 
-- [ ] **Step 1:** `npm run cards`, write the knowledge cards, `node bin/ctx.js check --root data/products/waterfall` (0 errors), `npm test` green.
+- [ ] **Step 1:** `npm run cards`, write the knowledge cards, `node bin/ctx.js check --root data/products/wye` (0 errors), `npm test` green.
 - [ ] **Step 2:** Run the UI script; fix what it finds.
 - [ ] **Step 3:** Commit.
 
 ```bash
-git add data/products/waterfall
+git add data/products/wye
 git commit -m "knowledge: req:wf2.pr, rule:pr-doc, decision:wf2.pr-lifecycle, decision:wf2.pr-approval-is-the-persons-click, decision:wf2.cmd-modes; decision:exec.librarian-may-build superseded; cards for pr-head, request-folder, pr-list, lib pr-doc / pr-docs / pr-sessions, op:api.pr, page:web/requests; ui-test:pr passed"
 ```

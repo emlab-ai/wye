@@ -8,7 +8,7 @@
 
 **Tech Stack:** Node 26, npm workspaces (pnpm is not installed), Next.js 16.3 (app router, TypeScript), React 19, @xyflow/react 12.11, @dagrejs/dagre 3.1, vitest 5 for pure modules.
 
-**Spec:** `docs/superpowers/specs/2026-09-14-waterfall-v2-design.md` §7 (Web UI) and the graph nodes `req:wf2.ui`, `req:wf2.ui.sidebar`, `req:wf2.ui.node-page`, `req:wf2.ui.graph`, `rule:deep-links`, `rule:mindmap-layout`, `rule:prose-keys`, `rule:graph-presets` in `docs/context-graph/prd.md` and `dev-design.md`.
+**Spec:** `docs/superpowers/specs/2026-09-14-wye-v2-design.md` §7 (Web UI) and the graph nodes `req:wf2.ui`, `req:wf2.ui.sidebar`, `req:wf2.ui.node-page`, `req:wf2.ui.graph`, `rule:deep-links`, `rule:mindmap-layout`, `rule:prose-keys`, `rule:graph-presets` in `docs/context-graph/prd.md` and `dev-design.md`.
 
 ## Global Constraints
 
@@ -68,7 +68,7 @@ Replace root `package.json` with:
 
 ```json
 {
-    "name": "waterfall",
+    "name": "wye",
     "version": "0.2.0",
     "description": "Product context graph: describe a system as requirements, entities, rules, ops and pages in markdown; query it as a graph; browse and edit it in a web app.",
     "private": true,
@@ -89,7 +89,7 @@ Replace root `package.json` with:
 
 ```json
 {
-    "name": "@waterfall/web",
+    "name": "@wye/web",
     "version": "0.2.0",
     "private": true,
     "scripts": {
@@ -296,7 +296,7 @@ export interface Project { name: string; title: string; graphPath: string }
 // Registry for this slice: one project per entry; WATERFALL_PROJECTS="name=title=/abs/path/graph.json;..." overrides.
 const REPO_ROOT = path.resolve(process.cwd(), process.env.WATERFALL_REPO_ROOT ?? '../..');
 const DEFAULT: Project[] = [
-  { name: 'waterfall', title: 'Waterfall', graphPath: path.join(REPO_ROOT, 'docs/context-graph/_build/graph.json') },
+  { name: 'wye', title: 'Waterfall', graphPath: path.join(REPO_ROOT, 'docs/context-graph/_build/graph.json') },
 ];
 
 export function listProjects(): Project[] {
@@ -940,7 +940,7 @@ export default async function ProjectHome({ params }: { params: Promise<{ projec
 
 - [ ] **Step 7: Verify in the browser**
 
-Run: `npm run dev` (background). Open http://localhost:3000 → redirects to `/p/waterfall`; sidebar shows five modules (Waterfall, and the four v2 documents), stats show 95 requirements; typing `clerk` in the search narrows the tree. Fix anything broken, then stop the server.
+Run: `npm run dev` (background). Open http://localhost:3000 → redirects to `/p/wye`; sidebar shows five modules (Waterfall, and the four v2 documents), stats show 95 requirements; typing `clerk` in the search narrows the tree. Fix anything broken, then stop the server.
 
 - [ ] **Step 8: Commit**
 
@@ -1095,7 +1095,7 @@ export default async function NodePage({ params }: { params: Promise<{ project: 
 
 - [ ] **Step 6: Verify in the browser**
 
-Open http://localhost:3000/p/waterfall/n/req%3Awf2.clerk → pills show `req` and `proposed`; properties show `title`, `when`, `then`, `satisfied-by` as a linkified list, `note` as prose; relations show `satisfied-by →`, `verified-by →`, `refines →` and `← refines by`, `← governs by`; clicking a chip navigates. Open `n/rule%3Aclerk-budget` → `statement` renders as a paragraph.
+Open http://localhost:3000/p/wye/n/req%3Awf2.clerk → pills show `req` and `proposed`; properties show `title`, `when`, `then`, `satisfied-by` as a linkified list, `note` as prose; relations show `satisfied-by →`, `verified-by →`, `refines →` and `← refines by`, `← governs by`; clicking a chip navigates. Open `n/rule%3Aclerk-budget` → `statement` renders as a paragraph.
 
 - [ ] **Step 7: Commit**
 
@@ -1239,7 +1239,7 @@ export function GraphView({ project, preset, focus, nodes, edges, summaries }: P
 
 - [ ] **Step 4: Verify in the browser**
 
-Open http://localhost:3000/p/waterfall/graph → Requirements preset renders the requirement forest as trees left-to-right; click a node → side panel with pills and first properties; double-click → URL becomes `?focus=<id>&preset=Requirements` and the 2-hop neighbourhood is shown with cross-links labelled by verb; Drift preset shows only nodes touching drift rows with dashed red edges; `?focus=req%3Awf2.clerk` opened from a node page's "show in graph" works. Check at 400px width (DevTools) that the sidebar collapses above the content and the canvas still pans.
+Open http://localhost:3000/p/wye/graph → Requirements preset renders the requirement forest as trees left-to-right; click a node → side panel with pills and first properties; double-click → URL becomes `?focus=<id>&preset=Requirements` and the 2-hop neighbourhood is shown with cross-links labelled by verb; Drift preset shows only nodes touching drift rows with dashed red edges; `?focus=req%3Awf2.clerk` opened from a node page's "show in graph" works. Check at 400px width (DevTools) that the sidebar collapses above the content and the canvas still pans.
 
 - [ ] **Step 5: Commit**
 
