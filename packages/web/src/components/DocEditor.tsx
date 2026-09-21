@@ -200,6 +200,7 @@ function RowNode({ p, set, contentRef, block, editor }: { p: { kind: string; slu
         <RowFold fold={fold} />
         <button type="button" className="nrow-send" contentEditable={false} title="Copy link" onMouseDown={ev => ev.stopPropagation()} onClick={() => copyBlockLink(withSlug(editor, index, block), rowRef.current)}>⧉</button>
         <button type="button" className="nrow-send" contentEditable={false} title="Send to agent" onMouseDown={ev => ev.stopPropagation()} onClick={() => sendBlock(withSlug(editor, index, block), rowRef.current)}>⇢</button>
+        <button type="button" className="nrow-send nrow-del" contentEditable={false} title="Delete this row" onMouseDown={ev => ev.stopPropagation()} onClick={() => { rowRef.current?.dispatchEvent(new CustomEvent('wf:edit', { bubbles: true })); editor.removeBlocks([String((block as { id?: string }).id)]); }}>×</button>
       </div>
       <div className="nrow-cell" contentEditable={false} ref={stopEditorEvents}>
         <select className={`status-sel s-${p.status}`} value={p.status} onChange={ev => setStatus(ev.target.value)}>
@@ -240,6 +241,7 @@ function TypeRow({ p, set, contentRef, block, type, editor }: { p: { kind: strin
         <RowFold fold={fold} />
         <button type="button" className="nrow-send" contentEditable={false} title="Copy link" onMouseDown={ev => ev.stopPropagation()} onClick={() => copyBlockLink(withSlug(editor, index, block), rowRef.current)}>⧉</button>
         <button type="button" className="nrow-send" contentEditable={false} title="Send to agent" onMouseDown={ev => ev.stopPropagation()} onClick={() => sendBlock(withSlug(editor, index, block), rowRef.current)}>⇢</button>
+        <button type="button" className="nrow-send nrow-del" contentEditable={false} title="Delete this row" onMouseDown={ev => ev.stopPropagation()} onClick={() => { rowRef.current?.dispatchEvent(new CustomEvent('wf:edit', { bubbles: true })); editor.removeBlocks([String((block as { id?: string }).id)]); }}>×</button>
       </div>
       <div className="nrow-cell" contentEditable={false} ref={stopEditorEvents}>
         <select className={`status-sel s-${p.status}`} value={p.status} onChange={ev => set({ status: ev.target.value })}>
@@ -505,7 +507,9 @@ const NodeBlock = createReactBlockSpec(
   {
     render: props => {
       const p = props.block.props as { kind: string; slug: string; status: string; form: string; body: string; extra: string; check: string; textKey: string; row: string };
-      const set = (patch: Partial<typeof p>) => props.editor.updateBlock(props.block, { props: { ...p, ...patch } } as never);
+      // a control on the card (status, a property, a row's ×) edits without the editor being focused: wf:edit tells the
+      // document editor so the change is saved like typing would be
+      const set = (patch: Partial<typeof p>) => { (props.editor.domElement as HTMLElement | null)?.dispatchEvent(new CustomEvent('wf:edit', { bubbles: true })); props.editor.updateBlock(props.block, { props: { ...p, ...patch } } as never); };
       const ed = props.editor as unknown as EditorLike;
       if (p.row && p.row !== 'goal' && p.row !== 'task') return <TypeRowFor p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} editor={ed} />;
       if (p.row) return <RowNode p={p} set={set} contentRef={props.contentRef} block={props.block as unknown as AnyBlock} editor={ed} />;
@@ -980,6 +984,9 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     setBlockMenu({ block: b, x: e.clientX, y: e.clientY });
   };
   const closeBlockMenu = useCallback(() => setBlockMenu(null), []);
+  // a row's own controls (the × on a table row) edit without focusing the editor: they say so with wf:edit, so the
+  // change that follows is saved like typing would be
+  useEffect(() => { const el = rootRef.current; const h = () => { touched.current = true; }; el?.addEventListener('wf:edit', h); return () => el?.removeEventListener('wf:edit', h); }, []);
   const setNodeProp = (b: AnyBlock, key: string, value: string) => {
     const np = b.props as unknown as { form: string; body: string; extra: string };
     const props = np.form === 'yaml' ? { ...b.props, body: setBodyField(np.body ?? '', key, value) } : { ...b.props, extra: withExtra(np.extra ?? '', key, value) };

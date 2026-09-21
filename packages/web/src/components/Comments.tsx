@@ -25,6 +25,12 @@ export function Comments({ id }: { id: string }) {
     fetch(`/api/${product}/comments?on=${encodeURIComponent(id)}`).then(r => r.ok ? r.json() : null).then(j => { if (live) setList(j?.comments ?? []); }).catch(() => { if (live) setList([]); });
     return () => { live = false; };
   }, [id, product, version]);
+  // a comment goes when its × is pressed: the row leaves the Comments document (op:api.comments)
+  const remove = async (cid: string) => {
+    const r = await fetch(`/api/${product}/comments?id=${encodeURIComponent(cid)}`, { method: 'DELETE' });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); setErr(j.message ?? 'could not delete the comment'); return; }
+    setList(cur => (cur ?? []).filter(c => c.id !== cid));
+  };
   const submit = async () => {
     const t = text.trim(); if (!t || busy) return;
     setBusy(true); setErr('');
@@ -41,7 +47,7 @@ export function Comments({ id }: { id: string }) {
       <h4>Comments{list && list.length > 0 && <span className="muted">{list.length}</span>}</h4>
       {list && list.length > 0 && (
         <ul className="comment-list">
-          {list.map(c => <li key={c.id}><div className="comment-meta"><b>{c.by}</b> <span className="muted">{c.date}</span></div><div className="comment-text">{c.text}</div></li>)}
+          {list.map(c => <li key={c.id}><div className="comment-meta"><b>{c.by}</b> <span className="muted">{c.date}</span><button className="comment-del" title="Delete this comment" aria-label="delete comment" onClick={() => remove(c.id)}>×</button></div><div className="comment-text">{c.text}</div></li>)}
         </ul>
       )}
       <form className="comment-box" onSubmit={e => { e.preventDefault(); submit(); }}>

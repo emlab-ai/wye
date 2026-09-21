@@ -66,3 +66,19 @@ export async function addComment(scope: Scope, input: { on: string; text: string
   const title = scope.graph.modules.find(m => m.file === file)?.title || 'Comments';
   return { ok: true, id, file, doc: { project: project.slug, doc: COMMENTS_SLUG, title }, created };
 }
+
+// Remove a comment: its row leaves the Comments document (the line that defines it; nothing else moves).
+export async function removeComment(scope: Scope, id: string): Promise<{ ok: true; file: string } | { ok: false; status: number; message: string }> {
+  const n = scope.idx.byId.get(id);
+  if (!n?.defined || !n.file || !id.startsWith('comment:')) return { ok: false, status: 404, message: `${id} is not a comment` };
+  const abs = path.join(REPO_ROOT, n.file);
+  const done = await withFileLock(abs, async () => {
+    const md = await readFile(abs, 'utf8'); const lines = md.split('\n');
+    const at = lines.findIndex(l => new RegExp('^\\s*-\\s+' + id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(\\s|$)').test(l));
+    if (at < 0) return false;
+    lines.splice(at, 1); await writeAtomic(abs, lines.join('\n')); return true;
+  });
+  if (!done) return { ok: false, status: 404, message: `${id} is not on its line any more` };
+  await rebuild(scope.product.dir);
+  return { ok: true, file: n.file };
+}
