@@ -4,6 +4,7 @@
 import type { GraphData, GraphIndex, GraphNode } from './graph';
 import { parseBody, HIDDEN_KINDS } from './graph';
 import { docRoute } from './doc';
+import { PART_KINDS } from './kinds';
 
 export type ReviewKind = 'question' | 'decision' | 'req' | 'rule' | 'constraint' | 'lesson' | 'contradiction' | 'goal' | 'entity' | 'other';
 // a verdict on the item (decision:memory.write-time-verdict): how it relates to `other`, and the open contradiction node when there is one
@@ -18,15 +19,19 @@ export function isReviewable(n: GraphNode, docIds?: Set<string>): boolean {
   if (n.kind === 'question' || n.status === 'question') return OPEN_QUESTION(n.status === 'question' ? 'open' : n.status || 'open');
   // an open contradiction waits for a person like a question does (decision:memory.write-time-verdict)
   if (n.kind === 'contradiction') return OPEN_QUESTION(n.status || 'open');
-  return NEEDS_APPROVAL.has(n.status) && ['decision', 'req', 'rule', 'constraint', 'lesson', 'goal', 'entity', 'task'].includes(n.kind) && n.status !== 'unverified';
+  // any proposed block of any kind waits here — a test an agent proposed, a product's own type's instance — except
+  // the structural kinds (a page, a type, a PR, a hook…) and the parts of a card (when / then / choice …), which are
+  // reviewed with their parent
+  return NEEDS_APPROVAL.has(n.status) && !NOT_REVIEWED.has(n.kind) && !PART_KINDS.has(n.kind) && n.status !== 'unverified';
 }
+const NOT_REVIEWED = new Set(['module', 'pr', 'type', 'prop', 'field', 'block', 'drift', 'verdict', 'comment', 'hook', 'template', 'skill', 'eval-run', 'eval-score', 'eval-pair', 'eval-public']);
 
 export function reviewQueue(product: string, g: GraphData, idx: GraphIndex): ReviewItem[] {
   const docIds = new Set(g.modules.map(m => m.id)); // a page's node is not a review item, whatever its kind
   return g.nodes.filter(n => isReviewable(n, docIds)).map(n => {
     const rows = parseBody(n.body); const get = (k: string) => rows.find(r => r.key === k)?.value ?? '';
     const r = docRoute(n.file);
-    const text = get('q') || get('text') || get('statement') || get('reason') || get('choice') || get('description') || get('then') || '';
+    const text = get('q') || get('text') || get('statement') || get('reason') || get('choice') || get('description') || get('scenario') || get('purpose') || get('then') || '';
     const fields: Record<string, string> = {};
     for (const k of ['context', 'choice', 'alternatives', 'consequences', 'when', 'then', 'unless', 'source', 'date', 'supersedes', 'evidence', 'by', 'conflict', 'between']) if (get(k)) fields[k] = get(k);
     return { id: n.id, kind: n.kind, title: get('title') || n.title, text, status: n.kind === 'question' && !n.status ? 'open' : n.status, file: n.file, project: r?.project ?? '', doc: r?.doc ?? '', href: r ? `/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(n.id)}` : '', line: n.line, refs: (idx.out.get(n.id) ?? []).filter(e => e.verb !== 'mentions').map(e => e.to).slice(0, 8), session: get('session') || undefined, form: n.form, fields };

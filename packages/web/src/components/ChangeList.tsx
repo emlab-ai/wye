@@ -36,10 +36,21 @@ export function ChangeList({ product, changes, me }: { product: string; changes:
     if (!r.ok) { setMsg(m => ({ ...m, [c.id]: `${j.message ?? j.error}${j.before ? ` — old value: ${j.before.text}` : ''}` })); return; }
     router.refresh();
   };
+  // the way out of a long list: accept every record shown, or only the person's own (and the migrations') edits —
+  // an agent's stay for a look
+  const mine = changes.filter(c => c.by === 'person' || c.by === 'migration' || c.by === me);
+  const acceptAll = async (which: 'all' | 'mine') => {
+    const ids = (which === 'mine' ? mine : changes).map(c => c.id);
+    if (!ids.length || !window.confirm(`Accept ${ids.length} change${ids.length === 1 ? '' : 's'}${which === 'mine' ? ' of your own' : ''}? Nothing moves in the documents; the records are marked accepted.`)) return;
+    setBusy('all');
+    await fetch(`/api/${product}/changes`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'accept-all', ids, by: me || undefined }) });
+    setBusy(null); router.refresh();
+  };
   if (!changes.length) return null;
   return (
     <section className="changes">
-      <h3 className="review-group-head">Changes <span className="muted">{changes.length} edit{changes.length === 1 ? '' : 's'} of existing blocks</span></h3>
+      <h3 className="review-group-head">Changes <span className="muted">{changes.length} edit{changes.length === 1 ? '' : 's'} of existing blocks</span>
+        <span className="review-group-acts">{mine.length > 0 && mine.length < changes.length && <button className="mini" disabled={busy === 'all'} onClick={() => acceptAll('mine')}>Accept mine ({mine.length})</button>}<button className="mini" disabled={busy === 'all'} onClick={() => acceptAll('all')}>Accept all ({changes.length})</button></span></h3>
       <ul className="change-items">
         {changes.map(c => {
           const v = verdictSummary(c.verdicts);

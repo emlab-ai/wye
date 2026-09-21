@@ -8,6 +8,7 @@ import { collectionKind, collectionView, type AnyBlock, type NodeProps } from '.
 import { EXTRA_GROUP } from './props';
 
 const TEXT_KEYS = ['title', 'statement', 'description', 'purpose', 'q', 'text', 'context', 'does', 'intent'];
+const TRAILING_STATUS = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|review|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused|resolved|rejected|superseded|retired|dismissed|defining|defined|building|cancelled|failed)\s*$/;
 const STATUS_TAG = /(?:^|\s)#(proposed|approved|shipped|unverified|api-only|deprecated|question|drift|done|in-progress|blocked|open|todo|review|non-goal|partial|active|draft|complete|on-track|at-risk|off-track|paused|resolved|rejected|superseded|retired|dismissed|defining|defined|building|cancelled|failed)\b/;
 
 export interface Prepared { md: string; yaml: { id: string; body: string }[][]; drawings: { title: string; src: string }[]; images: { alt: string; url: string }[]; views: { slug: string; query: string }[]; embeds: string[]; tables: { query: string; view: 'table' | 'list' }[]; contents: string[] }
@@ -335,7 +336,8 @@ function proseNode(b: AnyBlock, yaml: Prepared['yaml'], drawings: Prepared['draw
   if (last && last.type === 'text') {
     let s = (last as InlineText).text;
     const g = s.match(EXTRA_GROUP); if (g) { extra = g[1]; s = s.slice(0, g.index); }
-    s = s.replace(STATUS_TAG, (_, st) => { status = st; return ''; });
+    // the status is the tag at the end of the text (after the props group), never one inside a sentence
+    for (let m; (m = s.match(TRAILING_STATUS)); ) { status = m[1]; s = s.slice(0, m.index); }
     restItems[restItems.length - 1] = { ...(last as InlineText), text: s.replace(/\s+$/, '') };
   }
   const check: NodeProps['check'] = b.type === 'checkListItem' ? ((b.props as { checked?: boolean })?.checked ? 'done' : 'todo') : '';

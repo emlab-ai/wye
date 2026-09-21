@@ -95,7 +95,8 @@ aliases:   # short kind prefixes accepted anywhere an id is written; normalised 
 
 prose-nodes: |
   A paragraph or list item whose first token is an id defines that node: `req:sale.close When a sale …`.
-  The text after the id is the node's `text` (title = first sentence). `#status` sets status. A trailing
+  The text after the id is the node's `text` (title = first sentence). `#status` at the END of the text sets status
+  (a hashtag inside a sentence is text; `#ready` the same). A trailing
   `(key: value, key: value)` group carries other keys. Links `[phrase](kind:slug)` and bare ids in the text become
   edges; the verb is inferred from the words before the id ("satisfied by", "verified by", "refines", …), else related-to.
   A yaml block still defines nodes exactly as before; both forms coexist in one file.

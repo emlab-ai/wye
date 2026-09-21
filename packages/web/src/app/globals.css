@@ -713,3 +713,5 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .nblock-part { padding-top: 2px; } .nblock-part .nblock-head { min-height: 0; margin-bottom: 0; } .nblock-part .pill.k { font-size: 10px; }
 /* the parts of a requirement and of a decision take their parent's colour, softer */
 :root { --k-when: var(--k-req); --k-then: var(--k-req); --k-unless: var(--k-req); --k-context: var(--k-decision); --k-choice: var(--k-decision); --k-alternative: var(--k-decision); --k-consequence: var(--k-decision); } .nblock-part .pill.k { opacity: .75; }
+
+.review-group-head { display: flex; align-items: baseline; gap: 8px; } .review-group-acts { margin-left: auto; display: flex; gap: 6px; }
