@@ -119,8 +119,9 @@ export function blocksToMarkdown(blocks: AnyBlock[]): string {
         const cp = b.props as { kind?: string; query?: string; view?: string };
         const ck = collectionMarker(cp.kind ?? 'goal', cp.view);
         blank(); push(`<!-- ${ck}${cp.query?.trim() ? ' ' + cp.query.trim() : ''} -->`); // the filters ride on the opening marker (rule:table-filter)
-        // the editor keeps an empty row at the end for typing the next item; rows without text are not written
-        const rows = (b.children ?? []).filter(c => c.type !== 'node' || (inlineToMarkdown(c.content as Inline[]).trim() && (c.props as unknown as NodeProps).slug));
+        // the editor keeps an empty row at the end for typing the next item: a prose row with no text and no slug is not
+        // written. A yaml card is never dropped — a card without a title still has its body and its content
+        const rows = (b.children ?? []).filter(c => { if (c.type !== 'node') return true; const np = c.props as unknown as NodeProps; return np.form === 'yaml' ? !!np.slug : !!(inlineToMarkdown(c.content as Inline[]).trim() && np.slug); });
         const body = childrenLines(rows.map(c => c.type === 'node' && (c.props as unknown as NodeProps).form !== 'yaml' && !(c.props as unknown as NodeProps).check && !(c.props as unknown as NodeProps).list ? { ...c, props: { ...c.props, list: 'bullet' } } : c), 0);
         // a list region of cards keeps a blank line after its opening marker and before its closing one
         if (body.length && body[0].startsWith('```')) push('');

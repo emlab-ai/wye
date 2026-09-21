@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePeek } from './PeekProvider';
 import { KindPill, StatusPill } from './Pills';
-import { EmbeddedCard } from './EmbedBlock';
+import { EmbeddedCard } from './EmbeddedCard';
 import { KINDS } from '@/lib/ids';
 import { docRoute } from '@/lib/doc';
 import type { InstanceRow, InstanceTable as Table } from '@/lib/instance-table';

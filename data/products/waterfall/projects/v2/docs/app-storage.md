@@ -282,6 +282,29 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     project.
   status: proposed
   part-of: module:app-storage
+- id: lib:build
+  file: packages/web/src/lib/build.ts
+  side: server
+  purpose: >
+    The build coordinator (decision&#58;wf2.parse-cache): a product's graph is built in this process — lib/build.js
+    with a parse cache kept across builds, so a save re-parses the one document that changed and replays the rest —
+    and the built graph stays in memory with its indexes, served to every request until graph.json changes
+    underneath (a CLI build). One build per product at a time; a request that arrives while one runs gets the next.
+    Listeners registered with onBuilt run after every build with the graph before and after — the watcher's change
+    pipeline lives there.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:request
+  file: packages/web/src/lib/request.ts
+  side: server
+  purpose: >
+    Is this render for the router (a refresh or a client navigation — an RSC request) rather than a full page load?
+    Next strips its own `rsc` header before `headers()`, so the fetch metadata tells: the router fetches with
+    sec-fetch-dest "empty" (a document load says "document"), and accepts text/x-component. A plain curl counts as a
+    full load. Used to leave the node index and the server-rendered reader out of a refresh
+    (decision&#58;wf2.parse-cache).
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

@@ -167,3 +167,14 @@ req:p Prose req.
 `);
   });
 });
+
+describe('a list region keeps every card', () => {
+  it('a yaml card without a title (its text) is written with its body and its content; an empty prose row is not', () => {
+    const card = { type: 'node', props: { kind: 'req', slug: 'wf2.y', status: 'shipped', form: 'yaml', textKey: 'title', body: 'id: req:wf2.y\nstatus: shipped\nsatisfied-by: [lib:a]', extra: '' }, content: [{ type: 'text', text: '', styles: {} }], children: [{ type: 'node', props: { kind: 'when', slug: 'wf2.y', status: '', form: 'prose', textKey: 'text', extra: '', list: 'bullet' }, content: [{ type: 'text', text: 'a', styles: {} }] }] } as unknown as AnyBlock;
+    const empty = { type: 'node', props: { kind: 'req', slug: '', status: '', form: 'prose', textKey: 'text', extra: '', row: 'req' }, content: [] } as unknown as AnyBlock;
+    const md = blocksToMarkdown([{ type: 'collection', props: { kind: 'req', query: '', view: 'list' }, children: [card, empty] } as unknown as AnyBlock]);
+    expect(md).toContain('- id: req:wf2.y\n  status: shipped\n  satisfied-by: [lib:a]');
+    expect(md).toContain('  - when:wf2.y a');
+    expect(md).not.toMatch(/- req: /);
+  });
+});

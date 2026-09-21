@@ -1,6 +1,6 @@
 // Server-only: everything a page needs for one product (and optionally one project), loaded once per request.
 import { getProduct, getProject, listProjects, type Product, type Project } from './products';
-import { loadGraph } from './load';
+import { graphFor } from './build';
 import { indexGraph, type GraphData, type GraphIndex } from './graph';
 import { nodeIndex, projectTree, type IndexEntry } from './doc';
 import { setKinds } from './ids';
@@ -20,19 +20,17 @@ export async function loadScope(productSlug: string, projectSlug?: string): Prom
   if (projectSlug && !project) return null;
   // the graph is derived and not in git (rule:build-is-derived): a fresh clone, or a product whose _build was removed,
   // gets it built on first load — once per product at a time; only a build that also fails leaves the graph empty
-  let graph: GraphData;
-  try { graph = await loadGraph(product.graphPath); }
-  catch {
-    graph = EMPTY;
-    if (await hasDocs(product.dir)) {
-      building.set(product.slug, building.get(product.slug) ?? rebuild(product.dir).finally(() => building.delete(product.slug)));
-      const r = await building.get(product.slug)!;
-      if (r.code === 0) { try { graph = await loadGraph(product.graphPath); } catch { graph = EMPTY; } }
-      else console.warn(`[wf] ${product.slug}: the graph could not be built — ${r.output.split('\n').filter(Boolean).slice(-2).join(' ')}`);
-    }
+  // the graph and its indexes come from the build coordinator's memory (lib/build): one parse per change, not per request
+  let cached = await graphFor(product.dir);
+  if (!cached && await hasDocs(product.dir)) {
+    building.set(product.slug, building.get(product.slug) ?? rebuild(product.dir).finally(() => building.delete(product.slug)));
+    const r = await building.get(product.slug)!;
+    if (r.code === 0) cached = await graphFor(product.dir);
+    else console.warn(`[wf] ${product.slug}: the graph could not be built — ${r.output.split('\n').filter(Boolean).slice(-2).join(' ')}`);
   }
+  const graph = cached?.graph ?? EMPTY;
   setKinds(graph.kinds);
-  return { product, projects, project, graph, idx: indexGraph(graph), index: nodeIndex(graph) };
+  return { product, projects, project, graph, idx: cached?.idx ?? indexGraph(graph), index: cached?.index ?? nodeIndex(graph) };
 }
 
 export function treeFor(scope: Scope, projectSlug: string) { return projectTree(scope.graph, projectSlug); }

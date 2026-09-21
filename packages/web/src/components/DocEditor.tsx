@@ -665,7 +665,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   };
   const imageInput = useRef<HTMLInputElement>(null);
   if (typeof window !== 'undefined' && scoped) (window as unknown as { __wfScoped: unknown }).__wfScoped = editor; // dev inspection
-  if (typeof window !== 'undefined' && !scoped) { const w = window as unknown as { __wf: unknown; __wfExport: () => string; __wfLink: (id: string) => string }; w.__wf = editor; w.__wfExport = () => blocksToMarkdown(editor.document as unknown as AnyBlock[]); w.__wfLink = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock; return `${location.origin}/${product}/${project}/d/${slug}#${blockAnchor(b)}`; }; } // dev inspection
+  if (typeof window !== 'undefined' && !scoped) { const w = window as unknown as { __wf: unknown; __wfExport: () => string; __wfLink: (id: string) => string }; w.__wf = editor; w.__wfExport = () => blocksToMarkdown(editor.document as unknown as AnyBlock[]); const imp = (md: string) => importMarkdown(md, src => editor.tryParseMarkdownToBlocks(src) as unknown as AnyBlock[]); Object.assign(w, { __wfImport: imp, __wfRoundTrip: (md: string) => blocksToMarkdown(imp(md)) }); w.__wfLink = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock; return `${location.origin}/${product}/${project}/d/${slug}#${blockAnchor(b)}`; }; } // dev inspection
   void index;
   const [ready, setReady] = useState(false);
   const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'conflict' | 'error'>('idle');
@@ -763,7 +763,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     if (!r.ok) { setState(j.error === 'conflict' ? 'conflict' : 'error'); return; }
     hash.current = j.bodyHash ?? hash.current;
     setLintMsg(j.lintOk ? null : (j.lintErrors as string[]).join(' · ')); setElsewhere(Number(j.lintElsewhere ?? 0));
-    setState('saved'); router.refresh();
+    setState('saved'); // the rail and panels refresh on the graph event the save's build sends (LiveRefresh), once per burst
   }
   const settling = useRef(false);
   const changed = () => {

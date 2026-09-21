@@ -242,6 +242,25 @@ Definition — the librarian
   - consequence:wf2.hooks-and-skills Every product gets a Skills folder and a Hooks link in the rail (in the project that holds PRs), five system documents written on first open. A hook's session appears on the Agents page with a hook pill. Block ids of non-module pages (pr:28, skill:build) now keep their slug — they were truncated before. H2: assign / notify, the column's Hooks section, a Settings switch.
 
 ```yaml
+- id: decision:wf2.parse-cache
+  title: A save builds the graph in the app's process with a per-file parse cache, keeps it in memory, and a refresh carries neither the node index nor the server-rendered reader
+  date: 2026-09-21
+  status: approved
+  affects: [lib:build, lib:parse, lib:watch, lib:scope, lib:write, lib:request, lib:changes, op:api.index, op:api.sessions, component:peek-provider, component:live-document, component:live-refresh, component:embedded-card]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
+```
+
+  - context:wf2.parse-cache alex: "test and improve performance of editing and saving, do we need to build some indexes?". Measured on the waterfall product (101 documents, 6.6k nodes): a save took 560 ms — `ctx build` spawned as a process (a full parse, 330 ms, plus a 7.5 MB pretty-printed graph.json and an unused data.js), `ctx check` spawned again, then the watcher rebuilt a second time — and every save re-rendered the page three or four times at 700 ms each (react-markdown rendering the 64 KB document for a reader nobody sees once the editor is up, and a 1.4 MB RSC payload with the whole node index), while the column's requests read 1,152 change-record files (570 ms) and the session list carried every session's block attribution (1.7 MB every 20 s).
+
+  - choice:wf2.parse-cache The index is a parse cache, not a database: `parseFiles(files, { cache })` (lib:parse) runs the per-file pass through a local view that records what the file produced (its nodes' written keys, edges, module, problems) and what it read from the other files (a node's existence, whether it was defined, its state when touched); a file whose text, ontology and reads are unchanged replays its record — the result is byte-identical to a cold parse, and the field-mention pass runs one regex per body instead of one per field per node. lib:build (`buildProduct`) builds in the app's process with that cache, keeps the graph and its indexes in memory (`graphFor`, validated against graph.json's mtime so a CLI build is still seen), runs the check in-process, and runs the change pipeline — the watcher's listener (`onBuilt`) — after the reply; the watcher skips its own rebuild for a change the app already built. lib/build.js is the one build path (`ctx build` too; graph.json compact, data.js only from `ctx site`). A refresh (an RSC request, told by the fetch metadata — lib:request) carries no node index (component:peek-provider fetches op:api.index, ETag = the graph's build time, and again on graph events) and no server-rendered reader (component:live-document shows a skeleton while the editor loads); the save no longer refreshes on its own, component:live-refresh coalesces a burst into one refresh. lib:changes keeps records parsed per file mtime; op:api.sessions lists sessions without their blocks (a count instead).
+
+  - alternative:wf2.parse-cache A database (SQLite) for nodes and edges — rejected: the graph is derived from markdown and fits in memory; the cost was re-parsing and re-shipping it, not querying it. Incremental edges without the recorded reads — rejected: a prose line that names an id defined in an earlier file is a mention, not a definition, so a file's parse depends on the others; recording those reads keeps the replay exact. Keeping the reader on refresh — rejected: 500 ms per refresh for markup the editor replaces at once.
+
+  - consequence:wf2.parse-cache A save is ~170 ms (build ~100 ms of it), a refresh ~60 ms and 350 KB, a full page load ~600 ms with the reader and the index in the HTML; the column's change list 60 ms; the session list 200 KB. `ctx build` is 0.24 s cold. Found on the way and fixed: a yaml card without a title inside a list region was dropped by the editor's save (lib:serialize wrote only rows with text) — every document of the product now round-trips with no id lost; and the dev server's "Duplicate use of selection JSON ID" 500 came from @blocknote/react evaluated on the server through EmbedBlock — component:embedded-card is its own file now.
+
+```yaml
 - id: decision:wf2.cmd-modes
   title: ⌘P has two modes — PR (a request page with a refining session) and Ad-hoc (a conversation, no page)
   date: 2026-09-20

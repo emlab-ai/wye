@@ -5,7 +5,7 @@
 // who (the person, or the session), when, and a state — pending (listed in the Inbox under Changes), accepted,
 // reverted. Writers do not write records; they claim the write (claimWrite) so the record names them. A change of
 // only status and tracking keys is recorded accepted and never listed; a paragraph (block:) has no record.
-import { mkdir, readdir, readFile, writeFile, rename } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile, rename, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { randomBytes, createHash } from 'node:crypto';
 import { parseBody, type GraphData, type GraphNode } from './graph';
@@ -93,10 +93,22 @@ export function recordsFromDiff(before: GraphData, after: GraphData, changes: Bl
 // ---- the store
 const dir = (productDir: string) => path.join(productDir, '_changes');
 const file = (productDir: string, id: string) => path.join(dir(productDir), `${id}.json`);
+// The records stay parsed in memory, keyed by their file's mtime and size: a list is one readdir and a stat per
+// file (in parallel), and only records whose file changed are read again (decision:wf2.parse-cache).
+type Parsed = { key: string; rec: ChangeRecord };
+const gc = globalThis as unknown as { __wfChangesCache?: Map<string, Map<string, Parsed>> };
+const cacheFor = (productDir: string) => { const all = (gc.__wfChangesCache ??= new Map()); if (!all.has(productDir)) all.set(productDir, new Map()); return all.get(productDir)!; };
 export async function listChanges(productDir: string, f: { state?: ChangeState; node?: string; listed?: boolean } = {}): Promise<ChangeRecord[]> {
   let names: string[] = []; try { names = (await readdir(dir(productDir))).filter(n => n.endsWith('.json')); } catch { return []; }
-  const out: ChangeRecord[] = [];
-  for (const n of names) { try { const r = JSON.parse(await readFile(path.join(dir(productDir), n), 'utf8')) as ChangeRecord; if ((!f.state || r.state === f.state) && (!f.node || r.node === f.node) && (!f.listed || !r.tracking)) out.push(r); } catch { /* skip */ } }
+  const cache = cacheFor(productDir); const seen = new Set(names);
+  for (const k of cache.keys()) if (!seen.has(k)) cache.delete(k);
+  const recs = await Promise.all(names.map(async n => {
+    const p = path.join(dir(productDir), n);
+    let key = ''; try { const st = await stat(p); key = `${st.mtimeMs}:${st.size}`; } catch { return null; }
+    const hit = cache.get(n); if (hit && hit.key === key) return hit.rec;
+    try { const rec = JSON.parse(await readFile(p, 'utf8')) as ChangeRecord; cache.set(n, { key, rec }); return rec; } catch { return null; }
+  }));
+  const out = recs.filter((r): r is ChangeRecord => !!r && (!f.state || r.state === f.state) && (!f.node || r.node === f.node) && (!f.listed || !r.tracking));
   return out.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 export async function getChange(productDir: string, id: string): Promise<ChangeRecord | null> {

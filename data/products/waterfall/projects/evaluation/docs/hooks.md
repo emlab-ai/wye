@@ -10,12 +10,7 @@ part-of: module:benchmarks
 
 # Hooks
 
-A hook is "when this happens to that kind of node, do this" (type:hook): `on: <kind>.<event>` — created,
-status:<x>, linked:<verb>, pr.approved, pr.built, session.done (kind may be `*`) — an optional `where:`
-(document=<glob>, type=<slug>, status=<x>, prop=<key>:<value>), and `do:` lines: `run skill:<id>` starts a session
-with that skill on the node, `add <template>` appends a template's blocks under it. A hook fires once per node
-unless `once: false`; `status: paused` switches it off. Everything a hook writes is proposed and goes through
-review. Templates (type:template) live here too: markdown with {{node}}, {{slug}}, {{title}}, {{kind}}.
+A hook is "when this happens to that kind of node, do this" (type:hook): `on: <kind>.<event>` — created, status:<x>, linked:<verb>, pr.approved, pr.built, session.done (kind may be `*`) — an optional `where:` (document=<glob>, type=<slug>, status=<x>, prop=<key>:<value>), and `do:` lines: `run skill:<id>` starts a session with that skill on the node, `add <template>` appends a template's blocks under it. A hook fires once per node unless `once: false`; `status: paused` switches it off. Everything a hook writes is proposed and goes through review. Templates (type:template) live here too: markdown with {{node}}, {{slug}}, {{title}}, {{kind}}.
 
 ## Hooks
 

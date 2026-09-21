@@ -3,11 +3,9 @@
 // the graph (agents may edit files without running ctx build). Lives on globalThis across dev reloads.
 import { watch, type FSWatcher } from 'node:fs';
 import path from 'node:path';
-import { rebuild } from './write';
+import { buildProduct, builtAt, onBuilt } from './build';
 import { creditDocumentChange, creditBlockChanges } from './artifacts';
-import { loadGraph } from './load';
 import { diffGraphs } from './graph-diff';
-import type { GraphData } from './graph';
 import { scheduleVerdicts } from './verdicts';
 import { recordChanges, takeClaim } from './changes';
 import { scheduleImpact } from './impact-run';
@@ -19,12 +17,10 @@ import { fire, depthOfSession, hooksOn } from './hooks-run';
 
 type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other'; file: string }) => void;
 // bump when the watcher callback changes: dev reloads keep globalThis, so an old watcher would keep running old code
-const VERSION = 11;
-// lastGraph: the graph as this watcher last saw it, so a rebuild can be diffed even when the API already rebuilt
-// (editNode writes the file and rebuilds before the watcher's timer fires)
-type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>>; lastGraph: Map<string, GraphData> };
+const VERSION = 12;
+type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>> };
 const g = globalThis as unknown as { __wfWatch?: State };
-const st = (): State => (g.__wfWatch ??= { watchers: new Map(), subs: new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map(), lastGraph: new Map() });
+const st = (): State => (g.__wfWatch ??= { watchers: new Map(), subs: new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map() });
 
 function classify(rel: string): 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other' {
   if (rel.startsWith('_build/')) return 'graph';
@@ -39,7 +35,7 @@ export function ensureWatch(productDir: string) {
   const s = st();
   if (s.version !== VERSION) { // fresh state for the new code, keeping the SSE subscribers
     for (const w of s.watchers.values()) { try { w.close(); } catch { /* closed */ } }
-    g.__wfWatch = { version: VERSION, watchers: new Map(), subs: s.subs ?? new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map(), lastGraph: new Map() };
+    g.__wfWatch = { version: VERSION, watchers: new Map(), subs: s.subs ?? new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map() };
     return ensureWatch(productDir);
   }
   if (s.watchers.has(productDir)) return;
@@ -51,51 +47,16 @@ export function ensureWatch(productDir: string) {
       const kind = classify(rel);
       if (kind === 'other') return;
       if (kind === 'doc') {
-        // one rebuild per burst of writes; the graph change then notifies everyone; running sessions get the credit
+        // one build per burst of writes, unless the app built since the write (a save through the API builds in-process —
+        // lib/build — and its listeners already ran); running sessions get the document credit either way
         if (!s.changedDocs.has(productDir)) s.changedDocs.set(productDir, new Set()); s.changedDocs.get(productDir)!.add(rel);
+        const at = Date.now();
         const t = s.rebuildTimer.get(productDir); if (t) clearTimeout(t);
         s.rebuildTimer.set(productDir, setTimeout(async () => {
           s.rebuildTimer.delete(productDir); if (s.rebuilding.has(productDir)) return; s.rebuilding.add(productDir);
           const docs = [...(s.changedDocs.get(productDir) ?? [])]; s.changedDocs.get(productDir)?.clear();
-          const graphPath = path.join(productDir, '_build/graph.json');
-          const before = s.lastGraph.get(productDir) ?? await loadGraph(graphPath).catch(() => null);
           try {
-            await rebuild(productDir);
-            // block-level attribution: what changed since the graph this watcher last saw goes to every running session
-            const after = await loadGraph(graphPath).catch(() => null);
-            if (after) {
-              s.lastGraph.set(productDir, after);
-              if (before) {
-                const changes = diffGraphs(before, after, new Date().toISOString());
-                await creditBlockChanges(productDir, changes).catch(() => {});
-                // change records (decision:exec.changes-from-the-rebuild-diff): the old and new value of every edited
-                // typed node, credited to the writer that claimed it, else to the one running session, else "person"
-                const running = (await listSessions(productDir).catch(() => [])).filter(x => x.status === 'running');
-                // who wrote each changed node: the writer's claim (the API routes claim by node or file), else the one
-                // running session, else "person" — resolved once, for the change records and the Definition alike
-                const fileOf = new Map(after.nodes.map(n => [n.id, n.file]));
-                const attribution = new Map(changes.map(c => { const c0 = takeClaim(c.id, fileOf.get(c.id) ?? ''); return [c.id, c0 ? { by: c0.by, session: c0.session, silent: c0.silent } : running.length === 1 ? { by: `agent:${running[0].id}`, session: running[0].id } : { by: 'person' }]; }));
-                const who = (id: string) => attribution.get(id) ?? { by: 'person' };
-                const records = await recordChanges(productDir, path.basename(productDir), before, after, changes, who).catch(e => { console.log(`[wf] changes: ${e instanceof Error ? e.message : e}`); return []; });
-                if (records.length) scheduleImpact(productDir, path.basename(productDir), records, m => console.log(`[wf] ${m}`));
-                // hooks (decision:wf2.hooks-and-skills): what the diff means — created, status:<x>, linked:<verb> — fires the
-                // product's hooks; a change a hook's session made carries its firing depth, so chains stop at the cap
-                if (hooksOn()) {
-                  const events = eventsFromDiff(before, after, changes);
-                  if (events.length) void (async () => {
-                    const depths = new Map<string, number | null>();
-                    const withDepth = [];
-                    for (const ev of events) { const sid = attribution.get(ev.id)?.session; if (!depths.has(sid ?? '')) depths.set(sid ?? '', await depthOfSession(productDir, sid)); withDepth.push({ ...ev, depth: depths.get(sid ?? '') }); }
-                    await fire(path.basename(productDir), withDepth);
-                  })().catch(e => console.log(`[wf] hooks: ${e instanceof Error ? e.message : e}`));
-                }
-                // a librarian's blocks land in its request's Definition (req:exec.definition-tracked) — the writes here come back through this watcher
-                try { const scope = await loadScope(path.basename(productDir)); if (scope) { await trackDefinitions(scope, running, changes.map(c => ({ ...c, session: attribution.get(c.id)?.session }))); const rescoped = await refreshStaleScopes(scope); if (rescoped.length) console.log(`[wf] scope: ${rescoped.join(', ')}`); } } catch (e) { console.log(`[wf] definition: ${e instanceof Error ? e.message : e}`); }
-                // the write-time verdict pass (decision:memory.write-time-verdict): new or changed knowledge is classified
-                // against its neighbours; runs detached, writes its lines under the nodes, which the watcher then picks up
-                scheduleVerdicts(productDir, path.basename(productDir), changes, m => console.log(`[wf] ${m}`));
-              }
-            }
+            if (builtAt(productDir) < at) await buildProduct(productDir);
             for (const d of docs) await creditDocumentChange(productDir, path.basename(productDir), d).catch(() => {});
           } finally { s.rebuilding.delete(productDir); }
         }, 400));
@@ -104,9 +65,41 @@ export function ensureWatch(productDir: string) {
     });
     w.on('error', () => { s.watchers.delete(productDir); });
     s.watchers.set(productDir, w);
-    loadGraph(path.join(productDir, '_build/graph.json')).then(gr => { if (!s.lastGraph.has(productDir)) s.lastGraph.set(productDir, gr); }).catch(() => {});
   } catch { /* platform without recursive watch */ }
 }
+
+// After every build (lib/build#onBuilt): the diff of the graph before and after is what the app knows about the change
+// — block-level attribution, change records, impact, the request Definitions, the hooks, the verdict pass.
+onBuilt(async (productDir, before, after) => {
+  if (!before || !st().watchers.has(productDir)) return; // a product nobody follows (a test's scratch, a CLI-only use) keeps no records
+  const changes = diffGraphs(before, after, new Date().toISOString());
+  if (!changes.length) return;
+  await creditBlockChanges(productDir, changes).catch(() => {});
+  // change records (decision:exec.changes-from-the-rebuild-diff): the old and new value of every edited typed node,
+  // credited to the writer that claimed it, else to the one running session, else "person"
+  const running = (await listSessions(productDir).catch(() => [])).filter(x => x.status === 'running');
+  const fileOf = new Map(after.nodes.map(n => [n.id, n.file]));
+  const attribution = new Map(changes.map(c => { const c0 = takeClaim(c.id, fileOf.get(c.id) ?? ''); return [c.id, c0 ? { by: c0.by, session: c0.session, silent: c0.silent } : running.length === 1 ? { by: `agent:${running[0].id}`, session: running[0].id } : { by: 'person' }]; }));
+  const who = (id: string) => attribution.get(id) ?? { by: 'person' };
+  const records = await recordChanges(productDir, path.basename(productDir), before, after, changes, who).catch(e => { console.log(`[wf] changes: ${e instanceof Error ? e.message : e}`); return []; });
+  if (records.length) scheduleImpact(productDir, path.basename(productDir), records, m => console.log(`[wf] ${m}`));
+  // hooks (decision:wf2.hooks-and-skills): what the diff means — created, status:<x>, linked:<verb> — fires the
+  // product's hooks; a change a hook's session made carries its firing depth, so chains stop at the cap
+  if (hooksOn()) {
+    const events = eventsFromDiff(before, after, changes);
+    if (events.length) void (async () => {
+      const depths = new Map<string, number | null>();
+      const withDepth = [];
+      for (const ev of events) { const sid = attribution.get(ev.id)?.session; if (!depths.has(sid ?? '')) depths.set(sid ?? '', await depthOfSession(productDir, sid)); withDepth.push({ ...ev, depth: depths.get(sid ?? '') }); }
+      await fire(path.basename(productDir), withDepth);
+    })().catch(e => console.log(`[wf] hooks: ${e instanceof Error ? e.message : e}`));
+  }
+  // a librarian's blocks land in its request's Definition (req:exec.definition-tracked) — the writes here come back through this listener
+  try { const scope = await loadScope(path.basename(productDir)); if (scope) { await trackDefinitions(scope, running, changes.map(c => ({ ...c, session: attribution.get(c.id)?.session }))); const rescoped = await refreshStaleScopes(scope); if (rescoped.length) console.log(`[wf] scope: ${rescoped.join(', ')}`); } } catch (e) { console.log(`[wf] definition: ${e instanceof Error ? e.message : e}`); }
+  // the write-time verdict pass (decision:memory.write-time-verdict): new or changed knowledge is classified
+  // against its neighbours; runs detached, writes its lines under the nodes, which come back through the watcher
+  scheduleVerdicts(productDir, path.basename(productDir), changes, m => console.log(`[wf] ${m}`));
+}, 'watch');
 
 export function subscribeChanges(productDir: string, fn: Listener): () => void {
   ensureWatch(productDir);

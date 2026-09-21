@@ -19,7 +19,7 @@ import { TaskWork } from './TaskWork';
 import { ChangedBadge } from './ChangedBadge';
 import { ExplainCard } from './ExplainCard';
 import { DocPeek } from './DocPeek';
-import { EmbeddedCard } from './EmbedBlock';
+import { EmbeddedCard } from './EmbeddedCard';
 import { TypeView } from './TypeView';
 import { InstanceTable } from './InstanceTable';
 import { EMPTY_FILTERS, type InstanceTable as Table } from '@/lib/instance-table';

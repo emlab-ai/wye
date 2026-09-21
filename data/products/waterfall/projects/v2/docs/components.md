@@ -630,6 +630,17 @@ The editor's blocks and the components the pages are made of, by area.
     (no header comment)
   status: proposed
   part-of: module:components
+- id: component:embedded-card
+  file: packages/web/src/components/EmbeddedCard.tsx
+  side: client
+  purpose: >
+    An embedded node (component:embed-block, decision:wf2.embed-renders-source-card): the node's card rendered with
+    the same components its source page uses, editable in place. There is one store — the node's defining line or
+    yaml card in its source document — so every field change goes through op:node.edit (700 ms after the last
+    keystroke, patches merged), the watcher rebuilds the graph, and every embed refetches on the graph change event.
+    The slug is read-only: renaming a node happens on its source page.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

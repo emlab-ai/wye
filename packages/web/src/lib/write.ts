@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { rename, writeFile } from 'node:fs/promises';
-import { spawn } from 'node:child_process';
 import path from 'node:path';
+import { buildProduct, checkProduct } from './build';
 import { splitDocument } from './doc';
 
 // Server-only: pure text operations on a document plus the atomic write and the graph rebuild.
@@ -72,28 +72,15 @@ export async function writeAtomic(file: string, text: string): Promise<void> {
   await rename(tmp, file);
 }
 
-// Rebuild a product's graph.json with the ctx CLI that ships in this repo, run from the repo root so file paths
-// in graph.json are repo-relative.
-export function rebuild(productDir: string): Promise<{ code: number; output: string }> {
-  const repo = path.resolve(process.cwd(), '../..');
-  const ctx = path.join(repo, 'bin/ctx.js');
-  return new Promise(resolve => {
-    const child = spawn(process.execPath, [ctx, 'build', '--root', path.relative(repo, productDir)], { cwd: repo });
-    let output = '';
-    child.stdout.on('data', d => { output += d; }); child.stderr.on('data', d => { output += d; });
-    child.on('close', code => resolve({ code: code ?? 1, output }));
-  });
+// Rebuild a product's graph.json — in this process, with the parse cache (lib/build, decision:wf2.parse-cache); the
+// result reads like the CLI's so the routes that show it need not change. `lint` is the check over the built graph.
+export async function rebuild(productDir: string): Promise<{ code: number; output: string }> {
+  const r = await buildProduct(productDir);
+  return { code: r.code, output: r.output };
 }
-
-export function lint(productDir: string): Promise<{ code: number; output: string }> {
-  const repo = path.resolve(process.cwd(), '../..');
-  const ctx = path.join(repo, 'bin/ctx.js');
-  return new Promise(resolve => {
-    const child = spawn(process.execPath, [ctx, 'check', '--root', path.relative(repo, productDir)], { cwd: repo });
-    let output = '';
-    child.stdout.on('data', d => { output += d; }); child.stderr.on('data', d => { output += d; });
-    child.on('close', code => resolve({ code: code ?? 1, output }));
-  });
+export async function lint(productDir: string): Promise<{ code: number; output: string }> {
+  const r = await checkProduct(productDir);
+  return { code: r.code, output: r.output };
 }
 
 // Serialise read-modify-write cycles on one file so two quick edits (status, then owner) cannot lose each other.

@@ -1,6 +1,6 @@
 'use client';
 import { setKinds, KINDS } from '@/lib/ids';
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode, useMemo } from 'react';
+import { useRef, createContext, useCallback, useContext, useEffect, useState, type ReactNode, useMemo } from 'react';
 import type { IndexEntry } from '@/lib/doc';
 import { docRoute } from '@/lib/doc';
 
@@ -29,9 +29,22 @@ interface Ctx {
 }
 const PeekCtx = createContext<Ctx | null>(null);
 
-export function PeekProvider({ product, index, kinds, types, children }: { product: string; index: Record<string, IndexEntry>; kinds?: string[]; types?: OwnType[]; children: ReactNode }) {
+export function PeekProvider({ product, index: indexProp, kinds, types, children }: { product: string; index: Record<string, IndexEntry> | null; kinds?: string[]; types?: OwnType[]; children: ReactNode }) {
   // the product's open kind list (its type: cards) so tags, node lines and the editor recognise person:ana as an id
   setKinds(kinds);
+  // the node index (decision:wf2.parse-cache): the full page load carries it in the HTML; a refresh or a client
+  // navigation does not (null) — it is fetched once here and again whenever the graph changes, so the server's
+  // re-renders stay small
+  const [index, setIndex] = useState<Record<string, IndexEntry>>(indexProp ?? {});
+  const stampRef = useRef('');
+  useEffect(() => {
+    let live = true; let timer: ReturnType<typeof setTimeout> | null = null;
+    const load = async () => { try { const r = await fetch(`/api/${product}/index`, { headers: stampRef.current ? { 'if-none-match': stampRef.current } : {} }); if (r.status === 304 || !r.ok || !live) return; stampRef.current = r.headers.get('etag') ?? ''; const j = await r.json(); if (live && j.index) setIndex(j.index); } catch { /* keep what we have */ } };
+    if (!indexProp) load();
+    const onChange = (e: Event) => { const d = (e as CustomEvent<{ kinds: string[] }>).detail; if (!d.kinds.includes('graph')) return; if (timer) clearTimeout(timer); timer = setTimeout(load, 900); };
+    window.addEventListener('wf:change', onChange);
+    return () => { live = false; window.removeEventListener('wf:change', onChange); if (timer) clearTimeout(timer); };
+  }, [product]); // eslint-disable-line react-hooks/exhaustive-deps
   const ownKinds = useMemo(() => (kinds ?? []).filter(k => !(KINDS as readonly string[]).includes(k)), [kinds]);
   const ownTypes = useMemo(() => types ?? [], [types]);
   // One state object so pushes, pops and pins stay consistent: `cursor` indexes `stack`; -1 is the Context root.

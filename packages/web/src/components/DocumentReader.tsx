@@ -4,7 +4,7 @@ import remarkTags from '@/lib/remark-tags';
 import { headingSlug, type SplitDoc, type IndexEntry } from '@/lib/doc';
 import { NodeCard } from './NodeCard';
 import { SmartTag } from './SmartTag';
-import { EmbeddedCard } from './EmbedBlock';
+import { EmbeddedCard } from './EmbeddedCard';
 import { EMBED_LINE } from '@/lib/import';
 import type { ReactNode } from 'react';
 

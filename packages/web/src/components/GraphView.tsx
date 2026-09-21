@@ -6,7 +6,7 @@ import '@xyflow/react/dist/style.css';
 import { layoutMindMap, type Size } from '@/lib/layout';
 import type { PresetName } from '@/lib/presets';
 import type { GraphEdge } from '@/lib/graph';
-import { EmbeddedCard } from './EmbedBlock';
+import { EmbeddedCard } from './EmbeddedCard';
 
 type LiteNode = { id: string; kind: string; title: string; status: string; defined: boolean };
 interface Props { product: string; preset: PresetName; focus: string | null; nodes: LiteNode[]; edges: GraphEdge[] }

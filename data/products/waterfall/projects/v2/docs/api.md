@@ -529,6 +529,15 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/skills/route.ts
   status: proposed
   part-of: module:api
+- id: op:api.index
+  args: GET /api/<product>/index
+  does: >
+    (decision&#58;wf2.parse-cache) — GET → the product's node index (id, kind, title, status, defined, file, doc …)
+    as the column, tags and pickers use it; the ETag is the graph's build time, so a client that has it gets 304.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/index/route.ts
+  status: proposed
+  part-of: module:api
 ```
 
 <!-- /list:op -->

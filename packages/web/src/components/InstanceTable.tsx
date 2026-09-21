@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
-import { EmbeddedCard } from './EmbedBlock';
+import { EmbeddedCard } from './EmbeddedCard';
 import { StatusPill } from './Pills';
 import { Linkified } from './IdLink';
 import { assetBase, docRoute } from '@/lib/doc';

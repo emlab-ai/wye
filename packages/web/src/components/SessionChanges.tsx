@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import { StatusPill } from './Pills';
-import { EmbeddedCard } from './EmbedBlock';
+import { EmbeddedCard } from './EmbeddedCard';
 import { countsLine, type ChangeGroup, type ChangeRow } from '@/lib/session-changes';
 
 type Data = { counts: { added: number; changed: number; removed: number; prose: number }; groups: ChangeGroup[] };
