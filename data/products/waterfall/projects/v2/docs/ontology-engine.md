@@ -125,36 +125,22 @@ Ontology
 ```yaml
 - id: decision:wf2.typed-blocks-in-documents
   title: Agents write decisions, questions, requirements and rules as typed blocks in the documents; the Inbox reviews them there
-  context: A separate inbox store made agents' decisions and questions invisible in the documents they concerned, and design documents came back with questions as bullets and decisions as prose.
-  choice: Content rules in the agent contract — every decision a `decision:` block (proposed), every question a `question:` block (open), requirements and rules as blocks, follow-ups as task lines — and the Inbox and Questions pages read those blocks from the graph; review flips their status in place. The inbox folder keeps only raw notes.
-  alternatives: [inbox files filed by a reviewer — knowledge lived in two places until someone filed it, free prose plus a clerk that extracts blocks later — unreliable and delayed]
-  consequences: Documents written by agents are structurally checkable (ctx check, the Inbox count); the earlier `wf inbox add` types other than note are retired; existing inbox decisions and questions were migrated into their document as blocks.
   status: approved
   date: 2026-09-17
   supersedes: decision:wf2.inbox-before-documents
+```
+
+  Content rules in the agent contract — every decision a `decision:` block (proposed), every question a `question:` block (open), requirements and rules as blocks, follow-ups as task lines — and the Inbox and Questions pages read those blocks from the graph; review flips their status in place. The inbox folder keeps only raw notes.
+
+  **Context** — A separate inbox store made agents' decisions and questions invisible in the documents they concerned, and design documents came back with questions as bullets and decisions as prose.
+
+  **Alternatives** — [inbox files filed by a reviewer — knowledge lived in two places until someone filed it, free prose plus a clerk that extracts blocks later — unreliable and delayed]
+
+  **Consequences** — Documents written by agents are structurally checkable (ctx check, the Inbox count); the earlier `wf inbox add` types other than note are retired; existing inbox decisions and questions were migrated into their document as blocks.
+
+```yaml
 - id: decision:ontology.uniform-content
   title: Every node has the same `content` field — a list of child blocks — and everything else related is a ref
-  context: >
-    question:ontology.child-nodes asked how a child node (a comment on a block) is written. The person's answer
-    (session 367dedec3c, 2026-09-18): the page's content consists of blocks; each block has the same content
-    field, so child blocks are added the same way at every level; anything related that is not a child is a ref.
-  choice: >
-    One shape for every node, whatever its type: `content` — an ordered list of blocks the node has (inverse
-    `parent`), declared once on type:node and inherited by document, block, req, rule, comment and every product
-    type — and refs (single `ref` or `list of` properties) for every other relation. A document is a node whose
-    content is its top-level blocks; a block is a node whose content is the blocks nested under it; a comment is a
-    block of type comment in its parent's content. In the markdown, content is what sits under the node: the
-    document's body for a document, the indented blocks under a paragraph, list item or card for a block (the
-    nesting the parser already reads for list items); refs are the existing edge properties and inline tags.
-  alternatives: >
-    A `comment:` card anywhere with `on: <id>` (a ref, not a child — the comment would not live under what it
-    comments on); a sidecar store for comments (invisible to the markdown, against the one-store rule); a
-    different child form per type.
-  consequences: >
-    type:node gains `content: list of block -(inverse)-> parent`; the document → heading → block `has` tree of
-    req:ontology.blocks becomes the `content` tree (has stays as its alias until the parser and UI moved over);
-    the editor lets any block nest child blocks (a comment, a question, a decision, an instance of any type);
-    the context column shows a node's content as children; task:ontology.child-nodes-design starts from this.
   date: 2026-09-18
   status: proposed
   resolves: question:ontology.child-nodes
@@ -162,252 +148,245 @@ Ontology
   session: 367dedec3c
 ```
 
+  One shape for every node, whatever its type: `content` — an ordered list of blocks the node has (inverse `parent`), declared once on type:node and inherited by document, block, req, rule, comment and every product type — and refs (single `ref` or `list of` properties) for every other relation. A document is a node whose content is its top-level blocks; a block is a node whose content is the blocks nested under it; a comment is a block of type comment in its parent's content. In the markdown, content is what sits under the node: the document's body for a document, the indented blocks under a paragraph, list item or card for a block (the nesting the parser already reads for list items); refs are the existing edge properties and inline tags.
+
+  **Context** — question:ontology.child-nodes asked how a child node (a comment on a block) is written. The person's answer (session 367dedec3c, 2026-09-18): the page's content consists of blocks; each block has the same content field, so child blocks are added the same way at every level; anything related that is not a child is a ref.
+
+  **Alternatives** — A `comment:` card anywhere with `on: <id>` (a ref, not a child — the comment would not live under what it comments on); a sidecar store for comments (invisible to the markdown, against the one-store rule); a different child form per type.
+
+  **Consequences** — type:node gains `content: list of block -(inverse)-> parent`; the document → heading → block `has` tree of req:ontology.blocks becomes the `content` tree (has stays as its alias until the parser and UI moved over); the editor lets any block nest child blocks (a comment, a question, a decision, an instance of any type); the context column shows a node's content as children; task:ontology.child-nodes-design starts from this.
+
 decision:ontology.uniform-content says every node has `content` — the blocks under it. pr:9 asks for the rest: the markdown form at every level, a content editor on the node itself, and what a card shows when the node has content. The requirement and the two decisions below say what the parser reads and how a person goes deeper; the column's side is req:wf2.ui.node-content on page:web/context-column.
 
 ```yaml
 - id: decision:ontology.content-markdown
   title: Content is written indented under the defining line — two spaces per level, the same rules at every level
-  context: >
-    decision:ontology.uniform-content fixed that content is what sits under the node; it left the form for cards
-    and for paragraph-form prose nodes open. Today the parser reads nested list items under a list item only, the
-    editor writes a node block's children as indented lines, and a yaml fence can hold several cards.
-  choice: >
-    One form for every node: its content is the markdown indented two spaces under its defining line and is parsed
-    with the document's own rules (paragraphs, list items, fences, ids), recursively. A prose node — paragraph or
-    list item — has nested list items and, after a blank line, indented paragraphs and fences. A yaml card has its
-    content indented after its closing fence; a card with content is alone in its fence (the serializer splits the
-    group). Children keep their own ids (a typed child its `kind:slug`, an anonymous one its text hash), so a child
-    survives its parent's text changing and a parent survives its children changing.
-  alternatives: >
-    A `content: |` key on the card holding markdown (one form for cards, another for prose lines, and a second
-    parse inside yaml); comment-marker regions (`<!-- content:id -->`) around the children (invisible structure,
-    a third marker grammar next to tables and views); a sidecar store (against the one-store rule).
-  consequences: >
-    lib/parse.js attaches an indented list under a named paragraph line to that node, not to its heading, and reads
-    the indented blocks after a fence as the last card's content; type:node declares `content: list of block
-    -(inverse)-> parent` and `has` stays its alias until every reader moved; the editor's import keeps a node
-    block's nested blocks as its children in both forms and the serializer writes them back at the right depth;
-    documents that already nest list items under task lines read the same as before.
   date: 2026-09-18
   status: proposed
   affects: [req:ontology.content, type:node, req:ontology.blocks, rule:prose-round-trip]
   session: ffab751604
+```
+
+  One form for every node: its content is the markdown indented two spaces under its defining line and is parsed with the document's own rules (paragraphs, list items, fences, ids), recursively. A prose node — paragraph or list item — has nested list items and, after a blank line, indented paragraphs and fences. A yaml card has its content indented after its closing fence; a card with content is alone in its fence (the serializer splits the group). Children keep their own ids (a typed child its `kind:slug`, an anonymous one its text hash), so a child survives its parent's text changing and a parent survives its children changing.
+
+  **Context** — decision:ontology.uniform-content fixed that content is what sits under the node; it left the form for cards and for paragraph-form prose nodes open. Today the parser reads nested list items under a list item only, the editor writes a node block's children as indented lines, and a yaml fence can hold several cards.
+
+  **Alternatives** — A `content: |` key on the card holding markdown (one form for cards, another for prose lines, and a second parse inside yaml); comment-marker regions (`<!-- content:id -->`) around the children (invisible structure, a third marker grammar next to tables and views); a sidecar store (against the one-store rule).
+
+  **Consequences** — lib/parse.js attaches an indented list under a named paragraph line to that node, not to its heading, and reads the indented blocks after a fence as the last card's content; type:node declares `content: list of block -(inverse)-> parent` and `has` stays its alias until every reader moved; the editor's import keeps a node block's nested blocks as its children in both forms and the serializer writes them back at the right depth; documents that already nest list items under task lines read the same as before.
+
+```yaml
 - id: decision:ontology.depth-by-navigation
   title: Going deeper is navigation in the column, not nesting inside it
-  context: >
-    Content can nest to any depth (req:ontology.content). The column is narrow: a tree of editors inside editors
-    would run out of width at the third level, and every level would need its own save path.
-  choice: >
-    The column shows one node at a time: its properties, then its content in one editor whose blocks are the
-    node's direct children. A child's card in that editor shows its head and its first block; a click on it opens
-    the child in the column (pushed as a chip, ← returns to the parent), which shows the child's properties and
-    its own content editor. Depth costs one click per level and nothing in layout; the chips are the path back.
-  alternatives: >
-    Nested editors expanded in place (unbounded indent and width, one save per level); a modal per level (loses
-    the column's stack and the document behind it); showing the whole subtree read-only and editing only on the
-    document page.
-  consequences: >
-    the content editor renders a child node block with its children folded to a preview (req:wf2.ui.card-preview)
-    and selecting it opens the child (rule:block-select applies inside the column too); the chip stack is the
-    breadcrumb; the document page keeps showing the full tree inline as it does today.
   date: 2026-09-18
   status: proposed
   affects: [req:wf2.ui.node-content, req:wf2.ui.card-preview, rule:block-select]
   session: ffab751604
+```
+
+  The column shows one node at a time: its properties, then its content in one editor whose blocks are the node's direct children. A child's card in that editor shows its head and its first block; a click on it opens the child in the column (pushed as a chip, ← returns to the parent), which shows the child's properties and its own content editor. Depth costs one click per level and nothing in layout; the chips are the path back.
+
+  **Context** — Content can nest to any depth (req:ontology.content). The column is narrow: a tree of editors inside editors would run out of width at the third level, and every level would need its own save path.
+
+  **Alternatives** — Nested editors expanded in place (unbounded indent and width, one save per level); a modal per level (loses the column's stack and the document behind it); showing the whole subtree read-only and editing only on the document page.
+
+  **Consequences** — the content editor renders a child node block with its children folded to a preview (req:wf2.ui.card-preview) and selecting it opens the child (rule:block-select applies inside the column too); the chip stack is the breadcrumb; the document page keeps showing the full tree inline as it does today.
+
+```yaml
 - id: decision:ontology.ids-kind-slug
   title: Ontology: ids stay kind:slug and the kind prefix is the type
-  context: >
-    module:ontology proposes every node has a type with inheritance; the example writes team1:team (slug first). The parser, links, anchors and every product document use kind:slug.
-  choice: >
-    Keep kind:slug; an instance of type:team is team:t1; the parser's KINDS list becomes the set of declared type: slugs plus the base kinds (two-pass parse).
-  alternatives: >
-    slug-first ids (team1:team) — breaks every existing link; a generic node: id with a type: property and Tana-style multiple tags — loses the typed prefix that makes ids readable and tags cheap.
-  consequences: >
-    One type per instance (subtyping via extends); changing an instance's type is an id change. See question:ontology.q1.
   status: proposed
   date: 2026-09-17
   related-to: [module:ontology,module:ontology-design,rule:prose-nodes]
   session: 7cbfbe5976
+```
+
+  Keep kind:slug; an instance of type:team is team:t1; the parser's KINDS list becomes the set of declared type: slugs plus the base kinds (two-pass parse).
+
+  **Context** — module:ontology proposes every node has a type with inheritance; the example writes team1:team (slug first). The parser, links, anchors and every product document use kind:slug.
+
+  **Alternatives** — slug-first ids (team1:team) — breaks every existing link; a generic node: id with a type: property and Tana-style multiple tags — loses the typed prefix that makes ids readable and tags cheap.
+
+  **Consequences** — One type per instance (subtyping via extends); changing an instance's type is an id change. See question:ontology.q1.
+
+```yaml
 - id: decision:ontology.types-are-cards
   title: Ontology: types are yaml cards; a shipped base-ontology document replaces schema/kinds.yaml
-  context: >
-    Types must live somewhere the parser and people both read; today kinds and verbs are constants in lib/parse.js documented by schema/kinds.yaml.
-  choice: >
-    type:<slug> cards with extends and props, written in any product document (module:ontology by convention); the fourteen base kinds ship as base-ontology.md that every product includes; kinds.yaml is generated from it during the transition.
-  alternatives: >
-    keep kinds.yaml global and add a product-level types.yaml — two syntaxes for one thing; store types in SQLite — contradicts rule:markdown-canonical.
-  consequences: >
-    Two-pass parse (types first); ctx check gains type validation; skills that read kinds.yaml keep working until regenerated.
   status: proposed
   date: 2026-09-17
   related-to: [module:ontology-design,rule:markdown-canonical,req:wf.graph]
   session: 7cbfbe5976
+```
+
+  type:<slug> cards with extends and props, written in any product document (module:ontology by convention); the fourteen base kinds ship as base-ontology.md that every product includes; kinds.yaml is generated from it during the transition.
+
+  **Context** — Types must live somewhere the parser and people both read; today kinds and verbs are constants in lib/parse.js documented by schema/kinds.yaml.
+
+  **Alternatives** — keep kinds.yaml global and add a product-level types.yaml — two syntaxes for one thing; store types in SQLite — contradicts rule:markdown-canonical.
+
+  **Consequences** — Two-pass parse (types first); ctx check gains type validation; skills that read kinds.yaml keep working until regenerated.
+
+```yaml
 - id: decision:ontology.inverses-generated
   title: Ontology: inverse (back-link) edges are generated, never written to markdown
-  context: >
-    A collection on one side (team.members) must appear on the other side (person.memberOf) automatically.
-  choice: >
-    A property declares its inverse name once; the parser emits the reverse edge marked generated, like field: nodes and mentions edges today; properties without a declared inverse get <name>-of. The base verbs get inverses (refines/refined-by, satisfied-by/satisfies, part-of/has, …).
-  alternatives: >
-    Notion-style paired properties written on both sides — two places to drift; no named inverse, keep showing '← verb' — what the UI does today, the idea asks for more.
-  consequences: >
-    Serialiser must skip generated edges; peek panel and node page group incoming relations by inverse name.
   status: proposed
   date: 2026-09-17
   related-to: [module:ontology-design,rule:block-links]
   session: 7cbfbe5976
+```
+
+  A property declares its inverse name once; the parser emits the reverse edge marked generated, like field: nodes and mentions edges today; properties without a declared inverse get <name>-of. The base verbs get inverses (refines/refined-by, satisfied-by/satisfies, part-of/has, …).
+
+  **Context** — A collection on one side (team.members) must appear on the other side (person.memberOf) automatically.
+
+  **Alternatives** — Notion-style paired properties written on both sides — two places to drift; no named inverse, keep showing '← verb' — what the UI does today, the idea asks for more.
+
+  **Consequences** — Serialiser must skip generated edges; peek panel and node page group incoming relations by inverse name.
+
+```yaml
 - id: decision:ontology.inheritance-at-parse
   title: Ontology: property inheritance resolves at parse time and an override may only narrow
-  context: employee extends person; which properties does an employee have and what may the child change?
-  choice: >
-    Effective properties = union along the extends chain, parent first (Tana order); a child may make a property required or narrow its ref type, never widen; cycles and unknown parents are errors; undeclared properties on instances are warnings (open world).
-  alternatives: >
-    Strict closed schema (unknown key = error) — punishes writing instances before the type exists; no overrides at all — cannot say a manager's team is required.
-  consequences: ctx check validates instances against effective properties; ctx packet includes the type chain.
   status: proposed
   date: 2026-09-17
   related-to: [module:ontology-design]
   session: 7cbfbe5976
+```
+
+  Effective properties = union along the extends chain, parent first (Tana order); a child may make a property required or narrow its ref type, never widen; cycles and unknown parents are errors; undeclared properties on instances are warnings (open world).
+
+  **Context** — employee extends person; which properties does an employee have and what may the child change?
+
+  **Alternatives** — Strict closed schema (unknown key = error) — punishes writing instances before the type exists; no overrides at all — cannot say a manager's team is required.
+
+  **Consequences** — ctx check validates instances against effective properties; ctx packet includes the type chain.
+
+```yaml
 - id: decision:ontology.blocks-last-phase
   title: Ontology: every-block-is-a-node is the last phase, hidden by default
-  context: >
-    The idea makes every block a node; today anonymous blocks only have anchor hashes (rule:block-links) and phrase links relate the document, not the block.
-  choice: >
-    Phase 3: block:<doc>.<hash> nodes reusing the anchor hash, document→heading→block has-tree, phrase links owned by the block, hidden from rail/search/site unless asked. Phases 1 (types+inheritance) and 2 (inverses+collections) ship first.
-  alternatives: >
-    Do it first because it is the idea's headline — least value per line of code and roughly 1 500 extra nodes; never do it — loses per-block properties and block-owned links.
-  consequences: >
-    Three plan tasks task:ontology.types, task:ontology.inverses, task:ontology.blocks plus a spike task:ontology.spike.
   status: proposed
   date: 2026-09-17
   related-to: [module:ontology-design,rule:block-links,module:ontology]
   session: 7cbfbe5976
+```
+
+  Phase 3: block:<doc>.<hash> nodes reusing the anchor hash, document→heading→block has-tree, phrase links owned by the block, hidden from rail/search/site unless asked. Phases 1 (types+inheritance) and 2 (inverses+collections) ship first.
+
+  **Context** — The idea makes every block a node; today anonymous blocks only have anchor hashes (rule:block-links) and phrase links relate the document, not the block.
+
+  **Alternatives** — Do it first because it is the idea's headline — least value per line of code and roughly 1 500 extra nodes; never do it — loses per-block properties and block-owned links.
+
+  **Consequences** — Three plan tasks task:ontology.types, task:ontology.inverses, task:ontology.blocks plus a spike task:ontology.spike.
+
+```yaml
 - id: decision:ontology.types-product-local
   title: Ontology: types are product-local; only the base ontology is shared
-  context: >
-    question:ontology.q2 asks whether a type such as person can be shared across products. The parser reads the base
-    ontology plus one product's documents; nothing crosses products today.
-  choice: >
-    Types are scoped to the product that declares them. The base ontology (schema/base-ontology.md) is the only
-    shared part; a product that needs the same type as another declares it again (or a later change adds a shared
-    ontology folder the parser reads for every product).
-  alternatives: >
-    A global ontology folder read for every product — one more place to look and a change there affects every
-    product's check; copying types between products by hand — what the choice allows, without a mechanism.
-  consequences: The Types page shows "<product>'s types" and "Base types"; duplicate type ids are errors within a product only.
   status: proposed
   date: 2026-09-17
   resolves: [question:ontology.q2]
   related-to: [module:ontology-design]
   session: 94ac3cf3e0
+```
+
+  Types are scoped to the product that declares them. The base ontology (schema/base-ontology.md) is the only shared part; a product that needs the same type as another declares it again (or a later change adds a shared ontology folder the parser reads for every product).
+
+  **Context** — question:ontology.q2 asks whether a type such as person can be shared across products. The parser reads the base ontology plus one product's documents; nothing crosses products today.
+
+  **Alternatives** — A global ontology folder read for every product — one more place to look and a change there affects every product's check; copying types between products by hand — what the choice allows, without a mechanism.
+
+  **Consequences** — The Types page shows "<product>'s types" and "Base types"; duplicate type ids are errors within a product only.
+
+```yaml
 - id: decision:ontology.blocks-all-documents
   title: Ontology: block nodes for every document, hidden by default — no opt-in
-  context: >
-    question:ontology.q3 asks whether block nodes are created for every document or only when a document opts in.
-    Waterfall's eight documents produce about 220 anonymous blocks (most content is cards and prose nodes).
-  choice: >
-    Every document gets block nodes; they are hidden everywhere by default (rule:ontology.hidden-kinds) and dropped
-    from the published site. No frontmatter switch.
-  alternatives: >
-    `blocks: nodes` opt-in per document — two behaviours for the same markdown, and links from a block in an
-    opted-out document would have no owner.
-  consequences: graph.json grows (922 nodes for waterfall, from 689); nothing visible changes until a block is addressed.
   status: proposed
   date: 2026-09-17
   resolves: [question:ontology.q3]
   related-to: [module:ontology-design, task:ontology.blocks]
   session: 94ac3cf3e0
+```
+
+  Every document gets block nodes; they are hidden everywhere by default (rule:ontology.hidden-kinds) and dropped from the published site. No frontmatter switch.
+
+  **Context** — question:ontology.q3 asks whether block nodes are created for every document or only when a document opts in. Waterfall's eight documents produce about 220 anonymous blocks (most content is cards and prose nodes).
+
+  **Alternatives** — `blocks: nodes` opt-in per document — two behaviours for the same markdown, and links from a block in an opted-out document would have no owner.
+
+  **Consequences** — graph.json grows (922 nodes for waterfall, from 689); nothing visible changes until a block is addressed.
+
+```yaml
 - id: decision:ontology.block-owned-links
   title: Ontology: a phrase link in plain prose is the block's edge; the document reads it through has
-  context: >
-    question:ontology.q4 asks who owns a link on a phrase without a verb. Before phase 3 it was a related-to edge
-    from the document.
-  choice: >
-    The edge is from the block (related-to). The document reaches it through has → block, and the web's relations()
-    folds a document's block links into its own so the Connected list is unchanged. related-to stays symmetric;
-    mentions has mentioned-by.
-  alternatives: >
-    Keep the edge on the document and add one on the block — the same fact twice; keep it on the document only —
-    the block owns nothing, which defeats every-block-a-node.
-  consequences: ctx get module:x no longer lists phrase links directly; ctx neighbors and packet still reach them.
   status: proposed
   date: 2026-09-17
   resolves: [question:ontology.q4]
   related-to: [module:ontology-design, rule:block-links]
   session: 94ac3cf3e0
+```
+
+  The edge is from the block (related-to). The document reaches it through has → block, and the web's relations() folds a document's block links into its own so the Connected list is unchanged. related-to stays symmetric; mentions has mentioned-by.
+
+  **Context** — question:ontology.q4 asks who owns a link on a phrase without a verb. Before phase 3 it was a related-to edge from the document.
+
+  **Alternatives** — Keep the edge on the document and add one on the block — the same fact twice; keep it on the document only — the block owns nothing, which defeats every-block-a-node.
+
+  **Consequences** — ctx get module:x no longer lists phrase links directly; ctx neighbors and packet still reach them.
+
+```yaml
 - id: decision:ontology.open-types
   title: Ontology: a type is closed unless it says open: true; all base types are open
-  context: >
-    The design wants undeclared-property warnings (open world with a nudge), but base kinds carry many ad-hoc keys
-    and would drown ctx check in warnings.
-  choice: >
-    A type card may say `open: true`; instances of an open type never get undeclared-property warnings. Every base
-    type is open; a product's own types are closed by default. `open` does not inherit.
-  alternatives: >
-    Warn for every type — hundreds of warnings on day one; never warn — a product cannot learn its schema from its
-    instances.
-  consequences: rule:ontology.open-types; the Types page says "open" on such types.
   status: proposed
   date: 2026-09-17
   related-to: [module:ontology-design, req:ontology.check]
   session: 94ac3cf3e0
+```
+
+  A type card may say `open: true`; instances of an open type never get undeclared-property warnings. Every base type is open; a product's own types are closed by default. `open` does not inherit.
+
+  **Context** — The design wants undeclared-property warnings (open world with a nudge), but base kinds carry many ad-hoc keys and would drown ctx check in warnings.
+
+  **Alternatives** — Warn for every type — hundreds of warnings on day one; never warn — a product cannot learn its schema from its instances.
+
+  **Consequences** — rule:ontology.open-types; the Types page says "open" on such types.
+
+```yaml
 - id: decision:ontology.new-type-home
   title: "Ontology: a type added from the UI goes to the product's ontology.md, kept next to its other types"
-  context: >
-    The Types index was a read-only list; adding a type meant writing a card by hand in some document. The UI needs a
-    default place to write the card, and a product may not have an ontology document yet.
-  choice: >
-    By default the card goes to the product's `ontology.md` (the convention base-ontology.md already names), else the
-    document that declares most of its types, else a new `ontology.md` created in the product's first project from
-    the blank template. Inside the document it is appended to the fence that declares the last type, so types stay
-    together; a fence holding a bare document card never takes a list item. The form still lets the person pick any
-    product document. Properties are not part of the form: the new type opens in the context column and its
-    property editor writes them (op:types.add PUT).
-  alternatives: >
-    Ask for a document every time — friction for the common case; a per-product setting naming the ontology
-    document — nothing else needs it yet; properties in the create form — duplicates the editor that already exists.
-  consequences: op:types.create, action:add-type; req:ontology.add-type
   status: proposed
   date: 2026-09-17
   related-to: [module:ontology-design, decision:ontology.types-product-local, decision:ontology.types-are-cards]
   session: 8aa3926e18
+```
+
+  By default the card goes to the product's `ontology.md` (the convention base-ontology.md already names), else the document that declares most of its types, else a new `ontology.md` created in the product's first project from the blank template. Inside the document it is appended to the fence that declares the last type, so types stay together; a fence holding a bare document card never takes a list item. The form still lets the person pick any product document. Properties are not part of the form: the new type opens in the context column and its property editor writes them (op:types.add PUT).
+
+  **Context** — The Types index was a read-only list; adding a type meant writing a card by hand in some document. The UI needs a default place to write the card, and a product may not have an ontology document yet.
+
+  **Alternatives** — Ask for a document every time — friction for the common case; a per-product setting naming the ontology document — nothing else needs it yet; properties in the create form — duplicates the editor that already exists.
+
+  **Consequences** — op:types.create, action:add-type; req:ontology.add-type
+
+```yaml
 - id: decision:ontology.base-ontology-referenced
   title: >
     Ontology: the base ontology is one file in the repo (schema/base-ontology.md), read for every product;
     kinds.yaml stays hand-kept for now
-  context: >
-    The design allowed copying base-ontology.md into each product or referencing it, and said kinds.yaml is
-    generated during the transition.
-  choice: >
-    Referenced: lib/parse.js reads schema/base-ontology.md first for every parse. kinds.yaml is not generated yet;
-    it carries a header naming base-ontology.md as the source of the kinds and verbs (task:ontology.kinds-yaml-generated).
-  alternatives: >
-    A copy per product — drifts the moment the base changes; generating kinds.yaml now — its prose (statuses,
-    conventions, prose-nodes) has no home in type cards yet.
-  consequences: Base types show on every product's Types page as "Base types"; a product cannot change them.
   status: proposed
   date: 2026-09-17
   related-to: [module:ontology-design, decision:ontology.types-are-cards]
   session: 94ac3cf3e0
+```
+
+  Referenced: lib/parse.js reads schema/base-ontology.md first for every parse. kinds.yaml is not generated yet; it carries a header naming base-ontology.md as the source of the kinds and verbs (task:ontology.kinds-yaml-generated).
+
+  **Context** — The design allowed copying base-ontology.md into each product or referencing it, and said kinds.yaml is generated during the transition.
+
+  **Alternatives** — A copy per product — drifts the moment the base changes; generating kinds.yaml now — its prose (statuses, conventions, prose-nodes) has no home in type cards yet.
+
+  **Consequences** — Base types show on every product's Types page as "Base types"; a product cannot change them.
+
+```yaml
 - id: decision:ontology.comments-in-column
   title: A node's comments are shown and made in the context column, whichever surface opened the node
-  context: >
-    req:ontology.comment-home wants a comment action on a node's card, its row in a table, the context column entry and
-    its page, and the node to show its comments where the person clicked. Every one of those surfaces already opens the
-    node in the context column (rule:table-rows, rule:connected-cards); a comment box on each surface would be four
-    boxes for one action.
-  choice: >
-    One Comments section in the column's node view (component:comments): the comments on the node oldest first with who
-    and when, a box to add one (⌘↵ sends), and after a write the document it went to — "in Comments — new, every comment
-    of this project goes there" on the project's first. The section sits under the node's content and before Explain,
-    for typed nodes and for document nodes alike; the `on` edges from comment: nodes stay out of Links and Properties
-    since the section shows them. Cards, rows and pages reach it by opening the node, as they do for everything else.
-  alternatives: >
-    a comment box inline on every card and table row (four copies of one control, and the editor's blocks would grow
-    a form); a comment as a child block typed under the node (rejected by decision:ontology.comment-is-a-ref).
-  consequences: >
-    component:comments, op:api.comments, lib:comments, rule:comment-row; the column is the one place to read and write
-    comments, so a surface that does not open the column (the graph view) has no comment action yet.
   status: proposed
   date: 2026-09-20
   by: agent:9a1382cd4e
@@ -416,32 +395,19 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
   related-to: [decision:ontology.comment-is-a-ref, module:ontology-design]
 ```
 
+  One Comments section in the column's node view (component:comments): the comments on the node oldest first with who and when, a box to add one (⌘↵ sends), and after a write the document it went to — "in Comments — new, every comment of this project goes there" on the project's first. The section sits under the node's content and before Explain, for typed nodes and for document nodes alike; the `on` edges from comment: nodes stay out of Links and Properties since the section shows them. Cards, rows and pages reach it by opening the node, as they do for everything else.
+
+  **Context** — req:ontology.comment-home wants a comment action on a node's card, its row in a table, the context column entry and its page, and the node to show its comments where the person clicked. Every one of those surfaces already opens the node in the context column (rule:table-rows, rule:connected-cards); a comment box on each surface would be four boxes for one action.
+
+  **Alternatives** — a comment box inline on every card and table row (four copies of one control, and the editor's blocks would grow a form); a comment as a child block typed under the node (rejected by decision:ontology.comment-is-a-ref).
+
+  **Consequences** — component:comments, op:api.comments, lib:comments, rule:comment-row; the column is the one place to read and write comments, so a surface that does not open the column (the graph view) has no comment action yet.
+
 <!-- /list:decision -->
 
 ```yaml
 - id: decision:ontology.collection-document
   title: A type's instances collect in a document of their own, created on the first instance and set as the type's home
-  context: >
-    op:types.add and the ⌁ node picker write a new instance to the type's home document, else the document that
-    declares the type — so city:London made from selected text lands in ontology.md next to type:city, and the
-    person cannot tell where it went (pr:27). decision:ontology.new-type-home settled where a *type* goes, not
-    where its instances go.
-  choice: >
-    The first instance of a product type creates the type's collection document in the project that declares the
-    type — titled with the type's `plural:` if the type card sets one, else the English plural of its title
-    (city → Cities, bug → Bugs, box → Boxes) — holding one `<!-- table:<slug> -->` block (rule:type-tables), writes
-    `home:` on the type card so every later path (⌁ node, "+ add", `wf`) lands there, and appends the instance as
-    a row with its properties in the trailing group. A type whose card already names a home keeps it. The person
-    may rename or move the document; the `home:` link follows.
-  alternatives: >
-    create the document when the type is created (an empty document per type the person may never use);
-    only the from-text gesture uses it while "+ add" and `wf` keep the declaring document (two homes for one
-    type); one yaml card per instance instead of a table (more room per instance, but a collection reads as a
-    table and the type page already shows one).
-  consequences: >
-    op:types.add grows the create-on-first-instance step and the `home:` write; component:new-doc is reused for
-    the document; the type page's "+ add" and the picker's NEW NODE say which document the instance went to;
-    question:wf2.page-instance-add stays open — a row may later become a page.
   status: proposed
   date: 2026-09-20
   by: alex
@@ -451,6 +417,14 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
   session: bb9a0a8af9
 ```
 
+  The first instance of a product type creates the type's collection document in the project that declares the type — titled with the type's `plural:` if the type card sets one, else the English plural of its title (city → Cities, bug → Bugs, box → Boxes) — holding one `<!-- table:<slug> -->` block (rule:type-tables), writes `home:` on the type card so every later path (⌁ node, "+ add", `wf`) lands there, and appends the instance as a row with its properties in the trailing group. A type whose card already names a home keeps it. The person may rename or move the document; the `home:` link follows.
+
+  **Context** — op:types.add and the ⌁ node picker write a new instance to the type's home document, else the document that declares the type — so city:London made from selected text lands in ontology.md next to type:city, and the person cannot tell where it went (pr:27). decision:ontology.new-type-home settled where a *type* goes, not where its instances go.
+
+  **Alternatives** — create the document when the type is created (an empty document per type the person may never use); only the from-text gesture uses it while "+ add" and `wf` keep the declaring document (two homes for one type); one yaml card per instance instead of a table (more room per instance, but a collection reads as a table and the type page already shows one).
+
+  **Consequences** — op:types.add grows the create-on-first-instance step and the `home:` write; component:new-doc is reused for the document; the type page's "+ add" and the picker's NEW NODE say which document the instance went to; question:wf2.page-instance-add stays open — a row may later become a page.
+
   verdict:559ce8883f01 refines req:wf2.editor.entity-from-text — A states instances land on "the type's home page" without specifying what that is; B provides the concrete decision that the home is a collection document created on first instance. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:wf2.editor.entity-from-text decision:ontology.collection-document)
 
   verdict:da09b6a39ad7 refines req:ontology.instance-home — Both describe instances collecting in a type's collection document by plural name; B adds implementation details (home: link, project location, renaming support, table format). (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:ontology.instance-home decision:ontology.collection-document)
@@ -458,19 +432,6 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 ```yaml
 - id: decision:ontology.comment-is-a-ref
   title: A comment is a card in the product's Comments document with `on:` the node — not a child block under it
-  context: >
-    decision:ontology.uniform-content (2026-09-18) made a comment a block of type comment in its parent's content and rejected "a comment: card anywhere with on: <id>". On pr:27 (2026-09-20) the person asked the opposite: clicking any node and adding a comment stores it in a Comments document with a link to the node — and, in the same session, that the Comments document is per project, not per product, so a project's comments travel with its documents. The two cannot both hold for comments.
-  choice: >
-    For comments only, the rejected alternative is the choice: `type:comment` (extends node) carries `on: ref node -(inverse)-> comments`, `by` and `date`, and every comment is a `comment:` card in the Comments document of the project the commented node belongs to — one Comments document per project, not per product, created on that project's first comment, one `<!-- table:comment -->` block or a card list — never nested under the node. A node's comments are the inverse edge, shown on the node wherever it is drawn. The uniform content model stays for everything else: content is what sits under a node; a comment is related, not contained.
-  alternatives: >
-    keep the child-block model and make the Comments document a generated view (the comment would be spread over
-    every document, and a comment on a paragraph would change that document's text); write the comment as a child
-    when made inside a document and to the Comments document otherwise (two shapes for one type).
-  consequences: >
-    decision:ontology.uniform-content is narrowed — its "a comment is a block of type comment in its parent's
-    content" no longer holds; task:ontology.child-nodes-design loses its comment half to
-    task:ontology.comments-document and keeps the content model; question:ontology.child-nodes is answered
-    differently than recorded.
   status: proposed
   date: 2026-09-20
   by: alex
@@ -479,3 +440,11 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
   related-to: [module:ontology-design]
   session: bb9a0a8af9
 ```
+
+  For comments only, the rejected alternative is the choice: `type:comment` (extends node) carries `on: ref node -(inverse)-> comments`, `by` and `date`, and every comment is a `comment:` card in the Comments document of the project the commented node belongs to — one Comments document per project, not per product, created on that project's first comment, one `<!-- table:comment -->` block or a card list — never nested under the node. A node's comments are the inverse edge, shown on the node wherever it is drawn. The uniform content model stays for everything else: content is what sits under a node; a comment is related, not contained.
+
+  **Context** — decision:ontology.uniform-content (2026-09-18) made a comment a block of type comment in its parent's content and rejected "a comment: card anywhere with on: <id>". On pr:27 (2026-09-20) the person asked the opposite: clicking any node and adding a comment stores it in a Comments document with a link to the node — and, in the same session, that the Comments document is per project, not per product, so a project's comments travel with its documents. The two cannot both hold for comments.
+
+  **Alternatives** — keep the child-block model and make the Comments document a generated view (the comment would be spread over every document, and a comment on a paragraph would change that document's text); write the comment as a child when made inside a document and to the Comments document otherwise (two shapes for one type).
+
+  **Consequences** — decision:ontology.uniform-content is narrowed — its "a comment is a block of type comment in its parent's content" no longer holds; task:ontology.child-nodes-design loses its comment half to task:ontology.comments-document and keeps the content model; question:ontology.child-nodes is answered differently than recorded.

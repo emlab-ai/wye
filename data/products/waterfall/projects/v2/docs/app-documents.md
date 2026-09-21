@@ -420,173 +420,124 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: decision:wf2.card-essence
   title: A decision card shows its essence; the rest sits behind "details"
-  context: >
-    A decision card in a document lists every key of the yaml block (context, choice, alternatives, consequences,
-    date, affects, related-to, session, …) as label/value rows, so the choice — the one thing a reader wants —
-    drowns in tracking fields. The question card already separates the two: question and answer on the card,
-    id, links and the yaml behind a "details" toggle (DocEditor#QuestionNode).
-  choice: >
-    The decision card shows the title, then context, choice and alternatives as prose sections, in that order.
-    Every other key (consequences, date, affects, related-to, session and anything else the card carries) moves
-    behind the same "details" toggle the question card has, together with the id and the yaml editor. The
-    kind pill, slug and status stay in the header. Nothing changes in the markdown: the keys are still written
-    and still edges; only the card folds them.
-  alternatives: >
-    Fold only date/affects/session and keep consequences on the card — consequences are part of the ADR, but
-    the person asked for them folded; the choice already says what follows. Fold everything but the choice —
-    context and alternatives explain why, a reader loses the reasoning. Generalise to every yaml card with a
-    per-type "essence" list — no type declares one yet; start with the two kinds that need it and extract the
-    rule when a third appears.
-  consequences: >
-    DocEditor#NodeBlock renders a decision as a DecisionNode (essence sections + details); rule:card-essence
-    replaces the "every other key is shown read-only under the text" behaviour for decisions; the server
-    reader (component:node-card) is unchanged — it is shown only until the editor hydrates.
   date: 2026-09-18
   status: proposed
   affects: [component:doc-editor, rule:card-essence, req:wf2.cards.decision-essence]
   related-to: [rule:card-form, rule:node-cards]
   session: 843b0e1f2c
+```
+
+  The decision card shows the title, then context, choice and alternatives as prose sections, in that order. Every other key (consequences, date, affects, related-to, session and anything else the card carries) moves behind the same "details" toggle the question card has, together with the id and the yaml editor. The kind pill, slug and status stay in the header. Nothing changes in the markdown: the keys are still written and still edges; only the card folds them.
+
+  **Context** — A decision card in a document lists every key of the yaml block (context, choice, alternatives, consequences, date, affects, related-to, session, …) as label/value rows, so the choice — the one thing a reader wants — drowns in tracking fields. The question card already separates the two: question and answer on the card, id, links and the yaml behind a "details" toggle (DocEditor#QuestionNode).
+
+  **Alternatives** — Fold only date/affects/session and keep consequences on the card — consequences are part of the ADR, but the person asked for them folded; the choice already says what follows. Fold everything but the choice — context and alternatives explain why, a reader loses the reasoning. Generalise to every yaml card with a per-type "essence" list — no type declares one yet; start with the two kinds that need it and extract the rule when a third appears.
+
+  **Consequences** — DocEditor#NodeBlock renders a decision as a DecisionNode (essence sections + details); rule:card-essence replaces the "every other key is shown read-only under the text" behaviour for decisions; the server reader (component:node-card) is unchanged — it is shown only until the editor hydrates.
+
+```yaml
 - id: decision:wf2.embed-syntax
   title: An embed is a line `![[kind:slug]]`
-  context: >
-    A document needs a way to say "show that node here" that the graph, the reader, the editor and agents all
-    understand. The editor already has one-line markers: `<!-- view:x -->` for a live table (invisible to the
-    graph) and `![Title](drawings/x.excalidraw)` for a drawing. A node reference must stay a reference — the
-    node keeps its one definition in its source document — and should be visible to the graph as a link from
-    the page to the node.
-  choice: >
-    An embed is a paragraph of its own whose whole text is `![[kind:slug]]` — the transclusion form Obsidian and
-    Logseq readers know. lib/import lifts it to an `embed` block (props: id) before BlockNote parses the
-    markdown; lib/serialize writes it back unchanged. The graph (ctx) needs no change: the line is a paragraph
-    that mentions the node, so the page gets a `mentions` edge to it and `wf resolve` on the paragraph still
-    works. The slash menu item is "Embed a node" (`/ref`, `/embed`), with the same node picker the link button
-    uses (id or title search).
-  alternatives: >
-    A comment line `<!-- ref:kind:slug -->` like the view block — invisible to the graph and to any other
-    reader; agents reading the raw markdown would miss it. A prose line `ref:kind:slug` — `ref` would become a
-    kind and the line a node definition. A yaml card `- id: embed:… of: kind:slug` — an anonymous node for a
-    reference is more than it is.
-  consequences: >
-    lib/import#prepare gains EMBED_LINE next to VIEW_LINE and a %%EMBED:n%% marker; lib/serialize writes
-    `![[id]]`; DocumentReader (the server fallback) renders the line as component:node-card; the anchor of the
-    embed block is the hash of its text like any paragraph.
   date: 2026-09-18
   status: proposed
   affects: [lib:import, lib:serialize, component:document-reader, component:embed-block]
   related-to: [rule:block-links, req:wf2.instances.view-block]
   session: 7cfac7ea80
+```
+
+  An embed is a paragraph of its own whose whole text is `![[kind:slug]]` — the transclusion form Obsidian and Logseq readers know. lib/import lifts it to an `embed` block (props: id) before BlockNote parses the markdown; lib/serialize writes it back unchanged. The graph (ctx) needs no change: the line is a paragraph that mentions the node, so the page gets a `mentions` edge to it and `wf resolve` on the paragraph still works. The slash menu item is "Embed a node" (`/ref`, `/embed`), with the same node picker the link button uses (id or title search).
+
+  **Context** — A document needs a way to say "show that node here" that the graph, the reader, the editor and agents all understand. The editor already has one-line markers: `<!-- view:x -->` for a live table (invisible to the graph) and `![Title](drawings/x.excalidraw)` for a drawing. A node reference must stay a reference — the node keeps its one definition in its source document — and should be visible to the graph as a link from the page to the node.
+
+  **Alternatives** — A comment line `<!-- ref:kind:slug -->` like the view block — invisible to the graph and to any other reader; agents reading the raw markdown would miss it. A prose line `ref:kind:slug` — `ref` would become a kind and the line a node definition. A yaml card `- id: embed:… of: kind:slug` — an anonymous node for a reference is more than it is.
+
+  **Consequences** — lib/import#prepare gains EMBED_LINE next to VIEW_LINE and a %%EMBED:n%% marker; lib/serialize writes `![[id]]`; DocumentReader (the server fallback) renders the line as component:node-card; the anchor of the embed block is the hash of its text like any paragraph.
+
+```yaml
 - id: decision:wf2.embed-renders-source-card
   title: An embed renders the source card with the source's own components; edits go through op:node.edit
-  context: >
-    "The same way it looks on the original page" means the card components DocEditor renders inside BlockNote
-    (NodeBlock, QuestionNode, DecisionNode, the task line with its checkbox). They take the block's props and a
-    `contentRef` for the inline text, so they cannot be used outside the editor as they are. The context column
-    has its own form (component:node-editor, label/value rows) which looks different on purpose.
-  choice: >
-    The card bodies move out of DocEditor into a shared module (components/NodeCards.tsx) parameterised by a
-    text slot: inside the editor the slot is BlockNote's inline content (contentRef); in an embed it is a plain
-    growing text area bound to the node's text key. Everything else — header with kind pill, status select,
-    essence sections, details toggle, yaml — is the same code, so the two renderings cannot drift. The embed's
-    `set` writes through PUT /api/<product>/node/<id> (status, text, or the yaml body as props) instead of
-    updateBlock; the watcher rebuilds the graph, the source page's editor reloads its body as it already does for
-    any change on disk, and every embed refetches on the `graph` change event. The slug is read-only in an embed:
-    renaming a node is done on its source page, otherwise the embed line would dangle.
-  alternatives: >
-    A nested BlockNote editor per embed with the source block — heavy, and two editors of one document would
-    fight over saves. Copying the block into the embedding document — two definitions of one id, which the graph
-    forbids. Read-only embeds — the person asked for editing in place, and the context column already proves
-    op:node.edit is enough.
-  consequences: >
-    DocEditor shrinks (card bodies move); component:embed-block owns fetching, saving and refetching; a node
-    that is not defined (referenced only) renders as a stub tag with "not defined"; an embed of a node in a
-    goals/tasks table renders as a task/goal card (checkbox, status, tracking fields), not as a table row.
   date: 2026-09-18
   status: proposed
   affects: [component:doc-editor, component:embed-block, component:session-changes, op:node.edit]
   related-to: [rule:card-form, rule:card-essence, req:wf2.ui.edit-in-context]
   session: 7cfac7ea80
+```
+
+  The card bodies move out of DocEditor into a shared module (components/NodeCards.tsx) parameterised by a text slot: inside the editor the slot is BlockNote's inline content (contentRef); in an embed it is a plain growing text area bound to the node's text key. Everything else — header with kind pill, status select, essence sections, details toggle, yaml — is the same code, so the two renderings cannot drift. The embed's `set` writes through PUT /api/<product>/node/<id> (status, text, or the yaml body as props) instead of updateBlock; the watcher rebuilds the graph, the source page's editor reloads its body as it already does for any change on disk, and every embed refetches on the `graph` change event. The slug is read-only in an embed: renaming a node is done on its source page, otherwise the embed line would dangle.
+
+  **Context** — "The same way it looks on the original page" means the card components DocEditor renders inside BlockNote (NodeBlock, QuestionNode, DecisionNode, the task line with its checkbox). They take the block's props and a `contentRef` for the inline text, so they cannot be used outside the editor as they are. The context column has its own form (component:node-editor, label/value rows) which looks different on purpose.
+
+  **Alternatives** — A nested BlockNote editor per embed with the source block — heavy, and two editors of one document would fight over saves. Copying the block into the embedding document — two definitions of one id, which the graph forbids. Read-only embeds — the person asked for editing in place, and the context column already proves op:node.edit is enough.
+
+  **Consequences** — DocEditor shrinks (card bodies move); component:embed-block owns fetching, saving and refetching; a node that is not defined (referenced only) renders as a stub tag with "not defined"; an embed of a node in a goals/tasks table renders as a task/goal card (checkbox, status, tracking fields), not as a table row.
+
+```yaml
 - id: decision:wf2.page-node-typed
   title: A page's node is an instance of the type the page chooses; module stays the default
-  context: >
-    task:new-226 asks that each page is a node like any other block and that its type can be set to choose its
-    properties. Today the parser hardcodes the document node's kind to module (lib/parse.js:209), the frontmatter
-    `type:` key is decorative, and the header renders five fixed fields; instancesOf(type) never sees a page.
-  choice: >
-    The frontmatter `node:` line accepts any `kind:slug` whose kind is a declared type; that node is the page's
-    node — defined, titled, statused, with the frontmatter as its body and validated by ctx check against the
-    type's effective properties like any instance. `module` remains the default type of a new page and of
-    every existing page; nothing changes in existing files. The header becomes the page node's card: a type
-    picker (the product's own types first, then the base types) and the type's effective properties as fields.
-    The frontmatter `type:` line is dropped from the templates (the kind prefix is the type); parse ignores it.
-    graph.modules keeps its name and lists every document node regardless of kind; the web gets one helper
-    (docIdOf(file) / isDocNode(id)) and every hand-built `module:${slug}` goes through it.
-  alternatives: >
-    Keep `module:<slug>` as every page's id and read a free `type:` from the frontmatter — the type and the
-    kind prefix would disagree, typeOf(id) everywhere derives the type from the prefix, and a page would be a
-    module in links and a team on its card. Rejected: two notions of type. A separate "page type" property
-    shown only in the header — same disagreement, less visible. A new `page:` kind for every document — the
-    base type page exists (a screen in the app), and a document is not a screen.
-  consequences: >
-    Choosing a different type for an existing page changes its id (team:platform instead of module:platform):
-    op:doc.retype rewrites every reference to the old id across the product's documents in one write, the
-    same way a card's slug edit would have to (rule:doc-retype). A page is listed in its type's instance table
-    (req:ontology.type-page) and opens as a document from there. A type may now be the shape of a page, not
-    only of a card; "+ add" on a type page still adds a card (question:wf2.page-instance-add).
   date: 2026-09-18
   status: proposed
   affects: [component:doc-props, lib:parse, page:web/node, page:web/types]
   related-to: [decision:ontology.kind-is-type, req:ontology.types, task:new-226]
   session: 64813dfdab
+```
+
+  The frontmatter `node:` line accepts any `kind:slug` whose kind is a declared type; that node is the page's node — defined, titled, statused, with the frontmatter as its body and validated by ctx check against the type's effective properties like any instance. `module` remains the default type of a new page and of every existing page; nothing changes in existing files. The header becomes the page node's card: a type picker (the product's own types first, then the base types) and the type's effective properties as fields. The frontmatter `type:` line is dropped from the templates (the kind prefix is the type); parse ignores it. graph.modules keeps its name and lists every document node regardless of kind; the web gets one helper (docIdOf(file) / isDocNode(id)) and every hand-built `module:${slug}` goes through it.
+
+  **Context** — task:new-226 asks that each page is a node like any other block and that its type can be set to choose its properties. Today the parser hardcodes the document node's kind to module (lib/parse.js:209), the frontmatter `type:` key is decorative, and the header renders five fixed fields; instancesOf(type) never sees a page.
+
+  **Alternatives** — Keep `module:<slug>` as every page's id and read a free `type:` from the frontmatter — the type and the kind prefix would disagree, typeOf(id) everywhere derives the type from the prefix, and a page would be a module in links and a team on its card. Rejected: two notions of type. A separate "page type" property shown only in the header — same disagreement, less visible. A new `page:` kind for every document — the base type page exists (a screen in the app), and a document is not a screen.
+
+  **Consequences** — Choosing a different type for an existing page changes its id (team:platform instead of module:platform): op:doc.retype rewrites every reference to the old id across the product's documents in one write, the same way a card's slug edit would have to (rule:doc-retype). A page is listed in its type's instance table (req:ontology.type-page) and opens as a document from there. A type may now be the shape of a page, not only of a card; "+ add" on a type page still adds a card (question:wf2.page-instance-add).
+
+```yaml
 - id: decision:wf2.clean-slate
   title: A task starts from a clean slate; a chat keeps its context
-  context: >
-    Waterfall is the memory of every agent: what a task needs is in the documents and the graph, not in the last
-    conversation's context window. Yet the command box (⌘P, every "Send to agent") sends a request into the most
-    recent live conversation by default, so an unrelated task inherits a context full of the previous one — dearer,
-    slower and distracted — while the process behind each conversation stays up for hours holding that context
-    (task:idle-agent-timeout: six idle claude processes in one afternoon). Chatting in a conversation's console is
-    different: there the person is continuing the same work and wants the context kept.
-  choice: >
-    The command box defaults to "New conversation" — a fresh agent in a remembered folder with a remembered agent
-    (localStorage, like the folder today) — and offers the live conversations only as an explicit choice. When a live
-    conversation is chosen, a "clear context first" tick (off by default) restarts its agent from nothing in the same
-    folder before the message: the process is stopped, the agent's own session id is forgotten, the transcript gets a
-    divider note, and the message goes as a first message with the full contract (plan-first when ticked). The
-    console's own message box always keeps the context (no tick there). A live-and-idle conversation is stopped
-    after WF_AGENT_IDLE_MIN minutes without a turn (default 30, 0 disables) with a log line saying so; Resume or the
-    next message brings it back with `--resume`, so nothing is lost — only the process.
-  alternatives: >
-    Default to the latest conversation with the tick on — every task lands in one ever-growing session record and
-    "Produced" / the knowledge strip stop meaning one piece of work; a "Clear context" button in the console — the
-    console is the place where context is wanted, and the tick at send time says what the person means for that
-    request; never stop idle processes — memory and context are held for nothing, since `--resume` restores both.
-  consequences: >
-    rule:clean-slate and rule:idle-stop; component:command-box (default "new", remembered agent, the tick),
-    op:api.sessions.message takes `fresh`, agent-host#startChat reuses the Live entry so subscribers survive a
-    restart and the old process's close handler no longer touches a replaced process; rule:agent-sessions,
-    action:command-palette and decision:wf2.one-command-box's "defaults to the most recent active conversation" are
-    superseded; ui-test:command-palette extended.
   date: 2026-09-17
   status: proposed
   affects: [component:command-box, rule:agent-sessions, action:command-palette, rule:process-is-active, req:wf2.sessions.clean-slate, req:wf2.sessions.idle-stop]
   related-to: [decision:wf2.one-command-box, task:idle-agent-timeout]
   session: 64813dfdab
+```
+
+  The command box defaults to "New conversation" — a fresh agent in a remembered folder with a remembered agent (localStorage, like the folder today) — and offers the live conversations only as an explicit choice. When a live conversation is chosen, a "clear context first" tick (off by default) restarts its agent from nothing in the same folder before the message: the process is stopped, the agent's own session id is forgotten, the transcript gets a divider note, and the message goes as a first message with the full contract (plan-first when ticked). The console's own message box always keeps the context (no tick there). A live-and-idle conversation is stopped after WF_AGENT_IDLE_MIN minutes without a turn (default 30, 0 disables) with a log line saying so; Resume or the next message brings it back with `--resume`, so nothing is lost — only the process.
+
+  **Context** — Waterfall is the memory of every agent: what a task needs is in the documents and the graph, not in the last conversation's context window. Yet the command box (⌘P, every "Send to agent") sends a request into the most recent live conversation by default, so an unrelated task inherits a context full of the previous one — dearer, slower and distracted — while the process behind each conversation stays up for hours holding that context (task:idle-agent-timeout: six idle claude processes in one afternoon). Chatting in a conversation's console is different: there the person is continuing the same work and wants the context kept.
+
+  **Alternatives** — Default to the latest conversation with the tick on — every task lands in one ever-growing session record and "Produced" / the knowledge strip stop meaning one piece of work; a "Clear context" button in the console — the console is the place where context is wanted, and the tick at send time says what the person means for that request; never stop idle processes — memory and context are held for nothing, since `--resume` restores both.
+
+  **Consequences** — rule:clean-slate and rule:idle-stop; component:command-box (default "new", remembered agent, the tick), op:api.sessions.message takes `fresh`, agent-host#startChat reuses the Live entry so subscribers survive a restart and the old process's close handler no longer touches a replaced process; rule:agent-sessions, action:command-palette and decision:wf2.one-command-box's "defaults to the most recent active conversation" are superseded; ui-test:command-palette extended.
+
+```yaml
 - id: decision:wf2.desktop-electron
   title: Waterfall ships as an Electron desktop app that owns the app server and the agent processes
-  context: Running full conversations with Claude Code and Codex means owning long-lived local processes with file-system access; a browser tab cannot do that, and people want one thing to open.
-  choice: packages/desktop — an Electron shell that starts (or attaches to) the Next.js server on port 3456, opens the window on it, keeps a tray item, and kills the server and every agent on quit. The web app stays usable in a browser against the same server.
-  alternatives: [Tauri — smaller binary but a Rust toolchain and no Node in the main process, a plain browser tab plus a background daemon — two things to start and no window]
-  consequences: Electron adds ~250 MB of binary per platform; packaging and auto-update are not set up yet.
   status: approved
   date: 2026-09-17
+```
+
+  packages/desktop — an Electron shell that starts (or attaches to) the Next.js server on port 3456, opens the window on it, keeps a tray item, and kills the server and every agent on quit. The web app stays usable in a browser against the same server.
+
+  **Context** — Running full conversations with Claude Code and Codex means owning long-lived local processes with file-system access; a browser tab cannot do that, and people want one thing to open.
+
+  **Alternatives** — [Tauri — smaller binary but a Rust toolchain and no Node in the main process, a plain browser tab plus a background daemon — two things to start and no window]
+
+  **Consequences** — Electron adds ~250 MB of binary per platform; packaging and auto-update are not set up yet.
+
+```yaml
 - id: decision:wf2.local-semantic-search
   title: Relevant-context search runs locally with a small sentence model, not a hosted embedding API
-  context: The context panel must suggest related requirements, rules and decisions while a person or agent writes; product knowledge is confidential and the tool must work offline.
-  choice: transformers.js with all-MiniLM-L6-v2 (q8, ~23 MB, cached under .cache/models) in the Next.js server process; per-product vector cache next to graph.json; keyword blend for ids and code names the model does not know.
-  alternatives: [hosted embeddings (OpenAI/Voyage) — better quality but sends product text out and needs a key, keyword-only search — misses paraphrases, a vector database — overkill for a few thousand nodes]
-  consequences: First query after a cold start pays ~5 s to load the model; quality is adequate for short technical text, and a larger local model can be swapped in by changing one constant.
   status: approved
   date: 2026-09-16
+```
+
+  transformers.js with all-MiniLM-L6-v2 (q8, ~23 MB, cached under .cache/models) in the Next.js server process; per-product vector cache next to graph.json; keyword blend for ids and code names the model does not know.
+
+  **Context** — The context panel must suggest related requirements, rules and decisions while a person or agent writes; product knowledge is confidential and the tool must work offline.
+
+  **Alternatives** — [hosted embeddings (OpenAI/Voyage) — better quality but sends product text out and needs a key, keyword-only search — misses paraphrases, a vector database — overkill for a few thousand nodes]
+
+  **Consequences** — First query after a cold start pays ~5 s to load the model; quality is adequate for short technical text, and a larger local model can be swapped in by changing one constant.
+
+```yaml
 - id: lesson:wf2.prose-props-id-list
   statement: >
     `wf node set <id> --set "related-to=[<id>, <id>]"` on a prose line wrote the list, but the parser split the
@@ -743,27 +694,19 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: decision:wf2.deleted-outside-stays-put
   title: A document deleted outside the app keeps its place; only the content becomes "not found"
-  context: >
-    rule:tree-menu decides what happens when a person deletes a document from inside the app (they land on the
-    parent). Nothing decided what the open editor does when the file disappears from disk by other means — a shell
-    command, a git checkout, an agent rewriting the folder — which rule:live-refresh only reports to the rail.
-  choice: >
-    The person is not moved. The URL, the top bar and the rail stay as they were and the content area alone shows a
-    "page not found" notice. When the watcher sees the file again the document replaces the notice by itself, the way
-    any other change reaches the page under rule:live-refresh.
-  alternatives: >
-    Move the person to the parent as the in-app Delete does — rejected: an outside deletion is often transient (a
-    checkout, a rebase, an agent mid-rewrite) and bouncing the person loses where they were. Keep the deleted row
-    visible in the Documents tree, marked missing — rejected for now: the tree follows the files, and a phantom row
-    would be the one place the rail disagrees with disk.
-  consequences: >
-    The document page needs a not-found state that keeps the shell around it, and the live-refresh path must turn a
-    removed document into that state and a reappearing one back into the editor without a reload.
   affects: [req:document-opened-in-the, rule:live-refresh, component:live-document]
   by: person
   evidence: [session:a148426dd0]
   status: proposed
 ```
+
+  The person is not moved. The URL, the top bar and the rail stay as they were and the content area alone shows a "page not found" notice. When the watcher sees the file again the document replaces the notice by itself, the way any other change reaches the page under rule:live-refresh.
+
+  **Context** — rule:tree-menu decides what happens when a person deletes a document from inside the app (they land on the parent). Nothing decided what the open editor does when the file disappears from disk by other means — a shell command, a git checkout, an agent rewriting the folder — which rule:live-refresh only reports to the rail.
+
+  **Alternatives** — Move the person to the parent as the in-app Delete does — rejected: an outside deletion is often transient (a checkout, a rebase, an agent mid-rewrite) and bouncing the person loses where they were. Keep the deleted row visible in the Documents tree, marked missing — rejected for now: the tree follows the files, and a phantom row would be the one place the rail disagrees with disk.
+
+  **Consequences** — The document page needs a not-found state that keeps the shell around it, and the live-refresh path must turn a removed document into that state and a reappearing one back into the editor without a reload.
 
   verdict:00e01bdd5df2 refines rule:live-refresh — B applies the live-refresh mechanism described in A to the specific case of externally deleted documents reappearing. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: rule:live-refresh decision:wf2.deleted-outside-stays-put)
 
@@ -776,47 +719,36 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: decision:wf2.deleted-outside-drops-edits
   title: Unsaved edits do not bring a deleted file back
-  context: >
-    A document open in the editor may have a save pending (rule:live-refresh holds off reloads while one is) at the
-    moment its file is removed from disk. Either the pending save recreates the file, or the deletion wins.
-  choice: >
-    The deletion wins. The "page not found" notice shows regardless of pending edits and those edits are dropped; a
-    pending save never recreates a file that was deleted outside the app.
-  alternatives: >
-    Let the next save recreate the file — rejected: the file is canonical (constraint:wf2.text-canonical) and a
-    save racing a checkout would resurrect a page the person or git just removed. Keep the last editor content and
-    offer a "restore this page" action on the notice — rejected for now as more than the case warrants; it can be
-    added later without changing this decision.
-  consequences: >
-    A person can lose a few seconds of typing when a file vanishes under them; the notice is honest about it.
   affects: [req:document-opened-in-the, decision:wf2.deleted-outside-stays-put]
   by: person
   evidence: [session:a148426dd0]
   status: proposed
+```
+
+  The deletion wins. The "page not found" notice shows regardless of pending edits and those edits are dropped; a pending save never recreates a file that was deleted outside the app.
+
+  **Context** — A document open in the editor may have a save pending (rule:live-refresh holds off reloads while one is) at the moment its file is removed from disk. Either the pending save recreates the file, or the deletion wins.
+
+  **Alternatives** — Let the next save recreate the file — rejected: the file is canonical (constraint:wf2.text-canonical) and a save racing a checkout would resurrect a page the person or git just removed. Keep the last editor content and offer a "restore this page" action on the notice — rejected for now as more than the case warrants; it can be added later without changing this decision.
+
+  **Consequences** — A person can lose a few seconds of typing when a file vanishes under them; the notice is honest about it.
+
+```yaml
 - id: decision:wf2.not-found-rendered-not-thrown
   title: A missing document is rendered as a notice by the page, not thrown as a 404 boundary
-  context: >
-    decision:wf2.deleted-outside-stays-put needs the document to come back by itself when the file reappears. The
-    page used to call Next's notFound(): without a segment not-found file the default 404 replaced the whole layout
-    (rail, top bar and LiveRefresh gone, so nothing could bring the page back — seen in the browser on 2026-09-20);
-    with a segment not-found file the layout would stay, but Next's not-found boundary only resets when the
-    pathname changes, so a router.refresh() after the file returned would keep showing the notice.
-  choice: >
-    The page renders component:doc-not-found as ordinary content when the document is not in the graph or its file
-    cannot be read; router.refresh() from LiveRefresh then re-renders it into the editor as any other change.
-  alternatives: >
-    A not-found.tsx under d/[doc] with a client component that navigates to the same path on a change event —
-    rejected: same-path navigation does not reset the boundary either, and it would be a workaround for a boundary
-    we do not need. Keeping notFound() and reloading the window from the notice — rejected: req:document-opened-in-the
-    says without a reload.
-  consequences: >
-    A URL for a document that never existed answers 200 with the same notice instead of a 404 status; for a local
-    app that is acceptable. The project-level notFound() (unknown project) is unchanged.
   affects: [req:document-opened-in-the, decision:wf2.deleted-outside-stays-put, rule:doc-gone-in-place]
   by: agent:claude-code
   evidence: [session:baa6dff786]
   status: proposed
 ```
+
+  The page renders component:doc-not-found as ordinary content when the document is not in the graph or its file cannot be read; router.refresh() from LiveRefresh then re-renders it into the editor as any other change.
+
+  **Context** — decision:wf2.deleted-outside-stays-put needs the document to come back by itself when the file reappears. The page used to call Next's notFound(): without a segment not-found file the default 404 replaced the whole layout (rail, top bar and LiveRefresh gone, so nothing could bring the page back — seen in the browser on 2026-09-20); with a segment not-found file the layout would stay, but Next's not-found boundary only resets when the pathname changes, so a router.refresh() after the file returned would keep showing the notice.
+
+  **Alternatives** — A not-found.tsx under d/[doc] with a client component that navigates to the same path on a change event — rejected: same-path navigation does not reset the boundary either, and it would be a workaround for a boundary we do not need. Keeping notFound() and reloading the window from the notice — rejected: req:document-opened-in-the says without a reload.
+
+  **Consequences** — A URL for a document that never existed answers 200 with the same notice instead of a 404 status; for a local app that is acceptable. The project-level notFound() (unknown project) is unchanged.
 
   verdict:65cf07c2a789 refines constraint:wf2.text-canonical — B applies A's canonical-file principle to the deletion scenario: because files are canonical, a pending save cannot recreate a deleted file. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: constraint:wf2.text-canonical decision:wf2.deleted-outside-drops-edits)
 
@@ -827,30 +759,19 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: decision:wf2.block-menu-reuses-actions
   title: The block menu is one entry point over the block's existing actions, not a new form
-  context: >
-    req:wf2.ui.block-menu wants Delete, Comment, Copy link, Open, Ask, Duplicate and Turn into on a right-click. Every
-    one of these already exists somewhere on the block — the drag-handle menu (delete, rule:image-annotations), the
-    card header (copy link, open; rule:block-links), the ⌁ picker (turn into; req:wf2.editor.entity-from-text), the
-    formatting toolbar (ask), the column's Comments section (decision:ontology.comments-in-column).
-  choice: >
-    The menu calls the same actions those surfaces call. Comment selects the block as a click does
-    (req:wf2.ui.block-select) and focuses the column's comment box — no comment form in the editor. It opens on every
-    block; on one with no node yet, Open and Comment are greyed until task:ontology.paragraph-select gives a
-    paragraph its node. A right-click over a text selection is left to the browser. Escape, outside press and scroll
-    close it, with the target check rule:tree-menu learned.
-  alternatives: >
-    an inline comment popover at the pointer (a second place to write comments, against
-    decision:ontology.comments-in-column); a menu on typed blocks only (prose would keep the browser menu, but
-    Delete, Copy link and Duplicate are as useful on a paragraph); replacing the drag-handle menu (BlockNote's own,
-    keyboard-reachable — keep it).
-  consequences: >
-    one component for the block menu, shared by cards, rows, embeds and prose blocks; the tree menu's close handler
-    becomes shared code; no new API — delete, duplicate and comment write through op:doc.update and op:api.comments.
   status: proposed
   date: 2026-09-20
   by: person
   evidence: [session:3642a65ab6]
   affects: [req:wf2.ui.block-menu, decision:ontology.comments-in-column, rule:tree-menu]
 ```
+
+  The menu calls the same actions those surfaces call. Comment selects the block as a click does (req:wf2.ui.block-select) and focuses the column's comment box — no comment form in the editor. It opens on every block; on one with no node yet, Open and Comment are greyed until task:ontology.paragraph-select gives a paragraph its node. A right-click over a text selection is left to the browser. Escape, outside press and scroll close it, with the target check rule:tree-menu learned.
+
+  **Context** — req:wf2.ui.block-menu wants Delete, Comment, Copy link, Open, Ask, Duplicate and Turn into on a right-click. Every one of these already exists somewhere on the block — the drag-handle menu (delete, rule:image-annotations), the card header (copy link, open; rule:block-links), the ⌁ picker (turn into; req:wf2.editor.entity-from-text), the formatting toolbar (ask), the column's Comments section (decision:ontology.comments-in-column).
+
+  **Alternatives** — an inline comment popover at the pointer (a second place to write comments, against decision:ontology.comments-in-column); a menu on typed blocks only (prose would keep the browser menu, but Delete, Copy link and Duplicate are as useful on a paragraph); replacing the drag-handle menu (BlockNote's own, keyboard-reachable — keep it).
+
+  **Consequences** — one component for the block menu, shared by cards, rows, embeds and prose blocks; the tree menu's close handler becomes shared code; no new API — delete, duplicate and comment write through op:doc.update and op:api.comments.
 
   verdict:bf994c8076f6 refines req:wf2.ui.block-menu — B specifies the implementation approach for A's required menu actions: how they reuse existing surfaces, which actions grey out when no node exists, and how Comment integrates with column selection—detailing how A's menu is built and behaves. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:wf2.ui.block-menu decision:wf2.block-menu-reuses-actions)

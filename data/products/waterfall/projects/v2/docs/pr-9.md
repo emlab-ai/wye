@@ -74,67 +74,55 @@ Decisions this plan makes on its own, and what it cannot decide:
 ```yaml
 - id: decision:wf2.content-editor-scoped
   title: The column's content editor is the document editor scoped to one node, over one store
-  context: >
-    req:wf2.ui.node-content wants the page's editor inside the column, for any node, recursively. DocEditor loads a
-    whole document and saves it whole; the column shows one node whose content is a slice of a document.
-  choice: >
-    DocEditor gains a scope: given a node id it loads the node's content markdown (GET /api/<product>/node/<id>/content:
-    the nested lines de-indented, the document's hash) into the same schema and saves it back with
-    PUT …/node/<id>/content (if-match on the document, the ctx check gate) which re-indents the markdown under the
-    defining line and rebuilds the graph. Same slash menu, same import/serialize, same slug assignment for new typed
-    blocks; the only differences are the load and save paths and that its root is a node, not a document.
-  alternatives: >
-    A separate lighter editor for content (two editors that drift); writing children as op:node.edit patches one
-    block at a time (loses ordering and nested structure); editing content only on the document page (the column
-    stays read-only — not what was asked).
-  consequences: >
-    two new routes under api/[product]/node/[id]/content; DocEditor's load/save are parameterised (a `scope` prop);
-    a node open in the column and its document open behind it can both edit the same lines — the second write
-    fails if-match and that editor reloads on the next graph event, as today for an outside change.
   date: 2026-09-18
   status: proposed
   affects: [req:wf2.ui.node-content, component:doc-editor, component:peek-panel, op:node.edit]
   session: ffab751604
+```
+
+  DocEditor gains a scope: given a node id it loads the node's content markdown (GET /api/<product>/node/<id>/content: the nested lines de-indented, the document's hash) into the same schema and saves it back with PUT …/node/<id>/content (if-match on the document, the ctx check gate) which re-indents the markdown under the defining line and rebuilds the graph. Same slash menu, same import/serialize, same slug assignment for new typed blocks; the only differences are the load and save paths and that its root is a node, not a document.
+
+  **Context** — req:wf2.ui.node-content wants the page's editor inside the column, for any node, recursively. DocEditor loads a whole document and saves it whole; the column shows one node whose content is a slice of a document.
+
+  **Alternatives** — A separate lighter editor for content (two editors that drift); writing children as op:node.edit patches one block at a time (loses ordering and nested structure); editing content only on the document page (the column stays read-only — not what was asked).
+
+  **Consequences** — two new routes under api/[product]/node/[id]/content; DocEditor's load/save are parameterised (a `scope` prop); a node open in the column and its document open behind it can both edit the same lines — the second write fails if-match and that editor reloads on the next graph event, as today for an outside change.
+
+```yaml
 - id: decision:wf2.related-collapsed-default
   title: Related is closed by default, runs no search while closed, and remembers the choice per browser
-  context: >
-    The Related list (rule:context-panel) shows up under every selected block and searches on every caret move;
-    the person asked for it hidden behind a button.
-  choice: >
-    A "Related" heading with a show/hide button; collapsed by default; ContextPanel does not mount (so no request
-    goes out) until it is shown; the state lives in PeekProvider and in localStorage (`wf-related`), so it holds
-    across blocks, pages and reloads until the person closes it again.
-  alternatives: >
-    Collapsed every time the block changes (a click per block, tiring for someone who wants it); still searching
-    while hidden (wasted requests); removing Related (it is what "+ link" is for).
-  consequences: fewer context requests; ui-test:block-select's Related checks open it first
   date: 2026-09-18
   status: proposed
   affects: [req:wf2.ui.related-collapsed, component:context-panel, component:peek-panel]
   session: ffab751604
+```
+
+  A "Related" heading with a show/hide button; collapsed by default; ContextPanel does not mount (so no request goes out) until it is shown; the state lives in PeekProvider and in localStorage (`wf-related`), so it holds across blocks, pages and reloads until the person closes it again.
+
+  **Context** — The Related list (rule:context-panel) shows up under every selected block and searches on every caret move; the person asked for it hidden behind a button.
+
+  **Alternatives** — Collapsed every time the block changes (a click per block, tiring for someone who wants it); still searching while hidden (wasted requests); removing Related (it is what "+ link" is for).
+
+  **Consequences** — fewer context requests; ui-test:block-select's Related checks open it first
+
+```yaml
 - id: decision:wf2.text-is-first-block
   title: A node's text is the first block of its content; the column shows properties first, then the content
-  context: >
-    The first build showed a node in the column as a title field, then its properties, then a Content editor:
-    the text on top and the content below were two things. The person (session ffab751604, 2026-09-18): the
-    text and the content are the same thing; properties go on top, then the content, and the node's text — "When
-    i select a bug…" for bug:when-i-select-a — must be a text block inside the content field.
-  choice: >
-    The column shows the kind and id, the properties (status, the type's properties, tracking fields, inverses),
-    then Content: one editor whose first block is the node's text and whose following blocks are its content.
-    A save splits the editor's blocks: the first block's inline text becomes the node's text (op:node.edit's
-    patch of the defining line or the yaml card's text key), the rest its content (op:node.content), in one
-    write under one hash. An empty or non-text first block leaves the text as it was.
-  alternatives: >
-    Keeping the title field above the editor (two things for one field); making the text the card's header
-    only (then the text is not a block and cannot be edited like one).
-  consequences: >
-    NodeEditor loses its title field; the content route's GET returns the node's text and its PUT takes `text`
-    with `content`; an embed's card and the page's card keep the text in their own slot as before.
   date: 2026-09-18
   status: proposed
   affects: [req:wf2.ui.node-content, rule:content-editor, op:node.content, component:node-editor]
   session: ffab751604
+```
+
+  The column shows the kind and id, the properties (status, the type's properties, tracking fields, inverses), then Content: one editor whose first block is the node's text and whose following blocks are its content. A save splits the editor's blocks: the first block's inline text becomes the node's text (op:node.edit's patch of the defining line or the yaml card's text key), the rest its content (op:node.content), in one write under one hash. An empty or non-text first block leaves the text as it was.
+
+  **Context** — The first build showed a node in the column as a title field, then its properties, then a Content editor: the text on top and the content below were two things. The person (session ffab751604, 2026-09-18): the text and the content are the same thing; properties go on top, then the content, and the node's text — "When i select a bug…" for bug:when-i-select-a — must be a text block inside the content field.
+
+  **Alternatives** — Keeping the title field above the editor (two things for one field); making the text the card's header only (then the text is not a block and cannot be edited like one).
+
+  **Consequences** — NodeEditor loses its title field; the content route's GET returns the node's text and its PUT takes `text` with `content`; an embed's card and the page's card keep the text in their own slot as before.
+
+```yaml
 - id: question:wf2.content-of-block-nodes
   title: Does a plain paragraph — a block:<doc>.<hash> node — get a content editor too?
   q: >

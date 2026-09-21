@@ -45,34 +45,20 @@ Plans become a **system folder** of the rail, like Inbox and Agents are system p
 ```yaml
 - id: decision:wf2.plans-system-folder
   title: Plans is a system folder in the rail's menu; the plan files stay in the project's docs folder
-  context: >
-    decision:wf2.plans-folder made one Plans page per project the parent of every plan document, so the plans
-    showed up in the Documents tree next to the product's own documents. The person wants Plans out of Documents:
-    a system folder in the top section of the navigation.
-  choice: >
-    The rail's menu gets a Plans folder (req:wf2.ui.plans-folder): its entry opens /<product>/plans (page:web/prs,
-    every plan as a table), its rows are the plan documents newest first, and it collapses. The product layout
-    recognises the Plans page by its id (module:<project>-plans) and takes it and its sub-documents out of the
-    Documents tree (rule:prs-folder). Files do not move: a plan is still plan-<slug>.md in the project's docs
-    folder, part-of the project's Plans page, so routes, the editor, the watcher, links and the plan's result stay
-    as they are.
-  alternatives: >
-    A product-level plans/ folder on disk (data/products/<product>/plans/) like inbox — document routes, the editor's
-    save, the file watcher, deep links and `wf doc` refs are all per project; not a small update. Dropping plans.md
-    and marking plans by type only — the folder page is what holds the view table and is the parent the app already
-    writes; keeping it costs nothing once it is out of the tree. A cap on the rows in the folder — the folder
-    collapses, and the page is the full list; add a cap when a product has more plans than the rail can show.
-  consequences: >
-    refines decision:wf2.plans-folder (the parent stays; only the rail changes); req:wf2.sessions.plan-doc's
-    "the document tree shows it under Plans" becomes "the rail's Plans folder shows it"; page:web/sidebar's
-    menu order and rule:documents-tree gain the exception; ui-test:plans's "the tree shows Plans" check moves to
-    ui-test:plans-folder.
   affects: [req:wf2.ui.plans-folder, rule:prs-folder, page:web/prs, page:web/sidebar, rule:documents-tree, req:wf2.sessions.plan-doc]
   related-to: [decision:wf2.plans-folder, decision:wf2.plan-per-request]
   status: proposed
   date: 2026-09-18
   session: 48c8885cd2
 ```
+
+  The rail's menu gets a Plans folder (req:wf2.ui.plans-folder): its entry opens /<product>/plans (page:web/prs, every plan as a table), its rows are the plan documents newest first, and it collapses. The product layout recognises the Plans page by its id (module:<project>-plans) and takes it and its sub-documents out of the Documents tree (rule:prs-folder). Files do not move: a plan is still plan-<slug>.md in the project's docs folder, part-of the project's Plans page, so routes, the editor, the watcher, links and the plan's result stay as they are.
+
+  **Context** — decision:wf2.plans-folder made one Plans page per project the parent of every plan document, so the plans showed up in the Documents tree next to the product's own documents. The person wants Plans out of Documents: a system folder in the top section of the navigation.
+
+  **Alternatives** — A product-level plans/ folder on disk (data/products/<product>/plans/) like inbox — document routes, the editor's save, the file watcher, deep links and `wf doc` refs are all per project; not a small update. Dropping plans.md and marking plans by type only — the folder page is what holds the view table and is the parent the app already writes; keeping it costs nothing once it is out of the tree. A cap on the rows in the folder — the folder collapses, and the page is the full list; add a cap when a product has more plans than the rail can show.
+
+  **Consequences** — refines decision:wf2.plans-folder (the parent stays; only the rail changes); req:wf2.sessions.plan-doc's "the document tree shows it under Plans" becomes "the rail's Plans folder shows it"; page:web/sidebar's menu order and rule:documents-tree gain the exception; ui-test:plans's "the tree shows Plans" check moves to ui-test:plans-folder.
 
 While reading the prompt code I found that the "plan documents (follow-ups go here)" line of the agent's system prompt picks the first file whose name contains "plan" in each project — since plan documents exist that is a random `plan-*.md`, not the project's plan (`plan.md`); the last task fixes it.
 

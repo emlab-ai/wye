@@ -4,7 +4,7 @@ type: module
 title: Runs
 status: proposed
 owner: alex
-last-verified: 2026-09-20
+last-verified: 2026-09-21
 order: 30
 ---
 
@@ -17,18 +17,18 @@ Every run the harness made, as cards of the Evaluation project's types (module:e
 One card per results file: the suite, the graph and git shas, the model, the judge, the prompt hashes and the gate.
 
 ```yaml
-- id: eval-run:2026-09-20-own
-  title: "own — 2026-09-20 (replayed)"
+- id: eval-run:2026-09-21-own
+  title: "own — 2026-09-21 (replayed)"
   suite: own
-  date: 2026-09-20
-  graph-sha: "62ae1654eaba"
-  git: "6238eaa02378"
+  date: 2026-09-21
+  graph-sha: "16dd88442819"
+  git: "d75ff58a379b"
   model: "claude-haiku-4-5-20251001"
   judge: "claude-haiku-4-5-20251001 @ 6d31662f"
   prompts: "verdict 6d31662f, impact 291a2d1d, consolidation 1d527194"
   gate: passed
-  truth: "truth-waterfall-62ae1654eaba.json: requirements 73, supersessions 2, commits 77, sessions 18, consolidation 28"
-  truth: "errors: packet: recording missing in eval/recorded/semantic-waterfall.json for context \"Every request that starts work becomes a plan document under\" — run once with --live (WATERFALL_LIVE=1); currency: recording missing in eval/recorded/semantic-waterfall.json for context \"The definition of Wye is by kind on top and by area inside —\" — run once with --live (WATERFALL_LIVE=1); impact: recording missing in eval/recorded/semantic-waterfall.json for context \"The dispatcher (decision&#58;wf2.pr-scheduler): approved PRs\" — run once with --live (WATERFALL_LIVE=1)"
+  truth: "truth-waterfall-16dd88442819.json: requirements 72, supersessions 2, commits 79, sessions 18, consolidation 30"
+  truth: "errors: packet: recording missing in eval/recorded/semantic-waterfall.json for context \"Every request that starts work becomes a plan document under\" — run once with --live (WATERFALL_LIVE=1); currency: recording missing in eval/recorded/semantic-waterfall.json for context \"The definition of Wye is by kind on top and by area inside —\" — run once with --live (WATERFALL_LIVE=1); impact: recording missing in eval/recorded/semantic-waterfall.json for context \"The Inbox per project (req&#58;wf2.inbox.per-project): chips\" — run once with --live (WATERFALL_LIVE=1)"
 ```
 
 ## Scores
@@ -36,26 +36,24 @@ One card per results file: the suite, the graph and git shas, the model, the jud
 One card per number, with the previous run, the delta in points, the tolerance it is gated against and the judge's κ when a model scored it.
 
 ```yaml
-- id: eval-score:2026-09-20-own.contradictions-recall
+- id: eval-score:2026-09-21-own.contradictions-recall
   title: "contradictions.recall 18.2%"
-  run: eval-run:2026-09-20-own
+  run: eval-run:2026-09-21-own
   name: "contradictions.recall"
   value: "18.2%"
   n: 11
   tolerance: 5
   kappa: "n/a"
   what: "drift pairs judged contradicts; by conflict: static 1, dynamic 1; 1 unjudged"
-- id: eval-score:2026-09-20-own.contradictions-precision
-  title: "contradictions.precision n/a"
-  run: eval-run:2026-09-20-own
+- id: eval-score:2026-09-21-own.contradictions-precision
+  title: "contradictions.precision 100%"
+  run: eval-run:2026-09-21-own
   name: "contradictions.precision"
-  value: "n/a"
-  n: 0
+  value: "100%"
+  n: 2
   tolerance: 5
   kappa: "n/a"
   what: "same-kind neighbour pairs left alone (precision proxy)"
-- id: decision:table
-  title: table
 ```
 
 ## With and without

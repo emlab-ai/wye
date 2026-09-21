@@ -101,105 +101,90 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: decision:wf2.jev-judges-never-finds
   title: Jev judges candidate links; the local search finds them
-  context: >
-    Jev (TypeSafe AI's System One model) answers typed questions about a text — yes/no, a choice, a score — with
-    calibrated probabilities in one pass, 70–500 ms, for a fraction of a cent; it cannot extract spans or classify
-    words. The product already has a local semantic search (lib:semantic) that finds the closest knowledge but
-    has no notion of "is this actually about X".
-  choice: >
-    Candidates always come from the local search (top 12–15); Jev gets one noul question per candidate in one call
-    and answers how likely the text is about it. One threshold, 0.85, decides what is linked automatically; below it
-    a candidate stays a suggestion. The same step (lib:links judgeText) serves the inbox, the editor and consolidation.
-  alternatives: >
-    Ask Jev to find entities — rejected: not what it does. Ask a text model to link — rejected: slower and costlier
-    for a judgement that is a probability, not prose; the judge (lib/judge.js) stays a candidate for the same move later.
-  consequences: >
-    Nothing links that the search did not surface. The question wording is versioned (promptVersion) and the
-    editor's cache keyed on it, so a rewording re-judges everything once.
   affects: [req:wf2.link.jev, lib:links, lib:jev]
   status: approved
   date: 2026-09-20
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+```
+
+  Candidates always come from the local search (top 12–15); Jev gets one noul question per candidate in one call and answers how likely the text is about it. One threshold, 0.85, decides what is linked automatically; below it a candidate stays a suggestion. The same step (lib:links judgeText) serves the inbox, the editor and consolidation.
+
+  **Context** — Jev (TypeSafe AI's System One model) answers typed questions about a text — yes/no, a choice, a score — with calibrated probabilities in one pass, 70–500 ms, for a fraction of a cent; it cannot extract spans or classify words. The product already has a local semantic search (lib:semantic) that finds the closest knowledge but has no notion of "is this actually about X".
+
+  **Alternatives** — Ask Jev to find entities — rejected: not what it does. Ask a text model to link — rejected: slower and costlier for a judgement that is a probability, not prose; the judge (lib/judge.js) stays a candidate for the same move later.
+
+  **Consequences** — Nothing links that the search did not surface. The question wording is versioned (promptVersion) and the editor's cache keyed on it, so a rewording re-judges everything once.
+
+```yaml
 - id: decision:wf2.jev-key-in-settings
   title: The Jev key lives in the app's settings, never in a product's frontmatter or the environment
-  context: >
-    Product switches (impact, consolidate, verdicts) are _product.md frontmatter, which is committed — and the repo
-    is public. A key is per machine, not per product.
-  choice: >
-    A Settings page (rail ⚙, /<product>/settings, app-wide) with the key masked, Save / Test / Remove; stored in
-    data/_settings.json (mode 0600, gitignored) behind lib:settings; the browser only ever sees set + last 4. A stored
-    key is the switch — there is no separate toggle. TYPESAFE_API_KEY in the environment is only the fallback for
-    tests and evals outside the app.
-  alternatives: >
-    packages/web/.env.local — rejected by alex: the key has to be entered in the app's settings.
-  consequences: >
-    Every judging path runs in the app (the inbox add API, the links route, consolidation), so the CLI never needs
-    the key. The first settings page of the app; other app-wide settings go there.
   affects: [req:wf2.link.jev, page:web/settings, lib:settings]
   status: approved
   date: 2026-09-20
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+```
+
+  A Settings page (rail ⚙, /<product>/settings, app-wide) with the key masked, Save / Test / Remove; stored in data/_settings.json (mode 0600, gitignored) behind lib:settings; the browser only ever sees set + last 4. A stored key is the switch — there is no separate toggle. TYPESAFE_API_KEY in the environment is only the fallback for tests and evals outside the app.
+
+  **Context** — Product switches (impact, consolidate, verdicts) are _product.md frontmatter, which is committed — and the repo is public. A key is per machine, not per product.
+
+  **Alternatives** — packages/web/.env.local — rejected by alex: the key has to be entered in the app's settings.
+
+  **Consequences** — Every judging path runs in the app (the inbox add API, the links route, consolidation), so the CLI never needs the key. The first settings page of the app; other app-wide settings go there.
+
+```yaml
 - id: decision:wf2.editor-links-on-blur
   title: Automatic links are applied in the editor on leaving it, never by the server behind it
-  context: >
-    The editor autosaves the whole body with an ifMatch hash (replace-body); a server-side write into an open document
-    would make the next save conflict (409) and reload the page under the cursor.
-  choice: >
-    On blur — the hook that already turns typed ids into tags — the blocks whose text changed since they were last
-    judged go to op:api.links; the confident ids come back and lib:apply-links appends them as tags (paragraph, prose
-    node) or merges them into related-to (yaml card); then the normal save runs. Verdicts are cached by text hash in
-    _build/jev.json so an unchanged block is never judged twice.
-  alternatives: >
-    The server writing related-to after the save — rejected (conflict). Suggest only, never write — kept as the
-    fallback if 0.85 proves too eager: a one-line change in applyLinks makes paragraphs suggestion-only.
-  consequences: >
-    A tag appended to a person's paragraph is a visible, undoable edit like any other; the Context column shows
-    beforehand what will be linked.
   affects: [req:wf2.link.jev, component:doc-editor, lib:apply-links, op:api.links]
   status: approved
   date: 2026-09-20
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+```
+
+  On blur — the hook that already turns typed ids into tags — the blocks whose text changed since they were last judged go to op:api.links; the confident ids come back and lib:apply-links appends them as tags (paragraph, prose node) or merges them into related-to (yaml card); then the normal save runs. Verdicts are cached by text hash in _build/jev.json so an unchanged block is never judged twice.
+
+  **Context** — The editor autosaves the whole body with an ifMatch hash (replace-body); a server-side write into an open document would make the next save conflict (409) and reload the page under the cursor.
+
+  **Alternatives** — The server writing related-to after the save — rejected (conflict). Suggest only, never write — kept as the fallback if 0.85 proves too eager: a one-line change in applyLinks makes paragraphs suggestion-only.
+
+  **Consequences** — A tag appended to a person's paragraph is a visible, undoable edit like any other; the Context column shows beforehand what will be linked.
+
+```yaml
 - id: decision:wf2.one-instance-table
   title: One instance table for the type page, the kind page and the view block
-  context: >
-    Three places list "all nodes of one type": the kind page (relations, no properties, no filters), the type page
-    (properties, no filters) and TrackList (filters, goals and tasks only). task:new-453 asks for filters on any type.
-  choice: >
-    One client component (component:instance-table) with rows computed on the server (lib:instances — pure: rows of
-    a type with their effective properties, filter / group / sort, tested with vitest) and rendered by the type page,
-    the kind page and a read-only `view` block in the editor. The kind page keeps its relations column for kinds
-    without a declared type. Goals and Tasks keep component:track-list (nesting, progress) — the instance table does
-    not replace it. Filters live in the URL, not in saved views.
-  alternatives: >
-    Filters on the type page only — the kind page stays a second, poorer list of the same nodes; a query language
-    in the block (`where status = open`) — more to learn than a toolbar, can come later on top of key=value; saved
-    named views — a store for something the URL already carries.
-  consequences: >
-    page:web/types and page:web/knowledge say they render component:instance-table; a `view` block spec next to
-    the collection block in DocEditor; rule:type-tables stays (a table *creates* rows, a view *shows* them).
   status: proposed
   date: 2026-09-17
   related-to: [decision:wf2.one-table-block, rule:type-tables, rule:goals-and-tasks]
   session: 53f99bfd98
+```
+
+  One client component (component:instance-table) with rows computed on the server (lib:instances — pure: rows of a type with their effective properties, filter / group / sort, tested with vitest) and rendered by the type page, the kind page and a read-only `view` block in the editor. The kind page keeps its relations column for kinds without a declared type. Goals and Tasks keep component:track-list (nesting, progress) — the instance table does not replace it. Filters live in the URL, not in saved views.
+
+  **Context** — Three places list "all nodes of one type": the kind page (relations, no properties, no filters), the type page (properties, no filters) and TrackList (filters, goals and tasks only). task:new-453 asks for filters on any type.
+
+  **Alternatives** — Filters on the type page only — the kind page stays a second, poorer list of the same nodes; a query language in the block (`where status = open`) — more to learn than a toolbar, can come later on top of key=value; saved named views — a store for something the URL already carries.
+
+  **Consequences** — page:web/types and page:web/knowledge say they render component:instance-table; a `view` block spec next to the collection block in DocEditor; rule:type-tables stays (a table *creates* rows, a view *shows* them).
+
+```yaml
 - id: decision:wf2.view-block-now
   title: The view block ships with the filterable page, in one change
-  context: >
-    question:wf2.view-block-now asked whether the block is part of task:new-453 or a follow-up.
-  choice: >
-    Both — the person answered Proceed on the plan without narrowing it, so the page and the view block were built
-    together (task:instance-table, task:instance-view-block).
-  alternatives: >
-    Page only, block later.
-  consequences: >
-    req:wf2.instances.view-block is shipped with req:wf2.instances.filter; rule:view-block holds the syntax.
   status: proposed
   date: 2026-09-17
   resolves: question:wf2.view-block-now
   session: 53f99bfd98
 ```
+
+  Both — the person answered Proceed on the plan without narrowing it, so the page and the view block were built together (task:instance-table, task:instance-view-block).
+
+  **Context** — question:wf2.view-block-now asked whether the block is part of task:new-453 or a follow-up.
+
+  **Alternatives** — Page only, block later.
+
+  **Consequences** — req:wf2.instances.view-block is shipped with req:wf2.instances.filter; rule:view-block holds the syntax.
 
 <!-- /list:decision -->
 

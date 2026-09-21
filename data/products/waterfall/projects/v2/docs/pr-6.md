@@ -31,24 +31,18 @@ The context column (component:peek-panel, `packages/web/src/components/PeekPanel
 ```yaml
 - id: decision:wf2.connected-rows-expand-to-cards
   title: A connected row expands in place into the node's embedded card
-  context: >
-    The context column lists what a node is connected to as smart tags; reading a related node meant opening it,
-    which replaced the column's content. The person wants related and child nodes visible like the main card.
-  choice: >
-    Each Connected / tracking row of a defined node gets an expand toggle that renders the node's card under the
-    row with component:embed-block's EmbeddedCard (the source page's card, editable in place); a group heading
-    toggles all of its rows. Nothing is created; the tag still opens the node.
-  alternatives: >
-    Render every connected node as a card always (too long for nodes with dozens of relations); a "+ add" that
-    creates a new child or related node (a different request — the person chose expanding); nested expansion of
-    a card's own relations (not asked; a card's tags still open the node).
-  consequences: >
-    component:peek-panel gains the toggles and depends on component:embed-block; the Connected list's rows keep
-    their shape when collapsed. req:wf2.ui.connected-cards and rule:connected-cards describe it.
   date: 2026-09-18
   status: proposed
   related-to: [component:peek-panel, component:embed-block, req:wf2.ui.connected-cards]
 ```
+
+  Each Connected / tracking row of a defined node gets an expand toggle that renders the node's card under the row with component:embed-block's EmbeddedCard (the source page's card, editable in place); a group heading toggles all of its rows. Nothing is created; the tag still opens the node.
+
+  **Context** — The context column lists what a node is connected to as smart tags; reading a related node meant opening it, which replaced the column's content. The person wants related and child nodes visible like the main card.
+
+  **Alternatives** — Render every connected node as a card always (too long for nodes with dozens of relations); a "+ add" that creates a new child or related node (a different request — the person chose expanding); nested expansion of a card's own relations (not asked; a card's tags still open the node).
+
+  **Consequences** — component:peek-panel gains the toggles and depends on component:embed-block; the Connected list's rows keep their shape when collapsed. req:wf2.ui.connected-cards and rule:connected-cards describe it.
 
 ![[req:wf2.ui.connected-cards]]
 

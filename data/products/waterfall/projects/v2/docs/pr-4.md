@@ -56,27 +56,19 @@ and the rest of the document does not move. No markup or data change; goals/task
 ```yaml
 - id: decision:wf2.table-scroll-not-shrink
   title: A narrow data table scrolls sideways; columns keep their minimum widths
-  context: >
-    On a small screen (or with the context column open) the data table's fixed columns win and the name column
-    collapses to a few characters per line (the screenshot on this plan). Something has to give: the columns,
-    the rows' layout, or the block's width.
-  choice: >
-    The block scrolls horizontally and every column keeps a minimum (name 200 px). Same behaviour as the app's
-    other tables (component:instance-table), no change to what a row shows, and the person can still reach every
-    cell.
-  alternatives: >
-    Hide property columns below a breakpoint — loses cells the person may need and differs per type; wrap each row
-    into two lines (name above, properties below) — a second layout to maintain for every row kind; make the name
-    column's minimum larger than 200 px — pushes the scrollbar onto laptops with the column open.
-  consequences: >
-    The scroll container is the collection's `.bn-block`, so BlockNote's side menu and drag handle sit on a
-    scrolling ancestor; verified in the ui test. `min-width: min-content` on `.nrow` means a row's text never
-    widens the row (the name track's minimum is fixed), so long text still wraps.
   affects: [component:data-table, rule:table-scroll, req:wf2.editor.table-scroll]
   status: proposed
   date: 2026-09-18
   session: 01b14dc871
 ```
+
+  The block scrolls horizontally and every column keeps a minimum (name 200 px). Same behaviour as the app's other tables (component:instance-table), no change to what a row shows, and the person can still reach every cell.
+
+  **Context** — On a small screen (or with the context column open) the data table's fixed columns win and the name column collapses to a few characters per line (the screenshot on this plan). Something has to give: the columns, the rows' layout, or the block's width.
+
+  **Alternatives** — Hide property columns below a breakpoint — loses cells the person may need and differs per type; wrap each row into two lines (name above, properties below) — a second layout to maintain for every row kind; make the name column's minimum larger than 200 px — pushes the scrollbar onto laptops with the column open.
+
+  **Consequences** — The scroll container is the collection's `.bn-block`, so BlockNote's side menu and drag handle sit on a scrolling ancestor; verified in the ui test. `min-width: min-content` on `.nrow` means a row's text never widens the row (the name track's minimum is fixed), so long text still wraps.
 
 ## Tasks
 

@@ -95,47 +95,38 @@ Built as planned, with three things the build found (all in rule:table-filter):
 ```yaml
 - id: decision:wf2.table-filter-on-marker
   title: A data table keeps its filters on its marker line, like a view block
-  context: >
-    Filters on a data table have to live somewhere between one visit and the next. The view block already writes
-    its toolbar state to its `<!-- view:<slug> key=value -->` line (rule:view-block), and the table's marker
-    `<!-- table:<slug> -->` is the same kind of line.
-  choice: >
-    The table's opening marker carries the filters as key=value pairs — `<!-- table:bug status=open
-    priority=high -->`, `<!-- goals owner=alex -->` — parsed and written with the view block's grammar
-    (parseViewQuery / viewQuery). Clearing the filters leaves the bare marker. So a filtered table is what the
-    file says, everyone opening the document sees the same rows, and a Send to agent or a link carries it.
-  alternatives: >
-    Per browser (localStorage keyed by document and table) — invisible to others and to agents, lost across
-    machines; in the page URL — a table is not a page, and a document with two tables has two states; not kept
-    at all (filters reset on reload) — the cheapest, and the person redoes the same filter every visit.
-  consequences: >
-    A filter is an edit of the document (the marker line changes), so it goes through save and shows up as a
-    change; the requirement's "kept with the table" means kept in the file. COLLECTION_OPEN and collectionMarker
-    change; a marker with a query is still a comment to every other reader.
   affects: [req:wf2.editor.table-filter, component:data-table, rule:type-tables, rule:goals-and-tasks]
   status: proposed
   date: 2026-09-18
   session: bd2ece3698
+```
+
+  The table's opening marker carries the filters as key=value pairs — `<!-- table:bug status=open priority=high -->`, `<!-- goals owner=alex -->` — parsed and written with the view block's grammar (parseViewQuery / viewQuery). Clearing the filters leaves the bare marker. So a filtered table is what the file says, everyone opening the document sees the same rows, and a Send to agent or a link carries it.
+
+  **Context** — Filters on a data table have to live somewhere between one visit and the next. The view block already writes its toolbar state to its `<!-- view:<slug> key=value -->` line (rule:view-block), and the table's marker `<!-- table:<slug> -->` is the same kind of line.
+
+  **Alternatives** — Per browser (localStorage keyed by document and table) — invisible to others and to agents, lost across machines; in the page URL — a table is not a page, and a document with two tables has two states; not kept at all (filters reset on reload) — the cheapest, and the person redoes the same filter every visit.
+
+  **Consequences** — A filter is an edit of the document (the marker line changes), so it goes through save and shows up as a change; the requirement's "kept with the table" means kept in the file. COLLECTION_OPEN and collectionMarker change; a marker with a query is still a comment to every other reader.
+
+```yaml
 - id: decision:wf2.table-filter-hides-rows
   title: A filter hides rows in the editor; the rows stay children of the table and stay in the file
-  context: >
-    The table's rows are editor blocks and node lines in the file. A filter could remove the blocks that do not
-    match (and put them back on clear) or leave them in place and not show them.
-  choice: >
-    The rows that do not match are hidden (a class on the row, display none); they remain children of the
-    collection block and serialize.ts writes them as before. The trailing empty row is never hidden, so "+ add"
-    keeps working; a new row typed under a filter is shown until the cursor leaves it.
-  alternatives: >
-    Remove and restore blocks — every filter change would be a document change with undo history, and a save
-    between filter and clear would drop rows from the file.
-  consequences: >
-    Row settling (rule:table-rows) and drag handles work on hidden rows as on any block; keyboard navigation with
-    the arrow keys can land in a hidden row — the build has to skip hidden rows or accept the caret being
-    invisible for one keystroke (the ui test checks this).
   affects: [req:wf2.editor.table-filter, rule:table-rows, component:data-table]
   status: proposed
   date: 2026-09-18
   session: bd2ece3698
+```
+
+  The rows that do not match are hidden (a class on the row, display none); they remain children of the collection block and serialize.ts writes them as before. The trailing empty row is never hidden, so "+ add" keeps working; a new row typed under a filter is shown until the cursor leaves it.
+
+  **Context** — The table's rows are editor blocks and node lines in the file. A filter could remove the blocks that do not match (and put them back on clear) or leave them in place and not show them.
+
+  **Alternatives** — Remove and restore blocks — every filter change would be a document change with undo history, and a save between filter and clear would drop rows from the file.
+
+  **Consequences** — Row settling (rule:table-rows) and drag handles work on hidden rows as on any block; keyboard navigation with the arrow keys can land in a hidden row — the build has to skip hidden rows or accept the caret being invisible for one keystroke (the ui test checks this).
+
+```yaml
 - id: question:wf2.table-filter-sort
   q: >
     Should the data table also sort and group like component:instance-table does (sort by a column, group by a

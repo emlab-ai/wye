@@ -274,188 +274,122 @@ enforces.
 ```yaml
 - id: decision:wf2.plan-first-is-a-prompt
   title: Plan-first is a section of the first message, not a session mode or a second agent
-  context: >
-    The command palette (⌘P) must make an agent understand and propose before it builds, and let the person confirm.
-    That could be a distinct session mode with its own host and console, a separate planning agent that hands off,
-    or a protocol in the prompt.
-  choice: >
-    A `plan: true` flag on the session appends a plan-first section to the first message (understand → propose →
-    confirm with one AskUserQuestion → build). The confirmation uses the question card every conversation already
-    renders (rule:agent-questions); the session, host and console are unchanged. The palette can untick it.
-  alternatives: >
-    A session mode — duplicates the host and console for one difference; a planning agent handing off to a builder
-    — loses the context it just gathered; a fixed "plan" tool — Claude Code's AskUserQuestion already is the form.
-  consequences: rule:plan-first; action:command-palette; a later agent can carry the same flag from any entry point
   status: proposed
   date: 2026-09-17
   related-to: [rule:plan-first, rule:agent-questions, decision:wf2.agent-questions-are-forms]
   session: 8aa3926e18
+```
+
+  A `plan: true` flag on the session appends a plan-first section to the first message (understand → propose → confirm with one AskUserQuestion → build). The confirmation uses the question card every conversation already renders (rule:agent-questions); the session, host and console are unchanged. The palette can untick it.
+
+  **Context** — The command palette (⌘P) must make an agent understand and propose before it builds, and let the person confirm. That could be a distinct session mode with its own host and console, a separate planning agent that hands off, or a protocol in the prompt.
+
+  **Alternatives** — A session mode — duplicates the host and console for one difference; a planning agent handing off to a builder — loses the context it just gathered; a fixed "plan" tool — Claude Code's AskUserQuestion already is the form.
+
+  **Consequences** — rule:plan-first; action:command-palette; a later agent can carry the same flag from any entry point
+
+```yaml
 - id: decision:wf2.plan-is-a-page
   title: The plan is the subject's page, worked on together, not a chat message
-  context: >
-    The first plan-first protocol had the agent propose in a chat message and ask Proceed / Adjust / Cancel. A chat
-    message is gone once the session ends, the person can only answer it, and nothing forced the agent to say which
-    entity the request is about, whether its type exists, or where it lives.
-  choice: >
-    The plan lives on the subject's page: the agent names the subject as one node, makes sure its type and its
-    document exist (existing document first, a new one only when nothing fits), writes what it understood there as
-    typed blocks (req, decision, question, task — proposed), navigates the person to the page (`wf session open`),
-    and the two work on the page until the person answers Proceed. The build is what the page says at that moment.
-  alternatives: >
-    Keep the plan in chat and copy blocks to a document afterwards — the person cannot edit the plan itself and the
-    copy drifts; a dedicated "plan" document per session — one more place to look, and the knowledge belongs with
-    the entity anyway.
-  consequences: rule:plan-first; op:session.open; `wf doc create`, `wf type add`, `wf session open` in bin/wf.js; req:wf2.ui.command-palette
   status: proposed
   date: 2026-09-17
   related-to: [decision:wf2.plan-first-is-a-prompt, rule:plan-first, rule:agent-questions]
   session: 0e07e8fd53
+```
+
+  The plan lives on the subject's page: the agent names the subject as one node, makes sure its type and its document exist (existing document first, a new one only when nothing fits), writes what it understood there as typed blocks (req, decision, question, task — proposed), navigates the person to the page (`wf session open`), and the two work on the page until the person answers Proceed. The build is what the page says at that moment.
+
+  **Context** — The first plan-first protocol had the agent propose in a chat message and ask Proceed / Adjust / Cancel. A chat message is gone once the session ends, the person can only answer it, and nothing forced the agent to say which entity the request is about, whether its type exists, or where it lives.
+
+  **Alternatives** — Keep the plan in chat and copy blocks to a document afterwards — the person cannot edit the plan itself and the copy drifts; a dedicated "plan" document per session — one more place to look, and the knowledge belongs with the entity anyway.
+
+  **Consequences** — rule:plan-first; op:session.open; `wf doc create`, `wf type add`, `wf session open` in bin/wf.js; req:wf2.ui.command-palette
+
+```yaml
 - id: decision:exec.task-is-the-unit
   title: The task is the unit of work; a plan is a request with its tasks; a session is a worker's shift
-  context: >
-    Today a request becomes a plan document and, when the agent writes them, task lines; a session is what a runner
-    claims. Linear + Copilot and every 2026 orchestration guide use the issue / task as the thing assigned, claimed and
-    reviewed. The person: "agents are just workers".
-  choice: >
-    A work item is a task: node — the `- [ ] task:` line the parser already reads, anywhere in the documents — with
-    its status (todo, open, in-progress, blocked, review, done) on the line. A request from the command box creates a
-    plan document as now *and* one task line in it (`task:<plan-slug>` — the request itself) that the session's
-    `refs` carry, so the request is on the board from the first second; tasks the agent adds under the plan are its
-    steps and nest under it. A session is a worker's shift on one or more tasks: it never appears on the Work view as
-    an item, only as the worker column of the tasks it holds. A task's `session:` links (rule:task-artifacts) say
-    which shifts worked it; `worker:` says who holds it now — a person's name or an agent name.
-  alternatives: >
-    Plans as the unit (a step that needs a different worker has no row); sessions as the unit (the Agents page today:
-    work is invisible until someone is on it); a separate task store (the v2 design's task table — rejected with the
-    database, decision:wf2.plan-is-a-page).
-  consequences: >
-    `review` joins task statuses (an agent finished; a person checks); `worker: string?` and `priority: number?` join
-    type:task; the plan document template gets the request task line; the Work view (E.1) lists tasks and nothing
-    else; the Agents page keeps showing workers and their plans.
   date: 2026-09-19
   status: proposed
   affects: [type:task, rule:pr-doc, rule:task-artifacts, page:web/sessions]
   part-of: goal:exec.work-and-impact
+```
+
+  A work item is a task: node — the `- [ ] task:` line the parser already reads, anywhere in the documents — with its status (todo, open, in-progress, blocked, review, done) on the line. A request from the command box creates a plan document as now *and* one task line in it (`task:<plan-slug>` — the request itself) that the session's `refs` carry, so the request is on the board from the first second; tasks the agent adds under the plan are its steps and nest under it. A session is a worker's shift on one or more tasks: it never appears on the Work view as an item, only as the worker column of the tasks it holds. A task's `session:` links (rule:task-artifacts) say which shifts worked it; `worker:` says who holds it now — a person's name or an agent name.
+
+  **Context** — Today a request becomes a plan document and, when the agent writes them, task lines; a session is what a runner claims. Linear + Copilot and every 2026 orchestration guide use the issue / task as the thing assigned, claimed and reviewed. The person: "agents are just workers".
+
+  **Alternatives** — Plans as the unit (a step that needs a different worker has no row); sessions as the unit (the Agents page today: work is invisible until someone is on it); a separate task store (the v2 design's task table — rejected with the database, decision:wf2.plan-is-a-page).
+
+  **Consequences** — `review` joins task statuses (an agent finished; a person checks); `worker: string?` and `priority: number?` join type:task; the plan document template gets the request task line; the Work view (E.1) lists tasks and nothing else; the Agents page keeps showing workers and their plans.
+
+```yaml
 - id: decision:exec.change-record
   title: Every edit of a typed node is written through, and a change record keeps the old and new value with a review state
-  context: >
-    An edit through op:api.node or the editor rewrites the defining line; rule:block-attribution notes that the
-    block changed; the old value survives only in git. The person wants old and new side by side and the edit treated
-    as an Inbox item. Suggesting-mode systems keep before and after as a pending proposal that is accepted or rejected
-    like a diff; markdown is canonical here (rule:markdown-canonical) and a proposal that is not in the document is
-    invisible to agents reading the file.
-  choice: >
-    The write goes through as today — the document shows the new value, git has the history. Beside it the app writes a
-    change record (store:changes, `_changes/<id>.json`): node id, document and line, `before` and `after` (the whole
-    defining block: text and properties), who (person or agent name), session, time, and a state — pending, accepted,
-    reverted — plus the impact run it triggered (E.3) and the verdicts of the write-time pass
-    (decision:memory.write-time-verdict). A node with a pending change shows a "changed" badge with the old value on
-    hover; the Inbox lists pending changes under a Changes group with a field-level and word-level diff; Accept marks
-    the record accepted (nothing else moves), Revert writes `before` back through the same writer (and records that as
-    its own change). An edit by an agent to a node whose status is approved or shipped is also pending; the constraint
-    packet marks such nodes "changed, pending review" so a worker reading it knows. A person's edits to their own
-    proposed blocks are accepted at once (a draft is a draft).
-  alternatives: >
-    Suggesting mode in the markdown (the old value stays canonical, the proposal is a sibling block) — two truths in the
-    document, agents read the wrong one; git only — no old value for a property, no review state, no impact link; a
-    `history:` content block under the node — clutters every document with what the app can keep beside it.
-  consequences: >
-    A new operational store like sessions (json, not knowledge); the Inbox gains a group; Revert exists; the block
-    editor and node-edit both write the record; the change record is the input and the parent of the impact run.
   date: 2026-09-19
   status: proposed
   affects: [op:api.node, rule:block-attribution, rule:inbox-review, rule:markdown-canonical]
   part-of: goal:exec.work-and-impact
+```
+
+  The write goes through as today — the document shows the new value, git has the history. Beside it the app writes a change record (store:changes, `_changes/<id>.json`): node id, document and line, `before` and `after` (the whole defining block: text and properties), who (person or agent name), session, time, and a state — pending, accepted, reverted — plus the impact run it triggered (E.3) and the verdicts of the write-time pass (decision:memory.write-time-verdict). A node with a pending change shows a "changed" badge with the old value on hover; the Inbox lists pending changes under a Changes group with a field-level and word-level diff; Accept marks the record accepted (nothing else moves), Revert writes `before` back through the same writer (and records that as its own change). An edit by an agent to a node whose status is approved or shipped is also pending; the constraint packet marks such nodes "changed, pending review" so a worker reading it knows. A person's edits to their own proposed blocks are accepted at once (a draft is a draft).
+
+  **Context** — An edit through op:api.node or the editor rewrites the defining line; rule:block-attribution notes that the block changed; the old value survives only in git. The person wants old and new side by side and the edit treated as an Inbox item. Suggesting-mode systems keep before and after as a pending proposal that is accepted or rejected like a diff; markdown is canonical here (rule:markdown-canonical) and a proposal that is not in the document is invisible to agents reading the file.
+
+  **Alternatives** — Suggesting mode in the markdown (the old value stays canonical, the proposal is a sibling block) — two truths in the document, agents read the wrong one; git only — no old value for a property, no review state, no impact link; a `history:` content block under the node — clutters every document with what the app can keep beside it.
+
+  **Consequences** — A new operational store like sessions (json, not knowledge); the Inbox gains a group; Revert exists; the block editor and node-edit both write the record; the change record is the input and the parent of the impact run.
+
+```yaml
 - id: decision:exec.impact-run
   title: An edit's impact is computed structurally with semantic seeding, then a model judges each reached node and proposes its update
-  context: >
-    `ctx impact` walks the reverse structural closure three hops; op:api.context finds the semantically nearest nodes;
-    neither says what an edit means for the nodes it reaches. The 2026 impact-analysis work finds that structure
-    alone misses renamed or paraphrased dependents, semantics alone floods (0.42 precision), and the blend with a
-    verification step is the shape that works; Kiro regenerates only what the change reaches, on an explicit sync.
-    STALE finds second-hop, propagated effects are what models miss when left to notice them on their own.
-  choice: >
-    An impact run takes a change record and produces an impact set: (1) candidates from structure — the node's content
-    (its sub-items), what refines it, what it is satisfied by and verified by, what it governs or is governed by,
-    what depends on it, what is part of it, tasks that serve it, what mentions it — two hops over reversed edges with
-    decay, each candidate with its path; (2) candidates from semantics — the nearest nodes to the new text that
-    structure did not reach, marked "by text"; (3) one model call per candidate (batched, budgeted, cached by pair
-    hash) that reads the before, the after, the candidate and its path and answers: unaffected | update — with the
-    proposed new text or property values for the candidate | rework — a sentence saying what has to change when it is
-    more than the block | contradicts — the new value and the candidate cannot both hold | ask — a question the
-    person must answer first. The run is stored on the change record; the change card lists the impact set grouped by
-    verdict, each with its path and reason; an update is a proposed patch with old and new that Apply writes through
-    the writer (and records as a change by the app, accepted); a rework becomes a task line under the change's plan
-    (or a new plan "Follow up: <node>") on the Work view, unassigned, with the reason as its text, which the person
-    assigns to a worker (req:exec.dispatch); a contradicts opens a contradiction as in decision:memory.write-time-verdict;
-    an ask is a question: block on the changed node.
-  alternatives: >
-    Structure only (misses paraphrased dependents); semantics only (floods); regenerate the dependents outright as Kiro
-    does (the documents are the person's, not generated — patches and tasks, never rewrites); ask one agent session to
-    "update everything" (unbounded, invisible, and it would edit approved blocks without review).
-  consequences: >
-    A run per change, budgeted per rebuild like the verdict pass; an impact set on the change card; patches, tasks,
-    contradictions and questions as the four outcomes, each landing where that kind already lives; the Work view gains
-    "follow-up" tasks the app wrote; `ctx impact` grows `--semantic` and `--explain` (paths) for agents.
   date: 2026-09-19
   status: proposed
   affects: [op:api.context, decision:memory.write-time-verdict, req:exec.dispatch, rule:inbox-review]
   part-of: goal:exec.work-and-impact
+```
+
+  An impact run takes a change record and produces an impact set: (1) candidates from structure — the node's content (its sub-items), what refines it, what it is satisfied by and verified by, what it governs or is governed by, what depends on it, what is part of it, tasks that serve it, what mentions it — two hops over reversed edges with decay, each candidate with its path; (2) candidates from semantics — the nearest nodes to the new text that structure did not reach, marked "by text"; (3) one model call per candidate (batched, budgeted, cached by pair hash) that reads the before, the after, the candidate and its path and answers: unaffected | update — with the proposed new text or property values for the candidate | rework — a sentence saying what has to change when it is more than the block | contradicts — the new value and the candidate cannot both hold | ask — a question the person must answer first. The run is stored on the change record; the change card lists the impact set grouped by verdict, each with its path and reason; an update is a proposed patch with old and new that Apply writes through the writer (and records as a change by the app, accepted); a rework becomes a task line under the change's plan (or a new plan "Follow up: <node>") on the Work view, unassigned, with the reason as its text, which the person assigns to a worker (req:exec.dispatch); a contradicts opens a contradiction as in decision:memory.write-time-verdict; an ask is a question: block on the changed node.
+  
+  **Context** — `ctx impact` walks the reverse structural closure three hops; op:api.context finds the semantically nearest nodes; neither says what an edit means for the nodes it reaches. The 2026 impact-analysis work finds that structure alone misses renamed or paraphrased dependents, semantics alone floods (0.42 precision), and the blend with a verification step is the shape that works; Kiro regenerates only what the change reaches, on an explicit sync. STALE finds second-hop, propagated effects are what models miss when left to notice them on their own.
+  
+  **Alternatives** — Structure only (misses paraphrased dependents); semantics only (floods); regenerate the dependents outright as Kiro does (the documents are the person's, not generated — patches and tasks, never rewrites); ask one agent session to "update everything" (unbounded, invisible, and it would edit approved blocks without review).
+  
+  **Consequences** — A run per change, budgeted per rebuild like the verdict pass; an impact set on the change card; patches, tasks, contradictions and questions as the four outcomes, each landing where that kind already lives; the Work view gains "follow-up" tasks the app wrote; `ctx impact` grows `--semantic` and `--explain` (paths) for agents.
+
+```yaml
 - id: decision:exec.impact-trigger
   title: Impact runs after the person stops editing a typed node, never on every keystroke, and only when something is reached
-  context: >
-    "not always" — the person does not want a model call on every edit. An edit is many keystrokes; a paragraph edit
-    reaches nothing; a status change is not a change of meaning.
-  choice: >
-    A change record is created when the editor's block loses focus or the document saves, whichever is first, one per
-    node per editing spell (edits within five minutes on the same node fold into one record); the impact run starts
-    when the record has structural candidates or the text changed by more than a property value, at most one run per
-    node in flight (a further edit restarts it); a status or tracking-field change, a plain paragraph and a node with
-    no dependents produce no run. "Impact" on any node's panel runs it on demand, with or without a change. A product
-    setting (`_product.md`: impact: auto | manual | off) and a per-run budget cap it; `manual` keeps the change records
-    and skips the model.
-  alternatives: >
-    Run on every save (noise and cost); run only on demand (the person forgets, which is the failure the ask is about);
-    run at session end only (a person's edit in the editor has no session).
-  consequences: >
-    The editor sends the change on blur/save; the run is asynchronous and its card fills in as verdicts arrive (the
-    change is reviewable before the run finishes); the setting lives on the product file.
   date: 2026-09-19
   status: proposed
   affects: [op:api.node, store:product-file]
   part-of: goal:exec.work-and-impact
+```
+
+  A change record is created when the editor's block loses focus or the document saves, whichever is first, one per node per editing spell (edits within five minutes on the same node fold into one record); the impact run starts when the record has structural candidates or the text changed by more than a property value, at most one run per node in flight (a further edit restarts it); a status or tracking-field change, a plain paragraph and a node with no dependents produce no run. "Impact" on any node's panel runs it on demand, with or without a change. A product setting (`_product.md`: impact: auto | manual | off) and a per-run budget cap it; `manual` keeps the change records and skips the model.
+
+  **Context** — "not always" — the person does not want a model call on every edit. An edit is many keystrokes; a paragraph edit reaches nothing; a status change is not a change of meaning.
+
+  **Alternatives** — Run on every save (noise and cost); run only on demand (the person forgets, which is the failure the ask is about); run at session end only (a person's edit in the editor has no session).
+
+  **Consequences** — The editor sends the change on blur/save; the run is asynchronous and its card fills in as verdicts arrive (the change is reviewable before the run finishes); the setting lives on the product file.
+
+```yaml
 - id: decision:exec.backlog-is-unassigned-work
   title: The backlog is the unassigned tasks; the inbox folder stays raw material; a task marked ready may be taken by a runner
-  context: >
-    The person wants to drop items for an agent to discover and work on, "maybe it is the inbox". The inbox folder
-    (store:inbox) holds raw material without a document — pasted conversations, notes — that a person files or
-    dismisses (rule:inbox-review); the Inbox view lists proposed blocks. Work is a task line (decision:exec.task-is-the-unit).
-    question:exec.auto-dispatch asked whether runners may take unassigned tasks on their own.
-  choice: >
-    A backlog item is a task line with no worker. Capture is one gesture from anywhere — the command box's "Later"
-    (⌘P, type, ⇧↵) and a "+ backlog" on any node or document — that writes `- [ ] task:<slug> <text>` into the
-    project's plan document (the follow-ups home rule:agent-contract already names) or under the node it was
-    captured from when there is one, with `by:` the person and the date; an inbox note can be filed as a task the same
-    way. The Work view's Unassigned group is the backlog, in priority then capture order. A task is discoverable by
-    runners only when it says `#ready` (a person's word that it is defined enough to start): `wf work next` returns
-    the oldest ready, unblocked, unassigned task of the product (or of a goal), a runner in auto mode (`wf agent
-    listen --take-ready`) claims it as if assigned (req:exec.dispatch), and everything else on the backlog is
-    visible to agents (`wf work list --unassigned`) but not taken. This resolves question:exec.auto-dispatch: never
-    silently, per task, by the ready mark.
-  alternatives: >
-    A separate backlog document per product (one more place; the plan document is that place already); the inbox
-    folder as the backlog (raw notes are not work items and have no status, goal or worker); auto-dispatch of every
-    open task (work starts that nobody looked at).
-  consequences: >
-    `ready` joins the task statuses as a mark, not a stage (a ready task is still todo); the command box gains
-    "Later"; `wf work list|next` join the CLI; a runner gains `--take-ready`; the Work view's Unassigned group shows
-    the ready ones first with a mark.
   date: 2026-09-19
   status: proposed
   resolves: question:exec.auto-dispatch
   affects: [rule:inbox-review, store:inbox, component:command-box, rule:agent-runner, req:exec.dispatch]
   part-of: goal:exec.work-and-impact
 ```
+
+  A backlog item is a task line with no worker. Capture is one gesture from anywhere — the command box's "Later" (⌘P, type, ⇧↵) and a "+ backlog" on any node or document — that writes `- [ ] task:<slug> <text>` into the project's plan document (the follow-ups home rule:agent-contract already names) or under the node it was captured from when there is one, with `by:` the person and the date; an inbox note can be filed as a task the same way. The Work view's Unassigned group is the backlog, in priority then capture order. A task is discoverable by runners only when it says `#ready` (a person's word that it is defined enough to start): `wf work next` returns the oldest ready, unblocked, unassigned task of the product (or of a goal), a runner in auto mode (`wf agent listen --take-ready`) claims it as if assigned (req:exec.dispatch), and everything else on the backlog is visible to agents (`wf work list --unassigned`) but not taken. This resolves question:exec.auto-dispatch: never silently, per task, by the ready mark.
+
+  **Context** — The person wants to drop items for an agent to discover and work on, "maybe it is the inbox". The inbox folder (store:inbox) holds raw material without a document — pasted conversations, notes — that a person files or dismisses (rule:inbox-review); the Inbox view lists proposed blocks. Work is a task line (decision:exec.task-is-the-unit). question:exec.auto-dispatch asked whether runners may take unassigned tasks on their own.
+
+  **Alternatives** — A separate backlog document per product (one more place; the plan document is that place already); the inbox folder as the backlog (raw notes are not work items and have no status, goal or worker); auto-dispatch of every open task (work starts that nobody looked at).
+
+  **Consequences** — `ready` joins the task statuses as a mark, not a stage (a ready task is still todo); the command box gains "Later"; `wf work list|next` join the CLI; a runner gains `--take-ready`; the Work view's Unassigned group shows the ready ones first with a mark.
 
 <!-- /list:decision -->
 
