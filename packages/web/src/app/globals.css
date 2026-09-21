@@ -544,6 +544,9 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .pr-folder .pf-head { display: flex; align-items: center; gap: 2px; } .pr-folder .pf-head a { flex: 1; } .pr-folder .pf-head.on a { background: var(--sunk); }
 .rail-menu .pf-caret { flex: none; width: 24px; height: 24px; padding: 0; justify-content: center; color: var(--muted); font-size: 13px; }
 .rail-menu .pf-caret:hover { color: var(--ink); }
+.rail-menu .pf-add { flex: none; width: 22px; height: 24px; padding: 0; justify-content: center; color: var(--muted); font-size: 14px; opacity: 0; }
+.rail-menu .pf-head:hover .pf-add { opacity: 1; }
+.rail-menu .pf-add:hover { color: var(--ink); }
 .pf-list { list-style: none; margin: 0; padding: 0 0 2px; }
 .rail-menu .pf-row .pg-link { display: flex; align-items: center; gap: 6px; padding: 4px 8px 4px 36px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 13px; min-width: 0; }
 .rail-menu .pf-row.on .pg-link { background: var(--sunk); font-weight: 600; }

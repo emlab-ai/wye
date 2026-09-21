@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { DocTree, type TreeItem } from './DocTree';
 import { NewDoc } from './NewDoc';
 import { PrFolder, type PrItem } from './PrFolder';
+import { SkillFolder, type SkillItem } from './SkillFolder';
 
 const MIN_PANE = 96; // the least a pane keeps when the splitter is dragged: a few rows
 
@@ -12,7 +13,7 @@ export type RailProject = { slug: string; title: string; icon: string; kind: str
 
 // The left rail: product switcher, menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Constitution, Questions, Inbox, Agents,
 // then the PRs system folder — component:request-folder), then every project's documents as one tree.
-export function Rail({ products, product, projects, prs, views = [], headings }: { views?: { slug: string; title: string; icon: string; project: string }[]; products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; prs: PrItem[]; headings: { doc: string; slug: string; text: string }[] }) {
+export function Rail({ products, product, projects, prs, views = [], skills = [], skillsPage = null, headings }: { skills?: SkillItem[]; skillsPage?: { project: string; slug: string } | null; views?: { slug: string; title: string; icon: string; project: string }[]; products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; prs: PrItem[]; headings: { doc: string; slug: string; text: string }[] }) {
   const path = usePathname(); const router = useRouter();
   const [newIn, setNewIn] = useState<string | null>(null); // '' = top level, slug = under that document
   // every project's documents in one tree; a project is just the folder a document lives in
@@ -56,6 +57,7 @@ export function Rail({ products, product, projects, prs, views = [], headings }:
         {item(`${base}/inbox`, 'Inbox', '⇩')}
         {item(`${base}/sessions`, 'Agents', '⚡')}
         <PrFolder product={product.slug} prs={prs} />
+        {skillsPage && <SkillFolder product={product.slug} page={skillsPage} skills={skills} />}
         {item(`${base}/settings`, 'Settings', '⚙')}
       </ul>
       </div>
