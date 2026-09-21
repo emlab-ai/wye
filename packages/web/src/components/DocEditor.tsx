@@ -62,7 +62,7 @@ function sendBlock(block: AnyBlock, host: HTMLElement | null) {
   const doc = host?.closest('.doc-editor') as HTMLElement | null;
   const items = Array.isArray(block.content) ? block.content as { type: string; text?: string; props?: { id?: string }; href?: string; content?: { text?: string }[] }[] : [];
   const text = items.map(i => i.type === 'text' ? i.text ?? '' : i.type === 'link' ? (i.content ?? []).map(c => c.text ?? '').join('') : i.type === 'tag' ? i.props?.id ?? '' : '').join('');
-  const refs = items.flatMap(i => i.type === 'tag' && i.props?.id ? [i.props.id] : i.type === 'link' && i.href && /^[a-z-]+:/.test(i.href) ? [i.href] : []);
+  const refs = items.flatMap(i => i.type === 'tag' && i.props?.id ? [i.props.id] : i.type === 'link' && i.href && /^[a-z-]+:[A-Za-z0-9_./#\-]+$/.test(i.href) && !/^(?:https?:|mailto:|[a-z-]+:\/\/)/i.test(i.href) ? [i.href] : []);
   if (block.type === 'node') { const np = block.props as unknown as { kind: string; slug: string }; refs.unshift(`${np.kind}:${np.slug}`); }
   requestSend({ text, refs, source: { project: doc?.dataset.project, doc: doc?.dataset.doc, blockId: String((block as { id?: string }).id ?? ''), link: blockLink(block, host) } });
 }

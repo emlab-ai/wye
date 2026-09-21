@@ -81,6 +81,10 @@ describe('expand', () => {
     expect(c[1].href).toBe('entity:kitchen-item'); expect(c[1].content![0].text).toBe('kitchen items');
     expect(blocksToMarkdown(blocks)).toBe('req:a When all [kitchen items](entity:kitchen-item) are done. #proposed\n');
   });
+  it('does not lift URL links with schemes into id markers', () => {
+    const p = prepare('See [Tana](https://tana.inc/docs) and [Mail](mailto:a@b.com) and [items](entity:kitchen-item).');
+    expect(p.md).toBe('See [Tana](https://tana.inc/docs) and [Mail](mailto:a@b.com) and ⟦items|entity:kitchen-item⟧.');
+  });
   it('turns checkbox items with ids into task nodes whose status follows the box', () => {
     const blocks = expand([{ type: 'checkListItem', props: { checked: false }, content: [t('task:a Build it')] }, { type: 'checkListItem', props: { checked: true }, content: [t('tk:b Ship it')] }], []);
     expect(blocks[0].props).toMatchObject({ kind: 'task', slug: 'a', status: 'open', check: 'todo' });

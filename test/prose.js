@@ -95,3 +95,18 @@ console.log('ok — prose nodes: ' + g.stats().nodes + ' nodes');
   assert(g.edges.some(e => e.from === 'req:r1' && e.to === 'rule:live-refresh' && e.verb === 'related-to'), 'second list item is an edge');
   console.log('ok prose: an id list in trailing props keeps its commas');
 }
+
+// a markdown link with a URL scheme (https:, http:, mailto:, anything://) is not a node id
+{
+  const fs = require('fs'), os = require('os'), path = require('path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wf-prose-'));
+  fs.writeFileSync(path.join(dir, 'a.md'), '---\nnode: module:a\ntitle: A\n---\n\nSee [Tana](https://tana.inc/docs/nodes-and-references) and the [Sales requirement](req:sale.close) for details.\n');
+  const { parseFiles } = require('../lib/parse');
+  const g = parseFiles([path.join(dir, 'a.md')], dir);
+  const forward = g.edges.filter(e => !e.generated && e.verb === 'related-to');
+  assert.strictEqual(forward.length, 1, 'one edge from the paragraph');
+  assert.strictEqual(forward[0].to, 'req:sale.close', 'edge points to req:sale.close');
+  assert(!g.nodes.some(n => n.kind === 'https' || n.id.startsWith('https:')), 'no https stub node created');
+  console.log('ok prose: URL link is not picked up as a node id');
+}
+
