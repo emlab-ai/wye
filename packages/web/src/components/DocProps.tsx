@@ -49,10 +49,10 @@ export function DocProps({ product, project, slug, file, fm, node, types }: { pr
   // the type's properties as fields: own and inherited first; the root type's only when filled or unfolded
   const props = (type?.props ?? []).filter(p => !HEAD_KEYS.has(p.name));
   const filled = (p: PropDef) => !!(vals[p.name] ?? '').trim();
-  // a PR page (type:pr extends type:module) folds every empty inherited property: the head above says what matters
-  const foldable = (p: { from: string }) => p.from === 'type:node' || (type?.id === 'type:pr' && p.from !== 'type:pr');
-  const shown = props.filter(p => !foldable(p) || filled(p) || more);
-  const folded = props.filter(p => foldable(p) && !filled(p)).length;
+  // only the properties that hold a value show; every empty one — own, inherited, the root type's — sits under "n more"
+  // until asked (decision:wf2.card-is-name-and-properties): a page's head is what was written, not the type's form
+  const shown = props.filter(p => filled(p) || more);
+  const folded = props.filter(p => !filled(p)).length;
   const suggest = (p: PropDef) => p.ref && p.ref !== 'node' ? Object.values(index).filter(e => e.defined && e.kind === p.ref && e.id !== node).sort((a, b) => a.id.localeCompare(b.id)) : [];
   const value = (p: PropDef) => {
     const v = vals[p.name] ?? '';

@@ -30,6 +30,7 @@ const glyph = (f: Field) => f.name === 'status' ? '◔' : f.type === 'progress' 
 // line or the yaml card and rebuilds the graph (op:node.edit).
 export function NodeEditor({ id, body, form, type, props, entry, relations = [], onSaved }: { id: string; body: string; form: string; type: TypeDef | null; props: NodeProp[]; entry?: IndexEntry; relations?: [string, string[]][]; onSaved: () => void }) {
   const { product, index, open: openNode } = usePeek(); const router = useRouter();
+  const [addingFor, setAddingFor] = useState<string | null>(null); const [addText, setAddText] = useState('');
   const kind = id.split(':')[0]; const prose = form === 'prose';
   const rows = parseBody(body);
   const get = (k: string) => rows.find(r => r.key === k)?.value ?? '';
@@ -114,16 +115,30 @@ export function NodeEditor({ id, body, form, type, props, entry, relations = [],
           </select>
         </span>);
     }
-    // a relation reads as its tags (Notion-style); the raw id field shows on hover or focus, after them
-    const tagIds = f.ref && v.trim() ? v.replace(/^\[|\]$/g, '').split(/,\s*/).filter(x => /^[a-z][a-z0-9-]*:/.test(x)) : derived;
+    // a relation reads as its tags, each with its × (the ones the text carries — "part of wf2.ui" — have none: they
+    // are the sentence's); + opens a picker in the same row to add one. Nothing appears on hover, nothing moves.
+    const explicit = f.ref && v.trim() ? v.replace(/^\[|\]$/g, '').split(/,\s*/).filter(x => /^[a-z][a-z0-9-]*:/.test(x)) : [];
+    const tagIds = explicit.length ? explicit : derived;
     // a source path (`source: packages/web/src/lib/x.ts#fn`) opens the file in the column (req:wf2.code-preview)
     const files = !f.ref && (CODE_KEYS.has(f.name) || /\.(ts|tsx|js|py|go|rs|java)\b/.test(v)) ? codePaths(v) : [];
+    if (f.ref) {
+      const adding = addingFor === f.name;
+      const addOne = (raw: string) => { const idv = raw.trim(); setAddingFor(null); setAddText(''); if (!idv || !/^[a-z][a-z0-9-]*:/.test(idv) || explicit.includes(idv)) return; writeList([...explicit, idv]); };
+      return (
+        <span className="ne-ref has-tags ne-many">
+          <span className="list">
+            {tagIds.map(x => <span key={x} className="item"><SmartTag id={x} />{explicit.includes(x) && <button type="button" className="ne-unlink" title="remove" onClick={() => writeList(explicit.filter(y => y !== x))}>×</button>}</span>)}
+            {adding
+              ? <input autoFocus className="ne-in ne-add-in" list={`wf-ref-${f.ref}`} value={addText} placeholder={f.ref === 'node' ? 'kind:slug' : `${f.ref}:…`} onChange={e => setAddText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOne(addText); } if (e.key === 'Escape') { setAddingFor(null); setAddText(''); } }} onBlur={() => addOne(addText)} aria-label={`add ${f.name}`} />
+              : <button type="button" className="ne-add-btn" title={`add a ${f.ref === 'node' ? 'node' : f.ref}`} onClick={() => { setAddingFor(f.name); setAddText(''); }}>+</button>}
+          </span>
+          <datalist id={`wf-ref-${f.ref}`}>{(f.ref === 'node' ? Object.values(index).filter(e => e.defined && e.id !== id && !['block', 'field', 'prop'].includes(e.kind)).slice(0, 2000) : suggest(f)).map(o => <option key={o.id} value={o.id}>{o.title}</option>)}</datalist>
+        </span>);
+    }
     return (
-      <span className={`ne-ref ${tagIds.length || files.length ? 'has-tags' : ''}`}>
-        {tagIds.length > 0 && <span className="list">{tagIds.map(x => <span key={x} className="item"><SmartTag id={x} /></span>)}</span>}
+      <span className={`ne-ref ${files.length ? 'has-files' : ''}`}>
         {files.length > 0 && <span className="list">{files.map(x => <span key={x} className="item"><button type="button" className="code-link" title={`open ${x} in the column`} onClick={() => openNode(`code:${x}`)}>{'</>'} {x.split('/').pop()}</button></span>)}</span>}
-        <input className="ne-in" list={f.ref ? `wf-ref-${f.ref}` : undefined} value={v} placeholder={f.ref ? `${f.ref}:…, …` : 'Empty'} onChange={e => setVal(f.name, e.target.value)} onKeyDown={enterBlurs} onBlur={() => commit(f)} aria-label={f.name} />
-        {f.ref && <datalist id={`wf-ref-${f.ref}`}>{suggest(f).map(o => <option key={o.id} value={o.id}>{o.title}</option>)}</datalist>}
+        <input className="ne-in" value={v} placeholder="Empty" onChange={e => setVal(f.name, e.target.value)} onKeyDown={enterBlurs} onBlur={() => commit(f)} aria-label={f.name} />
       </span>);
   };
   return (

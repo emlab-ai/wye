@@ -486,7 +486,9 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .ne-select { font: 13px var(--font-b); color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 3px 4px; margin-left: -4px; max-width: 100%; cursor: pointer; } .ne-select:hover { border-color: var(--line); background: var(--surface); } .ne-select.status-sel { font: 12px var(--font-m); }
 .ne-ref { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; width: 100%; } .ne-ref .ne-in { flex: 1 1 140px; width: auto; }
 /* a filled relation shows its tags; the id field appears when the row is hovered or the field focused */
-.ne-ref.has-tags .ne-in, .ne-ref.has-tags .ne-select { flex-basis: 100%; height: 0; min-height: 0; padding-block: 0; border-width: 0; opacity: 0; overflow: hidden; transition: opacity .15s; } .ne-props > div:hover .ne-ref.has-tags :is(.ne-in, .ne-select), .ne-ref.has-tags :is(.ne-in, .ne-select):focus { height: auto; padding-block: 4px; border-width: 1px; opacity: 1; } .ne-progress { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; } .ne-progress em { font-size: 11px; font-style: normal; }
+.ne-add-btn { border: 1px dashed var(--line-2); border-radius: 999px; background: none; color: var(--muted); width: 22px; height: 22px; line-height: 1; cursor: pointer; font-size: 13px; padding: 0; } .ne-add-btn:hover { color: var(--ink); border-color: var(--ink); } .ne-add-in { width: 180px; height: 22px; padding: 0 6px; font: 12px var(--font-m); }
+.ne-ref.has-files .list { margin-bottom: 4px; }
+.ne-progress { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; } .ne-progress em { font-size: 11px; font-style: normal; }
 .ne-more dd .linkish { font-size: 12px; color: var(--muted); padding: 0; } .ne-more dd .linkish:hover { color: var(--ink); }
 .ne .track-state { margin: 6px 0 0; font: 11px var(--font-b); color: var(--muted); } .ne .track-state.error { color: var(--bad); }
 /* ===== command palette (⌘P) ===== */
