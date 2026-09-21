@@ -40,6 +40,24 @@ request?* is a graph traversal, not a search.
 
 ## What it looks like
 
+**Everything is a graph.** A document is a list of blocks; every block is a node with a **type** — a requirement, a
+decision, a fact, a city, or just `block` for a plain paragraph — with properties, links and content. A link in a
+sentence is an edge; a property whose value is another node is an edge with a named inverse the parser fills in;
+the words before an id are the verb. The types themselves are cards in the documents, so a product's vocabulary is
+open: declare `type:city` on the Ontology page and `city:london` is a node the moment the graph rebuilds. The full
+story — declaring types, value types, inverses, shapes, where instances live — is in
+[docs/type-system.md](docs/type-system.md).
+
+```markdown
+req:sale.close When a sale is completed and all [kitchen items](entity:kitchen-item) are done, et:order is marked Closed. #proposed
+  - when:sale.close the last kitchen item of the sale is completed
+  - then:sale.close the order is marked Closed and the table freed
+```
+
+Three lines, three nodes: the requirement and its `when` and `then` content blocks; two edges out of the sentence,
+to `entity:kitchen-item` and to `et:order` (an alias); a status. `wye check` will ask for a `satisfied-by` and, once
+shipped, a `verified-by`.
+
 **Requirements as cards.** A requirement is a block with `when` / `then` / `unless` children and typed links —
 what refines it, what satisfies it (a component, an operation, a library), what verifies it (a test), who wrote it
 and where the evidence is. Click `open ›` and the node opens in the column with its relations editable in place.
@@ -121,6 +139,9 @@ data/products/<product>/_build/graph.json                 generated: the product
 ```
 
 ## The basics: documents, nodes, links
+
+(The reference for all of this is [docs/type-system.md](docs/type-system.md); the `docs/` folder is the place for
+the deeper pages.)
 
 **A document is a node.** Its front matter says which: `node: module:wf2`, `type: module`, `part-of: module:wf2-prd`,
 `order: 13`. The document tree in the sidebar is the `part-of` relation. A document can be any type — a page of
