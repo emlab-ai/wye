@@ -20,6 +20,11 @@ export function ImportedNotice({ product, project, slug, node, status, source }:
     setMsg(session ? `an agent is on it — session ${String(session).slice(0, 6)}` : 'the hook ran; see the Hooks page');
     router.refresh();
   }
+  if (status === 'importing') return (
+    <div className="imported-notice">
+      <span>Being read from <code>{(source ?? '').replace(/^code:/, '')}</code> by an agent — its definition lands here as proposed blocks. The task below has the session.</span>
+    </div>
+  );
   return (
     <div className="imported-notice">
       <span>{status === 'raw' ? 'Imported as is' : 'Imported'}{source ? ` from ${source.replace(/^import\//, '')}` : ''} — no agent has read it yet.</span>

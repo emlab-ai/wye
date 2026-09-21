@@ -489,20 +489,20 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
 ```yaml
 - id: req:wf2.import.code
-  title: A folder of source becomes a feature's definition, and an agent maps each module to requirements
-  status: proposed
+  title: A folder of source becomes a page with an import task on it, and an agent writes the module's definition there
+  status: shipped
   refines: req:wf2.import.markdown
-  satisfied-by: [op:api.import-code, component:import-docs, lib:init, skill:describe-module]
+  satisfied-by: [op:api.import-code, component:import-docs, skill:import-code, lib:work-io]
   by: alex
-  evidence: [session:017wTEs8Jy8fzwycEec3ktJC, pr:30]
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
   part-of: module:req-documents
 ```
 
-  - when:wf2.import.code the person picks From code in Import…, names the feature and points at a folder (relative to the product's repo or absolute), or runs `wye import --code <dir> --name "…"`
+  - when:wf2.import.code the person picks From code in the New page sheet, names the module and points at a folder (relative to the product's repo or absolute), or runs `wye import --code <dir> --name "…"`
 
-  - then:wf2.import.code the feature's definition is read from the code without a model — a project named after it with the layered tree, every module, page, component, library, operation and test the folder shows, shallow, and a describe task per module — and, with "Describe with agent" on, each describe task goes to the default agent with the Describe-module skill: the requirements in the person's words, each mapped to the code that delivers it and its tests (reverse engineering)
+  - then:wf2.import.code at once, without reading the code: a page for the module under the chosen parent (status importing, `source: code:<folder>`, the brief), one task on it — "Read the code under … and describe … here" — assigned to the default agent with the Import-code skill and the brief as its note, the task in progress with its session attached; the dialog answers with the page and the session, and the agent surveys the folder and writes the page's definition — purpose, requirements in the person's words mapped to the files that deliver them, rules, entities, operations, tests, questions — as proposed blocks, child pages for a big module; the page's status becomes analysed when it is done
 
-  - unless:wf2.import.code the folder does not exist — then nothing is written; pages that exist already are kept, never overwritten
+  - unless:wf2.import.code "Describe with agent" is off — then the page and its task are created and left for the person to assign; the folder does not exist — then nothing is written
 
 ```yaml
 - id: req:wf2.page.head-notion

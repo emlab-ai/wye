@@ -35,7 +35,7 @@ export default async function DocPage({ params }: { params: Promise<{ product: s
     <div className="page">
       {split.frontmatter.type === 'pr' && <PrHead product={product} prRef={`${product}/${project}/${d.slug}`} />}
       <DocProps product={product} project={project} slug={d.slug} file={d.file} fm={split.frontmatter} node={d.module.id} types={scope.graph.types ?? []} />
-      {['imported', 'raw'].includes(split.frontmatter.status ?? '') && <ImportedNotice product={product} project={project} slug={d.slug} node={d.module.id} status={split.frontmatter.status} source={split.frontmatter.source} />}
+      {['imported', 'raw', 'importing'].includes(split.frontmatter.status ?? '') && <ImportedNotice product={product} project={project} slug={d.slug} node={d.module.id} status={split.frontmatter.status} source={split.frontmatter.source} />}
       <LiveDocument product={product} project={project} slug={d.slug} body={body} ifMatch={hashOf(body)}>
         {rsc ? null : <DocumentReader doc={split} index={scope.index} />}
       </LiveDocument>

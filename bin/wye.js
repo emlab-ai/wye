@@ -59,8 +59,8 @@
 //   wye work assign <task> --worker <person|claude-code|codex|runner> --product p [--note "…"] [--force]
 //   wye import <file|dir> --product p [--project x] [--parent doc] [--no-analyse] [--brief "…"]   markdown files (a folder's tree kept) as
 //        documents, then an agent extracts their types, requirements, facts and decisions as proposed blocks (skill:import)
-//   wye import --code <dir> --name "<feature>" --product p [--no-analyse] [--brief "…"]   a feature's definition read from its code, its
-//        modules described by an agent (skill:describe-module) — reverse engineering
+//   wye import --code <dir> --name "<module>" --product p [--project x] [--parent doc] [--no-analyse] [--brief "…"]   a page for the
+//        module with an import task on it, handed to an agent at once (skill:import-code): it reads the code and writes the definition
 //   wye eval own | compare | public <adapter> | judge | report   the benchmarks (module:benchmarks): tier 1 on the product's own
 //        history with the CI gate, the with-and-without harness, the public adapters, the judge set's κ, the latest / previous / delta
 //   wye agent listen --product p --agent claude-code|codex [--cmd "<command>"] [--name n] [--once] [--take-ready [--goal <id>]]
@@ -379,10 +379,9 @@ const commands = {
     const p = product();
     if (flags.code) {
       const name = flags.name || die('wye import --code <dir> --name "<feature>" --product p [--no-analyse]');
-      const j = await api('POST', `/api/${p}/import-code`, { name, path: String(flags.code), analyse: !flags['no-analyse'], brief: flags.brief ? String(flags.brief) : undefined });
+      const j = await api('POST', `/api/${p}/import-code`, { name, path: String(flags.code), project: flags.project, parent: flags.parent, analyse: !flags['no-analyse'], brief: flags.brief ? String(flags.brief) : undefined });
       if (flags.json) return out(j);
-      console.log(`${j.written} page(s) written in project ${j.project}${j.skipped ? ` (${j.skipped} existed and were kept)` : ''}: ${j.areas.length} module(s)`);
-      for (const a of j.areas) { const t = j.tasks.find(x => x.id.endsWith('.' + a.slug)); console.log(`  ${a.slug.padEnd(20)} ${String(a.files).padStart(5)} files  ${a.dir}${t ? (t.session ? `  → session ${t.session}` : `  · ${t.error}`) : ''}`); }
+      console.log(`${j.node} — page ${p}/${j.project}/${j.slug} with ${j.task}${j.session ? `, handed to an agent (session ${j.session}); the definition lands on the page as proposed blocks` : j.error ? `; not handed to an agent: ${j.error}` : ''}`);
       return;
     }
     const src = pos[1] || die('wye import <file|dir> --product p [--project x] [--parent doc] [--no-analyse]  |  wye import --code <dir> --name "…"');

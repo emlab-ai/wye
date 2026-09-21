@@ -530,6 +530,24 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   - consequence:wf2.clean-slate rule:clean-slate and rule:idle-stop; component:command-box (default "new", remembered agent, the tick), op:api.sessions.message takes `fresh`, agent-host#startChat reuses the Live entry so subscribers survive a restart and the old process's close handler no longer touches a replaced process; rule:agent-sessions, action:command-palette and decision:wf2.one-command-box's "defaults to the most recent active conversation" are superseded; ui-test:command-palette extended.
 
 ```yaml
+- id: decision:wf2.import-code-is-a-session
+  title: Import from code writes a page and a task and hands it to an agent at once; the scan happens in the session
+  status: proposed
+  date: 2026-09-21
+  by: alex
+  affects: [req:wf2.import.code, op:api.import-code, decision:wf2.import-lands-first-agent-rewrites-in-place]
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+```
+
+  - choice:wf2.import-code-is-a-session op:api.import-code writes `<slug>.md` under the chosen parent (status importing, source, brief) with one `task:<slug>.import` line, rebuilds, and assigns the task to the default agent with skill:import-code (lib:work-io#assignTask, the brief as the note) — and returns. The agent has the file system: it surveys the folder and writes the definition on the page (child pages for a big module), everything proposed, then sets the page analysed and the task done. The dialog shows the page and the session.
+
+  - context:wf2.import-code-is-a-session The first cut ran lib/init.js in the route — a synchronous scan of the whole folder into a project of its own with a describe task per area — so the dialog sat on "Reading the code…" for as long as the scan took, and the result was a tree the person had not asked for next to the page they meant. The person asked for the page and the task first, the work async in a session (2026-09-21).
+
+  - alternative:wf2.import-code-is-a-session Keep the init scan and run it in the background (still a project of its own, and a second mechanism beside the session); a describe task per area found by init (many sessions for one ask; the agent can split by itself).
+
+  - consequence:wf2.import-code-is-a-session skill:import-code joins the base skills (prompts/import-code.md); a page status `importing`; `wye init --feature` stays the terminal path for the shallow whole-repo tree; the Import-code result is one session the person can watch, comment on and stop.
+
+```yaml
 - id: decision:wf2.import-lands-first-agent-rewrites-in-place
   title: Import writes markdown as documents unchanged, then a hook's agent session rewrites each one in place into proposed blocks
   status: proposed

@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 export type Picked = { path: string; file: File };
 type Doc = { slug: string; title: string; folder: boolean; parent: string | null; from: string | null };
 type MdResult = { docs: Doc[]; skipped: { path: string; reason: string }[]; assets: string[]; analyse: boolean };
-type CodeResult = { project: string; written: number; skipped: number; areas: { slug: string; title: string; dir: string; files: number }[]; tasks: { id: string; session?: string; error?: string }[] };
+type CodeResult = { project: string; slug: string; node: string; task: string; session?: string; error?: string };
 
 // A drop's items, walked: folders keep their paths ("notes/2026/plan.md"). Files only, markdown or images.
 export async function filesOfDrop(dt: DataTransfer): Promise<Picked[]> {
@@ -85,7 +85,7 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
   }
   async function importCode() {
     setBusy(true); setMsg(null);
-    const r = await fetch(`/api/${product}/import-code`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, path: codePath, analyse, brief: analyse && brief.trim() ? brief.trim() : undefined }) });
+    const r = await fetch(`/api/${product}/import-code`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, path: codePath, project: effectiveProject, parent: parent || undefined, analyse, brief: analyse && brief.trim() ? brief.trim() : undefined }) });
     const j = await r.json(); setBusy(false);
     if (!r.ok) { setMsg(j.message ?? j.error); return; }
     setCodeResult(j); router.refresh();
@@ -123,20 +123,18 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
         <div className="sec-actions">{first && <button className="pri" onClick={() => { onClose(); router.push(`/${product}/${effectiveProject}/d/${first.slug}`); }}>Open {first.title}</button>}<button onClick={onClose}>Close</button></div>
       </>}
       {mode === 'code' && !codeResult && <>
-        <p className="muted small">A folder of source becomes a feature's definition: every module, page, component, library, operation and test the code shows, shallow, as a project of its own — then an agent describes each module in the person's words, mapped to the code.</p>
+        <p className="muted small">A page for the module, under the parent you chose, and an agent on it at once: it surveys the folder and writes the definition — purpose, requirements in the person's words, rules, entities, operations, tests — as proposed blocks. Nothing waits on the scan.</p>
         <div className="import-grid">
           <label><span>Name</span><input autoFocus value={name} placeholder="Inventory" onChange={e => setName(e.target.value)} /></label>
           <label><span>Folder</span><input value={codePath} placeholder="src/inventory — relative to the repo, or absolute" onChange={e => setCodePath(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && name.trim() && codePath.trim()) importCode(); }} /></label>
         </div>
-        <label className="check"><input type="checkbox" checked={analyse} onChange={e => setAnalyse(e.target.checked)} /><span><b>Describe with agent</b> — one session per module: the requirements read from the code, each mapped to the files and tests that deliver it (reverse engineering).</span></label>
-        {analyse && <BriefBox brief={brief} setBrief={setBrief} open={customise} setOpen={setCustomise} placeholder={'e.g. Focus on the public API and the data model; skip the tests. Name every feature flag as a gate. Write the requirements for the warehouse role, not the admin.'} skill="skill:describe-module" />}
-        <div className="sec-actions"><button className="pri" disabled={busy || !name.trim() || !codePath.trim()} onClick={importCode}>{busy ? 'Reading the code…' : 'Import'}</button><button disabled={busy} onClick={onClose}>Cancel</button>{msg && <span className="notice">{msg}</span>}</div>
+        <label className="check"><input type="checkbox" checked={analyse} onChange={e => setAnalyse(e.target.checked)} /><span><b>Describe with agent</b> — the session starts now; without it the page and its task are created for you to assign later.</span></label>
+        {analyse && <BriefBox brief={brief} setBrief={setBrief} open={customise} setOpen={setCustomise} placeholder={'e.g. Focus on the public API and the data model; skip the tests. Every calculation as a rule with its formula. Write the requirements for the warehouse role, not the admin.'} skill="skill:import-code" />}
+        <div className="sec-actions"><button className="pri" disabled={busy || !name.trim() || !codePath.trim()} onClick={importCode}>{busy ? 'Creating…' : 'Import'}</button><button disabled={busy} onClick={onClose}>Cancel</button>{msg && <span className="notice">{msg}</span>}</div>
       </>}
       {mode === 'code' && codeResult && <>
-        <p><b>{codeResult.written} page{codeResult.written === 1 ? '' : 's'}</b> written in project <code>{codeResult.project}</code>{codeResult.skipped ? ` (${codeResult.skipped} existed and were kept)` : ''}: {codeResult.areas.length} module{codeResult.areas.length === 1 ? '' : 's'}.
-          {codeResult.tasks.length ? ` ${codeResult.tasks.filter(t => t.session).length} describe task${codeResult.tasks.filter(t => t.session).length === 1 ? '' : 's'} handed to an agent — the Agents page shows them.` : ''}</p>
-        <ul className="import-list">{codeResult.areas.map(a => <li key={a.slug}>{a.title} <span className="muted small">{a.dir} · {a.files} files{codeResult.tasks.find(t => t.id.endsWith('.' + a.slug))?.error ? ` · ${codeResult.tasks.find(t => t.id.endsWith('.' + a.slug))!.error}` : ''}</span></li>)}</ul>
-        <div className="sec-actions"><button className="pri" onClick={() => { onClose(); router.push(`/${product}/${codeResult.project}/d/${codeResult.project}`); }}>Open</button><button onClick={onClose}>Close</button></div>
+        <p><b>{name.trim()}</b> is a page now{parent ? ` under ${docs.find(d => d.slug === parent)?.title ?? parent}` : ''}, with its import task on it{codeResult.session ? <> — an agent is reading the code in session <code>{codeResult.session.slice(0, 6)}</code>; the definition lands on the page as proposed blocks, and the Inbox shows them.</> : codeResult.error ? <> — not handed to an agent: {codeResult.error}. Assign the task from the page or the Work board.</> : '.'}</p>
+        <div className="sec-actions"><button className="pri" onClick={() => { onClose(); router.push(`/${product}/${codeResult.project}/d/${codeResult.slug}`); }}>Open {name.trim()}</button><button onClick={onClose}>Close</button></div>
       </>}
     </div>
   );
