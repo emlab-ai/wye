@@ -122,10 +122,11 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     artifacts.blocks inside the PR's window (`started`…`finished`, minus the PR's own page and the PRs page), the
     readiness list from the Definition and the Tasks (`readiness`), and a session's PRs from the graph (`prsOf`:
     pr nodes whose `session` names the id, oldest first, tasks `part of` the PR counted). lib/pr-docs does the IO:
-    `ensurePrsPage` writes `prs.md` when missing; `createPrDoc` runs for a PR session (⌘P in PR mode, Ask Wye —
-    born refining) and for an assigned task's worker (born building), and for every fresh item
-    agent-host#restartFresh hands a PR conversation — after `closePrDoc` cancelled the PR the session left
-    unfinished — and stores `prDoc` (a stored `planDoc` is read as prDoc); an ad-hoc conversation gets no page.
+    `ensurePrsPage` writes `prs.md` when missing; `createPrDoc` runs only for a person's request — a PR session
+    (⌘P in PR mode, Ask Wye — born refining) and every fresh request the person types into a PR conversation
+    (agent-host#restartFresh, after `closePrDoc` cancelled the PR the session left unfinished) — and stores `prDoc`
+    (a stored `planDoc` is read as prDoc); an assigned task, a hook's task, an import and an ad-hoc conversation
+    get no page (constraint:wf2.pr-is-the-persons): their session works on the task's own document.
     `finishPrDoc` runs from lib:sessions' end hook (done / failed / cancelled) and rewrites Result; a librarian
     leaving puts a refining PR back to draft; `adoptPrDoc` adds a handed-off session's id to `session`;
     `approvePr` / `cancelPr` / `reopenPr` are the person's moves. The first message carries "The request page"

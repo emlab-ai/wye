@@ -43,7 +43,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     const scope = await loadScope(product, project);
     const settings = agentSettings(await readSettings());
     if (scope) {
-      const r = await assignTask(scope, taskId, { worker: settings.agent, wfUrl: new URL(req.url).origin, by: 'import', force: true, page: true, skills: ['skill:import-code'], note: `The folder is \`${abs}\`; the page is ${product}/${project}/${slug} (module:${slug}).${brief ? `\n\nThe person's brief for this import: ${brief}` : ''}` });
+      const r = await assignTask(scope, taskId, { worker: settings.agent, wfUrl: new URL(req.url).origin, by: 'import', force: true, skills: ['skill:import-code'], note: `The folder is \`${abs}\`; the page is ${product}/${project}/${slug} (module:${slug}).${brief ? `\n\nThe person's brief for this import: ${brief}` : ''}` });
       if (r.ok) session = r.session; else error = r.message;
     }
   }

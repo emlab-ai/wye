@@ -7,7 +7,7 @@ import { loadScope, type Scope } from './scope';
 import { listSessions, createSession, updateSession, onSessionEnd, AGENTS, getSession, setPrDoc } from './sessions';
 import type { SessionHook } from './session-types';
 import { liveState, startChat } from './agent-host';
-import { createPrDoc, adoptPrDoc, readPrDoc, definitionContext, prDefinition } from './pr-docs';
+import { adoptPrDoc, readPrDoc, definitionContext, prDefinition } from './pr-docs';
 import { setFrontmatter, definitionIds } from './pr-doc';
 import { editNode } from './node-edit';
 import { docIdOf, docRoute } from './doc';
@@ -55,7 +55,7 @@ function taskInstruction(scope: Scope, item: WorkItem, note?: string): string {
 
 // build: the task is a plan's request task and the plan's Definition goes with it (req:exec.build-from-definition):
 // the session works on that plan (no new plan document), the plan moves to building
-export type AssignInput = { worker: string; note?: string; cwd?: string; force?: boolean; by?: string; wfUrl: string; agent?: string; build?: string; skills?: string[]; hook?: SessionHook; page?: boolean };   // page: the task's document is the work — no request page (an import)
+export type AssignInput = { worker: string; note?: string; cwd?: string; force?: boolean; by?: string; wfUrl: string; agent?: string; build?: string; skills?: string[]; hook?: SessionHook };
 export type AssignResult = { ok: true; worker: string; session?: string; mode?: 'chat' | 'run' } | { ok: false; error: 'not_found' | 'refused' | 'held' | 'invalid'; message: string };
 
 // Assign (req:exec.dispatch): a person gets `worker:`; an agent gets a session with the task, its document and what
@@ -92,7 +92,9 @@ export async function assignTask(scope: Scope, id: string, input: AssignInput): 
     await setPrDoc(scope.product.dir, s.id, input.build, `builds ${input.build} from its Definition`); s.prDoc = input.build;
     await adoptPrDoc(scope.product.dir, { ...s, prDoc: input.build });
     const plan = await readPrDoc(scope.product.slug, input.build); if (plan) { await writeAtomic(plan.file, setFrontmatter(plan.md, 'status', 'building')); await rebuild(scope.product.dir); }
-  } else if (!input.page) s.prDoc = (await createPrDoc(scope.product.dir, scope.product.slug, s)) ?? undefined; // an assigned task gets a request page of its own, born building — unless the task's own page is the work (decision:wf2.import-code-is-a-session)
+  }
+  // no request page otherwise: a PR is a person's request to change the knowledge, never an agent's, a task's, a hook's
+  // or an import's (constraint:wf2.pr-is-the-persons) — the session works on the task's own document
   // taken: in progress, the worker and the session on the line, the ready mark spent
   await editNode(scope, id, { status: 'in-progress', props: { worker: agent, session: [...new Set([...item.sessions.map(x => x.id), s.id])].join(' '), ready: null } });
   if (mode === 'chat') await startChat(scope.product.dir, scope.product.slug, s.id, { wfUrl: input.wfUrl });

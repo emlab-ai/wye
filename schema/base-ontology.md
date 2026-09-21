@@ -322,7 +322,8 @@ type means instances may carry properties the type does not declare without a wa
 - id: type:pr
   extends: type:module
   purpose: >
-    A Prompt Request — one per request to the product: `pr-<slug>` under the project's PRs page, holding the
+    A Prompt Request — a person's request to change the knowledge, one page per request (never an agent's, a
+    task's, a hook's or an import's: constraint:wf2.pr-is-the-persons): `pr-<slug>` under the project's PRs page, holding the
     request, its context, the definition (the blocks it proposes), its impact, the tasks and — once built — the
     result with the blocks it produced. Statuses draft | refining | approved | building | done | failed | cancelled:
     refined by a librarian session until the person approves it on the page, then built by a worker. Written by the

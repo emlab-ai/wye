@@ -48,6 +48,16 @@ The constraints in force — rules about the product and how it is built that no
   scope: [rule:inbox-review, req:wf2.clerk, decision:memory.write-time-verdict]
   status: proposed
   by: alex
+- id: constraint:wf2.pr-is-the-persons
+  statement: >
+    A Prompt Request is a person's act: the way a human suggests a change to the knowledge. Only a person's request
+    (⌘P, Ask Wye, a new request typed into a PR conversation) creates one; an agent, a task assignment, a hook, an
+    import or the dispatcher never does — their sessions work on the task's own document and leave proposed blocks
+    for the Inbox.
+  scope: [rule:pr-doc, type:pr, lib:work-io, decision:wf2.import-code-is-a-session]
+  status: approved
+  by: alex
+  since: 2026-09-21
 - id: constraint:wf2.blocks-not-prose
   statement: >
     Decisions, questions, requirements, rules, constraints and tasks are typed blocks in the document they belong

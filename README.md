@@ -271,7 +271,9 @@ benchmarks and against Wye's own history — with and without the memory — so 
 
 ## Prompt Requests
 
-Every request is a document of `type:pr` under the project's PRs page: `pr-<n>.md`, shown as `#n Title`.
+A Prompt Request is how a person suggests a change to the knowledge — and only a person: agents, tasks, hooks and
+imports never open one; their sessions work on a task's own page and leave proposed blocks. Every request is a
+document of `type:pr` under the project's PRs page: `pr-<n>.md`, shown as `#n Title`.
 
 ```
 ## Request      what was asked, in the person's words, with the refs attached

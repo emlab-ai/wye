@@ -121,7 +121,7 @@ async function taskUnder(scope: Scope, h: HookDef, a: { text: string; worker?: s
   const settings = agentSettings(await readSettings());
   const worker = a.worker === 'agent' ? settings.agent : a.worker;
   const skills = [...new Set([...(a.skill ? [a.skill] : []), ...h.skills])];
-  const r = await assignTask(fresh, made.id, { worker, wfUrl: state().wfUrl, by, force: true, page: true, skills, hook: { id: h.id, firing: f.id, ...(a.skill ? { skill: a.skill } : {}) } });   // the node's document is the work: no request page
+  const r = await assignTask(fresh, made.id, { worker, wfUrl: state().wfUrl, by, force: true, skills, hook: { id: h.id, firing: f.id, ...(a.skill ? { skill: a.skill } : {}) } });
   if (!r.ok) return { kind: 'task', added: [made.id], error: `assigned to nobody — ${r.message}` };
   return { kind: 'task', added: [made.id], ...(r.session ? { session: r.session } : {}) };
 }

@@ -10,9 +10,9 @@ order: 50
 
 # PRs
 
-Every piece of work an agent takes on is a plan document under this page (type:pr): the request, what the agent
-found, the plan, the tasks and — when the session ends — the result with the blocks it produced. The app creates
-one for each request that starts work (rule:pr-doc); the agent and the person fill it while they plan; the Agents
-page lists them per worker.
+A Prompt Request is a person's suggestion to change the knowledge — a document under this page (type:pr): the
+request, what was found, the definition it proposes, its impact, the tasks and — when built — the result with the
+blocks it produced. Only a person opens one (constraint:wf2.pr-is-the-persons); a librarian refines it, the person
+approves it, a worker builds it. Tasks, hooks and imports run as sessions on their own pages, never as PRs.
 
 <!-- view:pr -->
