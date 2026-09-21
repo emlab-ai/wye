@@ -315,6 +315,17 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     references and moves a person off a removed page to its parent.
   source: packages/web/src/components/DocTree.tsx#Row; packages/web/src/app/api/[product]/docs/duplicate/route.ts; packages/web/src/app/api/[product]/docs/delete/route.ts; packages/web/src/lib/doc-ops.ts
   status: shipped
+- id: rule:block-menu
+  statement: >
+    Every block in the editor — a paragraph, a card, a list item, an image, inside a collection or a node's content
+    alike — has a context menu on right-click, where the pointer is: Clone (a copy after the block; a typed node gets
+    a fresh `-copy` slug so the copy is its own node, its children re-slugged the same way), Copy link, Send to agent,
+    Delete; a typed node also has Open in column, Comment… (the column with its Comments box focused), Expire
+    (`until: today` — the node stops holding, decision:memory.bitemporal) and, for a task, Mark done. Escape, a press
+    outside or a scroll closes it; the close handler checks the target, as rule:tree-menu does. The drag handle's own
+    menu stays for the block-type actions (colours, turn into drawing, annotate).
+  source: packages/web/src/components/DocEditor.tsx#BlockContextMenu
+  status: shipped
 - id: rule:doc-gone-in-place
   statement: >
     A document page whose file is not on disk — deleted outside the app while open, or never there — renders a

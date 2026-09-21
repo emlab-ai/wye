@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useRef, useState, type FocusEvent as ReactFocusEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent as ReactFocusEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, filterSuggestionItems, insertOrUpdateBlockForSlashMenu, getNodeById } from '@blocknote/core';
@@ -21,6 +21,7 @@ import { EmbedBlock } from './EmbedBlock';
 import { usePeek, type OwnType } from './PeekProvider';
 import { ID_RE, KINDS } from '@/lib/ids';
 import { parseExtra, withExtra, GOAL_STATUSES, TASK_STATUSES, STATUSES } from '@/lib/props';
+import { setBodyField } from '@/lib/yaml-form';
 import { filterRows, parseViewQuery, viewQuery, EMPTY_FILTERS, type Filters, type InstanceRow } from '@/lib/instance-table';
 import { slugify } from '@/lib/templates';
 import { blockHash } from '@/lib/anchors';
@@ -84,6 +85,39 @@ async function copyBlockLink(block: AnyBlock, host: HTMLElement | null) {
 function toast(text: string) {
   const el = document.createElement('div'); el.className = 'toast'; el.textContent = text; document.body.appendChild(el);
   setTimeout(() => el.classList.add('on'), 10); setTimeout(() => { el.classList.remove('on'); setTimeout(() => el.remove(), 300); }, 1800);
+}
+
+// The block's context menu (rule:block-menu, req:wf2.ui.block-menu): a right-click anywhere on a block — a paragraph,
+// a card, a list item, an image — opens it where the pointer is. Delete, clone (a typed node gets a fresh slug), open
+// in the column, comment (the column with its Comments section), expire (`until: today` — the node stops holding,
+// decision:memory.bitemporal), copy link, send to agent. Escape, a press outside or a scroll closes it.
+type BlockMenu = { block: AnyBlock; x: number; y: number };
+function BlockContextMenu({ menu, onClose, act }: { menu: BlockMenu; onClose: () => void; act: (what: 'delete' | 'clone' | 'open' | 'comment' | 'expire' | 'copy' | 'send' | 'done', b: AnyBlock) => void }) {
+  const el = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const close = (e: Event) => { if (!(e.target instanceof Node && el.current?.contains(e.target))) onClose(); };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('mousedown', close); document.addEventListener('keydown', key); window.addEventListener('scroll', onClose, true);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', key); window.removeEventListener('scroll', onClose, true); };
+  }, [onClose]);
+  const b = menu.block; const np = b.type === 'node' ? b.props as unknown as { kind: string; slug: string; status: string; check?: string } : null;
+  const typed = !!(np && np.slug);
+  const item = (label: string, what: Parameters<typeof act>[0], cls = '') => <button role="menuitem" className={cls} onMouseDown={e => e.preventDefault()} onClick={() => { act(what, b); onClose(); }}>{label}</button>;
+  // keep the menu on screen
+  const x = Math.min(menu.x, (typeof window !== 'undefined' ? window.innerWidth : 9999) - 200), y = Math.min(menu.y, (typeof window !== 'undefined' ? window.innerHeight : 9999) - 280);
+  return (
+    <div ref={el} className="pg-menu block-menu" role="menu" style={{ left: x, top: y }}>
+      {typed && <div className="menu-head muted">{np!.kind}:{np!.slug}</div>}
+      {typed && item('Open in column', 'open')}
+      {typed && item('Comment…', 'comment')}
+      {np?.kind === 'task' && np.status !== 'done' && item('Mark done', 'done')}
+      {typed && item('Expire (until today)', 'expire')}
+      {item('Clone', 'clone')}
+      {item('Copy link', 'copy')}
+      {item('Send to agent', 'send')}
+      {item('Delete', 'delete', 'danger')}
+    </div>
+  );
 }
 
 // Drag-handle menu entry on every block: copy its link.
@@ -898,6 +932,40 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   };
   // base kinds, then the product's own types (its type: cards) — an instance is a prose line `team:slug …`
   const fresh = () => `new-${Math.floor(Math.random() * 900 + 100)}`;
+  // the block under a right-click: BlockNote wraps every block in .bn-block-outer[data-id]; the innermost one is the block
+  const [blockMenu, setBlockMenu] = useState<BlockMenu | null>(null);
+  const onContextMenu = (e: React.MouseEvent) => {
+    const t = e.target as HTMLElement;
+    if (t.closest('a, input, select, textarea, button, .pg-menu, .bn-suggestion-menu')) return;
+    const outer = t.closest('.bn-block-outer[data-id]') as HTMLElement | null; if (!outer) return;
+    const b = editor.getBlock(outer.dataset.id!) as unknown as AnyBlock | undefined; if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    setBlockMenu({ block: b, x: e.clientX, y: e.clientY });
+  };
+  const closeBlockMenu = useCallback(() => setBlockMenu(null), []);
+  const setNodeProp = (b: AnyBlock, key: string, value: string) => {
+    const np = b.props as unknown as { form: string; body: string; extra: string };
+    const props = np.form === 'yaml' ? { ...b.props, body: setBodyField(np.body ?? '', key, value) } : { ...b.props, extra: withExtra(np.extra ?? '', key, value) };
+    editor.updateBlock(b as never, { props } as never);
+  };
+  const blockAct = (what: 'delete' | 'clone' | 'open' | 'comment' | 'expire' | 'copy' | 'send' | 'done', b: AnyBlock) => {
+    const id = String((b as { id?: string }).id); const np = b.type === 'node' ? b.props as unknown as { kind: string; slug: string; form: string; body: string } : null;
+    const nodeId = np?.slug ? `${np.kind}:${np.slug}` : '';
+    if (what === 'delete') { editor.removeBlocks([id]); touched.current = true; changed(); return; }
+    if (what === 'clone') {
+      // a copy after the block; a typed node gets a fresh slug so the copy is its own node (the same id would redefine it)
+      const copy = JSON.parse(JSON.stringify({ ...b, id: undefined })) as AnyBlock;
+      const strip = (x: AnyBlock) => { delete (x as { id?: string }).id; if (x.type === 'node') { const cp = x.props as unknown as { kind: string; slug: string; form: string; body: string }; const slug = `${cp.slug.replace(/-copy(-\d+)?$/, '')}-copy`; if (cp.form === 'yaml' && cp.body) cp.body = cp.body.replace(/^id:\s*.*$/m, `id: ${cp.kind}:${slug}`); cp.slug = slug; } for (const k of x.children ?? []) strip(k); };
+      strip(copy);
+      editor.insertBlocks([copy as never], id, 'after'); touched.current = true; changed(); return;
+    }
+    if (what === 'open' && nodeId) { openPeek(nodeId); return; }
+    if (what === 'comment') { if (nodeId) { openPeek(nodeId); setTimeout(() => { const ta = document.querySelector('.peek .comments textarea, .peek .comments input') as HTMLElement | null; ta?.focus(); }, 400); } else toast('Comments go on typed blocks — make it a node first'); return; }
+    if (what === 'expire' && np) { setNodeProp(b, 'until', new Date().toISOString().slice(0, 10)); touched.current = true; changed(); return; }
+    if (what === 'done' && np) { editor.updateBlock(b as never, { props: { ...b.props, status: 'done', check: (b.props as { check?: string }).check ? 'done' : (b.props as { check?: string }).check } } as never); touched.current = true; changed(); return; }
+    if (what === 'copy') { void copyBlockLink(b, rootRef.current); return; }
+    if (what === 'send') sendBlock(b, rootRef.current);
+  };
   const child = (kind: string, text: string) => ({ type: 'node', props: { kind, slug: fresh(), form: 'prose', textKey: 'text', check: '', status: '' }, content: [{ type: 'text', text, styles: { italic: true } }] });
   // a decision or a requirement is born with its parts as child blocks (decision:wf2.decision-free-text,
   // decision:wf2.req-free-text) — blocks, so any of them can go
@@ -961,7 +1029,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   if (loadError) return <div className="doc-editor"><p className="notice">Editing is off for this document: {loadError}. The text below is read-only.</p>{fallback}</div>;
   return (
     <EditorScope.Provider value={scope}>
-    <div className={`doc-editor ${scoped ? 'scoped' : ''}`} ref={rootRef} data-product={product} data-project={project} data-doc={slug} data-scope={scope ?? undefined} onBlur={retag} onFocus={() => { touched.current = true; }}
+    <div className={`doc-editor ${scoped ? 'scoped' : ''}`} ref={rootRef} data-product={product} data-project={project} data-doc={slug} data-scope={scope ?? undefined} onBlur={retag} onFocus={() => { touched.current = true; }} onContextMenu={onContextMenu}
       onClick={e => { // a link whose target is a node id opens the peek panel instead of navigating
         const a = (e.target as HTMLElement).closest('a[href]') as HTMLAnchorElement | null;
         const href = a?.getAttribute('href') ?? '';
@@ -971,6 +1039,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
           if (doc) router.push(doc.replace(/#.*$/, '')); else openPeek(href);
         }
       }}>
+      {blockMenu && <BlockContextMenu menu={blockMenu} onClose={closeBlockMenu} act={blockAct} />}
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}{!lintMsg && elsewhere > 0 && <span className="muted" title="ctx check finds an error in another document of the product — not in this one">{elsewhere} check error{elsewhere === 1 ? '' : 's'} elsewhere</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false} emojiPicker={false}>
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><AnnotateItem annotate={imageToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
