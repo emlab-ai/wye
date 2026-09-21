@@ -702,3 +702,6 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .nblock-prose-ta { width: 100%; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 2px 4px; margin: 0 -4px; font: 14px/1.5 var(--font-b); color: var(--ink); resize: vertical; } .nblock-prose-ta:hover { border-color: var(--line); } .nblock-prose-ta:focus { outline: none; border-color: var(--accent); background: var(--ground); }
 .nblock-open { margin-left: auto; background: none; border: 1px solid var(--line-2); border-radius: 999px; padding: 0 8px; font: 11px var(--font-m); color: var(--ink-2); cursor: pointer; } .nblock-open:hover { border-color: var(--accent); color: var(--ink); } .nblock-open + .nblock-tools { margin-left: 4px; }
 .rel-fold { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.nblock-part { padding-top: 2px; } .nblock-part .nblock-head { min-height: 0; margin-bottom: 0; } .nblock-part .pill.k { font-size: 10px; }
+/* the parts of a requirement and of a decision take their parent's colour, softer */
+:root { --k-when: var(--k-req); --k-then: var(--k-req); --k-unless: var(--k-req); --k-context: var(--k-decision); --k-choice: var(--k-decision); --k-alternative: var(--k-decision); --k-consequence: var(--k-decision); } .nblock-part .pill.k { opacity: .75; }

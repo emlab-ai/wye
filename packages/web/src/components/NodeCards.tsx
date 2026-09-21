@@ -4,6 +4,7 @@ import { parseBody } from '@/lib/graph';
 import { sameProse, setBodyField } from '@/lib/yaml-form';
 import { STATUSES } from '@/lib/props';
 import { Linkified } from './IdLink';
+import { PART_KINDS } from '@/lib/kinds';
 
 // The cards a typed block renders as — a prose or yaml node, a question, a decision — shared by the document
 // editor (the block's inline content in the text slot) and by an embed of the node on another page (a text area
@@ -81,6 +82,15 @@ export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<Car
   // a yaml card's `text` beside its title is its description (decision:wf2.card-is-name-and-properties): read and
   // edited in the column, not on the card — the card is the name and the properties
   const rows = p.form === 'yaml' ? parseBody(p.body).filter(r => r.key !== p.textKey && r.key !== 'status' && r.key !== 'text') : [];
+  // a part (when / then / unless, context / choice / alternative / consequence): the pill and the text, nothing else
+  if (PART_KINDS.has(p.kind)) return (
+    <div className={`nblock nblock-part k-${p.kind} ${host.extraClass ?? ''}`} data-id={`${p.kind}:${p.slug}`} ref={host.hostRef} onClick={selectOn(host)}>
+      <div className="nblock-head" contentEditable={false} ref={host.stop} onClick={host.onHeadClick}>
+        <span className="pill k" style={{ background: `var(--k-${p.kind}, var(--k-other))` }}>{p.kind}</span>
+      </div>
+      {host.text('nblock-text')}
+    </div>
+  );
   return (
     <div className={`nblock k-${p.kind} ${p.check === 'done' || p.status === 'done' ? 'done' : ''} ${host.extraClass ?? ''}`} data-id={`${p.kind}:${p.slug}`} ref={host.hostRef} onClick={selectOn(host)}>
       <div className="nblock-head" contentEditable={false} ref={host.stop} onClick={host.onHeadClick}>

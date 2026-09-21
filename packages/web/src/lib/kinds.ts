@@ -22,3 +22,6 @@ export const SKELETONS: Record<CardKind, string[]> = {
 export function skeleton(kind: CardKind, slug: string, date = new Date().toISOString().slice(0, 10)): string {
   return [`id: ${kind}:${slug}`, ...SKELETONS[kind].map(l => l === 'date: ' ? `date: ${date}` : l)].join('\n');
 }
+// The parts of a requirement or a decision (decision:wf2.req-free-text, decision:wf2.decision-free-text): child blocks
+// with a text and nothing else — no status, no properties, no details.
+export const PART_KINDS = new Set(['when', 'then', 'unless', 'context', 'choice', 'alternative', 'consequence']);
