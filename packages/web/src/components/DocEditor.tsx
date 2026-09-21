@@ -92,11 +92,17 @@ function toast(text: string) {
 // in the column, comment (the column with its Comments section), expire (`until: today` — the node stops holding,
 // decision:memory.bitemporal), copy link, send to agent. Escape, a press outside or a scroll closes it.
 type BlockMenu = { block: AnyBlock; x: number; y: number };
-type BlockAct = 'delete' | 'clone' | 'open' | 'comment' | 'expire' | 'copy' | 'send' | 'done' | 'copyBlock' | 'cut' | 'paste';
+type BlockAct = 'delete' | 'clone' | 'open' | 'comment' | 'expire' | 'copy' | 'send' | 'done' | 'copyBlock' | 'cut' | 'paste' | `link:${string}`;
+const LINK_KINDS = ['comment', 'req', 'question', 'decision', 'task', 'constraint', 'rule', 'test', 'lesson', 'goal'];
+// the base ontology's structural kinds and the parts of a card are not blocks a person links by hand
+const NOT_LINKABLE = new Set(['node', 'when', 'then', 'unless', 'context', 'alternative', 'choice', 'consequence', 'contradiction', 'verdict', 'pr', 'skill', 'hook', 'template', 'field', 'prop', 'block', 'module', 'product', 'type', 'drift', 'eval-run', 'eval-score', 'eval-pair', 'eval-public']);
 // the in-app clipboard: the blocks last copied or cut here, pasted whole (the system clipboard gets their markdown)
 let CLIP: { blocks: AnyBlock[]; cut: boolean } | null = null;
 function BlockContextMenu({ menu, onClose, act, canPaste }: { menu: BlockMenu; onClose: () => void; act: (what: BlockAct, b: AnyBlock) => void; canPaste: boolean }) {
   const el = useRef<HTMLDivElement>(null);
+  const { ownKinds } = usePeek();
+  const [linkOpen, setLinkOpen] = useState(false);
+  const linkKinds = [...new Set([...LINK_KINDS, ...ownKinds.filter(k => !NOT_LINKABLE.has(k))])];
   useEffect(() => {
     const close = (e: Event) => { if (!(e.target instanceof Node && el.current?.contains(e.target))) onClose(); };
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -105,6 +111,7 @@ function BlockContextMenu({ menu, onClose, act, canPaste }: { menu: BlockMenu; o
   }, [onClose]);
   const b = menu.block; const np = b.type === 'node' ? b.props as unknown as { kind: string; slug: string; status: string; check?: string } : null;
   const typed = !!(np && np.slug);
+  const linkable = typed || (b.type === 'embed' && !!(b.props as { node?: string }).node);
   const item = (label: string, what: Parameters<typeof act>[0], cls = '') => <button role="menuitem" className={cls} onMouseDown={e => e.preventDefault()} onClick={() => { act(what, b); onClose(); }}>{label}</button>;
   // keep the menu on screen
   const x = Math.min(menu.x, (typeof window !== 'undefined' ? window.innerWidth : 9999) - 200), y = Math.min(menu.y, (typeof window !== 'undefined' ? window.innerHeight : 9999) - 280);
@@ -113,6 +120,10 @@ function BlockContextMenu({ menu, onClose, act, canPaste }: { menu: BlockMenu; o
       {typed && <div className="menu-head muted">{np!.kind}:{np!.slug}</div>}
       {typed && item('Open in column', 'open')}
       {item('Comment…', 'comment')}
+      {linkable && <div className="menu-sub" onMouseEnter={() => setLinkOpen(true)} onMouseLeave={() => setLinkOpen(false)}>
+        <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => setLinkOpen(o => !o)}>Link › <span className="muted">a block under it</span></button>
+        {linkOpen && <div className="pg-menu menu-sub-list">{linkKinds.map(k => <button key={k} role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => { act(`link:${k}`, b); onClose(); }}><i className="pill k" style={{ background: `var(--k-${k}, var(--k-other))` }}>{k}</i></button>)}</div>}
+      </div>}
       {np?.kind === 'task' && np.status !== 'done' && item('Mark done', 'done')}
       {typed && item('Expire (until today)', 'expire')}
       {item('Copy', 'copyBlock')}
@@ -1155,6 +1166,28 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     const id = String((b as { id?: string }).id); const np = b.type === 'node' ? b.props as unknown as { kind: string; slug: string; form: string; body: string } : null;
     const nodeId = np?.slug ? `${np.kind}:${np.slug}` : '';
     if (what === 'delete') { editor.removeBlocks([id]); touched.current = true; changed(); return; }
+    if (what.startsWith('link:')) {
+      // a new block of that kind under the node — its content, so the graph links them (parent has child): in the
+      // editor as a child block to type into; for an embed, appended in the node's own document and opened in the column
+      const kind = what.slice(5);
+      if (np) {
+        const kid = child(kind, `New ${kind}`) as unknown as AnyBlock; // a placeholder text: an empty line would not be a node
+        editor.updateBlock(b as never, { children: [...((b.children ?? []) as AnyBlock[]), kid] } as never);
+        touched.current = true; changed();
+        setTimeout(() => { const cur = editor.getBlock(id) as unknown as AnyBlock | undefined; const last = cur?.children?.[cur.children.length - 1] as { id?: string } | undefined; if (last?.id) { try { editor.setTextCursorPosition(last.id, 'end'); editor.focus(); } catch { /* gone */ } } }, 50);
+        return;
+      }
+      const target = (b.props as { node?: string }).node; if (!target) return;
+      void (async () => {
+        const r = await fetch(`/api/${product}/node/${encodeURIComponent(target)}/content`); const j = await r.json().catch(() => ({}));
+        if (!r.ok) { toast(j.message ?? `could not read ${target}`); return; }
+        const line = `- ${kind}:${fresh()} New ${kind}`;
+        const w = await fetch(`/api/${product}/node/${encodeURIComponent(target)}/content`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: j.content ? `${String(j.content).replace(/\s+$/, '')}\n${line}` : line, ifMatch: j.bodyHash }) });
+        if (!w.ok) { const k = await w.json().catch(() => ({})); toast(k.message ?? 'could not add the block'); return; }
+        toast(`${kind} added under ${target} — edit it in the column`); openPeek(target);
+      })();
+      return;
+    }
     if (what === 'copyBlock' || what === 'cut') {
       CLIP = { blocks: [JSON.parse(JSON.stringify(b))], cut: what === 'cut' };
       const md = blocksToMarkdown([b]); navigator.clipboard?.writeText(md).catch(() => {});
