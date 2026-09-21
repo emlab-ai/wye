@@ -195,17 +195,33 @@ type means instances may carry properties the type does not declare without a wa
 - id: type:decision
   extends: type:node
   purpose: >
-    an ADR — context, alternatives, choice, consequences; proposed until a person approves it; superseded when a later
-    decision names it in `supersedes:` (the parser fills its `until` and `superseded-by`)
+    a choice that was made, in the person's words — a title and free text: the reasoning as prose in `text` or as
+    the card's content blocks, with `alternative:`, `choice:` and `consequence:` child blocks where they help
+    (decision:wf2.decision-free-text); proposed until a person approves it; superseded when a later decision names it
+    in `supersedes:` (the parser fills its `until` and `superseded-by`). context / choice / alternatives /
+    consequences are optional keys from the ADR form, never asked for
   open: true
   props:
     date: date?
+    text: text?
     context: text?
     choice: text?
     alternatives: text?
     consequences: text?
     governs: list of node? -(inverse)-> governed-by
     affects: list of node? -(inverse)-> affected-by
+- id: type:alternative
+  extends: type:node
+  purpose: a way not taken — a child block of the decision that considered it, its text saying what it was and why not
+  open: true
+- id: type:choice
+  extends: type:node
+  purpose: what was chosen, when a decision wants it as a block of its own under the decision rather than in its text
+  open: true
+- id: type:consequence
+  extends: type:node
+  purpose: what follows from a decision — a child block of it
+  open: true
 - id: type:constraint
   extends: type:node
   purpose: >

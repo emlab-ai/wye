@@ -48,7 +48,7 @@ export function candidateCard(id: string, c: Candidate, s: Pick<Session, 'id'>, 
   const evidence = c.evidence.length ? c.evidence.map(n => `session:${s.id}#${n}`).join(', ') : `session:${s.id}`;
   const by = c.by === 'agent' ? `agent:${agentName}` : 'person';
   const lines = [`- id: ${id}`, `  title: ${c.title.replace(/:/g, ' -')}`];
-  if (c.kind === 'decision') lines.push(y('context', c.context), y('choice', c.text), `  date: ${date}`);
+  if (c.kind === 'decision') lines.push(y('text', [c.text, c.context ? `Context: ${c.context}` : ''].filter(Boolean).join(' ')), `  date: ${date}`); // free text (decision:wf2.decision-free-text)
   else if (c.kind === 'question') lines.push(y('q', c.text || c.title), y('context', c.context));
   else lines.push(y('statement', c.text || c.title), y('context', c.context));
   if (related.length) lines.push(`  related-to: [${related.join(', ')}]`); // the knowledge Jev is sure the card is about (Jev auto-linking design §4)

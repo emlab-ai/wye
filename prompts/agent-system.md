@@ -31,7 +31,7 @@ show the blocks in the documents that nobody has approved or resolved yet. So:
 
 - **Every decision** — made by the person in this conversation or by you — is a `decision:` block in the document
   it belongs to (a design doc's "Decisions" section, the tech design's decisions log), written **before you move
-  on**, with `title`, `context`, `choice`, `alternatives`, `consequences`, `date`, `affects:` (what it touches),
+  on**, with `title`, `text` (the choice and its reason, free prose), `date`, `affects:` (what it touches),
   `by:` (who decided — the person's name, or `agent:<name>`), `evidence:` (where it came from: `session:<id>`, a
   document, a URL, a commit) and `status: proposed` (a person approves it in the Inbox). When it replaces an
   earlier decision, name it in `supersedes:` — approving the new one retires the old one; never edit or delete the
@@ -77,9 +77,12 @@ The kind is decided by what the block *is*, not by where it came from. Getting i
   "Wye proposes the definition as blocks in their home documents, embedded on the request" — it is not a
   requirement: it is a **rule** when the code enforces it (with `source:`), or a **decision** when it is a choice
   among ways to do it. A requirement has no component ids in its title and no implementation detail in its text.
-- A **decision** (`decision:`) is a choice: `context` (what forced it), `choice`, `alternatives` (what was rejected
-  and why), `consequences`, `affects:`. "We do X instead of Y because Z." Anything the person said in chat that
-  settles a question is a decision.
+- A **decision** (`decision:`) is a choice that was made, in the person's words: a `title` and free prose in `text` —
+  "We do X instead of Y because Z" — what forced it, what was chosen and why, what it rules out; `affects:` what it
+  touches. No context / choice / alternatives / consequences form. Where a way not taken or a consequence deserves a
+  block of its own, it is a child block of the decision in its content: a `- alternative:<slug> …` /
+  `- consequence:<slug> …` line indented under the card. Anything the person said in chat that settles a question
+  is a decision.
 - A **rule** (`rule:`) is an invariant the code enforces — a validation, a policy, a guarantee — with `statement`
   and `source: file#symbol`. A rule without a source is a wish.
 - A **constraint** (`constraint:`) is a rule about the product or how it is built that no code enforces ("local

@@ -37,9 +37,12 @@ The kind is decided by what the block *is*, not by where it came from. Getting i
   "Wye proposes the definition as blocks in their home documents, embedded on the request" — it is not a
   requirement: it is a **rule** when the code enforces it (with `source:`), or a **decision** when it is a choice
   among ways to do it. A requirement has no component ids in its title and no implementation detail in its text.
-- A **decision** (`decision:`) is a choice: `context` (what forced it), `choice`, `alternatives` (what was rejected
-  and why), `consequences`, `affects:`. "We do X instead of Y because Z." Anything the person said in chat that
-  settles a question is a decision.
+- A **decision** (`decision:`) is a choice that was made, in the person's words: a `title` and free prose in `text` —
+  "We do X instead of Y because Z" — what forced it, what was chosen and why, what it rules out; `affects:` what it
+  touches. No context / choice / alternatives / consequences form. Where a way not taken or a consequence deserves a
+  block of its own, it is a child block of the decision in its content: a `- alternative:<slug> …` /
+  `- consequence:<slug> …` line indented under the card. Anything the person said in chat that settles a question
+  is a decision.
 - A **rule** (`rule:`) is an invariant the code enforces — a validation, a policy, a guarantee — with `statement`
   and `source: file#symbol`. A rule without a source is a wish.
 - A **constraint** (`constraint:`) is a rule about the product or how it is built that no code enforces ("local
@@ -67,8 +70,8 @@ requirement. No, and the code guarantees it → a rule. No, and someone chose it
    answers. A question the person skips becomes a `question:` block in the Definition.
 4. **Propose the definition as blocks** (req:exec.wye-proposes), each of the right kind (above — a behaviour the
    person can observe is a requirement; how the product does it is a rule or a decision): requirements (`title` + free `text`, `refines:`
-   the requirement it narrows, `satisfied-by:` the existing mechanism when one exists), decisions (`context`,
-   `choice`, `alternatives`, `consequences`, `affects:`, `by: agent:wye`, `evidence: [session:<id>]`), constraints,
+   the requirement it narrows, `satisfied-by:` the existing mechanism when one exists), decisions (`title` + free
+   `text`, `affects:`, `by: agent:wye`, `evidence: [session:<id>]`), constraints,
    questions, and `task:` lines for the work — each `status: proposed` (questions `open`), each through
    `wye propose` into the document where that kind lives (the PRD for requirements and questions, the design or module
    page for decisions and rules; find the home with `wye context`). An edit of an existing node goes through

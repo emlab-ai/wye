@@ -113,7 +113,7 @@ export async function fileItem(productDir: string, product: string, item: InboxI
   const today = new Date().toISOString().slice(0, 10);
   const f = item.fields;
   const lines: (string | null)[] = [`- id: ${target.id}`];
-  if (kind === 'decision') lines.push(y('title', item.title), y('context', f.context || item.body), y('choice', f.choice), y('alternatives', f.alternatives), y('consequences', f.consequences), '  status: approved', `  date: ${today}`);
+  if (kind === 'decision') lines.push(y('title', item.title), y('text', [item.body, f.choice, f.context ? `Context: ${f.context}` : '', f.alternatives ? `Alternatives: ${f.alternatives}` : '', f.consequences ? `Consequences: ${f.consequences}` : ''].filter(Boolean).join('\n\n')), '  status: approved', `  date: ${today}`); // free text (decision:wf2.decision-free-text)
   else if (kind === 'req') lines.push(y('title', item.title), y('text', item.body), y('when', f.when), y('then', f.then), y('unless', f.unless), '  status: proposed');
   else if (kind === 'rule') lines.push(y('statement', f.statement || item.body || item.title), y('source', f.source), '  status: proposed');
   else if (kind === 'question') lines.push(y('q', f.q || item.body || item.title), '  status: question');

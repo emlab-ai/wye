@@ -154,13 +154,13 @@ export function QuestionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
 
 // A decision card: context, choice and alternatives are what matters (rule:card-essence); consequences, date, affects
 // and every other key sit in "details" with the id and the yaml, like the question card.
-const DECISION_ESSENCE = ['context', 'choice', 'alternatives'];
+const DECISION_ESSENCE = ['context', 'choice', 'alternatives', 'consequences'];
 export function DecisionCard({ p, set, host }: { p: CardP; set: (patch: Partial<CardP>) => void; host: CardHost }) {
   const [details, setDetails] = useState(false);
   const rows = parseBody(p.body);
   const get = (k: string) => rows.find(r => r.key === k)?.value ?? '';
   const id = `${p.kind}:${p.slug}`;
-  const others = rows.filter(r => !['id', 'title', 'status', p.textKey, ...DECISION_ESSENCE].includes(r.key));
+  const others = rows.filter(r => !['id', 'title', 'status', 'text', p.textKey, ...DECISION_ESSENCE].includes(r.key));
   return (
     <div className={`nblock k-decision dnode s-${p.status} ${host.extraClass ?? ''}`} data-id={id} ref={host.hostRef} onClick={selectOn(host)}>
       <div className="nblock-head" contentEditable={false} ref={host.stop} onClick={host.onHeadClick}>
@@ -175,12 +175,11 @@ export function DecisionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
         </span>
       </div>
       {host.text('qnode-title nblock-text')}
-      {DECISION_ESSENCE.filter(k => get(k)).map(k => (
-        <div key={k} className="qnode-section" contentEditable={false} ref={host.stop}>
-          <label>{k}</label>
-          <ProseArea value={get(k)} onChange={v => set({ body: setBodyField(p.body, k, v) })} />
-        </div>
-      ))}
+      {/* a decision is its title and free text (decision:wf2.decision-free-text): `text` as prose, and the card's
+          content blocks below it — alternative: / choice: / consequence: children where wanted. The ADR keys older
+          cards carry read as prose paragraphs, not as a form; the yaml under details edits them. */}
+      {get('text') && <div className="nblock-prose" contentEditable={false}>{get('text').split(/\n{2,}/).map((para, i) => <p key={i}><Linkified text={para} /></p>)}</div>}
+      {DECISION_ESSENCE.filter(k => get(k)).map(k => <p key={k} className="nblock-prose dnode-legacy" contentEditable={false}><span className="muted">{k} — </span><Linkified text={get(k)} /></p>)}
       {details && (
         <div className="qnode-details" contentEditable={false} ref={host.stop}>
           {others.length > 0 && <PropRows rows={others} />}

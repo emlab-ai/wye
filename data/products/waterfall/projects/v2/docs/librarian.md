@@ -202,6 +202,31 @@ Definition — the librarian
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
   part-of: goal:exec.define-first
+- id: decision:wf2.decision-free-text
+  title: A decision is a title and free text — its content blocks are the description; alternatives and consequences are child blocks, not a form
+  context: >
+    The decision card was an ADR form — context, choice, alternatives, consequences as fields. alex: a card should be
+    a name and a description, the description a markdown block editor like a page, and where structure is wanted,
+    typed child blocks.
+  choice: >
+    A decision is `title` + free prose in `text`, and its content — the blocks indented under the card, edited in
+    place in the document (req:ontology.content) — is its description. Three child block types in the base ontology
+    for when a block of its own is wanted: alternative (a way not taken), choice, consequence — `- alternative:<slug>
+    …` lines under the card. The card renders title, text as prose, the children below; the ADR keys older cards
+    carry read as prose paragraphs, edited only through the yaml under details. The librarian, the worker,
+    consolidation and the inbox write title + text.
+  alternatives: >
+    Rewrite the 130 existing decisions into text — rejected: they read fine as prose. Keep the form as optional
+    fields on new cards — rejected by alex.
+  consequences: >
+    type:decision's context / choice / alternatives / consequences are optional keys nothing asks for; type:alternative,
+    type:choice, type:consequence in schema/base-ontology.md and kinds.yaml.
+  date: 2026-09-21
+  status: approved
+  affects: [type:decision, component:node-cards, lib:consolidate, lib:inbox, prompt:librarian-system, prompt:agent-system]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
 - id: decision:wf2.req-free-text
   title: A requirement is free text in the person's words — when / then / unless is not a template
   context: >
