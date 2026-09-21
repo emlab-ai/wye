@@ -134,14 +134,16 @@ function NodeView({ id }: { id: string }) {
       {d && d.self && <TypeView type={d.self} instances={d.instances ?? []} index={index} product={product} onSaved={() => setTick(t => t + 1)} />}
       {d && d.self ? null : d && d.node.defined && d.type
         ? <><NodeEditor key={id} id={id} body={d.node.body} form={d.node.form ?? 'yaml'} type={d.type} props={d.props ?? []} entry={entry} relations={d.relations.out} onSaved={() => setTick(t => t + 1)} />
-          {entry && (entry.kind === 'goal' || entry.kind === 'task') && <Tracking entry={entry} rows={rows} inc={d.relations.inc} />}
           {entry && entry.kind === 'task' && <TaskWork key={`work-${id}`} id={id} />}</>
         : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
-      {d && d.type && d.props && withoutComments(d.relations.inc).some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={withoutComments(d.relations.inc)} inverses={d.inverses ?? {}} product={product} />}
       {d && !d.self && d.node.defined && <NodeContent id={id} />}
-      {d && !d.self && entry?.kind === 'goal' && <GoalTasks key={`tasks-${id}`} id={id} ids={(d.relations.inc.find(([v]) => v === 'part-of')?.[1] ?? []).filter(x => x.startsWith('task:'))} />}
+      {/* a goal: what serves it as data tables under its content — requirements, then tasks; sub-goals in the tracking block */}
+      {d && !d.self && entry && (entry.kind === 'goal' || entry.kind === 'task') && <Tracking entry={entry} rows={rows} inc={d.relations.inc} />}
+      {d && !d.self && entry?.kind === 'goal' && <PartsTable key={`reqs-${id}`} id={id} kind="req" label="Requirements" ids={(d.relations.inc.find(([v]) => v === 'part-of')?.[1] ?? []).filter(x => x.startsWith('req:'))} />}
+      {d && !d.self && entry?.kind === 'goal' && <PartsTable key={`tasks-${id}`} id={id} kind="task" label="Tasks" ids={(d.relations.inc.find(([v]) => v === 'part-of')?.[1] ?? []).filter(x => x.startsWith('task:'))} />}
       {d && !d.self && d.node.defined && <Comments key={`comments-${id}`} id={id} />}
       {d && !d.self && d.node.defined && <ExplainCard key={`explain-${id}`} id={id} />}
+      {d && d.type && d.props && withoutComments(d.relations.inc).some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={withoutComments(d.relations.inc)} inverses={d.inverses ?? {}} product={product} folded />}
       {d && (
         <div className="peek-views">
           <h4>Links <span className="muted">{linkCount}</span></h4>
@@ -248,13 +250,16 @@ function Relations({ out, inc, rows, inverses = {} }: { out: [string, string[]][
 
 // A typed node's properties: every effective property of its type (own and inherited), filled or as a placeholder
 // with its value type, then the inverses — incoming links named from this side (memberOf: team:platform).
-function Properties({ type, props, inc, inverses, product }: { type: TypeDef; props: NodeProp[]; inc: [string, string[]][]; inverses: Record<string, string>; product: string }) {
+function Properties({ type, props, inc, inverses, product, folded = false }: { type: TypeDef; props: NodeProp[]; inc: [string, string[]][]; inverses: Record<string, string>; product: string; folded?: boolean }) {
   const shown = props.filter(p => (p.from !== 'type:node' && !['title', 'status', 'text'].includes(p.name)) || (p.value && !['title', 'status', 'text'].includes(p.name)));
   const back = inc.filter(([v]) => inverses[v]).map(([v, ids]) => ({ name: inverses[v], ids }));
   const ids = (v: string) => v.replace(/^\[|\]$/g, '').split(/,\s*/).map(x => x.trim()).filter(Boolean);
+  const [open, setOpen] = useState(!folded);
+  const backCount = back.reduce((a, b) => a + b.ids.length, 0);
+  if (folded && !open) return <section className="props folded"><h4><button className="linkish" onClick={() => setOpen(true)}>▸ Linked from <span className="muted">{backCount}</span></button></h4></section>;
   return (
     <section className="props">
-      <h4>{shown.length ? 'Properties' : 'Linked from'}</h4>
+      <h4>{folded ? <button className="linkish" onClick={() => setOpen(false)}>▾ Linked from <span className="muted">{backCount}</span></button> : shown.length ? 'Properties' : 'Linked from'}</h4>
       <dl className="strip">
         {shown.map(p => (
           <div key={p.name} className={p.value ? '' : 'empty'}>
@@ -268,22 +273,22 @@ function Properties({ type, props, inc, inverses, product }: { type: TypeDef; pr
   );
 }
 
-// A goal's tasks as the task data table (the rows part of the goal), under its content — filter, group and tick
-// as on the Work page; the tracking section above keeps sub-goals and requirements.
-function GoalTasks({ id, ids }: { id: string; ids: string[] }) {
+// What serves a goal, as the kind's data table under its content (the rows part of the goal) — requirements, then
+// tasks — filter, group and tick as on the kind's page; the tracking section keeps sub-goals.
+function PartsTable({ id, kind, label, ids }: { id: string; kind: string; label: string; ids: string[] }) {
   const { product } = usePeek();
   const [table, setTable] = useState<Table | null>(null);
   useEffect(() => {
     let live = true;
     if (!ids.length) { setTable(null); return; }
-    fetch(`/api/${product}/view/task`).then(r => r.ok ? r.json() : null).then((t: Table | null) => { if (live && t) { const rows = t.rows.filter(r => ids.includes(r.id)); const count = new Map<string, number>(); for (const r of rows) if (r.status) count.set(r.status, (count.get(r.status) ?? 0) + 1); setTable({ ...t, rows, statuses: [...count].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])) }); } }).catch(() => {});
+    fetch(`/api/${product}/view/${kind}`).then(r => r.ok ? r.json() : null).then((t: Table | null) => { if (live && t) { const rows = t.rows.filter(r => ids.includes(r.id)); const count = new Map<string, number>(); for (const r of rows) if (r.status) count.set(r.status, (count.get(r.status) ?? 0) + 1); setTable({ ...t, rows, statuses: [...count].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])) }); } }).catch(() => {});
     return () => { live = false; };
-  }, [product, id, ids.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [product, id, kind, ids.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!ids.length || !table) return null;
   const done = table.rows.filter(r => ['done', 'complete', 'shipped'].includes(r.status)).length;
   return (
     <section className="goal-tasks">
-      <h4>Tasks <span className="muted">{done}/{table.rows.length}</span></h4>
+      <h4>{label} <span className="muted">{done}/{table.rows.length}</span></h4>
       <InstanceTable product={product} table={table} initial={{ ...EMPTY_FILTERS, group: 'status' }} />
     </section>
   );
@@ -296,9 +301,9 @@ function Tracking({ entry, rows, inc }: { entry: IndexEntry; rows: Rows; inc: [s
   const done = (p: IndexEntry) => ['done', 'complete', 'shipped'].includes(p.status) || (p.progress ?? 0) >= 100;
   return (
     <section className="tracking">
-      {entry.kind === 'goal' && (['goal', 'req'] as const).map(k => {
+      {entry.kind === 'goal' && (['goal'] as const).map(k => {
         const items = byKind(k); if (!items.length) return null;
-        const label = k === 'goal' ? 'Sub-goals' : 'Requirements';
+        const label = 'Sub-goals';
         return (
           <div key={k} className="tracking-parts">
             <RelHead label={label} ids={items.map(p => p.id)} rows={rows} count={`${items.filter(done).length}/${items.length}`} />
