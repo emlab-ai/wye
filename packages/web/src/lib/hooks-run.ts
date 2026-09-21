@@ -11,7 +11,7 @@ import { loadScope, type Scope } from './scope';
 import { hooksOf, matchHooks, fillTemplate, templateVars, cardValue, nextDepth, type HookDef, type HookEvent, type HookAction } from './hooks';
 import { createSession, getSession, onSessionEnd, updateSession } from './sessions';
 import { startChat, buildPrompt } from './agent-host';
-import { attachedSkills, skillsSection, listSkills } from './skills';
+import { skillsSection, listSkills } from './skills';
 import { readSettings, agentSettings } from './settings';
 import { REPO_ROOT } from './products';
 import { docRoute, documentTree } from './doc';
@@ -118,8 +118,8 @@ async function startSkillSession(scope: Scope, h: HookDef, skill: string, ev: Ho
     hook: { id: h.id, firing: f.id, skill },
   });
   await updateSession(productDir, s.id, { line: `started by ${h.id} on ${ev.id} (${ev.event})` });
-  const attached = attachedSkills(scope, { refs: [ev.id], extra: h.skills.filter(x => x !== skill) });
-  const first = (await buildPrompt(product, s, state().wfUrl, productDir)) + await skillsSection(scope, [skill], 'Skill') + await skillsSection(scope, attached.filter(x => x !== skill));
+  // the hook's own attached skills; the PR's and the type cards' come with buildPrompt
+  const first = (await buildPrompt(product, s, state().wfUrl, productDir)) + await skillsSection(scope, [skill], 'Skill') + await skillsSection(scope, h.skills.filter(x => x !== skill), 'Skills of the hook');
   await startChat(productDir, product, s.id, { wfUrl: state().wfUrl, firstMessage: first, shown: s.instruction });
   return s.id;
 }

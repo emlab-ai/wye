@@ -7,14 +7,19 @@ import { readdir } from 'node:fs/promises';
 import { loadGraph } from './load';
 import { indexGraph } from './graph';
 import { constitutionSection } from './constitution';
+import { loadScope } from './scope';
+import { skillBody } from './skills';
 
 // role librarian (decision:exec.wye-is-a-role, decision:exec.librarian-on-the-host): prompts/librarian-system.md —
 // read Wye, explain, ask along the requirement shape, propose blocks; never code — with the same product section and
 // constitution. The tool allow-list that goes with it is in agent-host.
 export async function agentSystemPrompt(product: string, productDir: string, wfUrl: string, role: 'worker' | 'librarian' = 'worker'): Promise<string> {
   let base = '';
+  // the role's skill document when the product has one (skill:refine / skill:build — a person may have edited it), else
+  // the prompt file it came from (decision:wf2.hooks-and-skills)
   const file = role === 'librarian' ? 'prompts/librarian-system.md' : 'prompts/agent-system.md';
-  try { base = await readFile(path.join(REPO_ROOT, file), 'utf8'); } catch { base = '# Wye contract\nWye is the source of truth for product knowledge. Read it before acting (`wye context`, `wye resolve`) and record every decision, requirement, rule and task back into it.'; }
+  try { const scope = await loadScope(product); const body = scope ? await skillBody(scope, role === 'librarian' ? 'skill:refine' : 'skill:build') : null; if (body) base = `# ${role === 'librarian' ? 'Wye — the librarian' : 'Wye contract'}\n\n${body}`; } catch { /* the file */ }
+  if (!base) try { base = await readFile(path.join(REPO_ROOT, file), 'utf8'); } catch { base = '# Wye contract\nWye is the source of truth for product knowledge. Read it before acting (`wye context`, `wye resolve`) and record every decision, requirement, rule and task back into it.'; }
   let own = '';
   try { own = await readFile(path.join(productDir, '_agent.md'), 'utf8'); } catch { /* none */ }
   // every project's plan document (`plan.md`, else the one file named plan-ish that is not a request's `plan-<slug>.md`

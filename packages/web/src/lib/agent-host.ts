@@ -10,12 +10,14 @@ import { loadScope } from './scope';
 import { resolveLink, renderResolved } from './resolve';
 import { REPO_ROOT } from './products';
 import { agentSystemPrompt } from './agent-prompt';
-import { createPrDoc, closePrDoc } from './pr-docs';
+import { createPrDoc, closePrDoc, readPrDoc } from './pr-docs';
+import { attachedSkills, skillsSection } from './skills';
 import { firstUserEvent } from './transcript';
 import { packetFor } from './packet';
 import './consolidate';   // registers the session-end consolidation hook (decision:memory.consolidate-sessions)
 import './pr-questions';  // registers the ask / answered hooks that mirror a librarian's questions onto its PR page
 import './dispatch';      // registers the session-end trigger and the tick of the PR scheduler (decision:wf2.pr-scheduler)
+import './hooks-run';     // registers the session-end events of the hooks engine (decision:wf2.hooks-and-skills)
 
 // `turn`: the queue items handed to the open turn — stamped done / failed when it ends (decision:wf2.queue-item-state);
 // `product` / `wfUrl` let the pump build a first message when a fresh item comes up (rule:clean-slate); `stopped`: the
@@ -115,6 +117,12 @@ export async function buildPrompt(product: string, s: Session, wfUrl: string, pr
   if (ctx.length) parts.push(`\n## Context\n${ctx.join('\n\n')}`);
   parts.push(await constraintsSection(scope, s));
   if (s.parent) parts.push(`\nThis session continues session ${s.parent}; its log and result are in the instruction above.`);
+  // attached skills (decision:wf2.hooks-and-skills): the PR's `skills:`, the type cards' of the refs — their bodies ride along
+  if (scope) {
+    const prMd = s.prDoc ? (await readPrDoc(product, s.prDoc).catch(() => null))?.md : undefined;
+    const attached = attachedSkills(scope, { prMd, refs: s.refs }).filter(id => id !== s.hook?.skill);
+    if (attached.length) parts.push(await skillsSection(scope, attached));
+  }
   if (s.hook) {
     // a hook's session (decision:wf2.hooks-and-skills): no request page — the skill under "## Skill" below is the brief
     parts.push(hookNote(s, product, wfUrl));

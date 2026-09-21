@@ -43,6 +43,9 @@
 //   wye pr approve|cancel|reopen <product/project/pr-x> [--by name]   the person's move (never the librarian's)
 //   wye pr build <product/project/pr-x> [--worker claude-code|codex|runner] [--note "…"] [--force]   Build: hand the request's
 //        request task to a worker with the Definition (rule:build) — what the person's "build it" in a librarian conversation means
+//   wye skills --product p                 the product's skills (decision:wf2.hooks-and-skills): id, role, what it runs on
+//   wye skill <id> --product p             print a skill's instruction (its document's body, else the prompt file)
+//   wye hooks --product p [--node <id>]    the product's hooks and what fired: hook, node, event, the session or the blocks
 //   wye explain <id | "text"> --product p   the current state of the product around a node or a text (the librarian, one turn)
 //   wye work list --product p [--unassigned | --mine <name> | --goal <id> | --plan <id>] [--done]   every task with its state
 //   wye work add "<text>" --product p [--part-of <id>] [--ready]   a task line on the backlog (under the node when --part-of names one)
@@ -327,6 +330,28 @@ const commands = {
   },
   // `plan` is the old name of `pr`
   async plan() { console.error('wye plan is now wye pr'); return this.pr(); },
+  async skills() {
+    // the product's skills (op:api.skills): documents under the Skills page, the shipped prompts among them
+    const j = await api('GET', `/api/${product()}/skills`);
+    if (flags.json) return out(j);
+    if (!j.skills.length) return console.log('no skills — open the product in the app once: the base skills are written then');
+    for (const s of j.skills) console.log(`${s.id.padEnd(28)} ${s.role.padEnd(10)} ${(s.takes ? 'on ' + s.takes : '').padEnd(12)} ${s.title}${s.status && s.status !== 'active' ? ` [${s.status}]` : ''}`);
+  },
+  async skill() {
+    if (!pos[1]) die('wye skill <id>');
+    const j = await api('GET', `/api/${product()}/skills?id=${encodeURIComponent(pos[1])}`);
+    if (flags.json) return out(j);
+    console.log(`# ${j.title} (${j.id}) — ${j.role}${j.takes ? `, on ${j.takes}` : ''}${j.doc ? `\n_${j.doc}_` : ''}\n\n${j.body}`);
+  },
+  async hooks() {
+    // the hooks and their firings (op:api.hooks)
+    const j = await api('GET', `/api/${product()}/hooks${flags.node ? `?node=${encodeURIComponent(flags.node)}` : ''}`);
+    if (flags.json) return out(j);
+    if (!j.on) console.log('hooks are off (WF_HOOKS=0)');
+    if (!j.hooks.length) console.log('no hooks — add cards to the Hooks document');
+    for (const h of j.hooks) console.log(`${h.id.padEnd(30)} ${h.status.padEnd(7)} on ${h.on}${Object.keys(h.where).length ? ' where ' + Object.entries(h.where).map(([k, v]) => `${k}=${v}`).join(' ') : ''} → ${h.actions.map(a => a.kind === 'run' ? `run ${a.skill}` : a.kind === 'add' ? `add ${a.template}${a.to ? ' to ' + a.to : ''}` : a.kind).join('; ')}${h.once ? '' : ' (every time)'} · fired ${h.firings}×`);
+    if (j.firings.length) { console.log(''); for (const f of j.firings) console.log(`${f.at.slice(0, 16).replace('T', ' ')} ${f.hook} on ${f.node} (${f.event})${f.depth ? ` depth ${f.depth}` : ''}: ${f.actions.map(a => a.error ? `${a.kind} failed — ${a.error}` : a.session ? `session ${a.session}` : a.added ? `added ${a.added.join(', ') || 'nothing'}` : a.kind).join('; ')}`); }
+  },
   async explain() {
     // one librarian turn on a node or a text (req:exec.explain-anywhere, op:api.explain): the current state, nothing proposed
     const what = pos[1] || (await readStdin()); if (!what.trim()) die('wye explain <id | "text">');
