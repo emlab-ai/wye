@@ -407,3 +407,26 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 ```
 
 <!-- /list:question -->
+
+```yaml
+- id: req:wf2.ui.block-menu
+  title: A person acts on a block from a menu at the pointer
+  when: >
+    a person right-clicks anywhere on a block of a document — a card, a table row, an embed, a heading, a plain
+    paragraph
+  then: >
+    a menu opens at the pointer with the actions the block has: Open (the node in the column), Comment (the node in
+    the column with the comment box ready to type), Copy link (the block's stable link), Ask Wye (about this block),
+    Duplicate (a copy right under it; a card copy gets a fresh id), Turn into (another type, or a node for a
+    paragraph), Delete (a card or row asks first, naming the node). Escape, a press outside it or a scroll closes it
+  unless: >
+    the block has no node yet (a plain paragraph, a heading) — Open and Comment are shown greyed and the rest work;
+    or text is selected inside the block — the browser's own menu stays, so copy and spellcheck are not lost
+  status: proposed
+  refines: [req:wf2.ui.block-select]
+  related-to: [req:wf2.ui.tree-menu, req:ontology.comment-home, decision:ontology.comments-in-column, rule:block-links]
+```
+
+  verdict:af053342d760 refines decision:ontology.comments-in-column — B specifies a concrete implementation of A's design principle of consolidating comments into the context column (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:ontology.comments-in-column req:wf2.ui.block-menu)
+
+  verdict:9d3382ebeea0 refines decision:wf2.block-menu-reuses-actions — B details which specific existing actions implement A's design principle of menu reusing actions rather than creating new forms (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:wf2.block-menu-reuses-actions req:wf2.ui.block-menu)

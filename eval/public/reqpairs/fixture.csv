@@ -1,0 +1,11 @@
+req_a,req_b,label
+"The system shall store all patient records for at least seven years.","The system shall delete patient records after twelve months.",conflict
+"The drone shall return to base when the battery falls below 20 percent.","The drone shall return to base when the battery falls below 20%.",duplicate
+"The operator shall be able to export a flight log as CSV.","The map view shall show the current altitude.",neutral
+"Users must authenticate with a password of at least 12 characters.","Users must authenticate with a password of at most 8 characters.",conflict
+"The vehicle shall stop within 3 seconds of an emergency brake command.","The vehicle shall display its speed in km/h.",neutral
+"All network traffic shall be encrypted with TLS 1.2 or later.","All network traffic shall be sent in plain text for debugging.",conflict
+"The system shall send a reminder 24 hours before an appointment.","The system shall send a reminder one day before an appointment.",duplicate
+"The report shall list every open order.","The login page shall support single sign-on.",neutral
+"The camera shall record at 30 frames per second.","The camera shall record at 60 frames per second.",conflict
+"The system shall log every failed login attempt.","The system shall archive logs monthly.",neutral

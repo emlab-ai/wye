@@ -1,0 +1,129 @@
+{
+ "name": "public-moosedev",
+ "entries": {
+  "b2ee0f859c5ab578": {
+   "value": {
+    "answer": "MCP tool calls return promptly after a bounded timeout (default 3 seconds, configurable via `CODEGRAPH_CATCHUP_GATE_TIMEOUT_MS`), with reconciliation continuing in the background rather than blocking—though setting the timeout to 0 will make calls wait for full reconciliation.",
+    "usage": {
+     "in": 67711,
+     "out": 542,
+     "turns": 3,
+     "cost": 0.0538714
+    }
+   },
+   "at": "2026-09-20T10:33:39.472Z",
+   "what": "moosedev cur_mcp_handshake",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "b61de92010b7bb68": {
+   "value": {
+    "answer": "I don't have direct access to external documentation or codegraph's privacy policies from this environment. To get accurate information about codegraph's telemetry and privacy stance, you'd need to check:\n\n1. **Their official documentation** — typically found on their GitHub repo (README/PRIVACY files) or website\n2. **Privacy policy or terms of service** — usually linked from their main site or repo\n\nIf you can share codegraph's GitHub repo URL or documentation link, I can help extract and summarize their privacy guarantees for you.",
+    "usage": {
+     "in": 21338,
+     "out": 642,
+     "turns": 1,
+     "cost": 0.0187383
+    }
+   },
+   "at": "2026-09-20T10:33:50.762Z",
+   "what": "moosedev rel_telemetry_privacy",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "fd852c73dff422d6": {
+   "value": {
+    "answer": "CodeGraph emits value-reference edges from reader symbols to file-scope constants/variables to fix impact-radius correctness: when a constant is read by many symbols, it previously collapsed to a single affected node, but now properly expands to show the actual reader set. Precision is maintained through strict validation invariants—edges are same-file only, filtering enforces distinctive targets, and each language extension must preserve node counts, pass precision guards, and reproduce the impact-radius win with test coverage.",
+    "usage": {
+     "in": 115640,
+     "out": 856,
+     "turns": 5,
+     "cost": 0.034566400000000004
+    }
+   },
+   "at": "2026-09-20T10:34:03.785Z",
+   "what": "moosedev rel_value_ref_edges",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "b199eee3d895b463": {
+   "value": {
+    "answer": "Based on the search results from the project's knowledge base, here are all the Constraints recorded:\n\n1. C assignment callback uniqueness gate\n2. Value-ref extractor kind check\n3. Pascal constant-only value-ref targets\n4. Value-ref validation invariants\n5. Declarator grammar verification\n6. C fn-pointer struct-field key\n7. Shadow prune counts syntax declarators\n8. Function-ref extraction gate\n9. Adaptive explore escape hatch\n10. Sibling threshold at three implementers\n11. Validate on two pattern repos\n12. Gate needs separable candidates\n13. Declared return type requirement\n14. Value-ref parent-kind gate\n15. Lombok explicit-source guard\n16. Adoption metrics over token cost\n17. Validate with real-agent A/B\n18. Instance-chain preservation\n19. Over-approximate instance reachability\n20. Generated-file guard is path-only\n21. Static identifier value-ref boundary\n22. Distinctive value-ref target gate\n23. Release verifies npm package presence\n24. Celery task-decorator gate\n25. TypeScript contract noise guard\n26. Read-compatible pagination\n27. Wrong edge drops silently\n28. Value-ref env opt-out\n29. Value-ref public OSS validation\n30. Query-seedable synthesized endpoints\n31. Explicit telemetry schema growth\n32. Prefer deterministic adoption levers\n33. Callable string position gate\n34. Named spare requires uniqueness\n35. GoFrame request-type signature key\n36. Telemetry schema allowlist\n37. Value-ref false-positive handling\n38. Project-name term exception\n39. Explore ranking compatibility escape hatch",
+    "usage": {
+     "in": 207337,
+     "out": 1846,
+     "turns": 8,
+     "cost": 0.060814499999999994
+    }
+   },
+   "at": "2026-09-20T10:35:36.587Z",
+   "what": "moosedev set_all_constraints",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "64e70d0da3703107": {
+   "value": "```json\n{\n  \"covered\": [2, 5, 10, 11, 12, 13, 17, 18, 20, 22, 28, 31, 38, 40, 41, 43, 46, 49, 53, 66, 67, 69, 71, 75, 79, 84, 90, 92, 99, 102, 105, 107, 109, 112, 113, 114, 115, 116, 117, 120]\n}\n```",
+   "at": "2026-09-20T10:36:06.584Z",
+   "what": "moosedev judge pass 1",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "a03bcfe60da5fc94": {
+   "value": "```json\n{\"covered\": []}\n```",
+   "at": "2026-09-20T10:36:14.356Z",
+   "what": "moosedev judge pass 1",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "9fa19d07e5b460ed": {
+   "value": "```json\n{\n  \"covered\": [2, 5, 10, 11, 12, 13, 17, 18, 20, 28, 31, 38, 40, 41, 43, 46, 49, 53, 66, 67, 69, 71, 75, 79, 84, 90, 92, 99, 102, 105, 107, 109, 112, 113, 114, 115, 116, 117, 120]\n}\n```",
+   "at": "2026-09-20T10:36:27.428Z",
+   "what": "moosedev judge pass 2",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "16cc8e1e3661b0b6": {
+   "value": "```json\n{\"covered\": []}\n```\n\nNeither known item is present in the system answer. The answer lists 39 constraints related to C/TypeScript/language-specific patterns, but does not contain \"Zero-cost telemetry path\" or \"Zero-edge non-pattern controls\" in explicit form.",
+   "at": "2026-09-20T10:36:33.780Z",
+   "what": "moosedev judge pass 2",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "cefd0ceb9bff29ef": {
+   "value": "```json\n{\n  \"covered\": [2, 5, 10, 11, 12, 13, 17, 18, 20, 22, 28, 31, 38, 40, 41, 43, 46, 49, 53, 66, 67, 69, 71, 75, 79, 84, 90, 92, 99, 102, 105, 107, 109, 112, 113, 114, 115, 116, 117, 120]\n}\n```",
+   "at": "2026-09-20T10:36:49.765Z",
+   "what": "moosedev judge pass 3",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "bed5b0982e256eb2": {
+   "value": "```json\n{\"covered\": []}\n```\n\nThe SYSTEM ANSWER lists 39 constraints but does not cover either KNOWN ITEM. \"Zero-cost telemetry path\" and \"Zero-edge non-pattern controls\" do not appear in the constraint list, even under alternative wording.",
+   "at": "2026-09-20T10:36:55.872Z",
+   "what": "moosedev judge pass 3",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "1be32b2c5bf15bd3": {
+   "value": {
+    "answer": "Based on the knowledge base query, here are the recorded decisions/items that have been superseded or retired by newer versions:\n\n1. **Rationale: retract Lua value-ref backlog** — Marked as a lifecycle correction indicating the previous Lua/Luau value-reference backlog item has been retracted\n\n2. **Rationale: retract Anonymous handler link-through-body** — Noted as a duplicate of an existing requirement, indicating the previous version has been superseded\n\n3. **Rationale: Whole-file family skeletonization** — Version noted with a correction to the replacement record's graph shape, indicating a prior version was superseded by a corrected version\n\n4. **Rationale: Lua value-ref backlog** — The original version that was later retracted and corrected\n\nThese appear to be the primary items explicitly marked as retracted or superseded in the system. The search results emphasize items with \"retract\" in their title and rationales that reference lifecycle corrections or replacement versions, though the knowledge base doesn't display full status metadata in search previews. Items marked as \"consequence\" or \"deferred forms\" represent intentional scope deferrals rather than superseded work.",
+    "usage": {
+     "in": 421705,
+     "out": 3146,
+     "turns": 15,
+     "cost": 0.09966399999999999
+    }
+   },
+   "at": "2026-09-20T10:44:23.064Z",
+   "what": "moosedev sup_all_superseded",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "3472abcb25dd8afa": {
+   "value": "```json\n{\"covered\": [10, 25]}\n```",
+   "at": "2026-09-20T10:44:30.942Z",
+   "what": "moosedev judge pass 1",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "d0ee13072911792f": {
+   "value": "```json\n{\n  \"covered\": [10, 25]\n}\n```\n\nThe SYSTEM ANSWER explicitly mentions only:\n- **Item 10** (\"Lua value-ref backlog\") — stated twice: in \"Rationale: retract Lua value-ref backlog\" and \"Rationale: Lua value-ref backlog\"\n- **Item 25** (\"Whole-file family skeletonization\") — stated in \"Rationale: Whole-file family skeletonization\"\n\nThe answer also references \"Anonymous handler link-through-body\" but that is not a KNOWN ITEM in the provided list. The other 24 items are not mentioned or asserted anywhere in the response.",
+   "at": "2026-09-20T10:44:39.378Z",
+   "what": "moosedev judge pass 2",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "954a8ce791f9248b": {
+   "value": "```json\n{\"covered\": [10, 25]}\n```",
+   "at": "2026-09-20T10:44:47.430Z",
+   "what": "moosedev judge pass 3",
+   "model": "claude-haiku-4-5-20251001"
+  }
+ }
+}

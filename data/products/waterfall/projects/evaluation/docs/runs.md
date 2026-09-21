@@ -21,14 +21,14 @@ One card per results file: the suite, the graph and git shas, the model, the jud
   title: "own — 2026-09-20 (replayed)"
   suite: own
   date: 2026-09-20
-  graph-sha: "cf81ab5cbd76"
-  git: "b759d3511a74"
+  graph-sha: "62ae1654eaba"
+  git: "6238eaa02378"
   model: "claude-haiku-4-5-20251001"
   judge: "claude-haiku-4-5-20251001 @ 6d31662f"
   prompts: "verdict 6d31662f, impact 291a2d1d, consolidation 1d527194"
   gate: passed
-  truth: "truth-waterfall-cf81ab5cbd76.json: requirements 70, supersessions 2, commits 76, sessions 18, consolidation 28"
-  truth: "errors: packet: recording missing in eval/recorded/semantic-waterfall.json for context \"Every request that starts work becomes a plan document under\" — run once with --live (WATERFALL_LIVE=1); currency: recording missing in eval/recorded/semantic-waterfall.json for context \"The definition of Wye is by kind on top and by area inside —\" — run once with --live (WATERFALL_LIVE=1); impact: recording missing in eval/recorded/semantic-waterfall.json for context \"api.links\" — run once with --live (WATERFALL_LIVE=1)"
+  truth: "truth-waterfall-62ae1654eaba.json: requirements 73, supersessions 2, commits 77, sessions 18, consolidation 28"
+  truth: "errors: packet: recording missing in eval/recorded/semantic-waterfall.json for context \"Every request that starts work becomes a plan document under\" — run once with --live (WATERFALL_LIVE=1); currency: recording missing in eval/recorded/semantic-waterfall.json for context \"The definition of Wye is by kind on top and by area inside —\" — run once with --live (WATERFALL_LIVE=1); impact: recording missing in eval/recorded/semantic-waterfall.json for context \"The dispatcher (decision&#58;wf2.pr-scheduler): approved PRs\" — run once with --live (WATERFALL_LIVE=1)"
 ```
 
 ## Scores
@@ -46,14 +46,16 @@ One card per number, with the previous run, the delta in points, the tolerance i
   kappa: "n/a"
   what: "drift pairs judged contradicts; by conflict: static 1, dynamic 1; 1 unjudged"
 - id: eval-score:2026-09-20-own.contradictions-precision
-  title: "contradictions.precision 100%"
+  title: "contradictions.precision n/a"
   run: eval-run:2026-09-20-own
   name: "contradictions.precision"
-  value: "100%"
-  n: 2
+  value: "n/a"
+  n: 0
   tolerance: 5
   kappa: "n/a"
   what: "same-kind neighbour pairs left alone (precision proxy)"
+- id: decision:table
+  title: table
 ```
 
 ## With and without

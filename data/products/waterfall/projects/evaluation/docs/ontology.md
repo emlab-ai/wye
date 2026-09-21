@@ -18,6 +18,7 @@ table and view blocks.
 - id: type:eval-run
   extends: type:node
   purpose: one run of one suite — what was measured, on which graph, with which model and judge
+  home: module:eval-runs
   props:
     suite: enum [own, compare, public, judge]
     date: date

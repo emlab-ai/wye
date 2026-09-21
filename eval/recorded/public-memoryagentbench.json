@@ -1,0 +1,5675 @@
+{
+ "name": "public-memoryagentbench",
+ "entries": {
+  "b626d8618840030b": {
+   "value": [
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different founder to Chanel; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different position to Hines Ward; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different founding city to Christianity; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements associate quarterback with different sports; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different death city to Frank Zappa; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different author to The Birth of Tragedy; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different location city to UC Berkeley; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different citizenship to Madame du Barry; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different head of state to the United States; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different continent to Israel; they cannot both be true."
+    }
+   ],
+   "at": "2026-09-20T10:26:12.884Z",
+   "what": "mab adjudication factconsolidation_sh_6k 0",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "a432a15a0091944a": {
+   "value": [
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A team cannot be associated with two different sports simultaneously."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A person cannot be married to two different individuals."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A person can die in only one location."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A book has only one author."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A sport originates in only one country."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A country cannot have two different official languages."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A person cannot speak two mutually exclusive primary languages."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A player cannot play two different positions."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A country has only one capital city."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "An empire has only one capital."
+    }
+   ],
+   "at": "2026-09-20T10:26:41.987Z",
+   "what": "mab adjudication factconsolidation_sh_6k 10",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "fb230c2dcb81b972": {
+   "value": [
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Moscow and Russellville cannot both be the capital of the Soviet Union."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "The album Blood on the Tracks cannot be performed by both Bob Dylan and Lou Reed."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Rugby union cannot have been created in both England and India."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "The same company cannot have two different CEOs at the same time."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Hugh Hefner cannot be primarily famous for both Playboy and The Vampyre."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "The statement claims different primary languages for the same person."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "The same company cannot have two different CEOs at the same time."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Ernst Heinkel cannot be a citizen of both Germany and an empire that ended in 907 AD."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Pakistan International Airlines cannot be founded in both Karachi and Sweden."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Rome and Duluth cannot both be the capital of Italy."
+    }
+   ],
+   "at": "2026-09-20T10:26:53.529Z",
+   "what": "mab adjudication factconsolidation_sh_6k 20",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "6d408ff64c31e338": {
+   "value": [
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A person cannot hold citizenship of two different countries simultaneously as stated."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Point guard is a position specific to basketball, not cricket."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Australia cannot be located in two different continents simultaneously."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "One person cannot hold the chairperson position at Harvard University at the same time as another."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Henri Grégoire cannot simultaneously hold citizenship in both France and India."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "dynamic",
+     "reason": "Dave Filoni cannot be currently employed by both Lucasfilm and BBC simultaneously, though employment could have changed over time."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "The original performer of Rocket Man cannot be two different artists."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Ford Motor Company cannot have two different founders."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "The chairperson position of Fatah cannot be held by two people simultaneously."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "dynamic",
+     "reason": "Yves Montand cannot be married to two people simultaneously, though this could reflect different time periods."
+    }
+   ],
+   "at": "2026-09-20T10:27:13.997Z",
+   "what": "mab adjudication factconsolidation_sh_6k 30",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "c5ce23d68c373ce0": {
+   "value": [
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Bengaluru cannot be simultaneously in Asia and Oceania."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Cédric Klapisch cannot be a citizen of both France and Malaysia simultaneously."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Elizabeth II and Emmerson Mnangagwa cannot both be the current head of state of the United Kingdom."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Wide receiver is a position in American football, not rugby."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Nobuhiro Watsuki is famous for Rurouni Kenshin, not The Fairly OddParents."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Kingdom of Ireland was affiliated with Catholicism, not Zoroastrianism."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Pesäpallo was created in Finland, not the Philippines."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Ardashir I founded the Sasanian Empire, not Walter Chrysler."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Canadair was founded in Montreal, not Tucson."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Post-punk was created in the United Kingdom, not Canada."
+    }
+   ],
+   "at": "2026-09-20T10:27:29.746Z",
+   "what": "mab adjudication factconsolidation_sh_6k 40",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "e3fa8cca847849f4": {
+   "value": [
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B assert Oscar Wilde died in different cities; both cannot be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B name different CEOs of Twitter; both cannot hold the position simultaneously."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B assert different individuals as Prime Minister of Sweden."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B claim SteamOS was developed by two different organizations."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B assert the Slovakia national football team is associated with mutually exclusive sports."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B claim India is located on two different continents."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B assert Dana International plays two different music genres."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B name different cities as Pius XII's place of death."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B assert Aladdin Sane was performed by two different artists."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B name different founders of Methodism."
+    }
+   ],
+   "at": "2026-09-20T10:27:42.469Z",
+   "what": "mab adjudication factconsolidation_sh_6k 50",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "49b1c97455f10748": {
+   "value": [
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "The official language cannot be both American English and German."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Michael Mantler cannot have both jazz and post-punk as his musical genre."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A Wizard of Earthsea cannot have been authored by both Ursula K. Le Guin and Pius XII."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "David Beckham cannot be primarily associated with both association football and cricket."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Shingon Buddhism cannot have been founded by both Kūkai and William Waynflete."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "The Witcher cannot have been authored by both Andrzej Sapkowski and T. S. Eliot."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Thomas Kyd cannot have been born in both London and Leeds."
+    },
+    {
+     "kind": "consistent",
+     "conflict": null,
+     "reason": "The goaltender position can exist in both ice hockey and pesäpallo; both statements can hold."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "The Surrey Senior Cup cannot be associated with both association football and basketball."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Back to Black cannot have been performed by both Amy Winehouse and Frank Zappa."
+    }
+   ],
+   "at": "2026-09-20T10:28:28.517Z",
+   "what": "mab adjudication factconsolidation_sh_6k 60",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "806174745ad582a3": {
+   "value": [
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Stephen McNeil cannot simultaneously work in both politician and journalist fields as stated."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Placekicker is a position specific to American football, not rugby."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Amala Paul cannot be a citizen of both India and Belgium simultaneously."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Rand al'Thor cannot be created by both Robert Jordan and Ferdowsi."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Split-finger fastball is a baseball pitch technique, not associated with cricket."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Vijay Mallya cannot be a citizen of both India and the non-existent Papal States."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Aristotle cannot have both Nicomachus and George Alexander Kohut as the same child."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Robert Parish cannot play both center and quarterback as the same position."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Charles Darwin cannot be married to both Emma Darwin and Amala Paul simultaneously."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "William Waynflete cannot speak English as the sole language while also speaking Latin as the sole language."
+    }
+   ],
+   "at": "2026-09-20T10:28:46.114Z",
+   "what": "mab adjudication factconsolidation_sh_6k 70",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "b15cab24e4f748ad": {
+   "value": [
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B identify different artists as the performer of the same song."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B assign mutually exclusive religious affiliations to the same person."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B identify different sports associations for the same person."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B identify different cities as the capital of India."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B identify different countries of citizenship for the same person."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B identify different authors for the same book."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B identify different sports associations for the same person."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B identify different individuals as head of the same government entity."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B identify different individuals as the director of Madonna."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A and B identify different companies as the producer of AP1000."
+    }
+   ],
+   "at": "2026-09-20T10:29:03.758Z",
+   "what": "mab adjudication factconsolidation_sh_6k 80",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "c79d8469ade80c41": {
+   "value": [
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Charlie Hebdo was founded in France, not Italy; both cannot be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A person cannot be affiliated with two different religions as the sole religion."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Cornerback is a position in American football only, not field hockey."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Past Masters is an album by The Beatles, not performed by Madonna."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Two different people cannot both be the current head of state of the same entity."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A person can only be born in one city."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Moshe Kahlon's primary profession is politician, not soldier."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Nicolae Ceaușescu was married to Elena, not to Wilhelm II."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Buddhism was founded by Gautama Buddha, not by Mekere Morauta."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "John Keats died in Rome, not in Leipzig."
+    }
+   ],
+   "at": "2026-09-20T10:29:31.208Z",
+   "what": "mab adjudication factconsolidation_sh_6k 90",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "9005b5c0e88937c9": {
+   "value": [
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A person cannot be affiliated with both Catholicism and atheism simultaneously."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "An entity cannot be associated with two mutually exclusive sports as primary affiliations."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Moscow cannot have Russian as its official language and German as its official language at the same time."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A product cannot be developed by two different companies; only one is the developer."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A person cannot be employed by two different companies simultaneously."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A person cannot hold citizenship in two countries unless explicitly stated as dual citizenship; these are presented as exclusive."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A country cannot have two capitals; the capital is a unique designation."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A sport cannot originate in two different countries; creation is a singular event."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A fictional character cannot be created by two different authors."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "A company cannot have two directors for the same role simultaneously."
+    }
+   ],
+   "at": "2026-09-20T10:29:43.058Z",
+   "what": "mab adjudication factconsolidation_sh_6k 100",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "4381ca967199d3b4": {
+   "value": [
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different person as Boeing's CEO; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different author to the same work; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different university as Lou Reed's alma mater; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different author to Sidereus Nuncius; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a single different sport as Carlos Gómez's primary association; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different person as ABB Group's CEO; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different city as the University of Bucharest's headquarters location; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign Natalie Portman to a mutually exclusive religious affiliation; they cannot both be true."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign a different primary music genre to John McVie; rock music and rap rock are distinct genres he is not known for both."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Both statements assign midfielder to a different sport; it is a position in association football, not sumo."
+    }
+   ],
+   "at": "2026-09-20T10:30:01.321Z",
+   "what": "mab adjudication factconsolidation_sh_6k 110",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "e1495d4cfd05fde6": {
+   "value": [
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Steve Sax cannot be associated with both baseball and association football as his primary sport."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Tunisia's national team cannot be associated with both association football and basketball."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Sophia Hawthorne cannot be married to both Nathaniel Hawthorne and Joan Didion simultaneously."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Tony Blair cannot be married to both Cherie Blair and Alan Jay Lerner simultaneously."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Hermione Granger cannot be performed by both Emma Watson and Kylie Minogue in the same role."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "The Vampyre cannot have been written in both English and German."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Joe Hockey cannot be a citizen of both Australia and Italy exclusively."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Sketches by Boz cannot have been authored by both Charles Dickens and Sigmund Freud."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Rogério Ceni cannot play both goalkeeper and flanker as his position."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Germany cannot be located in both Europe and Africa."
+    }
+   ],
+   "at": "2026-09-20T10:30:11.753Z",
+   "what": "mab adjudication factconsolidation_sh_6k 120",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "bc09be9a898656de": {
+   "value": [
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "France and Germany are mutually exclusive creation locations."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Japanese and Swedish are mutually exclusive official languages for Japan."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "North America and Asia are mutually exclusive continents."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "United Kingdom and Israel are mutually exclusive citizenships."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Asia and Antarctica are mutually exclusive continents."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Brian Epstein and Joe Hockey are mutually exclusive directors."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Denis Sassou-Nguesso and Stephen McNeil are mutually exclusive chairpersons."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Association football and baseball are mutually exclusive sports associations."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Bucharest and Rajanpur are mutually exclusive capitals of Romania."
+    },
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Kyiv and Rodez are mutually exclusive death locations."
+    }
+   ],
+   "at": "2026-09-20T10:30:22.455Z",
+   "what": "mab adjudication factconsolidation_sh_6k 130",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "a5c0e4e2efde3a83": {
+   "value": [
+    {
+     "kind": "contradicts",
+     "conflict": "static",
+     "reason": "Roy Rogers cannot be married to both Dale Evans and John McVie simultaneously."
+    }
+   ],
+   "at": "2026-09-20T10:30:28.201Z",
+   "what": "mab adjudication factconsolidation_sh_6k 140",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "4383b131073c3670": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:223",
+      "snippet": "goaltender is associated with the sport of ice hockey."
+     },
+     {
+      "id": "fact:310",
+      "snippet": "goaltender is associated with the sport of pesäpallo."
+     },
+     {
+      "id": "fact:437",
+      "snippet": "goalkeeper is associated with the sport of association football."
+     },
+     {
+      "id": "fact:362",
+      "snippet": "cornerback is associated with the sport of field hockey."
+     },
+     {
+      "id": "fact:219",
+      "snippet": "point guard is associated with the sport of cricket."
+     },
+     {
+      "id": "fact:321",
+      "snippet": "placekicker is associated with the sport of rugby."
+     },
+     {
+      "id": "fact:446",
+      "snippet": "Alta IF is associated with the sport of baseball."
+     },
+     {
+      "id": "fact:50",
+      "snippet": "quarterback is associated with the sport of Muay Thai."
+     },
+     {
+      "id": "fact:252",
+      "snippet": "wide receiver is associated with the sport of rugby."
+     },
+     {
+      "id": "fact:416",
+      "snippet": "midfielder is associated with the sport of sumo."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:32.945Z",
+   "what": "mab hits 0"
+  },
+  "65e6fa19bd58a177": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:259",
+      "snippet": "Nobuhiro Watsuki is famous for The Fairly OddParents."
+     },
+     {
+      "id": "fact:390",
+      "snippet": "Vito Corleone was created by Nobuhiro Watsuki."
+     },
+     {
+      "id": "fact:86",
+      "snippet": "Ferdowsi is famous for Shahnameh."
+     },
+     {
+      "id": "fact:293",
+      "snippet": "Ayumi Hamasaki is a citizen of Japan."
+     },
+     {
+      "id": "fact:95",
+      "snippet": "sumo was created in the country of Japan."
+     },
+     {
+      "id": "fact:401",
+      "snippet": "The author of Sidereus Nuncius is Samuel Beckett."
+     },
+     {
+      "id": "fact:304",
+      "snippet": "Shingon Buddhism was founded by William Waynflete."
+     },
+     {
+      "id": "fact:112",
+      "snippet": "Mario Puzo is famous for The Godfather."
+     },
+     {
+      "id": "fact:44",
+      "snippet": "Kūkai speaks the language of Japanese."
+     },
+     {
+      "id": "fact:119",
+      "snippet": "Sarit Thanarat is affiliated with the religion of Buddhism."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:33.085Z",
+   "what": "mab hits 1"
+  },
+  "c10a1c0436a3a059": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:186",
+      "snippet": "rugby union was created in the country of India."
+     },
+     {
+      "id": "fact:150",
+      "snippet": "cricket was created in the country of Australia."
+     },
+     {
+      "id": "fact:348",
+      "snippet": "basketball was created in the country of Soviet Union."
+     },
+     {
+      "id": "fact:389",
+      "snippet": "association football was created in the country of Italy."
+     },
+     {
+      "id": "fact:23",
+      "snippet": "Galwegians RFC is associated with the sport of rugby union."
+     },
+     {
+      "id": "fact:258",
+      "snippet": "flanker is associated with the sport of rugby union."
+     },
+     {
+      "id": "fact:160",
+      "snippet": "baseball was created in the country of United States of America."
+     },
+     {
+      "id": "fact:216",
+      "snippet": "basketball was created in the country of United States of America."
+     },
+     {
+      "id": "fact:93",
+      "snippet": "Gala RFC is associated with the sport of rugby union."
+     },
+     {
+      "id": "fact:382",
+      "snippet": "baseball was created in the country of Japan."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:33.385Z",
+   "what": "mab hits 2"
+  },
+  "7dff53f2139a4744": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:86",
+      "snippet": "Ferdowsi is famous for Shahnameh."
+     },
+     {
+      "id": "fact:326",
+      "snippet": "Rand al'Thor was created by Ferdowsi."
+     },
+     {
+      "id": "fact:112",
+      "snippet": "Mario Puzo is famous for The Godfather."
+     },
+     {
+      "id": "fact:45",
+      "snippet": "Friedrich Nietzsche is famous for Thus Spoke Zarathustra."
+     },
+     {
+      "id": "fact:423",
+      "snippet": "Stephen Crane is famous for Charlie Hebdo."
+     },
+     {
+      "id": "fact:72",
+      "snippet": "Stephen Crane is famous for The Red Badge of Courage."
+     },
+     {
+      "id": "fact:259",
+      "snippet": "Nobuhiro Watsuki is famous for The Fairly OddParents."
+     },
+     {
+      "id": "fact:189",
+      "snippet": "Hugh Hefner is famous for The Vampyre."
+     },
+     {
+      "id": "fact:358",
+      "snippet": "Charlie Hebdo was created in the country of Italy."
+     },
+     {
+      "id": "fact:246",
+      "snippet": "Robert Jordan is famous for The Wheel of Time."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:33.535Z",
+   "what": "mab hits 3"
+  },
+  "20fa2a7af2555f5b": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:63",
+      "snippet": "The univeristy where Joan Didion was educated is University of California, Berkeley."
+     },
+     {
+      "id": "fact:349",
+      "snippet": "The univeristy where Wilhelm II was educated is University of Bonn."
+     },
+     {
+      "id": "fact:309",
+      "snippet": "The univeristy where Bill Frisell was educated is The University of the Arts."
+     },
+     {
+      "id": "fact:399",
+      "snippet": "The univeristy where Lou Reed was educated is Fordham University."
+     },
+     {
+      "id": "fact:333",
+      "snippet": "The univeristy where Elena Ceaușescu was educated is University of Bucharest."
+     },
+     {
+      "id": "fact:15",
+      "snippet": "The univeristy where Galileo Galilei was educated is University of Pisa."
+     },
+     {
+      "id": "fact:453",
+      "snippet": "The univeristy where Wilhelm II was educated is Baldwin Wallace University."
+     },
+     {
+      "id": "fact:208",
+      "snippet": "The univeristy where Samuel Beckett was educated is University of Southern California."
+     },
+     {
+      "id": "fact:420",
+      "snippet": "Sophia Hawthorne is married to Joan Didion."
+     },
+     {
+      "id": "fact:148",
+      "snippet": "The univeristy where Bob Dylan was educated is University of Minnesota."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:33.603Z",
+   "what": "mab hits 4"
+  },
+  "c267e3b55fcc4953": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:398",
+      "snippet": "The author of The Marriage of Figaro is Thomas Kyd."
+     },
+     {
+      "id": "fact:335",
+      "snippet": "Charles Darwin is married to Amala Paul."
+     },
+     {
+      "id": "fact:146",
+      "snippet": "The author of Our Mutual Friend is Charles Darwin."
+     },
+     {
+      "id": "fact:401",
+      "snippet": "The author of Sidereus Nuncius is Samuel Beckett."
+     },
+     {
+      "id": "fact:180",
+      "snippet": "The author of Endymion is John Keats."
+     },
+     {
+      "id": "fact:11",
+      "snippet": "Ferdinand Marcos is married to Imelda Marcos."
+     },
+     {
+      "id": "fact:305",
+      "snippet": "The author of The Witcher is T.. The author of The Witcher is T. S. Eliot."
+     },
+     {
+      "id": "fact:200",
+      "snippet": "The author of Categories is Aristotle."
+     },
+     {
+      "id": "fact:369",
+      "snippet": "Nicolae Ceaușescu is married to Wilhelm II."
+     },
+     {
+      "id": "fact:420",
+      "snippet": "Sophia Hawthorne is married to Joan Didion."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:33.744Z",
+   "what": "mab hits 5"
+  },
+  "3c516aac3e04758c": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:418",
+      "snippet": "Tunisia national football team is associated with the sport of basketball."
+     },
+     {
+      "id": "fact:279",
+      "snippet": "Slovakia national football team is associated with the sport of cricket."
+     },
+     {
+      "id": "fact:437",
+      "snippet": "goalkeeper is associated with the sport of association football."
+     },
+     {
+      "id": "fact:340",
+      "snippet": "Sandy Alderson is associated with the sport of association football."
+     },
+     {
+      "id": "fact:149",
+      "snippet": "FC Irtysh Omsk is associated with the sport of association football."
+     },
+     {
+      "id": "fact:346",
+      "snippet": "Bo Ryan is associated with the sport of association football."
+     },
+     {
+      "id": "fact:308",
+      "snippet": "John Harkes is associated with the sport of association football."
+     },
+     {
+      "id": "fact:389",
+      "snippet": "association football was created in the country of Italy."
+     },
+     {
+      "id": "fact:133",
+      "snippet": "FC Vorskla Poltava is associated with the sport of basketball."
+     },
+     {
+      "id": "fact:417",
+      "snippet": "Steve Sax is associated with the sport of association football."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:33.816Z",
+   "what": "mab hits 6"
+  },
+  "5188fbecabfe24f6": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:50",
+      "snippet": "quarterback is associated with the sport of Muay Thai."
+     },
+     {
+      "id": "fact:362",
+      "snippet": "cornerback is associated with the sport of field hockey."
+     },
+     {
+      "id": "fact:346",
+      "snippet": "Bo Ryan is associated with the sport of association football."
+     },
+     {
+      "id": "fact:417",
+      "snippet": "Steve Sax is associated with the sport of association football."
+     },
+     {
+      "id": "fact:252",
+      "snippet": "wide receiver is associated with the sport of rugby."
+     },
+     {
+      "id": "fact:437",
+      "snippet": "goalkeeper is associated with the sport of association football."
+     },
+     {
+      "id": "fact:416",
+      "snippet": "midfielder is associated with the sport of sumo."
+     },
+     {
+      "id": "fact:340",
+      "snippet": "Sandy Alderson is associated with the sport of association football."
+     },
+     {
+      "id": "fact:308",
+      "snippet": "John Harkes is associated with the sport of association football."
+     },
+     {
+      "id": "fact:303",
+      "snippet": "David Beckham is associated with the sport of cricket."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:33.945Z",
+   "what": "mab hits 7"
+  },
+  "6e9dcb339c662d6b": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:439",
+      "snippet": "The official language of Japan is Swedish."
+     },
+     {
+      "id": "fact:44",
+      "snippet": "Kūkai speaks the language of Japanese."
+     },
+     {
+      "id": "fact:99",
+      "snippet": "The official language of England is English."
+     },
+     {
+      "id": "fact:383",
+      "snippet": "The official language of Moscow is German."
+     },
+     {
+      "id": "fact:184",
+      "snippet": "The official language of United Kingdom is English."
+     },
+     {
+      "id": "fact:295",
+      "snippet": "The official language of United States of America is German."
+     },
+     {
+      "id": "fact:151",
+      "snippet": "The official language of Australia is Arabic."
+     },
+     {
+      "id": "fact:103",
+      "snippet": "The capital of Japan is Tokyo."
+     },
+     {
+      "id": "fact:95",
+      "snippet": "sumo was created in the country of Japan."
+     },
+     {
+      "id": "fact:202",
+      "snippet": "The name of the current head of the Japan government is Shinzō Abe."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.066Z",
+   "what": "mab hits 8"
+  },
+  "35d1ba4409f8c344": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:454",
+      "snippet": "The name of the current head of the Tucson government is Jonathan Rothschild."
+     },
+     {
+      "id": "fact:351",
+      "snippet": "The name of the current head of the Council of People's Commissars government is Tony Blair."
+     },
+     {
+      "id": "fact:432",
+      "snippet": "The name of the current head of the United States of America government is Donald Trump."
+     },
+     {
+      "id": "fact:202",
+      "snippet": "The name of the current head of the Japan government is Shinzō Abe."
+     },
+     {
+      "id": "fact:375",
+      "snippet": "The name of the current head of the Italy government is Giuseppe Conte."
+     },
+     {
+      "id": "fact:140",
+      "snippet": "The name of the current head of the Pittsburgh government is Bill Peduto."
+     },
+     {
+      "id": "fact:365",
+      "snippet": "The name of the current head of state in Soviet Union is Elizabeth II."
+     },
+     {
+      "id": "fact:265",
+      "snippet": "Canadair was founded in the city of Tucson."
+     },
+     {
+      "id": "fact:126",
+      "snippet": "The name of the current head of state in United States of America is Connachta."
+     },
+     {
+      "id": "fact:249",
+      "snippet": "The name of the current head of state in United Kingdom is Emmerson Mnangagwa."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.094Z",
+   "what": "mab hits 9"
+  },
+  "768b447115ab9636": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:375",
+      "snippet": "The name of the current head of the Italy government is Giuseppe Conte."
+     },
+     {
+      "id": "fact:202",
+      "snippet": "The name of the current head of the Japan government is Shinzō Abe."
+     },
+     {
+      "id": "fact:140",
+      "snippet": "The name of the current head of the Pittsburgh government is Bill Peduto."
+     },
+     {
+      "id": "fact:432",
+      "snippet": "The name of the current head of the United States of America government is Donald Trump."
+     },
+     {
+      "id": "fact:351",
+      "snippet": "The name of the current head of the Council of People's Commissars government is Tony Blair."
+     },
+     {
+      "id": "fact:454",
+      "snippet": "The name of the current head of the Tucson government is Jonathan Rothschild."
+     },
+     {
+      "id": "fact:365",
+      "snippet": "The name of the current head of state in Soviet Union is Elizabeth II."
+     },
+     {
+      "id": "fact:427",
+      "snippet": "Joe Hockey is a citizen of Italy."
+     },
+     {
+      "id": "fact:126",
+      "snippet": "The name of the current head of state in United States of America is Connachta."
+     },
+     {
+      "id": "fact:249",
+      "snippet": "The name of the current head of state in United Kingdom is Emmerson Mnangagwa."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.121Z",
+   "what": "mab hits 10"
+  },
+  "58753744bff018da": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:96",
+      "snippet": "Meredith Grey was performed by Ellen Pompeo."
+     },
+     {
+      "id": "fact:414",
+      "snippet": "Derek Shepherd is married to Meredith Grey."
+     },
+     {
+      "id": "fact:181",
+      "snippet": "Blood on the Tracks was performed by Lou Reed."
+     },
+     {
+      "id": "fact:318",
+      "snippet": "Back to Black was performed by Frank Zappa."
+     },
+     {
+      "id": "fact:364",
+      "snippet": "Past Masters was performed by Madonna."
+     },
+     {
+      "id": "fact:350",
+      "snippet": "Free as a Bird was performed by The Beatles."
+     },
+     {
+      "id": "fact:285",
+      "snippet": "Aladdin Sane was performed by Yves Montand."
+     },
+     {
+      "id": "fact:273",
+      "snippet": "Viva Las Vegas was performed by Elvis Presley."
+     },
+     {
+      "id": "fact:425",
+      "snippet": "Hermione Granger was performed by Kylie Minogue."
+     },
+     {
+      "id": "fact:229",
+      "snippet": "Rocket Man was performed by Ayumi Hamasaki."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.151Z",
+   "what": "mab hits 11"
+  },
+  "2f8668ad629a6daa": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:334",
+      "snippet": "Robert Parish plays the position of quarterback."
+     },
+     {
+      "id": "fact:419",
+      "snippet": "Blair Walsh plays the position of placekicker."
+     },
+     {
+      "id": "fact:227",
+      "snippet": "Irving Fryar plays the position of wide receiver."
+     },
+     {
+      "id": "fact:269",
+      "snippet": "Daniele De Rossi plays the position of midfielder."
+     },
+     {
+      "id": "fact:110",
+      "snippet": "Mike D'Antoni plays the position of point guard."
+     },
+     {
+      "id": "fact:169",
+      "snippet": "Lisa Leslie plays the position of goaltender."
+     },
+     {
+      "id": "fact:434",
+      "snippet": "Rogério Ceni plays the position of flanker."
+     },
+     {
+      "id": "fact:36",
+      "snippet": "Hines Ward plays the position of cornerback."
+     },
+     {
+      "id": "fact:246",
+      "snippet": "Robert Jordan is famous for The Wheel of Time."
+     },
+     {
+      "id": "fact:406",
+      "snippet": "Denis Sassou-Nguesso works in the field of politician."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.190Z",
+   "what": "mab hits 12"
+  },
+  "cc5188df1fc2911f": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:239",
+      "snippet": "Cédric Klapisch is a citizen of Malaysia."
+     },
+     {
+      "id": "fact:250",
+      "snippet": "Country Joe McDonald is a citizen of Romania."
+     },
+     {
+      "id": "fact:165",
+      "snippet": "Country Joe McDonald is a citizen of United States of America."
+     },
+     {
+      "id": "fact:358",
+      "snippet": "Charlie Hebdo was created in the country of Italy."
+     },
+     {
+      "id": "fact:427",
+      "snippet": "Joe Hockey is a citizen of Italy."
+     },
+     {
+      "id": "fact:319",
+      "snippet": "Bernard Arnault is a citizen of France."
+     },
+     {
+      "id": "fact:87",
+      "snippet": "Catherine Dickens is a citizen of United Kingdom."
+     },
+     {
+      "id": "fact:322",
+      "snippet": "Amala Paul is a citizen of Belgium."
+     },
+     {
+      "id": "fact:386",
+      "snippet": "Ferdinand von Richthofen is a citizen of Canada."
+     },
+     {
+      "id": "fact:245",
+      "snippet": "Brian Epstein is a citizen of United Kingdom."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.209Z",
+   "what": "mab hits 13"
+  },
+  "48fc3908c01499ac": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:401",
+      "snippet": "The author of Sidereus Nuncius is Samuel Beckett."
+     },
+     {
+      "id": "fact:301",
+      "snippet": "The author of A Wizard of Earthsea is Pius XII."
+     },
+     {
+      "id": "fact:146",
+      "snippet": "The author of Our Mutual Friend is Charles Darwin."
+     },
+     {
+      "id": "fact:305",
+      "snippet": "The author of The Witcher is T.. The author of The Witcher is T. S. Eliot."
+     },
+     {
+      "id": "fact:180",
+      "snippet": "The author of Endymion is John Keats."
+     },
+     {
+      "id": "fact:200",
+      "snippet": "The author of Categories is Aristotle."
+     },
+     {
+      "id": "fact:147",
+      "snippet": "The author of Lady Windermere's Fan is Oscar Wilde."
+     },
+     {
+      "id": "fact:398",
+      "snippet": "The author of The Marriage of Figaro is Thomas Kyd."
+     },
+     {
+      "id": "fact:304",
+      "snippet": "Shingon Buddhism was founded by William Waynflete."
+     },
+     {
+      "id": "fact:119",
+      "snippet": "Sarit Thanarat is affiliated with the religion of Buddhism."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.227Z",
+   "what": "mab hits 14"
+  },
+  "f0ede774374fa47f": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:435",
+      "snippet": "Germany is located in the continent of Africa."
+     },
+     {
+      "id": "fact:211",
+      "snippet": "England is located in the continent of Europe."
+     },
+     {
+      "id": "fact:429",
+      "snippet": "France is located in the continent of Europe."
+     },
+     {
+      "id": "fact:105",
+      "snippet": "United Kingdom is located in the continent of Europe."
+     },
+     {
+      "id": "fact:113",
+      "snippet": "London is located in the continent of Europe."
+     },
+     {
+      "id": "fact:280",
+      "snippet": "India is located in the continent of Africa."
+     },
+     {
+      "id": "fact:440",
+      "snippet": "Canada is located in the continent of Asia."
+     },
+     {
+      "id": "fact:220",
+      "snippet": "Australia is located in the continent of South America."
+     },
+     {
+      "id": "fact:127",
+      "snippet": "Israel is located in the continent of North America."
+     },
+     {
+      "id": "fact:442",
+      "snippet": "Malaysia is located in the continent of Antarctica."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.251Z",
+   "what": "mab hits 15"
+  },
+  "1c7b3435f9fff49b": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:260",
+      "snippet": "Kingdom of Ireland is affiliated with the religion of Zoroastrianism."
+     },
+     {
+      "id": "fact:182",
+      "snippet": "Edmund Burke is a citizen of Kingdom of Ireland."
+     },
+     {
+      "id": "fact:412",
+      "snippet": "Karen Armstrong is affiliated with the religion of Church of Scotland."
+     },
+     {
+      "id": "fact:94",
+      "snippet": "Princess Alice, Duchess of Gloucester is affiliated with the religion of Anglicanism."
+     },
+     {
+      "id": "fact:339",
+      "snippet": "Adalbert of Prague is affiliated with the religion of atheism."
+     },
+     {
+      "id": "fact:357",
+      "snippet": "Iman is affiliated with the religion of Islam."
+     },
+     {
+      "id": "fact:266",
+      "snippet": "Karen Armstrong is affiliated with the religion of Catholic Church."
+     },
+     {
+      "id": "fact:172",
+      "snippet": "Bagratuni Dynasty is affiliated with the religion of Christianity."
+     },
+     {
+      "id": "fact:361",
+      "snippet": "John Walsh is affiliated with the religion of Methodism."
+     },
+     {
+      "id": "fact:119",
+      "snippet": "Sarit Thanarat is affiliated with the religion of Buddhism."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.268Z",
+   "what": "mab hits 16"
+  },
+  "7c098f034d87e838": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:389",
+      "snippet": "association football was created in the country of Italy."
+     },
+     {
+      "id": "fact:348",
+      "snippet": "basketball was created in the country of Soviet Union."
+     },
+     {
+      "id": "fact:382",
+      "snippet": "baseball was created in the country of Japan."
+     },
+     {
+      "id": "fact:186",
+      "snippet": "rugby union was created in the country of India."
+     },
+     {
+      "id": "fact:150",
+      "snippet": "cricket was created in the country of Australia."
+     },
+     {
+      "id": "fact:216",
+      "snippet": "basketball was created in the country of United States of America."
+     },
+     {
+      "id": "fact:160",
+      "snippet": "baseball was created in the country of United States of America."
+     },
+     {
+      "id": "fact:437",
+      "snippet": "goalkeeper is associated with the sport of association football."
+     },
+     {
+      "id": "fact:353",
+      "snippet": "Club Nouveau was created in the country of Soviet Union."
+     },
+     {
+      "id": "fact:95",
+      "snippet": "sumo was created in the country of Japan."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.282Z",
+   "what": "mab hits 17"
+  },
+  "f02f97a5a99eaae0": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:221",
+      "snippet": "Windows Phone was developed by Microsoft."
+     },
+     {
+      "id": "fact:188",
+      "snippet": "The chief executive officer of Microsoft is Steve Jobs."
+     },
+     {
+      "id": "fact:201",
+      "snippet": "The chief executive officer of Apple Inc.. The chief executive officer of Apple Inc. is Vijay Mallya."
+     },
+     {
+      "id": "fact:241",
+      "snippet": "AppleScript was developed by Apple Inc.."
+     },
+     {
+      "id": "fact:428",
+      "snippet": "The director of British Broadcasting Corporation is Narendra Modi."
+     },
+     {
+      "id": "fact:367",
+      "snippet": "Andrew Carnegie is a citizen of United Kingdom."
+     },
+     {
+      "id": "fact:74",
+      "snippet": "The chief executive officer of Valve Corporation is Gabe Newell."
+     },
+     {
+      "id": "fact:354",
+      "snippet": "The director of Madonna is Narendra Modi."
+     },
+     {
+      "id": "fact:351",
+      "snippet": "The name of the current head of the Council of People's Commissars government is Tony Blair."
+     },
+     {
+      "id": "fact:338",
+      "snippet": "Andrew Carnegie is a citizen of United States of America."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.296Z",
+   "what": "mab hits 18"
+  },
+  "77bb300ea1341a5d": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:188",
+      "snippet": "The chief executive officer of Microsoft is Steve Jobs."
+     },
+     {
+      "id": "fact:201",
+      "snippet": "The chief executive officer of Apple Inc.. The chief executive officer of Apple Inc. is Vijay Mallya."
+     },
+     {
+      "id": "fact:393",
+      "snippet": "The chief executive officer of Boeing is Adel al-Jubeir."
+     },
+     {
+      "id": "fact:74",
+      "snippet": "The chief executive officer of Valve Corporation is Gabe Newell."
+     },
+     {
+      "id": "fact:379",
+      "snippet": "The chief executive officer of Lockheed Martin is Marillyn Hewson."
+     },
+     {
+      "id": "fact:275",
+      "snippet": "The chief executive officer of Twitter is Bernard Arnault."
+     },
+     {
+      "id": "fact:408",
+      "snippet": "The chief executive officer of ABB Group is Bernard Arnault."
+     },
+     {
+      "id": "fact:221",
+      "snippet": "Windows Phone was developed by Microsoft."
+     },
+     {
+      "id": "fact:351",
+      "snippet": "The name of the current head of the Council of People's Commissars government is Tony Blair."
+     },
+     {
+      "id": "fact:232",
+      "snippet": "The chairperson of Fatah is Moshe Kahlon."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.311Z",
+   "what": "mab hits 19"
+  },
+  "f5dc637b8a81a137": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:222",
+      "snippet": "The chairperson of Harvard University is Peter Diamandis."
+     },
+     {
+      "id": "fact:431",
+      "snippet": "Joseph Story is employed by Harvard University."
+     },
+     {
+      "id": "fact:232",
+      "snippet": "The chairperson of Fatah is Moshe Kahlon."
+     },
+     {
+      "id": "fact:101",
+      "snippet": "The headquarters of Fordham University is located in the city of New York City."
+     },
+     {
+      "id": "fact:399",
+      "snippet": "The univeristy where Lou Reed was educated is Fordham University."
+     },
+     {
+      "id": "fact:453",
+      "snippet": "The univeristy where Wilhelm II was educated is Baldwin Wallace University."
+     },
+     {
+      "id": "fact:15",
+      "snippet": "The univeristy where Galileo Galilei was educated is University of Pisa."
+     },
+     {
+      "id": "fact:309",
+      "snippet": "The univeristy where Bill Frisell was educated is The University of the Arts."
+     },
+     {
+      "id": "fact:114",
+      "snippet": "The headquarters of University of California, Berkeley is located in the city of Botevgrad."
+     },
+     {
+      "id": "fact:63",
+      "snippet": "The univeristy where Joan Didion was educated is University of California, Berkeley."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.331Z",
+   "what": "mab hits 20"
+  },
+  "767a062b2bfa1176": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:17",
+      "snippet": "Church of Scotland was founded by John Knox."
+     },
+     {
+      "id": "fact:193",
+      "snippet": "Catholic Church was founded by Jesus Christ."
+     },
+     {
+      "id": "fact:412",
+      "snippet": "Karen Armstrong is affiliated with the religion of Church of Scotland."
+     },
+     {
+      "id": "fact:265",
+      "snippet": "Canadair was founded in the city of Tucson."
+     },
+     {
+      "id": "fact:48",
+      "snippet": "Israel was founded by David Ben-Gurion."
+     },
+     {
+      "id": "fact:230",
+      "snippet": "Ford Motor Company was founded by Henri Grégoire."
+     },
+     {
+      "id": "fact:108",
+      "snippet": "Boston was founded by John Winthrop."
+     },
+     {
+      "id": "fact:287",
+      "snippet": "Methodism was founded by Joseph Goebbels."
+     },
+     {
+      "id": "fact:49",
+      "snippet": "Israel was founded by Philippe, Duke of Orléans."
+     },
+     {
+      "id": "fact:43",
+      "snippet": "Christianity was founded in the city of Taipei."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.345Z",
+   "what": "mab hits 21"
+  },
+  "06b73d9f0d4f85c1": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:23",
+      "snippet": "Galwegians RFC is associated with the sport of rugby union."
+     },
+     {
+      "id": "fact:93",
+      "snippet": "Gala RFC is associated with the sport of rugby union."
+     },
+     {
+      "id": "fact:219",
+      "snippet": "point guard is associated with the sport of cricket."
+     },
+     {
+      "id": "fact:279",
+      "snippet": "Slovakia national football team is associated with the sport of cricket."
+     },
+     {
+      "id": "fact:446",
+      "snippet": "Alta IF is associated with the sport of baseball."
+     },
+     {
+      "id": "fact:252",
+      "snippet": "wide receiver is associated with the sport of rugby."
+     },
+     {
+      "id": "fact:340",
+      "snippet": "Sandy Alderson is associated with the sport of association football."
+     },
+     {
+      "id": "fact:315",
+      "snippet": "Surrey Senior Cup is associated with the sport of basketball."
+     },
+     {
+      "id": "fact:328",
+      "snippet": "split-finger fastball is associated with the sport of cricket."
+     },
+     {
+      "id": "fact:303",
+      "snippet": "David Beckham is associated with the sport of cricket."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.360Z",
+   "what": "mab hits 22"
+  },
+  "46489f5413426745": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:392",
+      "snippet": "The director of American Broadcasting Company is Ernst Heinkel."
+     },
+     {
+      "id": "fact:428",
+      "snippet": "The director of British Broadcasting Corporation is Narendra Modi."
+     },
+     {
+      "id": "fact:363",
+      "snippet": "The origianl broadcaster of 666 Park Avenue is American Broadcasting Company."
+     },
+     {
+      "id": "fact:7",
+      "snippet": "The director of British Broadcasting Corporation is Tony Hall, Baron Hall of Birkenhead."
+     },
+     {
+      "id": "fact:404",
+      "snippet": "The origianl broadcaster of The Brady Bunch is American Broadcasting Company."
+     },
+     {
+      "id": "fact:226",
+      "snippet": "Dave Filoni is employed by British Broadcasting Corporation."
+     },
+     {
+      "id": "fact:354",
+      "snippet": "The director of Madonna is Narendra Modi."
+     },
+     {
+      "id": "fact:443",
+      "snippet": "The director of The Beatles is Joe Hockey."
+     },
+     {
+      "id": "fact:290",
+      "snippet": "The director of Lucasfilm is Kathleen Kennedy."
+     },
+     {
+      "id": "fact:356",
+      "snippet": "The company that produced AP1000 is Canadair."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.373Z",
+   "what": "mab hits 23"
+  },
+  "db40246a1200ce9e": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:292",
+      "snippet": "Gennady Rozhdestvensky died in the city of Moscow."
+     },
+     {
+      "id": "fact:451",
+      "snippet": "Gennady Rozhdestvensky died in the city of United States of America."
+     },
+     {
+      "id": "fact:302",
+      "snippet": "Nadezhda Krupskaya died in the city of Moscow."
+     },
+     {
+      "id": "fact:450",
+      "snippet": "Olga of Kiev died in the city of Rodez."
+     },
+     {
+      "id": "fact:300",
+      "snippet": "Sigmund Freud died in the city of London."
+     },
+     {
+      "id": "fact:142",
+      "snippet": "Andy Warhol died in the city of Montmélian."
+     },
+     {
+      "id": "fact:283",
+      "snippet": "Pius XII died in the city of Wolverhampton."
+     },
+     {
+      "id": "fact:270",
+      "snippet": "Oscar Wilde died in the city of Guangzhou."
+     },
+     {
+      "id": "fact:2",
+      "snippet": "Amy Winehouse died in the city of Camden Town."
+     },
+     {
+      "id": "fact:51",
+      "snippet": "Frank Zappa died in the city of Berlin."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.388Z",
+   "what": "mab hits 24"
+  },
+  "428f7b507eb2f915": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:177",
+      "snippet": "The capital of Tang Empire is Beaumont."
+     },
+     {
+      "id": "fact:203",
+      "snippet": "Ernst Heinkel is a citizen of Tang Empire."
+     },
+     {
+      "id": "fact:179",
+      "snippet": "The capital of Soviet Union is Russellville."
+     },
+     {
+      "id": "fact:388",
+      "snippet": "The capital of Australia is Oderzo."
+     },
+     {
+      "id": "fact:103",
+      "snippet": "The capital of Japan is Tokyo."
+     },
+     {
+      "id": "fact:171",
+      "snippet": "The capital of France is Harare."
+     },
+     {
+      "id": "fact:255",
+      "snippet": "The capital of Iran is Tehran."
+     },
+     {
+      "id": "fact:341",
+      "snippet": "The capital of India is Grosseto."
+     },
+     {
+      "id": "fact:396",
+      "snippet": "The capital of United States of America is Harrisville."
+     },
+     {
+      "id": "fact:26",
+      "snippet": "The capital of Germany is Berlin."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.403Z",
+   "what": "mab hits 25"
+  },
+  "55815d4f7fc16e76": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:428",
+      "snippet": "The director of British Broadcasting Corporation is Narendra Modi."
+     },
+     {
+      "id": "fact:7",
+      "snippet": "The director of British Broadcasting Corporation is Tony Hall, Baron Hall of Birkenhead."
+     },
+     {
+      "id": "fact:226",
+      "snippet": "Dave Filoni is employed by British Broadcasting Corporation."
+     },
+     {
+      "id": "fact:392",
+      "snippet": "The director of American Broadcasting Company is Ernst Heinkel."
+     },
+     {
+      "id": "fact:443",
+      "snippet": "The director of The Beatles is Joe Hockey."
+     },
+     {
+      "id": "fact:354",
+      "snippet": "The director of Madonna is Narendra Modi."
+     },
+     {
+      "id": "fact:74",
+      "snippet": "The chief executive officer of Valve Corporation is Gabe Newell."
+     },
+     {
+      "id": "fact:363",
+      "snippet": "The origianl broadcaster of 666 Park Avenue is American Broadcasting Company."
+     },
+     {
+      "id": "fact:290",
+      "snippet": "The director of Lucasfilm is Kathleen Kennedy."
+     },
+     {
+      "id": "fact:351",
+      "snippet": "The name of the current head of the Council of People's Commissars government is Tony Blair."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.419Z",
+   "what": "mab hits 26"
+  },
+  "befbceef20712f44": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:313",
+      "snippet": "Benjamin Mazar is a citizen of Israel."
+     },
+     {
+      "id": "fact:250",
+      "snippet": "Country Joe McDonald is a citizen of Romania."
+     },
+     {
+      "id": "fact:165",
+      "snippet": "Country Joe McDonald is a citizen of United States of America."
+     },
+     {
+      "id": "fact:343",
+      "snippet": "Charles Messier is a citizen of Iran."
+     },
+     {
+      "id": "fact:311",
+      "snippet": "Bob Iger is a citizen of United States of America."
+     },
+     {
+      "id": "fact:441",
+      "snippet": "Colin Irwin is a citizen of Israel."
+     },
+     {
+      "id": "fact:386",
+      "snippet": "Ferdinand von Richthofen is a citizen of Canada."
+     },
+     {
+      "id": "fact:358",
+      "snippet": "Charlie Hebdo was created in the country of Italy."
+     },
+     {
+      "id": "fact:239",
+      "snippet": "Cédric Klapisch is a citizen of Malaysia."
+     },
+     {
+      "id": "fact:217",
+      "snippet": "Narendra Modi is a citizen of Australia."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.437Z",
+   "what": "mab hits 27"
+  },
+  "840a6561001060c3": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:298",
+      "snippet": "The type of music that Michael Mantler plays is post-punk."
+     },
+     {
+      "id": "fact:355",
+      "snippet": "The type of music that Bruce Springsteen plays is rock music."
+     },
+     {
+      "id": "fact:415",
+      "snippet": "The type of music that John McVie plays is rap rock."
+     },
+     {
+      "id": "fact:83",
+      "snippet": "The type of music that Dale Evans plays is country music."
+     },
+     {
+      "id": "fact:281",
+      "snippet": "The type of music that Dana International plays is Australian hip hop."
+     },
+     {
+      "id": "fact:227",
+      "snippet": "Irving Fryar plays the position of wide receiver."
+     },
+     {
+      "id": "fact:144",
+      "snippet": "The univeristy where Bill Frisell was educated is Berklee College of Music."
+     },
+     {
+      "id": "fact:434",
+      "snippet": "Rogério Ceni plays the position of flanker."
+     },
+     {
+      "id": "fact:110",
+      "snippet": "Mike D'Antoni plays the position of point guard."
+     },
+     {
+      "id": "fact:443",
+      "snippet": "The director of The Beatles is Joe Hockey."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.462Z",
+   "what": "mab hits 28"
+  },
+  "1d7934f9e746cebf": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:270",
+      "snippet": "Oscar Wilde died in the city of Guangzhou."
+     },
+     {
+      "id": "fact:147",
+      "snippet": "The author of Lady Windermere's Fan is Oscar Wilde."
+     },
+     {
+      "id": "fact:300",
+      "snippet": "Sigmund Freud died in the city of London."
+     },
+     {
+      "id": "fact:142",
+      "snippet": "Andy Warhol died in the city of Montmélian."
+     },
+     {
+      "id": "fact:292",
+      "snippet": "Gennady Rozhdestvensky died in the city of Moscow."
+     },
+     {
+      "id": "fact:2",
+      "snippet": "Amy Winehouse died in the city of Camden Town."
+     },
+     {
+      "id": "fact:450",
+      "snippet": "Olga of Kiev died in the city of Rodez."
+     },
+     {
+      "id": "fact:448",
+      "snippet": "Charles Dickens died in the city of Gads Hill Place."
+     },
+     {
+      "id": "fact:451",
+      "snippet": "Gennady Rozhdestvensky died in the city of United States of America."
+     },
+     {
+      "id": "fact:51",
+      "snippet": "Frank Zappa died in the city of Berlin."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.503Z",
+   "what": "mab hits 29"
+  },
+  "ceae729d58239724": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:160",
+      "snippet": "baseball was created in the country of United States of America."
+     },
+     {
+      "id": "fact:382",
+      "snippet": "baseball was created in the country of Japan."
+     },
+     {
+      "id": "fact:216",
+      "snippet": "basketball was created in the country of United States of America."
+     },
+     {
+      "id": "fact:150",
+      "snippet": "cricket was created in the country of Australia."
+     },
+     {
+      "id": "fact:348",
+      "snippet": "basketball was created in the country of Soviet Union."
+     },
+     {
+      "id": "fact:186",
+      "snippet": "rugby union was created in the country of India."
+     },
+     {
+      "id": "fact:162",
+      "snippet": "country music was created in the country of United States of America."
+     },
+     {
+      "id": "fact:389",
+      "snippet": "association football was created in the country of Italy."
+     },
+     {
+      "id": "fact:212",
+      "snippet": "jazz was created in the country of United States of America."
+     },
+     {
+      "id": "fact:95",
+      "snippet": "sumo was created in the country of Japan."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.646Z",
+   "what": "mab hits 30"
+  },
+  "5b44428899e681a1": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:203",
+      "snippet": "Ernst Heinkel is a citizen of Tang Empire."
+     },
+     {
+      "id": "fact:392",
+      "snippet": "The director of American Broadcasting Company is Ernst Heinkel."
+     },
+     {
+      "id": "fact:358",
+      "snippet": "Charlie Hebdo was created in the country of Italy."
+     },
+     {
+      "id": "fact:22",
+      "snippet": "Robert A.. Robert A. Heinlein is a citizen of United States of America."
+     },
+     {
+      "id": "fact:250",
+      "snippet": "Country Joe McDonald is a citizen of Romania."
+     },
+     {
+      "id": "fact:436",
+      "snippet": "Le Petit Parisien was created in the country of Germany."
+     },
+     {
+      "id": "fact:322",
+      "snippet": "Amala Paul is a citizen of Belgium."
+     },
+     {
+      "id": "fact:311",
+      "snippet": "Bob Iger is a citizen of United States of America."
+     },
+     {
+      "id": "fact:165",
+      "snippet": "Country Joe McDonald is a citizen of United States of America."
+     },
+     {
+      "id": "fact:60",
+      "snippet": "Leo Stein is a citizen of United States of America."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.713Z",
+   "what": "mab hits 31"
+  },
+  "fceef46272ebcd6f": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:387",
+      "snippet": "The headquarters of The University of the Arts is located in the city of Philadelphia."
+     },
+     {
+      "id": "fact:409",
+      "snippet": "The headquarters of University of Bucharest is located in the city of Ankara."
+     },
+     {
+      "id": "fact:114",
+      "snippet": "The headquarters of University of California, Berkeley is located in the city of Botevgrad."
+     },
+     {
+      "id": "fact:101",
+      "snippet": "The headquarters of Fordham University is located in the city of New York City."
+     },
+     {
+      "id": "fact:9",
+      "snippet": "The headquarters of University of Minnesota is located in the city of Minneapolis."
+     },
+     {
+      "id": "fact:309",
+      "snippet": "The univeristy where Bill Frisell was educated is The University of the Arts."
+     },
+     {
+      "id": "fact:380",
+      "snippet": "The headquarters of Berklee College of Music is located in the city of Boston."
+     },
+     {
+      "id": "fact:130",
+      "snippet": "The headquarters of Bowdoin College is located in the city of Brunswick."
+     },
+     {
+      "id": "fact:314",
+      "snippet": "The headquarters of Ilyushin is located in the city of Moscow."
+     },
+     {
+      "id": "fact:63",
+      "snippet": "The univeristy where Joan Didion was educated is University of California, Berkeley."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:34.859Z",
+   "what": "mab hits 32"
+  },
+  "11c7159f48986151": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:359",
+      "snippet": "rap rock was created in the country of United States of America."
+     },
+     {
+      "id": "fact:403",
+      "snippet": "rap rock was created in the country of Russian Empire."
+     },
+     {
+      "id": "fact:162",
+      "snippet": "country music was created in the country of United States of America."
+     },
+     {
+      "id": "fact:212",
+      "snippet": "jazz was created in the country of United States of America."
+     },
+     {
+      "id": "fact:267",
+      "snippet": "post-punk was created in the country of Canada."
+     },
+     {
+      "id": "fact:216",
+      "snippet": "basketball was created in the country of United States of America."
+     },
+     {
+      "id": "fact:348",
+      "snippet": "basketball was created in the country of Soviet Union."
+     },
+     {
+      "id": "fact:415",
+      "snippet": "The type of music that John McVie plays is rap rock."
+     },
+     {
+      "id": "fact:150",
+      "snippet": "cricket was created in the country of Australia."
+     },
+     {
+      "id": "fact:160",
+      "snippet": "baseball was created in the country of United States of America."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.032Z",
+   "what": "mab hits 33"
+  },
+  "68a3cbed06e14f0a": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:43",
+      "snippet": "Christianity was founded in the city of Taipei."
+     },
+     {
+      "id": "fact:193",
+      "snippet": "Catholic Church was founded by Jesus Christ."
+     },
+     {
+      "id": "fact:287",
+      "snippet": "Methodism was founded by Joseph Goebbels."
+     },
+     {
+      "id": "fact:370",
+      "snippet": "Buddhism was founded by Mekere Morauta."
+     },
+     {
+      "id": "fact:304",
+      "snippet": "Shingon Buddhism was founded by William Waynflete."
+     },
+     {
+      "id": "fact:154",
+      "snippet": "Transcendental Meditation movement was founded by Maharishi Mahesh Yogi."
+     },
+     {
+      "id": "fact:108",
+      "snippet": "Boston was founded by John Winthrop."
+     },
+     {
+      "id": "fact:48",
+      "snippet": "Israel was founded by David Ben-Gurion."
+     },
+     {
+      "id": "fact:265",
+      "snippet": "Canadair was founded in the city of Tucson."
+     },
+     {
+      "id": "fact:49",
+      "snippet": "Israel was founded by Philippe, Duke of Orléans."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.071Z",
+   "what": "mab hits 34"
+  },
+  "a265417b67a84dfb": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:295",
+      "snippet": "The official language of United States of America is German."
+     },
+     {
+      "id": "fact:184",
+      "snippet": "The official language of United Kingdom is English."
+     },
+     {
+      "id": "fact:99",
+      "snippet": "The official language of England is English."
+     },
+     {
+      "id": "fact:383",
+      "snippet": "The official language of Moscow is German."
+     },
+     {
+      "id": "fact:247",
+      "snippet": "The capital of United States of America is Washington, D.C.."
+     },
+     {
+      "id": "fact:126",
+      "snippet": "The name of the current head of state in United States of America is Connachta."
+     },
+     {
+      "id": "fact:162",
+      "snippet": "country music was created in the country of United States of America."
+     },
+     {
+      "id": "fact:439",
+      "snippet": "The official language of Japan is Swedish."
+     },
+     {
+      "id": "fact:151",
+      "snippet": "The official language of Australia is Arabic."
+     },
+     {
+      "id": "fact:216",
+      "snippet": "basketball was created in the country of United States of America."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.102Z",
+   "what": "mab hits 35"
+  },
+  "18fc5bd4c2a9d8a1": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:364",
+      "snippet": "Past Masters was performed by Madonna."
+     },
+     {
+      "id": "fact:318",
+      "snippet": "Back to Black was performed by Frank Zappa."
+     },
+     {
+      "id": "fact:285",
+      "snippet": "Aladdin Sane was performed by Yves Montand."
+     },
+     {
+      "id": "fact:273",
+      "snippet": "Viva Las Vegas was performed by Elvis Presley."
+     },
+     {
+      "id": "fact:96",
+      "snippet": "Meredith Grey was performed by Ellen Pompeo."
+     },
+     {
+      "id": "fact:425",
+      "snippet": "Hermione Granger was performed by Kylie Minogue."
+     },
+     {
+      "id": "fact:350",
+      "snippet": "Free as a Bird was performed by The Beatles."
+     },
+     {
+      "id": "fact:181",
+      "snippet": "Blood on the Tracks was performed by Lou Reed."
+     },
+     {
+      "id": "fact:229",
+      "snippet": "Rocket Man was performed by Ayumi Hamasaki."
+     },
+     {
+      "id": "fact:337",
+      "snippet": "Born in the U.S.A.. Born in the U.S.A. was performed by Dana International."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.127Z",
+   "what": "mab hits 36"
+  },
+  "245a57519158feb0": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:103",
+      "snippet": "The capital of Japan is Tokyo."
+     },
+     {
+      "id": "fact:209",
+      "snippet": "The capital of Italy is Duluth."
+     },
+     {
+      "id": "fact:26",
+      "snippet": "The capital of Germany is Berlin."
+     },
+     {
+      "id": "fact:388",
+      "snippet": "The capital of Australia is Oderzo."
+     },
+     {
+      "id": "fact:341",
+      "snippet": "The capital of India is Grosseto."
+     },
+     {
+      "id": "fact:255",
+      "snippet": "The capital of Iran is Tehran."
+     },
+     {
+      "id": "fact:439",
+      "snippet": "The official language of Japan is Swedish."
+     },
+     {
+      "id": "fact:202",
+      "snippet": "The name of the current head of the Japan government is Shinzō Abe."
+     },
+     {
+      "id": "fact:95",
+      "snippet": "sumo was created in the country of Japan."
+     },
+     {
+      "id": "fact:198",
+      "snippet": "The capital of Papal States is Rome."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.151Z",
+   "what": "mab hits 37"
+  },
+  "3c268cc043a17b69": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:171",
+      "snippet": "The capital of France is Harare."
+     },
+     {
+      "id": "fact:429",
+      "snippet": "France is located in the continent of Europe."
+     },
+     {
+      "id": "fact:198",
+      "snippet": "The capital of Papal States is Rome."
+     },
+     {
+      "id": "fact:26",
+      "snippet": "The capital of Germany is Berlin."
+     },
+     {
+      "id": "fact:190",
+      "snippet": "The capital of Czech Republic is Prague."
+     },
+     {
+      "id": "fact:378",
+      "snippet": "The capital of England is London."
+     },
+     {
+      "id": "fact:255",
+      "snippet": "The capital of Iran is Tehran."
+     },
+     {
+      "id": "fact:209",
+      "snippet": "The capital of Italy is Duluth."
+     },
+     {
+      "id": "fact:33",
+      "snippet": "The capital of Great Britain is London."
+     },
+     {
+      "id": "fact:449",
+      "snippet": "The capital of Romania is Rajanpur."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.169Z",
+   "what": "mab hits 38"
+  },
+  "73f7c1c76bcd3c47": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:277",
+      "snippet": "SteamOS was developed by ABB Group."
+     },
+     {
+      "id": "fact:74",
+      "snippet": "The chief executive officer of Valve Corporation is Gabe Newell."
+     },
+     {
+      "id": "fact:188",
+      "snippet": "The chief executive officer of Microsoft is Steve Jobs."
+     },
+     {
+      "id": "fact:241",
+      "snippet": "AppleScript was developed by Apple Inc.."
+     },
+     {
+      "id": "fact:379",
+      "snippet": "The chief executive officer of Lockheed Martin is Marillyn Hewson."
+     },
+     {
+      "id": "fact:232",
+      "snippet": "The chairperson of Fatah is Moshe Kahlon."
+     },
+     {
+      "id": "fact:92",
+      "snippet": "The company that produced Il-2 Shturmovik is Ilyushin."
+     },
+     {
+      "id": "fact:201",
+      "snippet": "The chief executive officer of Apple Inc.. The chief executive officer of Apple Inc. is Vijay Mallya."
+     },
+     {
+      "id": "fact:305",
+      "snippet": "The author of The Witcher is T.. The author of The Witcher is T. S. Eliot."
+     },
+     {
+      "id": "fact:229",
+      "snippet": "Rocket Man was performed by Ayumi Hamasaki."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.187Z",
+   "what": "mab hits 39"
+  },
+  "0cd2b202786a6aaf": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:409",
+      "snippet": "The headquarters of University of Bucharest is located in the city of Ankara."
+     },
+     {
+      "id": "fact:333",
+      "snippet": "The univeristy where Elena Ceaușescu was educated is University of Bucharest."
+     },
+     {
+      "id": "fact:387",
+      "snippet": "The headquarters of The University of the Arts is located in the city of Philadelphia."
+     },
+     {
+      "id": "fact:106",
+      "snippet": "Leonte Răutu is employed by University of Bucharest."
+     },
+     {
+      "id": "fact:114",
+      "snippet": "The headquarters of University of California, Berkeley is located in the city of Botevgrad."
+     },
+     {
+      "id": "fact:101",
+      "snippet": "The headquarters of Fordham University is located in the city of New York City."
+     },
+     {
+      "id": "fact:9",
+      "snippet": "The headquarters of University of Minnesota is located in the city of Minneapolis."
+     },
+     {
+      "id": "fact:380",
+      "snippet": "The headquarters of Berklee College of Music is located in the city of Boston."
+     },
+     {
+      "id": "fact:314",
+      "snippet": "The headquarters of Ilyushin is located in the city of Moscow."
+     },
+     {
+      "id": "fact:15",
+      "snippet": "The univeristy where Galileo Galilei was educated is University of Pisa."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.203Z",
+   "what": "mab hits 40"
+  },
+  "7dda71121be14e8a": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:252",
+      "snippet": "wide receiver is associated with the sport of rugby."
+     },
+     {
+      "id": "fact:227",
+      "snippet": "Irving Fryar plays the position of wide receiver."
+     },
+     {
+      "id": "fact:446",
+      "snippet": "Alta IF is associated with the sport of baseball."
+     },
+     {
+      "id": "fact:362",
+      "snippet": "cornerback is associated with the sport of field hockey."
+     },
+     {
+      "id": "fact:417",
+      "snippet": "Steve Sax is associated with the sport of association football."
+     },
+     {
+      "id": "fact:23",
+      "snippet": "Galwegians RFC is associated with the sport of rugby union."
+     },
+     {
+      "id": "fact:93",
+      "snippet": "Gala RFC is associated with the sport of rugby union."
+     },
+     {
+      "id": "fact:346",
+      "snippet": "Bo Ryan is associated with the sport of association football."
+     },
+     {
+      "id": "fact:219",
+      "snippet": "point guard is associated with the sport of cricket."
+     },
+     {
+      "id": "fact:50",
+      "snippet": "quarterback is associated with the sport of Muay Thai."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.226Z",
+   "what": "mab hits 41"
+  },
+  "e8e526ecaad30bf9": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:36",
+      "snippet": "Hines Ward plays the position of cornerback."
+     },
+     {
+      "id": "fact:227",
+      "snippet": "Irving Fryar plays the position of wide receiver."
+     },
+     {
+      "id": "fact:110",
+      "snippet": "Mike D'Antoni plays the position of point guard."
+     },
+     {
+      "id": "fact:334",
+      "snippet": "Robert Parish plays the position of quarterback."
+     },
+     {
+      "id": "fact:434",
+      "snippet": "Rogério Ceni plays the position of flanker."
+     },
+     {
+      "id": "fact:419",
+      "snippet": "Blair Walsh plays the position of placekicker."
+     },
+     {
+      "id": "fact:269",
+      "snippet": "Daniele De Rossi plays the position of midfielder."
+     },
+     {
+      "id": "fact:169",
+      "snippet": "Lisa Leslie plays the position of goaltender."
+     },
+     {
+      "id": "fact:362",
+      "snippet": "cornerback is associated with the sport of field hockey."
+     },
+     {
+      "id": "fact:50",
+      "snippet": "quarterback is associated with the sport of Muay Thai."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.239Z",
+   "what": "mab hits 42"
+  },
+  "a4a21beee3f8442e": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:388",
+      "snippet": "The capital of Australia is Oderzo."
+     },
+     {
+      "id": "fact:220",
+      "snippet": "Australia is located in the continent of South America."
+     },
+     {
+      "id": "fact:151",
+      "snippet": "The official language of Australia is Arabic."
+     },
+     {
+      "id": "fact:150",
+      "snippet": "cricket was created in the country of Australia."
+     },
+     {
+      "id": "fact:177",
+      "snippet": "The capital of Tang Empire is Beaumont."
+     },
+     {
+      "id": "fact:378",
+      "snippet": "The capital of England is London."
+     },
+     {
+      "id": "fact:217",
+      "snippet": "Narendra Modi is a citizen of Australia."
+     },
+     {
+      "id": "fact:33",
+      "snippet": "The capital of Great Britain is London."
+     },
+     {
+      "id": "fact:26",
+      "snippet": "The capital of Germany is Berlin."
+     },
+     {
+      "id": "fact:179",
+      "snippet": "The capital of Soviet Union is Russellville."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.253Z",
+   "what": "mab hits 43"
+  },
+  "d322dead576b1998": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:442",
+      "snippet": "Malaysia is located in the continent of Antarctica."
+     },
+     {
+      "id": "fact:187",
+      "snippet": "Hyderabad is located in the continent of Asia."
+     },
+     {
+      "id": "fact:280",
+      "snippet": "India is located in the continent of Africa."
+     },
+     {
+      "id": "fact:113",
+      "snippet": "London is located in the continent of Europe."
+     },
+     {
+      "id": "fact:440",
+      "snippet": "Canada is located in the continent of Asia."
+     },
+     {
+      "id": "fact:435",
+      "snippet": "Germany is located in the continent of Africa."
+     },
+     {
+      "id": "fact:105",
+      "snippet": "United Kingdom is located in the continent of Europe."
+     },
+     {
+      "id": "fact:220",
+      "snippet": "Australia is located in the continent of South America."
+     },
+     {
+      "id": "fact:211",
+      "snippet": "England is located in the continent of Europe."
+     },
+     {
+      "id": "fact:234",
+      "snippet": "Bengaluru is located in the continent of Oceania."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.267Z",
+   "what": "mab hits 44"
+  },
+  "c151a205b5310fc0": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:301",
+      "snippet": "The author of A Wizard of Earthsea is Pius XII."
+     },
+     {
+      "id": "fact:305",
+      "snippet": "The author of The Witcher is T.. The author of The Witcher is T. S. Eliot."
+     },
+     {
+      "id": "fact:401",
+      "snippet": "The author of Sidereus Nuncius is Samuel Beckett."
+     },
+     {
+      "id": "fact:77",
+      "snippet": "The author of The Birth of Tragedy is Stephen Crane."
+     },
+     {
+      "id": "fact:180",
+      "snippet": "The author of Endymion is John Keats."
+     },
+     {
+      "id": "fact:146",
+      "snippet": "The author of Our Mutual Friend is Charles Darwin."
+     },
+     {
+      "id": "fact:200",
+      "snippet": "The author of Categories is Aristotle."
+     },
+     {
+      "id": "fact:147",
+      "snippet": "The author of Lady Windermere's Fan is Oscar Wilde."
+     },
+     {
+      "id": "fact:430",
+      "snippet": "The author of Sketches by Boz is Sigmund Freud."
+     },
+     {
+      "id": "fact:222",
+      "snippet": "The chairperson of Harvard University is Peter Diamandis."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.282Z",
+   "what": "mab hits 45"
+  },
+  "bd1860a9781e1b3f": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:350",
+      "snippet": "Free as a Bird was performed by The Beatles."
+     },
+     {
+      "id": "fact:364",
+      "snippet": "Past Masters was performed by Madonna."
+     },
+     {
+      "id": "fact:318",
+      "snippet": "Back to Black was performed by Frank Zappa."
+     },
+     {
+      "id": "fact:285",
+      "snippet": "Aladdin Sane was performed by Yves Montand."
+     },
+     {
+      "id": "fact:273",
+      "snippet": "Viva Las Vegas was performed by Elvis Presley."
+     },
+     {
+      "id": "fact:181",
+      "snippet": "Blood on the Tracks was performed by Lou Reed."
+     },
+     {
+      "id": "fact:425",
+      "snippet": "Hermione Granger was performed by Kylie Minogue."
+     },
+     {
+      "id": "fact:96",
+      "snippet": "Meredith Grey was performed by Ellen Pompeo."
+     },
+     {
+      "id": "fact:229",
+      "snippet": "Rocket Man was performed by Ayumi Hamasaki."
+     },
+     {
+      "id": "fact:337",
+      "snippet": "Born in the U.S.A.. Born in the U.S.A. was performed by Dana International."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.295Z",
+   "what": "mab hits 46"
+  },
+  "a8c6634fe110232b": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:146",
+      "snippet": "The author of Our Mutual Friend is Charles Darwin."
+     },
+     {
+      "id": "fact:147",
+      "snippet": "The author of Lady Windermere's Fan is Oscar Wilde."
+     },
+     {
+      "id": "fact:398",
+      "snippet": "The author of The Marriage of Figaro is Thomas Kyd."
+     },
+     {
+      "id": "fact:180",
+      "snippet": "The author of Endymion is John Keats."
+     },
+     {
+      "id": "fact:401",
+      "snippet": "The author of Sidereus Nuncius is Samuel Beckett."
+     },
+     {
+      "id": "fact:305",
+      "snippet": "The author of The Witcher is T.. The author of The Witcher is T. S. Eliot."
+     },
+     {
+      "id": "fact:344",
+      "snippet": "The author of Starship Troopers is Daphne du Maurier."
+     },
+     {
+      "id": "fact:301",
+      "snippet": "The author of A Wizard of Earthsea is Pius XII."
+     },
+     {
+      "id": "fact:430",
+      "snippet": "The author of Sketches by Boz is Sigmund Freud."
+     },
+     {
+      "id": "fact:77",
+      "snippet": "The author of The Birth of Tragedy is Stephen Crane."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.310Z",
+   "what": "mab hits 47"
+  },
+  "a91ec4b2eddc37c1": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:216",
+      "snippet": "basketball was created in the country of United States of America."
+     },
+     {
+      "id": "fact:348",
+      "snippet": "basketball was created in the country of Soviet Union."
+     },
+     {
+      "id": "fact:160",
+      "snippet": "baseball was created in the country of United States of America."
+     },
+     {
+      "id": "fact:382",
+      "snippet": "baseball was created in the country of Japan."
+     },
+     {
+      "id": "fact:150",
+      "snippet": "cricket was created in the country of Australia."
+     },
+     {
+      "id": "fact:389",
+      "snippet": "association football was created in the country of Italy."
+     },
+     {
+      "id": "fact:212",
+      "snippet": "jazz was created in the country of United States of America."
+     },
+     {
+      "id": "fact:186",
+      "snippet": "rugby union was created in the country of India."
+     },
+     {
+      "id": "fact:162",
+      "snippet": "country music was created in the country of United States of America."
+     },
+     {
+      "id": "fact:359",
+      "snippet": "rap rock was created in the country of United States of America."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.324Z",
+   "what": "mab hits 48"
+  },
+  "cedead840aa90565": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:73",
+      "snippet": "Hal Needham is a citizen of United States of America."
+     },
+     {
+      "id": "fact:250",
+      "snippet": "Country Joe McDonald is a citizen of Romania."
+     },
+     {
+      "id": "fact:165",
+      "snippet": "Country Joe McDonald is a citizen of United States of America."
+     },
+     {
+      "id": "fact:322",
+      "snippet": "Amala Paul is a citizen of Belgium."
+     },
+     {
+      "id": "fact:239",
+      "snippet": "Cédric Klapisch is a citizen of Malaysia."
+     },
+     {
+      "id": "fact:95",
+      "snippet": "sumo was created in the country of Japan."
+     },
+     {
+      "id": "fact:403",
+      "snippet": "rap rock was created in the country of Russian Empire."
+     },
+     {
+      "id": "fact:386",
+      "snippet": "Ferdinand von Richthofen is a citizen of Canada."
+     },
+     {
+      "id": "fact:261",
+      "snippet": "pesäpallo was created in the country of Philippines."
+     },
+     {
+      "id": "fact:345",
+      "snippet": "Thus Spoke Zarathustra was created in the country of Germany."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.347Z",
+   "what": "mab hits 49"
+  },
+  "ebe6a9a0ddd2940d": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:234",
+      "snippet": "Bengaluru is located in the continent of Oceania."
+     },
+     {
+      "id": "fact:280",
+      "snippet": "India is located in the continent of Africa."
+     },
+     {
+      "id": "fact:220",
+      "snippet": "Australia is located in the continent of South America."
+     },
+     {
+      "id": "fact:435",
+      "snippet": "Germany is located in the continent of Africa."
+     },
+     {
+      "id": "fact:440",
+      "snippet": "Canada is located in the continent of Asia."
+     },
+     {
+      "id": "fact:187",
+      "snippet": "Hyderabad is located in the continent of Asia."
+     },
+     {
+      "id": "fact:211",
+      "snippet": "England is located in the continent of Europe."
+     },
+     {
+      "id": "fact:429",
+      "snippet": "France is located in the continent of Europe."
+     },
+     {
+      "id": "fact:105",
+      "snippet": "United Kingdom is located in the continent of Europe."
+     },
+     {
+      "id": "fact:442",
+      "snippet": "Malaysia is located in the continent of Antarctica."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.361Z",
+   "what": "mab hits 50"
+  },
+  "86ce8576fefb3703": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:279",
+      "snippet": "Slovakia national football team is associated with the sport of cricket."
+     },
+     {
+      "id": "fact:418",
+      "snippet": "Tunisia national football team is associated with the sport of basketball."
+     },
+     {
+      "id": "fact:437",
+      "snippet": "goalkeeper is associated with the sport of association football."
+     },
+     {
+      "id": "fact:149",
+      "snippet": "FC Irtysh Omsk is associated with the sport of association football."
+     },
+     {
+      "id": "fact:340",
+      "snippet": "Sandy Alderson is associated with the sport of association football."
+     },
+     {
+      "id": "fact:133",
+      "snippet": "FC Vorskla Poltava is associated with the sport of basketball."
+     },
+     {
+      "id": "fact:346",
+      "snippet": "Bo Ryan is associated with the sport of association football."
+     },
+     {
+      "id": "fact:417",
+      "snippet": "Steve Sax is associated with the sport of association football."
+     },
+     {
+      "id": "fact:389",
+      "snippet": "association football was created in the country of Italy."
+     },
+     {
+      "id": "fact:315",
+      "snippet": "Surrey Senior Cup is associated with the sport of basketball."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.372Z",
+   "what": "mab hits 51"
+  },
+  "26a164b041491236": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:126",
+      "snippet": "The name of the current head of state in United States of America is Connachta."
+     },
+     {
+      "id": "fact:432",
+      "snippet": "The name of the current head of the United States of America government is Donald Trump."
+     },
+     {
+      "id": "fact:249",
+      "snippet": "The name of the current head of state in United Kingdom is Emmerson Mnangagwa."
+     },
+     {
+      "id": "fact:247",
+      "snippet": "The capital of United States of America is Washington, D.C.."
+     },
+     {
+      "id": "fact:365",
+      "snippet": "The name of the current head of state in Soviet Union is Elizabeth II."
+     },
+     {
+      "id": "fact:396",
+      "snippet": "The capital of United States of America is Harrisville."
+     },
+     {
+      "id": "fact:140",
+      "snippet": "The name of the current head of the Pittsburgh government is Bill Peduto."
+     },
+     {
+      "id": "fact:295",
+      "snippet": "The official language of United States of America is German."
+     },
+     {
+      "id": "fact:118",
+      "snippet": "Jack Dorsey is a citizen of United States of America."
+     },
+     {
+      "id": "fact:311",
+      "snippet": "Bob Iger is a citizen of United States of America."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.383Z",
+   "what": "mab hits 52"
+  },
+  "2a3017d69d2d5add": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:374",
+      "snippet": "Imelda Marcos is affiliated with the religion of atheism."
+     },
+     {
+      "id": "fact:11",
+      "snippet": "Ferdinand Marcos is married to Imelda Marcos."
+     },
+     {
+      "id": "fact:357",
+      "snippet": "Iman is affiliated with the religion of Islam."
+     },
+     {
+      "id": "fact:119",
+      "snippet": "Sarit Thanarat is affiliated with the religion of Buddhism."
+     },
+     {
+      "id": "fact:266",
+      "snippet": "Karen Armstrong is affiliated with the religion of Catholic Church."
+     },
+     {
+      "id": "fact:172",
+      "snippet": "Bagratuni Dynasty is affiliated with the religion of Christianity."
+     },
+     {
+      "id": "fact:412",
+      "snippet": "Karen Armstrong is affiliated with the religion of Church of Scotland."
+     },
+     {
+      "id": "fact:331",
+      "snippet": "Maharishi Mahesh Yogi is affiliated with the religion of Hinduism."
+     },
+     {
+      "id": "fact:410",
+      "snippet": "Natalie Portman is affiliated with the religion of interdenominational organization."
+     },
+     {
+      "id": "fact:263",
+      "snippet": "George W.. George W. Bush is affiliated with the religion of United Methodist Church."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.393Z",
+   "what": "mab hits 53"
+  },
+  "345c09c12fe60511": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:281",
+      "snippet": "The type of music that Dana International plays is Australian hip hop."
+     },
+     {
+      "id": "fact:337",
+      "snippet": "Born in the U.S.A.. Born in the U.S.A. was performed by Dana International."
+     },
+     {
+      "id": "fact:298",
+      "snippet": "The type of music that Michael Mantler plays is post-punk."
+     },
+     {
+      "id": "fact:83",
+      "snippet": "The type of music that Dale Evans plays is country music."
+     },
+     {
+      "id": "fact:415",
+      "snippet": "The type of music that John McVie plays is rap rock."
+     },
+     {
+      "id": "fact:355",
+      "snippet": "The type of music that Bruce Springsteen plays is rock music."
+     },
+     {
+      "id": "fact:162",
+      "snippet": "country music was created in the country of United States of America."
+     },
+     {
+      "id": "fact:144",
+      "snippet": "The univeristy where Bill Frisell was educated is Berklee College of Music."
+     },
+     {
+      "id": "fact:212",
+      "snippet": "jazz was created in the country of United States of America."
+     },
+     {
+      "id": "fact:419",
+      "snippet": "Blair Walsh plays the position of placekicker."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.404Z",
+   "what": "mab hits 54"
+  },
+  "c94972d687dd150a": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:244",
+      "snippet": "Sable is a citizen of United States of America."
+     },
+     {
+      "id": "fact:299",
+      "snippet": "Sable is a citizen of Czech Republic."
+     },
+     {
+      "id": "fact:250",
+      "snippet": "Country Joe McDonald is a citizen of Romania."
+     },
+     {
+      "id": "fact:165",
+      "snippet": "Country Joe McDonald is a citizen of United States of America."
+     },
+     {
+      "id": "fact:102",
+      "snippet": "Club Nouveau was created in the country of United States of America."
+     },
+     {
+      "id": "fact:353",
+      "snippet": "Club Nouveau was created in the country of Soviet Union."
+     },
+     {
+      "id": "fact:403",
+      "snippet": "rap rock was created in the country of Russian Empire."
+     },
+     {
+      "id": "fact:162",
+      "snippet": "country music was created in the country of United States of America."
+     },
+     {
+      "id": "fact:436",
+      "snippet": "Le Petit Parisien was created in the country of Germany."
+     },
+     {
+      "id": "fact:313",
+      "snippet": "Benjamin Mazar is a citizen of Israel."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.414Z",
+   "what": "mab hits 55"
+  },
+  "c2f1159a791526e3": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:358",
+      "snippet": "Charlie Hebdo was created in the country of Italy."
+     },
+     {
+      "id": "fact:423",
+      "snippet": "Stephen Crane is famous for Charlie Hebdo."
+     },
+     {
+      "id": "fact:382",
+      "snippet": "baseball was created in the country of Japan."
+     },
+     {
+      "id": "fact:436",
+      "snippet": "Le Petit Parisien was created in the country of Germany."
+     },
+     {
+      "id": "fact:216",
+      "snippet": "basketball was created in the country of United States of America."
+     },
+     {
+      "id": "fact:348",
+      "snippet": "basketball was created in the country of Soviet Union."
+     },
+     {
+      "id": "fact:160",
+      "snippet": "baseball was created in the country of United States of America."
+     },
+     {
+      "id": "fact:162",
+      "snippet": "country music was created in the country of United States of America."
+     },
+     {
+      "id": "fact:212",
+      "snippet": "jazz was created in the country of United States of America."
+     },
+     {
+      "id": "fact:389",
+      "snippet": "association football was created in the country of Italy."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.425Z",
+   "what": "mab hits 56"
+  },
+  "3c371e8cd43a7f58": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:139",
+      "snippet": "Elvis Presley is married to Charles the Bold."
+     },
+     {
+      "id": "fact:273",
+      "snippet": "Viva Las Vegas was performed by Elvis Presley."
+     },
+     {
+      "id": "fact:317",
+      "snippet": "Priscilla Presley is a citizen of United States of America."
+     },
+     {
+      "id": "fact:138",
+      "snippet": "David Bowie is married to Iman."
+     },
+     {
+      "id": "fact:11",
+      "snippet": "Ferdinand Marcos is married to Imelda Marcos."
+     },
+     {
+      "id": "fact:452",
+      "snippet": "Roy Rogers is married to John McVie."
+     },
+     {
+      "id": "fact:424",
+      "snippet": "Tony Blair is married to Alan Jay Lerner."
+     },
+     {
+      "id": "fact:335",
+      "snippet": "Charles Darwin is married to Amala Paul."
+     },
+     {
+      "id": "fact:131",
+      "snippet": "Charles Dickens is married to Catherine Dickens."
+     },
+     {
+      "id": "fact:233",
+      "snippet": "Yves Montand is married to Natalie Portman."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.444Z",
+   "what": "mab hits 57"
+  },
+  "154de0cc318d44de": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:425",
+      "snippet": "Hermione Granger was performed by Kylie Minogue."
+     },
+     {
+      "id": "fact:229",
+      "snippet": "Rocket Man was performed by Ayumi Hamasaki."
+     },
+     {
+      "id": "fact:285",
+      "snippet": "Aladdin Sane was performed by Yves Montand."
+     },
+     {
+      "id": "fact:364",
+      "snippet": "Past Masters was performed by Madonna."
+     },
+     {
+      "id": "fact:96",
+      "snippet": "Meredith Grey was performed by Ellen Pompeo."
+     },
+     {
+      "id": "fact:318",
+      "snippet": "Back to Black was performed by Frank Zappa."
+     },
+     {
+      "id": "fact:181",
+      "snippet": "Blood on the Tracks was performed by Lou Reed."
+     },
+     {
+      "id": "fact:273",
+      "snippet": "Viva Las Vegas was performed by Elvis Presley."
+     },
+     {
+      "id": "fact:354",
+      "snippet": "The director of Madonna is Narendra Modi."
+     },
+     {
+      "id": "fact:350",
+      "snippet": "Free as a Bird was performed by The Beatles."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.455Z",
+   "what": "mab hits 58"
+  },
+  "72fe780861c52ebf": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:346",
+      "snippet": "Bo Ryan is associated with the sport of association football."
+     },
+     {
+      "id": "fact:340",
+      "snippet": "Sandy Alderson is associated with the sport of association football."
+     },
+     {
+      "id": "fact:362",
+      "snippet": "cornerback is associated with the sport of field hockey."
+     },
+     {
+      "id": "fact:446",
+      "snippet": "Alta IF is associated with the sport of baseball."
+     },
+     {
+      "id": "fact:417",
+      "snippet": "Steve Sax is associated with the sport of association football."
+     },
+     {
+      "id": "fact:437",
+      "snippet": "goalkeeper is associated with the sport of association football."
+     },
+     {
+      "id": "fact:416",
+      "snippet": "midfielder is associated with the sport of sumo."
+     },
+     {
+      "id": "fact:213",
+      "snippet": "Darryl Strawberry is associated with the sport of baseball."
+     },
+     {
+      "id": "fact:50",
+      "snippet": "quarterback is associated with the sport of Muay Thai."
+     },
+     {
+      "id": "fact:252",
+      "snippet": "wide receiver is associated with the sport of rugby."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.466Z",
+   "what": "mab hits 59"
+  },
+  "d3a45bb15599f47d": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:415",
+      "snippet": "The type of music that John McVie plays is rap rock."
+     },
+     {
+      "id": "fact:355",
+      "snippet": "The type of music that Bruce Springsteen plays is rock music."
+     },
+     {
+      "id": "fact:298",
+      "snippet": "The type of music that Michael Mantler plays is post-punk."
+     },
+     {
+      "id": "fact:83",
+      "snippet": "The type of music that Dale Evans plays is country music."
+     },
+     {
+      "id": "fact:281",
+      "snippet": "The type of music that Dana International plays is Australian hip hop."
+     },
+     {
+      "id": "fact:452",
+      "snippet": "Roy Rogers is married to John McVie."
+     },
+     {
+      "id": "fact:144",
+      "snippet": "The univeristy where Bill Frisell was educated is Berklee College of Music."
+     },
+     {
+      "id": "fact:162",
+      "snippet": "country music was created in the country of United States of America."
+     },
+     {
+      "id": "fact:308",
+      "snippet": "John Harkes is associated with the sport of association football."
+     },
+     {
+      "id": "fact:110",
+      "snippet": "Mike D'Antoni plays the position of point guard."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.478Z",
+   "what": "mab hits 60"
+  },
+  "967d1be49a81f23c": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:434",
+      "snippet": "Rogério Ceni plays the position of flanker."
+     },
+     {
+      "id": "fact:269",
+      "snippet": "Daniele De Rossi plays the position of midfielder."
+     },
+     {
+      "id": "fact:110",
+      "snippet": "Mike D'Antoni plays the position of point guard."
+     },
+     {
+      "id": "fact:334",
+      "snippet": "Robert Parish plays the position of quarterback."
+     },
+     {
+      "id": "fact:419",
+      "snippet": "Blair Walsh plays the position of placekicker."
+     },
+     {
+      "id": "fact:227",
+      "snippet": "Irving Fryar plays the position of wide receiver."
+     },
+     {
+      "id": "fact:169",
+      "snippet": "Lisa Leslie plays the position of goaltender."
+     },
+     {
+      "id": "fact:36",
+      "snippet": "Hines Ward plays the position of cornerback."
+     },
+     {
+      "id": "fact:416",
+      "snippet": "midfielder is associated with the sport of sumo."
+     },
+     {
+      "id": "fact:310",
+      "snippet": "goaltender is associated with the sport of pesäpallo."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.489Z",
+   "what": "mab hits 61"
+  },
+  "42223196599bd077": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:275",
+      "snippet": "The chief executive officer of Twitter is Bernard Arnault."
+     },
+     {
+      "id": "fact:201",
+      "snippet": "The chief executive officer of Apple Inc.. The chief executive officer of Apple Inc. is Vijay Mallya."
+     },
+     {
+      "id": "fact:188",
+      "snippet": "The chief executive officer of Microsoft is Steve Jobs."
+     },
+     {
+      "id": "fact:74",
+      "snippet": "The chief executive officer of Valve Corporation is Gabe Newell."
+     },
+     {
+      "id": "fact:393",
+      "snippet": "The chief executive officer of Boeing is Adel al-Jubeir."
+     },
+     {
+      "id": "fact:379",
+      "snippet": "The chief executive officer of Lockheed Martin is Marillyn Hewson."
+     },
+     {
+      "id": "fact:408",
+      "snippet": "The chief executive officer of ABB Group is Bernard Arnault."
+     },
+     {
+      "id": "fact:232",
+      "snippet": "The chairperson of Fatah is Moshe Kahlon."
+     },
+     {
+      "id": "fact:428",
+      "snippet": "The director of British Broadcasting Corporation is Narendra Modi."
+     },
+     {
+      "id": "fact:432",
+      "snippet": "The name of the current head of the United States of America government is Donald Trump."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.506Z",
+   "what": "mab hits 62"
+  },
+  "fbb52e2d07131576": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:157",
+      "snippet": "Kylie Minogue speaks the language of German."
+     },
+     {
+      "id": "fact:425",
+      "snippet": "Hermione Granger was performed by Kylie Minogue."
+     },
+     {
+      "id": "fact:402",
+      "snippet": "Emma Watson speaks the language of English."
+     },
+     {
+      "id": "fact:44",
+      "snippet": "Kūkai speaks the language of Japanese."
+     },
+     {
+      "id": "fact:88",
+      "snippet": "Andrzej Sapkowski speaks the language of Polish."
+     },
+     {
+      "id": "fact:439",
+      "snippet": "The official language of Japan is Swedish."
+     },
+     {
+      "id": "fact:197",
+      "snippet": "T.. T. S. Eliot speaks the language of French."
+     },
+     {
+      "id": "fact:151",
+      "snippet": "The official language of Australia is Arabic."
+     },
+     {
+      "id": "fact:297",
+      "snippet": "Playboy was written in the language of English."
+     },
+     {
+      "id": "fact:336",
+      "snippet": "William Waynflete speaks the language of Latin."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.517Z",
+   "what": "mab hits 63"
+  },
+  "956a3ac0492f5b9c": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:213",
+      "snippet": "Darryl Strawberry is associated with the sport of baseball."
+     },
+     {
+      "id": "fact:223",
+      "snippet": "goaltender is associated with the sport of ice hockey."
+     },
+     {
+      "id": "fact:303",
+      "snippet": "David Beckham is associated with the sport of cricket."
+     },
+     {
+      "id": "fact:321",
+      "snippet": "placekicker is associated with the sport of rugby."
+     },
+     {
+      "id": "fact:376",
+      "snippet": "New Firm is associated with the sport of baseball."
+     },
+     {
+      "id": "fact:417",
+      "snippet": "Steve Sax is associated with the sport of association football."
+     },
+     {
+      "id": "fact:346",
+      "snippet": "Bo Ryan is associated with the sport of association football."
+     },
+     {
+      "id": "fact:416",
+      "snippet": "midfielder is associated with the sport of sumo."
+     },
+     {
+      "id": "fact:362",
+      "snippet": "cornerback is associated with the sport of field hockey."
+     },
+     {
+      "id": "fact:310",
+      "snippet": "goaltender is associated with the sport of pesäpallo."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.530Z",
+   "what": "mab hits 64"
+  },
+  "79508d34c9cde2ef": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:321",
+      "snippet": "placekicker is associated with the sport of rugby."
+     },
+     {
+      "id": "fact:310",
+      "snippet": "goaltender is associated with the sport of pesäpallo."
+     },
+     {
+      "id": "fact:419",
+      "snippet": "Blair Walsh plays the position of placekicker."
+     },
+     {
+      "id": "fact:223",
+      "snippet": "goaltender is associated with the sport of ice hockey."
+     },
+     {
+      "id": "fact:219",
+      "snippet": "point guard is associated with the sport of cricket."
+     },
+     {
+      "id": "fact:437",
+      "snippet": "goalkeeper is associated with the sport of association football."
+     },
+     {
+      "id": "fact:362",
+      "snippet": "cornerback is associated with the sport of field hockey."
+     },
+     {
+      "id": "fact:303",
+      "snippet": "David Beckham is associated with the sport of cricket."
+     },
+     {
+      "id": "fact:405",
+      "snippet": "Carlos Gómez is associated with the sport of basketball."
+     },
+     {
+      "id": "fact:168",
+      "snippet": "center is associated with the sport of basketball."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.554Z",
+   "what": "mab hits 65"
+  },
+  "b7fd0af047cce03b": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:320",
+      "snippet": "Stephen McNeil works in the field of journalist."
+     },
+     {
+      "id": "fact:445",
+      "snippet": "The chairperson of Congolese Party of Labour is Stephen McNeil."
+     },
+     {
+      "id": "fact:423",
+      "snippet": "Stephen Crane is famous for Charlie Hebdo."
+     },
+     {
+      "id": "fact:77",
+      "snippet": "The author of The Birth of Tragedy is Stephen Crane."
+     },
+     {
+      "id": "fact:312",
+      "snippet": "John Knox worked in the city of Edinburgh."
+     },
+     {
+      "id": "fact:72",
+      "snippet": "Stephen Crane is famous for The Red Badge of Courage."
+     },
+     {
+      "id": "fact:188",
+      "snippet": "The chief executive officer of Microsoft is Steve Jobs."
+     },
+     {
+      "id": "fact:178",
+      "snippet": "Steve Jobs was born in the city of San Francisco."
+     },
+     {
+      "id": "fact:166",
+      "snippet": "Stefan Löfven worked in the city of Stockholm."
+     },
+     {
+      "id": "fact:368",
+      "snippet": "Moshe Kahlon works in the field of soldier."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.566Z",
+   "what": "mab hits 66"
+  },
+  "56cd2a284eaf0c2c": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:226",
+      "snippet": "Dave Filoni is employed by British Broadcasting Corporation."
+     },
+     {
+      "id": "fact:140",
+      "snippet": "The name of the current head of the Pittsburgh government is Bill Peduto."
+     },
+     {
+      "id": "fact:385",
+      "snippet": "Ron Dennis is employed by Pakistan International Airlines."
+     },
+     {
+      "id": "fact:445",
+      "snippet": "The chairperson of Congolese Party of Labour is Stephen McNeil."
+     },
+     {
+      "id": "fact:320",
+      "snippet": "Stephen McNeil works in the field of journalist."
+     },
+     {
+      "id": "fact:276",
+      "snippet": "The Prime Minister of Sweden is Pedro Pierluisi."
+     },
+     {
+      "id": "fact:428",
+      "snippet": "The director of British Broadcasting Corporation is Narendra Modi."
+     },
+     {
+      "id": "fact:232",
+      "snippet": "The chairperson of Fatah is Moshe Kahlon."
+     },
+     {
+      "id": "fact:443",
+      "snippet": "The director of The Beatles is Joe Hockey."
+     },
+     {
+      "id": "fact:188",
+      "snippet": "The chief executive officer of Microsoft is Steve Jobs."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.581Z",
+   "what": "mab hits 67"
+  },
+  "497cedf3de64dd48": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:397",
+      "snippet": "San Francisco is located in the continent of North America."
+     },
+     {
+      "id": "fact:178",
+      "snippet": "Steve Jobs was born in the city of San Francisco."
+     },
+     {
+      "id": "fact:127",
+      "snippet": "Israel is located in the continent of North America."
+     },
+     {
+      "id": "fact:442",
+      "snippet": "Malaysia is located in the continent of Antarctica."
+     },
+     {
+      "id": "fact:220",
+      "snippet": "Australia is located in the continent of South America."
+     },
+     {
+      "id": "fact:440",
+      "snippet": "Canada is located in the continent of Asia."
+     },
+     {
+      "id": "fact:429",
+      "snippet": "France is located in the continent of Europe."
+     },
+     {
+      "id": "fact:234",
+      "snippet": "Bengaluru is located in the continent of Oceania."
+     },
+     {
+      "id": "fact:187",
+      "snippet": "Hyderabad is located in the continent of Asia."
+     },
+     {
+      "id": "fact:113",
+      "snippet": "London is located in the continent of Europe."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.595Z",
+   "what": "mab hits 68"
+  },
+  "489eb80220f94dfe": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:265",
+      "snippet": "Canadair was founded in the city of Tucson."
+     },
+     {
+      "id": "fact:49",
+      "snippet": "Israel was founded by Philippe, Duke of Orléans."
+     },
+     {
+      "id": "fact:264",
+      "snippet": "Sasanian Empire was founded by Walter Chrysler."
+     },
+     {
+      "id": "fact:421",
+      "snippet": "Philadelphia was founded by William Penn."
+     },
+     {
+      "id": "fact:230",
+      "snippet": "Ford Motor Company was founded by Henri Grégoire."
+     },
+     {
+      "id": "fact:370",
+      "snippet": "Buddhism was founded by Mekere Morauta."
+     },
+     {
+      "id": "fact:193",
+      "snippet": "Catholic Church was founded by Jesus Christ."
+     },
+     {
+      "id": "fact:304",
+      "snippet": "Shingon Buddhism was founded by William Waynflete."
+     },
+     {
+      "id": "fact:48",
+      "snippet": "Israel was founded by David Ben-Gurion."
+     },
+     {
+      "id": "fact:108",
+      "snippet": "Boston was founded by John Winthrop."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.609Z",
+   "what": "mab hits 69"
+  },
+  "5c2e736078d0e340": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:356",
+      "snippet": "The company that produced AP1000 is Canadair."
+     },
+     {
+      "id": "fact:92",
+      "snippet": "The company that produced Il-2 Shturmovik is Ilyushin."
+     },
+     {
+      "id": "fact:400",
+      "snippet": "The company that produced Ford F-Series is Ford Motor Company."
+     },
+     {
+      "id": "fact:253",
+      "snippet": "The company that produced Ford Transit Connect is Ford Motor Company."
+     },
+     {
+      "id": "fact:404",
+      "snippet": "The origianl broadcaster of The Brady Bunch is American Broadcasting Company."
+     },
+     {
+      "id": "fact:392",
+      "snippet": "The director of American Broadcasting Company is Ernst Heinkel."
+     },
+     {
+      "id": "fact:230",
+      "snippet": "Ford Motor Company was founded by Henri Grégoire."
+     },
+     {
+      "id": "fact:363",
+      "snippet": "The origianl broadcaster of 666 Park Avenue is American Broadcasting Company."
+     },
+     {
+      "id": "fact:277",
+      "snippet": "SteamOS was developed by ABB Group."
+     },
+     {
+      "id": "type:product",
+      "snippet": "product. a thing being built; groups projects"
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.624Z",
+   "what": "mab hits 70"
+  },
+  "d4e556b9bd4a37bf": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:293",
+      "snippet": "Ayumi Hamasaki is a citizen of Japan."
+     },
+     {
+      "id": "fact:229",
+      "snippet": "Rocket Man was performed by Ayumi Hamasaki."
+     },
+     {
+      "id": "fact:250",
+      "snippet": "Country Joe McDonald is a citizen of Romania."
+     },
+     {
+      "id": "fact:261",
+      "snippet": "pesäpallo was created in the country of Philippines."
+     },
+     {
+      "id": "fact:165",
+      "snippet": "Country Joe McDonald is a citizen of United States of America."
+     },
+     {
+      "id": "fact:357",
+      "snippet": "Iman is affiliated with the religion of Islam."
+     },
+     {
+      "id": "fact:313",
+      "snippet": "Benjamin Mazar is a citizen of Israel."
+     },
+     {
+      "id": "fact:95",
+      "snippet": "sumo was created in the country of Japan."
+     },
+     {
+      "id": "fact:217",
+      "snippet": "Narendra Modi is a citizen of Australia."
+     },
+     {
+      "id": "fact:374",
+      "snippet": "Imelda Marcos is affiliated with the religion of atheism."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.641Z",
+   "what": "mab hits 71"
+  },
+  "5e49ed56e4a4f762": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:419",
+      "snippet": "Blair Walsh plays the position of placekicker."
+     },
+     {
+      "id": "fact:334",
+      "snippet": "Robert Parish plays the position of quarterback."
+     },
+     {
+      "id": "fact:36",
+      "snippet": "Hines Ward plays the position of cornerback."
+     },
+     {
+      "id": "fact:269",
+      "snippet": "Daniele De Rossi plays the position of midfielder."
+     },
+     {
+      "id": "fact:227",
+      "snippet": "Irving Fryar plays the position of wide receiver."
+     },
+     {
+      "id": "fact:169",
+      "snippet": "Lisa Leslie plays the position of goaltender."
+     },
+     {
+      "id": "fact:434",
+      "snippet": "Rogério Ceni plays the position of flanker."
+     },
+     {
+      "id": "fact:110",
+      "snippet": "Mike D'Antoni plays the position of point guard."
+     },
+     {
+      "id": "fact:361",
+      "snippet": "John Walsh is affiliated with the religion of Methodism."
+     },
+     {
+      "id": "fact:351",
+      "snippet": "The name of the current head of the Council of People's Commissars government is Tony Blair."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.679Z",
+   "what": "mab hits 72"
+  },
+  "27f2807a0cd91868": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:424",
+      "snippet": "Tony Blair is married to Alan Jay Lerner."
+     },
+     {
+      "id": "fact:138",
+      "snippet": "David Bowie is married to Iman."
+     },
+     {
+      "id": "fact:8",
+      "snippet": "Victoria Beckham is married to David Beckham."
+     },
+     {
+      "id": "fact:351",
+      "snippet": "The name of the current head of the Council of People's Commissars government is Tony Blair."
+     },
+     {
+      "id": "fact:84",
+      "snippet": "Laura Bush is married to George W.. Laura Bush is married to George W. Bush."
+     },
+     {
+      "id": "fact:11",
+      "snippet": "Ferdinand Marcos is married to Imelda Marcos."
+     },
+     {
+      "id": "fact:233",
+      "snippet": "Yves Montand is married to Natalie Portman."
+     },
+     {
+      "id": "fact:135",
+      "snippet": "Laura Bush is married to Princess Alice, Duchess of Gloucester."
+     },
+     {
+      "id": "fact:422",
+      "snippet": "Vladimir Lenin is married to Nadezhda Krupskaya."
+     },
+     {
+      "id": "fact:369",
+      "snippet": "Nicolae Ceaușescu is married to Wilhelm II."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.723Z",
+   "what": "mab hits 73"
+  },
+  "8b8d35c525072628": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:180",
+      "snippet": "The author of Endymion is John Keats."
+     },
+     {
+      "id": "fact:401",
+      "snippet": "The author of Sidereus Nuncius is Samuel Beckett."
+     },
+     {
+      "id": "fact:305",
+      "snippet": "The author of The Witcher is T.. The author of The Witcher is T. S. Eliot."
+     },
+     {
+      "id": "fact:200",
+      "snippet": "The author of Categories is Aristotle."
+     },
+     {
+      "id": "fact:301",
+      "snippet": "The author of A Wizard of Earthsea is Pius XII."
+     },
+     {
+      "id": "fact:146",
+      "snippet": "The author of Our Mutual Friend is Charles Darwin."
+     },
+     {
+      "id": "fact:77",
+      "snippet": "The author of The Birth of Tragedy is Stephen Crane."
+     },
+     {
+      "id": "fact:147",
+      "snippet": "The author of Lady Windermere's Fan is Oscar Wilde."
+     },
+     {
+      "id": "fact:430",
+      "snippet": "The author of Sketches by Boz is Sigmund Freud."
+     },
+     {
+      "id": "fact:398",
+      "snippet": "The author of The Marriage of Figaro is Thomas Kyd."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.848Z",
+   "what": "mab hits 74"
+  },
+  "0cc534be2a1c0164": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:147",
+      "snippet": "The author of Lady Windermere's Fan is Oscar Wilde."
+     },
+     {
+      "id": "fact:305",
+      "snippet": "The author of The Witcher is T.. The author of The Witcher is T. S. Eliot."
+     },
+     {
+      "id": "fact:146",
+      "snippet": "The author of Our Mutual Friend is Charles Darwin."
+     },
+     {
+      "id": "fact:180",
+      "snippet": "The author of Endymion is John Keats."
+     },
+     {
+      "id": "fact:77",
+      "snippet": "The author of The Birth of Tragedy is Stephen Crane."
+     },
+     {
+      "id": "fact:344",
+      "snippet": "The author of Starship Troopers is Daphne du Maurier."
+     },
+     {
+      "id": "fact:401",
+      "snippet": "The author of Sidereus Nuncius is Samuel Beckett."
+     },
+     {
+      "id": "fact:398",
+      "snippet": "The author of The Marriage of Figaro is Thomas Kyd."
+     },
+     {
+      "id": "fact:430",
+      "snippet": "The author of Sketches by Boz is Sigmund Freud."
+     },
+     {
+      "id": "fact:420",
+      "snippet": "Sophia Hawthorne is married to Joan Didion."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.874Z",
+   "what": "mab hits 75"
+  },
+  "528d857d8dc1af49": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:202",
+      "snippet": "The name of the current head of the Japan government is Shinzō Abe."
+     },
+     {
+      "id": "fact:432",
+      "snippet": "The name of the current head of the United States of America government is Donald Trump."
+     },
+     {
+      "id": "fact:375",
+      "snippet": "The name of the current head of the Italy government is Giuseppe Conte."
+     },
+     {
+      "id": "fact:351",
+      "snippet": "The name of the current head of the Council of People's Commissars government is Tony Blair."
+     },
+     {
+      "id": "fact:103",
+      "snippet": "The capital of Japan is Tokyo."
+     },
+     {
+      "id": "fact:454",
+      "snippet": "The name of the current head of the Tucson government is Jonathan Rothschild."
+     },
+     {
+      "id": "fact:140",
+      "snippet": "The name of the current head of the Pittsburgh government is Bill Peduto."
+     },
+     {
+      "id": "fact:249",
+      "snippet": "The name of the current head of state in United Kingdom is Emmerson Mnangagwa."
+     },
+     {
+      "id": "fact:365",
+      "snippet": "The name of the current head of state in Soviet Union is Elizabeth II."
+     },
+     {
+      "id": "fact:293",
+      "snippet": "Ayumi Hamasaki is a citizen of Japan."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.888Z",
+   "what": "mab hits 76"
+  },
+  "5b4e7ba5e2d6384a": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:445",
+      "snippet": "The chairperson of Congolese Party of Labour is Stephen McNeil."
+     },
+     {
+      "id": "fact:232",
+      "snippet": "The chairperson of Fatah is Moshe Kahlon."
+     },
+     {
+      "id": "fact:351",
+      "snippet": "The name of the current head of the Council of People's Commissars government is Tony Blair."
+     },
+     {
+      "id": "fact:428",
+      "snippet": "The director of British Broadcasting Corporation is Narendra Modi."
+     },
+     {
+      "id": "fact:276",
+      "snippet": "The Prime Minister of Sweden is Pedro Pierluisi."
+     },
+     {
+      "id": "fact:222",
+      "snippet": "The chairperson of Harvard University is Peter Diamandis."
+     },
+     {
+      "id": "fact:217",
+      "snippet": "Narendra Modi is a citizen of Australia."
+     },
+     {
+      "id": "fact:406",
+      "snippet": "Denis Sassou-Nguesso works in the field of politician."
+     },
+     {
+      "id": "fact:262",
+      "snippet": "Mahmoud Abbas works in the field of politician."
+     },
+     {
+      "id": "fact:354",
+      "snippet": "The director of Madonna is Narendra Modi."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.903Z",
+   "what": "mab hits 77"
+  },
+  "d37c3d7358afa6b1": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:258",
+      "snippet": "flanker is associated with the sport of rugby union."
+     },
+     {
+      "id": "fact:219",
+      "snippet": "point guard is associated with the sport of cricket."
+     },
+     {
+      "id": "fact:252",
+      "snippet": "wide receiver is associated with the sport of rugby."
+     },
+     {
+      "id": "fact:23",
+      "snippet": "Galwegians RFC is associated with the sport of rugby union."
+     },
+     {
+      "id": "fact:362",
+      "snippet": "cornerback is associated with the sport of field hockey."
+     },
+     {
+      "id": "fact:437",
+      "snippet": "goalkeeper is associated with the sport of association football."
+     },
+     {
+      "id": "fact:93",
+      "snippet": "Gala RFC is associated with the sport of rugby union."
+     },
+     {
+      "id": "fact:416",
+      "snippet": "midfielder is associated with the sport of sumo."
+     },
+     {
+      "id": "fact:321",
+      "snippet": "placekicker is associated with the sport of rugby."
+     },
+     {
+      "id": "fact:279",
+      "snippet": "Slovakia national football team is associated with the sport of cricket."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.918Z",
+   "what": "mab hits 78"
+  },
+  "6bb2d36f62308c7f": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:190",
+      "snippet": "The capital of Czech Republic is Prague."
+     },
+     {
+      "id": "fact:299",
+      "snippet": "Sable is a citizen of Czech Republic."
+     },
+     {
+      "id": "fact:26",
+      "snippet": "The capital of Germany is Berlin."
+     },
+     {
+      "id": "fact:198",
+      "snippet": "The capital of Papal States is Rome."
+     },
+     {
+      "id": "fact:449",
+      "snippet": "The capital of Romania is Rajanpur."
+     },
+     {
+      "id": "fact:209",
+      "snippet": "The capital of Italy is Duluth."
+     },
+     {
+      "id": "fact:179",
+      "snippet": "The capital of Soviet Union is Russellville."
+     },
+     {
+      "id": "fact:255",
+      "snippet": "The capital of Iran is Tehran."
+     },
+     {
+      "id": "fact:341",
+      "snippet": "The capital of India is Grosseto."
+     },
+     {
+      "id": "fact:171",
+      "snippet": "The capital of France is Harare."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.931Z",
+   "what": "mab hits 79"
+  },
+  "03cb5081270c83c0": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:169",
+      "snippet": "Lisa Leslie plays the position of goaltender."
+     },
+     {
+      "id": "fact:419",
+      "snippet": "Blair Walsh plays the position of placekicker."
+     },
+     {
+      "id": "fact:36",
+      "snippet": "Hines Ward plays the position of cornerback."
+     },
+     {
+      "id": "fact:434",
+      "snippet": "Rogério Ceni plays the position of flanker."
+     },
+     {
+      "id": "fact:110",
+      "snippet": "Mike D'Antoni plays the position of point guard."
+     },
+     {
+      "id": "fact:269",
+      "snippet": "Daniele De Rossi plays the position of midfielder."
+     },
+     {
+      "id": "fact:334",
+      "snippet": "Robert Parish plays the position of quarterback."
+     },
+     {
+      "id": "fact:227",
+      "snippet": "Irving Fryar plays the position of wide receiver."
+     },
+     {
+      "id": "fact:96",
+      "snippet": "Meredith Grey was performed by Ellen Pompeo."
+     },
+     {
+      "id": "fact:266",
+      "snippet": "Karen Armstrong is affiliated with the religion of Catholic Church."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.952Z",
+   "what": "mab hits 80"
+  },
+  "828dc266b230e895": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:365",
+      "snippet": "The name of the current head of state in Soviet Union is Elizabeth II."
+     },
+     {
+      "id": "fact:126",
+      "snippet": "The name of the current head of state in United States of America is Connachta."
+     },
+     {
+      "id": "fact:179",
+      "snippet": "The capital of Soviet Union is Russellville."
+     },
+     {
+      "id": "fact:432",
+      "snippet": "The name of the current head of the United States of America government is Donald Trump."
+     },
+     {
+      "id": "fact:249",
+      "snippet": "The name of the current head of state in United Kingdom is Emmerson Mnangagwa."
+     },
+     {
+      "id": "fact:348",
+      "snippet": "basketball was created in the country of Soviet Union."
+     },
+     {
+      "id": "fact:202",
+      "snippet": "The name of the current head of the Japan government is Shinzō Abe."
+     },
+     {
+      "id": "fact:140",
+      "snippet": "The name of the current head of the Pittsburgh government is Bill Peduto."
+     },
+     {
+      "id": "fact:353",
+      "snippet": "Club Nouveau was created in the country of Soviet Union."
+     },
+     {
+      "id": "fact:351",
+      "snippet": "The name of the current head of the Council of People's Commissars government is Tony Blair."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.966Z",
+   "what": "mab hits 81"
+  },
+  "5b1131e063b4a6a0": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:386",
+      "snippet": "Ferdinand von Richthofen is a citizen of Canada."
+     },
+     {
+      "id": "fact:250",
+      "snippet": "Country Joe McDonald is a citizen of Romania."
+     },
+     {
+      "id": "fact:165",
+      "snippet": "Country Joe McDonald is a citizen of United States of America."
+     },
+     {
+      "id": "fact:73",
+      "snippet": "Hal Needham is a citizen of United States of America."
+     },
+     {
+      "id": "fact:319",
+      "snippet": "Bernard Arnault is a citizen of France."
+     },
+     {
+      "id": "fact:436",
+      "snippet": "Le Petit Parisien was created in the country of Germany."
+     },
+     {
+      "id": "fact:322",
+      "snippet": "Amala Paul is a citizen of Belgium."
+     },
+     {
+      "id": "fact:371",
+      "snippet": "Charles the Bold is a citizen of France."
+     },
+     {
+      "id": "fact:353",
+      "snippet": "Club Nouveau was created in the country of Soviet Union."
+     },
+     {
+      "id": "fact:102",
+      "snippet": "Club Nouveau was created in the country of United States of America."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.982Z",
+   "what": "mab hits 82"
+  },
+  "6817e552d148c848": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:266",
+      "snippet": "Karen Armstrong is affiliated with the religion of Catholic Church."
+     },
+     {
+      "id": "fact:412",
+      "snippet": "Karen Armstrong is affiliated with the religion of Church of Scotland."
+     },
+     {
+      "id": "fact:374",
+      "snippet": "Imelda Marcos is affiliated with the religion of atheism."
+     },
+     {
+      "id": "fact:361",
+      "snippet": "John Walsh is affiliated with the religion of Methodism."
+     },
+     {
+      "id": "fact:410",
+      "snippet": "Natalie Portman is affiliated with the religion of interdenominational organization."
+     },
+     {
+      "id": "fact:119",
+      "snippet": "Sarit Thanarat is affiliated with the religion of Buddhism."
+     },
+     {
+      "id": "fact:339",
+      "snippet": "Adalbert of Prague is affiliated with the religion of atheism."
+     },
+     {
+      "id": "fact:94",
+      "snippet": "Princess Alice, Duchess of Gloucester is affiliated with the religion of Anglicanism."
+     },
+     {
+      "id": "fact:260",
+      "snippet": "Kingdom of Ireland is affiliated with the religion of Zoroastrianism."
+     },
+     {
+      "id": "fact:263",
+      "snippet": "George W.. George W. Bush is affiliated with the religion of United Methodist Church."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:35.997Z",
+   "what": "mab hits 83"
+  },
+  "51cf89404818d166": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:390",
+      "snippet": "Vito Corleone was created by Nobuhiro Watsuki."
+     },
+     {
+      "id": "fact:358",
+      "snippet": "Charlie Hebdo was created in the country of Italy."
+     },
+     {
+      "id": "fact:389",
+      "snippet": "association football was created in the country of Italy."
+     },
+     {
+      "id": "fact:112",
+      "snippet": "Mario Puzo is famous for The Godfather."
+     },
+     {
+      "id": "fact:326",
+      "snippet": "Rand al'Thor was created by Ferdowsi."
+     },
+     {
+      "id": "fact:102",
+      "snippet": "Club Nouveau was created in the country of United States of America."
+     },
+     {
+      "id": "fact:353",
+      "snippet": "Club Nouveau was created in the country of Soviet Union."
+     },
+     {
+      "id": "fact:95",
+      "snippet": "sumo was created in the country of Japan."
+     },
+     {
+      "id": "fact:348",
+      "snippet": "basketball was created in the country of Soviet Union."
+     },
+     {
+      "id": "fact:193",
+      "snippet": "Catholic Church was founded by Jesus Christ."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.014Z",
+   "what": "mab hits 84"
+  },
+  "369ea2f47fc71578": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:449",
+      "snippet": "The capital of Romania is Rajanpur."
+     },
+     {
+      "id": "fact:198",
+      "snippet": "The capital of Papal States is Rome."
+     },
+     {
+      "id": "fact:190",
+      "snippet": "The capital of Czech Republic is Prague."
+     },
+     {
+      "id": "fact:26",
+      "snippet": "The capital of Germany is Berlin."
+     },
+     {
+      "id": "fact:179",
+      "snippet": "The capital of Soviet Union is Russellville."
+     },
+     {
+      "id": "fact:255",
+      "snippet": "The capital of Iran is Tehran."
+     },
+     {
+      "id": "fact:171",
+      "snippet": "The capital of France is Harare."
+     },
+     {
+      "id": "fact:341",
+      "snippet": "The capital of India is Grosseto."
+     },
+     {
+      "id": "fact:247",
+      "snippet": "The capital of United States of America is Washington, D.C.."
+     },
+     {
+      "id": "fact:250",
+      "snippet": "Country Joe McDonald is a citizen of Romania."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.032Z",
+   "what": "mab hits 85"
+  },
+  "9701a05b1725aff3": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:280",
+      "snippet": "India is located in the continent of Africa."
+     },
+     {
+      "id": "fact:187",
+      "snippet": "Hyderabad is located in the continent of Asia."
+     },
+     {
+      "id": "fact:220",
+      "snippet": "Australia is located in the continent of South America."
+     },
+     {
+      "id": "fact:440",
+      "snippet": "Canada is located in the continent of Asia."
+     },
+     {
+      "id": "fact:234",
+      "snippet": "Bengaluru is located in the continent of Oceania."
+     },
+     {
+      "id": "fact:435",
+      "snippet": "Germany is located in the continent of Africa."
+     },
+     {
+      "id": "fact:211",
+      "snippet": "England is located in the continent of Europe."
+     },
+     {
+      "id": "fact:127",
+      "snippet": "Israel is located in the continent of North America."
+     },
+     {
+      "id": "fact:442",
+      "snippet": "Malaysia is located in the continent of Antarctica."
+     },
+     {
+      "id": "fact:105",
+      "snippet": "United Kingdom is located in the continent of Europe."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.051Z",
+   "what": "mab hits 86"
+  },
+  "0075f4bd6cec8124": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:450",
+      "snippet": "Olga of Kiev died in the city of Rodez."
+     },
+     {
+      "id": "fact:175",
+      "snippet": "Igor of Kiev is married to Olga of Kiev."
+     },
+     {
+      "id": "fact:302",
+      "snippet": "Nadezhda Krupskaya died in the city of Moscow."
+     },
+     {
+      "id": "fact:292",
+      "snippet": "Gennady Rozhdestvensky died in the city of Moscow."
+     },
+     {
+      "id": "fact:451",
+      "snippet": "Gennady Rozhdestvensky died in the city of United States of America."
+     },
+     {
+      "id": "fact:53",
+      "snippet": "Ursula K.. Ursula K. Le Guin died in the city of Portland."
+     },
+     {
+      "id": "fact:142",
+      "snippet": "Andy Warhol died in the city of Montmélian."
+     },
+     {
+      "id": "fact:300",
+      "snippet": "Sigmund Freud died in the city of London."
+     },
+     {
+      "id": "fact:51",
+      "snippet": "Frank Zappa died in the city of Berlin."
+     },
+     {
+      "id": "fact:170",
+      "snippet": "Alan Jay Lerner died in the city of New York City."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.068Z",
+   "what": "mab hits 87"
+  },
+  "4d51947357285d15": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:264",
+      "snippet": "Sasanian Empire was founded by Walter Chrysler."
+     },
+     {
+      "id": "fact:49",
+      "snippet": "Israel was founded by Philippe, Duke of Orléans."
+     },
+     {
+      "id": "fact:265",
+      "snippet": "Canadair was founded in the city of Tucson."
+     },
+     {
+      "id": "fact:304",
+      "snippet": "Shingon Buddhism was founded by William Waynflete."
+     },
+     {
+      "id": "fact:193",
+      "snippet": "Catholic Church was founded by Jesus Christ."
+     },
+     {
+      "id": "fact:230",
+      "snippet": "Ford Motor Company was founded by Henri Grégoire."
+     },
+     {
+      "id": "fact:403",
+      "snippet": "rap rock was created in the country of Russian Empire."
+     },
+     {
+      "id": "fact:48",
+      "snippet": "Israel was founded by David Ben-Gurion."
+     },
+     {
+      "id": "fact:108",
+      "snippet": "Boston was founded by John Winthrop."
+     },
+     {
+      "id": "fact:287",
+      "snippet": "Methodism was founded by Joseph Goebbels."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.091Z",
+   "what": "mab hits 88"
+  },
+  "0380762f7e671228": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:5",
+      "snippet": "Pedro Pierluisi worked in the city of Washington, D.C.."
+     },
+     {
+      "id": "fact:276",
+      "snippet": "The Prime Minister of Sweden is Pedro Pierluisi."
+     },
+     {
+      "id": "fact:307",
+      "snippet": "Jesus Christ worked in the city of Galilee."
+     },
+     {
+      "id": "fact:406",
+      "snippet": "Denis Sassou-Nguesso works in the field of politician."
+     },
+     {
+      "id": "fact:143",
+      "snippet": "McLaren Automotive was founded in the city of Woking."
+     },
+     {
+      "id": "fact:265",
+      "snippet": "Canadair was founded in the city of Tucson."
+     },
+     {
+      "id": "fact:316",
+      "snippet": "Pierre Beaumarchais was born in the city of Paris."
+     },
+     {
+      "id": "fact:395",
+      "snippet": "Joseph Goebbels worked in the city of Berlin."
+     },
+     {
+      "id": "fact:166",
+      "snippet": "Stefan Löfven worked in the city of Stockholm."
+     },
+     {
+      "id": "fact:178",
+      "snippet": "Steve Jobs was born in the city of San Francisco."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.107Z",
+   "what": "mab hits 89"
+  },
+  "f4a6885b8106c24f": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:315",
+      "snippet": "Surrey Senior Cup is associated with the sport of basketball."
+     },
+     {
+      "id": "fact:279",
+      "snippet": "Slovakia national football team is associated with the sport of cricket."
+     },
+     {
+      "id": "fact:417",
+      "snippet": "Steve Sax is associated with the sport of association football."
+     },
+     {
+      "id": "fact:93",
+      "snippet": "Gala RFC is associated with the sport of rugby union."
+     },
+     {
+      "id": "fact:437",
+      "snippet": "goalkeeper is associated with the sport of association football."
+     },
+     {
+      "id": "fact:219",
+      "snippet": "point guard is associated with the sport of cricket."
+     },
+     {
+      "id": "fact:23",
+      "snippet": "Galwegians RFC is associated with the sport of rugby union."
+     },
+     {
+      "id": "fact:303",
+      "snippet": "David Beckham is associated with the sport of cricket."
+     },
+     {
+      "id": "fact:149",
+      "snippet": "FC Irtysh Omsk is associated with the sport of association football."
+     },
+     {
+      "id": "fact:446",
+      "snippet": "Alta IF is associated with the sport of baseball."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.123Z",
+   "what": "mab hits 90"
+  },
+  "5e8d4a1b5e4c2e14": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:217",
+      "snippet": "Narendra Modi is a citizen of Australia."
+     },
+     {
+      "id": "fact:428",
+      "snippet": "The director of British Broadcasting Corporation is Narendra Modi."
+     },
+     {
+      "id": "fact:354",
+      "snippet": "The director of Madonna is Narendra Modi."
+     },
+     {
+      "id": "fact:250",
+      "snippet": "Country Joe McDonald is a citizen of Romania."
+     },
+     {
+      "id": "fact:165",
+      "snippet": "Country Joe McDonald is a citizen of United States of America."
+     },
+     {
+      "id": "fact:225",
+      "snippet": "Henri Grégoire is a citizen of India."
+     },
+     {
+      "id": "fact:358",
+      "snippet": "Charlie Hebdo was created in the country of Italy."
+     },
+     {
+      "id": "fact:293",
+      "snippet": "Ayumi Hamasaki is a citizen of Japan."
+     },
+     {
+      "id": "fact:95",
+      "snippet": "sumo was created in the country of Japan."
+     },
+     {
+      "id": "fact:239",
+      "snippet": "Cédric Klapisch is a citizen of Malaysia."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.140Z",
+   "what": "mab hits 91"
+  },
+  "863e872ebbd9de52": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:8",
+      "snippet": "Victoria Beckham is married to David Beckham."
+     },
+     {
+      "id": "fact:135",
+      "snippet": "Laura Bush is married to Princess Alice, Duchess of Gloucester."
+     },
+     {
+      "id": "fact:414",
+      "snippet": "Derek Shepherd is married to Meredith Grey."
+     },
+     {
+      "id": "fact:84",
+      "snippet": "Laura Bush is married to George W.. Laura Bush is married to George W. Bush."
+     },
+     {
+      "id": "fact:424",
+      "snippet": "Tony Blair is married to Alan Jay Lerner."
+     },
+     {
+      "id": "fact:303",
+      "snippet": "David Beckham is associated with the sport of cricket."
+     },
+     {
+      "id": "fact:233",
+      "snippet": "Yves Montand is married to Natalie Portman."
+     },
+     {
+      "id": "fact:335",
+      "snippet": "Charles Darwin is married to Amala Paul."
+     },
+     {
+      "id": "fact:138",
+      "snippet": "David Bowie is married to Iman."
+     },
+     {
+      "id": "fact:11",
+      "snippet": "Ferdinand Marcos is married to Imelda Marcos."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.153Z",
+   "what": "mab hits 92"
+  },
+  "94e9c357ee0e86b4": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:343",
+      "snippet": "Charles Messier is a citizen of Iran."
+     },
+     {
+      "id": "fact:371",
+      "snippet": "Charles the Bold is a citizen of France."
+     },
+     {
+      "id": "fact:250",
+      "snippet": "Country Joe McDonald is a citizen of Romania."
+     },
+     {
+      "id": "fact:358",
+      "snippet": "Charlie Hebdo was created in the country of Italy."
+     },
+     {
+      "id": "fact:165",
+      "snippet": "Country Joe McDonald is a citizen of United States of America."
+     },
+     {
+      "id": "fact:386",
+      "snippet": "Ferdinand von Richthofen is a citizen of Canada."
+     },
+     {
+      "id": "fact:87",
+      "snippet": "Catherine Dickens is a citizen of United Kingdom."
+     },
+     {
+      "id": "fact:427",
+      "snippet": "Joe Hockey is a citizen of Italy."
+     },
+     {
+      "id": "fact:319",
+      "snippet": "Bernard Arnault is a citizen of France."
+     },
+     {
+      "id": "fact:131",
+      "snippet": "Charles Dickens is married to Catherine Dickens."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.165Z",
+   "what": "mab hits 93"
+  },
+  "a1c715b543cce1fd": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:326",
+      "snippet": "Rand al'Thor was created by Ferdowsi."
+     },
+     {
+      "id": "fact:345",
+      "snippet": "Thus Spoke Zarathustra was created in the country of Germany."
+     },
+     {
+      "id": "fact:390",
+      "snippet": "Vito Corleone was created by Nobuhiro Watsuki."
+     },
+     {
+      "id": "fact:150",
+      "snippet": "cricket was created in the country of Australia."
+     },
+     {
+      "id": "fact:401",
+      "snippet": "The author of Sidereus Nuncius is Samuel Beckett."
+     },
+     {
+      "id": "fact:359",
+      "snippet": "rap rock was created in the country of United States of America."
+     },
+     {
+      "id": "fact:186",
+      "snippet": "rugby union was created in the country of India."
+     },
+     {
+      "id": "fact:403",
+      "snippet": "rap rock was created in the country of Russian Empire."
+     },
+     {
+      "id": "fact:48",
+      "snippet": "Israel was founded by David Ben-Gurion."
+     },
+     {
+      "id": "fact:146",
+      "snippet": "The author of Our Mutual Friend is Charles Darwin."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.176Z",
+   "what": "mab hits 94"
+  },
+  "dc06646d9d0113c0": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:110",
+      "snippet": "Mike D'Antoni plays the position of point guard."
+     },
+     {
+      "id": "fact:269",
+      "snippet": "Daniele De Rossi plays the position of midfielder."
+     },
+     {
+      "id": "fact:227",
+      "snippet": "Irving Fryar plays the position of wide receiver."
+     },
+     {
+      "id": "fact:434",
+      "snippet": "Rogério Ceni plays the position of flanker."
+     },
+     {
+      "id": "fact:419",
+      "snippet": "Blair Walsh plays the position of placekicker."
+     },
+     {
+      "id": "fact:334",
+      "snippet": "Robert Parish plays the position of quarterback."
+     },
+     {
+      "id": "fact:36",
+      "snippet": "Hines Ward plays the position of cornerback."
+     },
+     {
+      "id": "fact:169",
+      "snippet": "Lisa Leslie plays the position of goaltender."
+     },
+     {
+      "id": "fact:223",
+      "snippet": "goaltender is associated with the sport of ice hockey."
+     },
+     {
+      "id": "fact:427",
+      "snippet": "Joe Hockey is a citizen of Italy."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.186Z",
+   "what": "mab hits 95"
+  },
+  "4e3ccf323d62e72f": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:441",
+      "snippet": "Colin Irwin is a citizen of Israel."
+     },
+     {
+      "id": "fact:250",
+      "snippet": "Country Joe McDonald is a citizen of Romania."
+     },
+     {
+      "id": "fact:165",
+      "snippet": "Country Joe McDonald is a citizen of United States of America."
+     },
+     {
+      "id": "fact:217",
+      "snippet": "Narendra Modi is a citizen of Australia."
+     },
+     {
+      "id": "fact:311",
+      "snippet": "Bob Iger is a citizen of United States of America."
+     },
+     {
+      "id": "fact:225",
+      "snippet": "Henri Grégoire is a citizen of India."
+     },
+     {
+      "id": "fact:386",
+      "snippet": "Ferdinand von Richthofen is a citizen of Canada."
+     },
+     {
+      "id": "fact:406",
+      "snippet": "Denis Sassou-Nguesso works in the field of politician."
+     },
+     {
+      "id": "fact:444",
+      "snippet": "Tim Cook is a citizen of United States of America."
+     },
+     {
+      "id": "fact:358",
+      "snippet": "Charlie Hebdo was created in the country of Italy."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.206Z",
+   "what": "mab hits 96"
+  },
+  "454ef1c9a5fc0624": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:61",
+      "snippet": "Walter Chrysler's child is Walter Percy Chrysler Jr.."
+     },
+     {
+      "id": "fact:231",
+      "snippet": "Walter Chrysler's child is Charles Frederick, Duke of Holstein-Gottorp."
+     },
+     {
+      "id": "fact:264",
+      "snippet": "Sasanian Empire was founded by Walter Chrysler."
+     },
+     {
+      "id": "fact:332",
+      "snippet": "Aristotle's child is George Alexander Kohut."
+     },
+     {
+      "id": "fact:433",
+      "snippet": "Gabe Newell is a citizen of United States of America."
+     },
+     {
+      "id": "fact:311",
+      "snippet": "Bob Iger is a citizen of United States of America."
+     },
+     {
+      "id": "fact:411",
+      "snippet": "Ardashir I's child is Shapur I."
+     },
+     {
+      "id": "fact:379",
+      "snippet": "The chief executive officer of Lockheed Martin is Marillyn Hewson."
+     },
+     {
+      "id": "fact:316",
+      "snippet": "Pierre Beaumarchais was born in the city of Paris."
+     },
+     {
+      "id": "fact:22",
+      "snippet": "Robert A.. Robert A. Heinlein is a citizen of United States of America."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.217Z",
+   "what": "mab hits 97"
+  },
+  "7c2f762c27e763d8": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:335",
+      "snippet": "Charles Darwin is married to Amala Paul."
+     },
+     {
+      "id": "fact:146",
+      "snippet": "The author of Our Mutual Friend is Charles Darwin."
+     },
+     {
+      "id": "fact:131",
+      "snippet": "Charles Dickens is married to Catherine Dickens."
+     },
+     {
+      "id": "fact:139",
+      "snippet": "Elvis Presley is married to Charles the Bold."
+     },
+     {
+      "id": "fact:8",
+      "snippet": "Victoria Beckham is married to David Beckham."
+     },
+     {
+      "id": "fact:135",
+      "snippet": "Laura Bush is married to Princess Alice, Duchess of Gloucester."
+     },
+     {
+      "id": "fact:424",
+      "snippet": "Tony Blair is married to Alan Jay Lerner."
+     },
+     {
+      "id": "fact:138",
+      "snippet": "David Bowie is married to Iman."
+     },
+     {
+      "id": "fact:452",
+      "snippet": "Roy Rogers is married to John McVie."
+     },
+     {
+      "id": "fact:420",
+      "snippet": "Sophia Hawthorne is married to Joan Didion."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.227Z",
+   "what": "mab hits 98"
+  },
+  "c8058e5ae7d2c3f0": {
+   "value": {
+    "hits": [
+     {
+      "id": "fact:227",
+      "snippet": "Irving Fryar plays the position of wide receiver."
+     },
+     {
+      "id": "fact:419",
+      "snippet": "Blair Walsh plays the position of placekicker."
+     },
+     {
+      "id": "fact:110",
+      "snippet": "Mike D'Antoni plays the position of point guard."
+     },
+     {
+      "id": "fact:434",
+      "snippet": "Rogério Ceni plays the position of flanker."
+     },
+     {
+      "id": "fact:334",
+      "snippet": "Robert Parish plays the position of quarterback."
+     },
+     {
+      "id": "fact:269",
+      "snippet": "Daniele De Rossi plays the position of midfielder."
+     },
+     {
+      "id": "fact:36",
+      "snippet": "Hines Ward plays the position of cornerback."
+     },
+     {
+      "id": "fact:169",
+      "snippet": "Lisa Leslie plays the position of goaltender."
+     },
+     {
+      "id": "fact:298",
+      "snippet": "The type of music that Michael Mantler plays is post-punk."
+     },
+     {
+      "id": "fact:321",
+      "snippet": "placekicker is associated with the sport of rugby."
+     }
+    ]
+   },
+   "at": "2026-09-20T10:30:36.239Z",
+   "what": "mab hits 99"
+  },
+  "0ad4c983d494d815": {
+   "value": "```json\n[\n  {\"i\": 0, \"answer\": \"ice hockey\"},\n  {\"i\": 1, \"answer\": \"The Fairly OddParents\"},\n  {\"i\": 2, \"answer\": \"India\"},\n  {\"i\": 3, \"answer\": \"Shahnameh\"},\n  {\"i\": 4, \"answer\": \"University of California, Berkeley\"},\n  {\"i\": 5, \"answer\": \"Thomas Kyd\"},\n  {\"i\": 6, \"answer\": \"basketball\"},\n  {\"i\": 7, \"answer\": \"Muay Thai\"},\n  {\"i\": 8, \"answer\": \"Swedish\"},\n  {\"i\": 9, \"answer\": \"Jonathan Rothschild\"}\n]\n```",
+   "at": "2026-09-20T10:30:46.153Z",
+   "what": "mab reader 0",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "2a9de7aa16165160": {
+   "value": "[\n  {\"i\": 0, \"answer\": \"Giuseppe Conte\"},\n  {\"i\": 1, \"answer\": \"Ellen Pompeo\"},\n  {\"i\": 2, \"answer\": \"quarterback\"},\n  {\"i\": 3, \"answer\": \"Malaysia\"},\n  {\"i\": 4, \"answer\": \"Samuel Beckett\"},\n  {\"i\": 5, \"answer\": \"Africa\"},\n  {\"i\": 6, \"answer\": \"Zoroastrianism\"},\n  {\"i\": 7, \"answer\": \"Italy\"},\n  {\"i\": 8, \"answer\": \"Microsoft\"},\n  {\"i\": 9, \"answer\": \"Steve Jobs\"}\n]",
+   "at": "2026-09-20T10:30:54.540Z",
+   "what": "mab reader 10",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "b459afd8460cb27a": {
+   "value": "[{\"i\": 0, \"answer\": \"Peter Diamandis\"}, {\"i\": 1, \"answer\": \"John Knox\"}, {\"i\": 2, \"answer\": \"rugby union\"}, {\"i\": 3, \"answer\": \"Ernst Heinkel\"}, {\"i\": 4, \"answer\": \"Moscow\"}, {\"i\": 5, \"answer\": \"Beaumont\"}, {\"i\": 6, \"answer\": \"Narendra Modi\"}, {\"i\": 7, \"answer\": \"Israel\"}, {\"i\": 8, \"answer\": \"post-punk\"}, {\"i\": 9, \"answer\": \"Guangzhou\"}]",
+   "at": "2026-09-20T10:31:04.290Z",
+   "what": "mab reader 20",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "5fc20b88d9c1b55a": {
+   "value": "```json\n[\n  {\"i\": 0, \"answer\": \"United States of America\"},\n  {\"i\": 1, \"answer\": \"Tang Empire\"},\n  {\"i\": 2, \"answer\": \"Philadelphia\"},\n  {\"i\": 3, \"answer\": \"United States of America\"},\n  {\"i\": 4, \"answer\": \"Taipei\"},\n  {\"i\": 5, \"answer\": \"German\"},\n  {\"i\": 6, \"answer\": \"Madonna\"},\n  {\"i\": 7, \"answer\": \"Tokyo\"},\n  {\"i\": 8, \"answer\": \"Harare\"},\n  {\"i\": 9, \"answer\": \"ABB Group\"}\n]\n```",
+   "at": "2026-09-20T10:31:14.240Z",
+   "what": "mab reader 30",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "3b1d8c03f90b8818": {
+   "value": "```json\n[\n  {\"i\": 0, \"answer\": \"Ankara\"},\n  {\"i\": 1, \"answer\": \"rugby\"},\n  {\"i\": 2, \"answer\": \"cornerback\"},\n  {\"i\": 3, \"answer\": \"Oderzo\"},\n  {\"i\": 4, \"answer\": \"Antarctica\"},\n  {\"i\": 5, \"answer\": \"Pius XII\"},\n  {\"i\": 6, \"answer\": \"The Beatles\"},\n  {\"i\": 7, \"answer\": \"Charles Darwin\"},\n  {\"i\": 8, \"answer\": \"United States of America\"},\n  {\"i\": 9, \"answer\": \"United States of America\"}\n]\n```",
+   "at": "2026-09-20T10:31:22.549Z",
+   "what": "mab reader 40",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "e685d8b9180bee02": {
+   "value": "```json\n[\n  {\"i\": 0, \"answer\": \"Oceania\"},\n  {\"i\": 1, \"answer\": \"cricket\"},\n  {\"i\": 2, \"answer\": \"Connachta\"},\n  {\"i\": 3, \"answer\": \"atheism\"},\n  {\"i\": 4, \"answer\": \"Australian hip hop\"},\n  {\"i\": 5, \"answer\": \"United States of America\"},\n  {\"i\": 6, \"answer\": \"Italy\"},\n  {\"i\": 7, \"answer\": \"Charles the Bold\"},\n  {\"i\": 8, \"answer\": \"Kylie Minogue\"},\n  {\"i\": 9, \"answer\": \"association football\"}\n]\n```",
+   "at": "2026-09-20T10:31:33.372Z",
+   "what": "mab reader 50",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "f888d927d8611aad": {
+   "value": "[\n  {\"i\": 0, \"answer\": \"rap rock\"},\n  {\"i\": 1, \"answer\": \"flanker\"},\n  {\"i\": 2, \"answer\": \"Bernard Arnault\"},\n  {\"i\": 3, \"answer\": \"German\"},\n  {\"i\": 4, \"answer\": \"baseball\"},\n  {\"i\": 5, \"answer\": \"rugby\"},\n  {\"i\": 6, \"answer\": \"journalist\"},\n  {\"i\": 7, \"answer\": \"British Broadcasting Corporation\"},\n  {\"i\": 8, \"answer\": \"North America\"},\n  {\"i\": 9, \"answer\": \"Tucson\"}\n]",
+   "at": "2026-09-20T10:31:43.059Z",
+   "what": "mab reader 60",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "a16f4cc9f41ddaa4": {
+   "value": "[{\"i\": 0, \"answer\": \"Canadair\"}, {\"i\": 1, \"answer\": \"Japan\"}, {\"i\": 2, \"answer\": \"placekicker\"}, {\"i\": 3, \"answer\": \"Alan Jay Lerner\"}, {\"i\": 4, \"answer\": \"John Keats\"}, {\"i\": 5, \"answer\": \"Oscar Wilde\"}, {\"i\": 6, \"answer\": \"Shinzō Abe\"}, {\"i\": 7, \"answer\": \"Stephen McNeil\"}, {\"i\": 8, \"answer\": \"rugby union\"}, {\"i\": 9, \"answer\": \"Prague\"}]",
+   "at": "2026-09-20T10:31:51.429Z",
+   "what": "mab reader 70",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "10b82f2b4c52f51f": {
+   "value": "```json\n[\n  {\"i\": 0, \"answer\": \"goaltender\"},\n  {\"i\": 1, \"answer\": \"Elizabeth II\"},\n  {\"i\": 2, \"answer\": \"Canada\"},\n  {\"i\": 3, \"answer\": \"Catholic Church\"},\n  {\"i\": 4, \"answer\": \"Nobuhiro Watsuki\"},\n  {\"i\": 5, \"answer\": \"Rajanpur\"},\n  {\"i\": 6, \"answer\": \"Africa\"},\n  {\"i\": 7, \"answer\": \"Rodez\"},\n  {\"i\": 8, \"answer\": \"Walter Chrysler\"},\n  {\"i\": 9, \"answer\": \"Washington, D.C.\"}\n]\n```",
+   "at": "2026-09-20T10:31:58.797Z",
+   "what": "mab reader 80",
+   "model": "claude-haiku-4-5-20251001"
+  },
+  "78a5e8937634b78d": {
+   "value": "```json\n[\n  {\"i\": 0, \"answer\": \"basketball\"},\n  {\"i\": 1, \"answer\": \"Australia\"},\n  {\"i\": 2, \"answer\": \"David Beckham\"},\n  {\"i\": 3, \"answer\": \"Iran\"},\n  {\"i\": 4, \"answer\": \"Ferdowsi\"},\n  {\"i\": 5, \"answer\": \"point guard\"},\n  {\"i\": 6, \"answer\": \"Israel\"},\n  {\"i\": 7, \"answer\": \"Walter Percy Chrysler Jr.\"},\n  {\"i\": 8, \"answer\": \"Amala Paul\"},\n  {\"i\": 9, \"answer\": \"wide receiver\"}\n]\n```",
+   "at": "2026-09-20T10:32:09.785Z",
+   "what": "mab reader 90",
+   "model": "claude-haiku-4-5-20251001"
+  }
+ }
+}

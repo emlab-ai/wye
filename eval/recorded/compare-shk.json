@@ -1,0 +1,19 @@
+{
+ "name": "compare-shk",
+ "entries": {
+  "f78b08b088b95c4d": {
+   "value": "```json\n[\n  {\n    \"i\": 0,\n    \"answered\": false,\n    \"by\": null,\n    \"reason\": \"The constraints describe how the system works and strategic goals, but do not specify what work item or task the agent should prioritize next.\"\n  }\n]\n```",
+   "at": "2026-09-20T10:15:29.849Z",
+   "what": "should-have-known 2026-09-20-42c63c with-1",
+   "model": "claude-haiku-4-5-20251001",
+   "prompt": "87aa90ae"
+  },
+  "f31c3be09f04ff41": {
+   "value": "```json\n[\n  {\n    \"i\": 0,\n    \"answered\": false,\n    \"by\": null,\n    \"reason\": \"Constraints establish that git is canonical and the rollback, but do not specify error handling strategy (silent vs surfaced).\"\n  },\n  {\n    \"i\": 1,\n    \"answered\": false,\n    \"by\": null,\n    \"reason\": \"Constraints indicate failed/cancelled sessions are tracked but do not specify whether they should be committed to git; this is exactly what question:wf2.close-keeps-record leaves open.\"\n  }\n]\n```",
+   "at": "2026-09-20T10:38:27.501Z",
+   "what": "should-have-known 2026-09-20-42c63c with-5",
+   "model": "claude-haiku-4-5-20251001",
+   "prompt": "87aa90ae"
+  }
+ }
+}
