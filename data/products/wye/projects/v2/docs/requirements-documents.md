@@ -504,6 +504,38 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - unless:wf2.import.code the folder does not exist — then nothing is written; pages that exist already are kept, never overwritten
 
+```yaml
+- id: req:wf2.page.head-notion
+  title: A page's head has a cover, a big icon, tags and comments, the way a Notion page does
+  status: shipped
+  refines: req:wf2.page.header-card
+  satisfied-by: [component:page-head, component:doc-props, op:api.comments, op:doc.frontmatter]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-documents
+```
+
+  - when:wf2.page.head-notion a person opens any page
+
+  - then:wf2.page.head-notion above the title: the cover image when the page has one (a band; Change / Remove on hover), the icon large (click: an emoji grid, any text, Remove); without them, Add icon and Add cover appear on hover; under the title the properties as rows — owner, tags as coloured chips with an input to add (Enter or comma; the type's `tags: manyOf[…]` values suggested, and a new value written to a product type first so the tag is defined on the page's type), verified, then the type's own properties and "n more properties"; then Comments: the comments on the page's node, oldest first, and "Add a comment…" that writes to the project's Comments document; icon, cover and tags are front-matter keys (`icon`, `cover`, `tags` on type:node)
+
+  - unless:wf2.page.head-notion the page's type is a base type — then a new tag is a free label on the page, not a value on the type
+
+```yaml
+- id: req:wf2.editor.selection-menu
+  title: Selected text gets one compact menu — block type, styles, links, Comment, Ask an agent
+  status: shipped
+  refines: req:wf2.editor.entity-from-text
+  satisfied-by: [component:selection-menu, component:doc-editor]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-documents
+```
+
+  - when:wf2.editor.selection-menu text is selected in the editor
+
+  - then:wf2.editor.selection-menu a popover shows the block's type on top (Normal text › heading 1–3, bullet / numbered / check list, quote, code block; a typed block keeps its shape), the text styles (bold, italic, underline, strike, code, clear), a URL link, ⌁ node and ▣ block, Comment on the block, and Ask an agent — in place of a row of toolbar buttons
+
 ## Open questions
 
 <!-- list:question -->

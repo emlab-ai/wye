@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useBlockNoteEditor, useEditorSelectionChange } from '@blocknote/react';
 
-// The menu over a text selection (component:selection-menu, rule:selection-menu): one compact popover instead of a
+// The menu over a text selection (component:selection-menu, req:wf2.editor.selection-menu): one compact popover instead of a
 // row of buttons — the block's type on top (Normal text › heading, list, quote, code), the text styles, then Wye's
 // own moves (⌁ node, ▣ block, a link), Comment on the block, and Ask an agent. Every action goes through the
 // editor's own API; the parent supplies the three moves that need its state (link picker, make-block picker, ask,

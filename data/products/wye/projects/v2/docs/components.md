@@ -773,6 +773,16 @@ The editor's blocks and the components the pages are made of, by area.
     make-block picker, ask, comment) as callbacks.
   status: proposed
   part-of: module:components
+- id: component:page-head
+  file: packages/web/src/components/PageHead.tsx
+  side: client
+  purpose: >
+    The Notion-shaped parts of a page's head (req&#58;wf2.page.head-notion): the cover band, the big icon with its
+    picker, the Tags row, and the Comments section under the properties. Each saves through the same front-matter
+    patch the rest of the head uses (`save`), so a page's icon, cover and tags are keys in its markdown like
+    everything else.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

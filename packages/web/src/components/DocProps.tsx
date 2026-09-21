@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react';
 import type { PropDef, TypeDef } from '@/lib/graph';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
+import { Cover, IconPicker, PageComments, TagsRow } from './PageHead';
 
 const STATUSES = ['proposed', 'partial', 'shipped', 'deprecated'];
 // frontmatter keys the header shows in its own places (or never): not properties of the type
-const HEAD_KEYS = new Set(['node', 'type', 'title', 'status', 'icon', 'owner', 'last-verified', 'order', 'sources', 'source-roots', 'text', 'part-of']);
+const HEAD_KEYS = new Set(['node', 'type', 'title', 'status', 'icon', 'cover', 'tags', 'owner', 'last-verified', 'order', 'sources', 'source-roots', 'text', 'part-of']);
 const glyph = (p: PropDef) => p.ref ? '↗' : p.type === 'text' ? '≡' : p.type === 'date' || p.type === 'month' ? '▦' : p.type === 'bool' ? '☑' : p.enum ? '◇' : p.type === 'number' ? '#' : '⋯';
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');
 
@@ -23,6 +24,7 @@ export function DocProps({ product, project, slug, file, fm, node, types }: { pr
   const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [msg, setMsg] = useState('');
   const [more, setMore] = useState(false);
+  const [iconPick, setIconPick] = useState(false);
   useEffect(() => { setVals(fm); }, [fm]);
   const kind = node.split(':')[0];
   const type = types.find(t => t.slug === kind) ?? null;
@@ -88,8 +90,17 @@ export function DocProps({ product, project, slug, file, fm, node, types }: { pr
         {p.ref && v.trim() && <span className="list">{v.replace(/^\[|\]$/g, '').split(/,\s*/).filter(x => /^[a-z][a-z0-9-]*:/.test(x)).map(x => <span key={x} className="item"><SmartTag id={x} /></span>)}</span>}
       </span>);
   };
+  // a key set from a control (icon, cover, tags): the state and the front matter in one move
+  const setKey = (key: string, v: string) => { setVals(c => ({ ...c, [key]: v })); void commit(key, v); };
+  const tagsProp = (type?.props ?? []).find(p => p.name === 'tags') ?? null;
   return (
-    <header className="doc-head">
+    <header className={`doc-head ${vals.cover ? 'has-cover' : ''}`}>
+      {vals.cover && <Cover product={product} project={project} value={vals.cover} onChange={v => setKey('cover', v)} />}
+      {vals.icon && <div className="doc-icon-row"><button type="button" className="doc-icon-big" onClick={() => setIconPick(v => !v)} title="Change the icon">{vals.icon}</button>{iconPick && <IconPicker value={vals.icon} onPick={v => { setKey('icon', v); setIconPick(false); }} onClose={() => setIconPick(false)} />}</div>}
+      <div className="doc-ghost-row">
+        {!vals.icon && <><button type="button" className="doc-ghost" onClick={() => setIconPick(v => !v)}>☺ Add icon</button>{iconPick && <IconPicker value="" onPick={v => { setKey('icon', v); setIconPick(false); }} onClose={() => setIconPick(false)} />}</>}
+        {!vals.cover && <Cover product={product} project={project} value="" onChange={v => setKey('cover', v)} />}
+      </div>
       <div className="pills">
         <select className={`pill k type-sel k-${kind}`} style={{ background: `var(--k-${kind}, var(--k-module))` }} value={kind} onChange={e => retype(e.target.value)} title={type ? `${type.purpose || type.id} — pick another type to retype the page and every link to it` : `${kind} is not a declared type`}>
           {!type && <option value={kind}>{kind}</option>}
@@ -101,8 +112,13 @@ export function DocProps({ product, project, slug, file, fm, node, types }: { pr
         {msg && <span className={`muted doc-msg ${state === 'error' ? 'bad' : ''}`}>{msg}</span>}
         {!type && <span className="doc-warn">unknown type — the page is not in the graph</span>}
       </div>
-      <div className="doc-title-row">{field('icon', 'icon')}{field('title', 'h1')}</div>
-      <p className="sub">{file} · owner {field('owner')} · verified {field('last-verified')}</p>
+      <div className="doc-title-row">{field('title', 'h1')}</div>
+      <dl className="ne-props doc-props">
+        <div><dt><i>◔</i>owner</dt><dd>{field('owner')}</dd></div>
+        <div className={vals.tags ? '' : 'empty'}><dt title={tagsProp?.enum ? `values defined on ${tagsProp.from}` : 'free labels; a type may define them'}><i>⌗</i>tags</dt><dd><TagsRow product={product} type={type} prop={tagsProp} value={vals.tags ?? ''} onChange={v => setKey('tags', v)} /></dd></div>
+        <div className="empty"><dt><i>▦</i>verified</dt><dd>{field('last-verified')}</dd></div>
+        {more && <div className="empty"><dt><i>⋯</i>file</dt><dd><code className="muted">{file}</code></dd></div>}
+      </dl>
       {(shown.length > 0 || folded > 0) && (
         <dl className="ne-props doc-props">
           {shown.map(p => (
@@ -111,9 +127,10 @@ export function DocProps({ product, project, slug, file, fm, node, types }: { pr
               <dd>{value(p)}</dd>
             </div>
           ))}
-          {folded > 0 && <div><dt /><dd><button className="linkish doc-more" onClick={() => setMore(m => !m)}>{more ? 'fewer' : `${folded} more`}</button></dd></div>}
+          {folded > 0 && <div><dt /><dd><button className="linkish doc-more" onClick={() => setMore(m => !m)}>{more ? '⌃ fewer properties' : `⌄ ${folded} more properties`}</button></dd></div>}
         </dl>
       )}
+      <PageComments product={product} node={node} />
     </header>
   );
 }

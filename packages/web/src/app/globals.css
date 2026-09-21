@@ -394,6 +394,37 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .selmenu .selmenu-icons .selmenu-wide { flex: 1.6; font: 12.5px var(--font-m); }
 .selmenu .selmenu-link { display: flex; gap: 4px; padding: 2px 4px 6px; } .selmenu .selmenu-link input { flex: 1; min-width: 0; font: 12.5px var(--font-b); padding: 4px 8px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--surface); color: var(--ink); } .selmenu .selmenu-link button { border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); border-radius: 6px; padding: 0 10px; font: 12px var(--font-b); cursor: pointer; }
 .selmenu .selmenu-action { border-top: 1px solid var(--line); border-radius: 0; } .selmenu .selmenu-action:last-child { border-radius: 0 0 8px 8px; }
+/* The page head, Notion-shaped (req:wf2.page.head-notion): cover band, big icon, title, property rows, comments */
+.doc-cover { position: relative; margin: -8px 0 8px; border-radius: 10px; overflow: hidden; }
+.doc-cover img { display: block; width: 100%; height: 200px; object-fit: cover; }
+.doc-cover-tools { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; opacity: 0; transition: opacity .15s; }
+.doc-head:hover .doc-cover-tools, .doc-cover-tools:focus-within { opacity: 1; }
+.doc-cover-tools button, .doc-ghost { background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 9px; font: 12px var(--font-b); color: var(--ink-2); cursor: pointer; }
+.doc-cover-tools button:hover, .doc-ghost:hover { border-color: var(--accent); color: var(--ink); }
+.doc-icon-row { position: relative; margin: 4px 0 2px; }
+.doc-ghost-row { position: relative; display: flex; gap: 6px; min-height: 22px; margin: 0 0 6px; } .doc-cover-ghosts { display: inline-flex; gap: 6px; }
+.doc-head .doc-ghost { opacity: 0; } .doc-head:hover .doc-ghost, .doc-head .doc-ghost:focus { opacity: 1; }
+.doc-icon-big { font-size: 60px; line-height: 1; background: none; border: 0; padding: 4px 6px; margin-left: -6px; border-radius: 10px; cursor: pointer; } .doc-icon-big:hover { background: var(--sunk); }
+.doc-head.has-cover .doc-icon-row { margin-top: -38px; }
+.doc-head .icon-pick { position: absolute; left: 0; top: 100%; z-index: 61; width: 328px; padding: 8px; }
+.icon-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }
+.icon-grid button { display: inline-flex !important; width: auto !important; align-items: center; justify-content: center; height: 30px; font-size: 18px; padding: 0 !important; }
+.icon-grid button.on { background: var(--accent-soft); }
+.icon-any { display: flex; gap: 6px; align-items: center; margin-top: 8px; } .icon-any input { flex: 1; min-width: 0; font: 13px var(--font-b); padding: 4px 8px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.icon-any button { width: auto !important; display: inline-block !important; } .icon-any button[type=submit] { background: var(--accent) !important; color: var(--accent-ink); }
+.tags-row { display: inline-flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.tag-chip { display: inline-flex; align-items: center; gap: 3px; padding: 1px 4px 1px 8px; border-radius: 4px; font: 12.5px var(--font-b); background: hsl(var(--h) 45% 90%); color: hsl(var(--h) 45% 24%); }
+.tag-chip button { border: 0; background: none; color: inherit; opacity: .6; cursor: pointer; font-size: 13px; padding: 0 2px; } .tag-chip button:hover { opacity: 1; }
+.tag-in { border: 1px solid transparent; background: transparent; color: var(--ink); font: 12.5px var(--font-b); padding: 2px 6px; border-radius: 6px; min-width: 90px; } .tag-in:hover { border-color: var(--line); } .tag-in:focus { border-color: var(--accent); outline: none; background: var(--ground); }
+.page-comments { margin: 18px 0 6px; padding-top: 12px; border-top: 1px solid var(--line); max-width: 720px; }
+.page-comments h3 { font: 600 13px var(--font-b); color: var(--ink-2); margin: 0 0 8px; } .page-comments h3 small { color: var(--muted); font-weight: 500; }
+.page-comments ul { list-style: none; margin: 0 0 8px; padding: 0; } .page-comments li { display: flex; gap: 10px; padding: 6px 0; }
+.page-comments .avatar { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--sunk); color: var(--ink-2); display: inline-flex; align-items: center; justify-content: center; font: 600 11px var(--font-b); }
+.page-comments .meta { font-size: 12.5px; } .page-comments .meta .linkish { margin-left: 8px; color: var(--muted); opacity: 0; } .page-comments li:hover .meta .linkish { opacity: 1; }
+.page-comments .text { font-size: 14px; white-space: pre-wrap; }
+.comment-add { display: flex; gap: 10px; align-items: center; } .comment-add input { flex: 1; min-width: 0; border: 1px solid transparent; background: transparent; color: var(--ink); font: 14px var(--font-b); padding: 6px 8px; border-radius: 6px; } .comment-add input:hover { border-color: var(--line); } .comment-add input:focus { border-color: var(--accent); outline: none; background: var(--ground); }
+.comment-add .pri { background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); border-radius: 6px; padding: 4px 10px; font: 12px var(--font-b); cursor: pointer; }
+@media (prefers-color-scheme: dark) { .tag-chip { background: hsl(var(--h) 30% 26%); color: hsl(var(--h) 50% 88%); } }
 /* Import… (component:import-docs): the dialog under the Documents head */
 .import-form { display: block; }
 .import-form > label { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; align-items: center; margin: 6px 0; }

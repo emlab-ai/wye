@@ -26,6 +26,9 @@ type means instances may carry properties the type does not declare without a wa
     status: string?
     owner: string?
     text: text?
+    icon: string?                                     # a page's emoji, shown large above its title and in the tree (req:wf2.page.head-notion)
+    cover: string?                                    # a page's cover image: assets/<file> or a URL, the band above the head
+    tags: list of string?                             # free labels on a page; a type may narrow them with `tags: manyOf[a, b]`
     since: date?                                      # valid time: from when the node holds (decision:memory.bitemporal)
     until: date?                                      # valid time: when it stopped holding; filled by the parser when superseded
     by: string?                                       # who wrote it — a person, or agent:<name>
