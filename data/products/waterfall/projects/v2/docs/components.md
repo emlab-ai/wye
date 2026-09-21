@@ -726,6 +726,22 @@ The editor's blocks and the components the pages are made of, by area.
     the app (a scratch product deleted, a git checkout); a project when its folder leaves the product.
   status: proposed
   part-of: module:components
+- id: component:product-not-found
+  file: packages/web/src/app/[product]/not-found.tsx
+  side: server
+  purpose: >
+    notFound() anywhere under a product — a session, a type, a node that is not there — lands here, inside the
+    product's shell (the rail, the top bar, the column stay); the notice names what is missing from the address.
+  status: proposed
+  part-of: module:components
+- id: component:root-not-found
+  file: packages/web/src/app/not-found.tsx
+  side: server
+  purpose: >
+    The app never shows the framework's bare 404 (decision:wf2.deleted-outside-stays-put): an address that matches
+    nothing outside a product lands on the products that exist.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->
