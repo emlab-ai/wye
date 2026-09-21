@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
+import { codePaths, CODE_KEYS } from '@/lib/code-paths';
 import { ProgressBar } from './Progress';
 import { Linkified } from './IdLink';
 import { parseBody } from '@/lib/graph';
@@ -28,7 +29,7 @@ const glyph = (f: Field) => f.name === 'status' ? '◔' : f.type === 'progress' 
 // their tracking fields; empty optional ones fold under "n more properties". Every change saves to the defining
 // line or the yaml card and rebuilds the graph (op:node.edit).
 export function NodeEditor({ id, body, form, type, props, entry, relations = [], onSaved }: { id: string; body: string; form: string; type: TypeDef | null; props: NodeProp[]; entry?: IndexEntry; relations?: [string, string[]][]; onSaved: () => void }) {
-  const { product, index } = usePeek(); const router = useRouter();
+  const { product, index, open: openNode } = usePeek(); const router = useRouter();
   const kind = id.split(':')[0]; const prose = form === 'prose';
   const rows = parseBody(body);
   const get = (k: string) => rows.find(r => r.key === k)?.value ?? '';
@@ -115,9 +116,12 @@ export function NodeEditor({ id, body, form, type, props, entry, relations = [],
     }
     // a relation reads as its tags (Notion-style); the raw id field shows on hover or focus, after them
     const tagIds = f.ref && v.trim() ? v.replace(/^\[|\]$/g, '').split(/,\s*/).filter(x => /^[a-z][a-z0-9-]*:/.test(x)) : derived;
+    // a source path (`source: packages/web/src/lib/x.ts#fn`) opens the file in the column (req:wf2.code-preview)
+    const files = !f.ref && (CODE_KEYS.has(f.name) || /\.(ts|tsx|js|py|go|rs|java)\b/.test(v)) ? codePaths(v) : [];
     return (
-      <span className={`ne-ref ${tagIds.length ? 'has-tags' : ''}`}>
+      <span className={`ne-ref ${tagIds.length || files.length ? 'has-tags' : ''}`}>
         {tagIds.length > 0 && <span className="list">{tagIds.map(x => <span key={x} className="item"><SmartTag id={x} /></span>)}</span>}
+        {files.length > 0 && <span className="list">{files.map(x => <span key={x} className="item"><button type="button" className="code-link" title={`open ${x} in the column`} onClick={() => openNode(`code:${x}`)}>{'</>'} {x.split('/').pop()}</button></span>)}</span>}
         <input className="ne-in" list={f.ref ? `wf-ref-${f.ref}` : undefined} value={v} placeholder={f.ref ? `${f.ref}:…, …` : 'Empty'} onChange={e => setVal(f.name, e.target.value)} onKeyDown={enterBlurs} onBlur={() => commit(f)} aria-label={f.name} />
         {f.ref && <datalist id={`wf-ref-${f.ref}`}>{suggest(f).map(o => <option key={o.id} value={o.id}>{o.title}</option>)}</datalist>}
       </span>);

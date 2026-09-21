@@ -25,6 +25,7 @@ import { InstanceTable } from './InstanceTable';
 import { EMPTY_FILTERS, type InstanceTable as Table } from '@/lib/instance-table';
 import { Comments } from './Comments';
 import { HooksSection } from './HooksSection';
+import { CodeView } from './CodeView';
 import dynamic from 'next/dynamic';
 const DocEditor = dynamic(() => import('./DocEditor'), { ssr: false });
 import type { GraphNode, TypeDef } from '@/lib/graph';
@@ -43,7 +44,7 @@ export function PeekPanel() {
   // the column's tabs (req:wf2.ui.tabs): Context first on document pages, then every node or session opened
   const tabs: Tab[] = [
     ...(showContext ? [{ key: '', label: 'Context', icon: '◈', title: 'Follows the block you are editing', fixed: true }] : []),
-    ...stack.map((e, i) => { const en = index[e.id]; const kind = e.id.split(':')[0]; return { key: `${i}:${e.id}`, label: kind === 'session' ? `session ${e.id.slice(8, 14)}` : (en?.title ? plain(en.title) : e.id.replace(/^req:/, '')), icon: <i className="tab-dot" style={{ background: `var(--k-${kind}, var(--k-other))` }} />, title: e.id, pinned: e.pinned }; }),
+    ...stack.map((e, i) => { const en = index[e.id]; const kind = e.id.split(':')[0]; return { key: `${i}:${e.id}`, label: kind === 'session' ? `session ${e.id.slice(8, 14)}` : kind === 'code' ? e.id.slice(5).split('/').pop()!.replace(/[#:].*$/, '') : (en?.title ? plain(en.title) : e.id.replace(/^req:/, '')), icon: <i className="tab-dot" style={{ background: `var(--k-${kind}, var(--k-other))` }} />, title: e.id, pinned: e.pinned }; }),
   ];
   const at = (key: string) => Number(key.split(':')[0]);
   const chips = (
@@ -63,6 +64,15 @@ export function PeekPanel() {
         {rootId
           ? <><NodeView id={rootId} />{(!focused || focused === editing?.nodeId) && <Related open={relatedOpen} setOpen={setRelatedOpen} sub />}</>
           : <><div className="peek-bar"><strong>Context</strong><span className="muted">{editing ? 'for the block you are editing' : 'put the cursor in the text'}</span></div>{editing ? <Related open={relatedOpen} setOpen={setRelatedOpen} /> : <ContextPanel />}</>}
+      </div>
+    </aside>
+  );
+  // a file of the product's code (req:wf2.code-preview): the viewer takes the column
+  if (openId.startsWith('code:')) return (
+    <aside className="peek" role="dialog" aria-label={openId}>
+      {chips}
+      <div className="peek-body peek-code">
+        <CodeView file={openId.slice('code:'.length)} />
       </div>
     </aside>
   );
