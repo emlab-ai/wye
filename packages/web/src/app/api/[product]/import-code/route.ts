@@ -8,7 +8,9 @@ import { rebuild } from '@/lib/write';
 import { assignTask } from '@/lib/work-io';
 import { agentSettings, readSettings } from '@/lib/settings';
 
-const require = createRequire(import.meta.url);
+// the repo's lib/init.js through a require anchored at the repo root (as lib/build.ts does): a literal relative path
+// the bundler leaves alone, not a computed one
+const repoRequire = createRequire(path.join(REPO_ROOT, 'package.json'));
 
 // op:api.import-code — POST { name, path, analyse? } → a feature's definition read from code (lib/init.js
 // `--feature`): a project named after it with the layered tree, every module / page / component / library /
@@ -26,7 +28,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   try { if (!(await stat(abs)).isDirectory()) throw new Error(); } catch { return NextResponse.json({ error: 'invalid', message: `${abs} is not a folder` }, { status: 422 }); }
   // init scans `path` under `repo`; a folder outside the repo is its own repo
   const inside = abs.startsWith(repo + path.sep) || abs === repo;
-  const { init } = require(path.join(REPO_ROOT, 'lib/init.js')) as { init: (o: Record<string, unknown>) => { made: { written: string[]; skipped: string[]; counts: Record<string, number> }; areas: { slug: string; title: string; dir: string; files: string[] }[]; project: string } };
+  const { init } = repoRequire('./lib/init.js') as { init: (o: Record<string, unknown>) => { made: { written: string[]; skipped: string[]; counts: Record<string, number> }; areas: { slug: string; title: string; dir: string; files: string[] }[]; project: string } };
   const r = init({ dataRoot: path.join(REPO_ROOT, 'data'), product, repo: inside ? repo : abs, feature: name, path: inside && abs !== repo ? path.relative(repo, abs) : undefined });
   const built = await rebuild(p.dir);
   const tasks: { id: string; session?: string; error?: string }[] = [];

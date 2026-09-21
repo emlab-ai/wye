@@ -83,7 +83,10 @@ async function ensureBuilt() {
   if (!DEV && !fs.existsSync(path.join(ROOT, 'packages/web/.next/BUILD_ID'))) { showStatus('Building the web app (first launch, a few minutes)…'); await npm(['run', 'build', '--workspace=packages/web'], 'build'); }
 }
 
-function ping() { return new Promise(res => { const r = http.get(URL_ + '/api/products', x => { res(x.statusCode < 500); x.resume(); }); r.on('error', () => res(false)); r.setTimeout(1500, () => { r.destroy(); res(false); }); }); }
+// Is something answering on the port? Any HTTP answer counts — a dev server mid-compile or showing a build error
+// still owns the port, and a second `next dev` there would only fail with EADDRINUSE. The timeout is generous for
+// the same reason (Turbopack can hold a request for seconds while it rebuilds).
+function ping() { return new Promise(res => { const r = http.get(URL_ + '/api/products', x => { res(true); x.resume(); }); r.on('error', () => res(false)); r.setTimeout(6000, () => { r.destroy(); res(false); }); }); }
 
 async function startServer() {
   if (await ping()) { dlog(`server already running at ${URL_}; attaching`); return; }
@@ -96,9 +99,19 @@ async function startServer() {
   showStatus('Starting the server…');
   server = spawn('npm', args, { cwd: ROOT, env: { ...process.env, PORT: String(PORT), BROWSER: 'none' }, stdio: ['ignore', log, log], detached: true });
   server.on('error', e => { server = null; if (!quitting) dialog.showErrorBox('Wye', `Could not start npm in ${ROOT}: ${e.message}. Is Node.js installed and on the PATH of your login shell?`); });
-  server.on('exit', code => { server = null; if (!quitting) dialog.showErrorBox('Wye', `The app server stopped (exit ${code}). See .cache/desktop-web.log`); });
-  for (let i = 0; i < 120; i++) { if (await ping()) return; await new Promise(r => setTimeout(r, 500)); }
-  throw new Error(`the app server did not answer on ${URL_}`);
+  let exited = null;
+  server.on('exit', code => { server = null; exited = code; });
+  for (let i = 0; i < 240; i++) {
+    if (await ping()) return;
+    if (exited !== null) {
+      // the usual reason: another server already holds the port (EADDRINUSE) — attach to it if it answers now
+      if (await ping()) return;
+      const tail = (() => { try { return fs.readFileSync(path.join(ROOT, '.cache/desktop-web.log'), 'utf8').split('\n').slice(-12).join('\n'); } catch { return ''; } })();
+      throw new Error(`The app server stopped (exit ${exited}).${/EADDRINUSE/.test(tail) ? ` Port ${PORT} is taken by another process that does not answer — stop it, or start Wye with WYE_PORT=<other port>.` : ''} See .cache/desktop-web.log in the checkout.`);
+    }
+    await new Promise(r => setTimeout(r, 500));
+  }
+  throw new Error(`the app server did not answer on ${URL_} after two minutes; see .cache/desktop-web.log in the checkout`);
 }
 
 function createWindow() {
