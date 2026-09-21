@@ -1,9 +1,10 @@
 'use client';
+import { SelectionMenu } from './SelectionMenu';
 import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent as ReactFocusEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, filterSuggestionItems, insertOrUpdateBlockForSlashMenu, getNodeById } from '@blocknote/core';
-import { useCreateBlockNote, createReactInlineContentSpec, createReactBlockSpec, FormattingToolbar, FormattingToolbarController, getFormattingToolbarItems, SuggestionMenuController, getDefaultReactSlashMenuItems, useBlockNoteEditor, useComponentsContext, SideMenuController, SideMenu, DragHandleMenu, RemoveBlockItem, BlockColorsItem, useExtensionState, useEditorSelectionChange, useEditorChange } from '@blocknote/react';
+import { useCreateBlockNote, createReactInlineContentSpec, createReactBlockSpec, FormattingToolbarController, SuggestionMenuController, getDefaultReactSlashMenuItems, useBlockNoteEditor, useComponentsContext, SideMenuController, SideMenu, DragHandleMenu, RemoveBlockItem, BlockColorsItem, useExtensionState, useEditorSelectionChange, useEditorChange } from '@blocknote/react';
 import { SideMenuExtension } from '@blocknote/core/extensions';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
@@ -632,51 +633,30 @@ function AnnotateItem({ annotate }: { annotate: (b: AnyBlock) => void }) {
   return <Components.Generic.Menu.Item className="bn-menu-item" onClick={() => annotate(block as unknown as AnyBlock)}>Annotate image</Components.Generic.Menu.Item>;
 }
 
-// "Ask": a command to an agent about the selected text, with the block and the page attached.
-function AskAgentButton({ onRequest }: { onRequest: (r: Omit<AskRequest, 'doc' | 'project' | 'pageLink'>) => void }) {
-  const editor = useBlockNoteEditor();
-  const Components = useComponentsContext()!;
-  return (
-    <Components.FormattingToolbar.Button className="bn-button" label="Ask an agent" mainTooltip="Send the selection with a command to a session (⇢)" onClick={() => {
-      const sel = window.getSelection(); const rect = sel && sel.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : { left: 200, bottom: 200 };
-      let block: AnyBlock | undefined; try { block = editor.getTextCursorPosition().block as unknown as AnyBlock; } catch { block = undefined; }
-      const items = block && Array.isArray(block.content) ? block.content as { type: string; text?: string; props?: { id?: string }; href?: string; content?: { text?: string }[] }[] : [];
-      const blockText = items.map(i => i.type === 'text' ? i.text ?? '' : i.type === 'link' ? (i.content ?? []).map(c => c.text ?? '').join('') : i.type === 'tag' ? i.props?.id ?? '' : '').join('');
-      const refs = items.flatMap(i => i.type === 'tag' && i.props?.id ? [i.props.id] : i.type === 'link' && i.href && /^[a-z-]+:/.test(i.href) ? [i.href] : []);
-      if (block?.type === 'node') { const np = block.props as unknown as { kind: string; slug: string }; refs.unshift(`${np.kind}:${np.slug}`); }
-      onRequest({ selection: editor.getSelectedText(), blockText, blockLink: block ? blockLink(block, editor.domElement as HTMLElement | null) : '', refs, x: rect.left, y: rect.bottom + 8 });
-    }}>⇢ ask</Components.FormattingToolbar.Button>
-  );
+// "Ask": a command to an agent about the selected text, with the block and the page attached (the selection menu's
+// last row, component:selection-menu).
+type Ed = { getTextCursorPosition: () => { block: unknown }; getSelectedText: () => string; domElement: unknown };
+function askRequestFrom(editor: Ed, at: { left: number; bottom: number }): Omit<AskRequest, 'doc' | 'project' | 'pageLink'> {
+  let block: AnyBlock | undefined; try { block = editor.getTextCursorPosition().block as unknown as AnyBlock; } catch { block = undefined; }
+  const items = block && Array.isArray(block.content) ? block.content as { type: string; text?: string; props?: { id?: string }; href?: string; content?: { text?: string }[] }[] : [];
+  const blockText = items.map(i => i.type === 'text' ? i.text ?? '' : i.type === 'link' ? (i.content ?? []).map(c => c.text ?? '').join('') : i.type === 'tag' ? i.props?.id ?? '' : '').join('');
+  const refs = items.flatMap(i => i.type === 'tag' && i.props?.id ? [i.props.id] : i.type === 'link' && i.href && /^[a-z-]+:/.test(i.href) ? [i.href] : []);
+  if (block?.type === 'node') { const np = block.props as unknown as { kind: string; slug: string }; refs.unshift(`${np.kind}:${np.slug}`); }
+  return { selection: editor.getSelectedText(), blockText, blockLink: block ? blockLink(block, editor.domElement as HTMLElement | null) : '', refs, x: at.left, y: at.bottom + 2 };
 }
 
 // "Link to node": link the selected text to any node, searched by id or title. The selection range is captured
 // when the picker opens (typing in the picker collapses the editor selection) and restored when the link is applied.
 type LinkRequest = { from: number; to: number; text: string; x: number; y: number };
-function LinkNodeButton({ onRequest }: { onRequest: (r: LinkRequest) => void }) {
-  const editor = useBlockNoteEditor();
-  const Components = useComponentsContext()!;
-  return (
-    <Components.FormattingToolbar.Button className="bn-button" label="Link to node" mainTooltip="Link the selection to a node (⌁)" onClick={() => {
-      const tt = (editor as unknown as { _tiptapEditor: { state: { selection: { from: number; to: number } } } })._tiptapEditor;
-      const sel = window.getSelection(); const rect = sel && sel.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : { left: 200, bottom: 200 };
-      onRequest({ from: tt.state.selection.from, to: tt.state.selection.to, text: editor.getSelectedText(), x: rect.left, y: rect.bottom + 6 });
-    }}>⌁ node</Components.FormattingToolbar.Button>
-  );
+function linkRequestFrom(editor: Ed, at: { left: number; bottom: number }): LinkRequest {
+  const tt = (editor as unknown as { _tiptapEditor: { state: { selection: { from: number; to: number } } } })._tiptapEditor;
+  return { from: tt.state.selection.from, to: tt.state.selection.to, text: editor.getSelectedText(), x: at.left, y: at.bottom };
 }
 
 // "▣ block": the selection becomes a typed block (req:wf2.editor.make-block) — a long document is reshaped into the
 // graph passage by passage. Whole blocks selected: the first becomes the node (its text), the rest its content; a
 // passage inside a paragraph: it leaves the paragraph and becomes the node after it. The kind is picked here.
 type MakeBlockRequest = { x: number; y: number };
-function MakeBlockButton({ onRequest }: { onRequest: (r: MakeBlockRequest) => void }) {
-  const Components = useComponentsContext()!;
-  return (
-    <Components.FormattingToolbar.Button className="bn-button" label="Make a block" mainTooltip="Turn the selection into a typed block (a requirement, a decision, a task…)" onClick={() => {
-      const sel = window.getSelection(); const rect = sel && sel.rangeCount ? sel.getRangeAt(0).getBoundingClientRect() : { left: 200, bottom: 200 };
-      onRequest({ x: rect.left, y: rect.bottom + 6 });
-    }}>▣ block</Components.FormattingToolbar.Button>
-  );
-}
 const BLOCK_KINDS = ['req', 'decision', 'task', 'question', 'rule', 'constraint', 'goal', 'lesson', 'test', 'ui-test', 'entity', 'comment'];
 function MakeBlockPicker({ req, onClose, pick }: { req: MakeBlockRequest; onClose: () => void; pick: (kind: string) => void }) {
   const { ownKinds } = usePeek();
@@ -1318,7 +1298,12 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}{!lintMsg && elsewhere > 0 && <span className="muted" title="ctx check finds an error in another document of the product — not in this one">{elsewhere} check error{elsewhere === 1 ? '' : 's'} elsewhere</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false} emojiPicker={false}>
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><AnnotateItem annotate={imageToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
-        <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /><MakeBlockButton onRequest={setMakeReq} /><AskAgentButton onRequest={r => setAskReq({ ...r, doc: slug, project, pageLink: `${location.origin}/${product}/${project}/d/${slug}`, refs: [...new Set([...r.refs, `module:${slug}`])] })} /></FormattingToolbar>} />
+        <FormattingToolbarController formattingToolbar={() => <SelectionMenu actions={{
+          linkNode: at => setLinkReq(linkRequestFrom(editor as unknown as Ed, at)),
+          makeBlock: at => setMakeReq({ x: at.left, y: at.bottom }),
+          ask: at => { const r = askRequestFrom(editor as unknown as Ed, at); setAskReq({ ...r, doc: slug, project, pageLink: `${location.origin}/${product}/${project}/d/${slug}`, refs: [...new Set([...r.refs, `module:${slug}`])] }); },
+          comment: () => { let b: AnyBlock | undefined; try { b = editor.getTextCursorPosition().block as unknown as AnyBlock; } catch { b = undefined; } if (b) blockAct('comment', b); },
+        }} />} />
         <SuggestionMenuController triggerCharacter="/" getItems={async q => {
           // "Image in this block": a file picked from disk goes into the current node block's text (paste does the same)
           let inNode = false; try { inNode = (editor.getTextCursorPosition().block as unknown as AnyBlock).type === 'node'; } catch { /* no cursor */ }

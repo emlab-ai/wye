@@ -762,6 +762,17 @@ The editor's blocks and the components the pages are made of, by area.
     skill, its blocks proposed.
   status: proposed
   part-of: module:components
+- id: component:selection-menu
+  file: packages/web/src/components/SelectionMenu.tsx
+  side: client
+  purpose: >
+    The menu over a text selection (component&#58;selection-menu, rule&#58;selection-menu): one compact popover
+    instead of a row of buttons — the block's type on top (Normal text › heading, list, quote, code), the text
+    styles, then Wye's own moves (⌁ node, ▣ block, a link), Comment on the block, and Ask an agent. Every action
+    goes through the editor's own API; the parent supplies the three moves that need its state (link picker,
+    make-block picker, ask, comment) as callbacks.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->
