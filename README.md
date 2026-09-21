@@ -1,16 +1,39 @@
-# Wye
+# Wye — product definition and long-term memory for coding agents
 
-> A thought experiment: what does building software look like when the person stops thinking in code and starts
-> thinking in the domain — and the agents do the rest?
+Define requirements, decisions, constraints and architecture as Markdown in Git. Wye turns them into a graph that
+Claude Code and Codex query before changing your software — and writes what they decided back into it, for you to
+approve.
 
-Wye is an editor for a product's **definition** — what it must do, what a person sees, what it knows, how it works,
-what was decided and why — kept as markdown documents that are also a graph, shared by the people who define the
-product and the coding agents (Claude Code, Codex) that build it. A person describes the product; an agent reads
-what governs a request before it works, writes what it decided as blocks for review, and every ask is checked
-against the constraints in force. Markdown in git is the only source of truth; the app, the `wye` CLI and the graph
-are views and doors onto it.
+![A tour of Wye: a document, a requirement opened in the column, a Prompt Request, the Inbox, Knowledge](docs/tour.gif)
 
-![A document in Wye: prose, a module card, and the column beside it](data/products/wye/projects/v2/docs/assets/intro-document.png)
+Instead of
+
+```
+prompt → agent guesses the context → code
+```
+
+Wye is
+
+```
+definition → request → impact → approval → agent → review → memory
+```
+
+- **Definition** — the product as documents: goals, users, requirements (when / then / unless), rules, decisions,
+  entities, pages, tests. Every block is a typed node; every link is an edge; the vocabulary is open.
+- **Request** — a *Prompt Request*: what you ask, refined with a librarian agent until it is a set of agreed blocks.
+- **Impact** — what the change reaches, computed from the graph, before anything is built.
+- **Approval** — yours, on the page. Agents propose; a person approves.
+- **Agent** — Claude Code or Codex builds it in your repo, with the constraints in force in its first message.
+- **Review** — what it produced waits in the Inbox as proposed blocks and diffs.
+- **Memory** — approved knowledge is what the next request is checked against: bitemporal, contradiction-checked,
+  in Git.
+
+```bash
+git clone https://github.com/emlab-ai/wye.git && cd wye && npm install && ./install.sh
+npm run dev            # http://localhost:3000 — or npm run desktop for the app in its own window
+```
+
+Local-first, no accounts: Wye runs on your machine over the files of your repo. Licensed Apache-2.0.
 
 ## The name
 
@@ -20,6 +43,11 @@ what was decided) and the agent's flow (what the code does, what it found) joini
 together they move more than either would alone. Hence the icon.
 
 ## Why I built it
+
+Wye is an editor for a product's **definition** — what it must do, what a person sees, what it knows, how it works,
+what was decided and why — kept as markdown documents that are also a graph, shared by the people who define the
+product and the coding agents that build it. Markdown in git is the only source of truth; the app, the `wye` CLI and
+the graph are views and doors onto it.
 
 For me this started as a thought experiment, not a product: **what is the best future way for a human to interact
 with agents?**
@@ -400,3 +428,10 @@ live and you reply from there.
 If Electron's binary is missing after `npm install` (npm's allow-scripts skips its postinstall), run
 `cd node_modules/electron && node install.js`, or unpack the cached zip with `ditto -x -k <zip> dist` and write
 `Electron.app/Contents/MacOS/Electron` into `node_modules/electron/path.txt`.
+
+## Contributing
+
+Ideas and questions go to [Discussions](https://github.com/emlab-ai/wye/discussions); bugs and the
+[`good first issue`](https://github.com/emlab-ai/wye/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+list to Issues. [CONTRIBUTING.md](CONTRIBUTING.md) says how the repo works — Wye describes itself, so a change
+starts as a block in `data/products/wye`. Apache-2.0.

@@ -1,39 +1,40 @@
 {
-    "name": "@wye/web",
-    "version": "0.2.0",
-    "private": true,
-    "scripts": {
-        "dev": "next dev",
-        "build": "next build",
-        "start": "next start",
-        "test": "vitest run",
-        "typecheck": "tsc --noEmit"
-    },
-    "dependencies": {
-        "@blocknote/core": "^0.54.2",
-        "@blocknote/mantine": "^0.54.2",
-        "@blocknote/react": "^0.54.2",
-        "@dagrejs/dagre": "^3.1.1",
-        "@excalidraw/excalidraw": "^0.18.1",
-        "@huggingface/transformers": "^4.3.0",
-        "@monaco-editor/react": "^4.7.0",
-        "@xyflow/react": "^12.11.6",
-        "monaco-editor": "^0.56.0",
-        "next": "^16.3.5",
-        "react": "^19.3.0",
-        "react-dom": "^19.3.0",
-        "react-markdown": "^10.1.0",
-        "remark-gfm": "^4.0.1",
-        "unist-util-visit": "^5.1.0"
-    },
-    "devDependencies": {
-        "@types/mdast": "^4.0.4",
-        "@types/node": "^24.0.0",
-        "@types/react": "^19.1.0",
-        "@types/react-dom": "^19.1.0",
-        "remark-parse": "^11.0.0",
-        "typescript": "^5.9.0",
-        "unified": "^11.0.5",
-        "vitest": "^5.0.0"
-    }
+  "name": "@wye/web",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@blocknote/core": "^0.54.2",
+    "@blocknote/mantine": "^0.54.2",
+    "@blocknote/react": "^0.54.2",
+    "@dagrejs/dagre": "^3.1.1",
+    "@excalidraw/excalidraw": "^0.18.1",
+    "@huggingface/transformers": "^4.3.0",
+    "@monaco-editor/react": "^4.7.0",
+    "@xyflow/react": "^12.11.6",
+    "monaco-editor": "^0.56.0",
+    "next": "^16.3.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "unist-util-visit": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "remark-parse": "^11.0.0",
+    "typescript": "^5.9.0",
+    "unified": "^11.0.5",
+    "vitest": "^5.0.0"
+  },
+  "license": "Apache-2.0"
 }

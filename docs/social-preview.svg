@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <rect width="1280" height="640" fill="#141614"/>
+  <rect x="88" y="120" width="150" height="150" rx="34" fill="#1f221f" stroke="#2c302c" stroke-width="2"/>
+  <text x="163" y="228" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="700" font-size="112" fill="#ffffff">Y</text>
+  <text x="280" y="196" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="700" font-size="88" fill="#ffffff">Wye</text>
+  <text x="284" y="250" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="400" font-size="30" fill="#c9cdc8">Product definition and memory for coding agents</text>
+  <text x="88" y="356" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="400" font-size="27" fill="#9aa09a">Requirements, decisions, constraints and impact as Markdown in Git —</text>
+  <text x="88" y="394" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="400" font-size="27" fill="#9aa09a">a graph Claude Code and Codex query before changing your software.</text>
+  <text x="88" y="500" font-family="Menlo, SFMono-Regular, Consolas, monospace" font-weight="500" font-size="26" fill="#3fb5a3">definition → request → impact → approval → agent → review → memory</text>
+  <text x="88" y="572" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="400" font-size="22" fill="#6f766f">github.com/emlab-ai/wye · Apache-2.0</text>
+</svg>

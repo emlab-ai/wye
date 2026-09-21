@@ -9,6 +9,7 @@ like, the loop, the command line. These pages go deeper, one topic each.
 | [Base ontology](../schema/base-ontology.md) | the source of the base kinds — every `type:` card with its props, inverses and shapes |
 | [Kinds and verbs in prose](../schema/kinds.yaml) | the same, readable: kinds, verbs, statuses, conventions |
 | [Agent contract](../prompts/agent-system.md) | what every agent session is told: read before acting, write as proposed blocks, cite ids |
+| [Contributing](../CONTRIBUTING.md) | running it, how the repo is organised, how a change starts as knowledge |
 | [Introduction, inside Wye](../data/products/wye/projects/v2/docs/intro.md) | the README's introduction as a page of Wye's own product |
 
 Coming: writing documents (prose nodes, cards, content, views, embeds), memory (the constraint packet, time,
