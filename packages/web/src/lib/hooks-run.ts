@@ -18,6 +18,8 @@ import { docRoute, documentTree } from './doc';
 import { readContent, writeContent } from './node-content';
 import { rebuild, withFileLock, writeAtomic } from './write';
 import { claimWrite } from './changes';
+import { assignTask, captureTask } from './work-io';
+import { addInboxItem } from './inbox';
 import type { GraphNode } from './graph';
 
 export type FiringAction = { kind: HookAction['kind']; session?: string; added?: string[]; error?: string };
@@ -26,7 +28,9 @@ export type Firing = { id: string; hook: string; title: string; node: string; ev
 const g = globalThis as unknown as { __wfHooks?: { wfUrl: string; busy: Set<string> } };
 const state = () => (g.__wfHooks ??= { wfUrl: process.env.WF_URL || 'http://localhost:3456', busy: new Set() });
 export function rememberHooksUrl(wfUrl: string) { if (wfUrl) state().wfUrl = wfUrl; }
+// on unless WF_HOOKS=0 or Settings › Agents switched hooks off
 export const hooksOn = () => process.env.WF_HOOKS !== '0';
+export async function hooksEnabled(): Promise<boolean> { return hooksOn() && agentSettings(await readSettings()).hooks; }
 
 const dirOf = (productDir: string) => path.join(productDir, '_hooks');
 
@@ -59,12 +63,12 @@ export async function depthOfSession(productDir: string, sessionId?: string): Pr
 
 // Fire the events: every matching active hook runs its actions once per (hook, node). Events may carry a `depth`
 // (the firing chain that produced the change); null depth — over the cap — is dropped with a log line.
-export async function fire(product: string, events: (HookEvent & { depth?: number | null })[], log: (m: string) => void = m => console.log(`[wf] ${m}`)): Promise<Firing[]> {
-  if (!hooksOn() || !events.length) return [];
+export async function fire(product: string, events: (HookEvent & { depth?: number | null })[], log: (m: string) => void = m => console.log(`[wf] ${m}`), opts: { only?: string; force?: boolean } = {}): Promise<Firing[]> {
+  if (!events.length || !(await hooksEnabled())) return [];
   const scope = await loadScope(product); if (!scope) return [];
-  const hooks = hooksOf(scope.graph); if (!hooks.length) return [];
+  const hooks = hooksOf(scope.graph).filter(h => !opts.only || h.id === opts.only); if (!hooks.length) return [];
   const productDir = scope.product.dir;
-  const fired = await firedSet(productDir);
+  const fired = opts.force ? new Set<string>() : await firedSet(productDir);
   const out: Firing[] = [];
   for (const ev of events) {
     if (ev.depth === null) { log(`hooks: ${ev.id} ${ev.event} — chain deeper than allowed, not fired`); continue; }
@@ -92,7 +96,56 @@ export async function fire(product: string, events: (HookEvent & { depth?: numbe
 async function runAction(scope: Scope, h: HookDef, a: HookAction, ev: HookEvent, node: GraphNode | undefined, f: Firing, log: (m: string) => void): Promise<FiringAction> {
   if (a.kind === 'run') return { kind: 'run', session: await startSkillSession(scope, h, a.skill, ev, node, f) };
   if (a.kind === 'add') { if (!node) throw new Error(`${ev.id} is not in the graph`); return { kind: 'add', added: await addFromTemplate(scope, h, a.template, a.to, node, log) }; }
-  return { kind: a.kind, error: `${a.kind} is not available yet` };
+  if (a.kind === 'task') { if (!node) throw new Error(`${ev.id} is not in the graph`); return await taskUnder(scope, h, a, node, f); }
+  if (a.kind === 'assign') return await assignExisting(scope, h, a, f);
+  if (a.kind === 'notify') { if (!node) throw new Error(`${ev.id} is not in the graph`); return { kind: 'notify', added: [await notify(scope, h, a.text, node, ev)] }; }
+  throw new Error(`unknown action ${JSON.stringify(a)}`);
+}
+
+// `task "<text>" [--worker w] [--skill s]`: a task line under the node — part of it, ready, by the hook — so Work
+// lists it; with a worker it is assigned at once (lib/work-io#assignTask: an agent starts a session with the skill
+// in its first message and the task in progress; a person's name is just set). Returns the task id (and the session).
+async function taskUnder(scope: Scope, h: HookDef, a: { text: string; worker?: string; skill?: string }, node: GraphNode, f: Firing): Promise<FiringAction> {
+  const by = `hook:${h.id.replace(/^hook:/, '')}`;
+  const text = fillTemplate(a.text, templateVars(node));
+  claimWrite(node.id, { by });
+  const made = await captureTask(scope, { text, partOf: node.id, by, ready: !a.worker });
+  if (!made.ok) throw new Error(made.message);
+  await rebuild(scope.product.dir);
+  if (!a.worker) return { kind: 'task', added: [made.id] };
+  const fresh = await loadScope(scope.product.slug); if (!fresh) throw new Error('the product could not be reloaded');
+  const settings = agentSettings(await readSettings());
+  const worker = a.worker === 'agent' ? settings.agent : a.worker;
+  const skills = [...new Set([...(a.skill ? [a.skill] : []), ...h.skills])];
+  const r = await assignTask(fresh, made.id, { worker, wfUrl: state().wfUrl, by, force: true, skills, hook: { id: h.id, firing: f.id, ...(a.skill ? { skill: a.skill } : {}) } });
+  if (!r.ok) return { kind: 'task', added: [made.id], error: `assigned to nobody — ${r.message}` };
+  return { kind: 'task', added: [made.id], ...(r.session ? { session: r.session } : {}) };
+}
+
+// `assign task:<id> [--worker w] [--skill s]`: an existing task to a worker (the default agent when none is named).
+async function assignExisting(scope: Scope, h: HookDef, a: { task: string; worker?: string; skill?: string }, f: Firing): Promise<FiringAction> {
+  const settings = agentSettings(await readSettings());
+  const worker = !a.worker || a.worker === 'agent' ? settings.agent : a.worker;
+  const skills = [...new Set([...(a.skill ? [a.skill] : []), ...h.skills])];
+  const r = await assignTask(scope, a.task, { worker, wfUrl: state().wfUrl, by: `hook:${h.id.replace(/^hook:/, '')}`, force: true, skills, hook: { id: h.id, firing: f.id, ...(a.skill ? { skill: a.skill } : {}) } });
+  if (!r.ok) throw new Error(r.message);
+  return { kind: 'assign', added: [a.task], ...(r.session ? { session: r.session } : {}) };
+}
+
+// `notify "<text>"`: a note in the product's inbox from the hook, naming the node; the watcher's inbox event shows it
+// as a toast on every open page (component:live-refresh).
+async function notify(scope: Scope, h: HookDef, text: string, node: GraphNode, ev: HookEvent): Promise<string> {
+  const filled = fillTemplate(text, templateVars(node));
+  return addInboxItem(scope.product.dir, { type: 'note', title: `hook: ${filled}`, text: `${h.id} on ${node.id} (${ev.event}).`, from: `hook:${h.id.replace(/^hook:/, '')}`, refs: [node.id, h.id] });
+}
+
+// "Run now" on a node's Hooks section: the hook fires on that node as if its event had just happened — the once
+// rule does not hold back a run by hand.
+export async function runHook(product: string, hookId: string, nodeId: string): Promise<Firing[]> {
+  const scope = await loadScope(product); if (!scope) return [];
+  const h = hooksOf(scope.graph).find(x => x.id === hookId); if (!h) throw new Error(`${hookId} is not a hook`);
+  const node = scope.idx.byId.get(nodeId); if (!node) throw new Error(`${nodeId} is not in the graph`);
+  return fire(product, [{ kind: node.kind, id: node.id, event: h.on.event, depth: 0 }], undefined, { only: hookId, force: true });
 }
 
 // `run skill:<id>`: a chat session on the node — the skill's role (librarian by default: reads and proposes, in the

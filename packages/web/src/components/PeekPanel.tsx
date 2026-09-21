@@ -24,6 +24,7 @@ import { TypeView } from './TypeView';
 import { InstanceTable } from './InstanceTable';
 import { EMPTY_FILTERS, type InstanceTable as Table } from '@/lib/instance-table';
 import { Comments } from './Comments';
+import { HooksSection } from './HooksSection';
 import dynamic from 'next/dynamic';
 const DocEditor = dynamic(() => import('./DocEditor'), { ssr: false });
 import type { GraphNode, TypeDef } from '@/lib/graph';
@@ -143,6 +144,7 @@ function NodeView({ id }: { id: string }) {
       {d && !d.self && entry?.kind === 'goal' && <PartsTable key={`tasks-${id}`} id={id} kind="task" label="Tasks" ids={(d.relations.inc.find(([v]) => v === 'part-of')?.[1] ?? []).filter(x => x.startsWith('task:'))} />}
       {d && !d.self && d.node.defined && <Comments key={`comments-${id}`} id={id} />}
       {d && !d.self && d.node.defined && <ExplainCard key={`explain-${id}`} id={id} />}
+      {d && !d.self && d.node.defined && <HooksSection key={`hooks-${id}`} id={id} />}
       {d && d.type && d.props && withoutComments(d.relations.inc).some(([v]) => (d.inverses ?? {})[v]) && <Properties type={d.type} props={[]} inc={withoutComments(d.relations.inc)} inverses={d.inverses ?? {}} product={product} folded />}
       {d && (
         <div className="peek-views">

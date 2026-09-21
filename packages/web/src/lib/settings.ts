@@ -5,15 +5,16 @@ import { readFile, writeFile, chmod } from 'node:fs/promises';
 import path from 'node:path';
 import { DATA_ROOT } from './products';
 
-export interface Settings { jev?: { key?: string }; agents?: { parallel?: number; agent?: string } }
+export interface Settings { jev?: { key?: string }; agents?: { parallel?: number; agent?: string; hooks?: boolean } }
 
 // The dispatcher's knobs (decision:wf2.pr-scheduler): how many builds run at once, and which agent builds by default.
 export const AGENT_IDS = ['claude-code', 'codex'];
 export const DEFAULT_AGENTS = { parallel: 1, agent: 'claude-code' };
-export function agentSettings(s: Settings): { parallel: number; agent: string } {
+// hooks: whether the hooks engine fires at all (decision:wf2.hooks-and-skills); on unless switched off here or WF_HOOKS=0
+export function agentSettings(s: Settings): { parallel: number; agent: string; hooks: boolean } {
   const n = Number(s.agents?.parallel); const parallel = Number.isFinite(n) ? Math.max(1, Math.min(8, Math.round(n))) : DEFAULT_AGENTS.parallel;
   const agent = AGENT_IDS.includes(s.agents?.agent ?? '') ? s.agents!.agent! : DEFAULT_AGENTS.agent;
-  return { parallel, agent };
+  return { parallel, agent, hooks: s.agents?.hooks !== false };
 }
 
 const file = (root: string) => path.join(root, '_settings.json');
@@ -31,6 +32,6 @@ export async function writeSettings(patch: Settings, root: string = DATA_ROOT): 
 }
 // the stored key, or the environment's for tests and evals outside the app
 export async function jevKey(root: string = DATA_ROOT): Promise<string> { return (await readSettings(root)).jev?.key || (root === DATA_ROOT ? process.env.TYPESAFE_API_KEY : '') || ''; }
-export function publicSettings(s: Settings): { jev: { set: boolean; last4: string }; agents: { parallel: number; agent: string } } {
+export function publicSettings(s: Settings): { jev: { set: boolean; last4: string }; agents: { parallel: number; agent: string; hooks: boolean } } {
   const k = s.jev?.key ?? ''; return { jev: { set: !!k, last4: k.slice(-4) }, agents: agentSettings(s) };
 }

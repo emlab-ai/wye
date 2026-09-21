@@ -33,9 +33,9 @@ function upgrade(s: Session): Session {
 }
 // `images` (name + data URL, as pasted into the command box) become the session's files (store:session-files) and
 // are listed on the session by file name; they go to the agent with the first message.
-export async function createSession(productDir: string, product: string, input: { agent: string; instruction: string; refs?: string[]; source?: SessionSource; mode?: 'run' | 'chat'; cwd?: string; images?: { name?: string; dataUrl: string }[]; task?: string; role?: SessionRole; hook?: SessionHook }): Promise<Session> {
+export async function createSession(productDir: string, product: string, input: { agent: string; instruction: string; refs?: string[]; source?: SessionSource; mode?: 'run' | 'chat'; cwd?: string; images?: { name?: string; dataUrl: string }[]; task?: string; role?: SessionRole; hook?: SessionHook; skills?: string[] }): Promise<Session> {
   const now = new Date().toISOString();
-  const s: Session = { id: randomBytes(5).toString('hex'), product, agent: input.agent, mode: input.mode ?? 'run', cwd: input.cwd, ...(input.task ? { task: input.task } : {}), ...(input.role && input.role !== 'worker' ? { role: input.role } : {}), ...(input.hook ? { hook: input.hook } : {}), status: 'queued', createdAt: now, updatedAt: now, instruction: input.instruction, refs: [...new Set(input.refs ?? [])], source: input.source ?? {}, log: [{ t: now, line: input.mode === 'chat' ? 'chat session created' : `queued for ${input.agent}` }] };
+  const s: Session = { id: randomBytes(5).toString('hex'), product, agent: input.agent, mode: input.mode ?? 'run', cwd: input.cwd, ...(input.task ? { task: input.task } : {}), ...(input.role && input.role !== 'worker' ? { role: input.role } : {}), ...(input.hook ? { hook: input.hook } : {}), ...(input.skills?.length ? { skills: input.skills } : {}), status: 'queued', createdAt: now, updatedAt: now, instruction: input.instruction, refs: [...new Set(input.refs ?? [])], source: input.source ?? {}, log: [{ t: now, line: input.mode === 'chat' ? 'chat session created' : `queued for ${input.agent}` }] };
   const images: string[] = [];
   for (const im of (input.images ?? []).slice(0, 8)) { const n = await saveAttachment(productDir, s.id, im.name ?? 'image', im.dataUrl); if (n) images.push(n); }
   if (images.length) s.images = images;

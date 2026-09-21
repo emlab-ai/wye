@@ -16,11 +16,17 @@ A hook is "when this happens to that kind of node, do this" (type:hook): `on: <k
 
 ```yaml
 - id: hook:req-approved-tests
-  title: An approved requirement gets its tests defined
+  title: An approved requirement gets a task to define its test cases, and an agent starts on it
   on: req.status:approved
-  do: run skill:define-tests
+  do: task "Define test cases for {{title}}" --worker agent --skill skill:define-tests
   once: true
   status: active
+- id: hook:test-proposed-note
+  title: A proposed test is announced
+  on: test.created
+  do: notify "A test was proposed: {{title}}"
+  once: true
+  status: paused
 ```
 
 ## Templates

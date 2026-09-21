@@ -45,7 +45,7 @@
 //        request task to a worker with the Definition (rule:build) — what the person's "build it" in a librarian conversation means
 //   wye skills --product p                 the product's skills (decision:wf2.hooks-and-skills): id, role, what it runs on
 //   wye skill <id> --product p             print a skill's instruction (its document's body, else the prompt file)
-//   wye hooks --product p [--node <id>]    the product's hooks and what fired: hook, node, event, the session or the blocks
+//   wye hooks --product p [--node <id>]    the product's hooks and what fired: hook, node, event, the task / blocks / session
 //   wye explain <id | "text"> --product p   the current state of the product around a node or a text (the librarian, one turn)
 //   wye work list --product p [--unassigned | --mine <name> | --goal <id> | --plan <id>] [--done]   every task with its state
 //   wye work add "<text>" --product p [--part-of <id>] [--ready]   a task line on the backlog (under the node when --part-of names one)
@@ -350,7 +350,7 @@ const commands = {
     if (!j.on) console.log('hooks are off (WF_HOOKS=0)');
     if (!j.hooks.length) console.log('no hooks — add cards to the Hooks document');
     for (const h of j.hooks) console.log(`${h.id.padEnd(30)} ${h.status.padEnd(7)} on ${h.on}${Object.keys(h.where).length ? ' where ' + Object.entries(h.where).map(([k, v]) => `${k}=${v}`).join(' ') : ''} → ${h.actions.map(a => a.kind === 'run' ? `run ${a.skill}` : a.kind === 'add' ? `add ${a.template}${a.to ? ' to ' + a.to : ''}` : a.kind).join('; ')}${h.once ? '' : ' (every time)'} · fired ${h.firings}×`);
-    if (j.firings.length) { console.log(''); for (const f of j.firings) console.log(`${f.at.slice(0, 16).replace('T', ' ')} ${f.hook} on ${f.node} (${f.event})${f.depth ? ` depth ${f.depth}` : ''}: ${f.actions.map(a => a.error ? `${a.kind} failed — ${a.error}` : a.session ? `session ${a.session}` : a.added ? `added ${a.added.join(', ') || 'nothing'}` : a.kind).join('; ')}`); }
+    if (j.firings.length) { console.log(''); for (const f of j.firings) console.log(`${f.at.slice(0, 16).replace('T', ' ')} ${f.hook} on ${f.node} (${f.event})${f.depth ? ` depth ${f.depth}` : ''}: ${f.actions.map(a => a.error ? `${a.kind} failed — ${a.error}` : `${a.kind}${a.added?.length ? ' ' + a.added.join(', ') : ''}${a.session ? ` → session ${a.session}` : ''}`).join('; ')}`); }
   },
   async explain() {
     // one librarian turn on a node or a text (req:exec.explain-anywhere, op:api.explain): the current state, nothing proposed

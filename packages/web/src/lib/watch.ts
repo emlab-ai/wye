@@ -13,7 +13,7 @@ import { trackDefinitions, refreshStaleScopes } from './pr-docs';
 import { loadScope } from './scope';
 import { listSessions } from './sessions';
 import { eventsFromDiff } from './hooks';
-import { fire, depthOfSession, hooksOn } from './hooks-run';
+import { fire, depthOfSession, hooksEnabled } from './hooks-run';
 
 type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other'; file: string }) => void;
 // bump when the watcher callback changes: dev reloads keep globalThis, so an old watcher would keep running old code
@@ -85,7 +85,7 @@ onBuilt(async (productDir, before, after) => {
   if (records.length) scheduleImpact(productDir, path.basename(productDir), records, m => console.log(`[wf] ${m}`));
   // hooks (decision:wf2.hooks-and-skills): what the diff means — created, status:<x>, linked:<verb> — fires the
   // product's hooks; a change a hook's session made carries its firing depth, so chains stop at the cap
-  if (hooksOn()) {
+  if (await hooksEnabled()) {
     const events = eventsFromDiff(before, after, changes);
     if (events.length) void (async () => {
       const depths = new Map<string, number | null>();

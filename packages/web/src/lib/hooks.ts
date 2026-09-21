@@ -6,7 +6,7 @@ import type { GraphData, GraphNode } from './graph';
 import type { BlockChange } from './session-types';
 
 export type HookEvent = { kind: string; id: string; event: string; verb?: string; session?: string; role?: string };
-export type HookAction = { kind: 'run'; skill: string } | { kind: 'add'; template: string; to?: string } | { kind: 'assign'; task: string; worker?: string } | { kind: 'notify'; text: string };
+export type HookAction = { kind: 'run'; skill: string } | { kind: 'add'; template: string; to?: string } | { kind: 'task'; text: string; worker?: string; skill?: string } | { kind: 'assign'; task: string; worker?: string; skill?: string } | { kind: 'notify'; text: string };
 export type HookDef = { id: string; title: string; on: { kind: string; event: string }; where: Record<string, string>; actions: HookAction[]; once: boolean; status: string; skills: string[] };
 
 export const HOOK_EVENTS = ['created', 'status:<x>', 'linked:<verb>', 'pr.approved', 'pr.built', 'session.done'];
@@ -28,6 +28,8 @@ export function cardValue(body: string, key: string): string {
   return out.join('\n');
 }
 
+// `--worker w --skill s` after an action
+const flags = (rest: string): Record<string, string> => { const o: Record<string, string> = {}; for (const m of rest.matchAll(/--([a-z]+)\s+(\S+)/g)) o[m[1]] = m[2]; return o; };
 // One `do:` line → an action; null when it says nothing the engine knows.
 export function parseAction(line: string): HookAction | null {
   const l = line.trim().replace(/^-\s+/, '');
@@ -35,7 +37,9 @@ export function parseAction(line: string): HookAction | null {
   if ((m = l.match(/^run\s+(skill:[A-Za-z0-9_.\-]+)$/))) return { kind: 'run', skill: m[1] };
   if ((m = l.match(/^run\s+([A-Za-z0-9_.\-]+)$/))) return { kind: 'run', skill: `skill:${m[1]}` };
   if ((m = l.match(/^add\s+(?:template:)?([A-Za-z0-9_.\-]+)(?:\s+to\s+(\S+))?$/))) return { kind: 'add', template: m[1], ...(m[2] ? { to: m[2] } : {}) };
-  if ((m = l.match(/^assign\s+(task:[A-Za-z0-9_.\-]+)(?:\s+--worker\s+(\S+))?$/))) return { kind: 'assign', task: m[1], ...(m[2] ? { worker: m[2] } : {}) };
+  // task "<text>" [--worker w] [--skill skill:x]: a task line under the node (Work lists it), assigned when a worker is named
+  if ((m = l.match(/^task\s+"([^"]+)"(.*)$/))) { const o = flags(m[2]); return { kind: 'task', text: m[1], ...(o.worker ? { worker: o.worker } : {}), ...(o.skill ? { skill: o.skill.startsWith('skill:') ? o.skill : `skill:${o.skill}` } : {}) }; }
+  if ((m = l.match(/^assign\s+(task:[A-Za-z0-9_.\-]+)(.*)$/))) { const o = flags(m[2]); return { kind: 'assign', task: m[1], ...(o.worker ? { worker: o.worker } : {}), ...(o.skill ? { skill: o.skill.startsWith('skill:') ? o.skill : `skill:${o.skill}` } : {}) }; }
   if ((m = l.match(/^notify\s+"?(.+?)"?$/))) return { kind: 'notify', text: m[1] };
   return null;
 }

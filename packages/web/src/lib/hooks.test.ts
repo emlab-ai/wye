@@ -21,6 +21,9 @@ describe('hook cards', () => {
     expect(parseAction('add test-card')).toEqual({ kind: 'add', template: 'test-card' });
     expect(parseAction('add template:test-card to tests')).toEqual({ kind: 'add', template: 'test-card', to: 'tests' });
     expect(parseAction('assign task:a --worker claude-code')).toEqual({ kind: 'assign', task: 'task:a', worker: 'claude-code' });
+    expect(parseAction('assign task:a --skill define-tests')).toEqual({ kind: 'assign', task: 'task:a', skill: 'skill:define-tests' });
+    expect(parseAction('task "Define test cases for {{title}}" --worker agent --skill skill:define-tests')).toEqual({ kind: 'task', text: 'Define test cases for {{title}}', worker: 'agent', skill: 'skill:define-tests' });
+    expect(parseAction('task "Review {{title}}"')).toEqual({ kind: 'task', text: 'Review {{title}}' });
     expect(parseAction('notify "done"')).toEqual({ kind: 'notify', text: 'done' });
     expect(parseAction('dance')).toBeNull();
   });

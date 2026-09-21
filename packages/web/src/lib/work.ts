@@ -53,7 +53,8 @@ export function workItems(g: GraphData, idx: GraphIndex, sessions: WorkSession[]
     const held = sessionsOf(n, sessions);
     const worker = prop(n.body, 'worker');
     const out = idx.out.get(n.id) ?? [];
-    const blockedBy = out.filter(e => e.verb === 'blocked-by').map(e => e.to);
+    // depends-on (the dependency graph) and blocked-by both hold a task until the tasks it names are done
+    const blockedBy = [...new Set(out.filter(e => (e.verb === 'blocked-by' || e.verb === 'depends-on') && e.to.startsWith('task:')).map(e => e.to))];
     const plan = plansByFile.get(n.file);
     const m = n.id.match(PR_TASK);
     const r = docRoute(n.file);

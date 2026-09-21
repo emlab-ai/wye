@@ -131,7 +131,8 @@ Definition — the librarian
 
 ```yaml
 - id: decision:ontology.one-of-many-of
-  title: A property is one of / many of a type or of values — oneOf[...] and manyOf[...] beside ref, list of and enum
+  title: >
+    A property is one of / many of a type or of values — oneOf[...] and manyOf[...] beside ref, list of and enum
   date: 2026-09-21
   status: approved
   affects: [type:node, lib:parse, component:type-view, component:node-editor, component:doc-props]
@@ -141,11 +142,8 @@ Definition — the librarian
 ```
 
   - choice:ontology.one-of-many-of Two spellings for the same things: `oneOf[manager]` = `ref manager`, `manyOf[team]` = `list of team` when the one name in the brackets is a declared type; `oneOf[junior, senior]` = `enum [junior, senior]`; `manyOf[js, go]` is new — a multi-select of values (`enum` with `many`), checked item by item. The type page picks the value type from a list (string · text · number · date · month · yes / no · one of type → · many of type → · one of values · many of values · list of strings) with the target type or the values beside it; an instance edits one of type as a select, many of type as tags with × and an "+ add" picker of that type's instances, one of values as a select, many of values as toggles — on cards in the column and on a document's properties alike.
-
   - context:ontology.one-of-many-of The property grammar had `ref <type>`, `list of <type>` and `enum [a, b]`; a multi-select of values did not exist, the type page took the value type as free text, and a many-link was edited as comma-separated text. alex: types need enums and links — an employee's manager is oneOf[manager], manyOf for a multi-select.
-
   - alternative:ontology.one-of-many-of Only the new spellings — rejected: the base ontology and every product card use the old ones. A JSON schema for properties — rejected: the yaml card is the type.
-
   - consequence:ontology.one-of-many-of lib/parse.js reads the type names first so oneOf[x] can tell a type from a value; lib/graph.js validates a multi-select item by item; component:type-view, component:node-editor, component:doc-props.
 
 ```yaml
@@ -239,7 +237,7 @@ Definition — the librarian
 
   - alternative:wf2.hooks-and-skills Hooks as code (a plugin folder) — rejected: the person defines the harness in the same documents as the rest. A visual hook builder — not now; the card is the builder. Cron-like hooks — no: time is not an event here. Hooks firing agents that write directly without review — rejected: review is the safety net for anything automatic.
 
-  - consequence:wf2.hooks-and-skills Every product gets a Skills folder and a Hooks link in the rail (in the project that holds PRs), five system documents written on first open. A hook's session appears on the Agents page with a hook pill. Block ids of non-module pages (pr:28, skill:build) now keep their slug — they were truncated before. H2: assign / notify, the column's Hooks section, a Settings switch.
+  - consequence:wf2.hooks-and-skills H2 (2026-09-21, same day): the `task` action — the shipped example became `req.status:approved → task "Define test cases for {{title}}" --worker agent --skill skill:define-tests`, so approving a requirement writes a tracked task under it and an agent starts on it with the skill (verified live: two tests and a question proposed, verified-by set, the task done); `assign` and `notify`; sessions carry `skills:`; the column's Hooks section with Run now; Settings › Agents › hooks fire. type:task gained `depends-on: manyOf[task]` (a dependency graph; a task with an unfinished dependency is blocked like blocked-by). Every product gets a Skills folder and a Hooks link in the rail (in the project that holds PRs), five system documents written on first open. A hook's session appears on the Agents page with a hook pill. Block ids of non-module pages (pr:28, skill:build) now keep their slug — they were truncated before. H2: assign / notify, the column's Hooks section, a Settings switch.
 
 ```yaml
 - id: decision:wf2.parse-cache

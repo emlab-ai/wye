@@ -5,6 +5,7 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { loadScope, type Scope } from './scope';
 import { listSessions, createSession, updateSession, onSessionEnd, AGENTS, getSession, setPrDoc } from './sessions';
+import type { SessionHook } from './session-types';
 import { liveState, startChat } from './agent-host';
 import { createPrDoc, adoptPrDoc, readPrDoc, definitionContext, prDefinition } from './pr-docs';
 import { setFrontmatter, definitionIds } from './pr-doc';
@@ -54,7 +55,7 @@ function taskInstruction(scope: Scope, item: WorkItem, note?: string): string {
 
 // build: the task is a plan's request task and the plan's Definition goes with it (req:exec.build-from-definition):
 // the session works on that plan (no new plan document), the plan moves to building
-export type AssignInput = { worker: string; note?: string; cwd?: string; force?: boolean; by?: string; wfUrl: string; agent?: string; build?: string };
+export type AssignInput = { worker: string; note?: string; cwd?: string; force?: boolean; by?: string; wfUrl: string; agent?: string; build?: string; skills?: string[]; hook?: SessionHook };
 export type AssignResult = { ok: true; worker: string; session?: string; mode?: 'chat' | 'run' } | { ok: false; error: 'not_found' | 'refused' | 'held' | 'invalid'; message: string };
 
 // Assign (req:exec.dispatch): a person gets `worker:`; an agent gets a session with the task, its document and what
@@ -85,7 +86,7 @@ export async function assignTask(scope: Scope, id: string, input: AssignInput): 
   let instruction = taskInstruction(scope, item, input.note);
   const def = input.build ? await definitionContext(scope, input.build) : null;
   if (def) instruction = `${instruction}\n\n${def.text}`;
-  const s = await createSession(scope.product.dir, scope.product.slug, { agent, instruction, refs, source, mode, cwd, task: id });
+  const s = await createSession(scope.product.dir, scope.product.slug, { agent, instruction, refs, source, mode, cwd, task: id, ...(input.skills?.length ? { skills: input.skills } : {}), ...(input.hook ? { hook: input.hook } : {}) });
   if (def && input.build) {
     // Build: the session continues the plan that holds the Definition (rule:pr-doc, decision:exec.plan-lifecycle)
     await setPrDoc(scope.product.dir, s.id, input.build, `builds ${input.build} from its Definition`); s.prDoc = input.build;

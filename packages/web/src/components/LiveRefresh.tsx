@@ -20,6 +20,8 @@ export function LiveRefresh({ product }: { product: string }) {
         timer.current = setTimeout(() => { timer.current = null; router.refresh(); }, 800);
       }
       if (j.kinds.includes('doc')) { const f = j.files.find(x => x.endsWith('.md')); if (f) { setFlash(f.split('/').pop()!.replace(/\.md$/, '')); setTimeout(() => setFlash(null), 2500); } }
+      // a hook's note (decision:wf2.hooks-and-skills, notify): the inbox item lands as a toast
+      if (j.kinds.includes('inbox')) { const f = j.files.find(x => /-note-hook-/.test(x)); if (f) { setFlash(`⚓ ${f.split('/').pop()!.replace(/^.*-note-hook-/, '').replace(/\.md$/, '').replace(/-/g, ' ')}`); setTimeout(() => setFlash(null), 5000); } }
       window.dispatchEvent(new CustomEvent('wf:change', { detail: j }));
     });
     return () => { es.close(); if (timer.current) clearTimeout(timer.current); };

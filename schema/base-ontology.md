@@ -312,7 +312,8 @@ type means instances may carry properties the type does not declare without a wa
     session: string?
     worker: string?                                   # a person's name or an agent name; who holds the task now
     priority: number?                                 # lower first, across plans; document order inside one
-    blocked-by: list of task? -(inverse)-> blocks
+    depends-on: manyOf[task]? -(inverse)-> depended-on-by   # the dependency graph: a task waits until the tasks it depends on are done
+    blocked-by: list of task? -(inverse)-> blocks     # the same wait, named from the other side (kept for the lines that use it)
     change: string?                                   # the change record a follow-up task came from
     ready: bool?                                      # `#ready` on the line: defined enough for a runner to take
 - id: type:pr

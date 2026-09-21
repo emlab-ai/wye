@@ -19,7 +19,7 @@ import { DrawingBlock, newDrawingSlug, sceneFromText, sceneFromImage } from './D
 import { ViewBlock } from './ViewBlock';
 import { EmbedBlock } from './EmbedBlock';
 import { usePeek, type OwnType } from './PeekProvider';
-import { ID_RE } from '@/lib/ids';
+import { ID_RE, KINDS } from '@/lib/ids';
 import { parseExtra, withExtra, GOAL_STATUSES, TASK_STATUSES, STATUSES } from '@/lib/props';
 import { filterRows, parseViewQuery, viewQuery, EMPTY_FILTERS, type Filters, type InstanceRow } from '@/lib/instance-table';
 import { slugify } from '@/lib/templates';
@@ -868,11 +868,33 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       if (id.includes(n)) return 2;
       return e.title.toLowerCase().includes(n) ? 3 : 9;
     };
-    return Object.values(index)
+    const insert = (id: string) => { editor.insertInlineContent([{ type: 'tag', props: { id } }, ' '] as never); touched.current = true; changed(); };
+    const items = Object.values(index)
       .map(e => ({ e, r: rank(e) })).filter(x => x.r < 9)
       .sort((a, b) => a.r - b.r || Number(b.e.defined) - Number(a.e.defined) || a.e.id.length - b.e.id.length)
       .slice(0, 10).map(x => x.e)
-      .map(e => ({ title: e.id, subtext: e.title, group: 'Link a node', onItemClick: () => { editor.insertInlineContent([{ type: 'tag', props: { id: e.id } }, ' '] as never); touched.current = true; changed(); } }));
+      .map(e => ({ title: e.id, subtext: e.title, group: 'Link a node', onItemClick: () => insert(e.id) }));
+    // `@city:London` with no such node: offer to make it — the instance in the type's home document, and the type
+    // itself first when the product does not declare it (req:wf2.editor.entity-from-text)
+    const m = q.trim().match(/^([a-z][a-z0-9-]*):(.+)$/);
+    if (m) {
+      const kind = m[1], name = m[2].trim().replace(/[-_]+$/, '');
+      const idSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const exists = !!(index[`${kind}:${idSlug}`] || index[q.trim()]);
+      const known = ownKinds.includes(kind) || (KINDS as readonly string[]).includes(kind) || ownTypes.some(t => t.slug === kind);
+      const structural = ['type', 'prop', 'block', 'field', 'module', 'product', 'pr', 'session'].includes(kind);
+      if (idSlug && !exists && !structural) items.push({
+        title: known ? `+ new ${kind}: ${name}` : `+ new type ${kind}, then ${kind}: ${name}`,
+        subtext: known ? `creates ${kind}:${idSlug} in its home document and tags it here` : `declares type:${kind} in the ontology, creates ${kind}:${idSlug} and tags it here`,
+        group: 'Create',
+        onItemClick: () => { void (async () => {
+          if (!known) { const r = await fetch(`/api/${product}/types`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug: kind, project }) }); if (!r.ok && r.status !== 409) { const j = await r.json().catch(() => ({})); setLintMsg(`could not create type ${kind}: ${j.message ?? j.error}`); return; } }
+          const made = await createNode(kind, name);
+          if (made) insert(made.id);
+        })(); },
+      });
+    }
+    return items;
   };
   // base kinds, then the product's own types (its type: cards) — an instance is a prose line `team:slug …`
   const fresh = () => `new-${Math.floor(Math.random() * 900 + 100)}`;
