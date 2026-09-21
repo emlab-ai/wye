@@ -31,19 +31,19 @@ cd ~/Projects/waterfall && ./install.sh     # links `ctx` into ~/.local/bin and 
 
 | command | what |
 |---|---|
-| `ctx build [files]` | parse `data/products/<product>/projects/*/docs/*.md` → `_build/graph.json` + `data.js` |
-| `ctx check [--strict] [--repo dir]` | lint: rules without source, reqs without satisfied-by, undefined rule/req ids, missing source paths, drift count. Exit 1 on errors |
-| `ctx get <id>` | one node with every edge (`ctx get oversell` resolves suffixes) |
+| `wye build [--root dir]` | parse `data/products/<product>/projects/*/docs/*.md` → `_build/graph.json` + `data.js` |
+| `wye check [--strict] [--repo dir]` | lint: rules without source, reqs without satisfied-by, undefined rule/req ids, missing source paths, drift count. Exit 1 on errors |
+| `wye get <id>` | one node with every edge (`wye get oversell` resolves suffixes) |
 | `ctx neighbors <id> [-d N] [--structural] [--kinds a,b]` | neighbourhood by hops |
-| `ctx impact <id>` | everything that depends on a node (reverse structural closure, 3 hops) |
-| `ctx search <terms>` | ranked search over ids, titles, bodies |
-| `ctx packet --task "…" [--budget N]` | a token-budgeted slice: seeds → 2 hops → files cited. An agent's working memory for a task |
-| `ctx reqs [--status s]` | requirement tree with status glyphs (● tested ◐ untested/unverified ○ proposed ? question) |
+| `wye graph impact <id>` | everything that depends on a node (reverse structural closure, 3 hops) |
+| `wye search <terms>` | ranked search over ids, titles, bodies |
+| `wye graph packet --task "…" [--budget N]` | a token-budgeted slice: seeds → 2 hops → files cited. An agent's working memory for a task |
+| `wye reqs [--status s]` | requirement tree with status glyphs (● tested ◐ untested/unverified ○ proposed ? question) |
 | `ctx site [--out dir]` | build the viewer (index.html + data.js) ready for the Artifact tool |
 | `ctx stats` | counts by kind, verb, requirement status |
 | `wye init --product <slug> --repo <dir>` | a product's definition from its code, first pass: the layered tree (Wye · Product · Experience · Domain · Systems · Quality · Decisions · Research · Archive), every module, page, component, library, operation and test the repo shows — shallow — and a `#ready` describe task per module. `--feature "<name>" --path <dir>` does the same for one feature inside a product, embedding what the product already defines. No model; nothing overwritten |
 | `wye deepen <module> --product <slug>` | assigns the module's describe task to a worker with `prompts/describe-module.md`: the requirements read from the code, in the person's words, each mapped (`satisfied-by`) to the library / component / operation cards that deliver it — file plus what that code does — and to its tests; rules with `source: file#symbol` |
-| `npm run dev` | web app (packages/web, Next.js) at http://localhost:3000: documents with node cards and smart tags, in-place editing (BlockNote for prose, forms for cards, templates for new documents), peek panel, React Flow mind map. Reads `_build/graph.json` and rebuilds it after every save; run `ctx build` once first. Use `npx --workspace=packages/web next dev -p 3456` for another port |
+| `npm run dev` | web app (packages/web, Next.js) at http://localhost:3000: documents with node cards and smart tags, in-place editing (BlockNote for prose, forms for cards, templates for new documents), peek panel, React Flow mind map. Reads `_build/graph.json` and rebuilds it after every save; run `wye build` once first. Use `npx --workspace=packages/web next dev -p 3456` for another port |
 
 ## Writing nodes as prose
 
@@ -63,13 +63,13 @@ In the web app: type `@` to insert a tag for any node or document, select a phra
 
 ## Skills (Claude Code)
 
-- **waterfall-describe-module** — the repeatable process that produced `inventory.md`: fan out server/client explorers, read the human docs, write the file from the template, `ctx build && ctx check`, publish the viewer, report drift.
-- **waterfall-context** — the agent contract: query the graph before code (`packet`, `impact`), write a delta before building, `ctx check` before done.
+- **waterfall-describe-module** — the repeatable process that produced `inventory.md`: fan out server/client explorers, read the human docs, write the file from the template, `wye build && wye check`, publish the viewer, report drift.
+- **waterfall-context** — the agent contract: query the graph before code (`packet`, `impact`), write a delta before building, `wye check` before done.
 
 ## Layout
 
 ```
-bin/ctx.js            CLI
+bin/wye.js            the wye command (bin/wye-graph.js: build, check, get, search, reqs, site, stats)
 lib/parse.js          markdown → graph (nodes, typed edges, generated field nodes + mentions)
 lib/graph.js          queries, packet, lint
 viewer/index.html     phone-first viewer: Reqs tree · force graph (canvas, d3) · rendered text; node sheet with edges
@@ -86,7 +86,7 @@ test/smoke.js         parses the pilot and asserts the graph shape
 - Markdown is canonical, not a graph DB. It lives in git, is reviewed in PRs, and any DB can be loaded from `graph.json` later.
 - Node ids are stable slugs; `req:` ids are dotted paths so hierarchy is in the id. Line numbers in `source:` rot; prefer `file#Symbol` where you can.
 - `field:` nodes and `mentions` edges are generated: a field name found in another node's text becomes a link, so "where is `receivedQuantity` used?" is one query. Ambiguous field names (same name on several entities) only link when the mentioning node also references the owning entity.
-- Requirement status is honest by construction: `shipped` needs a `verified-by`; `ctx check --strict` enforces it.
+- Requirement status is honest by construction: `shipped` needs a `verified-by`; `wye check --strict` enforces it.
 - The viewer needs no server: `data.js` carries the graph and the markdown; d3 and marked come from cdnjs.
 
 ## Desktop app

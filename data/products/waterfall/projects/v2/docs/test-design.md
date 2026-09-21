@@ -31,7 +31,7 @@ The tests, by area.
 
 
 
-One node per test file. Requirements and rules point here with `requires-tests: [test:<node>#<case>]`, which the parser records as `verified-by` edges; when the code lands those keys become `verified-by` and the status flips. Cases are listed so that `ctx get test:core-writer` shows what the file must prove. The last section lists what this design deliberately leaves untested.
+One node per test file. Requirements and rules point here with `requires-tests: [test:<node>#<case>]`, which the parser records as `verified-by` edges; when the code lands those keys become `verified-by` and the status flips. Cases are listed so that `wye get test:core-writer` shows what the file must prove. The last section lists what this design deliberately leaves untested.
 
 ---
 
@@ -130,7 +130,7 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
     that document; the page shows the request under Request with the document as a tag; the session head's
     "page ↗" opens it. 2. The agent (or a probe through the API) adds a task line under Tasks and an embed of
     a req it defined on the entity's page: the page shows the task unchecked and the req card. 3. Set the task
-    done through the API: the check ticks on the page. 4. `wf session done <id> "shipped x"`: Result shows
+    done through the API: the check ticks on the page. 4. `wye session done <id> "shipped x"`: Result shows
     "shipped x" and the changed blocks; the card's status is done. 5. `/waterfall/sessions/<id>` redirects
     to the plan document. (2026-09-18, session 07aa6645ad: steps 1, 4 and 5 covered by ui-test:plans through the
     API and Chrome — a queued session's plan under Plans with session / agent / started, the request quoted with
@@ -343,7 +343,7 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
   status: passed
   result: >
     a `node: team:platform` page is the document node at line 1 with the frontmatter as its body and its
-    ref/list properties as edges (lead → person:ana, members → person:bo, the inverse generated); ctx check reports
+    ref/list properties as edges (lead → person:ana, members → person:bo, the inverse generated); wye check reports
     a mistyped frontmatter property and ignores the page bookkeeping keys; an undeclared kind on the node line
     is an error and the page is not in the graph; `type:` is not read.
 - id: test:retype
@@ -371,8 +371,8 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
   status: passed
   result: >
     run by hand with playwright-core (Chrome, headless) on 2026-09-18 (/tmp/wfpw/pagenode.mjs): every step as
-    written; retype reported "3 links in 2 pages now point at person:probe-team". `wf doc create --type team` and
-    `wf doc retype --type person` did the same from the CLI.
+    written; retype reported "3 links in 2 pages now point at person:probe-team". `wye doc create --type team` and
+    `wye doc retype --type person` did the same from the CLI.
 - id: test:annotations-web
   file: packages/web/src/lib/annotations.test.ts
   description: describeScene — image and size, labelled regions with zone and percent position, arrows by binding or end points, free labels, deleted elements skipped, pixel positions without an image
@@ -419,7 +419,7 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
     on a document page with the cursor in a node, press ⌘P — the command box opens in the middle with the node and
     the document as context tags and the product's working folder filled in; type a request and press Enter — a
     chat session with plan: true starts and opens in the context column; in its transcript the agent names the
-    subject node, writes proposed blocks on its page (a new document only when none fits), runs `wf session open`
+    subject node, writes proposed blocks on its page (a new document only when none fits), runs `wye session open`
     — the main area navigates to that page while the session stays in the context column — and asks one "Plan"
     question (Proceed / Adjust / Cancel) before any code change (2026-09-17, session 3d2f42d484 for the chat-plan
     version; the page version is verified by session 0e07e8fd53). Images: paste a png into the box — a thumbnail
@@ -474,7 +474,7 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
   file: (run by hand with playwright-core against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >
     create a session and take it (running); create a document, append a paragraph and a req line on disk, set a
-    task's status through the API — `wf session changes <id>` lists +req, the paragraph and ~task per document;
+    task's status through the API — `wye session changes <id>` lists +req, the paragraph and ~task per document;
     /sessions/<id>/changes shows the counts in the heading, the change and kind chips narrow the list, a row opens
     the node in the context column; the session in the context column shows +n ~n n¶ ↗ on the knowledge strip
     and the same list in the "changes" fold (2026-09-18, session 53f99bfd98)
@@ -635,7 +635,7 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
     body to the top — the bar and the box stay where they were and the session header is in view; append an event
     while scrolled to the bottom — the column follows it; open a long node — the bar stays and the relations scroll
     (2026-09-18, session 07aa6645ad: /tmp/wfpw/frame.mjs, 14 checks passed in Chrome at 1400×900; the event was a
-    `wf session open`, since a log line is not streamed to the console)
+    `wye session open`, since a log line is not streamed to the console)
 - id: ui-test:plans
   file: (run by hand with playwright-core and the API against the dev server; not in CI yet — task:ui-tests-in-ci)
   scenario: >
@@ -712,14 +712,14 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
   file: (run by hand with playwright-core — /tmp/wfpw/exec.mjs; the librarian's turns live)
   scenario: >
     ⌘P on a document page with nothing selected defaults to Ask Wye; POST sessions with role librarian makes a chat
-    session in the Wye repo with a plan whose status is defining, role librarian and a Definition section; wf propose
+    session in the Wye repo with a plan whose status is defining, role librarian and a Definition section; wye propose
     with the session header writes a requirement card into the PRD and embeds it on the plan, and a decision with no
     document lands on the plan under Definition marked home: none yet; the plan reads 2 blocks, 0 agreed; approving
     both makes the plan defined (2026-09-19: 7 checks passed). Live (a second scratch product, the real claude): the
     librarian read the context, the seed nodes, the Work view and the PRD, logged what it found, asked three
     questions along who / when / then as one form with the assumed reading first, and on the answers proposed two
     requirements and a question into the PRD, four decisions (three by alex, one its own) and two tasks on the plan,
-    ran wf verdicts, replied with the list and the verdicts and noticed a pre-existing gap between an approved
+    ran wye verdicts, replied with the list and the verdicts and noticed a pre-existing gap between an approved
     requirement and its shipped rule; it never edited a file.
   status: passed
   verifies: [req:exec.ask-wye, req:exec.wye-context, req:exec.wye-explains, req:exec.wye-asks, req:exec.wye-proposes, req:exec.plan-defined, req:exec.definition-tracked, rule:librarian-tools, rule:definition]
@@ -735,7 +735,7 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
   verifies: [req:exec.build-from-definition, rule:build]
   last-run: 2026-09-19
 - id: ui-test:explain
-  file: (run by hand — `wf explain <a requirement> --product scratchx`, 2026-09-19)
+  file: (run by hand — `wye explain <a requirement> --product scratchx`, 2026-09-19)
   scenario: >
     one librarian turn on a requirement of the scratch product: 13 s with claude-sonnet-5; the answer explained the
     current state with the nodes as tags — the approved requirement against its shipped one-step rule, the refining
@@ -760,7 +760,7 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
     a scratch product with one task line per status (open, in-progress, blocked, review, done): the rail's Work entry
     and the old /<product>/tasks route both land on the Work page grouped by status; every status that has a task is
     one group in lifecycle order (review first), each open task under its own status and only there, done folded
-    until "done work"; `wf node set task:x --status in-progress` on the open one moves its row to the in-progress
+    until "done work"; `wye node set task:x --status in-progress` on the open one moves its row to the in-progress
     group without a reload and the status chips' counts follow. ui-test:work-view already checks the grouping and
     the /tasks redirect; this one adds the entry and the move between groups.
   status: proposed

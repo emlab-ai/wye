@@ -94,17 +94,17 @@ Waterfall is developed through its own pipeline. This file is the product's memo
 
 | op | args | does | gate | source |
 |---|---|---|---|---|
-| op:ctx.build | [files…] [--root dir] | parse module files → _build/graph.json + data.js; prints counts by kind | – | bin/ctx.js:43-51 |
-| op:ctx.site | [files…] [--out dir] | build + copy viewer/index.html into out; prints the Artifact call to make | – | bin/ctx.js:52-60 |
-| op:ctx.get | <id or suffix> | render one node: title, file:line, body, edges grouped by verb both ways | – | bin/ctx.js:61-65, lib/graph.js:85-95 |
-| op:ctx.neighbors | <id> [-d N] [--kinds a,b] [--structural] | the node plus everything within N hops, indented by distance | – | bin/ctx.js:66-73, lib/graph.js:25-37 |
-| op:ctx.search | <terms…> [--limit N] | ranked hits: id ×5, title ×3, body ×1+, reqs ×1.5, stubs ×0.5 | – | bin/ctx.js:74-78, lib/graph.js:38-53 |
-| op:ctx.impact | <id> [-d N] | reverse structural closure (default 3 hops), grouped by kind | – | bin/ctx.js:79-86, lib/graph.js:55-68 |
-| op:ctx.packet | --task "…" [--budget N] [--seeds N] | entity:packet | – | bin/ctx.js:87-91, lib/graph.js:69-84 |
-| op:ctx.check | [--repo dir] [--strict] | lint; prints warn/ERROR lines; exit 1 on errors | – | bin/ctx.js:92-98, lib/graph.js:104-129 |
-| op:ctx.stats | | counts by kind, verb, req status, modules (JSON) | – | bin/ctx.js:99, lib/graph.js:96-103 |
-| op:ctx.reqs | [--status s] | requirement tree with glyphs | – | bin/ctx.js:100-108 |
-| op:install | | symlink bin/ctx.js → ~/.local/bin/ctx and skills/* → ~/.claude/skills/ | – | install.sh:1-20 |
+| op:ctx.build | [files…] [--root dir] | parse module files → _build/graph.json + data.js; prints counts by kind | – | bin/wye-graph.js:43-51 |
+| op:ctx.site | [files…] [--out dir] | build + copy viewer/index.html into out; prints the Artifact call to make | – | bin/wye-graph.js:52-60 |
+| op:ctx.get | <id or suffix> | render one node: title, file:line, body, edges grouped by verb both ways | – | bin/wye-graph.js:61-65, lib/graph.js:85-95 |
+| op:ctx.neighbors | <id> [-d N] [--kinds a,b] [--structural] | the node plus everything within N hops, indented by distance | – | bin/wye-graph.js:66-73, lib/graph.js:25-37 |
+| op:ctx.search | <terms…> [--limit N] | ranked hits: id ×5, title ×3, body ×1+, reqs ×1.5, stubs ×0.5 | – | bin/wye-graph.js:74-78, lib/graph.js:38-53 |
+| op:ctx.impact | <id> [-d N] | reverse structural closure (default 3 hops), grouped by kind | – | bin/wye-graph.js:79-86, lib/graph.js:55-68 |
+| op:ctx.packet | --task "…" [--budget N] [--seeds N] | entity:packet | – | bin/wye-graph.js:87-91, lib/graph.js:69-84 |
+| op:ctx.check | [--repo dir] [--strict] | lint; prints warn/ERROR lines; exit 1 on errors | – | bin/wye-graph.js:92-98, lib/graph.js:104-129 |
+| op:ctx.stats | | counts by kind, verb, req status, modules (JSON) | – | bin/wye-graph.js:99, lib/graph.js:96-103 |
+| op:ctx.reqs | [--status s] | requirement tree with glyphs | – | bin/wye-graph.js:100-108 |
+| op:install | | symlink bin/wye-graph.js → ~/.local/bin/ctx and skills/* → ~/.claude/skills/ | – | install.sh:1-20 |
 
 ---
 
@@ -138,7 +138,7 @@ Waterfall is developed through its own pipeline. This file is the product's memo
 
 ```yaml
 - module:claude-code -(triggers)-> page:skill/describe-module
-  via: skill listing in ~/.claude/skills (install.sh symlinks); the Agent tool runs the explorer prompts; the Artifact tool publishes ctx site output
+  via: skill listing in ~/.claude/skills (install.sh symlinks); the Agent tool runs the explorer prompts; the Artifact tool publishes wye site output
 - module:claude-code -(triggers)-> page:skill/context
   via: the skill description matches "before implementing a feature in a repo with a context graph"
 - module:git -(has)-> entity:module-doc
@@ -160,7 +160,7 @@ Waterfall is developed through its own pipeline. This file is the product's memo
 |---|---|---|
 | test:smoke | test/smoke.js | 10 assertions: reqs-parsed, rules-parsed, fields-generated, typed-edges, req-title-status, refines-edge, field-mentions, impact, packet, check-ok |
 
-**Untested surfaces:** every red path of `ctx check` (missing source, missing satisfied-by, stub rule, strict mode, exit code), `resolve` ambiguity, `neighbors`, `search` scoring, `reqs` tree, `site` output, multi-module builds, the entire viewer (no story, no DOM test, no screenshot), install.sh, both skills.
+**Untested surfaces:** every red path of `wye check` (missing source, missing satisfied-by, stub rule, strict mode, exit code), `resolve` ambiguity, `neighbors`, `search` scoring, `reqs` tree, `site` output, multi-module builds, the entire viewer (no story, no DOM test, no screenshot), install.sh, both skills.
 
 ---
 
@@ -170,7 +170,7 @@ Waterfall is developed through its own pipeline. This file is the product's memo
 |---|---|---|---|---|
 | 1 | design of 2026-09-13: one file per node | implementation: one file per module | the README and skills say per-module; the design argued per-node avoids multi-agent merge conflicts. The parser would accept either (any .md in the root), but the template, viewer grouping and drift namespacing assume a module frontmatter per file | README.md, templates/module.md vs the design discussion |
 | 2 | design: sources as `file#Symbol` | rule:source-path-resolves | check verifies only that the path exists; a `#Symbol` suffix is stripped and never grepped | lib/graph.js:120-121 |
-| 3 | entity:delta, page:skill/context ("delta before build") | op:ctx.build | build reads only `docs/context-graph/*.md` not starting with `_`; `_deltas/*.yaml` are never parsed, so the delta workflow is documentation only | bin/ctx.js:27-31 vs templates/delta.yaml |
+| 3 | entity:delta, page:skill/context ("delta before build") | op:ctx.build | build reads only `docs/context-graph/*.md` not starting with `_`; `_deltas/*.yaml` are never parsed, so the delta workflow is documentation only | bin/wye-graph.js:27-31 vs templates/delta.yaml |
 | 4 | rule:inventory-gate-shorthand | module:waterfall purpose ("generic") | the generic parser hardcodes inventory's permission gate ids (view / manage / record-ops) | lib/parse.js:143-146 |
 | 5 | schema/kinds.yaml lists `question` and `decision` kinds | templates/module.md §11 writes questions as `- q:` lines; inventory.md has none as nodes | open questions are prose, not nodes, so they cannot be linked, resolved by a delta, or counted | schema/kinds.yaml:33-34 vs templates/module.md:190-200 |
 | 6 | rule:section-headings-drive-grouping | schema/kinds.yaml conventions | the heading text is load-bearing for parsing and viewer grouping but the schema does not say so | lib/parse.js:123-134, viewer/index.html:262 |
@@ -178,7 +178,7 @@ Waterfall is developed through its own pipeline. This file is the product's memo
 | 8 | action:search-graph (viewer) | op:ctx.search (CLI) | the viewer matches id/title only; the CLI also scores body text; the same query returns different sets | viewer/index.html:327 vs lib/graph.js:38-53 |
 | 9 | req:wf.query.packet ("ends with the code files those nodes cite") | rule:packet-ranking | only `source:`-style keys feed the file list; requirements rarely have one, so a requirements-heavy packet cites no files | lib/graph.js:131-137 |
 | 10 | rule:inline-action-definition | templates/module.md §5 (an inline `actions: [...]` array shown as valid) | inline-array actions are never defined and appear as stubs | lib/parse.js:86-96 vs templates/module.md:130-131 |
-| 11 | README ("`ctx site` … ready for the Artifact tool") | op:ctx.site | site also copies graph.json, which the page never loads; harmless but misleading about what must be published | bin/ctx.js:52-60 |
+| 11 | README ("`wye site` … ready for the Artifact tool") | op:ctx.site | site also copies graph.json, which the page never loads; harmless but misleading about what must be published | bin/wye-graph.js:52-60 |
 | 12 | schema/kinds.yaml `statuses.node: [proposed, approved, shipped, deprecated]` | state:node-lifecycle | no code reads approved or deprecated; only req statuses are interpreted | lib/graph.js:115-116, viewer/index.html:264-268 |
 | 13 | rule:id-syntax | rule:node-detection | any id-shaped token in prose becomes an edge, so an example like "e.g. req:inv.sale…" in a statement created a stub and failed this file's own check. Examples must be written as req:<mod>… or in words; the parser should skip backticked/quoted tokens or accept an explicit `example:` key | lib/parse.js:28-32 (found while linting this file) |
 
@@ -198,7 +198,7 @@ Waterfall is developed through its own pipeline. This file is the product's memo
     - parser        # lib/parse.js — markdown → nodes + typed edges + generated fields
     - query         # lib/graph.js — get / neighbors / search / impact / packet
     - lint          # lib/graph.js#check — the rules that make the graph a contract
-    - cli           # bin/ctx.js
+    - cli           # bin/wye-graph.js
     - viewer        # viewer/index.html — Reqs · Graph · Read, node sheet
     - skills        # skills/* — how agents use the system (Claude Code)
     - schema        # schema/kinds.yaml, templates/*

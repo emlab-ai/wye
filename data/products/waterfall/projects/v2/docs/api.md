@@ -22,7 +22,7 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
 - id: op:api.resolve
   args: GET /api/<product>/resolve?link=
   does: >
-    What a link or id points at — document, node, block or section, with drawing annotations — for agents (wf resolve).
+    What a link or id points at — document, node, block or section, with drawing annotations — for agents (wye resolve).
   gate: none (local app)
   source: packages/web/src/app/api/[product]/resolve/route.ts
   part-of: module:api
@@ -43,7 +43,7 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
 - id: op:api.sessions.session
   args: GET | PATCH /api/<product>/sessions/<id>
   does: >
-    A session; PATCH appends log lines, changes status or sets the result (runners, wf session log/done, Cancel).
+    A session; PATCH appends log lines, changes status or sets the result (runners, wye session log/done, Cancel).
   gate: none (local app)
   source: packages/web/src/app/api/[product]/sessions/[id]/route.ts
   part-of: module:api
@@ -68,7 +68,7 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   args: GET /api/<product>/sessions/<id>/changes
   does: >
     Every block the session added, changed or removed, per document, joined with the current graph; counts. Read
-    by component:session-changes, the changes page and `wf session changes`.
+    by component:session-changes, the changes page and `wye session changes`.
   gate: none (local app)
   source: packages/web/src/app/api/[product]/sessions/[id]/changes/route.ts
   part-of: module:api
@@ -105,7 +105,7 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
 - id: op:api.runners
   args: GET | POST /api/<product>/runners
   does: >
-    Runners online; heartbeat and sign-off from wf agent listen.
+    Runners online; heartbeat and sign-off from wye agent listen.
   gate: none (local app)
   source: packages/web/src/app/api/[product]/runners/route.ts
   part-of: module:api
@@ -119,14 +119,14 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/sessions/[id]/page/route.ts
   part-of: module:api
 - id: op:session.open
-  args: product, session id; PATCH { open: "<product/project/doc>[#node]" | "<url>" } (wf session open <id> <target>)
+  args: product, session id; PATCH { open: "<product/project/doc>[#node]" | "<url>" } (wye session open <id> <target>)
   does: >
     resolves the target to an app path (a document ref becomes /<product>/<project>/d/<doc>, a node suffix its
     anchor, an app URL its path), logs "opened <path>" on the session and emits a live `open` event; the console
     of a chat session that is open in the context column navigates the page to it, once, on the live event only
     (a replayed transcript never navigates). A runner session without a live console just keeps the log line.
   gate: none (local app)
-  source: packages/web/src/app/api/[product]/sessions/[id]/route.ts; packages/web/src/lib/agent-host.ts#openInSession; packages/web/src/lib/open-target.ts; packages/web/src/components/Console.tsx; bin/wf.js#session
+  source: packages/web/src/app/api/[product]/sessions/[id]/route.ts; packages/web/src/lib/agent-host.ts#openInSession; packages/web/src/lib/open-target.ts; packages/web/src/components/Console.tsx; bin/wye.js#session
 ```
 
 <!-- /list:op -->
@@ -185,7 +185,7 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
     edits the node in place under the file lock and rebuilds the graph: a prose node's defining line (status tag,
     text, trailing property group — lib/node-line) or a yaml card (patchYamlCard: status, the text key by name,
     scalars in place, long or multi-line values as `key: >` blocks, null removes). A session header records the
-    node as the session's artifact. Used by the wf CLI (wf node set) and the context column's editors.
+    node as the session's artifact. Used by the wf CLI (wye node set) and the context column's editors.
   gate: none (local app)
   source: packages/web/src/app/api/[product]/node/[id]/route.ts; packages/web/src/lib/node-edit.ts
 - id: op:node.content
@@ -197,10 +197,10 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
     closing fence; `writeContent` re-indents it two spaces deeper than the line, a blank line before it unless it
     starts with a list item and after it when a block follows, and splits a yaml fence so a card that was not last
     gets its content right after it. PUT holds the file lock, refuses a stale `ifMatch` (409, rule:if-match),
-    rebuilds and runs the check (rule:validate-before-write), records the session's artifact. `wf node content
+    rebuilds and runs the check (rule:validate-before-write), records the session's artifact. `wye node content
     <id> [--file f]` uses both. A block: node has no content form (question:wf2.content-of-block-nodes).
   gate: none (local app)
-  source: packages/web/src/app/api/[product]/node/[id]/content/route.ts; packages/web/src/lib/node-content.ts; bin/wf.js (node content)
+  source: packages/web/src/app/api/[product]/node/[id]/content/route.ts; packages/web/src/lib/node-content.ts; bin/wye.js (node content)
 ```
 
 <!-- /list:op -->
@@ -248,10 +248,10 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
     are the refs (ids or links) plus the semantic hits for the text; from them every rule, constraint, gate, lesson,
     goal and approved decision within two hops over governs, gated-by, affects, refines, part-of, depends-on and
     scope, plus every open question on those nodes — complete, ended nodes out by construction; rendered as markdown
-    with the budget shared across kinds. `wf packet --for "<text>" [--ref id]` calls it; buildPrompt puts it in every
-    first message under "Constraints in force"; `ctx constraints --task` is the offline twin.
+    with the budget shared across kinds. `wye packet --for "<text>" [--ref id]` calls it; buildPrompt puts it in every
+    first message under "Constraints in force"; `wye constraints --task` is the offline twin.
   gate: none (local app)
-  source: packages/web/src/app/api/[product]/packet/route.ts; packages/web/src/lib/packet.ts; lib/graph.js#constraints; bin/wf.js
+  source: packages/web/src/app/api/[product]/packet/route.ts; packages/web/src/lib/packet.ts; lib/graph.js#constraints; bin/wye.js
   status: shipped
   part-of: module:api
 - id: op:api.verdicts
@@ -261,7 +261,7 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
     given decision / req / rule / constraint nodes against their neighbours now — the same pass the watcher runs after
     a rebuild when `verdicts: on` is set in _product.md. Verdicts that are not "consistent" are written under the node as
     verdict: lines and, for contradicts / duplicate, an open contradiction: line; consistent ones stay in the log
-    (_build/verdicts.json, keyed by pair, with model and prompt hash). `wf verdicts <id>` calls it.
+    (_build/verdicts.json, keyed by pair, with model and prompt hash). `wye verdicts <id>` calls it.
   gate: none (local app)
   source: packages/web/src/app/api/[product]/verdicts/route.ts; packages/web/src/lib/verdicts.ts; lib/judge.js; lib/graph.js#verdictPairs; packages/web/src/lib/watch.ts
   status: shipped
@@ -269,7 +269,7 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
 - id: op:api.inbox
   args: GET | POST /api/<product>/inbox and /inbox/<name>
   does: >
-    Inbox items: list, add (agents: wf inbox add), file into a document as a node, dismiss.
+    Inbox items: list, add (agents: wye inbox add), file into a document as a node, dismiss.
   gate: none (local app)
   source: packages/web/src/app/api/[product]/inbox/route.ts
   part-of: module:api
@@ -381,7 +381,7 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   does: >
     GET: every task with its derived state, plan, goal, worker, sessions, produced count and the plans' Definition
     counts; with ?id one task with its sessions and the blocks they produced (req:exec.done-comes-back). POST:
-    capture a task line (rule:capture-home) — `wf work add`, Later in the command box, an inbox note filed as a task.
+    capture a task line (rule:capture-home) — `wye work add`, Later in the command box, an inbox note filed as a task.
   gate: none (local app)
   source: packages/web/src/app/api/[product]/work/route.ts; packages/web/src/lib/work-io.ts
   status: shipped
@@ -409,7 +409,7 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   part-of: module:api
 - id: op:api.impact
   args: POST /api/<product>/changes/<id>/impact { action: run | apply | apply-all | skip, candidate?, text?, props?, force?, reason?, by? }; POST /api/<product>/impact { id, after, judge? }
-  does: the impact run on a change record and its outcomes (rule:impact-run, rule:impact-apply); the what-if for an edit an agent is about to make — candidates with paths, verdicts when judge is not false, nothing written (`wf impact <id> --after`)
+  does: the impact run on a change record and its outcomes (rule:impact-run, rule:impact-apply); the what-if for an edit an agent is about to make — candidates with paths, verdicts when judge is not false, nothing written (`wye impact <id> --after`)
   gate: none (local app)
   source: packages/web/src/app/api/[product]/changes/[id]/impact/route.ts; packages/web/src/app/api/[product]/impact/route.ts; packages/web/src/lib/impact-run.ts
   status: shipped
@@ -423,21 +423,21 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   part-of: module:api
 - id: op:api.propose
   args: POST /api/<product>/propose { card, plan, doc? } (x-wf-session credits the writer)
-  does: one proposed block into the named document, embedded on the plan's Definition; on the plan itself when no document is named (rule:definition); 409 when the id exists — refine it instead. `wf propose` calls it.
+  does: one proposed block into the named document, embedded on the plan's Definition; on the plan itself when no document is named (rule:definition); 409 when the id exists — refine it instead. `wye propose` calls it.
   gate: none (local app)
   source: packages/web/src/app/api/[product]/propose/route.ts
   status: shipped
   part-of: module:api
 - id: op:api.pr
   args: GET /api/<product>/plan?ref=; PATCH { ref, status }; POST { action: refresh }
-  does: a plan's status, role, task and Definition state (total, agreed, open, missing, contradicted, defined, items); set the status; recompute defining ↔ defined for every plan. `wf plan` calls it.
+  does: a plan's status, role, task and Definition state (total, agreed, open, missing, contradicted, defined, items); set the status; recompute defining ↔ defined for every plan. `wye plan` calls it.
   gate: none (local app)
   source: packages/web/src/app/api/[product]/pr/route.ts; packages/web/src/lib/pr-docs.ts#planDefinition
   status: retired
   part-of: module:api
 - id: op:api.explain
   args: POST /api/<product>/explain { id } | { text }
-  does: one librarian turn — the current state around a node or a text with the nodes as tags, nothing written (lib:explain). `wf explain` and the node's Explain call it.
+  does: one librarian turn — the current state around a node or a text with the nodes as tags, nothing written (lib:explain). `wye explain` and the node's Explain call it.
   gate: none (local app)
   source: packages/web/src/app/api/[product]/explain/route.ts; packages/web/src/lib/explain.ts
   status: shipped

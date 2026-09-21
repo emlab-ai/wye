@@ -95,7 +95,7 @@ assert(out.some(e => e.verb === 'lead' && e.to === 'person:ana'), 'lead → pers
 assert(out.some(e => e.verb === 'members' && e.to === 'person:bo'), 'members → person:bo');
 assert((g.out.get('person:ana') || []).some(e => e.verb === 'leads' && e.to === 'team:platform' && e.generated), 'the inverse is generated');
 
-// --- the page is an instance: ctx check validates its frontmatter against the type, ignoring the page bookkeeping keys
+// --- the page is an instance: wye check validates its frontmatter against the type, ignoring the page bookkeeping keys
 const { errors, warnings } = g.check();
 const has = (list, re) => list.some(m => re.test(m));
 assert(has(warnings, /team:platform: size "two" is not a number/), 'a mistyped frontmatter property is reported');

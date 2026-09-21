@@ -35,7 +35,7 @@ bug:new-396 i should be able to insert image to the block content, i.e into a bu
 
 ## Plan: images in the command palette (bug:palette-paste-images)
 
-question:wf2.bugs-cards-dropped The working copy of this document (edited after commit 47d14c8, before session 9091132439) had lost the two cards below — req:wf2.ui.palette-images and decision:wf2.palette-images-are-session-files — and its prose reflowed to one line, which looks like an editor save (component:doc-editor, rule:prose-round-trip) rather than a deliberate delete; the tasks under this heading still refine the req and `ctx check` reported it as never described. Session 9091132439 restored the cards from the commit. Were they removed on purpose, or did a save drop them? #open
+question:wf2.bugs-cards-dropped The working copy of this document (edited after commit 47d14c8, before session 9091132439) had lost the two cards below — req:wf2.ui.palette-images and decision:wf2.palette-images-are-session-files — and its prose reflowed to one line, which looks like an editor save (component:doc-editor, rule:prose-round-trip) rather than a deliberate delete; the tasks under this heading still refine the req and `wye check` reported it as never described. Session 9091132439 restored the cards from the commit. Were they removed on purpose, or did a save drop them? #open
 
 The session composer already takes images from the clipboard (action:send-message → store:session-files → base64 content blocks for Claude, `--image` for Codex). The command box (action:command-palette) does not: it only posts `instruction` text, and the session-create route (`packages/web/src/app/api/[product]/sessions/route.ts`) has no `images` field, so a pasted screenshot is dropped before the first message is ever built (`buildPrompt` in `packages/web/src/lib/agent-host.ts`). The fix reuses the composer's path end to end.
 
@@ -49,7 +49,7 @@ The session composer already takes images from the clipboard (action:send-messag
 ```
 
   - when:wf2.ui.palette-images a person pastes or drops one or more images into the ⌘P command box before pressing Enter
-  - then:wf2.ui.palette-images thumbnails appear under the text with a remove button (up to 8, like the session composer); on Enter the images are saved as the session's files (store:session-files) and reach the agent in the first message — Claude as image content blocks, Codex as --image paths, and as file paths listed under the instruction so an agent run by wf agent listen can read them — and the first user event in the console shows them
+  - then:wf2.ui.palette-images thumbnails appear under the text with a remove button (up to 8, like the session composer); on Enter the images are saved as the session's files (store:session-files) and reach the agent in the first message — Claude as image content blocks, Codex as --image paths, and as file paths listed under the instruction so an agent run by wye agent listen can read them — and the first user event in the console shows them
   - unless:wf2.ui.palette-images the clipboard holds no image (plain text pastes as before)
 
 ```yaml

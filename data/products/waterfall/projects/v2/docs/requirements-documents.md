@@ -199,9 +199,9 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf2.page.node a document's frontmatter has `node: <kind>:<slug>` and `kind` is a declared type (base or the product's own)
 
-  - then:wf2.page.node the graph has that node as the document's node — defined at line 1, title and status from the frontmatter, the frontmatter as its body; frontmatter keys that are ref/list properties of the type (or base edge keys) are edges from the node named by the property; the document tree, hrefFor, the peek panel, sessions and `wf doc` treat it as the document whatever its kind; ctx check validates the frontmatter against the type (required, undeclared and mistyped properties) ignoring the page bookkeeping keys (node, title, icon, order, last-verified, sources, source-roots)
+  - then:wf2.page.node the graph has that node as the document's node — defined at line 1, title and status from the frontmatter, the frontmatter as its body; frontmatter keys that are ref/list properties of the type (or base edge keys) are edges from the node named by the property; the document tree, hrefFor, the peek panel, sessions and `wye doc` treat it as the document whatever its kind; wye check validates the frontmatter against the type (required, undeclared and mistyped properties) ignoring the page bookkeeping keys (node, title, icon, order, last-verified, sources, source-roots)
 
-  - unless:wf2.page.node the kind is not a declared type — ctx check reports an error and the page is not part of the graph
+  - unless:wf2.page.node the kind is not a declared type — wye check reports an error and the page is not part of the graph
 
 ```yaml
 - id: req:wf2.page.header-card
@@ -229,9 +229,9 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   part-of: module:req-documents
 ```
 
-  - when:wf2.page.retype a person picks a different type in the page header (or runs `wf doc retype <product/project/doc> --type <slug>`)
+  - when:wf2.page.retype a person picks a different type in the page header (or runs `wye doc retype <product/project/doc> --type <slug>`)
 
-  - then:wf2.page.retype the frontmatter `node:` line becomes `<type>:<slug>`, every reference to the old id in the product's documents (frontmatter keys, yaml values, prose ids, embeds, part-of lines of child pages) is rewritten to the new id in one write per file, the graph rebuilds, and the header shows the new type's properties; values of properties the new type does not declare stay in the frontmatter (ctx check warns when the type is not open)
+  - then:wf2.page.retype the frontmatter `node:` line becomes `<type>:<slug>`, every reference to the old id in the product's documents (frontmatter keys, yaml values, prose ids, embeds, part-of lines of child pages) is rewritten to the new id in one write per file, the graph rebuilds, and the header shows the new type's properties; values of properties the new type does not declare stay in the frontmatter (wye check warns when the type is not open)
 
   - unless:wf2.page.retype a node with the new id already exists — the change is refused with the conflict shown in the header
 
@@ -245,7 +245,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   part-of: module:req-documents
 ```
 
-  - when:wf2.page.create-typed a person creates a page (component:new-doc, `wf doc create … --type <slug>`) and picks a type
+  - when:wf2.page.create-typed a person creates a page (component:new-doc, `wye doc create … --type <slug>`) and picks a type
 
   - then:wf2.page.create-typed the page's `node:` line is `<type>:<slug>`, the frontmatter carries the type's required properties as empty keys, and the page appears in the type's instance table
 
@@ -428,7 +428,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf2.ui.annotate-images a person chooses Annotate image on an image in a document, draws boxes, labels and arrows over it and saves
 
-  - then:wf2.ui.annotate-images the document shows the annotated image; an agent that receives the block (wf resolve, ⇢ send, ask) gets the annotations as text — labelled regions with their position on the image, arrows from one region to another, free labels — and the path of a rendered PNG it can look at
+  - then:wf2.ui.annotate-images the document shows the annotated image; an agent that receives the block (wye resolve, ⇢ send, ask) gets the annotations as text — labelled regions with their position on the image, arrows from one region to another, free labels — and the path of a rendered PNG it can look at
 
 ```yaml
 - id: req:wf2.ui.command-palette

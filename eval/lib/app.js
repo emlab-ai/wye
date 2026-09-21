@@ -4,7 +4,7 @@
 // embedding model behind `context` — goes through a Recording so a replay needs no app and no model.
 const { Recording } = require('./record');
 
-const WF_URL = (process.env.WF_URL || 'http://localhost:3456').replace(/\/$/, '');
+const WF_URL = ((process.env.WYE_URL || process.env.WF_URL) || 'http://localhost:3456').replace(/\/$/, '');
 
 async function api(method, p, body) {
     const r = await fetch(WF_URL + p, { method, headers: body ? { 'content-type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });

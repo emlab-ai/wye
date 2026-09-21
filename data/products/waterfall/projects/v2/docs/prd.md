@@ -70,7 +70,7 @@ mechanism the dev design intends; `requires-tests` names the test node in the te
 ```yaml
 - id: flag:strict
   status: retired
-  scope: cli / api          # graph.check strict=true; ctx check --strict
+  scope: cli / api          # graph.check strict=true; wye check --strict
   source: packages/core/src/check.ts
   description: turns shipped-without-test, unresolvable source path, and open-contradiction-on-shipped-node from warnings into errors
 - id: flag:clerk-model

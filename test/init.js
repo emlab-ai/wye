@@ -22,7 +22,7 @@ const g = new Graph(parseFiles(files));
 const defined = g.data.nodes.filter(n => n.defined).map(n => n.id);
 assert.strictEqual(new Set(defined).size, defined.length, 'every id defined once');
 const problems = g.check({ repo }).errors;
-assert.deepStrictEqual(problems, [], 'ctx check has no errors: ' + JSON.stringify(problems.slice(0, 3)));
+assert.deepStrictEqual(problems, [], 'wye check has no errors: ' + JSON.stringify(problems.slice(0, 3)));
 assert(defined.includes('task:main.describe.web') && fs.readFileSync(path.join(docs, 'plan.md'), 'utf8').includes('task:main.describe.web') && /describe\.web[^\n]*#ready/.test(fs.readFileSync(path.join(docs, 'plan.md'), 'utf8')), 'a ready describe task per module');
 assert(fs.readFileSync(path.join(docs, 'web.md'), 'utf8').includes('<!-- list:lib -->'), 'the module page holds its libraries in a list region');
 // a second init keeps every page

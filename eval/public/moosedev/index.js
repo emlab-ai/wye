@@ -64,8 +64,8 @@ function importCorpus(log) {
         fs.writeFileSync(path.join(DOCS, `${kind}s.md`), `---\nnode: module:${kind}s\ntitle: ${title}\n---\n\n# ${title}\n\n${cards.length} ${title.toLowerCase()} of the CodeGraph corpus (MOOSEDev release), provenance in \`source:\`.\n\n${body}\n`);
     }
     // ctx check must be green before any run: an import error would be scored as a memory error
-    execFileSync(process.execPath, [path.join(REPO, 'bin', 'ctx.js'), 'build', '--root', path.relative(REPO, PRODUCT_DIR)], { cwd: REPO, stdio: 'ignore' });
-    let check = ''; try { check = execFileSync(process.execPath, [path.join(REPO, 'bin', 'ctx.js'), 'check', '--root', path.relative(REPO, PRODUCT_DIR)], { cwd: REPO, encoding: 'utf8' }); } catch (e) { check = (e.stdout || '') + (e.stderr || ''); throw new Error('ctx check failed on the import:\n' + check.slice(-1500)); }
+    execFileSync(process.execPath, [path.join(REPO, 'bin', 'wye.js'), 'build', '--root', path.relative(REPO, PRODUCT_DIR)], { cwd: REPO, stdio: 'ignore' });
+    let check = ''; try { check = execFileSync(process.execPath, [path.join(REPO, 'bin', 'wye.js'), 'check', '--root', path.relative(REPO, PRODUCT_DIR)], { cwd: REPO, encoding: 'utf8' }); } catch (e) { check = (e.stdout || '') + (e.stderr || ''); throw new Error('ctx check failed on the import:\n' + check.slice(-1500)); }
     log(`imported ${n} records into ${path.relative(REPO, DOCS)}; ${check.trim().split('\n').pop()}`);
     return { records: n, byKind: Object.fromEntries(Object.entries(byKind).map(([k, v]) => [k, v.length])), docs: path.relative(REPO, DOCS) };
 }

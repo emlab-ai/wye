@@ -94,7 +94,7 @@ order: 25
 
   - when:wf2.definition.links-survive a block has moved to its new home, or been retired
 
-  - then:wf2.definition.links-survive its id is unchanged, every tag and embed that named it still resolves to it, `ctx check` is green with no dangling reference, and the same nodes answer `wf packet` and `wf context` for a text as before — minus the retired ones
+  - then:wf2.definition.links-survive its id is unchanged, every tag and embed that named it still resolves to it, `wye check` is green with no dangling reference, and the same nodes answer `wye packet` and `wye context` for a text as before — minus the retired ones
 
   - unless:wf2.definition.links-survive the block was retired — then it still resolves, marked retired, and is hidden from default retrieval
 
@@ -148,7 +148,7 @@ order: 25
     move into schema/kinds.yaml so the writer and the template agree (this also resolves drift:waterfall.6).
 - id: question:wf2.static-viewer
   q: >
-    Keep `ctx site` and the static phone viewer next to the web app (publishable as an Artifact without a server),
+    Keep `wye site` and the static phone viewer next to the web app (publishable as an Artifact without a server),
     or retire it after phase 2?
 - id: question:wf2.trusted-agent
   q: >

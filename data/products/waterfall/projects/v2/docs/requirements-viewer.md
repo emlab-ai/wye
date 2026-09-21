@@ -25,7 +25,7 @@ order: 26
 
 ```
 
-  - when:wf.view ctx site builds index.html + data.js and the Artifact tool publishes them
+  - when:wf.view wye site builds index.html + data.js and the Artifact tool publishes them
 
   - then:wf.view the page opens on a Reqs tree, offers a force-directed Graph and the rendered Read text, works at 400px width, renders in light and dark, and loads d3 and marked from cdnjs
 

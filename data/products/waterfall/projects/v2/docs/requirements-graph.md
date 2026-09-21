@@ -48,7 +48,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf2.cli.deepen the person runs `wye deepen <module>`, assigns the module's describe task, or a runner takes it
 
-  - then:wf2.cli.deepen a worker reads the code under the module, writes its requirements on the module's requirements page in the person's words (when / then / unless), maps each one by `satisfied-by` to the library, component and operation cards that deliver it — each with its file (and symbol) and a paragraph on what that code does — and by `verified-by` to its tests, writes the rules the code enforces with their source, the entities and states, and a question where the code is unclear; `ctx check` is green and the describe task is done
+  - then:wf2.cli.deepen a worker reads the code under the module, writes its requirements on the module's requirements page in the person's words (when / then / unless), maps each one by `satisfied-by` to the library, component and operation cards that deliver it — each with its file (and symbol) and a paragraph on what that code does — and by `verified-by` to its tests, writes the rules the code enforces with their source, the entities and states, and a question where the code is unclear; `wye check` is green and the describe task is done
 
 ```yaml
 - id: req:wf.describe
@@ -90,7 +90,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf.describe.sources a rule node has no `source:` line
 
-  - then:wf.describe.sources ctx check reports an error and exits 1
+  - then:wf.describe.sources wye check reports an error and exits 1
 
 ```yaml
 - id: req:wf.describe.honest-status
@@ -104,7 +104,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf.describe.honest-status a requirement is marked shipped without a verified-by edge
 
-  - then:wf.describe.honest-status it is a warning by default and an error under flag:strict; the viewer and `ctx reqs` show it as untested (◐)
+  - then:wf.describe.honest-status it is a warning by default and an error under flag:strict; the viewer and `wye reqs` show it as untested (◐)
 
 ```yaml
 - id: req:wf.describe.drift
@@ -118,7 +118,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf.describe.drift the author finds two sources that disagree (PRD vs code, server vs client, doc vs test)
 
-  - then:wf.describe.drift a row in the Drift table becomes a drift node with contradicts edges to both sides; ctx check counts them; the viewer has a Drift preset
+  - then:wf.describe.drift a row in the Drift table becomes a drift node with contradicts edges to both sides; wye check counts them; the viewer has a Drift preset
 
 ```yaml
 - id: req:wf.describe.no-invention
@@ -143,7 +143,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
 ```
 
-  - when:wf.graph ctx build runs over docs/context-graph/*.md
+  - when:wf.graph wye build runs over docs/context-graph/*.md
 
   - then:wf.graph every `id: kind:slug` in a yaml block, every `### kind:slug` heading, every table row whose first cell is an id, and every Drift row becomes a node; typed keys and `a -(verb)-> b` lines become edges; the result is _build/graph.json plus data.js for the viewer
 
@@ -201,7 +201,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf.graph.stubs-visible an edge points at an id that no file describes
 
-  - then:wf.graph.stubs-visible the node exists with defined=false, renders hollow in the viewer, prints "(referenced only)" in the CLI, and ctx check lists it (error for rule/req, warning otherwise)
+  - then:wf.graph.stubs-visible the node exists with defined=false, renders hollow in the viewer, prints "(referenced only)" in the CLI, and wye check lists it (error for rule/req, warning otherwise)
 
 ```yaml
 - id: req:wf.query
@@ -214,7 +214,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf.query an agent needs product context for a task
 
-  - then:wf.query it runs ctx get / neighbors / search / impact / packet and receives markdown sized to the question, with node ids it can cite
+  - then:wf.query it runs wye get / neighbors / search / impact / packet and receives markdown sized to the question, with node ids it can cite
 
 ```yaml
 - id: req:wf.query.packet
@@ -227,7 +227,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
 ```
 
-  - when:wf.query.packet ctx packet --task "<sentence>" --budget N
+  - when:wf.query.packet wye graph packet --task "<sentence>" --budget N
 
   - then:wf.query.packet the top search hits seed a two-hop structural neighbourhood; nodes are emitted nearest-first until N characters; requirements sort first at equal distance; the packet ends with the code files those nodes cite
 
@@ -241,7 +241,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
 ```
 
-  - when:wf.query.impact ctx impact <id>
+  - when:wf.query.impact wye graph impact <id>
 
   - then:wf.query.impact every node reachable by following incoming structural edges up to 3 hops is listed, grouped by kind with hop distance; an entity's fields and a page's actions count as part of it
 
@@ -254,7 +254,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
 ```
 
-  - when:wf.query.suffix a command is given a bare slug or suffix (ctx get oversell)
+  - when:wf.query.suffix a command is given a bare slug or suffix (wye get oversell)
 
   - then:wf.query.suffix it resolves when exactly one id ends with :suffix or .suffix, and refuses with the candidates when ambiguous
 
@@ -266,7 +266,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   refines: req:wf.query
 ```
 
-  - when:wf.query.reqs-tree ctx reqs [--status s]
+  - when:wf.query.reqs-tree wye reqs [--status s]
 
   - then:wf.query.reqs-tree requirements print as an indented tree with a status glyph — ● shipped and tested, ◐ shipped without test or unverified/api-only, ○ proposed, ? question
 

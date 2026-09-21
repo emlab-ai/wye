@@ -8,9 +8,9 @@ const path = require('node:path');
 const http = require('node:http');
 
 const ROOT = path.resolve(__dirname, '../..');           // the wye repo
-const PORT = Number(process.env.WF_PORT || 3456);
+const PORT = Number(process.env.WYE_PORT || 3456);
 const URL_ = `http://localhost:${PORT}`;
-const DEV = !!process.env.WF_DEV;
+const DEV = !!process.env.WYE_DEV;
 let server = null; let win = null; let tray = null; let quitting = false;
 
 function ping() { return new Promise(res => { const r = http.get(URL_ + '/api/products', x => { res(x.statusCode < 500); x.resume(); }); r.on('error', () => res(false)); r.setTimeout(1500, () => { r.destroy(); res(false); }); }); }

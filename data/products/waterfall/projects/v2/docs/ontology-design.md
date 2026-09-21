@@ -103,13 +103,13 @@ A type is a yaml card like any other. The base types ship with Waterfall as a do
 
 (The fence above is `markdown`, not `yaml`, so the current parser does not read it as cards; the real file would use a yaml fence.)
 
-Property value types: `string`, `text` (multi-line prose), `number`, `date`, `month`, `bool`, `enum [a, b, c]`, `ref <type>`, `list of <type>` (a collection), and `list of string` etc. A trailing `?` marks optional; without it the property is required and `ctx check` warns when an instance lacks it — the same contract required/recommended keys have today.
+Property value types: `string`, `text` (multi-line prose), `number`, `date`, `month`, `bool`, `enum [a, b, c]`, `ref <type>`, `list of <type>` (a collection), and `list of string` etc. A trailing `?` marks optional; without it the property is required and `wye check` warns when an instance lacks it — the same contract required/recommended keys have today.
 
 ### Instances keep `kind:slug`
 
 An instance of type:team is team:platform, an instance of type:person is person:ana. The kind prefix *is* the type; the parser's `KINDS` list stops being a constant and becomes "the slugs of all `type:` nodes in the product plus the base ontology". `ID_RE` is built after the type pass, so a second parse pass is needed (types first, then everything else) — cheap, the graph is in memory anyway.
 
-An instance may fill properties the type does not declare (open world, as OWL and Tana allow). `ctx check` reports them as *undeclared property* warnings, never errors: a product learns its schema by writing instances first and lifting the common keys into the type later.
+An instance may fill properties the type does not declare (open world, as OWL and Tana allow). `wye check` reports them as *undeclared property* warnings, never errors: a product learns its schema by writing instances first and lifting the common keys into the type later.
 
 ```markdown
 - id: team:platform
@@ -132,7 +132,7 @@ Resolution is at parse time, per instance:
 1. Walk `extends` up to type:node; a cycle or an unknown parent is an *error*.
 2. The instance's effective properties are the union of the chain's `props`, parent first (Tana's order), child declarations overriding the parent's for the same name.
 3. An override may only *narrow*: make optional required, or narrow `ref person` to `ref employee`. Widening is an error.
-4. `ctx check` validates each instance's body against its effective properties: required present, value parses as its type, `ref`/`list of` targets exist and have the right type (transitively: a `person` slot accepts an `employee`).
+4. `wye check` validates each instance's body against its effective properties: required present, value parses as its type, `ref`/`list of` targets exist and have the right type (transitively: a `person` slot accepts an `employee`).
 5. Edges from instances also carry the property name as verb, so `manager: person:ana` is an edge `-(manager)->` — property names are verbs, which is what `EDGE_KEYS` already does by hand for the base kinds.
 
 Type membership is transitive: person:ana is-a person; employee:ana would be an employee *and* a person, so `list of person` accepts her. Which raises the one hard question in this design — see Q1 below: an instance has exactly one kind prefix, so an employee is written employee:ana, never both person:ana and employee:ana. Renaming a person to an employee is an id change, with all that implies for links. The alternative (a `type:` property on a `node:` id, Tana's multiple tags) is listed in the inbox as the rejected alternative.
@@ -156,7 +156,7 @@ Today a paragraph without an id is an anchored block (rule:block-links) that bel
 - A link on a phrase in a plain paragraph becomes an edge from the *block* (today: from the document). The document still reaches it through `has`, so nothing that works today stops working.
 - Block nodes are not listed in the rail, search or graph views by default (same as `field:` and `mentions` today): they exist for addressing, links and future per-block properties (comments, a status on a paragraph, a block typed later by adding an id in front of it).
 
-Cost: a graph of 3 344 lines becomes roughly 1 500 more nodes. The parser is linear; the web index is a Map; `ctx packet` and search already filter by kind. The viewer's `data.js` grows — the site build should drop `block:` nodes unless asked. This is the phase with the least value per line of code, which is why it is last.
+Cost: a graph of 3 344 lines becomes roughly 1 500 more nodes. The parser is linear; the web index is a Map; `wye graph packet` and search already filter by kind. The viewer's `data.js` grows — the site build should drop `block:` nodes unless asked. This is the phase with the least value per line of code, which is why it is last.
 
 ### The graph editor: where the UI has to get to
 
@@ -168,16 +168,16 @@ The graph already says it (req:ontology.blocks): a document is a node, every blo
 
 - `data/products/<product>/ontology/base-ontology.md` — copied from Waterfall's `schema/` on product creation, or referenced; it defines the fourteen base types and the verbs with their inverses. Replaces `schema/kinds.yaml` as the source of truth; `kinds.yaml` is generated from it during the transition so skills and prompts that read it keep working.
 - Any document in the product may define `type:` cards. The parser runs two passes over all files: pass 1 collects `type:` cards and builds `KINDS` and the property tables; pass 2 is today's parse with the open `ID_RE` and per-type `EDGE_KEYS`.
-- Types are scoped to the product. A project cannot redefine a type the product has; `ctx check` errors on a duplicate `type:` id, as it does for any duplicate id.
+- Types are scoped to the product. A project cannot redefine a type the product has; `wye check` errors on a duplicate `type:` id, as it does for any duplicate id.
 
 ### What the UI gains
 
 - **Type page** — type:team opens as a page: its properties (own and inherited, inherited greyed with the parent's name), then a table of instances with one column per property — the Notion database view, derived, not stored. Adding a row creates `team:<slug>` in the document the type names as its `home:` (default: the document the type is defined in).
 - **Properties panel** — the node page already renders body keys as fields; with a type it renders *all* effective properties, empty ones as placeholders with their value type, and the inverses under a divider.
 - **Smart tags** — any type:slug id is a tag with the type's icon; the link picker groups targets by type, and a `ref employee` slot only offers employees (and their subtypes).
-- **Send to agent / packet** — `ctx packet` includes the type chain for every node in the slice so an agent knows that a `manager` is an `employee` without being told.
+- **Send to agent / packet** — `wye graph packet` includes the type chain for every node in the slice so an agent knows that a `manager` is an `employee` without being told.
 
-### Checks (`ctx check`)
+### Checks (`wye check`)
 
 Errors: unknown type in an id prefix; `extends` cycle; unknown parent; widening override; `ref`/`list of` value that is not a node of the declared type (transitively); duplicate `type:` id. Warnings: required property missing; undeclared property on an instance; property whose value does not parse as its type; inverse name that clashes with a declared property on the target type.
 

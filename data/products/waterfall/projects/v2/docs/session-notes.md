@@ -54,7 +54,7 @@ What is there today: a session lives in the right column (component:session-view
 a knowledge strip, a "changes" fold and the console. The plan an agent writes is a section on the subject's page
 (decision:wf2.plan-is-a-page), and once the agent has built it nothing shows the plan as one thing: what was asked,
 which task lines came out of it and where each one stands, which blocks were proposed and which of them shipped.
-`/<product>/sessions/<id>` does not exist — only `/changes` under it. And there is no way back: after `wf session
+`/<product>/sessions/<id>` does not exist — only `/changes` under it. And there is no way back: after `wye session
 open` (or a click on the console's "opened …" line, a plain anchor that reloads the app and drops the right
 column's stack) the only way to return is the browser's own button, and the top bar (component:top-bar) has none.
 
@@ -76,7 +76,7 @@ a raw `localhost` address is noise, and a click on any other link would navigate
 Ids in the transcript (`task:new-226`) are plain text too, while every document renders them as tags.
 
 The plan: one markdown renderer for transcripts. A link whose target is this app (same origin as the page, or
-localhost / 127.0.0.1 on the app's port — the agent's `WF_URL` is whatever host the request came in on, and the
+localhost / 127.0.0.1 on the app's port — the agent's `WYE_URL` is whatever host the request came in on, and the
 desktop always loads localhost) is shown as what it points at and opens in place: a node link as the document's
 title and the node's tag (`todo › task:new-226`, the tag opens the peek like any tag), a document link as the
 document's title, a session link as `session <id>`, the root as `Waterfall`. Any other link opens outside the app
@@ -201,7 +201,7 @@ What is there today: a session lives in the right column (component:session-view
 a knowledge strip, a "changes" fold and the console. The plan an agent writes is a section on the subject's page
 (decision:wf2.plan-is-a-page), and once the agent has built it nothing shows the plan as one thing: what was asked,
 which task lines came out of it and where each one stands, which blocks were proposed and which of them shipped.
-`/<product>/sessions/<id>` does not exist — only `/changes` under it. And there is no way back: after `wf session
+`/<product>/sessions/<id>` does not exist — only `/changes` under it. And there is no way back: after `wye session
 open` (or a click on the console's "opened …" line, a plain anchor that reloads the app and drops the right
 column's stack) the only way to return is the browser's own button, and the top bar (component:top-bar) has none.
 
@@ -223,7 +223,7 @@ a raw `localhost` address is noise, and a click on any other link would navigate
 Ids in the transcript (`task:new-226`) are plain text too, while every document renders them as tags.
 
 The plan: one markdown renderer for transcripts. A link whose target is this app (same origin as the page, or
-localhost / 127.0.0.1 on the app's port — the agent's `WF_URL` is whatever host the request came in on, and the
+localhost / 127.0.0.1 on the app's port — the agent's `WYE_URL` is whatever host the request came in on, and the
 desktop always loads localhost) is shown as what it points at and opens in place: a node link as the document's
 title and the node's tag (`todo › task:new-226`, the tag opens the peek like any tag), a document link as the
 document's title, a session link as `session <id>`, the root as `Waterfall`. Any other link opens outside the app

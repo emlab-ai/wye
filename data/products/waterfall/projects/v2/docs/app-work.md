@@ -84,7 +84,7 @@ enforces.
     assigned as if a person had done it (a queued run session, the task in progress under the runner's agent) — and
     the runner claims that session next. A task without the ready mark is never taken; `auto-take: off` in
     _product.md switches the answer off.
-  source: packages/web/src/lib/work.ts#nextReady; packages/web/src/lib/work-io.ts#nextForRunner; bin/wf.js#agent
+  source: packages/web/src/lib/work.ts#nextReady; packages/web/src/lib/work-io.ts#nextForRunner; bin/wye.js#agent
   status: shipped
 - id: rule:change-record
   statement: >
@@ -92,7 +92,7 @@ enforces.
     node (defined, not a paragraph, not a generated, structural or judge node) the record keeps `before` and
     `after` — text (the title, or the first text key), status, every other key as a property — the keys that
     differ, who, session, time and a state. Who: the writer's claim on the node or its file (the node, content and
-    document routes and wf propose claim with the session header or `x-wf-by`), else the one running session, else
+    document routes and wye propose claim with the session header or `x-wf-by`), else the one running session, else
     "person". A change of only status and tracking keys (session, produced, worker, owner, priority, ready, dates…)
     is recorded accepted and never listed; a person's edit of a proposed / draft / open block is accepted at once;
     an agent's edit, and any edit of an approved or shipped node, is pending. Edits by the same writer on the same
@@ -142,7 +142,7 @@ enforces.
 - id: rule:impact-run
   statement: >
     An impact run belongs to a pending change record: candidates are computed and stored on the record at once;
-    with `impact: auto` in _product.md (or on demand — the card's Impact, `wf impact`) the model judges them in
+    with `impact: auto` in _product.md (or on demand — the card's Impact, `wye impact`) the model judges them in
     batches of ten through lib/judge.js#ask, the record updated as each batch lands, at most `impact-budget`
     candidates (20) and three calls per run, answers cached in _build/impact.json per (node, before, after,
     candidate text, model, prompt); one run per node in flight, a further edit reruns after; `manual` keeps the
@@ -166,14 +166,14 @@ enforces.
     Wye repo, with `--allowedTools Bash(wf:*) Read Grep Glob` and `--disallowedTools Edit Write MultiEdit
     NotebookEdit Bash(git:*) Bash(rm:*) Bash(npm:*) Bash(node:*) Agent Task`; its first message carries the plan
     (status defining, role librarian), the protocol (explain first, ask along when / then / unless as a form, propose
-    with wf propose, report verdicts) and the wf reads — no folder, no code. Questions keep the permission channel,
+    with wye propose, report verdicts) and the wf reads — no folder, no code. Questions keep the permission channel,
     so they render as question cards.
   source: packages/web/src/lib/agent-host.ts#startProcess; packages/web/src/lib/agent-host.ts#buildPrompt; packages/web/src/lib/agent-prompt.ts
   status: shipped
 - id: rule:definition
   statement: >
     A plan's Definition section holds ids at its top level — `![[id]]` embeds, cards, prose lines; what is indented
-    under a block is that block's content, and verdicts and contradictions never count. wf propose writes one card
+    under a block is that block's content, and verdicts and contradictions never count. wye propose writes one card
     into the named document and embeds it there, or defines it on the plan itself under Definition with `home: none
     yet` when no document is named; every typed block a running librarian session wrote (its claim on the write)
     is embedded there by the watcher. The Definition is agreed when every block is approved, resolved, rejected,
@@ -229,16 +229,16 @@ enforces.
 - id: rule:plan-first
   statement: >
     A session started from the command palette carries `plan: true`, and its first message ends with a plan-first
-    section. Before changing code the agent (1) understands — `wf context` on the request, resolves the nodes,
+    section. Before changing code the agent (1) understands — `wye context` on the request, resolves the nodes,
     reads their documents and the code involved; (2) models — names the subject of the request as one node
     (`kind:slug`: the node under the cursor or the document the palette sent when they fit, else found, else the
-    new node the request creates), makes sure its type exists (`wf node type:<slug>`; else `wf type add`, a
+    new node the request creates), makes sure its type exists (`wye node type:<slug>`; else `wye type add`, a
     proposed `type:` card in the product's ontology document) and picks the subject's page: the document where the
     node is defined, else the one open in the palette, else the type's home, and only when the subject is new and
-    no document fits a new one (`wf doc create`); (3) writes the plan on that page, not in chat — the subject's
+    no document fits a new one (`wye doc create`); (3) writes the plan on that page, not in chat — the subject's
     card when it is new, and everything understood as blocks in the page's sections: `req:` (proposed),
     `decision:` (proposed), `question:` (open), `- [ ] task:` lines, links to the modules and code touched; `ctx
-    check` green; (4) shows it — `wf session open <id> <product/project/doc>[#node]` navigates the person's browser
+    check` green; (4) shows it — `wye session open <id> <product/project/doc>[#node]` navigates the person's browser
     to the page while the session stays in the context column, and one chat line says what is there; (5)
     collaborates — the person edits, comments and answers on the page; one AskUserQuestion (header "Plan", "Build
     what the page says?", Proceed / Adjust / Cancel) rendered as a question card (rule:agent-questions); Adjust
@@ -246,7 +246,7 @@ enforces.
     page once more — code and tests for what the page says, then statuses (tasks done, reqs shipped) and `wf
     session done`. The palette can switch the protocol off for a plain run. The flag is part of the prompt, not a
     session mode: the session, host and console are the ones every conversation uses.
-  source: packages/web/src/components/CommandBox.tsx; packages/web/src/lib/agent-host.ts#PLAN_FIRST; packages/web/src/lib/sessions.ts#createSession; bin/wf.js#session
+  source: packages/web/src/components/CommandBox.tsx; packages/web/src/lib/agent-host.ts#PLAN_FIRST; packages/web/src/lib/sessions.ts#createSession; bin/wye.js#session
   status: proposed
   verified-by: [ui-test:command-palette]
   related-to: [rule:agent-questions, rule:agent-host, component:command-box, decision:wf2.plan-is-a-page, op:session.open]
@@ -257,7 +257,7 @@ enforces.
     the app's own task-link writes), nodes it changed through the node API (the wf CLI sends its session id in
     x-wf-session), and inbox items it filed (they carry the session id). Tasks among the session's refs get
     `(session: <ids>, produced: module:…)` in their property group — `produced` is an edge — and marking a task
-    done with wf node set adds the session too. The task's panel shows a Produced section: the sessions (with
+    done with wye node set adds the session too. The task's panel shows a Produced section: the sessions (with
     status and result), the documents, the nodes changed and the inbox items (questions, decisions) with their
     review status — folded at the bottom of the column until asked for (rule:produced-collapsed). An html comment ends a prose node's text, so tables' closing markers never leak into a task.
   source: packages/web/src/lib/artifacts.ts; packages/web/src/components/Produced.tsx; lib/parse.js
@@ -297,13 +297,13 @@ enforces.
   session: 0e07e8fd53
 ```
 
-  - choice:wf2.plan-is-a-page The plan lives on the subject's page: the agent names the subject as one node, makes sure its type and its document exist (existing document first, a new one only when nothing fits), writes what it understood there as typed blocks (req, decision, question, task — proposed), navigates the person to the page (`wf session open`), and the two work on the page until the person answers Proceed. The build is what the page says at that moment.
+  - choice:wf2.plan-is-a-page The plan lives on the subject's page: the agent names the subject as one node, makes sure its type and its document exist (existing document first, a new one only when nothing fits), writes what it understood there as typed blocks (req, decision, question, task — proposed), navigates the person to the page (`wye session open`), and the two work on the page until the person answers Proceed. The build is what the page says at that moment.
 
   - context:wf2.plan-is-a-page The first plan-first protocol had the agent propose in a chat message and ask Proceed / Adjust / Cancel. A chat message is gone once the session ends, the person can only answer it, and nothing forced the agent to say which entity the request is about, whether its type exists, or where it lives.
 
   - alternative:wf2.plan-is-a-page Keep the plan in chat and copy blocks to a document afterwards — the person cannot edit the plan itself and the copy drifts; a dedicated "plan" document per session — one more place to look, and the knowledge belongs with the entity anyway.
 
-  - consequence:wf2.plan-is-a-page rule:plan-first; op:session.open; `wf doc create`, `wf type add`, `wf session open` in bin/wf.js; req:wf2.ui.command-palette
+  - consequence:wf2.plan-is-a-page rule:plan-first; op:session.open; `wye doc create`, `wye type add`, `wye session open` in bin/wye.js; req:wf2.ui.command-palette
 
 ```yaml
 - id: decision:exec.task-is-the-unit
@@ -350,11 +350,11 @@ enforces.
 
   - choice:exec.impact-run An impact run takes a change record and produces an impact set: (1) candidates from structure — the node's content (its sub-items), what refines it, what it is satisfied by and verified by, what it governs or is governed by, what depends on it, what is part of it, tasks that serve it, what mentions it — two hops over reversed edges with decay, each candidate with its path; (2) candidates from semantics — the nearest nodes to the new text that structure did not reach, marked "by text"; (3) one model call per candidate (batched, budgeted, cached by pair hash) that reads the before, the after, the candidate and its path and answers: unaffected | update — with the proposed new text or property values for the candidate | rework — a sentence saying what has to change when it is more than the block | contradicts — the new value and the candidate cannot both hold | ask — a question the person must answer first. The run is stored on the change record; the change card lists the impact set grouped by verdict, each with its path and reason; an update is a proposed patch with old and new that Apply writes through the writer (and records as a change by the app, accepted); a rework becomes a task line under the change's plan (or a new plan "Follow up: <node>") on the Work view, unassigned, with the reason as its text, which the person assigns to a worker (req:exec.dispatch); a contradicts opens a contradiction as in decision:memory.write-time-verdict; an ask is a question: block on the changed node.
 
-  - context:exec.impact-run `ctx impact` walks the reverse structural closure three hops; op:api.context finds the semantically nearest nodes; neither says what an edit means for the nodes it reaches. The 2026 impact-analysis work finds that structure alone misses renamed or paraphrased dependents, semantics alone floods (0.42 precision), and the blend with a verification step is the shape that works; Kiro regenerates only what the change reaches, on an explicit sync. STALE finds second-hop, propagated effects are what models miss when left to notice them on their own.
+  - context:exec.impact-run `wye graph impact` walks the reverse structural closure three hops; op:api.context finds the semantically nearest nodes; neither says what an edit means for the nodes it reaches. The 2026 impact-analysis work finds that structure alone misses renamed or paraphrased dependents, semantics alone floods (0.42 precision), and the blend with a verification step is the shape that works; Kiro regenerates only what the change reaches, on an explicit sync. STALE finds second-hop, propagated effects are what models miss when left to notice them on their own.
 
   - alternative:exec.impact-run Structure only (misses paraphrased dependents); semantics only (floods); regenerate the dependents outright as Kiro does (the documents are the person's, not generated — patches and tasks, never rewrites); ask one agent session to "update everything" (unbounded, invisible, and it would edit approved blocks without review).
 
-  - consequence:exec.impact-run A run per change, budgeted per rebuild like the verdict pass; an impact set on the change card; patches, tasks, contradictions and questions as the four outcomes, each landing where that kind already lives; the Work view gains "follow-up" tasks the app wrote; `ctx impact` grows `--semantic` and `--explain` (paths) for agents.
+  - consequence:exec.impact-run A run per change, budgeted per rebuild like the verdict pass; an impact set on the change card; patches, tasks, contradictions and questions as the four outcomes, each landing where that kind already lives; the Work view gains "follow-up" tasks the app wrote; `wye graph impact` grows `--semantic` and `--explain` (paths) for agents.
 
 ```yaml
 - id: decision:exec.impact-trigger
@@ -383,13 +383,13 @@ enforces.
   part-of: goal:exec.work-and-impact
 ```
 
-  - choice:exec.backlog-is-unassigned-work A backlog item is a task line with no worker. Capture is one gesture from anywhere — the command box's "Later" (⌘P, type, ⇧↵) and a "+ backlog" on any node or document — that writes `- [ ] task:<slug> <text>` into the project's plan document (the follow-ups home rule:agent-contract already names) or under the node it was captured from when there is one, with `by:` the person and the date; an inbox note can be filed as a task the same way. The Work view's Unassigned group is the backlog, in priority then capture order. A task is discoverable by runners only when it says `#ready` (a person's word that it is defined enough to start): `wf work next` returns the oldest ready, unblocked, unassigned task of the product (or of a goal), a runner in auto mode (`wf agent listen --take-ready`) claims it as if assigned (req:exec.dispatch), and everything else on the backlog is visible to agents (`wf work list --unassigned`) but not taken. This resolves question:exec.auto-dispatch: never silently, per task, by the ready mark.
+  - choice:exec.backlog-is-unassigned-work A backlog item is a task line with no worker. Capture is one gesture from anywhere — the command box's "Later" (⌘P, type, ⇧↵) and a "+ backlog" on any node or document — that writes `- [ ] task:<slug> <text>` into the project's plan document (the follow-ups home rule:agent-contract already names) or under the node it was captured from when there is one, with `by:` the person and the date; an inbox note can be filed as a task the same way. The Work view's Unassigned group is the backlog, in priority then capture order. A task is discoverable by runners only when it says `#ready` (a person's word that it is defined enough to start): `wye work next` returns the oldest ready, unblocked, unassigned task of the product (or of a goal), a runner in auto mode (`wye agent listen --take-ready`) claims it as if assigned (req:exec.dispatch), and everything else on the backlog is visible to agents (`wye work list --unassigned`) but not taken. This resolves question:exec.auto-dispatch: never silently, per task, by the ready mark.
 
   - context:exec.backlog-is-unassigned-work The person wants to drop items for an agent to discover and work on, "maybe it is the inbox". The inbox folder (store:inbox) holds raw material without a document — pasted conversations, notes — that a person files or dismisses (rule:inbox-review); the Inbox view lists proposed blocks. Work is a task line (decision:exec.task-is-the-unit). question:exec.auto-dispatch asked whether runners may take unassigned tasks on their own.
 
   - alternative:exec.backlog-is-unassigned-work A separate backlog document per product (one more place; the plan document is that place already); the inbox folder as the backlog (raw notes are not work items and have no status, goal or worker); auto-dispatch of every open task (work starts that nobody looked at).
 
-  - consequence:exec.backlog-is-unassigned-work `ready` joins the task statuses as a mark, not a stage (a ready task is still todo); the command box gains "Later"; `wf work list|next` join the CLI; a runner gains `--take-ready`; the Work view's Unassigned group shows the ready ones first with a mark.
+  - consequence:exec.backlog-is-unassigned-work `ready` joins the task statuses as a mark, not a stage (a ready task is still todo); the command box gains "Later"; `wye work list|next` join the CLI; a runner gains `--take-ready`; the Work view's Unassigned group shows the ready ones first with a mark.
 
 <!-- /list:decision -->
 
@@ -441,7 +441,7 @@ enforces.
 - id: lib:impact-run
   file: packages/web/src/lib/impact-run.ts
   side: server
-  purpose: the run on a change record (rule:impact-run) — candidatesFor with the semantic hits, scheduleImpact from the watcher, runImpact, landOutcomes, applyPatch / skipPatch (rule:impact-apply), whatIf for `wf impact`
+  purpose: the run on a change record (rule:impact-run) — candidatesFor with the semantic hits, scheduleImpact from the watcher, runImpact, landOutcomes, applyPatch / skipPatch (rule:impact-apply), whatIf for `wye impact`
   part-of: module:app-work
 - id: lib:explain
   file: packages/web/src/lib/explain.ts
@@ -462,6 +462,6 @@ enforces.
   scope: product            # `auto-take: off` in _product.md — op:api.work.next answers nothing, so no runner takes ready tasks (rule:take-ready)
   source: packages/web/src/lib/work-io.ts#nextForRunner
 - id: flag:impact-model
-  scope: env                # WF_IMPACT_MODEL — the model the impact judge calls through `claude -p` (default: the judge's, flag:judge-model); WF_EXPLAIN_MODEL the one Explain and wf explain call (default claude-sonnet-5)
+  scope: env                # WF_IMPACT_MODEL — the model the impact judge calls through `claude -p` (default: the judge's, flag:judge-model); WF_EXPLAIN_MODEL the one Explain and wye explain call (default claude-sonnet-5)
   source: lib/impact.js; packages/web/src/lib/explain.ts
 ```

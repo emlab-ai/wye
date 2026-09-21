@@ -20,12 +20,20 @@ The constraints in force — rules about the product and how it is built that no
 ```yaml
 - id: constraint:wf2.local-first
   statement: >
-    Wye runs on the person's machine over the files of this repo. No hosting surface in v2: no multi-user auth, no
-    remote git sync, no automatic commits. Schema and API may carry the fields for it, unused.
+    Wye runs on the person's machine over the files of this repo. No hosting surface in v2: no multi-user auth, no remote git sync, no automatic commits. Schema and API may carry the fields for it, unused.
   scope: [module:wf2, req:wf2.serve]
   status: approved
   by: alex
   evidence: [docs/superpowers/specs/2026-09-14-waterfall-v2-design.md]
+```
+
+  lesson:new-942 *New lesson*
+
+  test:new-377 *New test*
+
+  decision:new-415 *New decision*
+
+```yaml
 - id: constraint:wf2.text-canonical
   statement: >
     Text files in git are canonical: a product's knowledge is its markdown documents; nothing is stored apart that

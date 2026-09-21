@@ -154,7 +154,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   verified-by: [ui-test:explain]
 ```
 
-  - when:exec.explain-anywhere "Explain" is used on a node or a selection, or `wf explain <id|text>` runs
+  - when:exec.explain-anywhere "Explain" is used on a node or a selection, or `wye explain <id|text>` runs
 
   - then:exec.explain-anywhere a librarian turn returns the current state for it — the Context card and the explanation — in the context column or on stdout, and proposes nothing
 

@@ -20,8 +20,8 @@ describe('tagifyInline', () => {
       { type: 'text', text: 'see ', styles: {} }, { type: 'tag', props: { id: 'rule:r1' } }, { type: 'text', text: ', then ', styles: {} }, { type: 'tag', props: { id: 'req:m.a' } }, { type: 'text', text: '.', styles: {} }]);
   });
   it('turns a code run that is exactly an id into a tag and leaves other code alone', () => {
-    expect(tagifyInline([{ type: 'text', text: 'page:web/node', styles: { code: true } }, { type: 'text', text: 'ctx check', styles: { code: true } }])).toEqual([
-      { type: 'tag', props: { id: 'page:web/node' } }, { type: 'text', text: 'ctx check', styles: { code: true } }]);
+    expect(tagifyInline([{ type: 'text', text: 'page:web/node', styles: { code: true } }, { type: 'text', text: 'wye check', styles: { code: true } }])).toEqual([
+      { type: 'tag', props: { id: 'page:web/node' } }, { type: 'text', text: 'wye check', styles: { code: true } }]);
   });
   it('leaves code blocks alone', () => {
     const out = tagifyBlocks([{ type: 'codeBlock', content: [{ type: 'text', text: '- module:a -(calls)-> op:b', styles: {} }] }] as never[]);

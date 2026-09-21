@@ -35,7 +35,7 @@ truth; the app, the `wye` CLI and the graph are views and doors onto it.
     - web       # packages/web — the Next.js app: documents, editor, knowledge views, work, inbox, agents
     - desktop   # packages/desktop — the Electron shell that owns the server
     - lib       # lib/ — parser, graph, judge, impact: markdown → graph, packet, verdicts
-    - cli       # bin/wye.js (wye), bin/ctx.js (ctx) — the agents' and the terminal's door
+    - cli       # bin/wye.js (wye), bin/wye-graph.js (ctx) — the agents' and the terminal's door
     - prompts   # prompts/ — the worker contract and the librarian
     - skills    # skills/ — Claude Code skills that teach an agent the contract
   documents: [module:wf2-prd, module:experience, module:domain, module:app, module:quality, module:decisions, module:research, module:archive]
@@ -99,7 +99,7 @@ a view. Ids never change.
   session: 94ac3cf3e0
 ```
 
-  - choice:wf2.annotations-text-and-png Both: the scene is described as text (regions, arrows, labels, positions in percent of the image) and flattened to a PNG; wf resolve gives the text and names the PNG. The image is embedded in the Excalidraw scene as a locked element so the scene is self-contained.
+  - choice:wf2.annotations-text-and-png Both: the scene is described as text (regions, arrows, labels, positions in percent of the image) and flattened to a PNG; wye resolve gives the text and names the PNG. The image is embedded in the Excalidraw scene as a locked element so the scene is self-contained.
 
   - context:wf2.annotations-text-and-png Agents read words; some can also see images. A drawing over a screenshot means nothing to an agent unless it is translated, and a translation alone loses what the picture shows.
 
@@ -316,7 +316,7 @@ a view. Ids never change.
   affects: [module:wf2, module:wf2-prd, module:wf2-dev, module:wf2-test, module:app, module:memory-review, module:ontology-design, module:prd-execution, rule:documents-tree]
 ```
 
-  - choice:wf2.definition-shape One tree, by kind on top and by area inside. "Wye" (what it is: purpose, goals, the constitution, the product-level decisions). "PRD" with a section per area holding every requirement and open question. "Design", a parent with one module page per area — Documents and editing, Knowledge views, Agents and sessions, Work and the librarian, Shell and navigation, Storage and serving, Graph core, Ontology, Memory — each holding that area's rules, decisions, components, libs, ops and flags. "Tests" (the verification index). "Research" for the essays (the memory review, the ontology design, the benchmarks) with their decisions moved to Design or Wye. "Archive" for retired pages. TODO, Bugs and Plans stay as intake. This is where `wf propose` already puts each kind: requirements and questions in the PRD, rules and decisions on the area's page.
+  - choice:wf2.definition-shape One tree, by kind on top and by area inside. "Wye" (what it is: purpose, goals, the constitution, the product-level decisions). "PRD" with a section per area holding every requirement and open question. "Design", a parent with one module page per area — Documents and editing, Knowledge views, Agents and sessions, Work and the librarian, Shell and navigation, Storage and serving, Graph core, Ontology, Memory — each holding that area's rules, decisions, components, libs, ops and flags. "Tests" (the verification index). "Research" for the essays (the memory review, the ontology design, the benchmarks) with their decisions moved to Design or Wye. "Archive" for retired pages. TODO, Bugs and Plans stay as intake. This is where `wye propose` already puts each kind: requirements and questions in the PRD, rules and decisions on the area's page.
 
   - context:wf2.definition-shape On 2026-09-20 the product's knowledge is spread over three generations of documents written side by side — the v0.1 self-description (module:waterfall), the 2026-09-14 design set (module:wf2, module:wf2-prd, module:wf2-dev, module:wf2-test, module:wf2-plan) and the App map by area (module:app and seven sub-pages) — plus topic essays (module:memory-review, module:ontology-design, module:prd-execution). Requirements live in seven documents, rules in four, decisions in six; no page says what Wye is.
 
@@ -350,7 +350,7 @@ a view. Ids never change.
 
   - alternative:wf2.superseded-layers Archive the pages whole and write the definition fresh — rejected: duplicates stay live and the packet keeps citing unbuilt rules. Keep the clerk / SQLite / MCP design live as the plan — rejected by the person: it is not the plan.
 
-  - consequence:wf2.superseded-layers The packet stops citing the unbuilt clerk rules; `wf context --all` and `--as-of` still show them. Drift rows in module:wf2 §10 that name retired nodes are closed by the retirement.
+  - consequence:wf2.superseded-layers The packet stops citing the unbuilt clerk rules; `wye context --all` and `--as-of` still show them. Drift rows in module:wf2 §10 that name retired nodes are closed by the retirement.
 
   verdict:d1d88601cbbe refines decision:memory.forgetting — A establishes the archiving policy (done work is hidden, not deleted); B applies this policy to the specific case of empty pages from the documentation migration. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:memory.forgetting decision:wf2.superseded-layers)
 

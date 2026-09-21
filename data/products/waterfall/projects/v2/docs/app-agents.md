@@ -158,17 +158,17 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   status: shipped
 - id: rule:agent-runner
   statement: >
-    External agents connect through the `wf` CLI (bin/wf.js) against the running web app. `wf agent listen --product
+    External agents connect through the `wf` CLI (bin/wye.js) against the running web app. `wye agent listen --product
     p --agent claude-code|codex` registers a runner (heartbeat every 10 s to /api/<product>/runners, entries expire
     after 30 s), claims the oldest queued session for its agent (POST /sessions/claim, first come first served),
     builds a prompt (instruction + every ref and the source link resolved to text + how to talk back), runs the
     agent command with the prompt on stdin (`claude -p …` / `codex exec …`, overridable with --cmd), streams every
     output line into the session log, and marks the session done or failed from the exit code. Agents read and write
-    through `wf resolve|doc|node|context|node set|doc write|session log|done|fail|handoff`. A hand-off creates a
+    through `wye resolve|doc|node|context|node set|doc write|session log|done|fail|handoff`. A hand-off creates a
     queued child session for another agent carrying the instruction, refs, log tail and result; the parent is
-    cancelled if still active and both are linked. `/wf-restore <id>` picks a session up interactively (`wf session
+    cancelled if still active and both are linked. `/wf-restore <id>` picks a session up interactively (`wye session
     take`). The Sessions page shows runners online, how many are working, and every session's live log.
-  source: bin/wf.js; packages/web/src/lib/sessions.ts; skills/waterfall-agent/SKILL.md; skills/wf-restore/SKILL.md
+  source: bin/wye.js; packages/web/src/lib/sessions.ts; skills/waterfall-agent/SKILL.md; skills/wf-restore/SKILL.md
   status: shipped
 - id: rule:agent-host
   statement: >
@@ -233,12 +233,12 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   statement: >
     Every agent Waterfall starts receives the Waterfall contract as its system prompt (prompts/agent-system.md, plus
     data/products/<product>/_agent.md, served at /api/<product>/agent-prompt): read Waterfall before acting (wf
-    context / resolve / doc, ctx packet), cite node ids, and record knowledge — every decision made by the person
-    or the agent above all, plus new requirements, rules and questions — in the product inbox with `wf inbox add`,
+    context / resolve / doc, wye graph packet), cite node ids, and record knowledge — every decision made by the person
+    or the agent above all, plus new requirements, rules and questions — in the product inbox with `wye inbox add`,
     never directly into the documents. Statuses of existing nodes may be set directly. Claude Code gets it via
     --append-system-prompt (+ --add-dir for the Waterfall repo); Codex gets it on top of the first turn; runners
     fetch it from the API.
-  source: prompts/agent-system.md; packages/web/src/lib/agent-prompt.ts; packages/web/src/lib/agent-host.ts; bin/wf.js
+  source: prompts/agent-system.md; packages/web/src/lib/agent-prompt.ts; packages/web/src/lib/agent-host.ts; bin/wye.js
   status: shipped
 ```
 
@@ -258,7 +258,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   affects: [rule:agent-runner, rule:agent-contract, rule:librarian-tools]
 ```
 
-  - choice:wf2.cli-is-wye `bin/wye.js` is the command (package bin, install.sh link, the agents' allow-lists); `bin/wf.js` holds the code and stays linked as `wf` for sessions and documents that still say it. Every prompt, skill, README line and app string says `wye`; the environment variables keep their names (WF_URL, WF_PRODUCT, WF_SESSION) so running agents are not cut off. Documents written before the rename keep `wf` in their prose; new ones say `wye`.
+  - choice:wf2.cli-is-wye `bin/wye.js` is the command (package bin, install.sh link, the agents' allow-lists); `bin/wye.js` holds the code and stays linked as `wf` for sessions and documents that still say it. Every prompt, skill, README line and app string says `wye`; the environment variables keep their names (WYE_URL, WYE_PRODUCT, WYE_SESSION) so running agents are not cut off. Documents written before the rename keep `wf` in their prose; new ones say `wye`.
 
   - context:wf2.cli-is-wye The product was renamed Wye (decision:waterfall.rename-scope) and the CLI kept its old name, wf. The person asked for the rename on 2026-09-20.
 
@@ -280,7 +280,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
   - alternative:wf2.attribution-derived-not-written Write `(session: <id>)` onto every touched block — git-visible and it survives a deleted session file, but every requirement, rule and paragraph line grows a trailing id per session that touched it, the app's own rewrite would itself be a change to credit, and a person's edit in the editor while an agent runs would be stamped with the agent's id. Can be added later as an explicit "stamp" step if the derived list proves short-lived.
 
-  - consequence:wf2.attribution-derived-not-written lib:artifacts gains blocks; the graph is diffed on rebuild (lib:graph-diff, pure, tested); the strip, the turn-done row, the session row and wf session show read the blocks; attribution stays coarse when several sessions run at once (all of them are credited, as for documents today) — the API path with x-wf-session is exact.
+  - consequence:wf2.attribution-derived-not-written lib:artifacts gains blocks; the graph is diffed on rebuild (lib:graph-diff, pure, tested); the strip, the turn-done row, the session row and wye session show read the blocks; attribution stays coarse when several sessions run at once (all of them are credited, as for documents today) — the API path with x-wf-session is exact.
 
 ```yaml
 - id: decision:wf2.fresh-is-a-queue-property
@@ -346,9 +346,9 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
   - choice:wf2.transcript-app-links Keep the URLs in the prompt as they are; change only the rendering. lib:app-link parses an app URL's path (`/<product>/<project>/d/<doc>#n-<id>`, `/<product>/sessions/<id>`, `/`) into a label and an in-app path, with the origin taken from the page at render time; component:transcript-markdown renders the label as a link (client-side navigation) and the node part as a tag. The desktop shell blocks navigation away from its origin and opens such URLs in the system browser.
 
-  - context:wf2.transcript-app-links The desktop app loads http://localhost:3456; the web app can be opened on any host that reaches the server. The agent's first message carries the app's URLs (they are what `wf resolve` takes), so they must stay in the text the agent gets, but a person reading the transcript should see the todo page and the task, not the address of their own machine.
+  - context:wf2.transcript-app-links The desktop app loads http://localhost:3456; the web app can be opened on any host that reaches the server. The agent's first message carries the app's URLs (they are what `wye resolve` takes), so they must stay in the text the agent gets, but a person reading the transcript should see the todo page and the task, not the address of their own machine.
 
-  - alternative:wf2.transcript-app-links Rewrite the prompt to omit URLs — the agent needs them for `wf resolve` and the session link; a special `waterfall://` scheme in the desktop — two forms of the same link, and the web would still show localhost; rendering only in the desktop — the web has the same raw URLs.
+  - alternative:wf2.transcript-app-links Rewrite the prompt to omit URLs — the agent needs them for `wye resolve` and the session link; a special `waterfall://` scheme in the desktop — two forms of the same link, and the web would still show localhost; rendering only in the desktop — the web has the same raw URLs.
 
   - consequence:wf2.transcript-app-links component:transcript-markdown, lib:app-link, rule:app-link; component:console and component:session-page render through it; packages/desktop/main.js gains a `will-navigate` handler; ui-test:app-links.
 
@@ -460,10 +460,10 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   file: packages/web/src/lib/resolve.ts
   side: server
   purpose: >
-    What a link points at: a document, a node, a hashed block or a heading section. Shared by the resolve API (agents via wf resolve) and the agent host (prompts).
+    What a link points at: a document, a node, a hashed block or a heading section. Shared by the resolve API (agents via wye resolve) and the agent host (prompts).
   part-of: module:app-agents
 - id: lib:core.wf
-  file: bin/wf.js
+  file: bin/wye.js
   side: server
   purpose: >
     The wf CLI: an agent's door into the running app — resolve, doc, node, context, inbox add, session log/done/take, agent listen (runner).

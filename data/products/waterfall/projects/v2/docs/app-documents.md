@@ -183,7 +183,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     The web app writes a document by span, never by regenerating it. splitDocument records character offsets for
     every prose segment and yaml chunk; a write re-reads the file, re-splits it, compares the sha256 of the target
     span with ifMatch (409 on mismatch), splices the new text (a chunk keeps its list style by re-indenting under
-    "- "), writes <file>.tmp-<pid> and renames it, then runs ctx build and ctx check in the project root and
+    "- "), writes <file>.tmp-<pid> and renames it, then runs wye build and wye check in the project root and
     returns the new hashes and lint errors.
   source: packages/web/src/lib/write.ts; packages/web/src/app/api/p/[project]/doc/[slug]/route.ts
   status: unverified
@@ -250,7 +250,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   verified-by: [test:web-lib#serialize, test:web-lib#import]
 - id: rule:process-is-active
   statement: >
-    A conversation whose claude or codex process is up is active whatever its recorded status: `wf session done`
+    A conversation whose claude or codex process is up is active whatever its recorded status: `wye session done`
     marks the work done while the process stays up to take the next message. The API adds `live` (process up) and
     `busy` (a turn is open) to every chat session from the server's own process table (agent-host#liveState —
     never from disk, so a restarted app shows nothing as live until it starts a process). The Agents page counts
@@ -361,7 +361,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     Every block has a stable link: `<web>/<product>/<project>/d/<doc>#<anchor>` where the anchor is `n-<id>` for a
     node block, the heading slug for a heading, and `b-<8-hex FNV-1a hash of the normalised text>` for any other
     block. "Copy link" is in every block's drag-handle menu, on node headers and table rows. Opening a link
-    scrolls to and flashes the block; `GET /api/<product>/resolve?link=` (and `wf resolve`) return the document,
+    scrolls to and flashes the block; `GET /api/<product>/resolve?link=` (and `wye resolve`) return the document,
     node, block text or heading section the link points at. A hashed link whose text changed falls back to the
     document.
   source: packages/web/src/lib/anchors.ts; packages/web/src/app/api/[product]/resolve/route.ts; packages/web/src/components/DocEditor.tsx#blockAnchor
@@ -383,12 +383,12 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     markdown keeps `![alt](assets/x.png)` inside the node's line, so lib/parse.js carries it in the node's `text`
     (the derived title drops it) and the type table row, the peek panel, node cards and the type page show the
     thumbnail. On import an image next to words, or on a line that continues a paragraph, is inline content of
-    that paragraph; only an image that is a paragraph of its own is an image block. wf resolve on a node, block,
+    that paragraph; only an image that is a paragraph of its own is an image block. wye resolve on a node, block,
     section or document lists every image its text embeds with the file path, so an agent can look at a bug's
     screenshot (fixes bug:new-396). The editor's pasteHandler only takes image files in a node block; every other
     paste goes to BlockNote's defaultPasteHandler — BlockNote cancels the browser's paste before asking, so a
     handler that returns undefined silences text paste in the whole document (task:new-286).
-  source: packages/web/src/lib/import.ts#liftInlineImages; packages/web/src/lib/serialize.ts#inlineToMarkdown; packages/web/src/components/DocEditor.tsx#InlineImage; packages/web/src/components/IdLink.tsx; packages/web/src/lib/resolve.ts; bin/wf.js#resolve; lib/parse.js
+  source: packages/web/src/lib/import.ts#liftInlineImages; packages/web/src/lib/serialize.ts#inlineToMarkdown; packages/web/src/components/DocEditor.tsx#InlineImage; packages/web/src/components/IdLink.tsx; packages/web/src/lib/resolve.ts; bin/wye.js#resolve; lib/parse.js
   status: shipped
   verified-by: [test:web-lib#import, test:web-lib#serialize]
   related-to: [rule:image-annotations, store:assets]
@@ -401,10 +401,10 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     (drawings/<slug>.png) and the annotations as text (drawings/<slug>.md): the image and its size, each labelled
     region with its zone and position in percent of the image, each arrow by what it connects (by binding, else by
     end points and the nearest labelled region), free labels with their position, freehand marks counted. The
-    description is regenerated on every save and never hand-edited. wf resolve on a block, section or document
+    description is regenerated on every save and never hand-edited. wye resolve on a block, section or document
     that embeds a drawing appends the description and the PNG path, so an agent reads the annotations and can look
     at the picture.
-  source: packages/web/src/lib/annotations.ts; packages/web/src/components/DrawingBlock.tsx#sceneFromImage; packages/web/src/components/DocEditor.tsx#AnnotateItem; packages/web/src/lib/resolve.ts; bin/wf.js#resolve
+  source: packages/web/src/lib/annotations.ts; packages/web/src/components/DrawingBlock.tsx#sceneFromImage; packages/web/src/components/DocEditor.tsx#AnnotateItem; packages/web/src/lib/resolve.ts; bin/wye.js#resolve
   status: proposed
   verified-by: [test:annotations-web]
 - id: rule:doc-links
@@ -467,7 +467,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   session: 7cfac7ea80
 ```
 
-  - choice:wf2.embed-syntax An embed is a paragraph of its own whose whole text is `![[kind:slug]]` — the transclusion form Obsidian and Logseq readers know. lib/import lifts it to an `embed` block (props: id) before BlockNote parses the markdown; lib/serialize writes it back unchanged. The graph (ctx) needs no change: the line is a paragraph that mentions the node, so the page gets a `mentions` edge to it and `wf resolve` on the paragraph still works. The slash menu item is "Embed a node" (`/ref`, `/embed`), with the same node picker the link button uses (id or title search).
+  - choice:wf2.embed-syntax An embed is a paragraph of its own whose whole text is `![[kind:slug]]` — the transclusion form Obsidian and Logseq readers know. lib/import lifts it to an `embed` block (props: id) before BlockNote parses the markdown; lib/serialize writes it back unchanged. The graph (ctx) needs no change: the line is a paragraph that mentions the node, so the page gets a `mentions` edge to it and `wye resolve` on the paragraph still works. The slash menu item is "Embed a node" (`/ref`, `/embed`), with the same node picker the link button uses (id or title search).
 
   - context:wf2.embed-syntax A document needs a way to say "show that node here" that the graph, the reader, the editor and agents all understand. The editor already has one-line markers: `<!-- view:x -->` for a live table (invisible to the graph) and `![Title](drawings/x.excalidraw)` for a drawing. A node reference must stay a reference — the node keeps its one definition in its source document — and should be visible to the graph as a link from the page to the node.
 
@@ -503,7 +503,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   session: 64813dfdab
 ```
 
-  - choice:wf2.page-node-typed The frontmatter `node:` line accepts any `kind:slug` whose kind is a declared type; that node is the page's node — defined, titled, statused, with the frontmatter as its body and validated by ctx check against the type's effective properties like any instance. `module` remains the default type of a new page and of every existing page; nothing changes in existing files. The header becomes the page node's card: a type picker (the product's own types first, then the base types) and the type's effective properties as fields. The frontmatter `type:` line is dropped from the templates (the kind prefix is the type); parse ignores it. graph.modules keeps its name and lists every document node regardless of kind; the web gets one helper (docIdOf(file) / isDocNode(id)) and every hand-built `module:${slug}` goes through it.
+  - choice:wf2.page-node-typed The frontmatter `node:` line accepts any `kind:slug` whose kind is a declared type; that node is the page's node — defined, titled, statused, with the frontmatter as its body and validated by wye check against the type's effective properties like any instance. `module` remains the default type of a new page and of every existing page; nothing changes in existing files. The header becomes the page node's card: a type picker (the product's own types first, then the base types) and the type's effective properties as fields. The frontmatter `type:` line is dropped from the templates (the kind prefix is the type); parse ignores it. graph.modules keeps its name and lists every document node regardless of kind; the web gets one helper (docIdOf(file) / isDocNode(id)) and every hand-built `module:${slug}` goes through it.
 
   - context:wf2.page-node-typed task:new-226 asks that each page is a node like any other block and that its type can be set to choose its properties. Today the parser hardcodes the document node's kind to module (lib/parse.js:209), the frontmatter `type:` key is decorative, and the header renders five fixed fields; instancesOf(type) never sees a page.
 
@@ -562,7 +562,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: lesson:wf2.prose-props-id-list
   statement: >
-    `wf node set <id> --set "related-to=[<id>, <id>]"` on a prose line wrote the list, but the parser split the
+    `wye node set <id> --set "related-to=[<id>, <id>]"` on a prose line wrote the list, but the parser split the
     trailing group at every ", word:" — the second id, `kind:slug]`, looked like a key — so the node lost its
     second edge and carried a stray property named after the kind (seen on req:document-opened-in-the,
     2026-09-20). The splitters in lib/parse.js and packages/web/src/lib/props.ts now skip commas inside `[…]`;

@@ -53,7 +53,7 @@ Where everything lives on disk: markdown is canonical, everything under _build i
   path: data/products/<product>/_build/graph.json (+ data.js for the site)
   format: json
   purpose: >
-    The parsed graph: nodes, edges, modules, kinds, types, inverses, problems. Rebuilt by ctx build (the app spawns it after every write and on watcher changes); never edited.
+    The parsed graph: nodes, edges, modules, kinds, types, inverses, problems. Rebuilt by wye build (the app spawns it after every write and on watcher changes); never edited.
   part-of: module:stores
 - id: store:embeddings
   path: data/products/<product>/_build/embeddings.json

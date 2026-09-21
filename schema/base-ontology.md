@@ -4,15 +4,15 @@ The types every product starts with. Each base kind of the graph is a `type:` ca
 types in any of its documents (by convention `ontology.md`) with the same card form. `lib/parse.js` reads this file
 first (pass 1), then the product's documents, so the set of kinds is open: an instance of `type:team` is `team:<slug>`.
 
-A `shapes:` block lists the checks `ctx check` enforces on the type's instances, in the type's own words
+A `shapes:` block lists the checks `wye check` enforces on the type's instances, in the type's own words
 (decision:memory.shapes): `<status or *> requires <prop>[, <prop>] [| <alternative>] [as error]` — an instance in that
 status has the property (a body key or an outgoing edge of that name; commas mean all, `|` any of); `<prop> refs
-status <s>` — what the property points at has that status. A shape warns; `as error` or `ctx check --strict` makes it
+status <s>` — what the property points at has that status. A shape warns; `as error` or `wye check --strict` makes it
 an error; a prose node only ever warns. Shapes accumulate along `extends`.
 
 A property line is `name: <value type>[?] [-(inverse)-> <name>]`. Value types: `string`, `text`, `number`, `date`,
 `month`, `bool`, `enum [a, b]`, `ref <type>`, `list of <type>` (or `list of string`). A trailing `?` marks the
-property optional; without it `ctx check` warns when an instance lacks it. `ref`/`list of` properties are edges
+property optional; without it `wye check` warns when an instance lacks it. `ref`/`list of` properties are edges
 named by the property; `-(inverse)-> name` is the name of the generated back link on the target. `open: true` on a
 type means instances may carry properties the type does not declare without a warning (all base types are open;
 `schema/kinds.yaml` still lists their required and recommended keys in prose).

@@ -39,7 +39,7 @@ export function pickNext(approved: Approved[], building: Building[], slots: numb
 
 type State = { waiting: Map<string, Record<string, string>>; timers: Map<string, ReturnType<typeof setTimeout>>; tick?: ReturnType<typeof setInterval>; wfUrl: string; running: Set<string> };
 const g = globalThis as unknown as { __wfDispatch?: State };
-const state = (): State => (g.__wfDispatch ??= { waiting: new Map(), timers: new Map(), wfUrl: process.env.WF_URL || 'http://localhost:3456', running: new Set() });
+const state = (): State => (g.__wfDispatch ??= { waiting: new Map(), timers: new Map(), wfUrl: process.env.WYE_URL || process.env.WF_URL || 'http://localhost:3456', running: new Set() });
 
 export const waitingReasons = (product: string): Record<string, string> => state().waiting.get(product) ?? {};
 export function rememberUrl(wfUrl: string) { if (wfUrl) state().wfUrl = wfUrl; }

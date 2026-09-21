@@ -58,7 +58,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   status: shipped
 - id: rule:product-layout
   statement: data/products/<product>/_product.md (title, icon, description), projects/<project>/_project.md (title, kind project|goal, status, icon), projects/<project>/docs/*.md (pages), inbox/ (dropped notes and files, unprocessed), _build/graph.json (the product's knowledge, built by ctx from every page of every project; files and folders starting with _ and the inbox are skipped). Routes: /<product>, /<product>/knowledge[/<kind>], /<product>/graph, /<product>/inbox, /<product>/<project>, /<product>/<project>/d/<page>.
-  source: packages/web/src/lib/products.ts; packages/web/src/lib/scope.ts; bin/ctx.js#findDocs
+  source: packages/web/src/lib/products.ts; packages/web/src/lib/scope.ts; bin/wye-graph.js#findDocs
   status: unverified
   requires-tests: [test:server-api#serve-starts-with-two-projects]
 
@@ -81,7 +81,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   file: packages/web/src/lib/watch.ts
   side: server
   purpose: >
-    Watches the product data on disk so the app follows what agents and editors write: any change under data/products/<product> (documents, inbox, sessions) is pushed to subscribers, and a changed document rebuilds the graph (agents may edit files without running ctx build). Lives on globalThis across dev reloads.
+    Watches the product data on disk so the app follows what agents and editors write: any change under data/products/<product> (documents, inbox, sessions) is pushed to subscribers, and a changed document rebuilds the graph (agents may edit files without running wye build). Lives on globalThis across dev reloads.
   part-of: module:app-storage
 - id: lib:artifacts
   file: packages/web/src/lib/artifacts.ts

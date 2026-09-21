@@ -4,9 +4,7 @@
     "description": "Product context graph: describe a system as requirements, entities, rules, ops and pages in markdown; query it as a graph; browse and edit it in a web app.",
     "private": true,
     "bin": {
-        "ctx": "bin/ctx.js",
-        "wye": "bin/wye.js",
-        "wf": "bin/wf.js"
+        "wye": "bin/wye.js"
     },
     "workspaces": [
         "packages/*"
@@ -15,7 +13,7 @@
         "test": "node test/smoke.js && node test/prose.js && node test/ontology.js && node test/blocks.js && node test/page-node.js && node test/memory.js && node test/impact.js && node test/verdict-bench.js && node test/eval.js && node test/cards.js && node test/jev.js && node test/plans-to-prs.js && node test/prs-number.js && npm run test --workspace=packages/web",
         "cards": "node scripts/cards.js --write",
         "dev": "npm run dev --workspace=packages/web",
-        "desktop": "WF_DEV=1 electron packages/desktop",
+        "desktop": "WYE_DEV=1 electron packages/desktop",
         "desktop:prod": "npm run build --workspace=packages/web && electron packages/desktop"
     },
     "engines": {

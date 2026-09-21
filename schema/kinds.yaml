@@ -62,7 +62,7 @@ verbs:
   mentions:     generated — any node whose text names another node or a field; weak edge, hidden by default in the viewer
 
 statuses:
-  req:  [shipped, api-only, unverified, proposed, question]   # shipped requires ≥1 verified-by; ctx check --strict enforces it
+  req:  [shipped, api-only, unverified, proposed, question]   # shipped requires ≥1 verified-by; wye check --strict enforces it
   node: [proposed, approved, shipped, deprecated]              # lifecycle used by deltas
   goal: [proposed, on-track, at-risk, off-track, paused, complete, non-goal]   # goal health, Atlassian-style; progress is computed from what is part of the goal
   task: [todo, open, in-progress, blocked, done]              # a checkbox line sets open/done; #in-progress / #blocked override
@@ -102,7 +102,7 @@ prose-nodes: |
   A yaml block still defines nodes exactly as before; both forms coexist in one file.
 
 conventions:
-  - every rule cites `source: path[:line | #Symbol]`; a rule without a source is a wish, not a fact (ctx check errors on it)
+  - every rule cites `source: path[:line | #Symbol]`; a rule without a source is a wish, not a fact (wye check errors on it)
   - source paths resolve against the module's `source-roots` frontmatter list, in order
   - money is always base units (pence); quantities are always a value object {quantity, unitOfMeasure}
   - a req whose behaviour you could not find in code gets status proposed or question — never shipped

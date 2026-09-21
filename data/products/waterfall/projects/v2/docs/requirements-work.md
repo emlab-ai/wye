@@ -129,9 +129,9 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   verified-by: [ui-test:change-review, test:web-lib#changes]
 ```
 
-  - when:exec.change-kept the defining line or card of a typed node is changed — in the editor, through op:api.node, by `wf node set`, or by an agent writing the file
+  - when:exec.change-kept the defining line or card of a typed node is changed — in the editor, through op:api.node, by `wye node set`, or by an agent writing the file
   - then:exec.change-kept a change record holds before and after (text and properties), who, session, time and state pending; the node shows a changed badge; the record is listed in the Inbox under Changes with a diff — property by property, and word by word inside a text — together with the unchanged fields that frame it (kind, status, parent, what it refines)
-  - unless:exec.change-kept the change is only a status or tracking field set through `wf node set` or a checkbox (recorded, accepted at once, not listed); or the block is a plain paragraph (no record; git has it); or the person edits their own proposed block
+  - unless:exec.change-kept the change is only a status or tracking field set through `wye node set` or a checkbox (recorded, accepted at once, not listed); or the block is a plain paragraph (no record; git has it); or the person edits their own proposed block
 
 ```yaml
 - id: req:exec.change-review
@@ -260,7 +260,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   verified-by: [test:impact, ui-test:change-review]
 ```
 
-  - when:exec.impact-for-agents an agent runs `wf impact <id> --after "<new text>"` or `ctx impact <id> --semantic --explain`
+  - when:exec.impact-for-agents an agent runs `wye impact <id> --after "<new text>"` or `wye graph impact <id> --semantic --explain`
   - then:exec.impact-for-agents the structural and semantic candidates with paths come back at once and the verdicts follow (wf waits up to the run's budget); the contract asks an agent to run it before editing an approved node and to list the updates it made or the tasks it left
 
 ```yaml
@@ -303,7 +303,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   verified-by: [ui-test:work-assign]
 ```
 
-  - when:exec.backlog-for-agents an agent runs `wf work list [--unassigned|--mine|--goal <id>]` or `wf work add "<text>" [--part-of <id>]`
+  - when:exec.backlog-for-agents an agent runs `wye work list [--unassigned|--mine|--goal <id>]` or `wye work add "<text>" [--part-of <id>]`
   - then:exec.backlog-for-agents the list comes back with status, ready mark, goal, plan and worker; add writes a task line the same way the person's capture does, with `by:` the agent
 
 ```yaml
@@ -318,8 +318,8 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf2.ui.tasks the Tasks entry opens
   - then:wf2.ui.tasks tasks show as columns by status; opening one shows its links, packet, decisions and deltas
-  - question:wf2.ui.tasks.board-or-groups then:wf2.ui.tasks says columns by status and its required test (test:web-components#task-board) a drag between columns that state:task-lifecycle can snap back; what shipped is page:web/work — status groups in one list (req:exec.work-view, which refines this), statuses todo / open / in-progress / blocked / review / done from the task lines, and no drag (a move is `wf node set --status` or the header's status). page:web/tasks is retired and packages/web/test/components.test.tsx does not exist. Is the Work view's grouping the board this requirement means — so requires-tests should point at ui-test:work-view and ui-test:work.tasks-by-status and the drag / snap-back is dropped — or is a column board with drag still wanted? #open
-  - question:wf2.ui.tasks.packet-and-deltas then:wf2.ui.tasks says opening a task shows its packet and deltas. Today the column shows Connected, Content, the work panel (sessions, result, produced decisions and questions) and Produced; the constraint packet is computed for a session (`wf packet --ref task:x`, component:context-card in a librarian conversation) but not shown on a task, and deltas were replaced by change records and produced blocks (decision:exec.change-record). Is "packet" a Context card on the task's column (then it needs a task and a test), and are "deltas" the produced blocks and pending changes that ui-test:work.open-task-decisions checks? #open
+  - question:wf2.ui.tasks.board-or-groups then:wf2.ui.tasks says columns by status and its required test (test:web-components#task-board) a drag between columns that state:task-lifecycle can snap back; what shipped is page:web/work — status groups in one list (req:exec.work-view, which refines this), statuses todo / open / in-progress / blocked / review / done from the task lines, and no drag (a move is `wye node set --status` or the header's status). page:web/tasks is retired and packages/web/test/components.test.tsx does not exist. Is the Work view's grouping the board this requirement means — so requires-tests should point at ui-test:work-view and ui-test:work.tasks-by-status and the drag / snap-back is dropped — or is a column board with drag still wanted? #open
+  - question:wf2.ui.tasks.packet-and-deltas then:wf2.ui.tasks says opening a task shows its packet and deltas. Today the column shows Connected, Content, the work panel (sessions, result, produced decisions and questions) and Produced; the constraint packet is computed for a session (`wye packet --ref task:x`, component:context-card in a librarian conversation) but not shown on a task, and deltas were replaced by change records and produced blocks (decision:exec.change-record). Is "packet" a Context card on the task's column (then it needs a task and a test), and are "deltas" the produced blocks and pending changes that ui-test:work.open-task-decisions checks? #open
   - [x] task:waterfall.define-test-cases-for-tasks-are Define test cases for Tasks are a board (by: hook:req-approved-tests, since: 2026-09-21, part-of: req:wf2.ui.tasks, worker: claude-code, session: 940c3784f0, produced: pr:29 module:wf2-test)
 
   question:waterfall.5ade74deltas Is 'packet' meant to be shown as a Context card on the task's column  requiring a dedicated test , and are 'deltas' the produced blocks and changes that ui-test:work.open-task-decisions already verifies? #open (context: impact of the change 5ade7491a6 on question:wf2.ui.tasks.packet-and-deltas, related-to: question:wf2.ui.tasks.packet-and-deltas)
@@ -360,7 +360,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   title: Does an agent's edit to an approved node wait for review before agents downstream see it as current?
   q: >
     decision:exec.change-record writes every edit through and marks an agent's edit of an approved node pending. A
-    second worker reading the graph sees the new value. Should the constraint packet and `wf context` serve the old
+    second worker reading the graph sees the new value. Should the constraint packet and `wye context` serve the old
     value (the approved one) until Accept, the new one marked pending, or both?
   context: >
     Two truths in the document is what the decision avoided; serving the pending value marked is the cheapest; serving

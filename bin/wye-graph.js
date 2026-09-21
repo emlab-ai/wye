@@ -1,22 +1,23 @@
 #!/usr/bin/env node
 'use strict';
-// ctx — query and maintain a product context graph stored as markdown.
-//   ctx build [files...]           parse docs/context-graph/*.md → _build/graph.json + data.js
-//   ctx site  [files...] [--out d] build the phone-friendly viewer (index.html + data.js) ready to publish
-//   ctx get <id>                   one node with all edges
-//   ctx neighbors <id> [-d N] [--kinds a,b] [--structural]
-//   ctx search <terms...> [--all | --as-of <date>]   (superseded, rejected and retired nodes are hidden by default)
-//   ctx impact <id> [--explain] [--semantic] [--after "<new text>"] [--json]
+// wye's graph commands (bin/wye.js forwards `wye build`, `wye check`, `wye get`… here; `wye graph <cmd>` for the rest)
+// — query and maintain a product context graph stored as markdown, no app needed.
+//   wye build [files...]           parse docs/context-graph/*.md → _build/graph.json + data.js
+//   wye site  [files...] [--out d] build the phone-friendly viewer (index.html + data.js) ready to publish
+//   wye get <id>                   one node with all edges
+//   wye neighbors <id> [-d N] [--kinds a,b] [--structural]
+//   wye search <terms...> [--all | --as-of <date>]   (superseded, rejected and retired nodes are hidden by default)
+//   wye impact <id> [--explain] [--semantic] [--after "<new text>"] [--json]
 //        everything that depends on the node; --explain: the candidates an edit reaches with the path and weight
 //        (req:exec.impact-set); --semantic adds the search hits structure did not reach; --after judges each
 //        candidate against the change through the model (unaffected | update | rework | contradicts | ask)
-//   ctx packet --task "<text>" [--budget N]   a token-budgeted slice for an agent
-//   ctx constraints --task "<text>" [--ref id,id] [--budget N] [--json]   what governs a request: every rule, constraint, gate,
+//   wye packet --task "<text>" [--budget N]   a token-budgeted slice for an agent
+//   wye constraints --task "<text>" [--ref id,id] [--budget N] [--json]   what governs a request: every rule, constraint, gate,
 //                                  approved decision, goal and open question within two hops of the seeds, complete
-//   ctx check [--repo dir] [--strict] [--deep]   lint the graph; exit 1 on errors; --deep judges same-kind pairs for contradictions
-//   ctx verdicts <id...> [--json]  classify a node against its neighbours (duplicate | refines | consistent | contradicts)
-//   ctx stats
-//   ctx reqs [--status s]          requirement tree with status
+//   wye check [--repo dir] [--strict] [--deep]   lint the graph; exit 1 on errors; --deep judges same-kind pairs for contradictions
+//   wye verdicts <id...> [--json]  classify a node against its neighbours (duplicate | refines | consistent | contradicts)
+//   wye stats
+//   wye reqs [--status s]          requirement tree with status
 const fs = require('fs');
 const path = require('path');
 const { parseFiles } = require('../lib/parse');
@@ -40,8 +41,8 @@ function findDocs(files) {
     walk(ROOT);
     return out.sort();
 }
-function die(msg) { console.error('ctx: ' + msg); process.exit(2); }
-function load() { if (!fs.existsSync(graphFile)) die(`no ${graphFile} — run \`ctx build\` first`); return Graph.load(graphFile); }
+function die(msg) { console.error('wye: ' + msg); process.exit(2); }
+function load() { if (!fs.existsSync(graphFile)) die(`no ${graphFile} — run \`wye build\` first`); return Graph.load(graphFile); }
 function resolveOne(g, id) { const r = g.resolve(id); if (!r.length) die(`unknown node: ${id}`); if (r.length > 1) die(`ambiguous: ${r.join(', ')}`); return r[0]; }
 function writeBuild(graph, outDir) {
     fs.mkdirSync(outDir, { recursive: true });
@@ -106,7 +107,7 @@ switch (cmd) {
             };
             if (!opt('after')) { print(null); break; }
             const change = { node: id, kind: n.kind, before: nodeText(n), after: opt('after') };
-            impact.judgeImpact(change, cands, { cacheFile: path.join(BUILD, 'impact.json'), budget: { candidates: +opt('budget', 20), calls: 3 }, log: m => console.error('ctx: ' + m) }).then(print).catch(e => die(e.message));
+            impact.judgeImpact(change, cands, { cacheFile: path.join(BUILD, 'impact.json'), budget: { candidates: +opt('budget', 20), calls: 3 }, log: m => console.error('wye: ' + m) }).then(print).catch(e => die(e.message));
             break;
         }
         const dist = g.impact(id, +opt('d', 3));
@@ -138,7 +139,7 @@ switch (cmd) {
         const g = load(); const ids = positional.map(id => resolveOne(g, id)); if (!ids.length) die('verdicts <id...> [--limit N] [--budget-pairs N] [--budget-calls N] [--json]');
         const { judgePairs } = require('../lib/judge');
         const pairs = g.verdictPairs(ids, { limit: +opt('limit', 12) });
-        judgePairs(pairs, { cacheFile: path.join(BUILD, 'verdicts.json'), budget: { pairs: +opt('budget-pairs', 40), calls: +opt('budget-calls', 6) }, log: m => console.error('ctx: ' + m) }).then(vs => {
+        judgePairs(pairs, { cacheFile: path.join(BUILD, 'verdicts.json'), budget: { pairs: +opt('budget-pairs', 40), calls: +opt('budget-calls', 6) }, log: m => console.error('wye: ' + m) }).then(vs => {
             if (argv.includes('--json')) { console.log(JSON.stringify(vs, null, 1)); return; }
             const order = { contradicts: 0, duplicate: 1, refines: 2, consistent: 3 };
             const done = vs.filter(Boolean).sort((x, y) => order[x.kind] - order[y.kind]);
@@ -155,11 +156,11 @@ switch (cmd) {
         console.log(`\n${r.errors.length} error(s), ${r.warnings.length} warning(s)`);
         if (argv.includes('--deep')) {
             // --deep (task:memory.lint-deep): the verdict pass over every same-kind pair that shares a neighbour; new
-            // contradictions are reported, never written — write them with `ctx verdicts` / the app
+            // contradictions are reported, never written — write them with `wye verdicts` / the app
             const { judgePairs } = require('../lib/judge');
             const pairs = g.deepPairs({ limit: +opt('limit', 400) });
             console.log(`\ndeep: ${pairs.length} same-kind pair(s) sharing a neighbour`);
-            judgePairs(pairs, { cacheFile: path.join(BUILD, 'verdicts.json'), budget: { pairs: +opt('budget-pairs', 60), calls: +opt('budget-calls', 8) }, log: m => console.error('ctx: ' + m) }).then(vs => {
+            judgePairs(pairs, { cacheFile: path.join(BUILD, 'verdicts.json'), budget: { pairs: +opt('budget-pairs', 60), calls: +opt('budget-calls', 8) }, log: m => console.error('wye: ' + m) }).then(vs => {
                 const found = vs.filter(v => v && (v.kind === 'contradicts' || v.kind === 'duplicate'));
                 for (const v of found) console.log(`${v.kind.toUpperCase()} ${v.a} ↔ ${v.b}${v.conflict ? ' [' + v.conflict + ']' : ''} — ${v.reason}`);
                 const pending = vs.filter(v => !v).length;

@@ -103,7 +103,7 @@ export function TypeView({ type, instances, index, product, onSaved }: { type: T
       </section>
       {(type.shapes ?? []).length > 0 && (
         <section className="props">
-          <h4>Shapes <span className="muted">what <code>ctx check</code> enforces on a {type.slug}</span></h4>
+          <h4>Shapes <span className="muted">what <code>wye check</code> enforces on a {type.slug}</span></h4>
           <ul className="shape-list">{(type.shapes ?? []).map((sh, i) => <li key={i}><code>{sh.text}</code>{sh.from !== type.id && <span className="muted"> · from <Link href={`/${product}/types/${sh.from.slice(5)}`}>{sh.from.slice(5)}</Link></span>}</li>)}</ul>
         </section>)}
 

@@ -72,7 +72,7 @@ async function addFacts(set, { live, model, log, rec }) {
     fs.writeFileSync(path.join(PRODUCT_DIR, '_product.md'), `---\ntitle: MemoryAgentBench — ${set.source}\nicon: 🧪\ndescription: FactConsolidation facts as prose nodes with since and supersedes (eval/public/memoryagentbench); a scratch product, never committed.\n---\n`);
     fs.writeFileSync(path.join(docs, 'ontology.md'), `---\nnode: module:ontology\ntitle: Ontology\n---\n\n# Ontology\n\n\`\`\`yaml\n- id: type:fact\n  extends: type:node\n  purpose: one injected fact of FactConsolidation; since is its injection order, supersedes the fact it overrides\n  open: true\n  props:\n    since: string?\n    supersedes: list of fact? -(inverse)-> superseded-by\n\`\`\`\n`);
     fs.writeFileSync(path.join(docs, 'facts.md'), `---\nnode: module:facts\ntitle: Facts\n---\n\n# Facts\n\n${lines.join('\n\n')}\n`);
-    execFileSync(process.execPath, [path.join(REPO, 'bin', 'ctx.js'), 'build', '--root', path.relative(REPO, PRODUCT_DIR)], { cwd: REPO, stdio: 'ignore' });
+    execFileSync(process.execPath, [path.join(REPO, 'bin', 'wye.js'), 'build', '--root', path.relative(REPO, PRODUCT_DIR)], { cwd: REPO, stdio: 'ignore' });
     return { facts: facts.length, pairs: pairs.length, superseded: superseded.size, judged: verdicts.filter(Boolean).length };
 }
 

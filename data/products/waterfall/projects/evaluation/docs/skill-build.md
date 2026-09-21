@@ -27,7 +27,7 @@ replace it.
   for any text, mid-session: `wye packet --for "<what you are about to do>" [--ref id]`.
 - Then read what Wye knows about the area: `wye context "<what you are about to do>"` (semantic search; superseded and
   retired knowledge is hidden unless `--all`), `wye resolve <link|id>` for anything referenced, `wye doc
-  <product/project/doc>` for the full document, `ctx --root data/products/<product> packet --task "<sentence>"` for a
+  <product/project/doc>` for the full document, `wye packet --root data/products/<product> --task "<sentence>"` for a
   token-budgeted slice.
 - Cite node ids (`req:…`, `rule:…`, `decision:…`, `goal:…`, `task:…`) when you explain what you are doing. If the
   knowledge is thin or missing for the area, say so and record what you learn (below) rather than guessing.
@@ -63,7 +63,7 @@ show the blocks in the documents that nobody has approved or resolved yet. So:
   `- [ ] task:` line in the plan (or the document the work belongs to), `part of goal:…`.
 - A document you write for the product therefore has no untyped decisions, questions, requirements or tasks.
   Prose explains; blocks carry what is decided, asked, required and to do. Check with
-  `ctx --root data/products/<product> check` (0 errors) and re-read your document for prose that should be a block.
+  `wye check --root data/products/<product>` (0 errors) and re-read your document for prose that should be a block.
 - Check first whether Wye already says it (`wye context`, `wye resolve`); refine an existing node (keep its
   id) instead of adding a second one.
 - Block forms: a yaml card in a fenced ```yaml block (`- id: decision:<product>.<slug>` … one key per line, `>`
@@ -73,7 +73,7 @@ show the blocks in the documents that nobody has approved or resolved yet. So:
   `name: string`, `manager: ref employee -(inverse)-> reports`, `members: list of person -(inverse)-> memberOf`);
   an instance is `team:<slug>` as a card or a prose line. Properties inherit along `extends`; a ref/list property
   is an edge named by the property and the inverse appears on the other side without being written. Read a
-  type with `wye node type:<slug>`; `ctx check` reports missing required, undeclared and mistyped properties.
+  type with `wye node type:<slug>`; `wye check` reports missing required, undeclared and mistyped properties.
 - What you MAY change without review: statuses and tracking fields of existing nodes — `wye node set task:x
   --status done`, `wye node set req:y --status shipped`, `wye node set goal:z --status at-risk --set owner=…`.
 - The inbox folder (`wye inbox add`) is only for raw material that has no document yet: a pasted conversation, a
@@ -129,7 +129,7 @@ you cannot answer are `question:` blocks; answers you get from the person are `d
 1. Every decision from this session is a `decision:` block (proposed). Every open question is a `question:` block.
    Every new requirement or rule is a block. Every follow-up you mention is a task line in the plan (or the
    relevant document); tasks you completed are `done`.
-2. If you edited any knowledge document (only when asked), `ctx --root data/products/<product> check` is green.
+2. If you edited any knowledge document (only when asked), `wye check --root data/products/<product>` is green.
 3. Tell the person, in a few lines, what you changed in the code and what you sent to the inbox.
 4. If you were started as a Wye session: `wye session log <id> "<line>"` as you go and end with
    `wye session done <id> "<summary>"`.

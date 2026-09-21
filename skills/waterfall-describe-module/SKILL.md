@@ -1,17 +1,17 @@
 ---
 name: waterfall-describe-module
-description: Build the product context graph for one module — requirements, entities, state machines, ops, pages/actions, rules with sources, gates, tests, drift — as data/products/<product>/projects/<project>/docs/<module>.md, then build/check it with ctx and publish the phone viewer. Use when asked to "describe module X", "graph the Y feature", "add Z to the context graph", or to repeat the inventory pilot for another area.
+description: Build the product context graph for one module — requirements, entities, state machines, ops, pages/actions, rules with sources, gates, tests, drift — as data/products/<product>/projects/<project>/docs/<module>.md, then build/check it with wye and publish the phone viewer. Use when asked to "describe module X", "graph the Y feature", "add Z to the context graph", or to repeat the inventory pilot for another area.
 ---
 
 # Describe a module as a context graph
 
 You are producing `data/products/<product>/projects/<project>/docs/<module>.md`: a code-free, graph-shaped description of one module that a
-script can parse (`ctx build`) and lint (`ctx check`). The inventory pilot (`data/products/waterfall/projects/v2/docs/inventory.md`) is the
+script can parse (`wye build`) and lint (`wye check`). The inventory pilot (`data/products/waterfall/projects/v2/docs/inventory.md`) is the
 reference example. The schema is `~/Projects/waterfall/schema/kinds.yaml`; the skeleton is `~/Projects/waterfall/templates/module.md`.
 
 Rules that are not negotiable:
 - **Requirements first.** Every behaviour is a `req:` node in when/then/unless form. Everything else exists to satisfy one.
-- **Every rule cites a source** (`file:line` or `file#Symbol`). No source ⇒ it is a wish, and `ctx check` fails.
+- **Every rule cites a source** (`file:line` or `file#Symbol`). No source ⇒ it is a wish, and `wye check` fails.
 - **Status reflects evidence.** `shipped` only with a test you actually found. Otherwise `unverified`, `api-only`, `proposed` or `question`.
 - **The drift table is mandatory.** You compared PRD vs server vs client vs tests; write down every disagreement.
 - **Never invent behaviour.** If the code is silent, write a `question`, not a guess.
@@ -25,10 +25,10 @@ Rules that are not negotiable:
 5. **Write the file** from the template, in this order: frontmatter (with `source-roots`), module node, **R. Requirements** (grouped by capability, dotted ids, refines edges), entities (fields blocks — the parser turns each field into a node), values/enums table, state machines, ops tables, pages with inline actions, rules, cross-module edges, gates, verification index, drift table, open questions.
 6. **Build and lint:**
    ```bash
-   ctx build && ctx check
+   wye build && wye check
    ```
    Fix every ERROR (rules without source, reqs without satisfied-by, referenced-but-undefined rule/req ids). Read the warnings: stubs for ops/actions you named but never described mean the doc is incomplete; decide whether to describe them or drop the reference.
-7. **Publish the viewer:** `ctx site --out <dir>` then call the Artifact tool with `file_path=<dir>/index.html` and `files={"data.js": "<dir>/data.js"}`. The Artifact tool only reads files under the current working directory or the session scratchpad, so when the graph lives in another repo build into the scratchpad (`ctx site --out $SCRATCHPAD/<module>-site`). Favicon 🧭 on first publish; reuse the artifact URL on republish.
+7. **Publish the viewer:** `wye site --out <dir>` then call the Artifact tool with `file_path=<dir>/index.html` and `files={"data.js": "<dir>/data.js"}`. The Artifact tool only reads files under the current working directory or the session scratchpad, so when the graph lives in another repo build into the scratchpad (`wye site --out $SCRATCHPAD/<module>-site`). Favicon 🧭 on first publish; reuse the artifact URL on republish.
 8. **Report** in the final message: counts by kind, requirement status breakdown, the drift rows that look like product bugs (not just doc rot), and the untested surfaces. Give the file path and the artifact link.
 
 ## Writing requirements well

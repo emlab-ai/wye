@@ -7,7 +7,7 @@ owner: unassigned
 sources:
   - lib/parse.js
   - lib/graph.js
-  - bin/ctx.js
+  - bin/wye-graph.js
 part-of: module:app
 order: 40
 last-verified: 2026-09-20
@@ -20,7 +20,7 @@ Graph core and CLI
 ```yaml
 - id: module:app-graph
   purpose: >
-    The core that every view and every agent depends on: the parser that turns markdown into a graph (kinds open through the ontology, prose nodes, cards, blocks, generated fields, props and inverses), the query layer (search, neighbours, impact, packets), the lint (ctx check) and the ctx CLI that runs them offline. It has no server dependency and is what CI runs.
+    The core that every view and every agent depends on: the parser that turns markdown into a graph (kinds open through the ontology, prose nodes, cards, blocks, generated fields, props and inverses), the query layer (search, neighbours, impact, packets), the lint (wye check) and the ctx CLI that runs them offline. It has no server dependency and is what CI runs.
 ```
 
 What this module must do is written where it was decided — the PRD and the dev design; this document maps the code onto it. Requirements: req:wf.graph, req:wf.graph.fields, req:wf.graph.stable-ids, req:wf.graph.multi-module, req:wf.graph.stubs-visible, req:wf.query, req:wf.query.packet, req:wf.query.impact, req:wf.lint, req:ontology.types, req:ontology.inverses, req:ontology.check, req:ontology.blocks, req:wf2.cli. Rules the code enforces: rule:node-detection, rule:id-syntax, rule:edge-from-typed-key, rule:explicit-edge-syntax, rule:field-generation, rule:field-mentions-index, rule:stub-nodes, rule:section-headings-drive-grouping, rule:search-scoring, rule:packet-ranking, rule:impact-closure, rule:rule-needs-source, rule:req-needs-satisfied-by, rule:shipped-needs-test, rule:check-exit-code, rule:ontology.open-kinds, rule:ontology.narrow-only, rule:ontology.open-types, rule:ontology.inverse-generated, rule:ontology.block-id, rule:cli-fallback.
@@ -50,8 +50,8 @@ What this module must do is written where it was decided — the PRD and the dev
     person's words on the module's requirements page; each satisfied by the lib / component / op cards that deliver
     it, whose purpose says what that code does and whose file (with #symbol) is the link; tests as verified-by; rules
     with `source: file#symbol`; entities and states; questions and drift instead of guesses; no wider than the
-    module; ctx check green and the task done before the summary.
-  source: bin/wf.js#deepen; prompts/describe-module.md
+    module; wye check green and the task done before the summary.
+  source: bin/wye.js#deepen; prompts/describe-module.md
   status: shipped
 - id: rule:node-detection
   statement: A node is created from (a) `id: kind:slug` or `- id: kind:slug` inside a ```yaml block, split on `---` lines; (b) any id in a `### ` heading; (c) a table row whose first cell contains an id, unless the header row matches op|id|test node|enum|#|edge|policy|option|your req|test|tool; (d) a numbered row of a section whose heading contains "drift" or "contradiction".
@@ -122,7 +122,7 @@ What this module must do is written where it was decided — the PRD and the dev
 
 - id: rule:suffix-resolution
   statement: A command argument resolves to the unique id that equals it, ends with ":<arg>" or ends with ".<arg>" (case-insensitive); zero matches is "unknown node", more than one is "ambiguous" listing them.
-  source: lib/graph.js:19-23; bin/ctx.js:33
+  source: lib/graph.js:19-23; bin/wye-graph.js:33
   verified-by: []
 
 - id: rule:impact-closure
@@ -165,8 +165,8 @@ What this module must do is written where it was decided — the PRD and the dev
   verified-by: []
 
 - id: rule:check-exit-code
-  statement: ctx check exits 0 when there are no errors and 1 otherwise, regardless of warnings.
-  source: bin/ctx.js:92-98
+  statement: wye check exits 0 when there are no errors and 1 otherwise, regardless of warnings.
+  source: bin/wye-graph.js:92-98
   verified-by: []
 - id: rule:cards-in-step
   statement: >
@@ -208,7 +208,7 @@ What this module must do is written where it was decided — the PRD and the dev
     Query layer over graph.json: get, neighbors, search, impact, packet, render, stats and check (structural lint plus ontology validation).
   part-of: module:app-graph
 - id: lib:core.ctx
-  file: bin/ctx.js
+  file: bin/wye-graph.js
   side: server
   purpose: >
     The ctx CLI: build, site, get, neighbors, search, impact, packet, check, stats, reqs — the offline way to read and lint a product graph.
@@ -242,8 +242,8 @@ What this module must do is written where it was decided — the PRD and the dev
   scope: env                # WF_JUDGE_MODEL (default claude-haiku-4-5-20251001) — the model the judge and the consolidation call through `claude -p`; WF_JUDGE_CMD replaces the CLI with any command that reads the prompt on stdin
   source: lib/judge.js
 - id: flag:strict
-  scope: cli            # ctx check --strict
-  source: bin/ctx.js:93
+  scope: cli            # wye check --strict
+  source: bin/wye-graph.js:93
   description: turns "shipped requirement has no test" and "source path not found" from warnings into errors
 - id: flag:source-roots
   scope: module file    # frontmatter list; source paths are tried under each root in order
@@ -262,13 +262,13 @@ What this module must do is written where it was decided — the PRD and the dev
   args: wye init --product <slug> --repo <dir> [--title …] [--project main] [--feature <name> --path <dir>] [--icon] [--description]
   does: a product's or a feature's definition from its code, shallow, with the describe tasks (rule:init-shallow)
   gate: none
-  source: bin/wf.js#init
+  source: bin/wye.js#init
   part-of: module:app-graph
 - id: op:cli.wye-deepen
   args: wye deepen <module> --product p [--worker claude-code|codex|runner] [--project main] [--force]
   does: assigns the module's describe task with the describe contract (rule:describe-contract)
   gate: none
-  source: bin/wf.js#deepen
+  source: bin/wye.js#deepen
   part-of: module:app-graph
 ```
 

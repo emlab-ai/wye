@@ -26,7 +26,7 @@ export type FiringAction = { kind: HookAction['kind']; session?: string; added?:
 export type Firing = { id: string; hook: string; title: string; node: string; event: string; at: string; depth: number; actions: FiringAction[] };
 
 const g = globalThis as unknown as { __wfHooks?: { wfUrl: string; busy: Set<string> } };
-const state = () => (g.__wfHooks ??= { wfUrl: process.env.WF_URL || 'http://localhost:3456', busy: new Set() });
+const state = () => (g.__wfHooks ??= { wfUrl: process.env.WYE_URL || process.env.WF_URL || 'http://localhost:3456', busy: new Set() });
 export function rememberHooksUrl(wfUrl: string) { if (wfUrl) state().wfUrl = wfUrl; }
 // on unless WF_HOOKS=0 or Settings › Agents switched hooks off
 export const hooksOn = () => process.env.WF_HOOKS !== '0';

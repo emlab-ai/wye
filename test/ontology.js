@@ -1,6 +1,6 @@
 'use strict';
 // Ontology: type: cards declare kinds; instances use kind:slug; properties inherit along extends; ref/list props are
-// edges named by the property; inverses are generated; ctx check validates instances against effective properties.
+// edges named by the property; inverses are generated; wye check validates instances against effective properties.
 const path = require('path');
 const fs = require('fs');
 const os = require('os');

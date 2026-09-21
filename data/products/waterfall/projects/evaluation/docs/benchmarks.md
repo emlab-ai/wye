@@ -49,9 +49,9 @@ data/products/<product>/_build/eval/<date>-<suite>.json    results (store:eval-r
 
 ## Prerequisites
 
-- A built graph: `ctx build` (tier 1 reads `_build/graph.json` and the embeddings, `_build/embeddings.json`).
+- A built graph: `wye build` (tier 1 reads `_build/graph.json` and the embeddings, `_build/embeddings.json`).
 - For live runs, a model key in the environment and `WATERFALL_LIVE=1`; without it every suite replays `eval/recorded/` and fails if a recording is missing.
-- For tier 2, a runner online for the agent under test (`wf agent listen --product <p> --agent claude-code`) and a clean working tree — the harness makes scratch worktrees from HEAD.
+- For tier 2, a runner online for the agent under test (`wye agent listen --product <p> --agent claude-code`) and a clean working tree — the harness makes scratch worktrees from HEAD.
 - For public benchmarks, the corpus downloaded once into `eval/public/<adapter>/data/` (each adapter's README says where from and under which licence; nothing is committed).
 
 ## Tier 1 — the product's own history
@@ -87,7 +87,7 @@ wye eval compare --product <p> --request "<text>" [--ref <id>...] --agent claude
 What the harness does, per run:
 
 1. Makes a scratch worktree from HEAD (`git worktree add`), one per run, so nothing lands in the real tree.
-2. **with**: starts a session as the app would — constraint packet, approved instructions, the plan's definition if `--plan <id>` is given. **without**: the same instruction with the base contract only; `wf context`, `wf packet` and the instructions section are withheld from the prompt (the agent can still read files).
+2. **with**: starts a session as the app would — constraint packet, approved instructions, the plan's definition if `--plan <id>` is given. **without**: the same instruction with the base contract only; `wye context`, `wye packet` and the instructions section are withheld from the prompt (the agent can still read files).
 3. Keeps the transcript, the diff and the blocks the session wrote, immutable, under `_build/eval/compare/<pair-id>/<arm>-<n>/`.
 4. Scores each run (`eval/compare/score.ts`):
 
@@ -117,9 +117,9 @@ wye eval public moosedev --run [--live] [--judge-passes 3]
 wye eval public moosedev --report                 # the four numbers beside theirs
 ```
 
-Import: each typed record becomes a yaml card of a type declared in `ontology.md` of the scratch product (their two ontologies — software-engineering, software-architecture — map to `type:` cards with `extends`, the lifecycle status to `status`, supersession to `supersedes`, so decision:memory.bitemporal is what is being tested); provenance keeps the record id. `ctx check` must be green on the import before any run — an import error would be scored as a memory error.
+Import: each typed record becomes a yaml card of a type declared in `ontology.md` of the scratch product (their two ontologies — software-engineering, software-architecture — map to `type:` cards with `extends`, the lifecycle status to `status`, supersession to `supersedes`, so decision:memory.bitemporal is what is being tested); provenance keeps the record id. `wye check` must be green on the import before any run — an import error would be scored as a memory error.
 
-Run: each question is answered by an agent turn whose only tools are `wf packet --for`, `wf context`, `wf node`, `wf resolve` (no file reads: the benchmark is the memory, not the agent's ability to read the corpus), with the same token budget the paper reports (~35k agent tokens). Answers go to their judge prompt, vendored unchanged; three passes, mean. Report: four numbers, ours beside theirs and mem0's, with model, date, graph sha, judge.
+Run: each question is answered by an agent turn whose only tools are `wye packet --for`, `wye context`, `wye node`, `wye resolve` (no file reads: the benchmark is the memory, not the agent's ability to read the corpus), with the same token budget the paper reports (~35k agent tokens). Answers go to their judge prompt, vendored unchanged; three passes, mean. Report: four numbers, ours beside theirs and mem0's, with model, date, graph sha, judge.
 
 What a result means: relevance at parity with theirs is expected (the paper found none between structured and vector systems); completeness, negation and supersession near 1.0 say the packet and the currency filter work; below mem0's on any of them says a structural query is missing, and the failing questions name which.
 
@@ -145,7 +145,7 @@ wye eval public memoryagentbench --run --competency cr [--live]
 wye eval public memoryagentbench --report
 ```
 
-Adapter (`eval/public/memoryagentbench/wye_adapter.py`, the repo's adapter interface): *add* writes each injected text as a prose node with `since` the injection order and runs write-time adjudication — a fact that conflicts with an earlier one supersedes it (decision:memory.bitemporal, decision:memory.write-time-verdict); *query* answers from `wf packet --for` with the currency filter on. The metric is the repo's (substring exact match / LLM-judge F1 per task); report ours beside the three adapters', same split, same judge.
+Adapter (`eval/public/memoryagentbench/wye_adapter.py`, the repo's adapter interface): *add* writes each injected text as a prose node with `since` the injection order and runs write-time adjudication — a fact that conflicts with an earlier one supersedes it (decision:memory.bitemporal, decision:memory.write-time-verdict); *query* answers from `wye packet --for` with the currency filter on. The metric is the repo's (substring exact match / LLM-judge F1 per task); report ours beside the three adapters', same split, same judge.
 
 ### LongMemEval-V2 — later
 
@@ -235,7 +235,7 @@ Built 2026-09-20 (pr:18). `wye eval` runs in the CLI process: it parses the prod
   status: shipped
 - id: rule:eval-arms-offline
   statement: >
-    A tier-2 run cannot reach the app (WF_URL points at a closed port) and works in a scratch worktree pinned to
+    A tier-2 run cannot reach the app (WYE_URL points at a closed port) and works in a scratch worktree pinned to
     the commit the pair started from; the with arm's memory — the packet, the constitution, the product
     instructions, the plan's definition — arrives only in its first message, the without arm gets the base
     contract only; a kept run is never re-run, `--resume` makes the missing ones.
@@ -255,7 +255,7 @@ Built 2026-09-20 (pr:18). `wye eval` runs in the CLI process: it parses the prod
 <!-- tasks -->
 - [x] task:memory.eval-truth `wye eval own --build-truth`: the ground-truth file from edges, supersessions, hidden edges, git and session co-changes, session decision blocks; keyed by graph sha. Part of goal:memory.validated-asks (decision:memory.evaluation). First step of task:memory.eval-suite. (session: 9f29fa036e)
 - [ ] task:memory.eval-judge-set `eval/judge/labels.jsonl` (50 pairs labelled by the person), `wye eval judge --agreement` (Cohen's κ), rerun on judge change. Part of goal:memory.validated-asks (question:memory.eval-judge).
-- [x] task:memory.eval-moosedev-import The MOOSEDev corpus importer: their two ontologies as type cards, records as yaml cards with status and supersedes, provenance kept, ctx check green; their judge prompt vendored with licence. Part of goal:memory.validated-asks (decision:memory.public-benchmarks). Part of task:memory.eval-public. (session: 9f29fa036e)
+- [x] task:memory.eval-moosedev-import The MOOSEDev corpus importer: their two ontologies as type cards, records as yaml cards with status and supersedes, provenance kept, wye check green; their judge prompt vendored with licence. Part of goal:memory.validated-asks (decision:memory.public-benchmarks). Part of task:memory.eval-public. (session: 9f29fa036e)
 - [x] task:memory.eval-reqpairs-loader Loaders for WorldVista / UAV / PURE / OpenCOSS and the stratified sample; label mapping to the verdict classes; macro-F1 and confusion matrix. Part of goal:memory.validated-asks. Part of task:memory.eval-public. (session: 9f29fa036e)
 - [x] task:memory.eval-mab-adapter The Wye adapter for MemoryAgentBench (add with write-time adjudication, query through the packet with currency), run on conflict resolution, report beside Mem0 / Letta / Cognee. Part of goal:memory.validated-asks. Part of task:memory.eval-public. After task:memory.bitemporal-props. (session: 9f29fa036e)
 <!-- /tasks -->

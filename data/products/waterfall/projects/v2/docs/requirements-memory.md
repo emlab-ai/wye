@@ -30,7 +30,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:memory.intake-packet a session starts, or a queued item with fresh context begins (rule:clean-slate)
 
-  - then:memory.intake-packet the first message carries the constraint packet for the instruction and its refs — every rule, constraint, gate, approved decision, goal and open question reachable from the seeds within two hops, complete and current — and the agent can ask for the same packet for any text with `wf packet --for`
+  - then:memory.intake-packet the first message carries the constraint packet for the instruction and its refs — every rule, constraint, gate, approved decision, goal and open question reachable from the seeds within two hops, complete and current — and the agent can ask for the same packet for any text with `wye packet --for`
 
   - unless:memory.intake-packet the product has no graph yet, in which case the message says so
 
@@ -44,7 +44,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   part-of: goal:memory.validated-asks
 ```
 
-  - when:memory.current-by-construction any retrieval runs — op:api.context, ctx packet, the constraint packet, the peek panel's relations
+  - when:memory.current-by-construction any retrieval runs — op:api.context, wye graph packet, the constraint packet, the peek panel's relations
 
   - then:memory.current-by-construction nodes whose `until` has passed or whose status is superseded, rejected or retired are left out and counted ("3 superseded hidden"), and `--as-of` / `--all` brings them back
 
@@ -210,7 +210,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 - id: question:memory.code-source.writes
   title: Does Wye write into a product's code files?
   q: >
-    A status change on a code-defined rule (`wf node set rule&#58;x --status shipped`) or an edit of its text in the web app
+    A status change on a code-defined rule (`wye node set rule&#58;x --status shipped`) or an edit of its text in the web app
     rewrites a comment line in the product repo. Is that allowed from the app, or is a code-defined node read-only in
     Wye and changed only by editing the file (an agent or a person in the editor)?
   context: >

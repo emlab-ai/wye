@@ -62,13 +62,13 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
 ```yaml
 - id: req:ontology.check
-  title: ctx check validates the ontology and its instances
+  title: wye check validates the ontology and its instances
   status: proposed
   satisfied-by: [rule:ontology.narrow-only, rule:ontology.open-types]
   verified-by: [test:ontology]
 ```
 
-  - when:ontology.check ctx check runs
+  - when:ontology.check wye check runs
 
   - then:ontology.check an extends cycle, unknown parent, widening override, duplicate type id or a ref to a node of the wrong type is an error; a missing required property, an undeclared property on a closed type or a value that does not parse as its type is a warning
 

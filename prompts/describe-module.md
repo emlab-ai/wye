@@ -25,6 +25,6 @@ page (Systems › <module>) lists the libraries and operations the code declares
 
 Ids are stable and lower-case (`req:<module>.<slug>`, `rule:<module>.<slug>`, `lib:<module>.<name>`); keep every id
 the scan wrote. Prose explains, blocks carry what is required, guaranteed, decided and open. Before you finish:
-`ctx --root data/products/<product> check --repo <repo>` is 0 errors; every requirement has `satisfied-by`; every
+`wye check --root data/products/<product> --repo <repo>` is 0 errors; every requirement has `satisfied-by`; every
 shipped one has `verified-by` or says why not; the describe task is `done` (`wye node set <task> --status done`);
 your summary lists the requirements written, by id, and what stays open.

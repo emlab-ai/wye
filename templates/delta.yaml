@@ -1,6 +1,6 @@
 # A delta is how a feature enters the graph BEFORE any code is written.
 # Path: docs/context-graph/_deltas/<YYYY-MM-DD>-<slug>/delta.yaml  (+ node files or a patch to the module .md)
-# Lifecycle: proposed → approved (human, in the delta PR) → shipped (code PR passes `ctx check --strict`)
+# Lifecycle: proposed → approved (human, in the delta PR) → shipped (code PR passes `wye check --strict`)
 id: delta:<YYYY-MM-DD>-<slug>
 status: proposed
 intent: <one sentence, user's words>
@@ -17,7 +17,7 @@ resolves:                  # questions or drift rows this delta closes
   - drift:<mod>.<n>
 requires-tests:            # test ids the implementation PR must make real
   - test:<Class>#<Method>
-constraints-checked:       # graph queries that must hold after this delta (ctx check runs them)
+constraints-checked:       # graph queries that must hold after this delta (wye check runs them)
   - every new op has a gated-by edge
   - every new req has satisfied-by and verified-by
   - no new rule text-overlaps an existing rule without a refines/contradicts edge

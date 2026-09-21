@@ -6,7 +6,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "WF_DEV=1 electron ."
+    "dev": "WYE_DEV=1 electron ."
   },
   "devDependencies": {
     "electron": "^33.0.0"

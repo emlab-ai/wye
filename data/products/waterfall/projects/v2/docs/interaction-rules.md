@@ -23,7 +23,7 @@ What the interface guarantees, by area — click, fold, drag, select, review car
     ‹ › in the top bar call history.back / history.forward; ⌘[ / ⌘] (Ctrl on Windows) do the same. Whether there
     is anywhere to go comes from the Navigation API (canGoBack / canGoForward, re-read on currententrychange) when
     the browser has it, else back needs history.length > 1 and forward is always offered. Every in-app navigation
-    is client-side (next/link, router.push) — including `wf session open` and the console's "opened …" line — so
+    is client-side (next/link, router.push) — including `wye session open` and the console's "opened …" line — so
     the right column's stack survives it.
   source: packages/web/src/components/TopBar.tsx#useHistoryNav; packages/web/src/components/Console.tsx
   status: shipped
@@ -73,8 +73,8 @@ What the interface guarantees, by area — click, fold, drag, select, review car
     The console is one conversation in time order. Runs of tool calls, results and thinking between two messages
     fold into one collapsed activity row (n steps · duration · errors · the latest step, a live dot while the agent
     works) that opens to every step; a single call stays inline. User messages, the agent's replies, question and
-    permission cards, subagent groups and turn ends (time, cost) stay in the flow. `wf session log` lines appear as
-    small log notes and the `wf session done` summary as a summary card at the time they were written; after a
+    permission cards, subagent groups and turn ends (time, cost) stay in the flow. `wye session log` lines appear as
+    small log notes and the `wye session done` summary as a summary card at the time they were written; after a
     turn (~1 s later, once the watcher has credited the writes) a `knowledge` row names the documents and nodes
     the session changed since the last such row (agent-host#reportKnowledge, the session's artifacts); a chat
     session has no separate Result or Log panel. Rows carry no time column — the width goes to the content; an

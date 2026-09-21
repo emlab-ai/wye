@@ -13,7 +13,7 @@ const { report, scoreLine } = require('./lib/results');
 const { productDirOf } = require('./lib/product');
 
 async function main(pos, flags) {
-    const product = flags.product || process.env.WF_PRODUCT; if (!product) throw new Error('--product <slug> (or WF_PRODUCT) is required');
+    const product = flags.product || process.env.WYE_PRODUCT || process.env.WF_PRODUCT; if (!product) throw new Error('--product <slug> (or WYE_PRODUCT) is required');
     const sub = pos[0];
     const common = { product, live: !!flags.live, json: !!flags.json, baseline: flags.baseline === true ? 'accepted as the baseline' : flags.baseline || null };
     if (sub === 'own') {

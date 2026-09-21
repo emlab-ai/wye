@@ -16,7 +16,7 @@ order: 94
 
 # Waterfall v2 — dev design
 
-The mechanisms that satisfy the PRD: entities (DB tables and in-memory types), value objects, state machines, operations (the tool set exposed over MCP and HTTP), pages (the web app and the agent-facing documents) and rules (what the code will enforce). Every `source:` is the intended file; `ctx check --strict` fails until it exists.
+The mechanisms that satisfy the PRD: entities (DB tables and in-memory types), value objects, state machines, operations (the tool set exposed over MCP and HTTP), pages (the web app and the agent-facing documents) and rules (what the code will enforce). Every `source:` is the intended file; `wye check --strict` fails until it exists.
 
 ---
 

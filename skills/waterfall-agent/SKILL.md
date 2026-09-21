@@ -5,7 +5,7 @@ description: How an agent works with Wye through the wye CLI — resolve a Wye l
 
 # Working in Wye
 
-The full contract is `prompts/agent-system.md` in the Wye repo (also served at `$WF_URL/api/<product>/agent-prompt`).
+The full contract is `prompts/agent-system.md` in the Wye repo (also served at `$WYE_URL/api/<product>/agent-prompt`).
 The short version: read Wye before you act, and **write every decision — the person's or yours — as a
 `decision:` block (status proposed) in the document it belongs to before moving on**; every open question as a
 `question:` block where it arose; requirements as `req:` blocks, rules as `rule:` blocks, work as `task:` lines.
@@ -14,7 +14,7 @@ set directly (`wye node set`); `wye inbox add` is only for raw notes without a d
 
 Wye keeps a product's knowledge (goals, requirements, rules, decisions, entities, tasks) as markdown documents
 with a graph on top, and a web app that people and agents share. `wye` is the CLI; it talks to the running web app
-(`WF_URL`, default http://localhost:3456). `WF_PRODUCT` names the product when a link does not.
+(`WYE_URL`, default http://localhost:3456). `WYE_PRODUCT` names the product when a link does not.
 
 ## Read first
 
@@ -30,7 +30,7 @@ wye work list [--unassigned | --mine <name> | --goal <id>]   # the Work view: ev
 wye impact <id> --after "<new text>"   # before editing an approved node: what the edit reaches and what each reached node needs
                                 #   (unaffected | update | rework | contradicts | ask); every edit keeps its old value as a change record
 wye explain <id | "text">        # one librarian turn: the current state around a node or a text, with the nodes as tags
-ctx --root data/products/<product> packet --task "<sentence>"   # a token-budgeted slice of the graph (offline)
+wye packet --root data/products/<product> --task "<sentence>"   # a token-budgeted slice of the graph (offline)
 ```
 
 A link like `…/yessensei/offline/d/prd#n-goal%3Aoffline.g2` points at a node; `#b-<hash>` at a paragraph; a bare
@@ -53,7 +53,7 @@ A link like `…/yessensei/offline/d/prd#n-goal%3Aoffline.g2` points at a node; 
   (edits the defining line in place; `--unset key` removes a property; the graph rebuilds).
 - Editing the documents themselves (`wye doc write`, or the markdown under `data/products/<product>/projects/<project>/docs/`)
   only when the person asks for it; keep node ids stable; a line that starts with an id defines that node; run
-  `ctx --root data/products/<product> check` afterwards: 0 errors.
+  `wye check --root data/products/<product>` afterwards: 0 errors.
 
 ## Sessions (when you were started by a runner, or asked to work on one)
 

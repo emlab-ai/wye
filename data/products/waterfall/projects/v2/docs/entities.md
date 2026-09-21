@@ -72,7 +72,7 @@ entity:product
     - entity:edge -(governed-by)-> rule:structural-vs-mentions
 - id: entity:graph
   storage: docs/context-graph/_build/graph.json + data.js
-  source: lib/parse.js:203, bin/ctx.js:35-41
+  source: lib/parse.js:203, bin/wye-graph.js:35-41
   description: The build output every query and the viewer read. data.js is the same graph plus the raw markdown of every module file, as window.GRAPH and window.MD_FILES.
   fields:
     generatedAt: ISO date
@@ -119,7 +119,7 @@ entity:product
   edges:
     - entity:delta -(owns)-> state:node-lifecycle
 - id: entity:packet
-  storage: stdout of ctx packet (ephemeral)
+  storage: stdout of wye graph packet (ephemeral)
   source: lib/graph.js:69-84
   description: The slice an agent reasons from for one task.
   fields:
@@ -183,16 +183,16 @@ entity:product
   states: [proposed, approved, shipped, deprecated]
   transitions:
     - proposed -> approved   : a human approves the delta PR            # PROPOSED — not enforced
-    - approved -> shipped    : implementation PR passes ctx check --strict with real sources and tests   # PROPOSED
+    - approved -> shipped    : implementation PR passes wye check --strict with real sources and tests   # PROPOSED
     - shipped -> deprecated  : replaced; needs a resolves or see edge    # PROPOSED
   status: proposed
-  note: today only req nodes carry a status and only value:req-status is interpreted (viewer, ctx reqs, check)
+  note: today only req nodes carry a status and only value:req-status is interpreted (viewer, wye reqs, check)
 - id: state:req-verification
   owner: entity:node
   description: how a shipped requirement is displayed, derived not stored
   states: [tested, untested]
   transitions:
-    - untested -> tested : a verified-by edge exists     # viewer/index.html:262-270, bin/ctx.js:100-108, lib/graph.js:116
+    - untested -> tested : a verified-by edge exists     # viewer/index.html:262-270, bin/wye-graph.js:100-108, lib/graph.js:116
 ```
 
 <!-- /list:state -->

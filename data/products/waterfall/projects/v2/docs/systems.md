@@ -22,7 +22,7 @@ How Wye works inside, one page per area: the rules the code enforces, the decisi
 - id: module:app
   purpose: >
     The Waterfall app as built — a local-first Next.js app (packages/web) over a folder of markdown products, with a
-    graph core (lib/, bin/ctx.js) it shares with CI, an agent host that runs Claude Code and Codex as child processes,
+    graph core (lib/, bin/wye-graph.js) it shares with CI, an agent host that runs Claude Code and Codex as child processes,
     the wf CLI agents use, and an Electron shell (packages/desktop). Six logical modules: shell and navigation,
     documents and editing, knowledge views, graph core, storage and serving, agents and sessions.
 ```
@@ -40,9 +40,9 @@ A **product** is a folder (store:product-file) with projects (store:project-file
 | module:app-shell | rail, tree, top bar, context column, search, live refresh | components/Shell, Rail, TopBar, DocTree, PeekPanel… |
 | module:app-documents | editor, reader, markdown round trip, node/card writers, drawings and images | components/DocEditor…, lib/import, serialize, write… |
 | module:app-knowledge | Knowledge, Types, Goals, Tasks, Questions, Inbox, Graph, Context mode | app/[product]/*, components/TrackList, TypeView…, lib/graph, semantic |
-| module:app-graph | parser, query layer, check, ctx CLI, base ontology | lib/parse.js, lib/graph.js, bin/ctx.js, schema/ |
+| module:app-graph | parser, query layer, check, ctx CLI, base ontology | lib/parse.js, lib/graph.js, bin/wye-graph.js, schema/ |
 | module:app-storage | data layout, watcher, rebuild, events, desktop shell | lib/products, watch, write, artifacts; packages/desktop |
-| module:app-agents | sessions, agent host, console, runners, wf CLI, contract | lib/agent-host, sessions…, components/Console…, bin/wf.js, prompts/ |
+| module:app-agents | sessions, agent host, console, runners, wf CLI, contract | lib/agent-host, sessions…, components/Console…, bin/wye.js, prompts/ |
 
 
-Three product types on top of the base kinds (page and op are base kinds): a **component** is a React component file, a **lib** a library module, a **store** a place data lives. Declared here so the Types page shows them and `ctx check` validates every card below.
+Three product types on top of the base kinds (page and op are base kinds): a **component** is a React component file, a **lib** a library module, a **store** a place data lives. Declared here so the Types page shows them and `wye check` validates every card below.

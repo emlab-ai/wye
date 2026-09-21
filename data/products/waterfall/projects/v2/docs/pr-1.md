@@ -108,7 +108,7 @@ Blocks this plan produced:
 - changed task:page-node-web-helper — packages/web/src/lib/doc.ts:
 - changed task:page-node-header — component:doc-props becomes the page node's card:
 - changed task:page-node-retype — packages/web/src/lib/retype.ts (pure, tested):
-- changed task:page-node-create — component:new-doc and `wf doc create --type <slug>`:
+- changed task:page-node-create — component:new-doc and `wye doc create --type <slug>`:
 - changed task:page-node-types-page — page:web/types:
 - changed task:page-node-ui-test — ui-test:page-node in Chrome:
 - changed task:page-node-knowledge — After shipping:

@@ -26,7 +26,7 @@ This is the project file. It holds the product and project nodes, the sub-system
 | Dev design | `docs/context-graph/dev-design.md` (module:wf2-dev) | entities, values, state machines, operations (API tools), pages (web UI), rules |
 | Test design | `docs/context-graph/test-design.md` (module:wf2-test) | test nodes, what each verifies, untested surfaces |
 
-Everything starts as `status: proposed`; a node moves to `unverified` when its slice ships without a page test and to `shipped` once a `verified-by` test exists. Sources are intended paths under `packages/*`; `ctx check` reports them as warnings until the code exists, and `--strict` turns them into errors, which is the definition of done.
+Everything starts as `status: proposed`; a node moves to `unverified` when its slice ships without a page test and to `shipped` once a `verified-by` test exists. Sources are intended paths under `packages/*`; `wye check` reports them as warnings until the code exists, and `--strict` turns them into errors, which is the definition of done.
 
 ---
 
@@ -38,7 +38,7 @@ Everything starts as `status: proposed`; a node moves to `unverified` when its s
 
 ## P. Phases
 
-Each phase is its own implementation plan. Exit criteria are requirements in the PRD; a phase is done when those requirements are `shipped` with `verified-by` and `ctx check --strict` is green.
+Each phase is its own implementation plan. Exit criteria are requirements in the PRD; a phase is done when those requirements are `shipped` with `verified-by` and `wye check --strict` is green.
 
 | phase | delivers | exit criterion (PRD ids) |
 |---|---|---|
@@ -93,7 +93,7 @@ Disagreements between this design and the v0.1 graph in `waterfall.md`, plus one
 | # | a | b | what disagrees | where |
 |---|---|---|---|---|
 | 1 | entity:delta, req:wf.pipeline | req:wf2.tasks.replaces-delta | v0.1 says a feature enters as a delta.yaml under _deltas/; v2 retires the file and makes a task row with links the unit of intent. templates/delta.yaml and the skill text still describe the file | templates/delta.yaml:1 vs decision:wf2.tasks-replace-delta-files |
-| 2 | rule:viewer-no-server, page:viewer/graph | page:web/node, page:web/graph | v0.1's viewer is a static page with no fetch; v2's web app is server-backed and live. Both exist until question:wf2.static-viewer decides whether `ctx site` is retired | viewer/index.html vs packages/web |
+| 2 | rule:viewer-no-server, page:viewer/graph | page:web/node, page:web/graph | v0.1's viewer is a static page with no fetch; v2's web app is server-backed and live. Both exist until question:wf2.static-viewer decides whether `wye site` is retired | viewer/index.html vs packages/web |
 | 3 | page:skill/context | req:wf2.api.skills | the v0.1 skill tells agents to run ctx commands; v2 rewrites it around MCP tool names and adds a CLAUDE.md / AGENTS.md snippet | skills/waterfall-context/SKILL.md vs page:skill/context-v2 |
 | 4 | state:node-lifecycle | state:task-lifecycle | v0.1 planned an approved status on nodes; v2 records approval on the task (proposed → approved) and nodes keep only proposed / shipped / deprecated | schema/kinds.yaml:47 vs entity:task |
 | 5 | gate:none | gate:agent-token | v0.1 has no identity at all; v2 records who calls but still enforces nothing locally — identity without authorization until hosted | docs/context-graph/waterfall.md vs decision:wf2.local-first-hosted-ready |

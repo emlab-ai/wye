@@ -54,7 +54,7 @@ Ontology
 - id: rule:ontology.narrow-only
   statement: >
     A child type may only narrow an inherited property — make it required or narrow its ref type to a subtype —
-    never widen it; widening, an extends cycle and an unknown parent are ctx check errors.
+    never widen it; widening, an extends cycle and an unknown parent are wye check errors.
   source: lib/parse.js:168
   status: proposed
 - id: rule:ontology.open-types
@@ -79,8 +79,8 @@ Ontology
   statement: >
     field, prop and block nodes exist for addressing, links and properties; they are hidden from the rail, the
     knowledge pages, search (unless the query names block:), the review queue, the semantic index, the node index
-    sent to the browser and the published site (ctx site --blocks keeps them).
-  source: packages/web/src/lib/graph.ts:14; lib/graph.js; bin/ctx.js
+    sent to the browser and the published site (wye site --blocks keeps them).
+  source: packages/web/src/lib/graph.ts:14; lib/graph.js; bin/wye-graph.js
   status: proposed
 - id: rule:collection-document
   statement: >
@@ -136,7 +136,7 @@ Ontology
 
   - alternative:wf2.typed-blocks-in-documents [inbox files filed by a reviewer — knowledge lived in two places until someone filed it, free prose plus a clerk that extracts blocks later — unreliable and delayed]
 
-  - consequence:wf2.typed-blocks-in-documents Documents written by agents are structurally checkable (ctx check, the Inbox count); the earlier `wf inbox add` types other than note are retired; existing inbox decisions and questions were migrated into their document as blocks.
+  - consequence:wf2.typed-blocks-in-documents Documents written by agents are structurally checkable (wye check, the Inbox count); the earlier `wye inbox add` types other than note are retired; existing inbox decisions and questions were migrated into their document as blocks.
 
 ```yaml
 - id: decision:ontology.uniform-content
@@ -224,7 +224,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 
   - alternative:ontology.types-are-cards keep kinds.yaml global and add a product-level types.yaml — two syntaxes for one thing; store types in SQLite — contradicts rule:markdown-canonical.
 
-  - consequence:ontology.types-are-cards Two-pass parse (types first); ctx check gains type validation; skills that read kinds.yaml keep working until regenerated.
+  - consequence:ontology.types-are-cards Two-pass parse (types first); wye check gains type validation; skills that read kinds.yaml keep working until regenerated.
 
 ```yaml
 - id: decision:ontology.inverses-generated
@@ -258,7 +258,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 
   - alternative:ontology.inheritance-at-parse Strict closed schema (unknown key = error) — punishes writing instances before the type exists; no overrides at all — cannot say a manager's team is required.
 
-  - consequence:ontology.inheritance-at-parse ctx check validates instances against effective properties; ctx packet includes the type chain.
+  - consequence:ontology.inheritance-at-parse wye check validates instances against effective properties; wye graph packet includes the type chain.
 
 ```yaml
 - id: decision:ontology.blocks-last-phase
@@ -329,7 +329,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 
   - alternative:ontology.block-owned-links Keep the edge on the document and add one on the block — the same fact twice; keep it on the document only — the block owns nothing, which defeats every-block-a-node.
 
-  - consequence:ontology.block-owned-links ctx get module:x no longer lists phrase links directly; ctx neighbors and packet still reach them.
+  - consequence:ontology.block-owned-links wye get module:x no longer lists phrase links directly; wye neighbors and packet still reach them.
 
 ```yaml
 - id: decision:ontology.open-types
@@ -342,7 +342,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 
   - choice:ontology.open-types A type card may say `open: true`; instances of an open type never get undeclared-property warnings. Every base type is open; a product's own types are closed by default. `open` does not inherit.
 
-  - context:ontology.open-types The design wants undeclared-property warnings (open world with a nudge), but base kinds carry many ad-hoc keys and would drown ctx check in warnings.
+  - context:ontology.open-types The design wants undeclared-property warnings (open world with a nudge), but base kinds carry many ad-hoc keys and would drown wye check in warnings.
 
   - alternative:ontology.open-types Warn for every type — hundreds of warnings on day one; never warn — a product cannot learn its schema from its instances.
 

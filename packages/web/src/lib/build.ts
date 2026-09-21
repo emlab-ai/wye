@@ -83,7 +83,7 @@ export function buildProduct(productDir: string): Promise<BuildResult> {
   return p.finally(() => { if (s.running.get(productDir) === p) s.running.delete(productDir); });
 }
 
-// The check (`ctx check`) over the graph in memory: its lines as the CLI prints them, for the routes that show them.
+// The check (`wye check`) over the graph in memory: its lines as the CLI prints them, for the routes that show them.
 export async function checkProduct(productDir: string, strict = false): Promise<{ code: number; output: string; errors: string[]; warnings: string[] }> {
   const c = await graphFor(productDir);
   if (!c) return { code: 2, output: 'no graph', errors: ['no graph'], warnings: [] };

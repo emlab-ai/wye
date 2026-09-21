@@ -43,7 +43,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   verified-by: [test:web-lib#graph-diff, ui-test:session-changes]
 ```
 
-  - when:wf2.sessions.block-attribution a document of the product changes on disk (an agent's editor, wf doc write, the app's editor) while one or more sessions are running, and the graph rebuilds
+  - when:wf2.sessions.block-attribution a document of the product changes on disk (an agent's editor, wye doc write, the app's editor) while one or more sessions are running, and the graph rebuilds
 
   - then:wf2.sessions.block-attribution the nodes that are new, changed (title, status, body or text) or gone since the previous build — typed blocks and prose paragraphs (block: nodes) alike — are recorded on every running session as `artifacts.blocks` ({ id, change: added | changed | removed, doc, title, at }); a node changed through the API with x-wf-session is recorded on that session only (as today); the turn-done "knowledge" row and the header strip show the blocks (added / changed counts per document) instead of bare document tags
 
@@ -58,7 +58,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   verified-by: [ui-test:session-changes]
 ```
 
-  - when:wf2.sessions.changes-page a person clicks the knowledge strip of a session (or "n changes" on a session row), or opens /<product>/sessions/<id>/changes, or runs `wf session changes <id>`
+  - when:wf2.sessions.changes-page a person clicks the knowledge strip of a session (or "n changes" on a session row), or opens /<product>/sessions/<id>/changes, or runs `wye session changes <id>`
 
   - then:wf2.sessions.changes-page every block the session added, changed or removed is listed per document with a badge (added / changed / removed), its tag and title; a row opens the node in the context column; prose paragraphs are folded under "n paragraphs" per document; chips filter by change and by kind (req, decision, task, …); the page is derived from the session's artifacts and the current graph — nothing is stored beyond the attribution
 
@@ -120,7 +120,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf2.sessions.page a person opens /<product>/sessions/<id> — from the ↗ on the session's head in the right column, from a row's "page" action on the Agents page, or from the "opened …" line of the console
 
-  - then:wf2.sessions.page the page shows the agent, the status and when; the instruction in full (markdown) with its refs and source; the follow-up messages of its queue with their states; "plan on" — the document and node every `wf session open` pointed at; the todo list — every task the session added, changed, was sent or is named on (`session:`) — as task lines with the check state the graph has now and "n of m done"; every other block it added, changed or removed, grouped by kind (req, decision, question, rule, page, component, …), each with the change badge and its status now (proposed = still to approve or build, shipped, open, done); paragraphs folded per document; a row opens the node in the context column; the result when the session is done; a button opens the conversation in the right column; the page refreshes while the session runs
+  - then:wf2.sessions.page the page shows the agent, the status and when; the instruction in full (markdown) with its refs and source; the follow-up messages of its queue with their states; "plan on" — the document and node every `wye session open` pointed at; the todo list — every task the session added, changed, was sent or is named on (`session:`) — as task lines with the check state the graph has now and "n of m done"; every other block it added, changed or removed, grouped by kind (req, decision, question, rule, page, component, …), each with the change badge and its status now (proposed = still to approve or build, shipped, open, done); paragraphs folded per document; a row opens the node in the context column; the result when the session is done; a button opens the conversation in the right column; the page refreshes while the session runs
 
   - unless:wf2.sessions.page the session does not exist — 404; or it changed nothing yet — the lists say so
 
@@ -135,7 +135,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf2.ui.history-nav a person clicks ‹ or › in the top bar, or presses ⌘[ / ⌘] (Ctrl on Windows)
 
-  - then:wf2.ui.history-nav the browser goes back or forward in its history; every in-app navigation — links, `wf session open`, the console's "opened …" line, search hits — is client-side, so the right column keeps its stack across it
+  - then:wf2.ui.history-nav the browser goes back or forward in its history; every in-app navigation — links, `wye session open`, the console's "opened …" line, search hits — is client-side, so the right column keeps its stack across it
 
   - unless:wf2.ui.history-nav there is nothing to go back or forward to — the button is disabled (the Navigation API when the browser has it, `history.length` otherwise)
 
@@ -169,7 +169,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf2.sessions.plan-doc a request starts work — a new session (from the command box or the API, chat or queued) or a fresh-context message on a live conversation — with or without "plan first"
 
-  - then:wf2.sessions.plan-doc the app creates `plan-<slug>` in the project the request came from, a sub-page of that project's Plans page (`plans.md`, module:<project>-plans, created when missing — decision:wf2.plans-folder), with the type:pr card in its frontmatter (`session`, `agent`, `started`, `status: proposed`), the request verbatim under "Request" with the source document, node and refs as tags, and empty "Context", "Plan", "Tasks" and "Result" sections; the session record keeps the current `planDoc: <product/project/slug>`; the agent's first message names the document; the agent fills Context (what it found, as tags and embeds), Plan (prose, `question:` and `decision:` blocks, embeds of the `req:`/`rule:` blocks it defined on the entities' pages) and Tasks (`- [ ] task:` lines, `part of plan:<slug>`, ticked as it goes — what is in progress) and opens the page (`wf session open`); the person edits, comments and answers there; the rail's Plans folder shows it (req:wf2.ui.plans-folder — not the
+  - then:wf2.sessions.plan-doc the app creates `plan-<slug>` in the project the request came from, a sub-page of that project's Plans page (`plans.md`, module:<project>-plans, created when missing — decision:wf2.plans-folder), with the type:pr card in its frontmatter (`session`, `agent`, `started`, `status: proposed`), the request verbatim under "Request" with the source document, node and refs as tags, and empty "Context", "Plan", "Tasks" and "Result" sections; the session record keeps the current `planDoc: <product/project/slug>`; the agent's first message names the document; the agent fills Context (what it found, as tags and embeds), Plan (prose, `question:` and `decision:` blocks, embeds of the `req:`/`rule:` blocks it defined on the entities' pages) and Tasks (`- [ ] task:` lines, `part of plan:<slug>`, ticked as it goes — what is in progress) and opens the page (`wye session open`); the person edits, comments and answers there; the rail's Plans folder shows it (req:wf2.ui.plans-folder — not the
 
   - unless:wf2.sessions.plan-doc a follow-up message without "clear context first" — it continues the current plan; the product has no project — no document, the agent is told to plan on the subject's page
 
@@ -218,9 +218,9 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   verified-by: [ui-test:plan-doc, ui-test:plans]
 ```
 
-  - when:wf2.sessions.plan-result a session with a plan document is set done, failed or cancelled (`wf session done <id> "<result>"`, Cancel, Close), or a fresh request replaces a plan the session never finished
+  - when:wf2.sessions.plan-result a session with a plan document is set done, failed or cancelled (`wye session done <id> "<result>"`, Cancel, Close), or a fresh request replaces a plan the session never finished
 
-  - then:wf2.sessions.plan-result the app writes "Result" — the summary as markdown, then the blocks credited to the session between the plan's `started` and `finished` (artifacts.blocks by `at`; the plan's own page and the Plans page left out) as a list with the change badge and a tag per block, paragraphs as a count with a link to the changes page — replacing whatever was under the heading, so ending twice writes it once; and sets the card's `status` (done / failed / cancelled; a replaced plan is cancelled with "Left unfinished") and `finished`; the tasks under "Tasks" keep the check state the graph has (the agent ticks them with `wf node set`)
+  - then:wf2.sessions.plan-result the app writes "Result" — the summary as markdown, then the blocks credited to the session between the plan's `started` and `finished` (artifacts.blocks by `at`; the plan's own page and the Plans page left out) as a list with the change badge and a tag per block, paragraphs as a count with a link to the changes page — replacing whatever was under the heading, so ending twice writes it once; and sets the card's `status` (done / failed / cancelled; a replaced plan is cancelled with "Left unfinished") and `finished`; the tasks under "Tasks" keep the check state the graph has (the agent ticks them with `wye node set`)
 
   - unless:wf2.sessions.plan-result the session has no plan document — nothing is written
 
@@ -386,7 +386,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   satisfied-by: [action:see-knowledge, component:console, lib:artifacts]
 ```
 
-  - when:wf2.sessions.knowledge-changes an agent in a chat session finishes a turn (or the session ends) after writing documents or nodes of the product — through wf doc write / wf node set, or by editing the markdown on disk
+  - when:wf2.sessions.knowledge-changes an agent in a chat session finishes a turn (or the session ends) after writing documents or nodes of the product — through wye doc write / wye node set, or by editing the markdown on disk
 
   - then:wf2.sessions.knowledge-changes the turn-done row in the console lists what changed in that turn as tags (documents by module, nodes by id, each opening in the context column), and the session header keeps a "Knowledge" strip with everything the session changed so far, updated live — the same artifacts the task's Produced section shows (rule:task-artifacts)
 
@@ -426,7 +426,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   satisfied-by: [rule:console-flow]
 ```
 
-  - when:wf2.sessions.summary-in-flow an agent writes `wf session log` lines or ends with `wf session done <summary>`
+  - when:wf2.sessions.summary-in-flow an agent writes `wye session log` lines or ends with `wye session done <summary>`
 
   - then:wf2.sessions.summary-in-flow the console shows them in the conversation at the time they were written; a chat session has no separate Result panel
 
@@ -440,7 +440,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
 ```
 
-  - when:wf.lint ctx check runs (locally or in CI)
+  - when:wf.lint wye check runs (locally or in CI)
 
   - then:wf.lint it reports errors (rule without source, req without satisfied-by, referenced-but-undefined rule/req ids) and warnings (untested shipped reqs, other stubs, unresolvable source paths, contradiction count) and exits 1 on any error
 
@@ -468,7 +468,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf.lint.ci a pull request changes docs/context-graph or code cited by it
 
-  - then:wf.lint.ci ctx build && ctx check --strict runs in CI and blocks the merge on errors
+  - then:wf.lint.ci wye build && wye check --strict runs in CI and blocks the merge on errors
 
 ```yaml
 - id: req:wf.lint.symbols
@@ -492,7 +492,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf.lint.constraints a constraint is written in _schema/constraints.yaml (e.g. "every op in module X has a gated-by edge", "any node touching money links the money-is-pence rule")
 
-  - then:wf.lint.constraints ctx check evaluates it and reports violations like any other rule
+  - then:wf.lint.constraints wye check evaluates it and reports violations like any other rule
 
 ```yaml
 - id: req:wf.lint.semantic-drift
@@ -529,7 +529,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf.pipeline.status a node moves proposed → approved → shipped (or deprecated)
 
-  - then:wf.pipeline.status ctx check enforces the transitions — approved needs a reviewer, shipped needs real sources and verified-by, deprecated needs a replacement or a resolves edge
+  - then:wf.pipeline.status wye check enforces the transitions — approved needs a reviewer, shipped needs real sources and verified-by, deprecated needs a replacement or a resolves edge
 
 ```yaml
 - id: req:wf.pipeline.packet-scope
@@ -541,7 +541,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf.pipeline.packet-scope an agent implements an approved delta
 
-  - then:wf.pipeline.packet-scope it starts from ctx packet --delta <id>, edits files cited by the packet plus new files, and a Claude Code hook warns on edits to a described module with no approved delta touching it
+  - then:wf.pipeline.packet-scope it starts from wye graph packet --delta <id>, edits files cited by the packet plus new files, and a Claude Code hook warns on edits to a described module with no approved delta touching it
 
 ```yaml
 - id: req:wf.pipeline.done
@@ -554,7 +554,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf.pipeline.done the implementation PR is opened
 
-  - then:wf.pipeline.done every touched req is shipped with real file:line or file#Symbol sources and verified-by naming tests that exist and pass; ctx check --strict is green; the PR description lists node ids and resolved drift rows
+  - then:wf.pipeline.done every touched req is shipped with real file:line or file#Symbol sources and verified-by naming tests that exist and pass; wye check --strict is green; the PR description lists node ids and resolved drift rows
 
 ```yaml
 - id: req:wf.pipeline.code-markers
@@ -628,7 +628,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 - id: question:wf2.attribution-several-sessions
   q: >
     When two sessions run at once and one edits a document on disk, both are credited with every block. Is that
-    acceptable for now, or should the app ask agents to write through `wf doc write` (exact credit) and stop
+    acceptable for now, or should the app ask agents to write through `wye doc write` (exact credit) and stop
     crediting disk edits to more than one session?
   context: >
     The disk watcher cannot tell which process wrote a file. Today documents are already credited to every running

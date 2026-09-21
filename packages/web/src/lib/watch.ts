@@ -1,6 +1,6 @@
 // Watches the product data on disk so the app follows what agents and editors write: any change under
 // data/products/<product> (documents, inbox, sessions) is pushed to subscribers, and a changed document rebuilds
-// the graph (agents may edit files without running ctx build). Lives on globalThis across dev reloads.
+// the graph (agents may edit files without running wye build). Lives on globalThis across dev reloads.
 import { watch, type FSWatcher } from 'node:fs';
 import path from 'node:path';
 import { slugOfDir } from './products';
