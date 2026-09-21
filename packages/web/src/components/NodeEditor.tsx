@@ -71,6 +71,11 @@ export function NodeEditor({ id, body, form, type, props, entry, relations = [],
   const shown = fields.filter(f => more || !isEmpty(f)), hidden = fields.filter(isEmpty);
   const value = (f: Field) => {
     const v = vals[f.name] ?? '';
+    const listOf = (raw: string) => raw.replace(/^\[|\]$/g, '').split(',').map(x => x.trim()).filter(Boolean);
+    const writeList = (items: string[]) => { const next = items.length ? `[${items.join(', ')}]` : ''; setVal(f.name, next); save({ props: { [f.name]: next || null } }); };
+    // many of values (decision:ontology.one-of-many-of): every value as a toggle
+    if (f.enum && f.many) { const on = listOf(v); return (
+      <span className="ne-multi">{[...new Set([...f.enum, ...on])].map(o => <button key={o} type="button" className={`ne-toggle ${on.includes(o) ? 'on' : ''}`} aria-pressed={on.includes(o)} onClick={() => writeList(on.includes(o) ? on.filter(x => x !== o) : [...on, o])}>{o}</button>)}</span>); }
     if (f.enum) return (
       <select className="ne-select" value={v} onChange={e => { setVal(f.name, e.target.value); save({ props: { [f.name]: e.target.value || null } }); }}>
         {(v && !f.enum.includes(v) ? [v] : []).concat(['', ...f.enum]).map(o => <option key={o} value={o}>{o || 'Empty'}</option>)}
@@ -92,6 +97,20 @@ export function NodeEditor({ id, body, form, type, props, entry, relations = [],
             {opts.map(o => <option key={o.id} value={o.id}>{o.id.slice(o.id.indexOf(':') + 1)} — {plain(o.title).slice(0, 50)}</option>)}
           </select>
           {v && /^[a-z][a-z0-9-]*:/.test(v) && <SmartTag id={v} />}
+        </span>);
+    }
+    // many of a type (decision:ontology.one-of-many-of): the linked ones as tags, each with its ×, and a picker of the
+    // rest of that type to add one — the raw field is not needed
+    if (f.ref && f.many && f.ref !== 'node') {
+      const on = v.trim() ? listOf(v).filter(x => /^[a-z][a-z0-9-]*:/.test(x)) : derived;
+      const rest = suggest(f).filter(o => !on.includes(o.id));
+      return (
+        <span className="ne-ref has-tags ne-many">
+          <span className="list">{on.map(x => <span key={x} className="item"><SmartTag id={x} /><button type="button" className="ne-unlink" title="remove" onClick={() => writeList(on.filter(y => y !== x))}>×</button></span>)}</span>
+          <select className="ne-select ne-add" value="" onChange={e => { if (e.target.value) writeList([...on, e.target.value]); }}>
+            <option value="">{on.length ? '+ add' : `+ ${f.ref}`}</option>
+            {rest.map(o => <option key={o.id} value={o.id}>{o.id.slice(o.id.indexOf(':') + 1)} — {plain(o.title).slice(0, 50)}</option>)}
+          </select>
         </span>);
     }
     // a relation reads as its tags (Notion-style); the raw id field shows on hover or focus, after them

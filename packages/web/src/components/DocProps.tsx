@@ -28,10 +28,11 @@ export function DocProps({ product, project, slug, file, fm, node, types }: { pr
   const type = types.find(t => t.slug === kind) ?? null;
   const isBase = (t: TypeDef) => !t.file || t.file.startsWith('schema/');
   const choices = [...types.filter(t => !isBase(t)), ...types.filter(t => isBase(t))].filter(t => t.slug !== 'node');
-  async function commit(key: string) {
-    if ((vals[key] ?? '') === (fm[key] ?? '')) return;
+  async function commit(key: string, explicit?: string) {
+    const cur = explicit ?? vals[key] ?? '';
+    if (cur === (fm[key] ?? '')) return;
     setState('saving'); setMsg('');
-    const v = (vals[key] ?? '').trim();
+    const v = cur.trim();
     const r = await fetch(`/api/${product}/${project}/doc/${slug}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'frontmatter', patch: { [key]: v || (HEAD_KEYS.has(key) ? '' : null) } }) });
     setState(r.ok ? 'saved' : 'error'); router.refresh();
   }
@@ -56,6 +57,9 @@ export function DocProps({ product, project, slug, file, fm, node, types }: { pr
   const value = (p: PropDef) => {
     const v = vals[p.name] ?? '';
     const set = (x: string) => setVals(c => ({ ...c, [p.name]: x }));
+    // many of values (decision:ontology.one-of-many-of): every value as a toggle; the frontmatter takes the list
+    if (p.enum && p.many) { const on = v.replace(/^\[|\]$/g, '').split(',').map(x => x.trim()).filter(Boolean); const write = (items: string[]) => { const next = items.length ? `[${items.join(', ')}]` : ''; setVals(c => ({ ...c, [p.name]: next })); commit(p.name, next); };
+      return <span className="ne-multi">{[...new Set([...p.enum, ...on])].map(o => <button key={o} type="button" className={`ne-toggle ${on.includes(o) ? 'on' : ''}`} aria-pressed={on.includes(o)} onClick={() => write(on.includes(o) ? on.filter(x => x !== o) : [...on, o])}>{o}</button>)}</span>; }
     if (p.enum) return <select className="ne-select" value={v} onChange={e => { set(e.target.value); }} onBlur={() => commit(p.name)}>{(v && !p.enum.includes(v) ? [v] : []).concat(['', ...p.enum]).map(o => <option key={o} value={o}>{o || 'Empty'}</option>)}</select>;
     if (p.type === 'bool') return <input type="checkbox" checked={/^(true|yes)$/i.test(v)} onChange={e => { set(e.target.checked ? 'true' : ''); }} onBlur={() => commit(p.name)} />;
     // a plan's `session` (type:plan): the conversation(s) that did the work, each opening in the context column

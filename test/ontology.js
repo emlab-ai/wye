@@ -113,4 +113,21 @@ const rendered = g.render(g.node('manager:ana'));
 assert(/type: manager < employee < person/.test(rendered), 'render shows the type chain: ' + rendered.split('\n')[1]);
 assert(!/type: req/.test(g.render(g.node('type:person'))) , 'base kinds do not repeat their trivial chain');
 
-console.log('ok — ontology: types, inheritance, edges, inverses, check, render');
+// --- oneOf / manyOf (decision:ontology.one-of-many-of): a type name in the brackets is a link, values are a choice;
+// manyOf of values is a multi-select the checker validates item by item
+const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'wf-onto2-'));
+fs.writeFileSync(path.join(dir2, 'o.md'), `---\nnode: module:o\ntitle: O\n---\n\n# O\n\n\`\`\`yaml\n- id: type:boss\n  extends: type:entity\n  purpose: a boss\n- id: type:crew\n  extends: type:entity\n  purpose: a crew\n- id: type:worker\n  extends: type:entity\n  purpose: a worker\n  props:\n    boss: oneOf[boss]? -(inverse)-> reports\n    crews: manyOf[crew]\n    level: oneOf[junior, senior]\n    skills: manyOf[js, go]?\n- id: boss:ann\n  title: Ann\n- id: crew:web\n  title: Web\n- id: worker:bo\n  title: Bo\n  boss: boss:ann\n  crews: [crew:web]\n  level: senior\n  skills: [js, go]\n- id: worker:cy\n  title: Cy\n  crews: [crew:web]\n  level: boss\n  skills: [js, rust]\n\`\`\`\n`);
+const d2 = parseFiles([path.join(dir2, 'o.md')]); const g2 = new Graph(d2);
+const w = d2.types.find(t => t.id === 'type:worker'); const prop = n => w.props.find(p => p.name === n);
+assert.deepStrictEqual([prop('boss').ref, prop('boss').many, prop('boss').required, prop('boss').inverse], ['boss', false, false, 'reports'], 'oneOf[type] is a ref');
+assert.deepStrictEqual([prop('crews').ref, prop('crews').many], ['crew', true], 'manyOf[type] is a list of');
+assert.deepStrictEqual([prop('level').enum, prop('level').many], [['junior', 'senior'], false], 'oneOf[values] is an enum');
+assert.deepStrictEqual([prop('skills').enum, prop('skills').many], [['js', 'go'], true], 'manyOf[values] is a multi-select enum');
+assert((g2.out.get('worker:bo') || []).some(e => e.to === 'boss:ann' && e.verb === 'boss'), 'the link is an edge');
+assert((g2.out.get('boss:ann') || []).some(e => e.to === 'worker:bo' && e.verb === 'reports'), 'the inverse is generated');
+const c2 = g2.check();
+assert(has(c2.warnings, /worker:cy: level "boss" is not a enum/), 'a value outside the choice is flagged');
+assert(has(c2.warnings, /worker:cy: skills "\[js, rust\]" is not a manyOf/), 'a multi-select item outside the choice is flagged');
+assert(!has(c2.warnings, /worker:bo: skills/), 'a multi-select within the choice passes');
+
+console.log('ok — ontology: types, inheritance, edges, inverses, check, render, oneOf / manyOf');

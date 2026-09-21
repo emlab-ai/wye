@@ -7,7 +7,34 @@ import type { OwnProp } from '@/lib/type-edit';
 import { SmartTag } from './SmartTag';
 import { KindPill, StatusPill } from './Pills';
 
-const VALUE_TYPES = ['string', 'text', 'number', 'date', 'month', 'bool', 'enum [a, b]', 'ref <type>', 'list of <type>', 'list of string'];
+// The value type of a property as a choice (decision:ontology.one-of-many-of): a scalar, one of / many of a type
+// (a link, with an inverse), one of / many of a list of values (a select / a multi-select). Read from and written
+// back as the spec string the parser takes.
+type Shape = { kind: 'string' | 'text' | 'number' | 'date' | 'month' | 'bool' | 'oneType' | 'manyType' | 'oneValue' | 'manyValue' | 'list of string'; arg: string };
+const SCALARS = ['string', 'text', 'number', 'date', 'month', 'bool', 'list of string'];
+function shapeOf(spec: string): Shape {
+  let m: RegExpMatchArray | null;
+  if ((m = spec.match(/^ref (.+)$/))) return { kind: 'oneType', arg: m[1].trim() };
+  if ((m = spec.match(/^list of (.+)$/)) && m[1].trim() !== 'string') return { kind: 'manyType', arg: m[1].trim() };
+  if ((m = spec.match(/^enum\s*\[(.*)\]$/))) return { kind: 'oneValue', arg: m[1].trim() };
+  if ((m = spec.match(/^manyOf\s*\[(.*)\]$/))) return { kind: 'manyValue', arg: m[1].trim() };
+  if ((m = spec.match(/^oneOf\s*\[(.*)\]$/))) return { kind: 'oneValue', arg: m[1].trim() };
+  return { kind: (SCALARS.includes(spec) ? spec : 'string') as Shape['kind'], arg: '' };
+}
+const specOf = (sh: Shape): string => sh.kind === 'oneType' ? `ref ${sh.arg || 'node'}` : sh.kind === 'manyType' ? `list of ${sh.arg || 'node'}` : sh.kind === 'oneValue' ? `enum [${sh.arg}]` : sh.kind === 'manyValue' ? `manyOf [${sh.arg}]` : sh.kind;
+const KINDS: { kind: Shape['kind']; label: string }[] = [{ kind: 'string', label: 'string' }, { kind: 'text', label: 'text' }, { kind: 'number', label: 'number' }, { kind: 'date', label: 'date' }, { kind: 'month', label: 'month' }, { kind: 'bool', label: 'yes / no' }, { kind: 'oneType', label: 'one of type →' }, { kind: 'manyType', label: 'many of type →' }, { kind: 'oneValue', label: 'one of values' }, { kind: 'manyValue', label: 'many of values' }, { kind: 'list of string', label: 'list of strings' }];
+function ValueType({ spec, types, readOnly, onChange }: { spec: string; types: string[]; readOnly: boolean; onChange: (spec: string) => void }) {
+  const sh = shapeOf(spec);
+  const set = (patch: Partial<Shape>) => onChange(specOf({ ...sh, ...patch }));
+  if (readOnly) return <code>{spec}</code>;
+  return (
+    <span className="vt">
+      <select value={sh.kind} onChange={e => { const kind = e.target.value as Shape['kind']; set({ kind, arg: kind === 'oneType' || kind === 'manyType' ? (types.includes(sh.arg) ? sh.arg : types[0] ?? 'node') : kind === 'oneValue' || kind === 'manyValue' ? sh.arg : '' }); }}>{KINDS.map(k => <option key={k.kind} value={k.kind}>{k.label}</option>)}</select>
+      {(sh.kind === 'oneType' || sh.kind === 'manyType') && <select value={sh.arg} onChange={e => set({ arg: e.target.value })} title="the type it links to">{[...new Set(['node', ...types, sh.arg].filter(Boolean))].map(t => <option key={t} value={t}>{t}</option>)}</select>}
+      {(sh.kind === 'oneValue' || sh.kind === 'manyValue') && <input value={sh.arg} placeholder="value, value, value" onChange={e => set({ arg: e.target.value })} title="the values, comma-separated" />}
+    </span>
+  );
+}
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');
 
 // A type in the context column: its card (purpose, extends, open), its own properties as an editable table, the
@@ -30,7 +57,9 @@ export function TypeView({ type, instances, index, product, onSaved }: { type: T
     if (!r.ok) { setErr((await r.json().catch(() => ({}))).message ?? 'could not save'); return; }
     setDirty(false); onSaved();
   };
-  const sub = (t: TypeDef['props'][number]) => t.ref ? `${t.many ? 'list of' : 'ref'} ${t.ref}` : t.type;
+  const sub = (t: TypeDef['props'][number]) => t.ref ? `${t.many ? 'many of' : 'one of'} ${t.ref}` : t.enum ? `${t.many ? 'many of' : 'one of'} [${t.enum.join(', ')}]` : t.type;
+  // the types a link may point at: every type the product knows (base and own), by slug
+  const typeSlugs = Object.values(index).filter(e => e.kind === 'type' && e.defined).map(e => e.id.slice(5)).sort();
   return (
     <>
       <article className="card type-card" id={`n-${type.id}`}>
@@ -52,7 +81,7 @@ export function TypeView({ type, instances, index, product, onSaved }: { type: T
             {rows.map((p, i) => (
               <tr key={i}>
                 <td><input value={p.name} readOnly={base} placeholder="name" onChange={e => edit(i, { name: e.target.value })} /></td>
-                <td><input value={p.type} readOnly={base} list="wf-value-types" placeholder="string" onChange={e => edit(i, { type: e.target.value })} /></td>
+                <td><ValueType spec={p.type} types={typeSlugs} readOnly={base} onChange={t => edit(i, { type: t })} /></td>
                 <td><input type="checkbox" checked={p.required} disabled={base} onChange={e => edit(i, { required: e.target.checked })} /></td>
                 <td><input value={p.inverse} readOnly={base} placeholder={/^(ref|list of) [a-z]/.test(p.type) && !/^list of string$/.test(p.type) ? `${p.name || 'name'}-of` : ''} disabled={!/^(ref|list of) [a-z]/.test(p.type) || /^list of (string|number|date)$/.test(p.type)} onChange={e => edit(i, { inverse: e.target.value })} /></td>
                 <td>{!base && <button className="x" title="Remove property" onClick={() => { setRows(r => r.filter((_, k) => k !== i)); setDirty(true); }}>×</button>}</td>
@@ -63,7 +92,6 @@ export function TypeView({ type, instances, index, product, onSaved }: { type: T
               </tr>))}
           </tbody>
         </table>
-        <datalist id="wf-value-types">{VALUE_TYPES.map(v => <option key={v} value={v} />)}</datalist>
         {!base && (
           <div className="prop-edit-bar">
             <button className="linkish" onClick={() => { setRows(r => [...r, { name: '', type: 'string', required: false, inverse: '' }]); setDirty(true); }}>+ property</button>
