@@ -120,9 +120,9 @@ function BlockContextMenu({ menu, onClose, act, canPaste }: { menu: BlockMenu; o
       {typed && <div className="menu-head muted">{np!.kind}:{np!.slug}</div>}
       {typed && item('Open in column', 'open')}
       {item('Comment…', 'comment')}
-      {linkable && <div className="menu-sub" onMouseEnter={() => setLinkOpen(true)} onMouseLeave={() => setLinkOpen(false)}>
-        <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => setLinkOpen(o => !o)}>Link › <span className="muted">a block under it</span></button>
-        {linkOpen && <div className="pg-menu menu-sub-list">{linkKinds.map(k => <button key={k} role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => { act(`link:${k}`, b); onClose(); }}><i className="pill k" style={{ background: `var(--k-${k}, var(--k-other))` }}>{k}</i></button>)}</div>}
+      {linkable && <div className="menu-sub">
+        <button role="menuitem" aria-expanded={linkOpen} onMouseDown={e => e.preventDefault()} onClick={() => setLinkOpen(o => !o)}>{linkOpen ? '▾' : '▸'} Link <span className="muted">a new block under it</span></button>
+        {linkOpen && <div className="menu-sub-list">{linkKinds.map(k => <button key={k} role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => { act(`link:${k}`, b); onClose(); }}><i className="pill k" style={{ background: `var(--k-${k}, var(--k-other))` }}>{k}</i></button>)}</div>}
       </div>}
       {np?.kind === 'task' && np.status !== 'done' && item('Mark done', 'done')}
       {typed && item('Expire (until today)', 'expire')}
@@ -1174,7 +1174,10 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
         const kid = child(kind, `New ${kind}`) as unknown as AnyBlock; // a placeholder text: an empty line would not be a node
         editor.updateBlock(b as never, { children: [...((b.children ?? []) as AnyBlock[]), kid] } as never);
         touched.current = true; changed();
-        setTimeout(() => { const cur = editor.getBlock(id) as unknown as AnyBlock | undefined; const last = cur?.children?.[cur.children.length - 1] as { id?: string } | undefined; if (last?.id) { try { editor.setTextCursorPosition(last.id, 'end'); editor.focus(); } catch { /* gone */ } } }, 50);
+        // a card on the page keeps its content folded (req:wf2.ui.card-preview): the node opens in the column, where its
+        // content editor shows the new block to type into — in a content editor (scoped) it is right there
+        if (!scoped && nodeId) { toast(`${kind} added under ${nodeId} — edit it in the column`); setTimeout(() => openPeek(nodeId), 300); }
+        else setTimeout(() => { const cur = editor.getBlock(id) as unknown as AnyBlock | undefined; const last = cur?.children?.[cur.children.length - 1] as { id?: string } | undefined; if (last?.id) { try { editor.setTextCursorPosition(last.id, 'end'); editor.focus(); } catch { /* gone */ } } }, 50);
         return;
       }
       const target = (b.props as { node?: string }).node; if (!target) return;
