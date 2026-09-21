@@ -14,10 +14,12 @@ import { scheduleImpact } from './impact-run';
 import { trackDefinitions, refreshStaleScopes } from './pr-docs';
 import { loadScope } from './scope';
 import { listSessions } from './sessions';
+import { eventsFromDiff } from './hooks';
+import { fire, depthOfSession, hooksOn } from './hooks-run';
 
 type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other'; file: string }) => void;
 // bump when the watcher callback changes: dev reloads keep globalThis, so an old watcher would keep running old code
-const VERSION = 10;
+const VERSION = 11;
 // lastGraph: the graph as this watcher last saw it, so a rebuild can be diffed even when the API already rebuilt
 // (editNode writes the file and rebuilds before the watcher's timer fires)
 type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>>; lastGraph: Map<string, GraphData> };
@@ -76,6 +78,17 @@ export function ensureWatch(productDir: string) {
                 const who = (id: string) => attribution.get(id) ?? { by: 'person' };
                 const records = await recordChanges(productDir, path.basename(productDir), before, after, changes, who).catch(e => { console.log(`[wf] changes: ${e instanceof Error ? e.message : e}`); return []; });
                 if (records.length) scheduleImpact(productDir, path.basename(productDir), records, m => console.log(`[wf] ${m}`));
+                // hooks (decision:wf2.hooks-and-skills): what the diff means — created, status:<x>, linked:<verb> — fires the
+                // product's hooks; a change a hook's session made carries its firing depth, so chains stop at the cap
+                if (hooksOn()) {
+                  const events = eventsFromDiff(before, after, changes);
+                  if (events.length) void (async () => {
+                    const depths = new Map<string, number | null>();
+                    const withDepth = [];
+                    for (const ev of events) { const sid = attribution.get(ev.id)?.session; if (!depths.has(sid ?? '')) depths.set(sid ?? '', await depthOfSession(productDir, sid)); withDepth.push({ ...ev, depth: depths.get(sid ?? '') }); }
+                    await fire(path.basename(productDir), withDepth);
+                  })().catch(e => console.log(`[wf] hooks: ${e instanceof Error ? e.message : e}`));
+                }
                 // a librarian's blocks land in its request's Definition (req:exec.definition-tracked) — the writes here come back through this watcher
                 try { const scope = await loadScope(path.basename(productDir)); if (scope) { await trackDefinitions(scope, running, changes.map(c => ({ ...c, session: attribution.get(c.id)?.session }))); const rescoped = await refreshStaleScopes(scope); if (rescoped.length) console.log(`[wf] scope: ${rescoped.join(', ')}`); } } catch (e) { console.log(`[wf] definition: ${e instanceof Error ? e.message : e}`); }
                 // the write-time verdict pass (decision:memory.write-time-verdict): new or changed knowledge is classified

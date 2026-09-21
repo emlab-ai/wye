@@ -50,7 +50,7 @@ export function SessionView({ id }: { id: string }) {
     <div className="session">
       <div className="session-head">
         <span className={`pill s ${shownStatus(s)} session-status`} title={s.live ? `process up · recorded status: ${s.status}` : s.status}>{shownStatus(s)}</span>
-        <strong>{s.role === 'librarian' ? 'Wye' : agentLabel(s.agent)}</strong>{s.role === 'librarian' ? <span className="pill" title="the librarian: reads, explains, proposes — never code">defining</span> : s.mode === 'chat' && <span className="pill">chat</span>}
+        <strong>{s.role === 'librarian' ? 'Wye' : agentLabel(s.agent)}</strong>{s.hook ? <span className="pill" title={`started by the hook ${s.hook.id}${s.hook.skill ? ` · runs ${s.hook.skill}` : ''}`}>hook</span> : s.role === 'librarian' ? <span className="pill" title="the librarian: reads, explains, proposes — never code">defining</span> : s.mode === 'chat' && <span className="pill">chat</span>}
         <span className="muted">{when(s.createdAt)}</span>
         <span className="session-acts">
           <button className="mini" onClick={() => setHandoff(h => h ? null : { agent: AGENTS.find(a => a.id !== s.agent)?.id ?? s.agent, note: '' })} title="Continue this work under another agent">Hand off…</button>

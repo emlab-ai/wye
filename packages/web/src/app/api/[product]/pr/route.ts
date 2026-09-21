@@ -6,6 +6,7 @@ import { questionsOf, answerOnPage } from '@/lib/pr-questions';
 import { answerPermission, isLive, liveState } from '@/lib/agent-host';
 import { getSession } from '@/lib/sessions';
 import { notifyDispatch, waitingReasons } from '@/lib/dispatch';
+import { firePrApproved, rememberHooksUrl } from '@/lib/hooks-run';
 import { REPO_ROOT } from '@/lib/products';
 import path from 'node:path';
 import { getFrontmatter, setFrontmatter, requestTaskId, prNumberOf, prLabel } from '@/lib/pr-doc';
@@ -58,6 +59,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ produc
     await approvePr(scope.product.dir, product, body.ref, by);
     const stopped = await stopRefining(scope.product.dir, body.ref, `The PR was approved by ${by} — stop here; say in one line what is on the page.`).catch(() => []);
     notifyDispatch(product, new URL(req.url).origin); // the build starts from here (decision:wf2.pr-scheduler)
+    rememberHooksUrl(new URL(req.url).origin); void firePrApproved(product, body.ref); // pr.approved hooks (decision:wf2.hooks-and-skills)
     return NextResponse.json({ ok: true, status: 'approved', stopped });
   }
   if (body.action === 'cancel') {

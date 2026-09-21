@@ -1,4 +1,1 @@
-- test:{{slug}}-test
-  title: {{title}} — checked
-  status: proposed
-  covers: [{{node}}]
+- test:{{slug}}-test {{title}} — checked #proposed

@@ -34,8 +34,5 @@ review. Templates (type:template) live here too: markdown with {{node}}, {{slug}
 - id: template:test-card
   title: A proposed test card for a node
   body: |
-    - test:{{slug}}-test
-      title: {{title}} — checked
-      status: proposed
-      covers: [{{node}}]
+    - test:{{slug}}-test {{title}} — checked #proposed
 ```

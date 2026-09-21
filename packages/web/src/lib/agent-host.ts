@@ -68,6 +68,13 @@ This conversation refines the Prompt Request \`${prDoc}\` (node \`pr:${slug}\`, 
 - Ask at most three questions at a time with the AskUserQuestion tool (a header, the question, options with a one-line description each, the reading you would assume first) — only for what the request leaves unsaid: the app puts them on the PR page as question cards and the person answers there — never ask in prose.
 The request is ready when its readiness list is green (\`wye pr ${prDoc}\`): a Definition, every block agreed, no open contradiction, at least one task. When it is, say so in one line and stop. Never edit code. Never approve and never build — approval is the person's click on the page; the build starts from there.`;
 }
+// A session a hook started (decision:wf2.hooks-and-skills): it runs one skill on one node; what it writes is proposed
+// and reviewed like any agent's. The librarian's tools (reads and proposals) or the worker's, by the skill's role.
+export function hookNote(s: Session, product: string, wfUrl: string): string {
+  const h = s.hook!;
+  const who = s.role === 'librarian' ? 'You read Wye and propose blocks — never edit code or files directly, never approve.' : 'You may edit the product\'s code and documents; keep ids stable and run `ctx --root data/products/' + product + ' check` after editing documents.';
+  return `\n## This session\nStarted by the hook \`${h.id}\` on the node in the instruction (firing ${h.firing}); the skill${h.skill ? ` \`${h.skill}\`` : ''} under **Skill** below is your brief — follow it on that node and stop. ${who} Everything you write is proposed (\`status: proposed\`) and the person reviews it.\n\n## How to work\n- The Wye CLI is \`wf\` (WF_URL=${wfUrl}, WF_PRODUCT=${product}). Read: \`wye node <id>\`, \`wye resolve <link|id>\`, \`wye doc <product/project/doc>\`, \`wye context "<text>"\`, \`wye packet --for "<text>"\`. Propose: \`wye propose <product/project/doc>\` with a yaml card on stdin (\`--file f\` works too). Report: \`wye session log ${s.id} "<line>"\`; end with \`wye session done ${s.id} "<summary>"\`.`;
+}
 export function librarianProtocol(): string {
   return `\n## This conversation\nYou are the librarian (prompts/librarian-system.md): explain the current state first, with the nodes as tags; ask at most three questions at a time, only for what the request leaves unsaid or a constraint in force makes ambiguous, with the reading you would assume as the first option; then propose the definition as blocks with \`wye propose\` — a requirement is a title with when: / then: / unless: child blocks under it, in the person's words, no mechanism; how the product does it is a rule (code-enforced, with source) or a decision (a title and free text: what was chosen and why) — and report their verdicts (\`wye verdicts\`). Say plainly when the request is already satisfied, partly, or contradicts a constraint or decision. Never edit code or files; never approve; never build — when the person says build it / go ahead / do it, tell them the request is approved with the Approve button on its page and whether the readiness list is green.`;
 }
@@ -108,6 +115,11 @@ export async function buildPrompt(product: string, s: Session, wfUrl: string, pr
   if (ctx.length) parts.push(`\n## Context\n${ctx.join('\n\n')}`);
   parts.push(await constraintsSection(scope, s));
   if (s.parent) parts.push(`\nThis session continues session ${s.parent}; its log and result are in the instruction above.`);
+  if (s.hook) {
+    // a hook's session (decision:wf2.hooks-and-skills): no request page — the skill under "## Skill" below is the brief
+    parts.push(hookNote(s, product, wfUrl));
+    return parts.join('\n');
+  }
   if (s.role === 'librarian') {
     // the librarian (decision:exec.wye-is-a-role): its request page, its protocol, its reads — no code, no folder
     parts.push(refiningNote(s.prDoc), librarianProtocol());
