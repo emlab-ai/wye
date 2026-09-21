@@ -149,6 +149,23 @@ Definition — the librarian
   - consequence:ontology.one-of-many-of lib/parse.js reads the type names first so oneOf[x] can tell a type from a value; lib/graph.js validates a multi-select item by item; component:type-view, component:node-editor, component:doc-props.
 
 ```yaml
+- id: decision:wf2.card-is-name-and-properties
+  title: A block in a document is its name and properties; its description is content, read and edited in the column
+  status: approved
+  date: 2026-09-21
+  affects: [component:node-cards, component:doc-editor, component:peek-panel, decision:wf2.decision-free-text, decision:wf2.req-free-text]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
+```
+
+  - context:wf2.card-is-name-and-properties Every block is by design a name and a content / description (alex, 2026-09-21). Cards rendered their description inline — a requirement's text, a decision's parts, a goal's description under the card as child blocks — so the content sat visually outside the card and the card read as a form.
+
+  - choice:wf2.card-is-name-and-properties In the document a card shows its name (the text line) and its properties; the content — text and child blocks — is folded away behind "▸ n blocks" and "open ›", and is read and edited in the column's Content editor, an md block editor. A question is the exception: its answer shows under it. The document editor never unfolds a card's children.
+
+  - consequence:wf2.card-is-name-and-properties component:node-cards renders no text or prose on a card; useFold in component:doc-editor is always folded; the column is where descriptions live.
+
+```yaml
 - id: decision:wf2.decision-free-text
   title: A decision is a title and free text — its content blocks are the description; alternatives and consequences are child blocks, not a form
   date: 2026-09-21

@@ -35,7 +35,7 @@ export type CardHost = {
 // content is (rule:card-fold).
 function FoldToggle({ host }: { host: CardHost }) {
   const f = host.fold; if (!f || !f.count) return null;
-  return <button type="button" className={`nblock-fold ${f.folded ? 'folded' : ''}`} title="Open the node: its content is in the details" onClick={e => { e.stopPropagation(); f.open(); }}>{f.folded ? '▸' : '▾'} {f.count} block{f.count === 1 ? '' : 's'}</button>;
+  return <button type="button" className={`nblock-fold ${f.folded ? 'folded' : ''}`} title="The description: n blocks, read and edited in the column" onClick={e => { e.stopPropagation(); f.open(); }}>{f.folded ? '▸' : '▾'} {f.count} block{f.count === 1 ? '' : 's'}</button>;
 }
 
 // A yaml flow list "[a, b]" renders as its items; anything else as linkified text.
@@ -78,10 +78,9 @@ export function NodeCard({ p, set, host }: { p: CardP; set: (patch: Partial<Card
 // other keys read-only under it, the yaml toggle to edit them.
 export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<CardP>) => void; host: CardHost }) {
   const [showYaml, setShowYaml] = useState(false);
-  // a yaml card's `text` beside its title is the block's prose (a requirement in the person's words,
-  // decision:wf2.req-free-text): it reads as a paragraph under the title, not as a labelled row
-  const prose = p.form === 'yaml' && p.textKey !== 'text' ? parseBody(p.body).find(r => r.key === 'text')?.value ?? '' : '';
-  const rows = p.form === 'yaml' ? parseBody(p.body).filter(r => r.key !== p.textKey && r.key !== 'status' && !(prose && r.key === 'text')) : [];
+  // a yaml card's `text` beside its title is its description (decision:wf2.card-is-name-and-properties): read and
+  // edited in the column, not on the card — the card is the name and the properties
+  const rows = p.form === 'yaml' ? parseBody(p.body).filter(r => r.key !== p.textKey && r.key !== 'status' && r.key !== 'text') : [];
   return (
     <div className={`nblock k-${p.kind} ${p.check === 'done' || p.status === 'done' ? 'done' : ''} ${host.extraClass ?? ''}`} data-id={`${p.kind}:${p.slug}`} ref={host.hostRef} onClick={selectOn(host)}>
       <div className="nblock-head" contentEditable={false} ref={host.stop} onClick={host.onHeadClick}>
@@ -101,7 +100,6 @@ export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<Car
         </span>
       </div>
       {host.text('nblock-text')}
-      {prose && !showYaml && <div className="nblock-prose" contentEditable={false} ref={host.stop}><ProseArea className="nblock-prose-ta" value={prose} onChange={v => set({ body: setBodyField(p.body, 'text', v) })} /></div>}
       {rows.length > 0 && !showYaml && <PropRows rows={rows} stop={host.stop} />}
       {showYaml && p.form === 'yaml' && <textarea className="nblock-yaml" contentEditable={false} value={p.body} rows={Math.min(24, p.body.split('\n').length + 1)} onChange={e => set({ body: e.target.value })} />}
     </div>
@@ -181,7 +179,6 @@ export function DecisionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
       {/* a decision is its title and free text (decision:wf2.decision-free-text): `text` as prose, and the card's
           content blocks below it — alternative: / choice: / consequence: children where wanted. The ADR keys older
           cards carry read as prose paragraphs, not as a form; the yaml under details edits them. */}
-      {get('text') && <div className="nblock-prose" contentEditable={false} ref={host.stop}><ProseArea className="nblock-prose-ta" value={get('text')} onChange={v => set({ body: setBodyField(p.body, 'text', v) })} /></div>}
       {details && (
         <div className="qnode-details" contentEditable={false} ref={host.stop}>
           {others.length > 0 && <PropRows rows={others} />}

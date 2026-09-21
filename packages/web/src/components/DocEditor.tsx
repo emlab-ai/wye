@@ -449,17 +449,12 @@ const NodeBlock = createReactBlockSpec(
 // zero-heights them by the block's id (they stay blocks, and in the file) and a chip opens the details; the caret
 // inside them (arrow keys) shows them while it is there.
 // A question never folds: its content is its answer (decision:wf2.answer-is-content), shown under the card.
+// A card in the document is its name and properties; its content — the description, the child blocks — is folded
+// away and read or edited in the column's Content editor (decision:wf2.card-is-name-and-properties). The fold
+// says how many blocks there are and opens the node; a question is the exception: its answer shows under it.
 function useFold(block: AnyBlock, open: () => void, never = false) {
   const count = block.children?.length ?? 0;
-  const [folded, setFolded] = useState(!never);
-  const bn = useBlockNoteEditor();
-  useEditorSelectionChange(() => {
-    if (!count || never) return;
-    // the editor's own selection, not the DOM's: a programmatic caret lands in the block before the DOM follows
-    let cur: string | undefined; try { cur = (bn.getTextCursorPosition().block as { id?: string }).id; } catch { cur = undefined; }
-    const under = (bs: AnyBlock[] | undefined): boolean => !!bs?.some(b => (b as { id?: string }).id === cur || under(b.children));
-    setFolded(!(cur && under(block.children)));
-  }, bn);
+  const folded = !never;
   const fold = count && !never ? { count, folded, open } : undefined;
   const hide = folded && count && !never ? <style>{`.bn-block-outer[data-id="${String((block as { id?: string }).id)}"] > .bn-block > .bn-block-group > .bn-block-outer { height: 0; min-height: 0; overflow: hidden; visibility: hidden; margin: 0; }`}</style> : null;
   return { fold, hide };
@@ -477,7 +472,7 @@ function EditorCard({ p, set, contentRef, block, editor }: { p: CardP; set: (pat
   const hostRef = useRef<HTMLDivElement>(null);
   const id = `${p.kind}:${p.slug}`;
   const open = () => { if (p.slug) emit('wf:select', hostRef.current, id); };
-  const { fold, hide } = useFold(block, open, p.kind === 'question' || p.kind === 'decision' || p.kind === 'goal'); // their content is the card
+  const { fold, hide } = useFold(block, open, p.kind === 'question');
   const bn = useBlockNoteEditor();
   const bid = String((block as { id?: string }).id);
   // a question's answer count follows the editor, not the render's block: the placeholder goes as soon as the first
