@@ -56,7 +56,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
     const built = await rebuild(hit.scope.product.dir);
     const checked = await lint(hit.scope.product.dir);
     const errors = checked.output.split('\n').filter(l => /^ERROR/i.test(l)).slice(0, 20);
+  // the check is product-wide: an error is this document's when it names the file or a node defined in it; the rest is a count
+  const own = new Set(hit.scope.graph.nodes.filter(n => n.defined && n.file === hit.node.file).map(n => n.id));
+  const mine = errors.filter(e => e.includes(hit.node.file) || [...own].some(id => e.includes(id)));
     if (session) recordArtifact(hit.scope.product.dir, session, { node: id, blocks: [{ id, change: 'changed', doc: docIdOf(hit.scope.graph, hit.node.file) ?? '', title: hit.node.title ?? id, at: new Date().toISOString() }] }).catch(() => {});
-    return NextResponse.json({ ok: true, rebuilt: built.code === 0, lintOk: checked.code === 0, lintErrors: errors, bodyHash: hashOf(bodyOf(next)) });
+    return NextResponse.json({ ok: true, rebuilt: built.code === 0, lintOk: mine.length === 0, lintErrors: mine, lintElsewhere: errors.length - mine.length, bodyHash: hashOf(bodyOf(next)) });
   });
 }

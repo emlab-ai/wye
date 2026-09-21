@@ -560,7 +560,7 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 /* the content editor in the column (req:wf2.ui.node-content): the page's editor, compact, scoped to one node */
 .peek .content { margin: 18px 0 4px; } .peek .content h4 { margin: 0 0 4px; }
 .content-editor { border: 1px solid var(--line); border-radius: 8px; background: var(--paper, transparent); }
-.content-editor .doc-editor { margin: 0; } .content-editor .doc-editor-bar { padding: 0 10px; min-height: 0; font-size: 11px; position: absolute; right: 0; top: -20px; } .content-editor .doc-editor-bar .save-state.idle { display: none; } .content-editor { position: relative; } .content-editor .bn-editor { padding-inline: 10px; padding-block: 6px; min-height: 40px; font-size: 14px; }
+.content-editor .doc-editor { margin: 0; } .content-editor .doc-editor-bar { padding: 2px 10px 0; min-height: 0; font-size: 11px; justify-content: flex-end; flex-wrap: wrap; } .content-editor .doc-editor-bar .save-state.idle { display: none; } .content-editor { position: relative; } .content-editor .bn-editor { padding-inline: 10px; padding-block: 6px; min-height: 40px; font-size: 14px; }
 /* a card's fold (req:wf2.ui.card-preview): the count of blocks under the node in its header; an embed's preview under the text */
 .nblock-fold { border: 1px solid var(--line); background: transparent; color: var(--ink-2); font: 11px var(--font-m); border-radius: 10px; padding: 0 7px; line-height: 17px; cursor: pointer; white-space: nowrap; } .nblock-fold:hover { border-color: var(--ink-2); } .nblock-fold.folded { color: var(--muted); }
 .nrow-fold { flex: none; align-self: center; margin-left: 4px; }

@@ -670,6 +670,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const [ready, setReady] = useState(false);
   const [state, setState] = useState<'idle' | 'saving' | 'saved' | 'conflict' | 'error'>('idle');
   const [lintMsg, setLintMsg] = useState<string | null>(null);
+  const [elsewhere, setElsewhere] = useState(0); // the product check's errors that are not this document's
   const [loadError, setLoadError] = useState<string | null>(null);
   const [linkReq, setLinkReq] = useState<LinkRequest | null>(null);
   const [askReq, setAskReq] = useState<AskRequest | null>(null);
@@ -761,7 +762,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     const j = await r.json();
     if (!r.ok) { setState(j.error === 'conflict' ? 'conflict' : 'error'); return; }
     hash.current = j.bodyHash ?? hash.current;
-    setLintMsg(j.lintOk ? null : (j.lintErrors as string[]).join(' · '));
+    setLintMsg(j.lintOk ? null : (j.lintErrors as string[]).join(' · ')); setElsewhere(Number(j.lintElsewhere ?? 0));
     setState('saved'); router.refresh();
   }
   const settling = useRef(false);
@@ -935,7 +936,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
           if (doc) router.push(doc.replace(/#.*$/, '')); else openPeek(href);
         }
       }}>
-      <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}</div>
+      <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}{!lintMsg && elsewhere > 0 && <span className="muted" title="ctx check finds an error in another document of the product — not in this one">{elsewhere} check error{elsewhere === 1 ? '' : 's'} elsewhere</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false}>
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><AnnotateItem annotate={imageToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
         <FormattingToolbarController formattingToolbar={() => <FormattingToolbar>{...getFormattingToolbarItems()}<LinkNodeButton onRequest={setLinkReq} /><AskAgentButton onRequest={r => setAskReq({ ...r, doc: slug, project, pageLink: `${location.origin}/${product}/${project}/d/${slug}`, refs: [...new Set([...r.refs, `module:${slug}`])] })} /></FormattingToolbar>} />

@@ -59,9 +59,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
   const built = await rebuild(hit.scope.product.dir);
   const checked = await lint(hit.scope.product.dir);
   const errors = checked.output.split('\n').filter(l => /^ERROR/i.test(l)).slice(0, 20);
+  // the check is product-wide: an error is this document's when it names the file or a node defined in it; the rest is a count
+  const own = new Set(hit.scope.graph.nodes.filter(n => n.defined && n.file === hit.d.file).map(n => n.id));
+  const mine = errors.filter(e => e.includes(hit.d.file) || [...own].some(id => e.includes(id)));
   const split = splitDocument(r.md);
   const hashes = split.segments.map(s => s.type === 'markdown' ? hashOf(s.text) : s.type === 'yaml' ? s.chunks.map(c => hashOf(c.raw)) : null);
-  return NextResponse.json({ ok: true, rebuilt: built.code === 0, build: built.output.trim(), lintOk: checked.code === 0, lintErrors: errors, hashes, bodyHash: hashOf(bodyOf(r.md)) });
+  return NextResponse.json({ ok: true, rebuilt: built.code === 0, build: built.output.trim(), lintOk: mine.length === 0, lintErrors: mine, lintElsewhere: errors.length - mine.length, hashes, bodyHash: hashOf(bodyOf(r.md)) });
 }
 
 // op:doc.retype (rule:doc-retype): the page becomes an instance of `type` — its node line takes the kind and every
