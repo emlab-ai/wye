@@ -745,7 +745,7 @@ function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEveryw
 // `scope`: the editor edits one node's content (decision:wf2.content-editor-scoped) — the blocks under its defining
 // line in `slug` — loaded and saved through the node's content route instead of the document's; it publishes no
 // editing context, and a click on a child block opens the child in the column (decision:ontology.depth-by-navigation).
-export default function DocEditor({ product, project, slug, body, ifMatch, fallback, scope = null, autoFocus = false }: { product: string; project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode; scope?: string | null; autoFocus?: boolean }) {
+export default function DocEditor({ product, project, slug, body, ifMatch, fallback, scope = null, autoFocus = false, textOnly = false }: { product: string; project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode; scope?: string | null; autoFocus?: boolean; textOnly?: boolean }) {
   const router = useRouter();
   const { open: openPeek, select, setFocused, index, hrefFor, setEditing, setShowContext, ownKinds, ownTypes } = usePeek();
   const scoped = scope !== null;
@@ -958,8 +958,10 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     setState('saving');
     // scoped: the first block is the node's text, the rest its content (decision:wf2.text-is-first-block)
     const split = () => { const blocks = editor.document as unknown as AnyBlock[]; const first = blocks[0]; const text = first && Array.isArray(first.content) ? inlineToMarkdown(first.content as Inline[]) : ''; return { text, content: blocksToMarkdown(blocks.slice(1)) }; };
+    // textOnly (a card's text in a view or an embed): the editor holds the text line alone; the node's content under
+    // it is not here and is left as it is
     const r = scoped
-      ? await fetch(`/api/${product}/node/${encodeURIComponent(scope)}/content`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...split(), ifMatch: hash.current }) })
+      ? await fetch(`/api/${product}/node/${encodeURIComponent(scope)}/content`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(textOnly ? { text: split().text, ifMatch: hash.current } : { ...split(), ifMatch: hash.current }) })
       : await fetch(`/api/${product}/${project}/doc/${slug}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'replace-body', ifMatch: hash.current, body: md }) });
     const j = await r.json();
     if (!r.ok) { setState(j.error === 'conflict' ? 'conflict' : 'error'); return; }

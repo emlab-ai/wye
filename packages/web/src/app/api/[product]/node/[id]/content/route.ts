@@ -35,9 +35,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ product
 export async function PUT(req: Request, { params }: { params: Promise<{ product: string; id: string }> }) {
   const { product, id: raw } = await params; const id = decodeURIComponent(raw);
   const hit = await locate(product, id); if (!hit) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const body = (await req.json()) as { content: string; text?: string; ifMatch?: string };
+  const body = (await req.json()) as { content?: string; text?: string; ifMatch?: string };
   claimWrite(id, { session: req.headers.get('x-wf-session') ?? undefined, by: req.headers.get('x-wf-by') ?? undefined }); // change records name the writer (lib/changes)
-  if (typeof body.content !== 'string') return NextResponse.json({ error: 'invalid', message: 'content must be a string' }, { status: 422 });
+  // `content` absent: the text alone is written (a card's text edited in a view), the blocks under the node untouched
+  if (typeof body.content !== 'string' && typeof body.text !== 'string') return NextResponse.json({ error: 'invalid', message: 'content or text must be a string' }, { status: 422 });
   const session = req.headers.get('x-wf-session') ?? undefined;
   return withFileLock(hit.abs, async () => {
     const md = await readFile(hit.abs, 'utf8');
@@ -50,7 +51,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
       if (t.error) return NextResponse.json({ error: t.error, message: `could not write the text of ${id}` }, { status: 422 });
       cur = t.md;
     }
-    const next = writeContent(cur, id, hit.node.line, hit.node.form ?? 'yaml', body.content);
+    const next = typeof body.content === 'string' ? writeContent(cur, id, hit.node.line, hit.node.form ?? 'yaml', body.content) : cur;
     if (next === null) return NextResponse.json({ error: 'invalid', message: `${id} has no content in its document` }, { status: 422 });
     if (next !== md) await writeAtomic(hit.abs, next);
     const built = await rebuild(hit.scope.product.dir);

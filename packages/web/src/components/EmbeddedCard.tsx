@@ -11,9 +11,9 @@ import { setBodyField } from '@/lib/yaml-form';
 import { requestSend } from './CommandBox';
 import type { NodePatch } from '@/lib/node-edit';
 
-// the card's text becomes the block editor on a click (req:wf2.editor.embed-text-is-editor): the same scoped DocEditor
-// the column uses — the node's text its first block, its content after — so the selection menu, @ tags, links and
-// slash blocks work in a card exactly as on a page. Loaded lazily: DocEditor imports the embed block, which imports
+// the card's text becomes the block editor on a click (req:wf2.editor.embed-text-is-editor): the scoped DocEditor the
+// column uses, holding the text line alone (the content stays behind the card's fold), so the selection menu, @ tags
+// and links work in a card exactly as on a page. Loaded lazily: DocEditor imports the embed block, which imports
 // this file.
 const ScopedEditor = dynamic(() => import('./DocEditor'), { ssr: false, loading: () => <div className="embed-text muted">…</div> });
 
@@ -87,8 +87,7 @@ export function EmbeddedCard({ id, badge, className, inEditor }: { id: string; b
     if (editing) return; setEditing('loading');
     const r = await fetch(`/api/${product}/node/${encodeURIComponent(id)}/content`); const j = r.ok ? await r.json() as { text: string; content: string; bodyHash: string; project: string; doc: string } : null;
     if (!j) { setEditing(null); return; }
-    const body = j.text.trim() ? j.text.trim() + (j.content.trim() ? '\n\n' + j.content : '\n') : j.content;
-    setEditing({ project: j.project, doc: j.doc, body, hash: j.bodyHash });
+    setEditing({ project: j.project, doc: j.doc, body: j.text.trim() + '\n', hash: j.bodyHash });   // the text line alone — the content stays behind its fold
   };
   const e = index[id];
   const from = e?.file ? e.file.split('/').pop()?.replace(/\.md$/, '') : '';
@@ -97,7 +96,7 @@ export function EmbeddedCard({ id, badge, className, inEditor }: { id: string; b
   const host: CardHost = {
     text: cls => editing
       ? <div className={`${cls} embed-editor`} onClick={e => e.stopPropagation()} onFocus={e => e.stopPropagation()} onBlur={e => e.stopPropagation()}>
-          {editing === 'loading' ? <div className="embed-text muted">…</div> : <ScopedEditor product={product} project={editing.project} slug={editing.doc} body={editing.body} ifMatch={editing.hash} scope={id} autoFocus />}
+          {editing === 'loading' ? <div className="embed-text muted">…</div> : <ScopedEditor product={product} project={editing.project} slug={editing.doc} body={editing.body} ifMatch={editing.hash} scope={id} autoFocus textOnly />}
         </div>
       : <textarea className={`${cls} embed-text`} value={text} rows={1} spellCheck={false} readOnly onMouseDown={e => { e.preventDefault(); void activate(); }} onFocus={() => void activate()} onChange={ev => { setText(ev.target.value); set({ body: setBodyField(p.body, p.textKey, ev.target.value) }); }} />,
     // in a document the pill selects like the rest of the card (rule:block-select, the .embed click below); in the column it pushes

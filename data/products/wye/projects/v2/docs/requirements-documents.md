@@ -611,7 +611,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf2.editor.embed-text-is-editor the person clicks into the text of a card shown in a view, a list or an embed on any page
 
-  - then:wf2.editor.embed-text-is-editor the text becomes the scoped block editor the column uses — the node's text its first block, its content after — with the selection menu, @ tags, links, slash blocks and saving through the node's content, the cursor where the click was going; the card's other fields stay as they are
+  - then:wf2.editor.embed-text-is-editor the text line becomes the scoped block editor the column uses — the text alone; the node's content stays behind the card's fold — with the selection menu, @ tags and links, the cursor where the click was going, the text saved on its own; the card's other fields stay as they are
 
   - unless:wf2.editor.embed-text-is-editor the node is referenced only — then there is nothing to edit
 
