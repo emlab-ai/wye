@@ -19,6 +19,7 @@ export type ChangeRecord = {
   id: string; product: string; node: string; kind: string; doc: string; file: string; line: number;
   before: NodeValue; after: NodeValue; changed: string[];          // the keys that differ (text, status, or a property)
   by: string; session?: string; at: string; updatedAt: string; state: ChangeState;
+  also?: string[];                                                 // later writers whose edits folded into this record
   tracking?: boolean;                                              // only status / tracking keys changed: accepted at once, not listed
   own?: boolean;                                                   // a person's edit of a proposed block: accepted at once
   acceptedBy?: string; acceptedAt?: string; revertedBy?: string; revertedAt?: string; revertOf?: string;
@@ -28,9 +29,9 @@ export type ChangeRecord = {
 // Keys the app moves on its own or a person sets as tracking, not meaning (decision:exec.changes-from-the-rebuild-diff)
 export const TRACKING_KEYS = new Set(['status', 'session', 'produced', 'worker', 'owner', 'priority', 'ready', 'last-verified', 'by', 'since', 'until', 'finished', 'started', 'evidence', 'date', 'due', 'agent', 'task', 'role', 'change', 'verified', 'progress']);
 // Kinds whose edits are recorded: typed knowledge and work, not generated or structural nodes
-export const RECORDED = (n: Pick<GraphNode, 'kind' | 'form' | 'defined'>) => n.defined && n.form !== 'block' && !['field', 'prop', 'block', 'verdict', 'contradiction', 'module', 'plan', 'product', 'type', 'drift'].includes(n.kind);
+export const RECORDED = (n: Pick<GraphNode, 'kind' | 'form' | 'defined'>) => n.defined && n.form !== 'block' && !['field', 'prop', 'block', 'verdict', 'contradiction', 'module', 'pr', 'product', 'type', 'drift'].includes(n.kind);
 const TEXT_KEYS = ['text', 'statement', 'description', 'purpose', 'q', 'title'];
-export const FOLD_MS = 5 * 60_000;
+
 
 // A node's value as the record keeps it: the main text, the status, every other key as a property.
 export function nodeValue(n: Pick<GraphNode, 'body' | 'status' | 'title'>): NodeValue {
@@ -111,8 +112,8 @@ export async function mutateChange<T>(productDir: string, id: string, fn: (r: Ch
   return withFileLock(file(productDir, id), async () => { const r = await getChange(productDir, id); if (!r) return null; const v = await fn(r); r.updatedAt = new Date().toISOString(); await saveChange(productDir, r); return v; });
 }
 
-// Write the records of a rebuild: a pending record on the same node within FOLD_MS takes the new `after` (one
-// record per editing spell, decision:exec.impact-trigger); otherwise a new record. Returns the records touched.
+// Write the records of a rebuild: a pending record on the same node takes a later edit — one record per node
+// (decision:exec.impact-trigger); otherwise a new record. Returns the records touched.
 export async function recordChanges(productDir: string, product: string, before: GraphData, after: GraphData, changes: BlockChange[], who: (id: string, file: string) => { by: string; session?: string; silent?: boolean }): Promise<ChangeRecord[]> {
   const now = new Date().toISOString();
   const fresh = recordsFromDiff(before, after, changes, who, now, product);
@@ -120,10 +121,18 @@ export async function recordChanges(productDir: string, product: string, before:
   const open = await listChanges(productDir, { state: 'pending' });
   const out: ChangeRecord[] = [];
   for (const r of fresh) {
-    const prev = open.find(o => o.node === r.node && Date.now() - Date.parse(o.updatedAt) < FOLD_MS && o.by === r.by);
+    // one pending record per node (decision:exec.change-record): a later edit — whoever made it, whenever — folds into
+    // the open record, which keeps its original `before`, takes the new `after` and names every writer; an edit that
+    // brings the node back to where the record started leaves nothing to review and closes it
+    const prev = open.find(o => o.node === r.node);
     if (prev && !r.tracking) {
-      const merged = await mutateChange(productDir, prev.id, o => { o.after = r.after; o.changed = changedKeys(o.before, r.after); o.line = r.line; return o; });
-      const cur = await getChange(productDir, prev.id); if (merged !== null && cur) out.push(cur);
+      await mutateChange(productDir, prev.id, o => {
+        o.after = r.after; o.changed = changedKeys(o.before, r.after); o.line = r.line;
+        if (o.by !== r.by) { o.also = [...new Set([...(o.also ?? []), r.by])]; if (r.session && !o.session) o.session = r.session; }
+        if (!o.changed.length) o.state = 'accepted';
+        return o;
+      });
+      const cur = await getChange(productDir, prev.id); if (cur && cur.state === 'pending') out.push(cur);
       continue;
     }
     const rec: ChangeRecord = { id: randomBytes(5).toString('hex'), updatedAt: now, ...r };

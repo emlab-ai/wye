@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { nodeValue, changedKeys, isTrackingOnly, recordsFromDiff, revertPatch, changedSince, type ChangeRecord } from './changes';
+import { nodeValue, changedKeys, isTrackingOnly, recordsFromDiff, revertPatch, changedSince, recordChanges, listChanges, type ChangeRecord } from './changes';
+import { mkdtemp } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { wordDiff } from './diff';
 import type { GraphData, GraphNode } from './graph';
 
@@ -38,6 +41,20 @@ describe('change records (decision:exec.change-record, decision:exec.changes-fro
     expect(recs.map(r => [r.node, r.state, r.tracking ?? false, r.own ?? false])).toEqual([['req:x.a', 'pending', false, false], ['task:x.t', 'accepted', true, false], ['decision:x.d', 'accepted', false, true]]);
     expect(recs[0]).toMatchObject({ kind: 'req', doc: 'module:prd', by: 'agent:s9', session: 's9', changed: ['text', 'then', 'owner'] });
     expect(recs[0].before.text).toBe('The old title'); expect(recs[0].after.props.then).toBe('it opens at once');
+  });
+  it('one pending record per node: a later edit by anyone folds in, keeps the first before, names every writer; back to the start closes it', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'wf-changes-'));
+    const later = graph([node('req:x.a', 'req', 'id: req:x.a\ntitle: The newest title\nwhen: a click\nthen: it opens at once\nrefines: req:x.root\nowner: alex', 'approved')]);
+    const first = await recordChanges(dir, 'p', before, after, changes.slice(0, 1), () => ({ by: 'person' }));
+    expect(first.map(r => r.state)).toEqual(['pending']);
+    const second = await recordChanges(dir, 'p', after, later, changes.slice(0, 1), () => ({ by: 'agent:s9', session: 's9' }));
+    expect(second).toHaveLength(1); expect(second[0].id).toBe(first[0].id);
+    expect(second[0]).toMatchObject({ by: 'person', also: ['agent:s9'], session: 's9' });
+    expect(second[0].before.text).toBe('The old title'); expect(second[0].after.text).toBe('The newest title');
+    expect((await listChanges(dir, { state: 'pending' })).length).toBe(1);
+    const back = await recordChanges(dir, 'p', later, before, changes.slice(0, 1), () => ({ by: 'person' }));
+    expect(back).toHaveLength(0); // nothing left to review
+    expect((await listChanges(dir, { state: 'pending' })).length).toBe(0);
   });
   it('revert puts the old value back through the writer: text (a title as a property), status, and removes what only the new value had', () => {
     const r = recordsFromDiff(before, after, changes, () => ({ by: 'agent:s9', session: 's9' }), 't', 'p')[0] as ChangeRecord;

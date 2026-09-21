@@ -73,7 +73,7 @@ export function ChangeList({ product, changes, me }: { product: string; changes:
                 <summary>details</summary>
                 <dl className="change-diff">
                   <div className="change-row"><dt>node</dt><dd><SmartTag id={c.node} /> <span className="muted">in {c.doc}</span></dd></div>
-                  <div className="change-row"><dt>edited</dt><dd className="muted">{c.by} · {when(c.updatedAt)}{v.line ? ` · ${v.line}` : ''}</dd></div>
+                  <div className="change-row"><dt>edited</dt><dd className="muted">{c.by}{c.also?.length ? `, then ${c.also.join(', ')}` : ''} · {when(c.updatedAt)}{v.line ? ` · ${v.line}` : ''}</dd></div>
                   <div className="change-row frame"><dt>unchanged</dt><dd className="muted">{frame.join(' · ')}</dd></div>
                   {(c.verdicts ?? []).filter(x => !v.open.includes(x)).length > 0 && <div className="change-row"><dt>verdicts</dt><dd><ul className="change-verdicts">{(c.verdicts ?? []).filter(x => !v.open.includes(x)).map((x, i) => <li key={i} className={`verdict ${x.kind}`}><b>{x.kind}</b> <SmartTag id={x.other} /> <span className="muted">{x.reason}</span></li>)}</ul></dd></div>}
                 </dl>
