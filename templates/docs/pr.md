@@ -10,6 +10,8 @@ agent: {{agent}}
 started: {{started}}
 task: {{task}}
 role: {{role}}
+skills: {{skills}}
+hooks: {{hooks}}
 part-of: {{parent}}
 ---
 
@@ -24,6 +26,10 @@ part-of: {{parent}}
 ## Context
 
 _What the request touches — modules, documents, nodes and code — as tags and embeds; what was understood, in prose._
+
+## Analysis
+
+_What the request changes (modules, components, the nodes it edits), where in the code, the risks and constraints in force, and what it contradicts — written by the librarian's analyse-request skill before anything else._
 
 ## Definition
 

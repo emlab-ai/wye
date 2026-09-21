@@ -61,8 +61,6 @@ Who Wye is for and what they come to do; the goals the product sets out to reach
 ```
 
   The person tells Wye what they want in their own words; Wye finds what the product already knows about it and shows it in the context column, explains the current state in plain language with the nodes as tags, asks the few questions the requirement shape needs, proposes requirements, decisions, questions and tasks as blocks, and keeps them as one definition on the request's plan until every block is agreed; then the plan is built by any worker from that definition, and every change the conversation proposed is tracked as part of it.
-
-- goal:adsf adsf #proposed
 <!-- /list:goal -->
 
 a

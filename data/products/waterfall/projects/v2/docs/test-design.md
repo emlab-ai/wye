@@ -753,6 +753,40 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
     transcript and a fake host, which task:exec.librarian-replay adds.
   status: proposed
   verifies: [req:exec.wye-explains, req:exec.wye-asks, req:exec.wye-proposes]
+- id: ui-test:work.tasks-by-status
+  file: (to run by hand with playwright-core against the dev server — /tmp/wfpw/exec.mjs; not in CI yet — task:ui-tests-in-ci)
+  title: Opening Tasks shows every task under its status, and a status change moves it
+  scenario: >
+    a scratch product with one task line per status (open, in-progress, blocked, review, done): the rail's Work entry
+    and the old /<product>/tasks route both land on the Work page grouped by status; every status that has a task is
+    one group in lifecycle order (review first), each open task under its own status and only there, done folded
+    until "done work"; `wf node set task:x --status in-progress` on the open one moves its row to the in-progress
+    group without a reload and the status chips' counts follow. ui-test:work-view already checks the grouping and
+    the /tasks redirect; this one adds the entry and the move between groups.
+  status: proposed
+  verifies: [req:wf2.ui.tasks]
+- id: ui-test:work.open-task-links
+  file: (to run by hand with playwright-core against the dev server — /tmp/wfpw/exec.mjs)
+  title: Opening a task shows what it is linked to
+  scenario: >
+    clicking a row on the Work page opens the task in the column: the header carries kind, slug and status; Connected
+    lists Part of (its goal or requirement), Belongs to (the document it is defined in) and Depends on / blocked-by
+    when the line has them, each a tag that opens that node; the document link lands on the task's line
+    (#n-<id>); the same task opened from its tag in a document shows the same column; a task with no links shows
+    "Nothing links to or from this node yet"
+  status: proposed
+  verifies: [req:wf2.ui.tasks]
+- id: ui-test:work.open-task-decisions
+  file: (to run by hand with playwright-core against the dev server — /tmp/wfpw/exec.mjs)
+  title: Opening a task shows what its sessions decided, asked and produced
+  scenario: >
+    a task whose finished session wrote a proposed decision, an open question and an edit of an approved node into a
+    document: its column's work panel shows the session's state and result summary, lists the decision and the
+    question with their Inbox state and a Review action, and Produced (folded) lists every block the session wrote
+    with the change to the approved node marked pending; approving the decision in the Inbox updates the panel's
+    state for it; a task with no session on it shows Assign and no result
+  status: proposed
+  verifies: [req:wf2.ui.tasks, req:exec.done-comes-back]
 ```
 
 ## Fixture

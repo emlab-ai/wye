@@ -1,4 +1,5 @@
 'use client';
+import { AttachPicker } from './AttachPicker';
 import { useCallback, useEffect, useState } from 'react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
@@ -8,7 +9,7 @@ import { useMe } from './WorkList';
 type Readiness = { definition: boolean; agreed: boolean; impact: boolean; contradictions: boolean; tasks: boolean; ok: boolean; unagreed: string[]; contradicted: string[] };
 type Q = { id: string; q: string; header?: string; options: { label: string; description?: string }[]; multi: boolean; status: string; answer?: string; by?: string; askedBy?: string };
 type Conversation = { id: string; status: string; live: boolean; busy: boolean; role: string; last: string };
-type Pr = { ref: string; node: string; num: number | null; title: string; label: string; status: string; task: string | null; session: string; approvedBy: string | null; approvedAt: string | null; conversation: Conversation | null; waiting: string | null; readiness: Readiness; definition: { total: number; agreed: number }; questions: Q[] };
+type Pr = { ref: string; node: string; num: number | null; title: string; label: string; status: string; task: string | null; session: string; approvedBy: string | null; approvedAt: string | null; conversation: Conversation | null; waiting: string | null; readiness: Readiness; definition: { total: number; agreed: number }; questions: Q[]; skills?: string[]; hooks?: string[] };
 
 const CHECKS: { key: keyof Readiness; label: string; why: string }[] = [
   { key: 'definition', label: 'definition', why: 'at least one block in Definition' },
@@ -88,6 +89,7 @@ export function PrHead({ product, prRef }: { product: string; prRef: string }) {
         {rd.contradicted.length > 0 && <>· contradicted: {rd.contradicted.map(id => <span key={id}><SmartTag id={id} /> </span>)}</>}
       </p>}
       {msg && <p className="muted small">{msg}</p>}
+      {!ended && <AttachPicker product={product} value={{ skills: pr.skills ?? [], hooks: pr.hooks ?? [] }} compact onChange={async v => { const r = await fetch(`/api/${product}/pr`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ref: prRef, action: 'attach', skills: v.skills, hooks: v.hooks }) }); const j = await r.json().catch(() => ({})); if (r.ok) { setMsg(j.told ? 'attached — Wye has it in the conversation' : 'attached'); load(); } else setMsg(j.message ?? 'could not attach'); }} />}
       {talking && <div className="pr-talk">
         <input value={say} placeholder={pr.conversation?.live ? 'Tell Wye what to change… (↵)' : pr.conversation ? 'Tell Wye… (↵ resumes the conversation)' : 'Tell Wye… (↵ starts refining on this page)'} onChange={e => setSay(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); talk(); } }} disabled={saying} />
         <button className="pri" disabled={!say.trim() || saying} onClick={talk}>{saying ? '…' : 'Send'}</button>

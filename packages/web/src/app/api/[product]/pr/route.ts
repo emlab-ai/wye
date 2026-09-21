@@ -3,14 +3,15 @@ import { loadScope } from '@/lib/scope';
 import { readPrDoc, prDefinition, prReadiness, approvePr, cancelPr, reopenPr, refreshStaleScopes } from '@/lib/pr-docs';
 import { stopRefining } from '@/lib/pr-sessions';
 import { questionsOf, answerOnPage } from '@/lib/pr-questions';
-import { answerPermission, isLive, liveState } from '@/lib/agent-host';
-import { getSession } from '@/lib/sessions';
+import { answerPermission, isLive, liveState, sendMessage } from '@/lib/agent-host';
+import { getSession, listSessions } from '@/lib/sessions';
 import { notifyDispatch, waitingReasons } from '@/lib/dispatch';
 import { firePrApproved, rememberHooksUrl } from '@/lib/hooks-run';
 import { REPO_ROOT } from '@/lib/products';
 import path from 'node:path';
 import { getFrontmatter, setFrontmatter, requestTaskId, prNumberOf, prLabel } from '@/lib/pr-doc';
 import { PR_STATUSES } from '@/lib/props';
+import { skillsSection } from '@/lib/skills';
 import { writeAtomic, rebuild } from '@/lib/write';
 
 // op:api.pr (decision:wf2.pr-lifecycle, decision:wf2.pr-approval-is-the-persons-click) — GET ?ref=product/project/pr-x →
@@ -34,15 +35,31 @@ export async function GET(req: Request, { params }: { params: Promise<{ product:
   const sess = sid ? await getSession(scope.product.dir, sid) : null;
   const lastSaid = (sess?.transcript ?? []).filter(e => e.kind === 'assistant' && e.text?.trim()).pop()?.text?.trim().split('\n').filter(Boolean).pop()?.slice(0, 200) ?? '';
   const conversation = sess ? { id: sess.id, status: sess.status, ...liveState(sess.id), role: sess.role ?? 'worker', last: lastSaid } : null;
-  return NextResponse.json({ ref, node: num ? `pr:${num}` : `pr:${pr.slug}`, num, title, label: num ? prLabel(num, title) : title, status: getFrontmatter(pr.md, 'status') ?? '', role: getFrontmatter(pr.md, 'role') ?? 'worker', task: getFrontmatter(pr.md, 'task') ?? (pr.md.includes(`${requestTaskId(pr.slug)} `) ? requestTaskId(pr.slug) : null), session: getFrontmatter(pr.md, 'session') ?? '', approvedBy: getFrontmatter(pr.md, 'approved-by') ?? null, approvedAt: getFrontmatter(pr.md, 'approved-at') ?? null, conversation, waiting: waitingReasons(product)[ref] ?? null, definition: d, readiness: prReadiness(scope, pr.md), questions: questionsOf(scope.graph, path.relative(REPO_ROOT, pr.file)) }, { headers: { 'cache-control': 'no-store' } });
+  const ids = (k: string) => (getFrontmatter(pr.md, k) ?? '').match(/[a-z-]+:[A-Za-z0-9_.\-]+/g) ?? [];
+  return NextResponse.json({ ref, node: num ? `pr:${num}` : `pr:${pr.slug}`, num, title, label: num ? prLabel(num, title) : title, skills: ids('skills'), hooks: ids('hooks'), status: getFrontmatter(pr.md, 'status') ?? '', role: getFrontmatter(pr.md, 'role') ?? 'worker', task: getFrontmatter(pr.md, 'task') ?? (pr.md.includes(`${requestTaskId(pr.slug)} `) ? requestTaskId(pr.slug) : null), session: getFrontmatter(pr.md, 'session') ?? '', approvedBy: getFrontmatter(pr.md, 'approved-by') ?? null, approvedAt: getFrontmatter(pr.md, 'approved-at') ?? null, conversation, waiting: waitingReasons(product)[ref] ?? null, definition: d, readiness: prReadiness(scope, pr.md), questions: questionsOf(scope.graph, path.relative(REPO_ROOT, pr.file)) }, { headers: { 'cache-control': 'no-store' } });
 }
 export async function PATCH(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
-  const body = (await req.json()) as { ref?: string; status?: string; action?: 'approve' | 'cancel' | 'reopen' | 'answer'; by?: string; id?: string; answer?: string };
+  const body = (await req.json()) as { ref?: string; status?: string; action?: 'approve' | 'cancel' | 'reopen' | 'answer' | 'attach'; by?: string; id?: string; answer?: string; skills?: string[]; hooks?: string[] };
   if (!body.ref) return NextResponse.json({ error: 'invalid', message: 'ref required' }, { status: 422 });
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const pr = await readPrDoc(product, body.ref); if (!pr) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const by = (body.by ?? '').trim() || 'person';
+  // attach (decision:wf2.hooks-and-skills): the request's skills and hooks on its page; a live librarian gets the
+  // newly attached skills' bodies as its next message, so the change reaches the conversation that is on
+  if (body.action === 'attach') {
+    const pr = await readPrDoc(product, body.ref); if (!pr) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+    const skills = (body.skills ?? []).filter(x => /^skill:[A-Za-z0-9_.\-]+$/.test(x)), hooks = (body.hooks ?? []).filter(x => /^hook:[A-Za-z0-9_.\-]+$/.test(x));
+    const had: string[] = (getFrontmatter(pr.md, 'skills') ?? '').match(/skill:[A-Za-z0-9_.\-]+/g) ?? [];
+    let md = setFrontmatter(pr.md, 'skills', skills.length ? `[${skills.join(', ')}]` : '');
+    md = setFrontmatter(md, 'hooks', hooks.length ? `[${hooks.join(', ')}]` : '');
+    md = md.replace(/^(skills|hooks):\s*\n/gm, ''); // an emptied list leaves the frontmatter
+    await writeAtomic(pr.file, md); await rebuild(scope.product.dir);
+    const fresh = skills.filter(x => !had.includes(x));
+    let told = 0;
+    if (fresh.length) { const section = await skillsSection(scope, fresh, 'Skills attached to the request'); for (const s of await listSessions(scope.product.dir)) { if (s.role === 'librarian' && s.prDoc === body.ref && isLive(s.id)) { try { await sendMessage(scope.product.dir, s.id, { text: `The person attached ${fresh.join(', ')} to this request — follow ${fresh.length === 1 ? 'it' : 'them'} from here.${section}` }); told++; } catch { /* the page has them anyway */ } } } }
+    return NextResponse.json({ ok: true, skills, hooks, told });
+  }
   if (body.action === 'answer') {
     if (!body.id || !body.answer?.trim()) return NextResponse.json({ error: 'invalid', message: 'id and answer required' }, { status: 422 });
     const r = await answerOnPage(scope.product.dir, product, body.ref, (await loadScope(product))!.graph, body.id, body.answer.trim(), by);

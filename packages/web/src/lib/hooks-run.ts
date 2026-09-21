@@ -73,7 +73,11 @@ export async function fire(product: string, events: (HookEvent & { depth?: numbe
   for (const ev of events) {
     if (ev.depth === null) { log(`hooks: ${ev.id} ${ev.event} — chain deeper than allowed, not fired`); continue; }
     const node = scope.idx.byId.get(ev.id);
-    for (const h of matchHooks(hooks, ev, node, fired)) {
+    // a request's attached hooks (`hooks:` on its page) fire on its events even when paused; the once rule still holds
+    const attached: string[] = ev.kind === 'pr' && node ? (cardValue(node.body, 'hooks').match(/hook:[A-Za-z0-9_.\-]+/g) ?? []) : [];
+    const forced = hooksOf(scope.graph).filter(h => attached.includes(h.id) && h.on.event === ev.event && (h.on.kind === 'pr' || h.on.kind === '*') && !(h.once && fired.has(`${h.id}|${ev.id}`)) && h.actions.length);
+    const matched = matchHooks(hooks, ev, node, fired);
+    for (const h of [...matched, ...forced.filter(h => !matched.includes(h))]) {
       const key = `${h.id}|${ev.id}`;
       if (state().busy.has(key)) continue; state().busy.add(key);
       const f: Firing = { id: randomBytes(5).toString('hex'), hook: h.id, title: h.title, node: ev.id, event: ev.event, at: new Date().toISOString(), depth: ev.depth ?? 0, actions: [] };

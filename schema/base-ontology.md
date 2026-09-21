@@ -333,6 +333,8 @@ type means instances may carry properties the type does not declare without a wa
     finished: string?
     task: string?                                     # the task this plan was assigned for (req:exec.dispatch): embedded, not re-created
     role: string?                                     # the session role that filled it: librarian | worker (decision:exec.wye-is-a-role)
+    skills: list of skill?                            # attached skills: their bodies ride in every session on this request (decision:wf2.hooks-and-skills)
+    hooks: list of hook?                              # attached hooks: fire on this request's events, paused or not
 - id: type:skill
   extends: type:module
   purpose: >

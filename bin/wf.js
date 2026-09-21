@@ -4,7 +4,7 @@
 //
 //   wye resolve <link|id>                 what a link points at: document, node, block or section (text included)
 //   wye doc <product/project/doc>         a document's markdown body
-//   wye doc write <product/project/doc> [--file f]   replace the body (stdin or --file), checked against the current hash
+//   wye doc write <product/project/doc> [--file f] [--section "Analysis"]   replace the body (stdin or --file) — or one ## section of it — checked against the current hash
 //   wye doc create <product/project/slug> --title "…" [--template blank] [--parent doc] [--type module]   a new document in a project (a page of that type)
 //   wye doc retype <product/project/doc> --type <slug>   the page becomes an instance of that type; every link to it follows
 //   wye node <id> [--product p]           a node with its relations
@@ -134,8 +134,15 @@ const commands = {
       return out(flags.json ? j : `${d.product}/${d.project}/${d.doc} is now ${j.node}${j.rewritten ? ` — ${j.rewritten} reference(s) in ${j.files} file(s) rewritten` : ''}`);
     }
     if (pos[1] === 'write') {
-      const d = docRef(pos[2]); const body = flags.file ? fs.readFileSync(flags.file, 'utf8') : await readStdin();
+      const d = docRef(pos[2]); let body = flags.file ? fs.readFileSync(flags.file, 'utf8') : await readStdin();
       const cur = await api('GET', `/api/${d.product}/${d.project}/doc/${d.doc}`);
+      // --section "Analysis": only that ## section is replaced (appended when the page has none); the rest stays as it is
+      if (flags.section) {
+        const md = cur.body, h = String(flags.section).trim(); const m = md.match(new RegExp(`^## ${h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^\n]*\n`, 'm'));
+        const text = body.replace(/^\s*## [^\n]*\n/, '').trim();
+        if (!m) body = `${md.replace(/\s+$/, '')}\n\n## ${h}\n\n${text}\n`;
+        else { const start = m.index + m[0].length; const rest = md.slice(start); const next = rest.search(/^## /m); body = md.slice(0, start) + `\n${text}\n\n` + (next < 0 ? '' : rest.slice(next)); }
+      }
       const j = await api('PUT', `/api/${d.product}/${d.project}/doc/${d.doc}`, { op: 'replace-body', ifMatch: cur.bodyHash, body });
       out(flags.json ? j : `written ${d.product}/${d.project}/${d.doc}${j.lintOk === false ? '\nlint: ' + (j.lintErrors || []).join('; ') : ''}`);
       return;

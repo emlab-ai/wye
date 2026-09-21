@@ -538,6 +538,28 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/index/route.ts
   status: proposed
   part-of: module:api
+- id: op:api.code
+  args: GET /api/<product>/code
+  does: >
+    (req&#58;wf2.code-preview) — GET ?path=<file>[#<symbol>|:<line>] → the file's text from the product's code (its
+    `repo:` in _product.md, else this repo), the language for the viewer, and the line a symbol is defined on
+    (`#name` → the line with `function name`, `const name`, `class name`, `name(`…); 1 MB at most; a path must
+    resolve inside the code root. ?dir=<folder> lists a folder instead.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/code/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.folder
+  args: GET | PUT /api/<product>/folder
+  does: >
+    (decision&#58;wf2.product-folder) — GET → where the product's folder is (root, default or not, and what it
+    holds). PUT { root } → moves everything but _product.md (projects, _build, _sessions, _changes, _hooks, inbox,
+    _agent.md) from the current folder into `root` (created; `~` allowed; empty or absent), writes `root:` into the
+    registry's _product.md and rebuilds; PUT { root: '' } moves it all back under <data>/products/<slug>.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/folder/route.ts
+  status: proposed
+  part-of: module:api
 ```
 
 <!-- /list:op -->

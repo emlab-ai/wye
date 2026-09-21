@@ -1,4 +1,5 @@
 'use client';
+import { AttachPicker, type Attach } from './AttachPicker';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
@@ -32,6 +33,7 @@ export function CommandBox() {
   const [cwd, setCwd] = useState('');
   const [defaults, setDefaults] = useState<{ cwd: string; waterfall: string }>({ cwd: '', waterfall: '' });
   const [mode, setModeState] = useState<'pr' | 'adhoc'>('pr');
+  const [attachTo, setAttachTo] = useState<Attach>({ skills: [], hooks: [] }); // skills / hooks for the request (decision:wf2.hooks-and-skills)
   const setMode = (m: 'pr' | 'adhoc') => { setModeState(m); try { localStorage.setItem('wf-cmd-mode', m); } catch { /* ignore */ } };
   const [fresh, setFresh] = useState(false); // clear context first, when the target is a live conversation
   const [busy, setBusy] = useState(false);
@@ -83,7 +85,7 @@ export function CommandBox() {
     if (isPr) {
       // a Prompt Request (decision:wf2.cmd-modes): the page is created as draft, a librarian refines it (decision:exec.librarian-on-the-host)
       setBusy(true); setMsg(null);
-      const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ pr: true, instruction, refs: req.refs ?? [], source: { ...(req.source ?? {}), ...(req.text ? { text: req.text.slice(0, 2000) } : {}) }, images: attach.images }) });
+      const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ pr: true, instruction, refs: req.refs ?? [], source: { ...(req.source ?? {}), ...(req.text ? { text: req.text.slice(0, 2000) } : {}) }, images: attach.images, skills: attachTo.skills, hooks: attachTo.hooks }) });
       const j = await r.json().catch(() => ({})); setBusy(false);
       if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not start'); return; }
       // the PR's page, the conversation in the column
@@ -140,6 +142,7 @@ export function CommandBox() {
           </label>
           {isNew && <select value={agent} onChange={e => setAgent(e.target.value)} title="agent">{AGENTS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}</select>}
         </div>}
+        {isPr && <div className="palette-row"><AttachPicker product={product} value={attachTo} onChange={setAttachTo} compact /></div>}
         {isPr && <div className="palette-row"><span className="muted palette-note">Wye reads what the product already knows, explains the current state, asks what it must, and proposes the requirements, decisions, questions and tasks as blocks on the PR's page — you approve there; nothing is built before that</span></div>}
         {!isNew && (
           <div className="palette-row">

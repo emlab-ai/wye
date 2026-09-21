@@ -108,7 +108,9 @@ export async function createPrDoc(productDir: string, product: string, s: Sessio
   // the request task is part of the goal or node the request was sent from (req:exec.request-is-a-task): the first
   // ref that is not the document itself, a session or a PR
   const partOf = s.refs.find(r => /^[a-z-]+:/.test(r) && r !== sourceDoc?.id && !/^(session|pr|module|block):/.test(r));
-  const md = prDocBody(tpl, { num, slug, title: prTitle(s.instruction), date: now.slice(0, 10), session: s.id, agent: s.agent, started: now, parent: prsPage, request: s.instruction, from: fromLine(s, sourceDoc?.id), partOf, task: s.task, role: s.role });
+  // every request carries the analyse skill (the librarian writes ## Analysis first) plus what the person attached
+  const skills = s.role === 'librarian' ? [...new Set(['skill:analyse-request', ...(s.skills ?? [])])] : (s.skills ?? []);
+  const md = prDocBody(tpl, { num, slug, title: prTitle(s.instruction), date: now.slice(0, 10), session: s.id, agent: s.agent, started: now, parent: prsPage, request: s.instruction, from: fromLine(s, sourceDoc?.id), partOf, task: s.task, role: s.role, skills, hooks: s.hooks });
   await writeAtomic(path.join(project.docsDir, `${slug}.md`), md);
   await rebuild(productDir);
   const ref = `${product}/${project.slug}/${slug}`;

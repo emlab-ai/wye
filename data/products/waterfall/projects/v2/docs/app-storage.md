@@ -305,6 +305,15 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     (decision&#58;wf2.parse-cache).
   status: proposed
   part-of: module:app-storage
+- id: lib:code-paths
+  file: packages/web/src/lib/code-paths.ts
+  side: server
+  purpose: >
+    Source paths in a property's text (req&#58;wf2.code-preview): `packages/web/src/lib/x.ts#fn`,
+    `eval/lib/record.js:22`, a list of them separated by `;` or `,` — every token that reads as a file with a
+    code-like extension, with its `#symbol` / `:line` kept. A `<placeholder>` in the path is not a file.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

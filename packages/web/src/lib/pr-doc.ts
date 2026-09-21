@@ -28,7 +28,7 @@ export function prTitle(request: string): string {
 
 // partOf: what the request task is part of (req:exec.request-is-a-task) — the goal or node it was sent from;
 // task: the task the session was assigned (req:exec.dispatch) — embedded on the plan instead of a new request task
-export type PrDocVars = { num: number; slug: string; title: string; date: string; session: string; agent: string; started: string; parent: string; request: string; from: string; partOf?: string; task?: string; role?: 'worker' | 'librarian' };
+export type PrDocVars = { num: number; slug: string; title: string; date: string; session: string; agent: string; started: string; parent: string; request: string; from: string; partOf?: string; task?: string; skills?: string[]; hooks?: string[]; role?: 'worker' | 'librarian' };
 
 // The request task (req:exec.request-is-a-task, decision:exec.task-is-the-unit): `task:<plan-slug>` on the plan
 // document — the request itself as a work item, on the Work view from the first second.
@@ -42,6 +42,10 @@ export function prDocBody(template: string, v: PrDocVars): string {
   const taskTitle = v.title.replace(/[()#]/g, ' ').replace(/\s+/g, ' ').trim();
   const requestTask = v.task ? `![[${v.task}]]` : `- [ ] ${requestTaskId(v.slug)} ${taskTitle} #in-progress (worker: ${v.agent}, session: ${v.session}${v.partOf ? `, part-of: ${v.partOf}` : ''})`;
   let out = template.replace(/\{\{(num|slug|title|date|session|agent|started|parent|request|from|task|requesttask|role)\}\}/g, (_, k: string) => k === 'request' ? request : k === 'requesttask' ? requestTask : k === 'role' ? (v.role === 'librarian' ? 'librarian' : '') : k === 'num' ? String(v.num) : String(v[k as keyof PrDocVars] ?? ''));
+  // the skills and hooks attached to the request (decision:wf2.hooks-and-skills): the librarian's session carries the
+  // skills' bodies; the hooks fire on the request's events besides the ones that match anyway
+  out = out.replace(/^skills: \{\{skills\}\}\n/m, v.skills?.length ? `skills: [${v.skills.join(', ')}]\n` : '');
+  out = out.replace(/^hooks: \{\{hooks\}\}\n/m, v.hooks?.length ? `hooks: [${v.hooks.join(', ')}]\n` : '');
   if (!v.parent) out = out.replace(/^part-of: \n/m, '');
   if (!v.task) out = out.replace(/^task: \n/m, '');
   // the page is born with someone on it (decision:wf2.pr-lifecycle): refining under a librarian, building under a worker

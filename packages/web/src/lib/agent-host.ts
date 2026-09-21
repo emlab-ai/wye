@@ -64,6 +64,7 @@ export function refiningNote(prDoc?: string): string {
   const slug = prDoc.split('/')[2];
   return `\n## The request page
 This conversation refines the Prompt Request \`${prDoc}\` (node \`pr:${slug}\`, status refining) until it is clear and agreed. The person reads it live. Work on the page, not in chat:
+- **Analysis** first (the analyse-request skill under Skills below): what the request changes and where, the code it lands in, the risks and constraints in force, what it contradicts — \`wye doc write ${prDoc} --section Analysis --file <f>\`.
 - **Context**: what the request touches — modules, documents, nodes, code paths — as tags (\`kind:slug\`) and embeds (\`![[kind:slug]]\`), and what you understood, in prose (\`wye doc write\`, this section only).
 - **Definition**: every block the request needs — requirements (a title; when: / then: / unless: child blocks under the card, in the person's words), decisions (a title, then context: / choice: / alternative: / consequence: child blocks under the card — the ones that have something to say), constraints, questions for what you cannot decide, tasks — proposed into their home documents with \`wye propose --pr ${prDoc}\` (they embed here by themselves); edits of existing blocks with \`wye node set\` under your session (they are tracked as change records and embedded too).
 - Say plainly when the request is already satisfied, partly, or contradicts a constraint or decision in force.
