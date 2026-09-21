@@ -14,7 +14,10 @@
         "cards": "node scripts/cards.js --write",
         "dev": "npm run dev --workspace=packages/web",
         "desktop": "WYE_DEV=1 electron packages/desktop",
-        "desktop:prod": "npm run build --workspace=packages/web && electron packages/desktop"
+        "desktop:prod": "npm run build --workspace=packages/web && electron packages/desktop",
+        "desktop:dist": "npm run dist --workspace=packages/desktop",
+        "desktop:dist:mac": "npm run dist:mac --workspace=packages/desktop",
+        "desktop:dist:linux": "npm run dist:linux --workspace=packages/desktop"
     },
     "engines": {
         "node": ">=18"

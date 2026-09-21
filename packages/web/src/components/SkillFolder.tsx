@@ -25,9 +25,9 @@ export function SkillFolder({ product, page, skills }: { product: string; page: 
   return (
     <li className="pr-folder skill-folder">
       <div className={`pf-head ${path === href ? 'on' : ''}`}>
+        <button className="pf-caret" onClick={toggle} aria-label={open ? 'collapse Skills' : 'expand Skills'} aria-expanded={open}>{open ? '▾' : '▸'}</button>
         <Link href={href}><i>✦</i>Skills</Link>
         <button className="pf-add" onClick={add} disabled={busy} title="New skill" aria-label="new skill">+</button>
-        <button className="pf-caret" onClick={toggle} aria-label={open ? 'collapse Skills' : 'expand Skills'} aria-expanded={open}>{open ? '▾' : '▸'}</button>
       </div>
       {open && <ul className="pf-list">
         {skills.map(s => { const h = `/${product}/${s.project}/d/${s.slug}`; return (

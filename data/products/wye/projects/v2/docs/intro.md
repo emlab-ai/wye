@@ -282,4 +282,4 @@ data/products/<product>/_build/graph.json                 generated: the product
 
 Wye's own definition is `data/products/wye` — the app is described in itself, and every change to it goes
 through the loop above. Install: `npm install && ./install.sh` links `wye` and the skills; `npm run dev` runs the
-app; `npm run desktop` opens it in its own window (module:app-shell).
+app; `npm run desktop` opens it in its own window, and `npm run desktop:dist` builds the installable Wye.app / AppImage (decision:wf2.desktop-packaged).

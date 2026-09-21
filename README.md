@@ -104,8 +104,8 @@ npm run dev               # the app at http://localhost:3000 (npx --workspace=pa
 ```
 
 `npm run desktop` opens the app in its own window (Electron); it starts the server on 3456 if none is running and
-quits it on exit. Wye's own definition lives in `data/products/wye` — the app is described in itself, and every
-change to it goes through the loop above.
+quits it on exit — see [Desktop app](#desktop-app) for the installable `Wye.app` / AppImage. Wye's own definition
+lives in `data/products/wye` — the app is described in itself, and every change to it goes through the loop above.
 
 ### Data layout
 
@@ -324,10 +324,50 @@ data/products/wye  Wye's own definition — the app described in itself
 
 ## Desktop app
 
-`npm run desktop` opens Wye in its own window. The app starts the web server if none is running on port 3456 and
-quits it on exit. Agents started from the app run as child processes of that server: Claude Code over its streaming
-JSON protocol, Codex through `codex exec --json`; the column shows the conversation live and you reply from there.
-`npm run desktop:prod` builds the web app first and serves the production build.
+`Wye.app` on macOS and an AppImage on Linux: the web app in its own window, with the server and the agent processes
+(Claude Code, Codex) as children the app owns — closing the last window quits them all. The app is a shell over a
+checkout of this repo: your documents stay in git, the server runs from the checkout, and the `wye` CLI on your PATH
+is what the agents use.
+
+### Install
+
+1. **Prerequisites:** Node.js 18+ and npm; git; the agent CLIs you want (`claude`, `codex`) on your login shell's
+   PATH. The app reads the PATH from your login shell, so whatever works in a terminal works in the app.
+2. **Clone and install** — the app needs the checkout even when installed from a DMG or AppImage:
+   ```bash
+   git clone https://github.com/emlab-ai/wye.git && cd wye
+   npm install
+   ./install.sh                     # `wye` into ~/.local/bin, the Claude Code skills into ~/.claude/skills
+   ```
+3. **Get the app.** Download `Wye-<version>-mac-arm64.dmg` (Apple silicon) or `-mac-x64.dmg` (Intel), or
+   `Wye-<version>-linux-x86_64.AppImage` / `-linux-arm64.AppImage` from the repo's Releases — or build them yourself
+   from the checkout:
+   ```bash
+   npm run desktop:dist             # both platforms → packages/desktop/dist/
+   npm run desktop:dist:mac         # dmg + zip, arm64 and x64
+   npm run desktop:dist:linux       # AppImage, x64 and arm64
+   ```
+   Building Linux artifacts on a Mac works; building macOS artifacts needs a Mac.
+4. **macOS:** open the DMG and drag Wye to Applications. The build is not code-signed, so the first launch is
+   *right-click › Open* (or `xattr -dr com.apple.quarantine /Applications/Wye.app` once).
+   **Linux:** `chmod +x Wye-*.AppImage && ./Wye-*.AppImage` (AppImage needs FUSE 2 on most distributions:
+   `sudo apt install libfuse2`).
+5. **First launch** asks for the checkout folder (the one with `package.json` and `data/products`) and remembers
+   it; *File › Choose checkout…* changes it later, and `WYE_ROOT=/path/to/wye` overrides it. On a fresh clone the
+   app installs dependencies and builds the web app before the first window opens — a few minutes, once; after
+   that it starts in seconds. A log of what it did is in the app's user-data folder (`~/Library/Application
+   Support/Wye/desktop.log` on macOS, `~/.config/Wye/desktop.log` on Linux); the server's own output is
+   `.cache/desktop-web.log` in the checkout.
+
+If a server is already running on port 3456 (`npm run dev`, another window), the app attaches to it instead of
+starting its own. `WYE_PORT` changes the port.
+
+### From the source tree
+
+`npm run desktop` opens the app on the dev server (hot reload, `WYE_DEV=1`); `npm run desktop:prod` builds the web
+app first and serves the production build. Agents started from the app run as child processes of that server:
+Claude Code over its streaming JSON protocol, Codex through `codex exec --json`; the column shows the conversation
+live and you reply from there.
 
 If Electron's binary is missing after `npm install` (npm's allow-scripts skips its postinstall), run
 `cd node_modules/electron && node install.js`, or unpack the cached zip with `ditto -x -k <zip> dist` and write

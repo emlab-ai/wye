@@ -1,14 +1,76 @@
 {
   "name": "@wye/desktop",
-  "version": "0.1.0",
+  "productName": "Wye",
+  "version": "0.2.0",
   "private": true,
   "description": "Wye desktop: the web app in a window, with Claude Code and Codex as child processes the app controls.",
+  "author": "emlab",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "WYE_DEV=1 electron ."
+    "dev": "WYE_DEV=1 electron .",
+    "dist": "electron-builder --mac --linux",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
   },
   "devDependencies": {
-    "electron": "^33.0.0"
+    "electron": "33.4.11",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "ai.emlab.wye",
+    "productName": "Wye",
+    "copyright": "emlab",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "package.json"
+    ],
+    "asar": true,
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "identity": null,
+      "hardenedRuntime": false,
+      "artifactName": "Wye-${version}-mac-${arch}.${ext}"
+    },
+    "linux": {
+      "category": "Development",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "Wye-${version}-linux-${arch}.${ext}",
+      "desktop": {
+        "entry": {
+          "Name": "Wye",
+          "Comment": "Product definition editor for people and coding agents"
+        }
+      }
+    },
+    "executableName": "wye"
   }
 }

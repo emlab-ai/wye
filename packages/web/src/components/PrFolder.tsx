@@ -30,8 +30,8 @@ export function PrFolder({ product, prs }: { product: string; prs: PrItem[] }) {
   return (
     <li className="pr-folder">
       <div className={`pf-head ${path === href ? 'on' : ''}`}>
-        <Link href={href}><i>🗺</i>PRs</Link>
         <button className="pf-caret" onClick={toggle} aria-label={open ? 'collapse PRs' : 'expand PRs'} aria-expanded={open}>{open ? '▾' : '▸'}</button>
+        <Link href={href}><i>🗺</i>PRs</Link>
       </div>
       {open && <ul className="pf-list">
         {groups.map(([st, rows]) => rows.length > 0 && <li key={st} className={`pf-group pf-${st}`}><span className="pf-group-head muted">{st} <small>{rows.length}</small></span><ul className="pf-list">{rows.map(row)}</ul></li>)}

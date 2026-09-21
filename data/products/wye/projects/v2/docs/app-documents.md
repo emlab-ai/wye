@@ -542,7 +542,26 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
   - alternative:wf2.desktop-electron [Tauri — smaller binary but a Rust toolchain and no Node in the main process, a plain browser tab plus a background daemon — two things to start and no window]
 
-  - consequence:wf2.desktop-electron Electron adds ~250 MB of binary per platform; packaging and auto-update are not set up yet.
+  - consequence:wf2.desktop-electron Electron adds ~250 MB of binary per platform; packaging is decision:wf2.desktop-packaged, auto-update is not set up.
+
+```yaml
+- id: decision:wf2.desktop-packaged
+  title: The desktop app ships as Wye.app and an AppImage — a shell pointed at a checkout, not a bundle of it
+  status: approved
+  date: 2026-09-21
+  by: alex
+  refines: decision:wf2.desktop-electron
+  affects: [decision:wf2.desktop-electron, rule:app-link, constraint:wf2.local-first, constraint:wf2.text-canonical]
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+```
+
+  - choice:wf2.desktop-packaged electron-builder packages packages/desktop alone (main.js, ~230 MB with Electron) into a DMG / zip for macOS (arm64, x64) and an AppImage for Linux (x64, arm64), unsigned (`npm run desktop:dist`). The app runs over a git checkout of the repo: `WYE_ROOT`, else the folder remembered in its user-data config.json, else the source tree when run unpackaged, else a folder dialog at first launch (File › Choose checkout… later). It takes the PATH from the person's login shell (`$SHELL -ilc`) so node, npm, claude and codex resolve as in a terminal; on a fresh clone it runs `npm install` and the production build of the web app behind a status window before the first window opens; it attaches to a server already on the port. A `_blank` app link stays in the window (File › New window is the only way to a second one); what it did goes to desktop.log beside config.json.
+
+  - context:wf2.desktop-packaged The person asked for an executable on mac and linux with install instructions (2026-09-21). packages/desktop resolved the repo as `../..` from its own file and called `npm` from a GUI PATH that has neither nvm nor homebrew, so a packaged copy could find neither the checkout nor node. The documents must stay in git and the agents must run in the repo (constraint:wf2.text-canonical, constraint:wf2.local-first), so the checkout cannot live inside a read-only app bundle.
+
+  - alternative:wf2.desktop-packaged Bundle the web app (Next standalone), node_modules and a data folder into the app — the documents would leave git and the CLIs would have to be bundled too; a Homebrew / npm global install of a launcher script only — no dock icon, no window of its own; code-sign and notarise — needs an Apple developer identity, deferred.
+
+  - consequence:wf2.desktop-packaged `npm run desktop:dist[:mac|:linux]`, packages/desktop/dist ignored; the README's Desktop app section is the install guide; first launch on a fresh clone takes minutes (install + build) and needs network; the unsigned build needs right-click › Open on macOS and FUSE 2 for the AppImage; a link inside a document's text opens its node in the column (BlockNote's link click handler and validator replaced in component:doc-editor) instead of a new window or tab.
 
 ```yaml
 - id: decision:wf2.local-semantic-search

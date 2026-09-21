@@ -787,7 +787,28 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     if (!r.ok) throw new Error('upload failed');
     return (await r.json()).url as string;
   };
+  // A link in the text whose target is a node id opens the node in the column (⌘-click: its document); an app link
+  // navigates in this window; anything else opens outside. BlockNote's own click handler would window.open the
+  // anchor — a new tab in the browser, a new window in the desktop app (rule:app-link) — and its link validator
+  // rejects `kind:slug` hrefs, so both are ours. The handler reads the current index through a ref: the editor is
+  // created once.
+  const linkClick = useRef<(href: string, ev: MouseEvent) => void>(() => {});
+  linkClick.current = (href, ev) => {
+    if (new RegExp('^' + ID_RE.source + '$').test(href)) {
+      const doc = index[href]?.doc && (ev.metaKey || ev.ctrlKey) ? hrefFor(href) : null;
+      if (doc) router.push(doc.replace(/#.*$/, '')); else openPeek(href);
+      return;
+    }
+    let url: URL; try { url = new URL(href, location.href); } catch { return; }
+    if (url.origin === location.origin && !url.pathname.includes('/d/assets/')) router.push(url.pathname + url.search + url.hash);
+    else window.open(url.href, '_blank', 'noopener');
+  };
+  const isId = (href: string) => new RegExp('^' + ID_RE.source + '$').test(href);
   const editor = useCreateBlockNote({ schema, uploadFile,
+    links: {
+      isValidLink: (href: string) => !href || isId(href) || /^(?:(?:https?|ftp|mailto|tel):|[^a-z]|[a-z0-9+.-]+(?:[^a-z+.:-]|$))/i.test(href),
+      onClick: (ev: MouseEvent) => { const a = (ev.target as HTMLElement).closest('a[href]'); const href = a?.getAttribute('href') ?? ''; if (href) linkClick.current(href, ev); return true; },
+    },
     // an image pasted while the cursor is in a node block (a bug, a task, a requirement) goes into that block's text
     // as an inline image, not as an image block after it — the screenshot is part of the bug
     // (BlockNote cancels the browser's paste before calling this, so anything that is not ours must go to
