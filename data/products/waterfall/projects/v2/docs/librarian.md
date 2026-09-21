@@ -223,6 +223,25 @@ Definition — the librarian
   - consequence:wf2.pr-scheduler The build agent runs in the product's repo — the same working tree a person may be editing; two builds never share a scope but may share files. lib:settings gains agents; op:api.pr gains rescope and the waiting reason.
 
 ```yaml
+- id: decision:wf2.hooks-and-skills
+  title: Skills are documents under a Skills page, hooks are cards in a Hooks document, the engine fires on the rebuild diff and everything goes through review
+  date: 2026-09-21
+  status: approved
+  affects: [req:wf2.hooks, lib:skills, lib:hooks, lib:hooks-run, lib:watch, lib:agent-host, lib:agent-prompt, type:skill, type:hook, type:template]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
+```
+
+  - choice:wf2.hooks-and-skills A skill (type:skill, extends module) is `skill-<slug>.md` under the project's Skills page: `role` (librarian | worker), `takes`, `writes`, and the body is the instruction. The shipped prompts are written there as skill:refine, skill:build, skill:describe-module (plus skill:define-tests) the first time a product opens; the host reads the librarian's and the worker's system prompt from those documents when present, else the prompt files — so a person edits what the agents follow, and nothing breaks without the documents. A hook (type:hook) is a yaml card in `hooks.md`: `on: <kind>.<event>` (created, status:<x>, linked:<verb>, pr.approved, pr.built, session.done; kind may be *), `where:` filters, `do:` lines (run skill:<id>, add <template>; assign / notify later), `once` (default true), status active | paused. Events come from where changes already surface — the watcher's rebuild diff (lib:hooks, eventsFromDiff), Approve, the session end — never from a poll. A firing is a record in `_hooks/` (once holds through it; wye hooks lists them); a session a hook starts carries the firing (Session.hook) so its changes carry depth + 1, capped at 3, and the same hook never fires twice on one node. `add` is deterministic (a template card's body or templates/hooks/<name>.md with {{node}} {{slug}} {{title}} {{kind}}, appended as the node's content, proposed, by: hook:<slug>); `run` is a session like any other, its blocks reviewed in the inbox. `skills:` on a PR, a type card or a hook attaches skills to the sessions it starts (## Skills in the first message).
+
+  - context:wf2.hooks-and-skills alex: "if I have a new requirement I need to trigger action (when requirement approved) I want to go and define how to test it, and this should be automatic — I want to be able to define complex harnesses with my tool". Prompts were files in the repo a person could not see from the app; nothing in Wye ran on its own except the dispatcher.
+
+  - alternative:wf2.hooks-and-skills Hooks as code (a plugin folder) — rejected: the person defines the harness in the same documents as the rest. A visual hook builder — not now; the card is the builder. Cron-like hooks — no: time is not an event here. Hooks firing agents that write directly without review — rejected: review is the safety net for anything automatic.
+
+  - consequence:wf2.hooks-and-skills Every product gets a Skills folder and a Hooks link in the rail (in the project that holds PRs), five system documents written on first open. A hook's session appears on the Agents page with a hook pill. Block ids of non-module pages (pr:28, skill:build) now keep their slug — they were truncated before. H2: assign / notify, the column's Hooks section, a Settings switch.
+
+```yaml
 - id: decision:wf2.cmd-modes
   title: ⌘P has two modes — PR (a request page with a refining session) and Ad-hoc (a conversation, no page)
   date: 2026-09-20

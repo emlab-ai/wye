@@ -192,6 +192,24 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - unless:wf2.pr the person cancels the PR — then it is cancelled and its refining session stopped; or the librarian leaves before approval — then the PR is a draft again
 
 ```yaml
+- id: req:wf2.hooks
+  title: Hooks and skills — a person defines a harness: when something happens to a node, a skill runs on it or blocks are added
+  status: shipped
+  refines: req:wf2.pr
+  satisfied-by: [type:skill, type:hook, type:template, lib:skills, lib:hooks, lib:hooks-run, op:api.skills, op:api.hooks, component:skill-folder, lib:watch, lib:agent-host, lib:agent-prompt]
+  verified-by: [test:web-lib#hooks, test:web-lib#skills]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-agents
+```
+
+  - when:wf2.hooks a node is created, its status moves, an edge with a verb now points at it, a PR is approved or built, or a session ends — and a hook card in the project's Hooks document says `on: <kind>.<event>` for it (with an optional `where:` filter: document, type, status, prop, role)
+
+  - then:wf2.hooks the hook's `do:` lines run: `run skill:<id>` starts a session on the node with the skill's instruction — a document under the project's Skills page (the shipped prompts refine / build / describe-module and define-tests are skills a person reads and edits; `skills:` on a PR, a type card or a hook attaches skills to the sessions it starts) — and `add <template>` appends a template's blocks under the node; everything a hook writes is proposed (`by: hook:<slug>`) and reviewed like an agent's work; each firing is recorded (wye hooks) and a hook fires once per node unless it says `once: false`; a change a hook's session made can fire hooks again, three levels deep at most
+
+  - unless:wf2.hooks the hook is paused, hooks are off (WF_HOOKS=0), the same hook already fired on that node, or the chain is deeper than three firings — then nothing runs; the two remaining actions, assign and notify, are H2 with the column's Hooks section and the Settings switch
+
+```yaml
 - id: req:wf2.sessions.plan-result
   title: The plan document ends with the result — the app's section, scoped to the plan
   status: shipped

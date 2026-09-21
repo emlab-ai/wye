@@ -247,6 +247,41 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     (lib/instances).
   status: proposed
   part-of: module:app-storage
+- id: lib:hooks-run
+  file: packages/web/src/lib/hooks-run.ts
+  side: server
+  purpose: >
+    Hooks, the IO part (decision&#58;wf2.hooks-and-skills): `fire` takes the events the watcher, approve and session
+    end emit, matches them against the product's hooks (lib/hooks) and runs the actions — `run skill:<id>` starts a
+    session on the node with the skill's body in its first message, `add <template>` appends a template's blocks
+    under the node as proposed content. Every firing is a record in <product>/_hooks/<id>.json: `once` holds through
+    it, a node's column can show what ran, and a session started by a firing carries it (Session.hook) so the
+    changes it makes fire hooks one level deeper — never past MAX_DEPTH, never the same hook on the same node twice.
+    WF_HOOKS=0 turns it off.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:hooks
+  file: packages/web/src/lib/hooks.ts
+  side: server
+  purpose: >
+    Hooks, the pure part (decision&#58;wf2.hooks-and-skills): a hook card — `on: <kind>.<event>`, `where:` filters,
+    `do:` actions, `once`, status — read from its node; the events a graph diff means (created, status:<x>,
+    linked:<verb>); which active hooks match an event on a node; a template filled for a node. The IO — firings, the
+    sessions a `run` starts, the blocks an `add` writes — is lib/hooks-run.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:skills
+  file: packages/web/src/lib/skills.ts
+  side: server
+  purpose: >
+    Skills (decision&#58;wf2.hooks-and-skills): an instruction a session follows, kept as a document under the
+    project's Skills page — `skill-<slug>.md`, node `skill:<slug>`, type:skill. The shipped prompts (prompts/*.md)
+    are written here as skills the first time a product needs them, so a person can read and edit them; the host
+    reads a skill's body from the document when present, else the file — the file stays the fallback so nothing
+    breaks without them. The Hooks page (hooks.md) lives beside it: one document of hook and template cards per
+    project.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

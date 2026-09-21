@@ -6,7 +6,7 @@ import { prsPageId } from '@/lib/pr-doc';
 import { treeFor } from '@/lib/scope';
 
 // op:api.skills (decision:wf2.hooks-and-skills) — GET → the product's skills (id, title, role, takes, status, document);
-// GET ?id=skill:x → one skill with its body (what `wye skill <id>` prints). POST { title, project?, role? } → a new
+// GET ?id=<skill> → one skill with its body (what `wye skill <id>` prints). POST { title, project?, role? } → a new
 // skill document from the template under the project's Skills page; returns { slug, project }.
 export async function GET(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;

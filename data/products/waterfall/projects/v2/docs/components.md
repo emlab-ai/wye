@@ -623,6 +623,13 @@ The editor's blocks and the components the pages are made of, by area.
     the URL.
   status: proposed
   part-of: module:components
+- id: component:skill-folder
+  file: packages/web/src/components/SkillFolder.tsx
+  side: client
+  purpose: >
+    (no header comment)
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->
