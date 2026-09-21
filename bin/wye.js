@@ -57,9 +57,9 @@
 //   wye work add "<text>" --product p [--part-of <id>] [--ready]   a task line on the backlog (under the node when --part-of names one)
 //   wye work next --product p [--goal <id>]   the oldest ready, unblocked, unassigned task
 //   wye work assign <task> --worker <person|claude-code|codex|runner> --product p [--note "…"] [--force]
-//   wye import <file|dir> --product p [--project x] [--parent doc] [--no-analyse]   markdown files (a folder's tree kept) as
+//   wye import <file|dir> --product p [--project x] [--parent doc] [--no-analyse] [--brief "…"]   markdown files (a folder's tree kept) as
 //        documents, then an agent extracts their types, requirements, facts and decisions as proposed blocks (skill:import)
-//   wye import --code <dir> --name "<feature>" --product p [--no-analyse]   a feature's definition read from its code, its
+//   wye import --code <dir> --name "<feature>" --product p [--no-analyse] [--brief "…"]   a feature's definition read from its code, its
 //        modules described by an agent (skill:describe-module) — reverse engineering
 //   wye eval own | compare | public <adapter> | judge | report   the benchmarks (module:benchmarks): tier 1 on the product's own
 //        history with the CI gate, the with-and-without harness, the public adapters, the judge set's κ, the latest / previous / delta
@@ -379,7 +379,7 @@ const commands = {
     const p = product();
     if (flags.code) {
       const name = flags.name || die('wye import --code <dir> --name "<feature>" --product p [--no-analyse]');
-      const j = await api('POST', `/api/${p}/import-code`, { name, path: String(flags.code), analyse: !flags['no-analyse'] });
+      const j = await api('POST', `/api/${p}/import-code`, { name, path: String(flags.code), analyse: !flags['no-analyse'], brief: flags.brief ? String(flags.brief) : undefined });
       if (flags.json) return out(j);
       console.log(`${j.written} page(s) written in project ${j.project}${j.skipped ? ` (${j.skipped} existed and were kept)` : ''}: ${j.areas.length} module(s)`);
       for (const a of j.areas) { const t = j.tasks.find(x => x.id.endsWith('.' + a.slug)); console.log(`  ${a.slug.padEnd(20)} ${String(a.files).padStart(5)} files  ${a.dir}${t ? (t.session ? `  → session ${t.session}` : `  · ${t.error}`) : ''}`); }
@@ -396,6 +396,7 @@ const commands = {
     const fd = new FormData();
     for (const f of files) fd.append(f.rel, new Blob([fs.readFileSync(f.abs)]), f.rel);
     if (flags.parent) fd.append('parent', String(flags.parent));
+    if (flags.brief) fd.append('brief', String(flags.brief));
     fd.append('analyse', flags['no-analyse'] ? '0' : '1');
     const r = await fetch(`${WF_URL}/api/${p}/${proj}/import`, { method: 'POST', body: fd });
     const j = await r.json().catch(() => ({}));

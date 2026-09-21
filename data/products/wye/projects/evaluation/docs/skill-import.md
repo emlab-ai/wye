@@ -21,6 +21,10 @@ add for the person to approve.
 
 ## Read first
 
+0. The page's front matter may carry `brief:` — the person's own instruction for this import ("only the
+   requirements", "treat every bullet as a fact", "these are meeting notes: decisions and tasks, nothing else").
+   It comes first: where it narrows or redirects the steps below, follow it.
+
 1. `wye doc <product/project/doc>` — the whole document. Read it twice; note what it asserts (behaviours, rules,
    choices, things, facts, work, open points) and what is only narrative.
 2. `wye graph get type:node` and the Types page (`wye graph search "type:"`) — the kinds this product already has,

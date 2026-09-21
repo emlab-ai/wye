@@ -18,7 +18,7 @@ const require = createRequire(import.meta.url);
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const body = (await req.json()) as { name?: string; path?: string; analyse?: boolean };
+  const body = (await req.json()) as { name?: string; path?: string; analyse?: boolean; brief?: string };
   const name = (body.name ?? '').trim(); const given = (body.path ?? '').trim();
   if (!name || !given) return NextResponse.json({ error: 'invalid', message: 'name and path required' }, { status: 422 });
   const repo = p.meta.repo ? path.resolve(p.meta.repo) : REPO_ROOT;
@@ -35,7 +35,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     const settings = agentSettings(await readSettings());
     if (scope) for (const a of r.areas) {
       const id = `task:${r.project}.describe.${a.slug}`;
-      const res = await assignTask(scope, id, { worker: settings.agent, wfUrl: new URL(req.url).origin, by: 'import', force: true, skills: ['skill:describe-module'] });
+      const res = await assignTask(scope, id, { worker: settings.agent, wfUrl: new URL(req.url).origin, by: 'import', force: true, skills: ['skill:describe-module'], note: body.brief?.trim() ? `The person's brief for this import: ${body.brief.trim()}` : undefined });
       tasks.push(res.ok ? { id, session: res.session } : { id, error: res.message });
     }
   }

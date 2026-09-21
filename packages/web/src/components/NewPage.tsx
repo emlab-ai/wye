@@ -11,13 +11,13 @@ import { requestSend } from './CommandBox';
 // folder, or code: the same dialog as the rail's ↥), or Ask an agent. Enter on the title makes a blank page;
 // everything goes through the document route (op:doc.create) and the import route.
 type Doc = { slug: string; title: string; project?: string; icon?: string };
-export function NewPage({ product, project: initialProject, projects, docs, defaultParent = '', initial = [], onClose }: { product: string; project: string; projects: { slug: string; title: string }[]; docs: Doc[]; defaultParent?: string; initial?: Picked[]; onClose: () => void }) {
+export function NewPage({ product, project: initialProject, projects, docs, defaultParent = '', initial = [], startImport = false, onClose }: { product: string; project: string; projects: { slug: string; title: string }[]; docs: Doc[]; defaultParent?: string; initial?: Picked[]; startImport?: boolean; onClose: () => void }) {
   const router = useRouter();
   const { ownTypes } = usePeek();
   const [title, setTitle] = useState('');
   const [parent, setParent] = useState(defaultParent);
   const [project, setProject] = useState(initialProject);
-  const [mode, setMode] = useState<'page' | 'import'>(initial.length ? 'import' : 'page');
+  const [mode, setMode] = useState<'page' | 'import'>(startImport || initial.length ? 'import' : 'page');
   const [pick, setPick] = useState<'template' | 'type' | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);

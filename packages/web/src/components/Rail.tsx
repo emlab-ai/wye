@@ -68,7 +68,7 @@ export function Rail({ products, product, projects, prs, views = [], skills = []
       </div>
       <div className="rail-split" ref={split} role="separator" aria-orientation="horizontal" title="Drag to resize; double-click to reset" onMouseDown={onSplit} onDoubleClick={resetSplit} />
       <div className="rail-pages-head"><span>Documents</span><span className="rail-pages-tools"><button onClick={() => { setNewIn(null); setImporting(importing ? null : []); }} title="Import markdown files, a folder, or code" aria-label="Import">↥</button><button onClick={() => { setImporting(null); setNewIn(newIn === '' ? null : ''); }} title="New document">+</button></span></div>
-      {(importing !== null || newIn !== null) && <NewPage product={product.slug} project={docs.find(d => d.slug === newIn)?.project ?? projects[0]?.slug ?? ''} projects={projects.map(p => ({ slug: p.slug, title: p.title }))} docs={docs} defaultParent={newIn ?? ''} initial={importing ?? []} onClose={() => { setNewIn(null); setImporting(null); }} />}
+      {(importing !== null || newIn !== null) && <NewPage product={product.slug} project={docs.find(d => d.slug === newIn)?.project ?? projects[0]?.slug ?? ''} projects={projects.map(p => ({ slug: p.slug, title: p.title }))} docs={docs} defaultParent={newIn ?? ''} initial={importing ?? []} startImport={importing !== null} onClose={() => { setNewIn(null); setImporting(null); }} />}
       <div className={`rail-body ${fileOver ? 'file-over' : ''}`}
         onDragOver={e => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; if (!fileOver) setFileOver(true); }}
         onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setFileOver(false); }}

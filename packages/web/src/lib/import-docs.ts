@@ -13,6 +13,7 @@ export interface ImportOptions {
   project: string;                                                 // the project's slug — front matter `node:` ids need nothing else
   parent?: string;                                                 // a document slug the import lands under (top level when empty)
   analyse?: boolean;                                               // true (default): status imported — the hook fires; false: raw
+  brief?: string;                                                  // the person's instruction for the agent, kept as `brief:` on the page
   existing: Set<string>;                                           // document slugs the project already has (never overwritten)
   date?: string;
 }
@@ -61,6 +62,7 @@ function docFor(f: ImportFile, slug: string, title: string, parent: string | nul
   if (!keys.has('owner')) keys.set('owner', 'unassigned');
   keys.set('last-verified', o.date ?? new Date().toISOString().slice(0, 10));
   keys.set('source', yamlStr(`import/${f.path}`));
+  if (o.brief?.trim()) keys.set('brief', yamlStr(o.brief.trim().replace(/\s*\n\s*/g, ' '))); else keys.delete('brief');
   if (parent) keys.set('part-of', parent); else keys.delete('part-of');
   const head = [...keys].map(([k, v]) => `${k}: ${v}`).join('\n');
   const text = body.replace(/^\s*\n/, '');

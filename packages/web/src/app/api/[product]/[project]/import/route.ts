@@ -22,10 +22,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   if (!files.length) return NextResponse.json({ error: 'invalid', message: 'no files' }, { status: 422 });
   const parent = String(form.get('parent') ?? '').trim() || undefined;
   const analyse = String(form.get('analyse') ?? '1') !== '0';
+  const brief = String(form.get('brief') ?? '').trim() || undefined;   // what the person wants done with these pages — `brief:` on each, read by skill:import
   const tree = treeFor(scope, project);
   const existing = new Set([...tree.byFile.values()].map(d => d.slug));
   if (parent && !existing.has(parent)) return NextResponse.json({ error: 'invalid', message: `no document ${parent}` }, { status: 422 });
-  const p = plan(files, { project, parent, analyse, existing });
+  const p = plan(files, { project, parent, analyse, brief, existing });
   const r = await write(scope.project.docsDir, p, async from => images.get(from) ?? null);
   const built = await rebuild(scope.product.dir);
   return NextResponse.json({ ok: true, docs: p.docs.map(d => ({ slug: d.slug, title: d.title, folder: d.folder, parent: d.parent, from: d.from })), skipped: p.skipped, assets: r.assets, analyse, rebuilt: built.code === 0 });

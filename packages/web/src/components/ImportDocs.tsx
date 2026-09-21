@@ -31,12 +31,28 @@ export async function filesOfDrop(dt: DataTransfer): Promise<Picked[]> {
   return out.filter(p => /\.(md|markdown|png|jpe?g|gif|webp|svg)$/i.test(p.path));
 }
 
+// What the person wants the agent to do with these pages, on top of the skill: kept as `brief:` on each imported page
+// (skill:import reads it first) or as the describe task's note.
+function BriefBox({ brief, setBrief, open, setOpen, placeholder, skill }: { brief: string; setBrief: (v: string) => void; open: boolean; setOpen: (v: boolean) => void; placeholder: string; skill: string }) {
+  return (
+    <div className="import-brief">
+      <button type="button" className="linkish" onClick={() => setOpen(!open)} aria-expanded={open}>{open ? '⌃' : '⌄'} What should the agent do?{!open && brief.trim() ? <span className="muted"> — {brief.trim().slice(0, 60)}{brief.trim().length > 60 ? '…' : ''}</span> : null}</button>
+      {open && <>
+        <textarea value={brief} rows={3} placeholder={placeholder} onChange={e => setBrief(e.target.value)} />
+        <p className="muted small">Added on top of the <code>{skill}</code> skill — the base instruction, editable on the Skills page.</p>
+      </>}
+    </div>
+  );
+}
+
 export function ImportDocs({ product, project: initialProject, projects, docs, defaultParent = '', initial = [], onClose }: { product: string; project: string; projects: { slug: string; title: string }[]; docs: { slug: string; title: string; project?: string }[]; defaultParent?: string; initial?: Picked[]; onClose: () => void }) {
   const router = useRouter();
   const [mode, setMode] = useState<'md' | 'code'>('md');
   const [project, setProject] = useState(initialProject);
   const [parent, setParent] = useState(defaultParent);
   const [analyse, setAnalyse] = useState(true);
+  const [brief, setBrief] = useState('');
+  const [customise, setCustomise] = useState(false);
   const [picked, setPicked] = useState<Picked[]>(initial);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -61,6 +77,7 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
     for (const p of picked) fd.append(p.path, p.file, p.path);
     if (parent) fd.append('parent', parent);
     fd.append('analyse', analyse ? '1' : '0');
+    if (analyse && brief.trim()) fd.append('brief', brief.trim());
     const r = await fetch(`/api/${product}/${effectiveProject}/import`, { method: 'POST', body: fd });
     const j = await r.json(); setBusy(false);
     if (!r.ok) { setMsg(j.message ?? j.error); return; }
@@ -68,7 +85,7 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
   }
   async function importCode() {
     setBusy(true); setMsg(null);
-    const r = await fetch(`/api/${product}/import-code`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, path: codePath, analyse }) });
+    const r = await fetch(`/api/${product}/import-code`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, path: codePath, analyse, brief: analyse && brief.trim() ? brief.trim() : undefined }) });
     const j = await r.json(); setBusy(false);
     if (!r.ok) { setMsg(j.message ?? j.error); return; }
     setCodeResult(j); router.refresh();
@@ -90,9 +107,12 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
           {picked.length > 0 && <span className="muted small">{mdCount} markdown file{mdCount === 1 ? '' : 's'}{picked.length > mdCount ? ` + ${picked.length - mdCount} image${picked.length - mdCount === 1 ? '' : 's'}` : ''}</span>}
         </div>
         {picked.length > 0 && <ul className="import-list">{picked.slice(0, 12).map(p => <li key={p.path}><code>{p.path}</code><button className="linkish" onClick={() => setPicked(ps => ps.filter(x => x.path !== p.path))} aria-label={`remove ${p.path}`}>×</button></li>)}{picked.length > 12 && <li className="muted">… and {picked.length - 12} more</li>}</ul>}
-        <label><span>under</span><select value={parent} onChange={e => setParent(e.target.value)}><option value="">(top level)</option>{docs.map(d => <option key={d.slug} value={d.slug}>{d.title}</option>)}</select></label>
-        {!parent && projects.length > 1 && <label><span>folder</span><select value={project} onChange={e => setProject(e.target.value)}>{projects.map(p => <option key={p.slug} value={p.slug}>{p.title}</option>)}</select></label>}
-        <label className="check"><input type="checkbox" checked={analyse} onChange={e => setAnalyse(e.target.checked)} /> Analyse with agent — extract types, requirements, facts and decisions as proposed blocks</label>
+        <div className="import-grid">
+          <label><span>Under</span><select value={parent} onChange={e => setParent(e.target.value)}><option value="">(top level)</option>{docs.map(d => <option key={d.slug} value={d.slug}>{d.title}</option>)}</select></label>
+          {!parent && projects.length > 1 && <label><span>Folder</span><select value={project} onChange={e => setProject(e.target.value)}>{projects.map(p => <option key={p.slug} value={p.slug}>{p.title}</option>)}</select></label>}
+        </div>
+        <label className="check"><input type="checkbox" checked={analyse} onChange={e => setAnalyse(e.target.checked)} /><span><b>Analyse with agent</b> — an agent reads each page and rewrites it in place into requirements, decisions, facts, entities and tasks, all proposed; types the product lacks are proposed too.</span></label>
+        {analyse && <BriefBox brief={brief} setBrief={setBrief} open={customise} setOpen={setCustomise} placeholder={'e.g. Only the requirements and open questions; keep the rest as prose. Treat every bullet under "Facts" as a fact. These are meeting notes: decisions and tasks, nothing else.'} skill="skill:import" />}
         <div className="sec-actions"><button className="pri" disabled={busy || !mdCount} onClick={importMd}>{busy ? 'Importing…' : `Import ${mdCount || ''}`}</button><button disabled={busy} onClick={onClose}>Cancel</button>{msg && <span className="notice">{msg}</span>}</div>
       </>}
       {mode === 'md' && result && <>
@@ -103,10 +123,13 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
         <div className="sec-actions">{first && <button className="pri" onClick={() => { onClose(); router.push(`/${product}/${effectiveProject}/d/${first.slug}`); }}>Open {first.title}</button>}<button onClick={onClose}>Close</button></div>
       </>}
       {mode === 'code' && !codeResult && <>
-        <p className="muted small">Point at a folder of source: its definition is read from the code — every module, page, component, library, operation and test, shallow — as a project of its own, and an agent maps each module to requirements in the person's words (reverse engineering, skill:describe-module).</p>
-        <label><span>name</span><input autoFocus value={name} placeholder="e.g. Inventory" onChange={e => setName(e.target.value)} /></label>
-        <label><span>folder</span><input value={codePath} placeholder="src/inventory — relative to the product's repo, or absolute" onChange={e => setCodePath(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && name.trim() && codePath.trim()) importCode(); }} /></label>
-        <label className="check"><input type="checkbox" checked={analyse} onChange={e => setAnalyse(e.target.checked)} /> Describe with agent — one session per module, requirements mapped to the code</label>
+        <p className="muted small">A folder of source becomes a feature's definition: every module, page, component, library, operation and test the code shows, shallow, as a project of its own — then an agent describes each module in the person's words, mapped to the code.</p>
+        <div className="import-grid">
+          <label><span>Name</span><input autoFocus value={name} placeholder="Inventory" onChange={e => setName(e.target.value)} /></label>
+          <label><span>Folder</span><input value={codePath} placeholder="src/inventory — relative to the repo, or absolute" onChange={e => setCodePath(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && name.trim() && codePath.trim()) importCode(); }} /></label>
+        </div>
+        <label className="check"><input type="checkbox" checked={analyse} onChange={e => setAnalyse(e.target.checked)} /><span><b>Describe with agent</b> — one session per module: the requirements read from the code, each mapped to the files and tests that deliver it (reverse engineering).</span></label>
+        {analyse && <BriefBox brief={brief} setBrief={setBrief} open={customise} setOpen={setCustomise} placeholder={'e.g. Focus on the public API and the data model; skip the tests. Name every feature flag as a gate. Write the requirements for the warehouse role, not the admin.'} skill="skill:describe-module" />}
         <div className="sec-actions"><button className="pri" disabled={busy || !name.trim() || !codePath.trim()} onClick={importCode}>{busy ? 'Reading the code…' : 'Import'}</button><button disabled={busy} onClick={onClose}>Cancel</button>{msg && <span className="notice">{msg}</span>}</div>
       </>}
       {mode === 'code' && codeResult && <>
