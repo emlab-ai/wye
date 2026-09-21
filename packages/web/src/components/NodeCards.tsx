@@ -88,13 +88,13 @@ export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<Car
           <input type="checkbox" className="nblock-check" checked={p.check === 'done' || p.status === 'done'} onChange={e => set({ check: e.target.checked ? 'done' : 'todo', status: e.target.checked ? 'done' : 'open' })} title="done?" />
         )}
         <button type="button" className="pill k nblock-peek" style={{ background: `var(--k-${p.kind}, var(--k-other))` }} title="Open this node in the panel" onClick={host.peek}>{p.kind}</button>
-        <input className="nblock-slug" value={p.slug} spellCheck={false} readOnly={host.slugReadOnly} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />
+        {(showYaml || !p.slug) && <input className="nblock-slug" value={p.slug} spellCheck={false} readOnly={host.slugReadOnly} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />}
         <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{(STATUSES.includes(p.status) ? [] : [p.status]).concat(STATUSES).map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
         {p.form === 'prose' && <input className={`nblock-extra ${p.extra ? '' : 'hover-only'}`} value={p.extra} placeholder="key: value" onChange={e => set({ extra: e.target.value })} />}
         <FoldToggle host={host} />
         {host.open && <button type="button" className="nblock-open" title="Open in the column — one level deeper" onClick={host.open}>open ›</button>}
         <span className="nblock-tools hover-only">
-          {p.form === 'yaml' && <button type="button" className="nblock-send" onClick={() => setShowYaml(v => !v)}>{showYaml ? 'hide yaml' : 'yaml'}</button>}
+          <button type="button" className="nblock-send" onClick={() => setShowYaml(v => !v)} title="the id, and a card's yaml">{showYaml ? 'hide details' : 'details'}</button>
           <button type="button" className="nblock-send" title="Copy a link to this node" onClick={host.copyLink}>⧉</button>
           <button type="button" className="nblock-send" title="Send this node to an agent" onClick={host.send}>⇢</button>
         </span>
@@ -165,7 +165,7 @@ export function DecisionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
     <div className={`nblock k-decision dnode s-${p.status} ${host.extraClass ?? ''}`} data-id={id} ref={host.hostRef} onClick={selectOn(host)}>
       <div className="nblock-head" contentEditable={false} ref={host.stop} onClick={host.onHeadClick}>
         <button type="button" className="pill k nblock-peek" style={{ background: 'var(--k-decision)' }} title="Open this decision in the panel" onClick={host.peek}>decision</button>
-        <input className="nblock-slug" value={p.slug} spellCheck={false} readOnly={host.slugReadOnly} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />
+        {(details || !p.slug) && <input className="nblock-slug" value={p.slug} spellCheck={false} readOnly={host.slugReadOnly} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />}
         <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{STATUSES.map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
         <FoldToggle host={host} />
         {host.open && <button type="button" className="nblock-open" title="Open in the column — one level deeper" onClick={host.open}>open ›</button>}
