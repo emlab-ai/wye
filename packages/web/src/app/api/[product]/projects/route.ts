@@ -2,8 +2,18 @@ import { NextResponse } from 'next/server';
 import { access, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { getProduct } from '@/lib/products';
+import { loadScope, mainProject } from '@/lib/scope';
 import { slugify } from '@/lib/templates';
 import { writeAtomic } from '@/lib/write';
+
+// GET → the product's projects, and which one is main (the rail's first; lib/scope#mainProject) so a caller with no
+// project named — `wye import`, `wye deepen` — can default to it instead of hardcoding a slug.
+export async function GET(_req: Request, { params }: { params: Promise<{ product: string }> }) {
+  const { product } = await params;
+  const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  const main = mainProject(scope);
+  return NextResponse.json({ main: main?.slug ?? '', projects: scope.projects.map(p => ({ slug: p.slug, title: p.meta.title, kind: p.meta.kind, status: p.meta.status })) });
+}
 
 // Create a project (or goal) in a product: POST { title, kind, description }
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {

@@ -313,7 +313,7 @@ const commands = {
   // wye deepen <module>: assign the module's describe task to a worker with the describe contract (prompts/describe-module.md)
   async deepen() {
     const mod = pos[1] || die('wye deepen <module> --product p [--worker claude-code|codex|runner] [--project main]');
-    const p = product(); const proj = flags.project || 'main';
+    const p = product(); const proj = flags.project || (await api('GET', `/api/${p}/projects`)).main || die(`${p} has no project`);
     const id = `task:${proj}.describe.${mod}`;
     let contract = ''; try { contract = fs.readFileSync(path.join(__dirname, '..', 'prompts', 'describe-module.md'), 'utf8'); } catch { /* the task text carries the gist */ }
     const j = await api('POST', `/api/${p}/work/assign`, { id, worker: flags.worker || 'claude-code', note: contract, force: !!flags.force, by: flags.by || undefined });
@@ -385,7 +385,7 @@ const commands = {
       return;
     }
     const src = pos[1] || die('wye import <file|dir> --product p [--project x] [--parent doc] [--no-analyse]  |  wye import --code <dir> --name "…"');
-    const proj = flags.project || 'v2';
+    const proj = flags.project || (await api('GET', `/api/${p}/projects`)).main || die(`${p} has no project to import into`);
     const abs = path.resolve(String(src));
     const st = fs.statSync(abs);
     const files = [];

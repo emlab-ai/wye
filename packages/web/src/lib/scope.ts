@@ -3,6 +3,7 @@ import { getProduct, getProject, listProjects, type Product, type Project } from
 import { graphFor } from './build';
 import { indexGraph, type GraphData, type GraphIndex } from './graph';
 import { nodeIndex, projectTree, type IndexEntry } from './doc';
+import { prsPageId } from './pr-doc';
 import { setKinds } from './ids';
 import { rebuild } from './write';
 import { stat } from 'node:fs/promises';
@@ -33,4 +34,10 @@ export async function loadScope(productSlug: string, projectSlug?: string): Prom
   return { product, projects, project, graph, idx: cached?.idx ?? indexGraph(graph), index: cached?.index ?? nodeIndex(graph) };
 }
 
+// The product's main project — the one the rail opens: the project whose PRs page exists, else the first on disk.
+// Every path that takes an optional project (the imports, `wye import`, `wye deepen`) defaults to it, so nothing has
+// to hardcode a slug (req:wf2.import.markdown, req:wf2.import.code).
+export function mainProject(scope: Scope): Project | undefined {
+  return scope.projects.find(p => scope.graph.modules.some(m => m.id === prsPageId(p.slug))) ?? scope.projects[0];
+}
 export function treeFor(scope: Scope, projectSlug: string) { return projectTree(scope.graph, projectSlug); }
