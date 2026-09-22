@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { prepare, expand, nodePropsFromChunk, escapeAngles, protectCode, splitCode, liftContent, importMarkdown, BS, PIPE } from './import';
+import { prepare, expand, nodePropsFromChunk, escapeAngles, protectCode, splitCode, liftContent, importMarkdown, BS, PIPE, liftLinks } from './import';
 import type { AnyBlock } from './serialize';
 import { blocksToMarkdown } from './serialize';
 import { ID_RE, cleanId, setKinds } from './ids';
@@ -32,6 +32,24 @@ describe('splitCode', () => {
     expect(escapeAngles('see <b>\n\n    <tag>\n\n```\n<x>\n```')).toBe('see &lt;b>\n\n    &lt;tag>\n\n```\n&lt;x>\n```');
     const blocks = expand([{ type: 'codeBlock', props: { language: 'sh' }, content: [t('run --target &lt;sim udid>')] }], []);
     expect((blocks[0].content as { text: string }[])[0].text).toBe('run --target <sim udid>');
+  });
+});
+
+describe('liftLinks', () => {
+  it('lifts a scheme-less link in prose and leaves one inside code alone', () => {
+    expect(liftLinks('see [kitchen items](entity:kitchen-item) now')).toBe('see ⟦kitchen items|entity:kitchen-item⟧ now');
+    // backticks mean the text is literal: the syntax is being shown, not written — and a link built there would carry
+    // the run's code style, which the editor's schema refuses, so the whole document opened read-only
+    expect(liftLinks('Links `[phrase](kind:slug)` and bare ids')).toBe('Links `[phrase](kind:slug)` and bare ids');
+    expect(liftLinks('```\n[a](req:x)\n```')).toBe('```\n[a](req:x)\n```');
+    expect(liftLinks('a [b](https://x.test/y) c')).toBe('a [b](https://x.test/y) c');
+  });
+  it('a code span with a link in it survives the round trip as code, not as a link', () => {
+    const md = 'Links `[phrase](kind:slug)` and more';
+    const p = prepare(md);
+    expect(p.md).toContain('`[phrase](kind:slug)`');
+    const blocks = expand([{ type: 'paragraph', content: [t('Links '), { type: 'text', text: '[phrase](kind:slug)', styles: { code: true } }, t(' and more')] }], []);
+    expect(JSON.stringify(blocks)).not.toContain('"type":"link"');
   });
 });
 

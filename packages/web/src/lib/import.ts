@@ -175,8 +175,13 @@ export function protectCode(md: string): string {
 }
 
 // [label](kind:slug) → ⟦label|kind:slug⟧ so the browser markdown parser never sees a scheme-less link.
+// Never inside code (mapRegions): backticks mean the text is literal — `[phrase](kind:slug)` shows the syntax, it is
+// not a link — and a link lifted from there comes back as a text run carrying both the run's `code` style and the
+// link, a pair the editor's schema refuses ("Invalid collection of marks for node text: code,link"), which turns the
+// whole document read-only.
 export function liftLinks(md: string): string {
-  return md.replace(/\[([^\]]+)\]\(((?!(?:https?:|mailto:|[a-z-]+:\/\/))[a-z-]+:[A-Za-z0-9_./#\-]+)\)/g, (_, label, id) => `⟦${label}|${cleanId(id)}⟧`);
+  const LINK = /\[([^\]]+)\]\(((?!(?:https?:|mailto:|[a-z-]+:\/\/))[a-z-]+:[A-Za-z0-9_./#\-]+)\)/g;
+  return mapRegions(md, t => t.replace(LINK, (_, label, id) => `⟦${label}|${cleanId(id)}⟧`), c => c);
 }
 // Split text runs on ⟦label|id⟧ markers into link inline content.
 export function expandLinks(items: Inline[]): Inline[] {

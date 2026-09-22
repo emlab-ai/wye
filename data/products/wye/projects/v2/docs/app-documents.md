@@ -616,7 +616,9 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     leaves markers; after BlockNote parses the rest in the browser, `expand` (pure) turns markers into divider and
     node blocks, turns id-first paragraphs into prose node blocks, and tags ids. A block's content (the lines
     indented under it) is lifted too and parsed with the same three steps by `importMarkdown`, recursively
-    (rule:content-lines).
+    (rule:content-lines). What the lifting touches, it touches outside code only (`mapRegions`): a scheme-less link
+    in a code span is the syntax being shown, not a link, and lifting it there gave the text run both a code and a
+    link mark — a pair the editor's schema refuses, which turned the whole document read-only.
   part-of: module:app-documents
 - id: lib:serialize
   file: packages/web/src/lib/serialize.ts

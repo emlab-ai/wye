@@ -944,7 +944,8 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
     - plan-doc (execution): the request task line with worker, session and part-of; an assigned task embedded instead; requestTaskStatusOnEnd; definitionIds (top-level embeds, cards, prose lines; verdicts and indented content ignored), withDefinition (idempotent, creates the section before Plan), definitionState (a task agreed once it is work; open contradictions on agreed blocks), planStatusFromDefinition
     - node-line: the #ready mark beside the status, review
     - runs (workflows): parseStage (actions, produces, until, gate, the defaults, several do lines, a worker and skills), an unparseable until kept as badUntil, workflowOf (stages part-of it in document order, takes, admits, nextStage, the fallback to the document), readinessOf per predicate against a fixture graph — every req agreed naming the ones that are not, has <verb> with a dangling target not counting, session done, tasks ready and done, open questions, contradictions, check, has a task, and the three that must never be green (an empty PRD, an unbound document, a criterion that did not parse); the run card round-tripping through yaml with its log, replaceCard leaving its neighbours alone, runSlug, LIVE, autoRun's cap, logLine
+    - import: liftLinks lifts a scheme-less link in prose and never one inside a code span or a fence (a link mark on a code run is invalid in the editor's schema, and the document opens read-only)
     - artifacts: creditBlockChanges gives each session only the blocks attributed to it and credits nobody with what the app wrote (a verdict line, a run card); mergeBlocks folds a block changed twice and drops one added then removed
     - instance-table: coverageOf — what satisfies a req, what verifies it, its tasks, and a gap naming which side is missing
-  count: 89
+  count: 91
 ```
