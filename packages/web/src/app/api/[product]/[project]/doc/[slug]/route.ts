@@ -8,7 +8,7 @@ import { docRoute, splitDocument } from '@/lib/doc';
 import { recordArtifact } from '@/lib/artifacts';
 import { retypeFrontmatter, rewriteId } from '@/lib/retype';
 import { readFile } from 'node:fs/promises';
-import { appendChunk, bodyOf, hashOf, insertYamlAfterSegment, lint, patchFrontmatter, rebuild, replaceBody, replaceChunk, replaceSegment, writeAtomic, type WriteResult } from '@/lib/write';
+import { appendChunk, bodyOf, hashOf, insertYamlAfterSegment, lint, patchFrontmatter, rebuild, replaceBody, replaceChunk, replaceSegment, withFileLock, writeAtomic, type WriteResult } from '@/lib/write';
 
 type Op =
   | { op: 'replace-segment'; index: number; ifMatch: string; text: string }
@@ -40,6 +40,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
   claimWrite(hit.d.file, { session: session ?? undefined, by: req.headers.get('x-wf-by') ?? undefined }); // who edits this document (change records, lib/changes)
   // the graph may still list a document whose file was just removed outside the app: a write never recreates it
   // (rule:doc-write-gone, decision:wf2.deleted-outside-drops-edits)
+  // one write of a document at a time (withFileLock): the second of two saves in flight reads what the first wrote —
+  // its hash check then says conflict or applies cleanly — instead of both editing the same starting text
+  return withFileLock(path.join(REPO_ROOT, hit.d.file), async () => {
   const md = await loadMarkdown(REPO_ROOT, hit.d.file).catch(() => null);
   if (md === null) return NextResponse.json({ error: 'not_found', message: `${hit.d.file} is no longer on disk` }, { status: 404 });
   if (body.op === 'retype') return retype(hit.scope, hit.d.file, md, body.type);
@@ -65,6 +68,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
   const split = splitDocument(r.md);
   const hashes = split.segments.map(s => s.type === 'markdown' ? hashOf(s.text) : s.type === 'yaml' ? s.chunks.map(c => hashOf(c.raw)) : null);
   return NextResponse.json({ ok: true, rebuilt: built.code === 0, build: built.output.trim(), lintOk: mine.length === 0, lintErrors: mine, lintElsewhere: errors.length - mine.length, hashes, bodyHash: hashOf(bodyOf(r.md)) });
+  });
 }
 
 // op:doc.retype (rule:doc-retype): the page becomes an instance of `type` — its node line takes the kind and every

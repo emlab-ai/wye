@@ -4,7 +4,7 @@ type: module
 title: Runs
 status: proposed
 owner: alex
-last-verified: 2026-09-21
+last-verified: 2026-09-22
 order: 30
 ---
 
@@ -17,18 +17,18 @@ Every run the harness made, as cards of the Evaluation project's types (module:e
 One card per results file: the suite, the graph and git shas, the model, the judge, the prompt hashes and the gate.
 
 ```yaml
-- id: eval-run:2026-09-21-own
-  title: "own — 2026-09-21 (replayed)"
+- id: eval-run:2026-09-22-own
+  title: "own — 2026-09-22 (replayed)"
   suite: own
-  date: 2026-09-21
-  graph-sha: "865d89cb0e3e"
-  git: "85c42d2231a5"
+  date: 2026-09-22
+  graph-sha: "a7dd490e516b"
+  git: "d92d3a8c5cb9"
   model: "claude-haiku-4-5-20251001"
   judge: "claude-haiku-4-5-20251001 @ 6d31662f"
   prompts: "verdict 6d31662f, impact 291a2d1d, consolidation 1d527194"
   gate: passed
-  truth: "truth-wye-865d89cb0e3e.json: requirements 73, supersessions 2, commits 0, sessions 19, consolidation 31"
-  truth: "errors: packet: recording missing in eval/recorded/semantic-wye.json for context \"A request from the command palette can carry images\" — run once with --live (WATERFALL_LIVE=1); currency: recording missing in eval/recorded/semantic-wye.json for context \"The session page is derived from the session and the graph, \" — run once with --live (WATERFALL_LIVE=1); impact: recording missing in eval/recorded/semantic-wye.json for context \"Show which part of the knowledge base a session changed: Sho\" — run once with --live (WATERFALL_LIVE=1)"
+  truth: "truth-wye-a7dd490e516b.json: requirements 74, supersessions 2, commits 7, sessions 19, consolidation 31"
+  truth: "errors: packet: recording missing in eval/recorded/semantic-wye.json for context \"A request from the command palette can carry images\" — run once with --live (WATERFALL_LIVE=1); currency: recording missing in eval/recorded/semantic-wye.json for context \"The session page is derived from the session and the graph, \" — run once with --live (WATERFALL_LIVE=1); impact: recording missing in eval/recorded/semantic-wye.json for context \"A node's column is one page — properties, comments, then its\" — run once with --live (WATERFALL_LIVE=1)"
 ```
 
 ## Scores
@@ -36,18 +36,18 @@ One card per results file: the suite, the graph and git shas, the model, the jud
 One card per number, with the previous run, the delta in points, the tolerance it is gated against and the judge's κ when a model scored it.
 
 ```yaml
-- id: eval-score:2026-09-21-own.contradictions-recall
+- id: eval-score:2026-09-22-own.contradictions-recall
   title: "contradictions.recall 16.7%"
-  run: eval-run:2026-09-21-own
+  run: eval-run:2026-09-22-own
   name: "contradictions.recall"
   value: "16.7%"
   n: 6
   tolerance: 5
   kappa: "n/a"
   what: "drift pairs judged contradicts; by conflict: static 1; 6 unjudged"
-- id: eval-score:2026-09-21-own.contradictions-precision
+- id: eval-score:2026-09-22-own.contradictions-precision
   title: "contradictions.precision n/a"
-  run: eval-run:2026-09-21-own
+  run: eval-run:2026-09-22-own
   name: "contradictions.precision"
   value: "n/a"
   n: 0

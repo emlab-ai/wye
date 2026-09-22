@@ -78,8 +78,11 @@ export function patchFrontmatter(md: string, patch: Record<string, string | null
   return { md: '---\n' + out.join('\n') + '\n---\n' + md.slice(fm[0].length) };
 }
 
+// The temp name is unique per call, not per process: two writes of one file in flight at once (a save and the debounced
+// one behind it) must never share a temp file — one would truncate the other's and the rename that lost would fail.
+let writeSeq = 0;
 export async function writeAtomic(file: string, text: string): Promise<void> {
-  const tmp = `${file}.tmp-${process.pid}`;
+  const tmp = `${file}.tmp-${process.pid}-${++writeSeq}`;
   await writeFile(tmp, text, 'utf8');
   await rename(tmp, file);
 }

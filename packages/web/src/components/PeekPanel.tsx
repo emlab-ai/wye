@@ -100,11 +100,19 @@ function NodeView({ id }: { id: string }) {
   const [opened, setOpened] = useState<Set<string>>(() => new Set());
   const toggle = (ids: string[], on?: boolean) => setOpened(cur => { const next = new Set(cur); for (const x of ids) { if (on ?? !next.has(x)) next.add(x); else next.delete(x); } return next; });
   useEffect(() => { setOpened(new Set()); }, [id]);
+  // refetch when the graph changes on disk: a block opened the moment it was typed is asked for before its save has
+  // rebuilt the graph — the first answer is a 404 and the next graph event brings the node (rule:column-follows-graph)
+  const [graphVersion, setGraphVersion] = useState(0);
+  const [missing, setMissing] = useState(false);
   useEffect(() => {
-    let live = true; setD(null);
-    fetch(`/api/${product}/node/${encodeURIComponent(id)}?depth=${depth}`).then(r => r.ok ? r.json() : null).then(j => { if (live) setD(j); });
+    const h = (e: Event) => { if ((e as CustomEvent<{ kinds: string[] }>).detail.kinds.includes('graph')) setGraphVersion(v => v + 1); };
+    window.addEventListener('wf:change', h); return () => window.removeEventListener('wf:change', h);
+  }, []);
+  useEffect(() => {
+    let live = true; setD(cur => (cur && cur.node.id === id ? cur : null)); setMissing(false);
+    fetch(`/api/${product}/node/${encodeURIComponent(id)}?depth=${depth}`).then(r => r.ok ? r.json() : null).then(j => { if (!live) return; if (j) setD(j); else setMissing(true); });
     return () => { live = false; };
-  }, [id, product, depth, tick]);
+  }, [id, product, depth, tick, graphVersion]);
   const rows = { index, opened, toggle };
   const entry = index[id];
   const def = hrefFor(id);
@@ -118,7 +126,7 @@ function NodeView({ id }: { id: string }) {
         <span className="node-kind" style={{ '--k': `var(--k-${kind}, var(--k-other))` } as React.CSSProperties}><i />{kind}</span>
         <code className="node-id" title="click to copy the id" onClick={() => { navigator.clipboard?.writeText(id).catch(() => {}); }}>{id.slice(kind.length + 1)}</code>
         {d?.type && !d.self && d.type.slug !== kind && <Link className="node-type" href={`/${product}/types/${d.type.slug}`} title="the type this node belongs to">{d.type.slug}</Link>}
-        {!entry?.defined && !id.startsWith('type:') && <span className="muted node-stub">referenced only</span>}
+        {!entry?.defined && !d?.node.defined && !id.startsWith('type:') && <span className="muted node-stub">referenced only</span>}
         {entry?.defined && <ChangedBadge key={`chg-${id}`} id={id} />}
       </div>
       <div className="node-tools" role="toolbar" aria-label="Node actions">
@@ -150,7 +158,7 @@ function NodeView({ id }: { id: string }) {
       {d && d.self ? null : d && d.node.defined && d.type
         ? <><NodeEditor key={id} id={id} body={d.node.body} form={d.node.form ?? 'yaml'} type={d.type} props={d.props ?? []} entry={entry} relations={d.relations.out} onSaved={() => setTick(t => t + 1)} />
           {entry && entry.kind === 'task' && <TaskWork key={`work-${id}`} id={id} />}</>
-        : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : <p className="muted">Loading {id}…</p>}
+        : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : missing ? <p className="muted">Not in the graph yet — it appears here once the document is saved and rebuilt.</p> : <p className="muted">Loading {id}…</p>}
       {isNode && <PageComments key={`comments-${id}`} product={product} node={id} />}
       {isNode && <NodeContent id={id} kind={entry?.kind ?? kind} />}
       {isNode && (

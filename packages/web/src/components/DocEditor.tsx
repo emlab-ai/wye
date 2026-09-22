@@ -970,6 +970,15 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     setState('saved'); // the rail and panels refresh on the graph event the save's build sends (LiveRefresh), once per burst
   }
   const settling = useRef(false);
+  // a save now, not after the debounce: a block the person just added must be in the graph — and openable in the
+  // column — the moment it exists (req:wf2.ui.new-block-opens)
+  const saveNow = () => { touched.current = true; changed(); if (timer.current) { clearTimeout(timer.current); timer.current = null; } flushSave(); };
+  const flushSave = () => {
+    if (lastExported.current === null) return;
+    const md = blocksToMarkdown(editor.document as unknown as AnyBlock[]);
+    if (norm(md) === norm(lastExported.current)) return;
+    lastExported.current = md; save(md);
+  };
   const changed = () => {
     if (loading.current) return;
     if (!settling.current) { settling.current = true; try { settle(); } finally { settling.current = false; } }
@@ -1232,7 +1241,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   };
   const nodeItems = [...CARD_KINDS, ...ownKinds].map(kind => ({
     title: `${kind} block`, group: 'Wye', subtext: PARTS[kind] ? `a new ${kind} with its ${PARTS[kind].map(([k]) => k).join(', ')} blocks under it` : `a new ${kind} written as prose`,
-    onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'node', props: { kind, slug: fresh(), form: 'prose', textKey: 'text', check: kind === 'task' ? 'todo' : '', status: kind === 'task' ? 'open' : PARTS[kind] ? 'proposed' : '' }, ...(PARTS[kind] ? { children: PARTS[kind].map(([k, t]) => child(k, t)) } : {}) } as never); },
+    onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'node', props: { kind, slug: fresh(), form: 'prose', textKey: 'text', check: kind === 'task' ? 'todo' : '', status: kind === 'task' ? 'open' : PARTS[kind] ? 'proposed' : '' }, ...(PARTS[kind] ? { children: PARTS[kind].map(([k, t]) => child(k, t)) } : {}) } as never); setTimeout(saveNow, 120); },   // after the menu has taken its trigger text out
   }));
 
   // Drawings: a new empty scene, or the current code block turned into a monospace text element (ASCII diagrams).

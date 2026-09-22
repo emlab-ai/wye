@@ -95,3 +95,21 @@ console.log('ok — prose nodes: ' + g.stats().nodes + ' nodes');
   assert(g.edges.some(e => e.from === 'req:r1' && e.to === 'rule:live-refresh' && e.verb === 'related-to'), 'second list item is an edge');
   console.log('ok prose: an id list in trailing props keeps its commas');
 }
+
+// an id alone on its line — a block just added in the editor — is a node with empty text, unless something else
+// defines the id (req:wf2.ui.new-block-opens)
+{
+  const fs = require('fs'), os = require('os'), path = require('path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wye-empty-'));
+  fs.mkdirSync(path.join(root, 'projects/p/docs'), { recursive: true });
+  fs.writeFileSync(path.join(root, '_product.md'), '---\ntitle: t\n---\n');
+  fs.writeFileSync(path.join(root, 'projects/p/_project.md'), '---\ntitle: p\n---\n');
+  fs.writeFileSync(path.join(root, 'projects/p/docs/d.md'), '---\nnode: module:d\ntype: module\ntitle: d\n---\n\n# d\n\ngoal:new-1 \n\n- [ ] task:new-3\n\nreq:later\n\n```yaml\n- id: req:later\n  title: The real card\n```\n');
+  const graph = parseFiles([path.join(root, 'projects/p/docs/d.md')], root);
+  const by = id => graph.nodes.find(n => n.id === id);
+  assert.ok(by('goal:new-1') && by('goal:new-1').defined, 'an empty goal line is a node');
+  assert.strictEqual(by('task:new-3').status, 'open', 'an empty task line keeps its checkbox status');
+  assert.strictEqual(by('req:later').title, 'The real card', 'a bare id line never shadows the card that defines it');
+  fs.rmSync(root, { recursive: true, force: true });
+  console.log('ok prose: an id alone on a line is an empty node; a real definition wins');
+}
