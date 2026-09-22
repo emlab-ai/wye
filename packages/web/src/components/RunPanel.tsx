@@ -46,13 +46,17 @@ export function RunRow({ product, run, reload }: { product: string; run: RunView
   };
   const ready = run.readiness;
   const done = !LIVE_RUN.has(run.status);
+  // what Advance would start: a stage depends on the one before it, so the button says what it unlocks
+  const next = run.stages[run.step]?.title ?? '';
   return (
     <div className={`run-row s-${run.status}`}>
       <div className="run-head">
         <SmartTag id={run.id} />
         <strong className="run-wf">{run.workflowTitle}</strong>
         <span className="muted">stage {run.step} of {run.of} · {run.stageTitle}{run.status === 'blocked' ? ' · blocked' : done ? ` · ${run.status}` : ''}</span>
-        {!done && <span className="muted small">{ready.ok ? 'ready to advance' : `${ready.rows.filter(r => r.ok).length} of ${ready.rows.length} ready`}</span>}
+        {!done && <span className="muted small">{ready.ok
+          ? next ? `ready — Advance starts ${next}` : 'ready — Advance finishes the run'
+          : `${ready.rows.filter(r => r.ok).length} of ${ready.rows.length} ready${next ? ` before ${next}` : ''}`}</span>}
         {!done && <span className="run-acts">
           {run.status === 'blocked'
             ? <button className="pri" disabled={!!busy} onClick={() => move('retry')} title="Run this stage's work again">{busy === 'retry' ? '…' : 'Retry'}</button>

@@ -72,8 +72,9 @@ async function writeRun(scope: Scope, project: Project, r: RunState, o: { by: st
     for (const [name, id] of Object.entries(next.docs)) patch[`doc-${name}`] = id;
     if (next.finished) patch.finished = next.finished;
     const fm = patchFrontmatter(md, patch); if (!fm.error) md = fm.md;
-    if (w) md = withSection(md, 'Stages', stagesSection(w, next, bindings(scope, next, w)));
-    md = withSection(md, 'Blocking', ready && stage ? blockingSection(ready.rows, stage.gate) : '_The stage this run points at is gone from its workflow._');
+    if (w) md = withSection(md, 'Stages', stagesSection(w, next, bindings(scope, next, w), ready?.rows ?? []));
+    const after = w ? nextStage(w, next.stage) : null;
+    md = withSection(md, 'Blocking', ready && stage ? blockingSection(ready.rows, stage.gate, { ...(after ? { next: after.title } : {}), over: !LIVE.has(next.status), run: next.id }) : '_The stage this run points at is gone from its workflow._');
     if (o.line) {
       const kept = (sectionBody(md, 'Log') ?? '').split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('_'));
       md = withSection(md, 'Log', [...kept, `- ${o.line}`].join('\n'));
@@ -165,8 +166,10 @@ async function viewOf(scope: Scope, r: RunState): Promise<RunView> {
 export async function listRuns(scope: Scope): Promise<RunView[]> {
   return Promise.all(runsIn(scope).map(r => viewOf(scope, r)));
 }
+// The runs to show on a node's page: the ones started from it, and — when the node is a run page — that run itself,
+// so the page a person reads carries the Advance that moves it.
 export async function runsOnNode(scope: Scope, id: string): Promise<RunView[]> {
-  return Promise.all(runsIn(scope).filter(r => r.on === id).map(r => viewOf(scope, r)));
+  return Promise.all(runsIn(scope).filter(r => r.on === id || r.id === id).map(r => viewOf(scope, r)));
 }
 
 // --- the moves ---

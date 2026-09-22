@@ -22,15 +22,22 @@ Started on goal:new-650 — the Feature workflow.
 
 ## Stages
 
-- ▶ Explore the idea → module:implement-a-feature-to-install-system-skills-and-templates-i  **waiting**
-- · Write the PRD → prd (not yet)
-- · Tech design and test design → dev-design, test-design (not yet)
-- · Build the plan → plan (not yet)
-- · Dispatch the work
+Each stage starts only when the one before it has met its criterion and you press **Advance**.
+
+1. **Explore the idea — done, waiting for you** · produced module:implement-a-feature-to-install-system-skills-and-templates-i
+   - **Gate → Write the PRD:** ✓ every session done — **ready — press Advance**
+2. Write the PRD — **next** · produces prd
+   - Gate → Tech design and test design: every req in prd is agreed · no open question in prd — then you press Advance
+3. Tech design and test design · produces dev-design, test-design
+   - Gate → Build the plan: every req in prd has satisfied-by · every req in prd has verified-by · no open contradiction — then you press Advance
+4. Build the plan · produces plan
+   - Gate → Dispatch the work: every req in prd has a task · every task in plan is ready — then you press Advance
+5. Dispatch the work
+   - Gate → the run ends: every task in plan is done — then it moves on by itself
 
 ## Blocking
 
-Ready. Nothing is missing — Advance is yours.
+**Ready — nothing is missing.** Advance to start **Write the PRD** — the Advance button at the top of this page, or `wye run advance run:feature-1`.
 
 - ✓ every session done
 

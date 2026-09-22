@@ -98,13 +98,31 @@ const row = (label: string, blocking: string[]): Row => ({ label, ok: !blocking.
 // One predicate → one readiness row. A criterion that cannot be evaluated — an unbound document, a document with no
 // requirements in it at all — is a red row, never a green one: an exit criterion nobody can compute must not let a
 // stage through.
+// What a predicate asks for, in words — the row's label, and what the Stages chain shows for a stage not reached yet.
+export function untilLabel(p: Predicate): string {
+  switch (p.kind) {
+    case 'manual': return 'advanced by hand';
+    case 'session-done': return 'every session done';
+    case 'check-passes': return 'wye check passes';
+    case 'no-open-contradiction': return 'no open contradiction';
+    case 'exists': return `${p.doc} exists`;
+    case 'reqs-agreed': return `every req in ${p.doc} is agreed`;
+    case 'reqs-have': return `every req in ${p.doc} has ${p.verb}`;
+    case 'reqs-have-task': return `every req in ${p.doc} has a task`;
+    case 'no-open-question': return `no open question in ${p.doc}`;
+    case 'tasks-done': return `every task in ${p.doc} is done`;
+    default: return `every task in ${p.doc} is ready`;
+  }
+}
+export const untilLabels = (s: StageDef): string[] => [...s.until.map(untilLabel), ...s.badUntil.map(b => `"${b}" (not a criterion this engine knows)`)];
+
 function evaluate(p: Predicate, ctx: RunCtx): Row {
-  if (p.kind === 'manual') return row('advanced by hand', []);
-  if (p.kind === 'session-done') return row('every session done', ctx.sessions.filter(s => s.status !== 'done').map(s => `session:${s.id}`));
-  if (p.kind === 'check-passes') return row('wye check passes', ctx.checkErrors ? [`${ctx.checkErrors} check errors`] : []);
+  if (p.kind === 'manual') return row(untilLabel(p), []);
+  if (p.kind === 'session-done') return row(untilLabel(p), ctx.sessions.filter(s => s.status !== 'done').map(s => `session:${s.id}`));
+  if (p.kind === 'check-passes') return row(untilLabel(p), ctx.checkErrors ? [`${ctx.checkErrors} check errors`] : []);
   if (p.kind === 'no-open-contradiction') {
     const open = ctx.graph.nodes.filter(n => n.kind === 'contradiction' && n.defined && !['resolved', 'dismissed', 'superseded'].includes(n.status));
-    return row('no open contradiction', open.map(n => n.id));
+    return row(untilLabel(p), open.map(n => n.id));
   }
   const file = fileOf(ctx, p.doc);
   if (!file) return row(`${p.doc}: no such document yet`, [p.doc]);
@@ -195,25 +213,48 @@ export const autoRun = (r: Pick<RunState, 'auto'>) => r.auto;
 
 // Every stage of the workflow in order and where the run is: what is done, what is running now, what is still ahead,
 // with the documents each one produced. This is the answer to "where has this got to".
-export function stagesSection(w: WorkflowDef, r: RunState, bindings: Record<string, string> = {}): string {
+export function stagesSection(w: WorkflowDef, r: RunState, bindings: Record<string, string> = {}, rows: Row[] = []): string {
   const at = stageIndex(w, r.stage);
-  return w.stages.map((s, i) => {
-    const mark = r.status === 'done' || i < at ? '✓' : i === at ? (r.status === 'blocked' ? '✗' : '▶') : '·';
+  const over = !LIVE.has(r.status);
+  const where = (s: StageDef) => {
     const made = s.produces.map(n => bindings[n]).filter(Boolean);
-    const where = made.length ? ` → ${made.join(', ')}` : s.produces.length ? ` → ${s.produces.join(', ')} (not yet)` : '';
-    const now = i === at && r.status !== 'done' ? `  **${r.status}**` : '';
-    return `- ${mark} ${s.title}${where}${now}`;
-  }).join('\n');
+    return made.length ? ` · produced ${made.join(', ')}` : s.produces.length ? ` · produces ${s.produces.join(', ')}` : '';
+  };
+  // Under each stage, the gate out of it: what must hold, and who moves the run on. The stage the run is on shows the
+  // live state of each criterion; the ones ahead show what they will ask for, so the chain reads as a chain.
+  const gate = (s: StageDef, i: number) => {
+    const last = i === w.stages.length - 1;
+    const to = last ? 'Gate → the run ends' : `Gate → ${w.stages[i + 1].title}`;
+    const how = s.gate === 'auto' ? 'it moves on by itself' : 'you press Advance';
+    if (over || i < at) return `   - ${to}: passed`;
+    if (i === at) {
+      const live = (rows.length ? rows : s.until.map(p => ({ label: untilLabel(p), ok: false, blocking: [] }))).map(x => `${x.ok ? '✓' : '○'} ${x.label}`).join(' · ');
+      const ready = rows.length > 0 && rows.every(x => x.ok);
+      const verdict = r.status === 'blocked' ? 'blocked — retry, skip or cancel it' : ready ? (s.gate === 'auto' ? 'ready — it moves on by itself' : '**ready — press Advance**') : `not yet — ${how} once it holds`;
+      return `   - **${to}:** ${live} — ${verdict}`;
+    }
+    return `   - ${to}: ${untilLabels(s).join(' · ')} — then ${how}`;
+  };
+  const head = `Each stage starts only when the one before it has met its criterion${w.stages.some(s => s.gate === 'person') ? ' and you press **Advance**' : ''}.`;
+  const body = w.stages.flatMap((s, i) => {
+    const here = r.status === 'blocked' ? 'blocked' : r.status === 'waiting' ? 'done, waiting for you' : 'running now';
+    const line = over || i < at ? `${i + 1}. ✓ ${s.title} — done${where(s)}`
+      : i === at ? `${i + 1}. **${s.title} — ${here}**${where(s)}`
+      : `${i + 1}. ${s.title}${i === at + 1 ? ' — **next**' : ''}${where(s)}`;
+    return [line, gate(s, i)];
+  });
+  return [head, '', ...body].join('\n');
 }
-
-// The current stage's criterion, row by row, with what holds each one back — what stops the next stage starting.
-export function blockingSection(rows: Row[], gate: Gate): string {
+export function blockingSection(rows: Row[], gate: Gate, o: { next?: string; over?: boolean; run?: string } = {}): string {
+  if (o.over) return '_The run is over._';
   if (!rows.length) return '_Nothing is checked for this stage._';
-  const lines = rows.map(x => `- ${x.ok ? '✓' : '·'} ${x.label}${x.blocking.length ? ` — ${x.blocking.join(', ')}` : ''}`);
-  const all = rows.every(x => x.ok);
-  const lead = all
-    ? gate === 'person' ? 'Ready. Nothing is missing — Advance is yours.' : 'Ready. This stage advances on its own.'
-    : `Waiting on ${rows.filter(x => !x.ok).length} of ${rows.length}:`;
+  const lines = rows.map(x => `- ${x.ok ? '✓' : '○'} ${x.label}${x.blocking.length ? ` — ${x.blocking.join(', ')}` : ''}`);
+  const open = rows.filter(x => !x.ok).length;
+  const what = o.next ? `start **${o.next}**` : 'finish the run';
+  const how = o.run ? ` — the Advance button at the top of this page, or \`wye run advance ${o.run}\`` : '';
+  const lead = open === 0
+    ? gate === 'person' ? `**Ready — nothing is missing.** Advance to ${what}${how}.` : `**Ready — nothing is missing.** This stage moves on by itself and will ${what}.`
+    : o.next ? `**Waiting on ${open} of ${rows.length}** — **${o.next}** cannot start until these hold:` : `**Waiting on ${open} of ${rows.length}** before the run can finish:`;
   return [lead, '', ...lines].join('\n');
 }
 
