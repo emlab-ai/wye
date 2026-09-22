@@ -908,3 +908,10 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .ev-know .know-body { display: grid; gap: 2px; }
 .ev-know .know-asked { margin: 0 0 2px; font-size: 12px; }
 .ev-know .know-asked i { font-style: normal; text-transform: uppercase; font-size: 10px; letter-spacing: .04em; margin-right: 6px; }
+
+/* Answering a question where it is read (decision:wf2.answer-is-content): the field sits above the row's actions */
+.review-answer { display: flex; gap: 6px; align-items: flex-end; margin: 6px 0 0; }
+.review-answer textarea { flex: 1; resize: vertical; min-height: 34px; background: var(--ground); border: 1px solid var(--line-2); border-radius: 8px; padding: 6px 8px; color: var(--ink); font: 13px var(--font-b); }
+.review-answer textarea:focus { border-color: var(--accent); outline: none; }
+.review-answer .pri { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 6px 12px; font: 600 12px var(--font-b); cursor: pointer; }
+.review-answer .pri:disabled { opacity: .45; cursor: default; }

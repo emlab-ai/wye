@@ -29,9 +29,28 @@ function selectOnRow(e: MouseEvent, select: () => void) {
 export function ReviewList({ product, items }: { product: string; items: ReviewItem[] }) {
   const { open, openId, select } = usePeek(); const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('');
   const put = async (id: string, body: Record<string, unknown>) => { const r = await fetch(`/api/${product}/node/${encodeURIComponent(id)}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(`${id}: ${j.message ?? j.error}`); };
+  // A question's answer is its content (decision:wf2.answer-is-content), so answering here writes a block under the
+  // question in its own document — the same place the column's card and the editor put it — and then closes it. The
+  // hash the content route hands back is passed straight back to it (rule:if-match), so an edit made meanwhile is a
+  // conflict rather than an overwrite.
+  const answer = async (it: ReviewItem) => {
+    const text = (draft[it.id] ?? '').trim(); if (!text) return;
+    setBusy(it.id); setMsg(null);
+    try {
+      const at = await fetch(`/api/${product}/node/${encodeURIComponent(it.id)}/content`).then(r => r.ok ? r.json() : Promise.reject(new Error('could not read the question')));
+      const body = [String(at.content ?? '').trim(), text].filter(Boolean).join('\n\n');
+      const w = await fetch(`/api/${product}/node/${encodeURIComponent(it.id)}/content`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ content: body, ifMatch: at.bodyHash }) });
+      if (!w.ok) throw new Error((await w.json().catch(() => ({}))).message ?? 'the answer could not be written');
+      await put(it.id, { status: 'resolved' });
+    } catch (e) { setMsg(e instanceof Error ? e.message : String(e)); setBusy(null); return; }
+    setDraft(d => ({ ...d, [it.id]: '' }));
+    setBusy(null); router.refresh();
+  };
+
   const setStatus = async (it: ReviewItem, status: string) => {
     setBusy(it.id); setMsg(null);
     try { await put(it.id, { status }); } catch (e) { setMsg(e instanceof Error ? e.message : String(e)); setBusy(null); return; }
@@ -106,6 +125,14 @@ export function ReviewList({ product, items }: { product: string; items: ReviewI
                       <button className="linkish" onClick={() => setChoosing(null)}>Cancel</button>
                     </div>
                   </div>)}
+                {it.kind === 'question' && (
+                  <div className="review-answer" onClick={e => e.stopPropagation()}>
+                    <textarea value={draft[it.id] ?? ''} placeholder="Answer it — this is written under the question and closes it" rows={(draft[it.id] ?? '').split('\n').length > 2 ? 4 : 2}
+                      onChange={e => setDraft(d => ({ ...d, [it.id]: e.target.value }))}
+                      onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void answer(it); } }} />
+                    <button className="pri" disabled={busy === it.id || !(draft[it.id] ?? '').trim()} onClick={() => answer(it)} title="Write this under the question and resolve it (⌘↵)">{busy === it.id ? 'Answering…' : 'Answer'}</button>
+                  </div>
+                )}
                 <div className="sec-actions review-acts">
                   {it.kind === 'question'
                     ? <><button className="pri" disabled={busy === it.id} onClick={() => setStatus(it, 'resolved')} title="The answer is recorded (as a decision) — close the question">Resolve</button><button disabled={busy === it.id} onClick={() => setStatus(it, 'rejected')}>Reject</button></>

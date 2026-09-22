@@ -71,12 +71,12 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
 ```yaml
 - id: rule:inbox-review
-  source: packages/web/src/lib/review.ts; packages/web/src/components/ReviewList.tsx; packages/web/src/lib/node-edit.ts
+  source: packages/web/src/lib/review.ts; packages/web/src/components/ReviewList.tsx; packages/web/src/lib/node-edit.ts; packages/web/src/app/api/[product]/node/[id]/content/route.ts
   status: shipped
   title: The Inbox is a review view over the documents, not a store:
 ```
 
-  - statement:inbox-review The Inbox is a review view over the documents, not a store: it lists the blocks nobody has approved yet — decisions, requirements, rules, goals with `status: proposed` (or draft) and questions still open — grouped by kind with their fields and refs. Approve / Reject / Resolve change the block's status in its document (prose lines and yaml cards alike); "Approve all" takes a group. Raw notes without a document (pasted material) still land in the inbox folder below the queue. The Questions page shows question blocks only.
+  - statement:inbox-review The Inbox is a review view over the documents, not a store: it lists the blocks nobody has approved yet — decisions, requirements, rules, goals with `status: proposed` (or draft) and questions still open — grouped by kind with their fields and refs. Approve / Reject / Resolve change the block's status in its document (prose lines and yaml cards alike); "Approve all" takes a group. A question carries its answer field here (decision:wf2.answer-is-content): what is typed is written as a content block under the question, in the question's own document and under the hash the content route handed back (rule:if-match), and the question is resolved in the same move — so a question can be answered where it is read, not only in its document or the column. Raw notes without a document (pasted material) still land in the inbox folder below the queue. The Questions page shows question blocks only.
 
 ```yaml
 - id: rule:mindmap-layout
