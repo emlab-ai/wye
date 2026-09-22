@@ -931,5 +931,7 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
     - changes: nodeValue (text key apart from status and properties), changedKeys, tracking-only, recordsFromDiff (pending for an agent or an approved node, accepted for tracking-only and a person's own proposed block, none for paragraphs), revertPatch (title as a property, removed keys null), changedSince; diff: wordDiff
     - plan-doc (execution): the request task line with worker, session and part-of; an assigned task embedded instead; requestTaskStatusOnEnd; definitionIds (top-level embeds, cards, prose lines; verdicts and indented content ignored), withDefinition (idempotent, creates the section before Plan), definitionState (a task agreed once it is work; open contradictions on agreed blocks), planStatusFromDefinition
     - node-line: the #ready mark beside the status, review
-  count: 71
+    - runs (workflows): parseStage (actions, produces, until, gate, the defaults, several do lines, a worker and skills), an unparseable until kept as badUntil, workflowOf (stages part-of it in document order, takes, admits, nextStage, the fallback to the document), readinessOf per predicate against a fixture graph — every req agreed naming the ones that are not, has <verb> with a dangling target not counting, session done, tasks ready and done, open questions, contradictions, check, has a task, and the three that must never be green (an empty PRD, an unbound document, a criterion that did not parse); the run card round-tripping through yaml with its log, replaceCard leaving its neighbours alone, runSlug, LIVE, autoRun's cap, logLine
+    - instance-table: coverageOf — what satisfies a req, what verifies it, its tasks, and a gap naming which side is missing
+  count: 87
 ```

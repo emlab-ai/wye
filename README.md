@@ -289,13 +289,26 @@ Lifecycle: `draft → refining → approved → building → done | failed | can
 approves; the dispatcher builds. `wye pr <product/project/pr-x>` from the terminal, `wye pr approve|cancel|reopen`,
 `wye pr build --worker claude-code|codex`.
 
-## Skills and hooks
+## Skills, hooks and workflows
 
 A **skill** is an instruction a session follows — a document under the project's Skills page, editable in the app
 like any other. Wye ships four: *Analyse a request*, *Build a request*, *Define how a requirement is tested*,
 *Describe a module from its code*. A **hook** is a card in the project's Hooks document — `when <kind>.<event>
 [where …] do run <skill> | add <template> | assign | notify` — and the engine runs it on the watcher, on approve
 and at session end; what fired is on the Hooks page and in `wye hooks`.
+
+A **workflow** is a skill that declares stages — an ordered, gated pipeline you run on any document or node. Wye
+ships *Feature*: an idea becomes research, then a PRD, then a tech design and a test design written together, then a
+plan, then dispatched work. Each stage creates the document it produces (never overwriting one you edited), hands the
+work to an agent with its own editable skill, computes its exit criterion from the graph — *every requirement agreed,
+no open question; every requirement with something satisfying it and something verifying it; every requirement with a
+task* — and then **waits for you**: the readiness rows say what is missing and Advance is yours (`gate: auto` on a
+stage opts out). Reopen goes back and keeps both passes, Skip is recorded as an override, and a failed session blocks
+the run rather than quietly moving on. ⌘P › Workflow starts one on what you are looking at — with nothing under the
+cursor, what you type becomes the document the run starts from — as does the Workflows section of any node's column,
+`wye workflow run`, or a hook's `run workflow:<id>`. Because the stage's skill writes `satisfies` and `verifies` and
+the parser generates the inverse, a requirement's links to its decisions and its tests come for free; the stage's
+criterion is what notices when one is missing, and the coverage view is what you read before you advance.
 
 The Claude Code skills in `skills/` (linked by `install.sh`) teach an agent the contract from the other side:
 `wye-agent` (resolve a Wye link or id, read and write documents and nodes, report on a session),
@@ -339,6 +352,8 @@ The Claude Code skills in `skills/` (linked by `install.sh`) teach an agent the 
 | `wye work list\|add\|next\|assign` | every task with its state; a backlog line; the oldest ready task; assign to a person or agent |
 | `wye session list\|show\|changes\|create\|log\|done\|fail\|handoff\|open\|take` | sessions and their logs; every block a session changed; the worker's lifecycle |
 | `wye skills` · `wye skill <id>` · `wye hooks [--node id]` | the product's skills; one skill's instruction; the hooks and what fired |
+| `wye workflow list\|show <id>` · `wye workflow run <id> --on <node>` | the workflows and their stages; start a run on a node or document |
+| `wye run list\|show <id>` · `wye run advance\|skip\|reopen\|retry\|cancel <id>` | the runs with the readiness of the stage they are at; the person's moves |
 | `wye init --product <slug> --repo <dir>` | a product's definition from its code, first pass: the layered tree, every module / page / component / library / operation / test, a `#ready` describe task per module — no model, nothing overwritten |
 | `wye deepen <module> --product p` | assign the module's describe task to a worker: requirements from the code, each mapped to the file that delivers it |
 | `wye agent listen --product p --agent claude-code\|codex` | a runner: pick up queued sessions, run the agent with the prompt on stdin, stream the output to the session |
@@ -356,11 +371,11 @@ lib/judge.js             the model calls (verdicts, impact) — budgeted, cached
 lib/init.js              a definition from a repo
 packages/web             the app (Next.js, BlockNote): documents, cards, views, PRs, inbox, agents, sessions
 packages/desktop         the Electron shell that owns the server
-prompts/                 the worker contract (agent-system.md), the librarian, describe-module, analyse-request, define-tests
+prompts/                 the worker contract (agent-system.md), the librarian, describe-module, analyse-request, define-tests, and the stages of the Feature workflow (research, prd, tech-design, test-design, plan)
 skills/                  Claude Code skills (symlinked by install.sh)
 schema/base-ontology.md  the base types as type: cards (parser pass 1)
 schema/kinds.yaml        the same in prose (generated: npm run kinds): kinds, verbs, statuses, conventions
-templates/docs/          skeletons: prd, dev-design, test-design, plan, pr, skill, hooks, blank
+templates/docs/          skeletons: prd, research, dev-design, test-design, plan, pr, skill, hooks, workflow-feature, workflow-runs, blank
 viewer/index.html        the phone-first viewer (reqs tree · force graph · text)
 test/                    node tests over the parser, ontology, memory, impact, evals; packages/web has vitest
 eval/                    the benchmark harness and public adapters

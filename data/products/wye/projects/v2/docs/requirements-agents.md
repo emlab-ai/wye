@@ -210,6 +210,24 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - unless:wf2.hooks the hook is paused, hooks are off (Settings › Agents, or WF_HOOKS=0), the same hook already fired on that node, or the chain is deeper than three firings — then nothing runs; a node's column has a Hooks section listing the hooks that can fire on its kind and what fired, with Run now, which fires a hook on that node by hand regardless of once
 
 ```yaml
+- id: req:wf2.workflows
+  title: Workflows — a person runs a named, gated pipeline on any document: an idea becomes research, a PRD, the designs, a plan and dispatched work
+  status: shipped
+  refines: req:wf2.hooks
+  satisfied-by: [type:workflow, type:stage, type:run, lib:runs, lib:runs-run, lib:doc-create, op:api.workflows, op:api.runs, component:run-panel, component:run-strip, component:workflows-section, component:command-box, lib:watch, lib:skills]
+  verified-by: [test:web-lib#runs]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-agents
+```
+
+  - when:wf2.workflows a person runs a workflow — a skill that declares stages (decision:wf2.workflow-is-a-skill) — on any node or document, from ⌘P's Workflow mode, a node's column, `wye workflow run` or a hook's `run workflow:<id>`; with nothing under the cursor, what they typed becomes the document the run starts from
+
+  - then:wf2.workflows a `run:` card holds the state (decision:wf2.run-holds-the-state) and the first stage is entered: the documents it `produces:` are created from templates/docs when they are absent — never overwritten, so re-entering a stage keeps what was edited — bound to the names the stages use (`{{prd}}` in a task's text, `prd` in a criterion), and its `do:` actions run once per entry through the hook runner with the stage as the actor; each stage's `until:` is computed from the graph as readiness rows naming what blocks them (decision:wf2.until-is-closed), and the run waits at `waiting` for the person's Advance unless the stage says `gate: auto` (decision:wf2.gate-is-the-persons); Reopen goes back and keeps both passes, Skip advances with the override logged, a session that ends anything but done blocks the run, and the shipped workflow:feature carries the arc research → PRD → tech and test design → plan → dispatch with the traceability its criteria enforce (decision:wf2.traceability-is-the-verb)
+
+  - unless:wf2.workflows automation is off (Settings › Agents, WF_HOOKS=0) — the stages still write their tasks but assign no worker, so the pipeline degrades to a to-do list rather than dying; and nothing sweeps a product nobody is watching, so a run's status only moves while the app is following it
+
+```yaml
 - id: req:wf2.sessions.plan-result
   title: The plan document ends with the result — the app's section, scoped to the plan
   status: shipped

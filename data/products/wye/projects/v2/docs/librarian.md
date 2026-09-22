@@ -298,3 +298,76 @@ Definition — the librarian
   - consequence:wf2.cmd-modes sessions POST takes `pr: true | false`; createPrDoc runs only for a librarian (refining) or an assigned task's worker (building); restartFresh makes a new PR only on a PR conversation.
 
 <!-- /list:decision -->
+
+```yaml
+- id: decision:wf2.workflow-is-a-skill
+  title: A workflow is a skill that declares stages — one registry, executed by the app, never pasted into a prompt
+  date: 2026-09-22
+  status: approved
+  affects: [req:wf2.workflows, type:workflow, type:stage, type:run, lib:runs, lib:runs-run, lib:hooks, lib:hooks-run, lib:skills, lib:watch, lib:doc-create, op:api.workflows, op:api.runs, component:run-panel, component:run-strip, component:workflows-section, component:command-box]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
+```
+
+  - context:wf2.workflow-is-a-skill alex: "new thing i would like to be able to design - is workflow management for docs/prd research… i got an idea and i set it as a goal/prompt, next agent should start exploration/research and produce a prd document, at some point when i'm happy with prd i want to use another skill to write test design and tech design docs, i want to link requirement to implementation decisions and tests cases automatically, then build implementation plan and dispatch the work to agents — all of this needs to be configurable with skills and hooks". Hooks (decision:wf2.hooks-and-skills) could already chain one action to another, but a chain of hooks is invisible: nothing says you are at stage 2 of 5, what the exit criterion is, or what comes next, and it cannot be named, reused or started on demand. Asked where the arc should live, alex: "any document should be able to be a starting point, maybe i just want to run workflow??? for it i.e. predefined workflow of actions"; and on the shape: "maybe workflow should be part of the skill system?".
+
+  - choice:wf2.workflow-is-a-skill `type:workflow extends type:skill`: a document `workflow-<slug>.md` under the project's existing Skills page whose `stage:` cards are its steps, in document order. It inherits everything a skill has — editable in the app, `role`, `takes`, `wye skills` — and adds stages; a skill that declares stages is executed by the engine and **never** pasted into a session's prompt, or one agent would do all five stages in one pass. A stage carries the same `do:` vocabulary a hook runs (`task`, `run skill:`, `add`, `assign`, `notify`, and the two new ones: `run workflow:<id>` starts a run, `dispatch <doc> [--workers N]` hands a document's ready tasks to workers), `produces:` the documents it creates from templates/docs when they are absent, `until:` its exit criterion and `gate:` person (the default) or auto. The runner itself is the hook engine's, generalised from a HookDef to an Actor ({ id, title, skills }), and a stage's firing is a record in the same `_hooks/` store with `by: { run, stage }` — one action language, one runner, one store.
+
+  - alternative:wf2.workflow-is-a-skill A workflow as its own concept beside skills — rejected: a second registry, a second way to attach, a second door to run it, and one more thing to learn. Chains of hooks on statuses with no new type — rejected: it works today but the arc is invisible, unnamed and cannot be started on demand. Stretching type:pr into the long arc — rejected: a PR is one change and is the person's alone (constraint:wf2.pr-is-the-persons); a feature arc spans many documents and many sessions.
+
+  - consequence:wf2.workflow-is-a-skill Shipped with workflow:feature — research → PRD → tech design and test design → plan → dispatch — as five editable skills (skill:research, skill:prd, skill:tech-design, skill:test-design which composes skill:define-tests, skill:plan) and one workflow document; every product gets them on first open. ⌘P has a third mode, a node's column a Workflows section, and the document a run strip. Found while running the first one: `cardValue` stripped a single leading-or-trailing quote, so `do: task "…"` with no trailing flags parsed as no action at all.
+
+```yaml
+- id: decision:wf2.run-holds-the-state
+  title: The state of a run is a run: card, never properties on the thing it runs on
+  date: 2026-09-22
+  status: approved
+  affects: [type:run, lib:runs, lib:runs-run, component:run-strip]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
+```
+
+  - choice:wf2.run-holds-the-state A run is a card in the project's Workflow runs document (`workflow-runs.md`; `runs.md` is already eval runs): the workflow, what it runs `on`, the stage it is at, its status (running | waiting | blocked | done | cancelled), the documents it produced, the sessions it started, and `log:` — entered, ready, advanced, reopened, skipped, blocked, and by whom. So any document can be a starting point without being polluted with stage properties, and the same document can be run twice. Readiness is **computed on demand and never written**: a derived value in markdown is rewritten by every rebuild, and every rewrite is another rebuild. The sweep after each build writes only a transition.
+
+```yaml
+- id: decision:wf2.until-is-closed
+  title: A stage's exit criterion comes from a closed set of predicates, so it can be computed, shown and checked before it runs
+  date: 2026-09-22
+  status: approved
+  affects: [type:stage, lib:runs, op:api.workflows]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
+```
+
+  - choice:wf2.until-is-closed Eleven forms, comma separated, all of which must hold: `session done`, `<doc> exists`, `every req in <doc> is agreed`, `every req in <doc> has <verb>`, `every req in <doc> has a task`, `no open question in <doc>`, `no open contradiction`, `every task in <doc> is done`, `every task in <doc> is ready`, `check passes`, `manual`. Each renders as one readiness row naming the ids that hold it back, as a PR's readiness does. Free text is not accepted: a criterion only a person can read can gate nothing, and an `until` line that does not parse is shown — by the API, `wye workflow list|show` and the column — before it is ever relied on, and is red rather than silently true. The predicates live in the workflow, not in `wye check`'s global shapes: a product that does not run this workflow must not start failing its build.
+
+```yaml
+- id: decision:wf2.gate-is-the-persons
+  title: The person advances each stage; gate: auto is opt-in, because no predicate can see a thin PRD
+  date: 2026-09-22
+  status: approved
+  affects: [type:stage, lib:runs-run, component:run-panel]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
+```
+
+  - choice:wf2.gate-is-the-persons A stage's readiness is computed and shown, but the run waits at `waiting` until the person's Advance; `gate: auto` moves on by itself, and consecutive auto advances stop at MAX_DEPTH, the cap hooks already use. Skip advances without the criterion and is recorded in the log as an override, never silently; Reopen goes back to a stage and keeps both passes; a session that ends anything but done blocks the run until the person retries, skips or cancels. The reason for the default: an agent that writes four requirements where forty were needed produces a perfectly green design stage — no predicate sees it, so the person's gate is the only defence.
+
+```yaml
+- id: decision:wf2.traceability-is-the-verb
+  title: A requirement's links to its decisions and tests are written by the stage's skill; the criterion notices when one is missing
+  date: 2026-09-22
+  status: approved
+  affects: [req:wf2.workflows, lib:runs, lib:instance-table, component:instance-table, skill:tech-design, skill:test-design, skill:plan]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
+```
+
+  - choice:wf2.traceability-is-the-verb Nothing is derived or guessed. The stage's skill writes the verb — a decision or an operation `satisfies <the req>`, a test `verifies <the req>`, a task is `part-of <the req>` — and the parser generates the inverse, so traceability needs no new edge machinery; what it needs is something to notice when the verb was not written, and that is the stage's `until` (`every req in prd has satisfied-by, every req in prd has verified-by`), which refuses to advance and names the bare requirements. `<!-- view:req coverage=1 -->` is what the person reads while deciding: a cell per requirement, ✓ covered with its task count or the gap as a button that opens ⌘P prefilled for it.
+
+  - alternative:wf2.traceability-is-the-verb Deriving the links (same-session provenance, semantic matching) — rejected: a guessed traceability link is worse than a missing one, because it reads as verified when nothing checked it. One session per requirement — rejected: a 30-requirement PRD would mean 60 sessions, and the designs lose the coherence of being written together.
