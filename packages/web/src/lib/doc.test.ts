@@ -136,3 +136,26 @@ describe('document nodes of any kind', () => {
     expect(docNodeOf(nodeIndex(g2), 'nope')).toBeNull();
   });
 });
+
+// task:plan-progress: the rail's count on a request row and on a document that plans work
+describe('taskProgress', () => {
+  const node = (id: string, status: string, file: string, defined = true) => ({ kind: id.split(':')[0], status, file, defined });
+  it('counts the tasks a document defines, done over all', async () => {
+    const { taskProgress } = await import('./doc');
+    const p = taskProgress([
+      node('task:a', 'done', 'docs/pr-1.md'),
+      node('task:b', 'in-progress', 'docs/pr-1.md'),
+      node('task:c', 'todo', 'docs/pr-1.md'),
+      node('task:d', 'complete', 'docs/plan.md'),
+      node('req:x', 'shipped', 'docs/pr-1.md'),          // only tasks count
+      node('task:elsewhere', 'done', 'docs/pr-1.md', false), // a task only mentioned here is not this document's
+    ]);
+    expect(p.get('docs/pr-1.md')).toEqual({ done: 1, total: 3 });
+    expect(p.get('docs/plan.md')).toEqual({ done: 1, total: 1 });
+  });
+  it('has no entry for a document without tasks', async () => {
+    const { taskProgress } = await import('./doc');
+    expect(taskProgress([node('req:x', 'shipped', 'docs/prd.md')]).has('docs/prd.md')).toBe(false);
+  });
+});
+

@@ -680,6 +680,13 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .pf-done-head:hover { color: var(--ink); }
 .pf-done-head small { opacity: .7; }
 .pf-done .pf-row .pg-link { opacity: .7; }
+/* how far the work has got (task:plan-progress): the count after the title, a hairline bar along the row — no extra
+   height, and nothing at all for a document without tasks. The count gives way to the row's hover buttons. */
+.pg-prog { flex: none; margin-left: auto; padding-left: 6px; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.pg-row:hover .pg-prog { display: none; }
+.pf-row { position: relative; }
+.pg-bar { position: absolute; left: 36px; right: 8px; bottom: 0; height: 2px; border-radius: 1px; background: var(--line); overflow: hidden; }
+.pg-bar i { display: block; height: 100%; background: var(--accent); border-radius: 1px; }
 
 /* the content editor in the column (req:wf2.ui.node-content): the page's editor, compact, scoped to one node */
 .peek .content { margin: 18px 0 4px; } .peek .content h4 { margin: 0 0 4px; }

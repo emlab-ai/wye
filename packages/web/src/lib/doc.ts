@@ -11,6 +11,22 @@ export type IndexEntry = { id: string; kind: string; title: string; status: stri
 
 export const DONE_STATUSES = new Set(['done', 'shipped', 'complete']);
 
+// How far a document's work has got (task:plan-progress): the tasks the document defines, done over all — what the
+// rail shows on a request's row and the tree on a document that plans work. A `- [x]` line is a done task to the
+// parser, so a plan's checkboxes and a card's `status: done` count the same. Pure: the graph's nodes in, one entry
+// per document file out; a document with no tasks has no entry and shows nothing.
+export type TaskProgress = { done: number; total: number };
+export function taskProgress(nodes: Pick<GraphNode, 'kind' | 'status' | 'file' | 'defined'>[]): Map<string, TaskProgress> {
+  const out = new Map<string, TaskProgress>();
+  for (const n of nodes) {
+    if (n.kind !== 'task' || !n.defined || !n.file) continue;
+    const p = out.get(n.file) ?? { done: 0, total: 0 };
+    p.total++; if (DONE_STATUSES.has(n.status)) p.done++;
+    out.set(n.file, p);
+  }
+  return out;
+}
+
 export function docSlug(file: string): string { return file.split('/').pop()!.replace(/\.md$/, ''); }
 
 export function headingSlug(text: string): string {

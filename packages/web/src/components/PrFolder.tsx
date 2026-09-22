@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-export type PrItem = { slug: string; project: string; title: string; icon: string; status: string; started: string; waiting?: string };
+export type PrItem = { slug: string; project: string; title: string; icon: string; status: string; started: string; tasks?: { done: number; total: number }; waiting?: string };
 
 // The rail's PRs system folder (req:wf2.ui.plans-folder, rule:prs-folder): opens the product's PRs page;
 // under it every request newest first, grouped by where it is — refining · approved · building — the open one marked,
@@ -23,9 +23,11 @@ export function PrFolder({ product, prs }: { product: string; prs: PrItem[] }) {
   const live = prs.filter(p => !isEnded(p)), ended = prs.filter(isEnded);
   const group = (st: string) => live.filter(p => (st === 'refining' ? ['draft', 'refining', ''].includes(p.status) : p.status === st));
   const groups = [['refining', group('refining')], ['approved', group('approved')], ['building', group('building')]] as const;
-  const row = (p: PrItem) => { const h = `/${product}/${p.project}/d/${p.slug}`; return (
+  // how far the request has got (task:plan-progress): its tasks done over all, with a hairline bar along the row
+  const row = (p: PrItem) => { const h = `/${product}/${p.project}/d/${p.slug}`; const t = p.tasks; return (
     <li key={`${p.project}/${p.slug}`} className={`pf-row s-${p.status} ${path === h ? 'on' : ''}`}>
-      <Link href={h} className="pg-link" title={`${p.status}${p.waiting ? ` · waiting: ${p.waiting}` : ''}${p.started ? ` · ${p.started.slice(0, 10)}` : ''}`}><span className="pg-icon">{p.icon}</span><span className="pg-title">{p.title}</span></Link>
+      <Link href={h} className="pg-link" title={`${p.status}${t?.total ? ` · ${t.done}/${t.total} tasks done` : ''}${p.waiting ? ` · waiting: ${p.waiting}` : ''}${p.started ? ` · ${p.started.slice(0, 10)}` : ''}`}><span className="pg-icon">{p.icon}</span><span className="pg-title">{p.title}</span>{!!t?.total && <span className="pg-prog">{t.done}/{t.total}</span>}</Link>
+      {!!t?.total && <span className="pg-bar" aria-hidden><i style={{ width: `${Math.round((t.done / t.total) * 100)}%` }} /></span>}
     </li>); };
   return (
     <li className="pr-folder">

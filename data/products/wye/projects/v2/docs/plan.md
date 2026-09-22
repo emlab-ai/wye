@@ -66,7 +66,7 @@ Work that is planned but on no plan document yet, by area, and the tasks past pa
 
 - [ ] task:ui-tests-in-ci The browser scenarios (ui-test:edit-node-flow, ui-test:table-rows) as a runnable e2e suite: playwright-core with the installed Chrome (channel chrome), packages/web/e2e/*.spec.ts, against the dev server; today they are run by hand. Part of req:wf2.ui.
 
-- [ ] task:plan-progress Show progress per document (checked tasks over all tasks) in the rail and on the plan page, part of req:wf2.ui.
+- [x] task:plan-progress Show progress per document (checked tasks over all tasks) in the rail: the count after the title on a PR row and on a document that plans work, a hairline bar along the request row; lib/doc#taskProgress counts the tasks a document defines, done over all. Part of req:wf2.ui.
 
 - [ ] task:autolink Suggest links for phrases that match a node's title or aliases (later the clerk does this), part of rule:smart-tags.
 

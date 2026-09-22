@@ -12,7 +12,7 @@ import { listProducts } from '@/lib/products';
 import { loadScope, treeFor } from '@/lib/scope';
 import { isBaseType, isImplicit } from '@/lib/types';
 import { loadMarkdown } from '@/lib/load';
-import { outline, splitDocument, docRoute, type DocNode } from '@/lib/doc';
+import { outline, splitDocument, docRoute, taskProgress, type DocNode } from '@/lib/doc';
 import { REPO_ROOT } from '@/lib/products';
 import type { TreeItem } from '@/components/DocTree';
 import type { PrItem } from '@/components/PrFolder';
@@ -36,7 +36,9 @@ export default async function ProductLayout({ children, params }: { children: Re
   await Promise.all(scope.graph.modules.map(async m => { try { const h = await headOf(m.file); fm.set(m.file, h.fm); outlines.set(m.file, h.outline); } catch { /* file gone */ } }));
  
   const icons = { get: (file: string) => fm.get(file)?.icon ?? '' };
-  const toItem = (d: DocNode): TreeItem => ({ slug: d.slug, node: d.module.id, title: d.title, icon: icons.get(d.file) || defaultIcon(d.slug), project: docRoute(d.file)?.project ?? '', children: d.children.map(toItem) });
+  // how far each document's tasks have got (task:plan-progress): shown on the request rows and on a document that plans work
+  const progress = taskProgress(scope.graph.nodes);
+  const toItem = (d: DocNode): TreeItem => ({ slug: d.slug, node: d.module.id, title: d.title, icon: icons.get(d.file) || defaultIcon(d.slug), project: docRoute(d.file)?.project ?? '', tasks: progress.get(d.file), children: d.children.map(toItem) });
   // the project's PRs page is a system folder (rule:prs-folder): it and its sub-documents leave the Documents
   // tree, and the requests go to the rail's PRs folder, every project together, newest first
   const prs: PrItem[] = [];
@@ -59,7 +61,7 @@ export default async function ProductLayout({ children, params }: { children: Re
       return false;
     }
     if (d.module.id !== prsPageId(project)) return true;
-    for (const c of d.children) { const f = fm.get(c.file) ?? {}; prs.push({ slug: c.slug, project, title: c.title, icon: icons.get(c.file) || defaultIcon(c.slug), status: f.status ?? '', started: f.started ?? '', waiting: waitingReasons(scope.product.slug)[`${scope.product.slug}/${project}/${c.slug}`] }); }
+    for (const c of d.children) { const f = fm.get(c.file) ?? {}; prs.push({ slug: c.slug, project, title: c.title, icon: icons.get(c.file) || defaultIcon(c.slug), status: f.status ?? '', started: f.started ?? '', tasks: progress.get(c.file), waiting: waitingReasons(scope.product.slug)[`${scope.product.slug}/${project}/${c.slug}`] }); }
     return false;
   }).map(d => ({ ...d, children: withoutPrs(d.children, project) }));
  

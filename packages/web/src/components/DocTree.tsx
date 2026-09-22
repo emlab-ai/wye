@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type DragEvent, type MouseEvent } from 'react';
 
-export type TreeItem = { slug: string; node: string; title: string; icon: string; project: string; children: TreeItem[] };
+export type TreeItem = { slug: string; node: string; title: string; icon: string; project: string; tasks?: { done: number; total: number }; children: TreeItem[] };
 type Zone = 'before' | 'into' | 'after';
 type Drag = { slug: string; node: string }; // the dragged document: its slug and its node id (rule:page-node-line)
 type Over = { slug: string; zone: Zone };
@@ -94,7 +94,7 @@ function Row({ d, depth, parent, tree }: { d: TreeItem; depth: number; parent: T
              if (zone === 'into') move(src, id); else move(src, parent ? parent.node : null, zone === 'before' ? { before: id } : { after: id });
            }}>
         {d.children.length ? <button className="pg-caret" onClick={() => toggle(d.slug)} aria-label={open ? 'collapse' : 'expand'}>{open ? '▾' : '▸'}</button> : <span className="pg-dot">•</span>}
-        <Link href={href} className="pg-link" draggable={false}><span className="pg-icon">{d.icon}</span><span className="pg-title">{d.title}</span></Link>
+        <Link href={href} className="pg-link" draggable={false} title={d.tasks?.total ? `${d.tasks.done}/${d.tasks.total} tasks done` : undefined}><span className="pg-icon">{d.icon}</span><span className="pg-title">{d.title}</span>{!!d.tasks?.total && <span className="pg-prog">{d.tasks.done}/{d.tasks.total}</span>}</Link>
         <button className="pg-more" title="More…" aria-label="More" onClick={onMenu}>⋯</button>
         <button className="pg-add" title="Add a sub-document" onClick={() => onAddChild(d)}>+</button>
       </div>
