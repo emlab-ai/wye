@@ -15,10 +15,11 @@ import { loadScope } from './scope';
 import { listSessions } from './sessions';
 import { eventsFromDiff } from './hooks';
 import { fire, depthOfSession, hooksEnabled } from './hooks-run';
+import { sweepRuns } from './runs-run';
 
 type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other'; file: string }) => void;
 // bump when the watcher callback changes: dev reloads keep globalThis, so an old watcher would keep running old code
-const VERSION = 12;
+const VERSION = 13;
 type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>> };
 const g = globalThis as unknown as { __wfWatch?: State };
 const st = (): State => (g.__wfWatch ??= { watchers: new Map(), subs: new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map() });
@@ -86,15 +87,20 @@ onBuilt(async (productDir, before, after) => {
   if (records.length) scheduleImpact(productDir, slugOfDir(productDir), records, m => console.log(`[wf] ${m}`));
   // hooks (decision:wf2.hooks-and-skills): what the diff means — created, status:<x>, linked:<verb> — fires the
   // product's hooks; a change a hook's session made carries its firing depth, so chains stop at the cap
-  if (await hooksEnabled()) {
-    const events = eventsFromDiff(before, after, changes);
-    if (events.length) void (async () => {
-      const depths = new Map<string, number | null>();
-      const withDepth = [];
-      for (const ev of events) { const sid = attribution.get(ev.id)?.session; if (!depths.has(sid ?? '')) depths.set(sid ?? '', await depthOfSession(productDir, sid)); withDepth.push({ ...ev, depth: depths.get(sid ?? '') }); }
-      await fire(slugOfDir(productDir), withDepth);
-    })().catch(e => console.log(`[wf] hooks: ${e instanceof Error ? e.message : e}`));
-  }
+  // then the live workflow runs (decision:wf2.run-holds-the-state): the sweep runs after the hooks, so a run a hook
+  // just started is seen in the same pass, and with automation off it still moves the stages a person can advance
+  void (async () => {
+    if (await hooksEnabled()) {
+      const events = eventsFromDiff(before, after, changes);
+      if (events.length) {
+        const depths = new Map<string, number | null>();
+        const withDepth = [];
+        for (const ev of events) { const sid = attribution.get(ev.id)?.session; if (!depths.has(sid ?? '')) depths.set(sid ?? '', await depthOfSession(productDir, sid)); withDepth.push({ ...ev, depth: depths.get(sid ?? '') }); }
+        await fire(slugOfDir(productDir), withDepth);
+      }
+    }
+    await sweepRuns(slugOfDir(productDir), m => console.log(`[wf] ${m}`));
+  })().catch(e => console.log(`[wf] hooks: ${e instanceof Error ? e.message : e}`));
   // a librarian's blocks land in its request's Definition (req:exec.definition-tracked) — the writes here come back through this listener
   try { const scope = await loadScope(slugOfDir(productDir)); if (scope) { await trackDefinitions(scope, running, changes.map(c => ({ ...c, session: attribution.get(c.id)?.session }))); const rescoped = await refreshStaleScopes(scope); if (rescoped.length) console.log(`[wf] scope: ${rescoped.join(', ')}`); } } catch (e) { console.log(`[wf] definition: ${e instanceof Error ? e.message : e}`); }
   // the write-time verdict pass (decision:memory.write-time-verdict): new or changed knowledge is classified
