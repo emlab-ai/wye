@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
@@ -16,8 +16,18 @@ const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/
 // understand the block — a requirement as its behaviour, a decision as its choice, a question as its question; the
 // open conflicts that need a choice; everything else (id, where, session, how it was checked, the other fields, the
 // refs, consistent verdicts) under "details".
+// A click anywhere on a review row selects its node, so the Context column follows what a person is reading — the
+// same rule a card in a document follows (rule:block-select). Not on the controls, not on a link or a fold, and not
+// when the click ended a text selection, which is a person reading rather than choosing.
+function selectOnRow(e: MouseEvent, select: () => void) {
+  const el = e.target as Element;
+  if (el.closest('button, a, select, input, textarea, summary, label')) return;
+  if ((window.getSelection()?.toString() ?? '').trim()) return;
+  select();
+}
+
 export function ReviewList({ product, items }: { product: string; items: ReviewItem[] }) {
-  const { open, openId } = usePeek(); const router = useRouter();
+  const { open, openId, select } = usePeek(); const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('');
@@ -62,7 +72,7 @@ export function ReviewList({ product, items }: { product: string; items: ReviewI
           <h4>{LABEL[kind] ?? kind} <span className="muted">{its.length}</span>{kind !== 'question' && its.length > 1 && <button className="mini" disabled={busy === 'all'} onClick={async () => { setBusy('all'); for (const it of its) await fetch(`/api/${product}/node/${encodeURIComponent(it.id)}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status: 'approved' }) }); setBusy(null); router.refresh(); }} title="Approve every item in this group">Approve all {its.length}</button>}</h4>
           <ul className="review-items">
             {its.map(it => (
-              <li key={it.id} className={`review-item ${openId === it.id ? 'on' : ''}`}>
+              <li key={it.id} className={`review-item ${openId === it.id ? 'on' : ''}`} onClick={e => selectOnRow(e, () => select(it.id))}>
                 {(() => {
                   const d = describeBlock(it.kind, it.text, it.fields);
                   const v = verdictSummary(it.verdicts, it.checked, it.classifying);

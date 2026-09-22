@@ -39,13 +39,13 @@ What the interface guarantees, by area — click, fold, drag, select, review car
 
 ```yaml
 - id: rule:block-select
-  source: packages/web/src/components/PeekProvider.tsx#select; packages/web/src/components/NodeCards.tsx#selectOn; packages/web/src/components/EmbedBlock.tsx; packages/web/src/components/DocEditor.tsx#selectBlockOnClick
+  source: packages/web/src/components/PeekProvider.tsx#select; packages/web/src/components/NodeCards.tsx#selectOn; packages/web/src/components/ReviewList.tsx#selectOnRow; packages/web/src/components/EmbedBlock.tsx; packages/web/src/components/DocEditor.tsx#selectBlockOnClick
   status: shipped
   title: >
     `PeekProvider` keeps `focused` (the node a click selected) next to the chip stack;
 ```
 
-  - statement:block-select `PeekProvider` keeps `focused` (the node a click selected) next to the chip stack; `select(id)` sets it, moves the cursor to the Context root (-1) and shows the column. The Context root renders `focused ?? editing.nodeId`. Every typed block of a document calls `select` from a click handler on its outermost element (`.nblock` for cards, `.nrow` for rows, `.embed` for embeds) unless the click's target is inside an `a` (a tag or link); the kind pill does the same in a document, so no part of a block behaves differently. The editor's `publishContext` clears `focused` when the caret moves to another block, so keyboard movement takes over from the last click. In the context column an embedded card never selects (a click in its text area is an edit, not navigation); its pill and tags push as before. `open` from the root (cursor -1) keeps every chip and appends — nothing is "above" the root — so a session read before a block click survives the next tag click.
+  - statement:block-select `PeekProvider` keeps `focused` (the node a click selected) next to the chip stack; `select(id)` sets it, moves the cursor to the Context root (-1) and shows the column. The Context root renders `focused ?? editing.nodeId`. Every typed block of a document calls `select` from a click handler on its outermost element (`.nblock` for cards, `.nrow` for rows, `.embed` for embeds) unless the click's target is inside an `a` (a tag or link); the kind pill does the same in a document, so no part of a block behaves differently. The editor's `publishContext` clears `focused` when the caret moves to another block, so keyboard movement takes over from the last click. A row of the review list follows the same rule (`selectOnRow`): a click anywhere on it selects its node, so the Context column keeps up with what is being read — except on its controls (a button, a link, a fold) and except when the click ended a text selection, which is reading rather than choosing. In the context column an embedded card never selects (a click in its text area is an edit, not navigation); its pill and tags push as before. `open` from the root (cursor -1) keeps every chip and appends — nothing is "above" the root — so a session read before a block click survives the next tag click.
 
 ```yaml
 - id: rule:produced-collapsed
