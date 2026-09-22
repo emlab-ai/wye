@@ -21,11 +21,16 @@ import { readSettings, agentSettings } from './settings';
 import { assignTask } from './work-io';
 import { nodeText } from './node-edit';
 import { sectionBody } from './pr-doc';
-import { LIVE, admits, autoRun, blockingSection, logLine, nextStage, parseRun, readinessOf, replaceCard, runCard, runSlug, stageIndex, stagesSection, withSection, workflowOf, type Readiness, type RunCtx, type RunState, type StageDef, type WorkflowDef } from './runs';
+import { LIVE, admits, autoRun, blockingSection, logLine, nextStage, parseRun, readinessOf, removeCard, replaceCard, runCard, runSlug, stageIndex, stagesSection, withSection, workflowOf, type Readiness, type RunCtx, type RunState, type StageDef, type WorkflowDef } from './runs';
 
 export const runsPageId = (projectSlug: string) => `module:${projectSlug}-workflow-runs`;
 const RUNS_SLUG = 'workflow-runs';
 const today = () => new Date().toISOString().slice(0, 10);
+// A run's title: the workflow and what it runs on, with a long target cut at a word so the page has a name, not a paragraph
+const runTitle = (workflow: string, target: string) => {
+  const t = target.length <= 60 ? target : `${target.slice(0, 60).replace(/[\s,;:.]+\S*$/, '')}…`;
+  return `${workflow} — ${t}`;
+};
 const g = globalThis as unknown as { __wfRuns?: { busy: Set<string>; wfUrl: string } };
 const state = () => (g.__wfRuns ??= { busy: new Set(), wfUrl: process.env.WYE_URL || process.env.WF_URL || 'http://localhost:3456' });
 
@@ -59,9 +64,12 @@ async function writeRun(scope: Scope, project: Project, r: RunState, o: { by: st
   const w = workflowOf(scope.graph, scope.idx, r.workflow);
   const stage = w?.stages.find(x => x.id === r.stage);
   const ready = w && stage ? readinessOf(stage, await ctxFor(scope, r, stage, w)) : null;
+  let wrote = false;
   await withFileLock(file, async () => {
-    let md = await readFile(file, 'utf8');
+    const was = await readFile(file, 'utf8');
+    let md = was;
     const patch: Record<string, string> = { status: next.status, stage: next.stage, 'runs-on': next.on, produced: `[${next.produced.join(', ')}]`, sessions: `[${next.sessions.join(', ')}]`, auto: String(next.auto) };
+    for (const [name, id] of Object.entries(next.docs)) patch[`doc-${name}`] = id;
     if (next.finished) patch.finished = next.finished;
     const fm = patchFrontmatter(md, patch); if (!fm.error) md = fm.md;
     if (w) md = withSection(md, 'Stages', stagesSection(w, next, bindings(scope, next, w)));
@@ -78,9 +86,9 @@ async function writeRun(scope: Scope, project: Project, r: RunState, o: { by: st
         ? `Finished ${next.finished ?? today()} — every stage of ${w?.title ?? next.workflow} done. ${made}${ran}`
         : `${next.status[0].toUpperCase()}${next.status.slice(1)} at ${next.stage} on ${next.finished ?? today()}. ${made}${ran}`);
     }
-    await writeAtomic(file, md);
+    if (md !== was) { await writeAtomic(file, md); wrote = true; }
   });
-  await rebuild(scope.product.dir);
+  if (wrote) await rebuild(scope.product.dir);
   return next;
 }
 // A run node that is a document of its own — everything started since run pages landed.
@@ -101,13 +109,15 @@ async function writeRunCard(scope: Scope, project: Project, next: RunState, o: {
 }
 
 // The run's own page, from templates/docs/run.md, under the project's Workflow runs page so the tree nests it there.
-async function createRunDoc(scope: Scope, project: Project, r: RunState, o: { title: string; asked: string; parent: string }): Promise<string> {
+async function createRunDoc(scope: Scope, project: Project, r: RunState, o: { title: string; asked: string; parent: string; rebuild?: boolean; log?: string[] }): Promise<string> {
   const slug = `run-${r.id.replace(/^run:/, '')}`;
   const abs = path.join(project.docsDir, `${slug}.md`);
   const tpl = await readFile(path.join(REPO_ROOT, 'templates/docs/run.md'), 'utf8');
   const vars: Record<string, string> = { node: r.id, title: o.title, status: r.status, workflow: r.workflow, on: r.on, stage: r.stage, date: r.started, parent: o.parent, asked: o.asked };
-  await writeAtomic(abs, tpl.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars ? vars[k] : m)));
-  await rebuild(scope.product.dir);
+  let md = tpl.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars ? vars[k] : m));
+  if (o.log?.length) md = withSection(md, 'Log', o.log.map(l => `- ${l}`).join('\n'));
+  await writeAtomic(abs, md);
+  if (o.rebuild !== false) await rebuild(scope.product.dir);
   return path.relative(REPO_ROOT, abs);
 }
 
@@ -121,12 +131,13 @@ const runIn = (scope: Scope, id: string): RunState | null => runsIn(scope).find(
 function bindings(scope: Scope, r: RunState, w: WorkflowDef): Record<string, string> {
   const out: Record<string, string> = {};
   const names = [...new Set(w.stages.flatMap(s => s.produces))];
+  // a run made before the names were recorded: guess from the slug, which only works while slugify did not truncate it
   for (const id of r.produced) {
     const n = scope.idx.byId.get(id); if (!n) continue;
     const slug = docSlug(n.file);
     for (const name of names) if (slug.endsWith(`-${name}`) || slug === name) out[name] = id;
   }
-  return out;
+  return { ...out, ...r.docs };
 }
 
 export async function ctxFor(scope: Scope, r: RunState, stage: StageDef, w: WorkflowDef): Promise<RunCtx> {
@@ -172,10 +183,10 @@ export async function startRun(product: string, workflow: string, on: string, o:
   const project = projectOf(scope, node.file); if (!project) throw new Error('no project to put the run in');
   const id = runSlug(workflow, runsIn(scope).map(r => r.id));
   const parent = await ensureRunsPage(scope, project);
-  const title = `${w.title} — ${node.title || on}`;
+  const title = runTitle(w.title, node.title || on);
   const text = nodeText(node.body).split('\n').map(l => l.trim()).filter(Boolean).slice(0, 4).join(' ').slice(0, 400);
   const asked = [`Started by ${o.by} on ${on} — the ${w.title} workflow.`, ...(text ? ['', `> ${text}`] : [])].join('\n');
-  const r: RunState = { id, workflow, on, stage: w.stages[0].id, status: 'running', produced: [], sessions: [], started: today(), auto: 0, file: '', log: [] };
+  const r: RunState = { id, workflow, on, stage: w.stages[0].id, status: 'running', produced: [], sessions: [], started: today(), auto: 0, file: '', log: [], docs: {} };
   r.file = await createRunDoc(scope, project, r, { title, asked, parent });
   const fresh = await loadScope(product) ?? scope;
   await writeRun(fresh, project, r, { by: o.by, line: logLine({ what: 'started', by: o.by, detail: `${w.title} on ${on}` }) });
@@ -211,7 +222,7 @@ export async function enterStage(product: string, runId: string, stageId: string
       if (!res.ok) throw new Error(`${name}: ${res.message}`);
       binds[name] = res.node; made.push(res.node);
     }
-    if (made.length) { await rebuild(scope.product.dir); r = { ...r, produced: [...new Set([...r.produced, ...made])] }; }
+    if (made.length) { await rebuild(scope.product.dir); r = { ...r, produced: [...new Set([...r.produced, ...made])], docs: { ...r.docs, ...binds } }; }
 
     // 2. the actions, with the produced documents among the template vars
     const vars = { ...templateVars(node), ...binds };
@@ -236,7 +247,7 @@ export async function enterStage(product: string, runId: string, stageId: string
     const detail = [firing.actions.length ? `${firing.actions.length} action(s)` : 'no actions', ...(made.length ? [`produced ${made.join(', ')}`] : []), ...(automation ? [] : ['automation off — nothing assigned'])].join(', ');
     const after = await loadScope(product) ?? scope;
     const now = runIn(after, runId) ?? r;
-    await writeRun(after, project, { ...now, produced: [...new Set([...now.produced, ...r.produced])], sessions: [...new Set([...now.sessions, ...sessions])], stage: stageId, status: 'running' }, { by: o.by, line: logLine({ what: 'entered', stage: stageId, by: o.by, detail }) });
+    await writeRun(after, project, { ...now, produced: [...new Set([...now.produced, ...r.produced])], docs: { ...now.docs, ...r.docs, ...binds }, sessions: [...new Set([...now.sessions, ...sessions])], stage: stageId, status: 'running' }, { by: o.by, line: logLine({ what: 'entered', stage: stageId, by: o.by, detail }) });
   } finally { state().busy.delete(key); }
 }
 
@@ -304,6 +315,32 @@ export async function dispatchDoc(scope: Scope, doc: string, o: { workers?: numb
   return out;
 }
 
+// A run written before run pages (decision:wf2.run-is-a-page) is a card in the Workflow runs document — where the
+// view that lists it renders it a second time, and whose `on:` reads as a comment on the target, since type:comment
+// owns that verb. The next sweep moves it: the page is written from the card's own state, the card is taken out of
+// the document, and one rebuild sees both at once, so the id is never defined twice.
+async function migrateRunCard(scope: Scope, project: Project, r: RunState, log: (m: string) => void): Promise<void> {
+  const w = workflowOf(scope.graph, scope.idx, r.workflow);
+  const node = scope.idx.byId.get(r.on);
+  const parent = await ensureRunsPage(scope, project);
+  const title = runTitle(w?.title ?? r.workflow.replace(/^workflow:/, ''), node?.title || r.on);
+  const asked = `Started on ${r.on} — the ${w?.title ?? r.workflow} workflow.`;
+  const file = await createRunDoc(scope, project, r, { title, asked, parent, rebuild: false, log: r.log });
+  const runs = path.join(project.docsDir, `${RUNS_SLUG}.md`);
+  claimWrite(r.id, { by: 'wye', silent: true }); claimWrite(path.relative(REPO_ROOT, runs), { by: 'wye', silent: true });
+  await withFileLock(runs, async () => {
+    const cur = await readFile(runs, 'utf8');
+    const out = removeCard(cur, r.id);
+    if (out !== null && out !== cur) await writeAtomic(runs, out);
+  });
+  await rebuild(scope.product.dir);
+  const fresh = await loadScope(scope.product.slug) ?? scope;
+  // the state is the card's — the page was just born, so only its path comes from the fresh parse
+  const moved = runsIn(fresh).find(x => x.id === r.id);
+  await writeRun(fresh, project, { ...r, file: moved?.file || file }, { by: 'wye', line: logLine({ what: 'moved to its own page', by: 'wye', detail: 'from a card in the Workflow runs document' }) });
+  log(`${r.id}: moved to ${file}`);
+}
+
 // --- the sweep: what the watcher calls after every build ---
 
 // Only a transition is written. Anything else would rewrite a card, which rebuilds, which sweeps again.
@@ -326,6 +363,7 @@ async function sweepRun(scope: Scope, r: RunState, log: (m: string) => void = m 
   const stage = w?.stages.find(s => s.id === r.stage);
   const node = scope.idx.byId.get(r.on);
   const project = projectOf(scope, node?.file ?? ''); if (!project) return;
+  if (!isPage(scope, r)) { await migrateRunCard(scope, project, r, log); return; }
   const block = (detail: string) => r.status === 'blocked' ? undefined : writeRun(scope, project, { ...r, status: 'blocked' }, { by: 'the engine', line: logLine({ what: 'blocked', stage: r.stage, by: 'the engine', detail }) });
   if (!node) { await block(`${r.on} is gone`); return; }
   if (!w || !stage) { await block(`${r.stage} is gone from ${r.workflow}`); return; }
@@ -340,9 +378,11 @@ async function sweepRun(scope: Scope, r: RunState, log: (m: string) => void = m 
     await advanceRun(product, r.id, { by: 'the engine' });
     return;
   }
-  // only a transition is written: the Blocking section changes with it, and an unchanged run is left alone
+  // A status transition is logged; anything else just refreshes the page's Stages and Blocking, which writeRun skips
+  // when they already say what they should — so this converges instead of rebuilding for ever.
   if (ready.ok && r.status !== 'waiting') await writeRun(scope, project, { ...r, status: 'waiting' }, { by: 'the engine', line: logLine({ what: 'ready', stage: r.stage, by: 'the engine', detail: ready.rows.map(x => x.label).join('; ') }) });
   else if (!ready.ok && r.status === 'waiting') await writeRun(scope, project, { ...r, status: 'running' }, { by: 'the engine', line: logLine({ what: 'not ready', stage: r.stage, by: 'the engine', detail: ready.rows.filter(x => !x.ok).map(x => x.label).join('; ') }) });
+  else await writeRun(scope, project, r, { by: 'the engine' });
 }
 
 // A session a stage started that ended anything but done blocks its run: the person retries, skips or cancels.

@@ -135,7 +135,7 @@ export function readinessOf(stage: StageDef, ctx: RunCtx): Readiness {
 
 // One run of a workflow (decision:wf2.run-holds-the-state). The log is a `log:` block scalar on the card rather than
 // content blocks under it: one write per move, and a person reads the history in the card itself.
-export type RunState = { id: string; workflow: string; on: string; stage: string; status: string; produced: string[]; sessions: string[]; started: string; finished?: string; log: string[]; auto: number; file: string };
+export type RunState = { id: string; workflow: string; on: string; stage: string; status: string; produced: string[]; sessions: string[]; started: string; finished?: string; log: string[]; auto: number; file: string; docs: Record<string, string> };
 export const LIVE = new Set(['running', 'waiting', 'blocked']);
 const listOf = (v: string) => v.replace(/^\[|\]$/g, '').split(/[\s,]+/).filter(Boolean);
 
@@ -148,7 +148,11 @@ export function parseRun(n: Pick<GraphNode, 'id' | 'kind' | 'status' | 'body' | 
   if (!v('workflow')) return null;
   const finished = v('finished');
   const log = v('log').split('\n').map(l => l.replace(/^-\s+/, '').trim()).filter(Boolean);
-  return { id: n.id, workflow: v('workflow'), on: v('runs-on') || v('on'), stage: v('stage'), status: n.status || 'running', produced: listOf(v('produced')), sessions: listOf(v('sessions')), started: v('started'), ...(finished ? { finished } : {}), log, auto: Number(v('auto')) || 0, file: n.file ?? '' };
+  // `doc-<name>: <id>` per produced document: what the stage called it, written when it was made — a name can never be
+  // recovered from the slug, which slugify may have truncated
+  const docs: Record<string, string> = {};
+  for (const m of n.body.matchAll(/^doc-([a-z][a-z0-9-]*):\s*(\S+)\s*$/gm)) docs[m[1]] = m[2];
+  return { id: n.id, workflow: v('workflow'), on: v('runs-on') || v('on'), stage: v('stage'), status: n.status || 'running', produced: listOf(v('produced')), sessions: listOf(v('sessions')), started: v('started'), ...(finished ? { finished } : {}), log, auto: Number(v('auto')) || 0, file: n.file ?? '', docs };
 }
 // A run written before run pages: its card, kept so those runs still move.
 export function runCard(r: RunState): string {
@@ -165,6 +169,15 @@ export function replaceCard(md: string, id: string, card: string): string | null
   let end = start + 1;
   while (end < lines.length && (/^\s+\S/.test(lines[end]) || (!lines[end].trim() && /^\s+\S/.test(lines[end + 1] ?? '')))) end++;
   return [...lines.slice(0, start), ...card.replace(/\n$/, '').split('\n'), ...lines.slice(end)].join('\n');
+}
+// The card of an id taken out of the document, with the blank line it leaves. null when it is not there.
+export function removeCard(md: string, id: string): string | null {
+  const lines = md.split('\n');
+  const start = lines.findIndex(l => new RegExp(`^-\\s+id:\\s*${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`).test(l));
+  if (start < 0) return null;
+  let end = start + 1;
+  while (end < lines.length && (/^\s+\S/.test(lines[end]) || (!lines[end].trim() && /^\s+\S/.test(lines[end + 1] ?? '')))) end++;
+  return [...lines.slice(0, start), ...lines.slice(end)].join('\n');
 }
 export function runSlug(workflow: string, taken: Iterable<string>): string {
   const base = workflow.replace(/^workflow:/, '');

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseStage, workflowOf, workflowsOf, admits, nextStage, readinessOf, parseRun, runCard, replaceCard, runSlug, logLine, autoRun, LIVE, stagesSection, blockingSection, withSection, type RunCtx, type RunState, type StageDef } from './runs';
+import { parseStage, workflowOf, workflowsOf, admits, nextStage, readinessOf, parseRun, runCard, replaceCard, removeCard, runSlug, logLine, autoRun, LIVE, stagesSection, blockingSection, withSection, type RunCtx, type RunState, type StageDef } from './runs';
 import type { GraphData, GraphEdge, GraphNode } from './graph';
 
 // workflows (decision:wf2.workflow-is-a-skill): a workflow is a skill whose stage cards are its steps, in document order
@@ -103,7 +103,7 @@ describe('readiness', () => {
 });
 
 describe('the run card', () => {
-  const r: RunState = { id: 'run:feature-3', workflow: 'workflow:feature', on: 'module:idea', stage: 'stage:f.prd', status: 'waiting', produced: ['module:idea-prd'], sessions: ['abc123'], started: '2026-09-22', log: ['started — by person', 'advanced stage:f.research — by person, every session done'], auto: 0, file: '' };
+  const r: RunState = { id: 'run:feature-3', workflow: 'workflow:feature', on: 'module:idea', stage: 'stage:f.prd', status: 'waiting', produced: ['module:idea-prd'], sessions: ['abc123'], started: '2026-09-22', log: ['started — by person', 'advanced stage:f.research — by person, every session done'], auto: 0, file: '', docs: {} };
   it('round-trips through yaml, log and all', () => {
     const md = runCard(r);
     expect(md).toContain('- id: run:feature-3');
@@ -120,6 +120,14 @@ describe('the run card', () => {
     expect(next).toContain('- id: run:b');
     expect(next.match(/- id: run:/g)).toHaveLength(2);
     expect(replaceCard(md, 'run:ghost', 'x')).toBeNull();
+  });
+  it('takes a card out of its document and leaves the others', () => {
+    const md = `# Runs\n\n\`\`\`yaml\n${runCard({ ...r, id: 'run:a' })}${runCard({ ...r, id: 'run:b', log: [] })}\`\`\`\n`;
+    const next = removeCard(md, 'run:a')!;
+    expect(next).not.toContain('- id: run:a');
+    expect(next).toContain('- id: run:b');
+    expect(next).toContain('```yaml');
+    expect(removeCard(md, 'run:ghost')).toBeNull();
   });
   it('numbers a run after the ones already taken, knows which are live, and caps an auto chain', () => {
     expect(runSlug('workflow:feature', ['run:feature-1', 'run:other-7'])).toBe('run:feature-2');
@@ -138,7 +146,7 @@ describe('the run page (decision:wf2.run-is-a-page)', () => {
   const wf = node('workflow:feature', { title: 'Feature', body: 'id: workflow:feature' });
   const mk = (id: string, line: number, title: string, produces = '') => node(id, { line, title, body: `title: ${title}\ndo: task "x" --worker agent${produces ? `\nproduces: ${produces}` : ''}` });
   const w = workflowOf({ nodes: [wf, mk('stage:f.research', 10, 'Explore the idea', 'research'), mk('stage:f.prd', 20, 'Write the PRD', 'prd'), mk('stage:f.design', 30, 'Design')] }, incOf([]), 'workflow:feature')!;
-  const run = (over: Partial<RunState> = {}): RunState => ({ id: 'run:feature-1', workflow: 'workflow:feature', on: 'module:idea', stage: 'stage:f.prd', status: 'running', produced: [], sessions: [], started: '2026-09-22', log: [], auto: 0, file: 'x/run-feature-1.md', ...over });
+  const run = (over: Partial<RunState> = {}): RunState => ({ id: 'run:feature-1', workflow: 'workflow:feature', on: 'module:idea', stage: 'stage:f.prd', status: 'running', produced: [], sessions: [], started: '2026-09-22', log: [], auto: 0, file: 'x/run-feature-1.md', docs: {}, ...over });
 
   it('Stages says what is done, where it is now and what each one produced', () => {
     const out = stagesSection(w, run(), { research: 'module:idea-research' });
@@ -149,6 +157,10 @@ describe('the run page (decision:wf2.run-is-a-page)', () => {
     ]);
     expect(stagesSection(w, run({ status: 'blocked' }))).toContain('- ✗ Write the PRD');
     expect(stagesSection(w, run({ status: 'done' })).split('\n').every(l => l.startsWith('- ✓'))).toBe(true);
+  });
+  it('a produced document is read back by the name its stage gave it, whatever the slug became', () => {
+    const body = 'node: run:feature-1\ntype: run\nworkflow: workflow:feature\nruns-on: module:idea\nstage: stage:f.prd\ndoc-research: module:a-very-long-title-that-slugify-cut\ndoc-prd: module:idea-prd';
+    expect(parseRun(node('run:feature-1', { body, status: 'running' }))!.docs).toEqual({ research: 'module:a-very-long-title-that-slugify-cut', prd: 'module:idea-prd' });
   });
   it('Blocking says what holds the stage back, or that only the person is missing', () => {
     const rows = [{ label: 'every req in prd is agreed', ok: false, blocking: ['req:a', 'req:b'] }, { label: 'no open question in prd', ok: true, blocking: [] }];

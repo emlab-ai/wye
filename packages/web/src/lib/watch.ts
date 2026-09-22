@@ -19,7 +19,7 @@ import { sweepRuns } from './runs-run';
 
 type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other'; file: string }) => void;
 // bump when the watcher callback changes: dev reloads keep globalThis, so an old watcher would keep running old code
-const VERSION = 13;
+const VERSION = 14;
 type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>> };
 const g = globalThis as unknown as { __wfWatch?: State };
 const st = (): State => (g.__wfWatch ??= { watchers: new Map(), subs: new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map() });
@@ -75,7 +75,9 @@ export function ensureWatch(productDir: string) {
 onBuilt(async (productDir, before, after) => {
   if (!before || !st().watchers.has(productDir)) return; // a product nobody follows (a test's scratch, a CLI-only use) keeps no records
   const changes = diffGraphs(before, after, new Date().toISOString());
-  if (!changes.length) return;
+  // the live runs are swept on every build, even one that changed no node: a stage's criterion can turn on something
+  // outside the graph (a session ending), and a run written before run pages is moved to one here
+  if (!changes.length) { await sweepRuns(slugOfDir(productDir), m => console.log(`[wf] ${m}`)).catch(e => console.log(`[wf] runs: ${e instanceof Error ? e.message : e}`)); return; }
   // change records (decision:exec.changes-from-the-rebuild-diff): the old and new value of every edited typed node,
   // credited to the writer that claimed it, else to the one running session, else "person"
   const running = (await listSessions(productDir).catch(() => [])).filter(x => x.status === 'running');
