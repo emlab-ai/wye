@@ -281,7 +281,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     Every block in the editor — a paragraph, a card, a list item, an image, inside a collection or a node's conten
 ```
 
-  - statement:block-menu Every block in the editor — a paragraph, a card, a list item, an image, inside a collection or a node's content alike — has a context menu on right-click, where the pointer is: Comment… (a typed node: the column with its Comments box focused; a plain block: a box in place — the comment goes on the block's node `block:<doc>.<hash>` in the project's Comments document), Copy and Cut (the block with its children to an in-app clipboard, its markdown to the system one), Paste after (the copied blocks, or the system clipboard's markdown imported — a typed node pasted while its original stands gets a fresh slug, a cut one keeps its id), Clone (a copy after the block; a typed node gets a fresh `-copy` slug so the copy is its own node, its children re-slugged the same way), Copy link, Send to agent, Link › <kind> (a new block of that kind — comment, req, question, decision, task, a product's own type… — under the node as its content, to type into; on an embed it is appended in the node's own document and the node opens in the column), Delete; a typed node also has Open in column, Expire (`until: today` — the node stops holding, decision:memory.bitemporal) and, for a task, Mark done. Escape, a press outside or a scroll closes it; the close handler checks the target, as rule:tree-menu does. The drag handle's own menu stays for the block-type actions (colours, turn into drawing, annotate). A smart tag inside a block has its own menu: Inline as a block (the tag leaves the sentence and the node's card follows the block as an embed — a block that was only the tag becomes the embed), Open in column, Open the document, Copy id, Unlink (the id stays as text), Remove. A hover on a tag (350 ms) shows the node's card in place — kind, title, status, its text, the properties that say something, open › — fetched once per node; the card can be entered and goes when the pointer leaves it.
+  - statement:block-menu Every block in the editor — a paragraph, a card, a list item, an image, inside a collection or a node's content alike — has a context menu on right-click, where the pointer is: Comment… (a typed node: the column with its Comments box focused; a plain block: a box in place — the comment goes on the block's node `block:<doc>.<hash>` in the project's Comments document), Copy and Cut (the block with its children to an in-app clipboard, its markdown to the system one), Paste after (the copied blocks, or the system clipboard's markdown imported — a typed node pasted while its original stands gets a fresh slug, a cut one keeps its id), Clone (a copy after the block; a typed node gets a fresh `-copy` slug so the copy is its own node, its children re-slugged the same way), Copy link, Send to agent, Link › <kind> (a new block of that kind — comment, req, question, decision, task, a product's own type… — under the node as its content, to type into; on an embed it is appended in the node's own document and the node opens in the column), Delete; a typed node also has Open in column (what its kind pill does), Expire (`until: today` — the node stops holding, decision:memory.bitemporal) and, for a task, Mark done. Escape, a press outside or a scroll closes it; the close handler checks the target, as rule:tree-menu does. The drag handle's own menu stays for the block-type actions (colours, turn into drawing, annotate). A smart tag inside a block has its own menu: Inline as a block (the tag leaves the sentence and the node's card follows the block as an embed — a block that was only the tag becomes the embed), Open in column, Open the document, Copy id, Unlink (the id stays as text), Remove. A hover on a tag (350 ms) shows the node's card in place — kind, title, status, its text, the properties that say something, open › — fetched once per node; the card can be entered and goes when the pointer leaves it.
 
 ```yaml
 - id: rule:doc-gone-in-place
@@ -388,7 +388,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 - id: decision:wf2.card-essence
   title: A decision card shows its essence; the rest sits behind "details"
   date: 2026-09-18
-  status: proposed
+  status: approved
   affects: [component:doc-editor, rule:card-essence, req:wf2.cards.decision-essence]
   related-to: [rule:card-form, rule:node-cards]
   session: 843b0e1f2c
@@ -406,7 +406,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 - id: decision:wf2.embed-syntax
   title: An embed is a line `![[kind:slug]]`
   date: 2026-09-18
-  status: proposed
+  status: approved
   affects: [lib:import, lib:serialize, component:document-reader, component:embed-block]
   related-to: [rule:block-links, req:wf2.instances.view-block]
   session: 7cfac7ea80
@@ -424,7 +424,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 - id: decision:wf2.embed-renders-source-card
   title: An embed renders the source card with the source's own components; edits go through op:node.edit
   date: 2026-09-18
-  status: proposed
+  status: approved
   affects: [component:doc-editor, component:embed-block, component:session-changes, op:node.edit]
   related-to: [rule:card-form, rule:card-essence, req:wf2.ui.edit-in-context]
   session: 7cfac7ea80
@@ -442,7 +442,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 - id: decision:wf2.page-node-typed
   title: A page's node is an instance of the type the page chooses; module stays the default
   date: 2026-09-18
-  status: proposed
+  status: approved
   affects: [component:doc-props, lib:parse, page:web/node, page:web/types]
   related-to: [decision:ontology.kind-is-type, req:ontology.types, task:new-226]
   session: 64813dfdab
@@ -460,7 +460,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 - id: decision:wf2.clean-slate
   title: A task starts from a clean slate; a chat keeps its context
   date: 2026-09-17
-  status: proposed
+  status: approved
   affects: [component:command-box, rule:agent-sessions, action:command-palette, rule:process-is-active, req:wf2.sessions.clean-slate, req:wf2.sessions.idle-stop]
   related-to: [decision:wf2.one-command-box, task:idle-agent-timeout]
   session: 64813dfdab
@@ -477,7 +477,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: decision:wf2.column-is-content
   title: A node's column is one page — properties, comments, then its content with the kind's pre-defined blocks as real, deletable blocks; the derived parts fold under it
-  status: proposed
+  status: approved
   date: 2026-09-21
   by: alex
   affects: [req:wf2.ui.node-content, req:wf2.ui.node-page, component:peek-panel, component:node-editor, component:instance-table, lib:instance-table]
@@ -495,7 +495,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: decision:wf2.import-code-is-a-session
   title: Import from code writes a page and a task and hands it to an agent at once; the scan happens in the session
-  status: proposed
+  status: approved
   date: 2026-09-21
   by: alex
   affects: [req:wf2.import.code, op:api.import-code, decision:wf2.import-lands-first-agent-rewrites-in-place]
@@ -513,7 +513,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: decision:wf2.import-lands-first-agent-rewrites-in-place
   title: Import writes markdown as documents unchanged, then a hook's agent session rewrites each one in place into proposed blocks
-  status: proposed
+  status: approved
   date: 2026-09-21
   by: alex
   affects: [req:wf2.import.markdown, req:wf2.import.analyse, decision:wf2.hooks-and-skills, rule:inbox-review]
@@ -737,7 +737,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   affects: [req:document-opened-in-the, rule:live-refresh, component:live-document]
   by: person
   evidence: [session:a148426dd0]
-  status: proposed
+  status: approved
 ```
 
   - choice:wf2.deleted-outside-stays-put The person is not moved. The URL, the top bar and the rail stay as they were and the content area alone shows a "page not found" notice. When the watcher sees the file again the document replaces the notice by itself, the way any other change reaches the page under rule:live-refresh.
@@ -752,7 +752,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
   verdict:f6d9d75af886 duplicate req:document-opened-in-the — A and B express the same behavior: person stays put, content shows 'not found', document replaces notice when file returns, stated at different formality levels. (kind: duplicate, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:document-opened-in-the decision:wf2.deleted-outside-stays-put)
 
-  contradiction:wye.f6d9d75af886 decision:wf2.deleted-outside-stays-put duplicates req:document-opened-in-the — A and B express the same behavior: person stays put, content shows 'not found', document replaces notice when file returns, stated at different formality levels. #open (between: decision:wf2.deleted-outside-stays-put req:document-opened-in-the, conflict: static, reason: A and B express the same behavior: person stays put  content shows 'not found'  document replaces notice when file returns  stated at different formality levels.)
+  contradiction:wye.f6d9d75af886 decision:wf2.deleted-outside-stays-put duplicates req:document-opened-in-the — A and B express the same behavior: person stays put, content shows 'not found', document replaces notice when file returns, stated at different formality levels. #approved (between: decision:wf2.deleted-outside-stays-put req:document-opened-in-the, conflict: static, reason: A and B express the same behavior: person stays put  content shows 'not found'  document replaces notice when file returns  stated at different formality levels.)
 
   verdict:152ee458ed63 refines decision:wf2.deleted-outside-drops-edits — A refines B by specifying the sub-case: unsaved edits are dropped when a file is deleted externally, narrowing B's main decision. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:wf2.deleted-outside-drops-edits decision:wf2.deleted-outside-stays-put)
 
@@ -762,7 +762,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   affects: [req:document-opened-in-the, decision:wf2.deleted-outside-stays-put]
   by: person
   evidence: [session:a148426dd0]
-  status: proposed
+  status: approved
 ```
 
   - choice:wf2.deleted-outside-drops-edits The deletion wins. The "page not found" notice shows regardless of pending edits and those edits are dropped; a pending save never recreates a file that was deleted outside the app.
@@ -779,7 +779,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   affects: [req:document-opened-in-the, decision:wf2.deleted-outside-stays-put, rule:doc-gone-in-place]
   by: agent:claude-code
   evidence: [session:baa6dff786]
-  status: proposed
+  status: approved
 ```
 
   - choice:wf2.not-found-rendered-not-thrown The page renders component:doc-not-found as ordinary content when the document is not in the graph or its file cannot be read; router.refresh() from LiveRefresh then re-renders it into the editor as any other change.
@@ -799,7 +799,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: decision:wf2.block-menu-reuses-actions
   title: The block menu is one entry point over the block's existing actions, not a new form
-  status: proposed
+  status: approved
   date: 2026-09-20
   by: person
   evidence: [session:3642a65ab6]

@@ -153,7 +153,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: decision:wf2.one-instance-table
   title: One instance table for the type page, the kind page and the view block
-  status: proposed
+  status: approved
   date: 2026-09-17
   related-to: [decision:wf2.one-table-block, rule:type-tables, rule:goals-and-tasks]
   session: 53f99bfd98
@@ -170,7 +170,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: decision:wf2.view-block-now
   title: The view block ships with the filterable page, in one change
-  status: proposed
+  status: approved
   date: 2026-09-17
   resolves: question:wf2.view-block-now
   session: 53f99bfd98

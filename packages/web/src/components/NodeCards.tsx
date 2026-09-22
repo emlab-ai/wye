@@ -13,8 +13,8 @@ import { PART_KINDS } from '@/lib/kinds';
 export type CardP = { kind: string; slug: string; status: string; form: string; body: string; textKey: string; extra: string; check: string; row: string };
 export type CardHost = {
   text: (className: string) => ReactNode;      // the node's text: editor content or an embed's text area
-  peek: () => void;                            // select the node (the column shows it) — a click on the pill
-  open?: () => void;                           // go into the node: the column opens it one level deeper (the ›)
+  peek: () => void;                            // select the node (the Context root shows it); the fallback for a host with no `open`
+  open?: () => void;                           // go into the node: the column opens it one level deeper — what the kind pill does
   copyLink: () => void;
   send: () => void;
   stop?: (el: HTMLElement | null) => void;     // the editor stops its own mouse/key handling at the header
@@ -97,12 +97,11 @@ export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<Car
         {(p.check || p.kind === 'task') && (
           <input type="checkbox" className="nblock-check" checked={p.check === 'done' || p.status === 'done'} onChange={e => set({ check: e.target.checked ? 'done' : 'todo', status: e.target.checked ? 'done' : 'open' })} title="done?" />
         )}
-        <button type="button" className="pill k nblock-peek" style={{ background: `var(--k-${p.kind}, var(--k-other))` }} title="Open this node in the panel" onClick={host.peek}>{p.kind}</button>
+        <button type="button" className="pill k nblock-peek" style={{ background: `var(--k-${p.kind}, var(--k-other))` }} title="Open this node in the column" onClick={host.open ?? host.peek}>{p.kind}</button>
         {(showYaml || !p.slug) && <input className="nblock-slug" value={p.slug} spellCheck={false} readOnly={host.slugReadOnly} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />}
         <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{(STATUSES.includes(p.status) ? [] : [p.status]).concat(STATUSES).map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
         {p.form === 'prose' && <input className={`nblock-extra ${p.extra ? '' : 'hover-only'}`} value={p.extra} placeholder="key: value" onChange={e => set({ extra: e.target.value })} />}
         <FoldToggle host={host} />
-        {host.open && <button type="button" className="nblock-open" title="Open in the column — one level deeper" onClick={host.open}>open ›</button>}
         <span className="nblock-tools hover-only">
           <button type="button" className="nblock-send" onClick={() => setShowYaml(v => !v)} title="the id, and a card's yaml">{showYaml ? 'hide details' : 'details'}</button>
           <button type="button" className="nblock-send" title="Copy a link to this node" onClick={host.copyLink}>⧉</button>
@@ -129,10 +128,9 @@ export function QuestionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
   return (
     <div className={`nblock k-question qnode s-${status} ${host.extraClass ?? ''}`} data-id={id} ref={host.hostRef} onClick={selectOn(host)}>
       <div className="qnode-head" contentEditable={false} ref={host.stop} onClick={host.onHeadClick}>
-        <button type="button" className="qnode-mark" title="Open this question in the panel" onClick={host.peek}>Q</button>
+        <button type="button" className="qnode-mark" title="Open this question in the column" onClick={host.open ?? host.peek}>Q</button>
         <select className={`status-sel s-${status} ${status === 'open' ? 'hover-only' : ''}`} value={status} onChange={e => set({ status: e.target.value })} title="status">{['open', 'resolved', 'rejected'].map(st => <option key={st} value={st}>{st}</option>)}</select>
         <FoldToggle host={host} />
-        {host.open && <button type="button" className="nblock-open" title="Open in the column — one level deeper" onClick={host.open}>open ›</button>}
         <span className="qnode-acts hover-only">
           <button type="button" className="nblock-send" title="Copy a link to this question" onClick={host.copyLink}>⧉</button>
           <button type="button" className="nblock-send" title="Send this question to an agent" onClick={host.send}>⇢</button>
@@ -174,11 +172,10 @@ export function DecisionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
   return (
     <div className={`nblock k-decision dnode s-${p.status} ${host.extraClass ?? ''}`} data-id={id} ref={host.hostRef} onClick={selectOn(host)}>
       <div className="nblock-head" contentEditable={false} ref={host.stop} onClick={host.onHeadClick}>
-        <button type="button" className="pill k nblock-peek" style={{ background: 'var(--k-decision)' }} title="Open this decision in the panel" onClick={host.peek}>decision</button>
+        <button type="button" className="pill k nblock-peek" style={{ background: 'var(--k-decision)' }} title="Open this decision in the column" onClick={host.open ?? host.peek}>decision</button>
         {(details || !p.slug) && <input className="nblock-slug" value={p.slug} spellCheck={false} readOnly={host.slugReadOnly} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />}
         <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{STATUSES.map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
         <FoldToggle host={host} />
-        {host.open && <button type="button" className="nblock-open" title="Open in the column — one level deeper" onClick={host.open}>open ›</button>}
         <span className="nblock-tools hover-only">
           <button type="button" className="nblock-send" title="Copy a link to this decision" onClick={host.copyLink}>⧉</button>
           <button type="button" className="nblock-send" title="Send this decision to an agent" onClick={host.send}>⇢</button>

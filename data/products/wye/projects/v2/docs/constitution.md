@@ -47,7 +47,7 @@ The constraints in force — rules about the product and how it is built that no
 ```yaml
 - id: constraint:wf2.person-approves
   scope: [rule:inbox-review, req:wf2.clerk, decision:memory.write-time-verdict]
-  status: proposed
+  status: approved
   by: alex
   title: Nothing resolves a contradiction, retires a decision or deletes memory without a person:
 ```
@@ -68,7 +68,7 @@ The constraints in force — rules about the product and how it is built that no
 ```yaml
 - id: constraint:wf2.blocks-not-prose
   scope: [rule:agent-contract]
-  status: proposed
+  status: approved
   by: alex
   title: >
     Decisions, questions, requirements, rules, constraints and tasks are typed blocks in the document they belong
@@ -79,7 +79,7 @@ The constraints in force — rules about the product and how it is built that no
 ```yaml
 - id: constraint:wf2.one-defining-place
   scope: [rule:page-node-line, module:ontology-design]
-  status: proposed
+  status: approved
   by: alex
   title: Every id is defined in exactly one place;
 ```
@@ -89,7 +89,7 @@ The constraints in force — rules about the product and how it is built that no
 ```yaml
 - id: constraint:wf2.main-branch
   scope: [module:wf2]
-  status: proposed
+  status: approved
   by: alex
   title: While Wye is a prototype, work is committed straight to main — no feature branches, no merge menus.
 ```

@@ -60,7 +60,7 @@ relations scroll.
 - id: decision:wf2.column-frame-header-scrolls
   title: A session's header scrolls with the conversation; only the bar and the message box are pinned
   affects: [page:web/context-column, component:console, component:session-view]
-  status: proposed
+  status: approved
   date: 2026-09-18
 ```
 

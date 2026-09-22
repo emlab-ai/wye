@@ -1,0 +1,22 @@
+{
+  "id": "d3cf59c459",
+  "hook": "",
+  "actions": [
+    {
+      "kind": "task",
+      "added": [
+        "task:wye.research-implement-a-feature-to-install"
+      ],
+      "session": "39b69e4b09"
+    }
+  ],
+  "at": "2026-09-22T15:17:25.278Z",
+  "by": {
+    "run": "run:feature-1",
+    "stage": "stage:feature.research"
+  },
+  "title": "Explore the idea",
+  "node": "goal:new-650",
+  "event": "stage:stage:feature.research",
+  "depth": 0
+}

@@ -75,7 +75,7 @@ Decisions this plan makes on its own, and what it cannot decide:
 - id: decision:wf2.content-editor-scoped
   title: The column's content editor is the document editor scoped to one node, over one store
   date: 2026-09-18
-  status: proposed
+  status: approved
   affects: [req:wf2.ui.node-content, component:doc-editor, component:peek-panel, op:node.edit]
   session: ffab751604
 ```
@@ -92,7 +92,7 @@ Decisions this plan makes on its own, and what it cannot decide:
 - id: decision:wf2.related-collapsed-default
   title: Related is closed by default, runs no search while closed, and remembers the choice per browser
   date: 2026-09-18
-  status: proposed
+  status: approved
   affects: [req:wf2.ui.related-collapsed, component:context-panel, component:peek-panel]
   session: ffab751604
 ```
@@ -109,7 +109,7 @@ Decisions this plan makes on its own, and what it cannot decide:
 - id: decision:wf2.text-is-first-block
   title: A node's text is the first block of its content; the column shows properties first, then the content
   date: 2026-09-18
-  status: proposed
+  status: approved
   affects: [req:wf2.ui.node-content, rule:content-editor, op:node.content, component:node-editor]
   session: ffab751604
 ```

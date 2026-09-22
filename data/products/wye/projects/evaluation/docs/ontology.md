@@ -68,7 +68,7 @@ table and view blocks.
 ```yaml
 - id: constraint:wf2.no-custom-pages
   scope: [module:app, module:app-knowledge, module:memory-review]
-  status: proposed
+  status: approved
   by: alex
   date: 2026-09-20
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]

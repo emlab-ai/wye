@@ -95,7 +95,7 @@ task below records the fix to make.
 - id: decision:wf2.plans-folder
   title: Every plan document is a sub-page of one Plans page per project
   affects: [req:wf2.sessions.plan-doc, rule:pr-doc, lib:pr-doc]
-  status: proposed
+  status: approved
   date: 2026-09-18
 ```
 
@@ -111,7 +111,7 @@ task below records the fix to make.
 - id: decision:wf2.plan-per-request
   title: A plan document for every request that starts work; a worker's history is its list of plans
   affects: [rule:pr-doc, req:wf2.sessions.plan-doc, lib:agent-host, op:api.sessions]
-  status: proposed
+  status: approved
   date: 2026-09-18
 ```
 
@@ -127,7 +127,7 @@ task below records the fix to make.
 - id: decision:wf2.plan-result-owned-by-app
   title: The app owns a plan's Result section and scopes the blocks to the plan's time window
   affects: [req:wf2.sessions.plan-result, lib:pr-doc, type:pr]
-  status: proposed
+  status: approved
   date: 2026-09-18
 ```
 

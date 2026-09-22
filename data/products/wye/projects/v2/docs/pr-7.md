@@ -53,7 +53,7 @@ What does *not* change: an embedded card inside the column (a connected row open
 - id: decision:wf2.block-click-selects
   title: A click anywhere on a block selects it; the column's Context root shows the node
   date: 2026-09-18
-  status: proposed
+  status: approved
   affects: [req:wf2.ui.block-select, rule:block-select, component:peek-panel, component:node-cards, component:embed-block, component:doc-editor]
   session: 367dedec3c
 ```

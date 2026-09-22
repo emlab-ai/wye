@@ -32,7 +32,7 @@ The context column (component:peek-panel, `packages/web/src/components/PeekPanel
 - id: decision:wf2.connected-rows-expand-to-cards
   title: A connected row expands in place into the node's embedded card
   date: 2026-09-18
-  status: proposed
+  status: approved
   related-to: [component:peek-panel, component:embed-block, req:wf2.ui.connected-cards]
 ```
 

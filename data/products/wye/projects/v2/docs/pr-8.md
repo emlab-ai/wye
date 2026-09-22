@@ -47,7 +47,7 @@ Plans become a **system folder** of the rail, like Inbox and Agents are system p
   title: Plans is a system folder in the rail's menu; the plan files stay in the project's docs folder
   affects: [req:wf2.ui.plans-folder, rule:prs-folder, page:web/prs, page:web/sidebar, rule:documents-tree, req:wf2.sessions.plan-doc]
   related-to: [decision:wf2.plans-folder, decision:wf2.plan-per-request]
-  status: proposed
+  status: approved
   date: 2026-09-18
   session: 48c8885cd2
 ```

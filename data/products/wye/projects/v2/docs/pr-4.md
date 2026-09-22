@@ -57,7 +57,7 @@ and the rest of the document does not move. No markup or data change; goals/task
 - id: decision:wf2.table-scroll-not-shrink
   title: A narrow data table scrolls sideways; columns keep their minimum widths
   affects: [component:data-table, rule:table-scroll, req:wf2.editor.table-scroll]
-  status: proposed
+  status: approved
   date: 2026-09-18
   session: 01b14dc871
 ```

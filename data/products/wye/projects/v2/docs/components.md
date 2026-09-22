@@ -125,7 +125,7 @@ The editor's blocks and the components the pages are made of, by area.
     and component:session-view (instruction, result).
   part-of: module:components
 - id: component:pr-list
-  status: retired
+  status: approved
   file: packages/web/src/components/PrList.tsx
   side: client
   purpose: >
@@ -560,19 +560,19 @@ The editor's blocks and the components the pages are made of, by area.
   purpose: >
     Images and files a document embeds: docs/assets/<file>, served relative to the document's URL so the markdown
     can say ![caption](assets/<file>) and render both here and on GitHub.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:product-layout
   file: packages/web/src/app/[product]/layout.tsx
   side: server
   purpose: (no header comment)
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:root-layout
   file: packages/web/src/app/layout.tsx
   side: server
   purpose: (no header comment)
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:attachments
   file: packages/web/src/components/Attachments.tsx
@@ -581,13 +581,13 @@ The editor's blocks and the components the pages are made of, by area.
     Images a person pastes (or drops) into a message box before sending: the session composer and the command box
     take them the same way — up to 8, shown as thumbnails with a remove button, sent as data URLs and stored as
     the session's files (store:session-files). Claude Code takes pasted images the same way.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:constitution-list
   file: packages/web/src/components/ConstitutionList.tsx
   side: client
   purpose: (no header comment)
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:editor-scope
   file: packages/web/src/components/EditorScope.ts
@@ -595,13 +595,13 @@ The editor's blocks and the components the pages are made of, by area.
   purpose: >
     The node whose content a DocEditor edits (decision:wf2.content-editor-scoped); null on a document page. Its
     own module so a block component can read it without importing the editor (which imports the blocks).
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:question-toasts
   file: packages/web/src/components/QuestionToasts.tsx
   side: client
   purpose: (no header comment)
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:tabs
   file: packages/web/src/components/Tabs.tsx
@@ -610,7 +610,7 @@ The editor's blocks and the components the pages are made of, by area.
     A strip of tabs, editor style (req:wf2.ui.tabs): one row that scrolls sideways, the open tab on the content's
     ground, the others sunk; × closes (the middle button too), a pinned tab keeps its place and shows a pin
     instead of ×. The same strip sits above the content and above the context column, so both read the same way.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:settings-jev
   file: packages/web/src/components/SettingsJev.tsx
@@ -624,7 +624,7 @@ The editor's blocks and the components the pages are made of, by area.
   file: packages/web/src/components/PrHead.tsx
   side: client
   purpose: (no header comment)
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:pr-list
   file: packages/web/src/components/PrList.tsx
@@ -638,7 +638,7 @@ The editor's blocks and the components the pages are made of, by area.
   purpose: >
     The dispatcher's knobs (decision&#58;wf2.pr-scheduler): how many approved PRs build at once, and which agent
     builds.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:comments
   file: packages/web/src/components/Comments.tsx
@@ -648,7 +648,7 @@ The editor's blocks and the components the pages are made of, by area.
     its card, its row in a table, a column entry, its page — shows the comments made on it, oldest first, and a
     box to add one. A comment is a row of the project's Comments document with `on:` the node
     (decision:ontology.comment-is-a-ref); the list is the inverse edge, refetched on every graph change.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:inbox-projects
   file: packages/web/src/components/InboxProjects.tsx
@@ -657,13 +657,13 @@ The editor's blocks and the components the pages are made of, by area.
     The Inbox per project (req&#58;wf2.inbox.per-project): chips — every project, then each one — narrow the
     changes and the review queue to one project's documents; notes (no document yet) show only under all. The
     choice is in the URL.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:skill-folder
   file: packages/web/src/components/SkillFolder.tsx
   side: client
   purpose: (no header comment)
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:embedded-card
   file: packages/web/src/components/EmbeddedCard.tsx
@@ -674,13 +674,13 @@ The editor's blocks and the components the pages are made of, by area.
     line or yaml card in its source document — so every field change goes through op:node.edit (700 ms after the
     last keystroke, patches merged), the watcher rebuilds the graph, and every embed refetches on the graph change
     event. The slug is read-only: renaming a node happens on its source page.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:hooks-section
   file: packages/web/src/components/HooksSection.tsx
   side: client
   purpose: (no header comment)
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:attach-picker
   file: packages/web/src/components/AttachPicker.tsx
@@ -689,7 +689,7 @@ The editor's blocks and the components the pages are made of, by area.
     Skills and hooks to attach to a request (decision:wf2.hooks-and-skills): the product's skills (their bodies ride
     in the librarian's and the builder's first message) and its hooks (they fire on the request's events, paused or
     not), as chips to toggle. Used by ⌘P in PR mode and by the PR's head.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:code-view
   file: packages/web/src/components/CodeView.tsx
@@ -700,14 +700,14 @@ The editor's blocks and the components the pages are made of, by area.
     fetched from op&#58;api.code, which keeps every path inside the product's code folder. The editor comes from the
     npm package (no CDN), so it works offline and in the desktop app; the language workers are not started —
     highlighting is enough here.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:pr-folder-2
   file: packages/web/src/components/PrFolder.tsx
   side: client
   purpose: >
     (no header comment)
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:settings-folder
   file: packages/web/src/components/SettingsFolder.tsx
@@ -715,7 +715,7 @@ The editor's blocks and the components the pages are made of, by area.
   purpose: >
     Where a product's folder is (decision&#58;wf2.product-folder): by default under the app's data, or a folder the
     person names — beside the code, in a shared drive — everything but the registry entry moves there.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:gone-notice
   file: packages/web/src/components/GoneNotice.tsx
@@ -724,7 +724,7 @@ The editor's blocks and the components the pages are made of, by area.
     A product or project that is not here (decision:wf2.deleted-outside-stays-put): the notice is a page of the app
     with the way out — never the framework's bare 404. A product goes when its folder is removed or moved without
     the app (a scratch product deleted, a git checkout); a project when its folder leaves the product.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:product-not-found
   file: packages/web/src/app/[product]/not-found.tsx
@@ -732,7 +732,7 @@ The editor's blocks and the components the pages are made of, by area.
   purpose: >
     notFound() anywhere under a product — a session, a type, a node that is not there — lands here, inside the
     product's shell (the rail, the top bar, the column stay); the notice names what is missing from the address.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:root-not-found
   file: packages/web/src/app/not-found.tsx
@@ -740,7 +740,7 @@ The editor's blocks and the components the pages are made of, by area.
   purpose: >
     The app never shows the framework's bare 404 (decision:wf2.deleted-outside-stays-put): an address that matches
     nothing outside a product lands on the products that exist.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:import-docs
   file: packages/web/src/components/ImportDocs.tsx
@@ -751,7 +751,7 @@ The editor's blocks and the components the pages are made of, by area.
     documents of a project — unchanged, the tree kept — and, when "Analyse with agent" stays on, a hook hands each
     one to an agent with the Import skill; From code points at a folder of source and gets a feature's definition
     read from it, its describe tasks handed to an agent with the Describe-module skill.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:imported-notice
   file: packages/web/src/components/ImportedNotice.tsx
@@ -760,7 +760,7 @@ The editor's blocks and the components the pages are made of, by area.
     The bar an imported document shows while no agent has read it (req:wf2.import.analyse): `imported` waits for the
     hook, `raw` declined it; Analyse runs hook:import-analyse on the page's node now — one session with the Import
     skill, its blocks proposed.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:selection-menu
   file: packages/web/src/components/SelectionMenu.tsx
@@ -771,7 +771,7 @@ The editor's blocks and the components the pages are made of, by area.
     styles, then Wye's own moves (⌁ node, ▣ block, a link), Comment on the block, and Ask an agent. Every action
     goes through the editor's own API; the parent supplies the three moves that need its state (link picker,
     make-block picker, ask, comment) as callbacks.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:page-head
   file: packages/web/src/components/PageHead.tsx
@@ -781,7 +781,7 @@ The editor's blocks and the components the pages are made of, by area.
     picker, the Tags row, and the Comments section under the properties. Each saves through the same front-matter
     patch the rest of the head uses (`save`), so a page's icon, cover and tags are keys in its markdown like
     everything else.
-  status: proposed
+  status: approved
   part-of: module:components
 - id: component:code-block
   file: packages/web/src/components/CodeBlock.tsx

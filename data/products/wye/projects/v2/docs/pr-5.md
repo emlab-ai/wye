@@ -96,7 +96,7 @@ Built as planned, with three things the build found (all in rule:table-filter):
 - id: decision:wf2.table-filter-on-marker
   title: A data table keeps its filters on its marker line, like a view block
   affects: [req:wf2.editor.table-filter, component:data-table, rule:type-tables, rule:goals-and-tasks]
-  status: proposed
+  status: approved
   date: 2026-09-18
   session: bd2ece3698
 ```
@@ -113,7 +113,7 @@ Built as planned, with three things the build found (all in rule:table-filter):
 - id: decision:wf2.table-filter-hides-rows
   title: A filter hides rows in the editor; the rows stay children of the table and stay in the file
   affects: [req:wf2.editor.table-filter, rule:table-rows, component:data-table]
-  status: proposed
+  status: approved
   date: 2026-09-18
   session: bd2ece3698
 ```

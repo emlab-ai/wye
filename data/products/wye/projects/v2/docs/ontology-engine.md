@@ -144,7 +144,7 @@ Ontology
 - id: decision:ontology.uniform-content
   title: Every node has the same `content` field — a list of child blocks — and everything else related is a ref
   date: 2026-09-18
-  status: proposed
+  status: approved
   resolves: question:ontology.child-nodes
   affects: [goal:ontology.graph-editor, type:block, req:ontology.blocks, task:ontology.child-nodes-design, task:ontology.children-in-column]
   session: 367dedec3c
@@ -164,7 +164,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 - id: decision:ontology.content-markdown
   title: Content is written indented under the defining line — two spaces per level, the same rules at every level
   date: 2026-09-18
-  status: proposed
+  status: approved
   affects: [req:ontology.content, type:node, req:ontology.blocks, rule:prose-round-trip]
   session: ffab751604
 ```
@@ -181,7 +181,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 - id: decision:ontology.depth-by-navigation
   title: Going deeper is navigation in the column, not nesting inside it
   date: 2026-09-18
-  status: proposed
+  status: approved
   affects: [req:wf2.ui.node-content, req:wf2.ui.card-preview, rule:block-select]
   session: ffab751604
 ```
@@ -197,7 +197,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 ```yaml
 - id: decision:ontology.ids-kind-slug
   title: Ontology: ids stay kind:slug and the kind prefix is the type
-  status: proposed
+  status: approved
   date: 2026-09-17
   related-to: [module:ontology,module:ontology-design,rule:prose-nodes]
   session: 7cbfbe5976
@@ -214,7 +214,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 ```yaml
 - id: decision:ontology.types-are-cards
   title: Ontology: types are yaml cards; a shipped base-ontology document replaces schema/kinds.yaml
-  status: proposed
+  status: approved
   date: 2026-09-17
   related-to: [module:ontology-design,rule:markdown-canonical,req:wf.graph]
   session: 7cbfbe5976
@@ -231,7 +231,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 ```yaml
 - id: decision:ontology.inverses-generated
   title: Ontology: inverse (back-link) edges are generated, never written to markdown
-  status: proposed
+  status: approved
   date: 2026-09-17
   related-to: [module:ontology-design,rule:block-links]
   session: 7cbfbe5976
@@ -248,7 +248,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 ```yaml
 - id: decision:ontology.inheritance-at-parse
   title: Ontology: property inheritance resolves at parse time and an override may only narrow
-  status: proposed
+  status: approved
   date: 2026-09-17
   related-to: [module:ontology-design]
   session: 7cbfbe5976
@@ -265,7 +265,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 ```yaml
 - id: decision:ontology.blocks-last-phase
   title: Ontology: every-block-is-a-node is the last phase, hidden by default
-  status: proposed
+  status: approved
   date: 2026-09-17
   related-to: [module:ontology-design,rule:block-links,module:ontology]
   session: 7cbfbe5976
@@ -282,7 +282,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 ```yaml
 - id: decision:ontology.types-product-local
   title: Ontology: types are product-local; only the base ontology is shared
-  status: proposed
+  status: approved
   date: 2026-09-17
   resolves: [question:ontology.q2]
   related-to: [module:ontology-design]
@@ -300,7 +300,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 ```yaml
 - id: decision:ontology.blocks-all-documents
   title: Ontology: block nodes for every document, hidden by default — no opt-in
-  status: proposed
+  status: approved
   date: 2026-09-17
   resolves: [question:ontology.q3]
   related-to: [module:ontology-design, task:ontology.blocks]
@@ -318,7 +318,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 ```yaml
 - id: decision:ontology.block-owned-links
   title: Ontology: a phrase link in plain prose is the block's edge; the document reads it through has
-  status: proposed
+  status: approved
   date: 2026-09-17
   resolves: [question:ontology.q4]
   related-to: [module:ontology-design, rule:block-links]
@@ -336,7 +336,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 ```yaml
 - id: decision:ontology.open-types
   title: Ontology: a type is closed unless it says open: true; all base types are open
-  status: proposed
+  status: approved
   date: 2026-09-17
   related-to: [module:ontology-design, req:ontology.check]
   session: 94ac3cf3e0
@@ -353,7 +353,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 ```yaml
 - id: decision:ontology.new-type-home
   title: "Ontology: a type added from the UI goes to the product's ontology.md, kept next to its other types"
-  status: proposed
+  status: approved
   date: 2026-09-17
   related-to: [module:ontology-design, decision:ontology.types-product-local, decision:ontology.types-are-cards]
   session: 8aa3926e18
@@ -372,7 +372,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
   title: >
     Ontology: the base ontology is one file in the repo (schema/base-ontology.md), read for every product;
     kinds.yaml stays hand-kept for now
-  status: proposed
+  status: approved
   date: 2026-09-17
   related-to: [module:ontology-design, decision:ontology.types-are-cards]
   session: 94ac3cf3e0
@@ -389,7 +389,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 ```yaml
 - id: decision:ontology.comments-in-column
   title: A node's comments are shown and made in the context column, whichever surface opened the node
-  status: proposed
+  status: approved
   date: 2026-09-20
   by: agent:9a1382cd4e
   evidence: [session:9a1382cd4e]
@@ -410,7 +410,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 ```yaml
 - id: decision:ontology.collection-document
   title: A type's instances collect in a document of their own, created on the first instance and set as the type's home
-  status: proposed
+  status: approved
   date: 2026-09-20
   by: alex
   evidence: [session:bb9a0a8af9]
@@ -434,7 +434,7 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
 ```yaml
 - id: decision:ontology.comment-is-a-ref
   title: A comment is a card in the product's Comments document with `on:` the node — not a child block under it
-  status: proposed
+  status: approved
   date: 2026-09-20
   by: alex
   evidence: [session:bb9a0a8af9]

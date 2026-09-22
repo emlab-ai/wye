@@ -128,7 +128,7 @@ Memory
 
   verdict:e0f217651378 contradicts req:wf2.contradictions — A requires contradictions to stay open until resolved; B archives plans (excluding them from default retrieval unless --all), but contradictions are findings, not listed as knowledge blocks that stay visible, risking hidden unresolved contradictions (kind: contradicts, conflict: conditional, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:wf2.contradictions decision:memory.forgetting)
 
-  contradiction:wye.e0f217651378 decision:memory.forgetting contradicts req:wf2.contradictions — A requires contradictions to stay open until resolved; B archives plans (excluding them from default retrieval unless --all), but contradictions are findings, not listed as knowledge blocks that stay visible, risking hidden unresolved contradictions #open (between: decision:memory.forgetting req:wf2.contradictions, conflict: conditional)
+  contradiction:wye.e0f217651378 decision:memory.forgetting contradicts req:wf2.contradictions — A requires contradictions to stay open until resolved; B archives plans (excluding them from default retrieval unless --all), but contradictions are findings, not listed as knowledge blocks that stay visible, risking hidden unresolved contradictions #approved (between: decision:memory.forgetting req:wf2.contradictions, conflict: conditional)
 
 ```yaml
 - id: decision:memory.evidence
@@ -168,7 +168,7 @@ Memory
 - id: decision:memory.benchmark
   title: The 78 existing contradicts edges are the regression set for the verdict pass
   date: 2026-09-19
-  status: proposed
+  status: approved
   affects: [req:wf.describe.drift, req:wf2.contradictions.semantic]
   verified-by: [test:verdict-bench]
   part-of: goal:memory.validated-asks
@@ -186,7 +186,7 @@ Memory
 - id: decision:memory.instructions-compiled
   title: Agent instructions are typed blocks compiled from lessons, proposed as patches with evidence, reviewed like any change, and injected in full
   date: 2026-09-19
-  status: proposed
+  status: approved
   refines: decision:memory.consolidate-sessions
   affects: [store:agent-instructions, op:api.agent-prompt, rule:agent-contract, decision:memory.consolidate-sessions, decision:exec.change-record]
   part-of: goal:memory.validated-asks
@@ -204,7 +204,7 @@ Memory
 - id: decision:memory.public-benchmarks
   title: Two public benchmarks now — MOOSEDev bench and the requirement-pair conflict sets — a MemoryAgentBench adapter next, LongMemEval-V2 later
   date: 2026-09-19
-  status: proposed
+  status: approved
   refines: decision:memory.evaluation
   affects: [req:memory.eval-page, decision:memory.write-time-verdict, decision:memory.constraint-packet]
   part-of: goal:memory.validated-asks
@@ -222,7 +222,7 @@ Memory
 - id: decision:memory.evaluation
   title: Every memory claim has a benchmark on Wye's own history, a with-and-without run, and a page that shows both
   date: 2026-09-19
-  status: proposed
+  status: approved
   affects: [decision:memory.benchmark, decision:memory.constraint-packet, decision:exec.impact-run, decision:memory.consolidate-sessions, decision:memory.instructions-compiled]
   part-of: goal:memory.validated-asks
 ```
@@ -241,7 +241,7 @@ Memory
     Code files are a second source of nodes — a comment whose first token is an id defines that node, with the
     same grammar as a prose line
   date: 2026-09-19
-  status: proposed
+  status: approved
   affects: [rule:markdown-canonical, rule:agent-contract, req:wf.describe.drift]
   part-of: goal:memory.validated-asks
 ```
@@ -294,7 +294,7 @@ Memory
 - id: decision:memory.eval-tolerance
   title: A suite fails the run when its score drops more than 5 points below the previous file
   date: 2026-09-20
-  status: proposed
+  status: approved
   by: alex
   evidence: [session:a95bf7bbe0]
   refines: decision:memory.evaluation
@@ -318,7 +318,7 @@ Memory
 - id: decision:memory.eval-first-live-runs
   title: The build includes the first live runs on haiku, with the recordings committed
   date: 2026-09-20
-  status: proposed
+  status: approved
   by: alex
   evidence: [session:a95bf7bbe0]
   refines: decision:memory.evaluation

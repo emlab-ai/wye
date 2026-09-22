@@ -75,7 +75,7 @@ a view. Ids never change.
 - id: decision:wf2.definition-layers
   title: The definition is layered by the reader's question — Wye, Product, Experience, Domain, Systems, Quality — with areas inside each; Decisions, Research and Archive beside them
   date: 2026-09-20
-  status: proposed
+  status: approved
   supersedes: decision:wf2.definition-shape
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
@@ -93,7 +93,7 @@ a view. Ids never change.
 ```yaml
 - id: decision:wf2.annotations-text-and-png
   title: An annotated image reaches the agent as text and as a rendered picture
-  status: proposed
+  status: approved
   date: 2026-09-17
   related-to: [module:wf2-prd, rule:drawings]
   session: 94ac3cf3e0
@@ -110,7 +110,7 @@ a view. Ids never change.
 ```yaml
 - id: decision:wf2.agent-questions-are-forms
   title: Agent questions are answered by the person in the console; permissions are never auto-answered
-  status: proposed
+  status: approved
   date: 2026-09-17
   related-to: [rule:agent-host, module:wf2-prd]
   session: 94ac3cf3e0
@@ -310,7 +310,7 @@ a view. Ids never change.
 - id: decision:wf2.definition-shape
   title: The definition of Wye is by kind on top and by area inside — one Wye page, one PRD, one Design parent with a module page per area, Tests, Research, Archive
   date: 2026-09-20
-  status: proposed
+  status: approved
   by: alex
   evidence: [session:d4d72bd04a]
   affects: [module:wf2, module:wf2-prd, module:wf2-dev, module:wf2-test, module:app, module:memory-review, module:ontology-design, module:prd-execution, rule:documents-tree]
@@ -328,7 +328,7 @@ a view. Ids never change.
 
   verdict:3e8a0f2aadb1 duplicate req:wf2.definition.one-place-per-kind — A (requirement) and B (decision) express the same structure: identical tree layout, identical placement of block kinds by location. (kind: duplicate, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:wf2.definition.one-place-per-kind decision:wf2.definition-shape)
 
-  contradiction:wye.3e8a0f2aadb1 decision:wf2.definition-shape duplicates req:wf2.definition.one-place-per-kind — A (requirement) and B (decision) express the same structure: identical tree layout, identical placement of block kinds by location. #open (between: decision:wf2.definition-shape req:wf2.definition.one-place-per-kind, conflict: static, reason: A  requirement  and B  decision  express the same structure: identical tree layout  identical placement of block kinds by location.)
+  contradiction:wye.3e8a0f2aadb1 decision:wf2.definition-shape duplicates req:wf2.definition.one-place-per-kind — A (requirement) and B (decision) express the same structure: identical tree layout, identical placement of block kinds by location. #approved (between: decision:wf2.definition-shape req:wf2.definition.one-place-per-kind, conflict: static, reason: A  requirement  and B  decision  express the same structure: identical tree layout  identical placement of block kinds by location.)
 
   verdict:cf5b47fa3b4d refines req:wf2.definition.what-wye-is — A specifies what content the Wye page holds (purpose, goals, constitution, product decisions, area links); B only mentions there is one Wye page. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:wf2.definition.what-wye-is decision:wf2.definition-shape)
 
@@ -338,7 +338,7 @@ a view. Ids never change.
 - id: decision:wf2.superseded-layers
   title: The v0.1 and 2026-09-14 layers are sorted block by block — what exists moves, what was never built is retired, the emptied pages go to Archive
   date: 2026-09-20
-  status: proposed
+  status: approved
   by: alex
   evidence: [session:d4d72bd04a]
   affects: [module:wye, module:wf2-prd, module:wf2-dev, module:wf2-plan, decision:memory.forgetting]
@@ -360,7 +360,7 @@ a view. Ids never change.
 - id: decision:wf2.definition-leftovers
   title: Session leftovers leave the definition pages and every page says Wye — ids and the product slug stay
   date: 2026-09-20
-  status: proposed
+  status: approved
   by: alex
   evidence: [session:d4d72bd04a]
   affects: [module:app-agents, module:app-knowledge, module:bugs, module:v2-prs]

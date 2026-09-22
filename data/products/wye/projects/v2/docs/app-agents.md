@@ -205,7 +205,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 - id: decision:wf2.cli-is-wye
   title: The agent CLI is `wye`; `wf` stays an alias until nothing says it any more
   date: 2026-09-20
-  status: proposed
+  status: approved
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
   affects: [rule:agent-runner, rule:agent-contract, rule:librarian-tools]
@@ -222,7 +222,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: decision:wf2.attribution-derived-not-written
   title: The run id lives with the session, not on every block line
-  status: proposed
+  status: approved
   date: 2026-09-17
   related-to: [rule:task-artifacts, req:wf2.sessions.knowledge-changes, task:session-knowledge-changes]
 ```
@@ -239,7 +239,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 - id: decision:wf2.fresh-is-a-queue-property
   title: "Clear context" is a property of the queued item, honoured by the pump
   date: 2026-09-18
-  status: proposed
+  status: approved
   affects: [rule:clean-slate, rule:session-queue, component:command-box, component:console, op:api.sessions.message, op:api.sessions.control, lib:agent-host]
   related-to: [decision:wf2.clean-slate, req:wf2.sessions.fresh-in-queue]
   session: 181e88ad1f
@@ -257,7 +257,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 - id: decision:wf2.queue-item-state
   title: A queue item keeps its state on the session record; the turn end marks it
   date: 2026-09-18
-  status: proposed
+  status: approved
   affects: [lib:sessions, lib:session-types, lib:agent-host, component:console, component:session-list, rule:session-queue]
   related-to: [req:wf2.sessions.queue-on-agents]
   session: 181e88ad1f
@@ -274,7 +274,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: decision:wf2.session-page-derived
   title: The session page is derived from the session and the graph, not a plan document
-  status: proposed
+  status: superseded
   date: 2026-09-18
   related-to: [decision:wf2.plan-is-a-page, decision:wf2.attribution-derived-not-written, req:wf2.sessions.page]
   session: efee530d46
@@ -292,7 +292,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 - id: decision:wf2.transcript-app-links
   title: A transcript shows a Waterfall URL as its target, derived from the path, never from a hard-wired host
   date: 2026-09-18
-  status: proposed
+  status: approved
   affects: [component:console, component:session-page, lib:agent-host, decision:wf2.desktop-electron]
   related-to: [req:wf2.transcript.app-links, rule:app-link]
 ```
@@ -308,7 +308,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: decision:wf2.plan-is-a-document
   title: A plan is a document of its own — plan-<slug> under the page it was asked on — not a derived session page
-  status: proposed
+  status: approved
   supersedes: decision:wf2.session-page-derived
   date: 2026-09-18
   related-to: [decision:wf2.plan-is-a-page, decision:wf2.session-page-derived, rule:plan-first, rule:embed-line, decision:wf2.plans-folder, decision:wf2.plan-per-request]
@@ -326,7 +326,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```yaml
 - id: decision:wf2.first-message-shown-as-request
   title: The user row shows the instruction; the full prompt rides on the event behind a fold
-  status: proposed
+  status: approved
   date: 2026-09-18
   affects: [lib:agent-host, component:console, lib:session-types, req:wf2.console.first-message-is-the-request]
   related-to: [rule:plan-first, decision:wf2.plan-first-is-a-prompt]

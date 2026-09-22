@@ -579,7 +579,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf2.table.row-is-the-row an instance in a type's table (a city in Cities, a goal in Goals) has content blocks under it — a question, a note, sub-tasks — added in the column's Content editor or written in the file
 
-  - then:wf2.table.row-is-the-row the table renders the row and its columns only; the content stays in the document under the row's line and is shown and edited in the column (open ›), never as blocks nested inside the table
+  - then:wf2.table.row-is-the-row the table renders the row and its columns only; the content stays in the document under the row's line and is shown and edited in the column (the kind pill opens it), never as blocks nested inside the table
 
   - unless:wf2.table.row-is-the-row the collection is switched to its list view — then each row is a block and its content shows under it as on any page
 

@@ -56,7 +56,7 @@ The session composer already takes images from the clipboard (action:send-messag
 - id: decision:wf2.palette-images-are-session-files
   title: Palette images are session attachments, not inbox assets
   date: 2026-09-17
-  status: proposed
+  status: approved
   affects: [action:command-palette, store:session-files, req:wf2.ui.palette-images]
 ```
 

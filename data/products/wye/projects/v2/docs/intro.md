@@ -56,7 +56,7 @@ reach?* or *what governs this request?* is a graph traversal, not a search.
 
 **Requirements as cards.** A requirement is a block with `when` / `then` / `unless` children and typed links —
 what refines it, what satisfies it (a component, an operation, a library), what verifies it (a test), who wrote it
-and where the evidence is. `open ›` opens the node in the column with its relations editable in place.
+and where the evidence is. Clicking a card's kind pill opens the node in the column with its relations editable in place.
 
 ![Requirements cards with a node opened in the column](assets/intro-requirements.png)
 

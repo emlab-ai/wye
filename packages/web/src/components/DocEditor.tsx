@@ -757,7 +757,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     const el = rootRef.current; if (!el) return;
     const peek = (e: Event) => { e.stopPropagation(); openPeek((e as CustomEvent<string>).detail); };
     // in a content editor a click on a child block selects nothing and opens nothing (decision:ontology.depth-by-navigation
-    // refined): going a level deeper is the card's "open ›" (wf:peek), never a click on it
+    // refined): going a level deeper is the card's kind pill (wf:peek), never a click on it
     const sel = (e: Event) => { e.stopPropagation(); if (!scoped) select((e as CustomEvent<string>).detail); };
     el.addEventListener('wf:peek', peek); el.addEventListener('wf:select', sel);
     return () => { el.removeEventListener('wf:peek', peek); el.removeEventListener('wf:select', sel); };

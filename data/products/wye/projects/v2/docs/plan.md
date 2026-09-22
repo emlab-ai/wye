@@ -246,3 +246,4 @@ Work that is planned but on no plan document yet, by area, and the tasks past pa
   session: 9a1382cd4e
 ```
 - [ ] task:ontology.type-content-template A type card declares `content:` — the pre-defined blocks its instances offer in the column — so lib/node-blocks reads the type instead of a map by base kind (decision:wf2.column-is-content). Part of module:ontology-design.
+- [ ] task:wye.a-session-s-produced-is-credited A session's produced: is credited from every document that changed while it ran lib/artifacts.ts , not the ones it wrote: session 39b69e4b09 wrote one document and was credited with 35, including every PR page the person approved decisions on in the app meanwhile (by: agent:39b69e4b09, since: 2026-09-22)

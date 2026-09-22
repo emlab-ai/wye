@@ -56,7 +56,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 - id: decision:wf2.views-are-pages
   title: Goals and Work are documents holding one instances view each; a view says where its blocks come from
   date: 2026-09-20
-  status: proposed
+  status: approved
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
   affects: [page:web/goals, page:web/tasks, page:web/work, component:view-block, constraint:wf2.no-custom-pages]
@@ -74,7 +74,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 - id: decision:wf2.rail-fewer-entries
   title: Graph, Questions and Search leave the rail — search is ⌘F, the graph and the questions stay at their routes
   date: 2026-09-20
-  status: proposed
+  status: approved
   by: alex
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
   affects: [page:web/sidebar, req:wf2.ui.search]

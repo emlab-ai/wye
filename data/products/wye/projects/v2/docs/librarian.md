@@ -21,7 +21,7 @@ Definition — the librarian
 - id: decision:exec.wye-is-a-role
   title: Wye is a session role — the librarian — with the clerk's guardrails, not a new runtime
   date: 2026-09-19
-  status: proposed
+  status: approved
   affects: [req:wf2.clerk, rule:agent-host, rule:agent-contract, component:command-box]
   part-of: goal:exec.define-first
 ```
@@ -58,7 +58,7 @@ Definition — the librarian
 - id: decision:exec.kind-by-nature
   title: A block's kind is what it is — a requirement is an observable behaviour in the person's words; how the product does it is a rule or a decision
   date: 2026-09-20
-  status: proposed
+  status: approved
   affects: [rule:agent-contract, decision:exec.wye-is-a-role, req:exec.wye-proposes]
   by: agent:claude
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
@@ -159,7 +159,7 @@ Definition — the librarian
 
   - context:wf2.card-is-name-and-properties Every block is by design a name and a content / description (alex, 2026-09-21). Cards rendered their description inline — a requirement's text, a decision's parts, a goal's description under the card as child blocks — so the content sat visually outside the card and the card read as a form.
 
-  - choice:wf2.card-is-name-and-properties In the document a card shows its name (the text line) and its properties; the content — text and child blocks — is folded away behind "▸ n blocks" and "open ›", and is read and edited in the column's Content editor, an md block editor. A question is the exception: its answer shows under it. The document editor never unfolds a card's children.
+  - choice:wf2.card-is-name-and-properties In the document a card shows its name (the text line) and its properties; the content — text and child blocks — is folded away behind "▸ n blocks" and the kind pill, and is read and edited in the column's Content editor, an md block editor. A question is the exception: its answer shows under it. The document editor never unfolds a card's children.
 
   - consequence:wf2.card-is-name-and-properties component:node-cards renders no text or prose on a card; useFold in component:doc-editor is always folded; the column is where descriptions live.
 

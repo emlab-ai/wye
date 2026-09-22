@@ -237,7 +237,7 @@ enforces.
 ```yaml
 - id: decision:wf2.plan-first-is-a-prompt
   title: Plan-first is a section of the first message, not a session mode or a second agent
-  status: proposed
+  status: approved
   date: 2026-09-17
   related-to: [rule:plan-first, rule:agent-questions, decision:wf2.agent-questions-are-forms]
   session: 8aa3926e18
@@ -254,7 +254,7 @@ enforces.
 ```yaml
 - id: decision:wf2.plan-is-a-page
   title: The plan is the subject's page, worked on together, not a chat message
-  status: proposed
+  status: approved
   date: 2026-09-17
   related-to: [decision:wf2.plan-first-is-a-prompt, rule:plan-first, rule:agent-questions]
   session: 0e07e8fd53
@@ -272,7 +272,7 @@ enforces.
 - id: decision:exec.task-is-the-unit
   title: The task is the unit of work; a plan is a request with its tasks; a session is a worker's shift
   date: 2026-09-19
-  status: proposed
+  status: approved
   affects: [type:task, rule:pr-doc, rule:task-artifacts, page:web/sessions]
   part-of: goal:exec.work-and-impact
 ```
@@ -289,7 +289,7 @@ enforces.
 - id: decision:exec.change-record
   title: Every edit of a typed node is written through, and a change record keeps the old and new value with a review state
   date: 2026-09-19
-  status: proposed
+  status: approved
   affects: [op:api.node, rule:block-attribution, rule:inbox-review, rule:markdown-canonical]
   part-of: goal:exec.work-and-impact
 ```
@@ -323,7 +323,7 @@ enforces.
 - id: decision:exec.impact-trigger
   title: Impact runs after the person stops editing a typed node, never on every keystroke, and only when something is reached
   date: 2026-09-19
-  status: proposed
+  status: approved
   affects: [op:api.node, store:product-file]
   part-of: goal:exec.work-and-impact
 ```
@@ -340,7 +340,7 @@ enforces.
 - id: decision:exec.backlog-is-unassigned-work
   title: The backlog is the unassigned tasks; the inbox folder stays raw material; a task marked ready may be taken by a runner
   date: 2026-09-19
-  status: proposed
+  status: approved
   resolves: question:exec.auto-dispatch
   affects: [rule:inbox-review, store:inbox, component:command-box, rule:agent-runner, req:exec.dispatch]
   part-of: goal:exec.work-and-impact

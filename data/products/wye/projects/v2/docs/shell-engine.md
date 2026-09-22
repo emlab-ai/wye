@@ -20,7 +20,7 @@ Shell and navigation
 ```yaml
 - id: decision:wf2.one-table-block
   title: One Data table block with a type picker in its header, not one slash item per type
-  status: proposed
+  status: approved
   date: 2026-09-17
   related-to: [rule:type-tables, rule:goals-and-tasks, bug:no-need-to-add]
   session: 8aa3926e18
@@ -38,7 +38,7 @@ Shell and navigation
 - id: decision:wf2.one-command-box
   title: "Send to agent" and ⌘P are one command box
   date: 2026-09-17
-  status: proposed
+  status: approved
   affects: [action:command-palette, component:command-box, rule:agent-sessions, req:wf2.ui.command-palette]
 ```
 
