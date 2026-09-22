@@ -154,7 +154,9 @@ describe('the run page (decision:wf2.run-is-a-page)', () => {
     expect(out).toContain('- id: step:feature-1.research\n  title: 1. Explore the idea\n  status: done\n  stage: stage:f.research\n  part-of: run:feature-1');
     expect(out).toContain('  produced: [module:idea-research]');
     // the stage the run is on carries the live criterion and what it would start
-    expect(out).toContain('- id: step:feature-1.prd\n  title: 2. Write the PRD\n  status: running');
+    // nothing of its is live, so what is left is the person's: review, not a stage that looks busy
+    expect(out).toContain('- id: step:feature-1.prd\n  title: 2. Write the PRD\n  status: review');
+    expect(stagesSection(w, run(), {}, [{ label: 'x', ok: false, blocking: [] }], true)).toContain('  status: running');
     expect(out).toContain('  needs: ○ every req in prd is agreed (req:a)');
     expect(out).toContain('  then: Design');
     // and the ones ahead are there too, waiting

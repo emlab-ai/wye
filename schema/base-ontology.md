@@ -454,7 +454,7 @@ type means instances may carry properties the type does not declare without a wa
     what it made. The engine keeps their statuses — todo until the run reaches it, running while its work is out,
     ready when its criterion holds and only the person's Advance is missing, then done (or skipped).
   open: true
-  statuses: [todo, running, ready, done, skipped, blocked]
+  statuses: [todo, running, review, ready, done, skipped, blocked]
   props:
     stage: list of stage? -(inverse)-> stage-of
     needs: string?

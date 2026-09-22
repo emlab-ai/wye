@@ -37,7 +37,7 @@ The stages of this run, in order — each one starts only when the one before it
   session: session:39b69e4b09
 - id: step:feature-1.prd
   title: 2. Write the PRD
-  status: running
+  status: review
   stage: stage:feature.prd
   part-of: run:feature-1
   needs: ○ every req in prd is agreed (req:install.library, req:install.library.templates, req:install.library.new-template, req:install.fresh, req:install.fresh.from-template, req:install.install and 6 more) · ○ no open question in prd (question:install.opt-in-or-opt-out, question:install.unit, question:install.record-home, question:install.update-vs-edits, question:install.where-it-lands, question:install.edit-linked and 4 more)

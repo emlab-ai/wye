@@ -103,7 +103,7 @@ statuses:
   req:         [shipped, api-only, unverified, proposed, question, superseded]
   rule:        [proposed, shipped, deprecated, superseded]
   run:         [running, waiting, blocked, done, cancelled]
-  step:        [todo, running, ready, done, skipped, blocked]
+  step:        [todo, running, review, ready, done, skipped, blocked]
   task:        [todo, open, in-progress, blocked, review, done]
   workflow:    [active, paused]
 

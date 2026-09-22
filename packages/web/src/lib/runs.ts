@@ -226,20 +226,25 @@ export function someOf(ids: string[], keep = 6): string {
   return ids.length <= keep ? ids.join(', ') : `${ids.slice(0, keep).join(', ')} and ${ids.length - keep} more`;
 }
 
-export function stepStatus(r: RunState, at: number, i: number, ready: boolean): string {
+// `running` only while the stage's own work is out. Once its sessions have ended and its criterion is still unmet,
+// what is left is the person's — agreeing what was written, answering what it asked — and that is `review`, not a
+// stage that looks busy with nothing running.
+export function stepStatus(r: RunState, at: number, i: number, ready: boolean, working = false): string {
   if (r.status === 'done') return 'done';
   if (r.status === 'cancelled') return i < at ? 'done' : 'skipped';
   if (i < at) return 'done';
   if (i > at) return 'todo';
-  return r.status === 'blocked' ? 'blocked' : ready ? 'ready' : 'running';
+  if (r.status === 'blocked') return 'blocked';
+  if (ready) return 'ready';
+  return working ? 'running' : 'review';
 }
 
-export function stagesSection(w: WorkflowDef, r: RunState, bindings: Record<string, string> = {}, rows: Row[] = []): string {
+export function stagesSection(w: WorkflowDef, r: RunState, bindings: Record<string, string> = {}, rows: Row[] = [], working = false): string {
   const at = stageIndex(w, r.stage);
   const ready = rows.length > 0 && rows.every(x => x.ok);
   const head = `The stages of this run, in order — each one starts only when the one before it has met its \`needs\`. **To move the run on: press Advance on the strip at the top of this page, or set the stage's status below to \`done\`** (or \`wye run advance ${r.id}\`). A stage whose gate is automatic moves on by itself.`;
   const cards = w.stages.map((s, i) => {
-    const status = stepStatus(r, at, i, ready);
+    const status = stepStatus(r, at, i, ready, working);
     const made = s.produces.map(n => bindings[n]).filter(Boolean);
     const needs = i === at && rows.length
       ? rows.map(x => `${x.ok ? '✓' : '○'} ${x.label}${x.blocking.length ? ` (${someOf(x.blocking)})` : ''}`).join(' · ')

@@ -65,6 +65,9 @@ async function writeRun(scope: Scope, project: Project, r: RunState, o: { by: st
   const stage = w?.stages.find(x => x.id === r.stage);
   const ses = await sessionsOfRun(scope.product.dir, r.id);
   if (ses.all.length) { next.sessions = [...new Set([...next.sessions, ...ses.all])]; next.stageSessions = { ...next.stageSessions, ...ses.byStage }; }
+  // is the stage's own work still out? A step says `running` only while something of its is live; once its sessions
+  // have ended and its criterion is still unmet, what is left is the person's, and it says `review`.
+  const working = (next.stageSessions[stageKey(next.stage)] ?? []).some(id => ses.live.has(id));
   const ready = w && stage ? readinessOf(stage, await ctxFor(scope, r, stage, w)) : null;
   let wrote = false;
   await withFileLock(file, async () => {
@@ -74,7 +77,7 @@ async function writeRun(scope: Scope, project: Project, r: RunState, o: { by: st
     for (const [name, id] of Object.entries(next.docs)) patch[`doc-${name}`] = id;
     if (next.finished) patch.finished = next.finished;
     const fm = patchFrontmatter(md, patch); if (!fm.error) md = fm.md;
-    if (w) md = withSection(md, 'Stages', stagesSection(w, next, bindings(scope, next, w), ready?.rows ?? []));
+    if (w) md = withSection(md, 'Stages', stagesSection(w, next, bindings(scope, next, w), ready?.rows ?? [], working));
     const after = w ? nextStage(w, next.stage) : null;
     md = withSection(md, 'Blocking', ready && stage ? blockingSection(ready.rows, stage.gate, { ...(after ? { next: after.title } : {}), over: !LIVE.has(next.status), run: next.id }) : '_The stage this run points at is gone from its workflow._');
     if (o.line) {
@@ -146,23 +149,27 @@ function bindings(scope: Scope, r: RunState, w: WorkflowDef): Record<string, str
 // Which sessions belong to this run, and to each of its stages: every firing the engine wrote carries `by.run` and
 // `by.stage`, and a session started from one carries that firing — so this is exact, and it holds for sessions
 // started before the run began recording anything itself.
-export async function sessionsOfRun(productDir: string, runId: string): Promise<{ all: string[]; byStage: Record<string, string[]> }> {
+export async function sessionsOfRun(productDir: string, runId: string): Promise<{ all: string[]; byStage: Record<string, string[]>; live: Set<string> }> {
   const stageOf = new Map<string, string>();
   for (const f of await listFirings(productDir).catch(() => [])) if (f.by?.run === runId && f.by.stage) stageOf.set(f.id, f.by.stage);
-  const byStage: Record<string, string[]> = {}; const all: string[] = [];
-  if (!stageOf.size) return { all, byStage };
+  const byStage: Record<string, string[]> = {}; const all: string[] = []; const live = new Set<string>();
+  if (!stageOf.size) return { all, byStage, live };
   for (const s of await listSessions(productDir).catch(() => [])) {
     const stage = s.hook?.firing ? stageOf.get(s.hook.firing) : undefined;
     if (!stage) continue;
     all.push(s.id);
+    if (s.status === 'running' || s.status === 'queued') live.add(s.id);
     const k = stageKey(stage);
     byStage[k] = [...(byStage[k] ?? []), s.id];
   }
-  return { all, byStage };
+  return { all, byStage, live };
 }
 
 export async function ctxFor(scope: Scope, r: RunState, stage: StageDef, w: WorkflowDef): Promise<RunCtx> {
-  const sessions = (await listSessions(scope.product.dir).catch(() => [])).filter(s => r.sessions.includes(s.id)).map(s => ({ id: s.id, status: s.status }));
+  // `session done` is about the sessions **this stage** started, not every session the run ever started: a later
+  // stage's agent must not hold an earlier stage's criterion open, nor an earlier one's satisfy a later one
+  const mine = r.stageSessions[stageKey(stage.id)] ?? r.sessions;
+  const sessions = (await listSessions(scope.product.dir).catch(() => [])).filter(s => mine.includes(s.id)).map(s => ({ id: s.id, status: s.status }));
   // the lint is only run when a predicate asks for it, so the sweep after every build stays cheap
   let checkErrors = 0;
   if (stage.until.some(p => p.kind === 'check-passes')) {
