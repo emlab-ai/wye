@@ -52,6 +52,10 @@
 //   wye skills --product p                 the product's skills (decision:wf2.hooks-and-skills): id, role, what it runs on
 //   wye skill <id> --product p             print a skill's instruction (its document's body, else the prompt file)
 //   wye hooks --product p [--node <id>]    the product's hooks and what fired: hook, node, event, the task / blocks / session
+//   wye workflow list|show <id>            the product's workflows (decision:wf2.workflow-is-a-skill): stages, what each produces, its gate
+//   wye workflow run <id> --on <node>      start a run on a node or document (--again for a second one on the same node)
+//   wye run list|show <id>                 the runs: workflow, what it runs on, the stage, its readiness row by row
+//   wye run advance|skip|retry|cancel <id> the person's moves; wye run reopen <id> --stage <s> goes back to a stage
 //   wye explain <id | "text"> --product p   the current state of the product around a node or a text (the librarian, one turn)
 //   wye work list --product p [--unassigned | --mine <name> | --goal <id> | --plan <id>] [--done]   every task with its state
 //   wye work add "<text>" --product p [--part-of <id>] [--ready]   a task line on the backlog (under the node when --part-of names one)
@@ -348,7 +352,9 @@ const commands = {
     for (const it of df.items) console.log(`  ${it.agreed ? '✓' : it.missing ? '?' : '·'} ${it.id}${it.status ? ' #' + it.status : ''}`);
   },
   // `plan` is the old name of `pr`
-  async plan() { console.error('wye plan is now wye pr'); return this.pr(); },
+  async plan() { console.error('wye plan is now wye pr'); return commands.pr(); },
+  // `workflows` reads like `skills`: the list
+  async workflows() { pos[1] = pos[1] || 'list'; return commands.workflow(); },
   async skills() {
     // the product's skills (op:api.skills): documents under the Skills page, the shipped prompts among them
     const j = await api('GET', `/api/${product()}/skills`);
@@ -370,6 +376,45 @@ const commands = {
     if (!j.hooks.length) console.log('no hooks — add cards to the Hooks document');
     for (const h of j.hooks) console.log(`${h.id.padEnd(30)} ${h.status.padEnd(7)} on ${h.on}${Object.keys(h.where).length ? ' where ' + Object.entries(h.where).map(([k, v]) => `${k}=${v}`).join(' ') : ''} → ${h.actions.map(a => a.kind === 'run' ? `run ${a.skill}` : a.kind === 'add' ? `add ${a.template}${a.to ? ' to ' + a.to : ''}` : a.kind).join('; ')}${h.once ? '' : ' (every time)'} · fired ${h.firings}×`);
     if (j.firings.length) { console.log(''); for (const f of j.firings) console.log(`${f.at.slice(0, 16).replace('T', ' ')} ${f.hook} on ${f.node} (${f.event})${f.depth ? ` depth ${f.depth}` : ''}: ${f.actions.map(a => a.error ? `${a.kind} failed — ${a.error}` : `${a.kind}${a.added?.length ? ' ' + a.added.join(', ') : ''}${a.session ? ` → session ${a.session}` : ''}`).join('; ')}`); }
+  },
+  // The workflows of a product and one run of one (decision:wf2.workflow-is-a-skill, decision:wf2.run-holds-the-state):
+  // a workflow is a skill with stages, a run is a card that says where it got to; readiness is computed per request.
+  async workflow() {
+    const sub = pos[1] || 'list';
+    if (sub === 'run') {
+      const id = pos[2] || die('wye workflow run <workflow:id> --on <node>');
+      const on = flags.on || die('--on <node|document node id> is required');
+      const j = await api('POST', `/api/${product()}/workflows`, { workflow: id.startsWith('workflow:') ? id : `workflow:${id}`, on, again: !!flags.again });
+      return out(flags.json ? j : `${j.run} started on ${on}`);
+    }
+    const j = await api('GET', `/api/${product()}/workflows`);
+    if (flags.json) return out(j);
+    if (!j.workflows.length) return console.log("no workflows — add a workflow-<slug>.md under the project's Skills page");
+    for (const w of j.workflows) {
+      if (sub === 'show' && w.id !== pos[2] && w.id !== `workflow:${pos[2]}`) continue;
+      console.log(`${w.id.padEnd(28)} ${w.status.padEnd(7)} on ${(w.takes.join(', ') || '*').padEnd(20)} ${w.stages.length} stages  ${w.title}`);
+      if (sub === 'show') for (const st of w.stages) console.log(`  ${st.id.padEnd(26)} ${st.gate.padEnd(7)} ${(st.produces.join(', ') || '–').padEnd(22)} until ${st.until.map(u => u.kind).join(', ') || '–'}`);
+      for (const b of w.bad) console.log(`  ! ${b} — not a criterion this engine knows`);
+    }
+  },
+  async run() {
+    const sub = pos[1] || 'list';
+    if (['advance', 'skip', 'reopen', 'retry', 'cancel'].includes(sub)) {
+      const id = pos[2] || die(`wye run ${sub} <run:id>${sub === 'reopen' ? ' --stage <stage:id>' : ''}`);
+      const j = await api('POST', `/api/${product()}/runs`, { run: id.startsWith('run:') ? id : `run:${id}`, action: sub, stage: flags.stage });
+      return out(flags.json ? j : `${id} ${sub === 'advance' ? 'advanced' : sub === 'skip' ? 'skipped' : sub + 'ed'}${j.stage ? ` → ${j.stage}` : ''}${j.status ? ` (${j.status})` : ''}`);
+    }
+    const j = await api('GET', `/api/${product()}/runs`);
+    if (flags.json) return out(j);
+    if (!j.runs.length) return console.log('no runs — wye workflow run <id> --on <node>');
+    for (const r of j.runs) {
+      if (sub === 'show' && r.id !== pos[2] && r.id !== `run:${pos[2]}`) continue;
+      console.log(`${r.id.padEnd(22)} ${r.status.padEnd(9)} ${r.workflowTitle.padEnd(14)} on ${r.on.padEnd(28)} ${r.stageTitle} (${r.step}/${r.of})`);
+      if (sub !== 'show') continue;
+      for (const row of r.readiness.rows) console.log(`  ${row.ok ? '✓' : '·'} ${row.label}${row.blocking.length ? ` — ${row.blocking.join(', ')}` : ''}`);
+      if (r.produced.length) console.log(`  produced: ${r.produced.join(', ')}`);
+      for (const l of r.log) console.log(`  · ${l}`);
+    }
   },
   // wye import <file|dir> --product p [--project x] [--parent doc] [--no-analyse]   markdown files as documents (the tree
   // kept), then hook:import-analyse hands each to an agent with skill:import unless --no-analyse (req:wf2.import.markdown);
