@@ -445,6 +445,19 @@ type means instances may carry properties the type does not declare without a wa
     sessions: list of string?
     started: string?
     finished: string?
+- id: type:step
+  extends: type:node
+  purpose: >
+    one stage of one run (decision:wf2.run-is-a-page): a card in the run's page, written when the run starts so the
+    whole chain is in the graph from the first moment, not only the stage it has reached. `stage` is the definition
+    it came from, `part-of` its run, `needs` the criterion that must hold before the next step starts, `produced`
+    what it made. The engine keeps their statuses — todo until the run reaches it, running while its work is out,
+    ready when its criterion holds and only the person's Advance is missing, then done (or skipped).
+  open: true
+  statuses: [todo, running, ready, done, skipped, blocked]
+  props:
+    stage: list of stage? -(inverse)-> stage-of
+    needs: string?
 - id: type:template
   extends: type:node
   purpose: >

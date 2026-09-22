@@ -10,7 +10,7 @@ export function RunStrip({ product, node }: { product: string; node: string }) {
   if (!live.length) return null;
   return (
     <section className="pr-head run-strip">
-      {live.map(r => <RunRow key={r.id} product={product} run={r} reload={reload} />)}
+      {live.map(r => <RunRow key={r.id} product={product} run={r} reload={reload} compact={r.id === node} />)}
     </section>
   );
 }

@@ -31,7 +31,7 @@ export function useRuns(product: string, node: string | null): { runs: RunView[]
   return { runs, reload: () => setVersion(v => v + 1) };
 }
 
-export function RunRow({ product, run, reload }: { product: string; run: RunView; reload: () => void }) {
+export function RunRow({ product, run, reload, compact = false }: { product: string; run: RunView; reload: () => void; compact?: boolean }) {
   const { open } = usePeek();
   const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState('');
@@ -77,9 +77,9 @@ export function RunRow({ product, run, reload }: { product: string; run: RunView
           </li>
         ))}
       </ul>}
-      {run.produced.length > 0 && <div className="run-made muted small">produced {run.produced.map(id => <SmartTag key={id} id={id} />)}</div>}
-      {run.sessions.length > 0 && <div className="run-made muted small">{run.sessions.map(s => <button key={s} className="linkish" onClick={() => open(`session:${s}`)}>conversation {s.slice(0, 6)}</button>)}</div>}
-      {run.log.length > 0 && <div className="run-log muted small">{run.log[run.log.length - 1]}</div>}
+      {!compact && run.produced.length > 0 && <div className="run-made muted small">produced {run.produced.map(id => <SmartTag key={id} id={id} />)}</div>}
+      {!compact && run.sessions.length > 0 && <div className="run-made muted small">{run.sessions.map(s => <button key={s} className="linkish" onClick={() => open(`session:${s}`)}>conversation {s.slice(0, 6)}</button>)}</div>}
+      {!compact && run.log.length > 0 && <div className="run-log muted small">{run.log[run.log.length - 1]}</div>}
       {msg && <p className="bad small">{msg}</p>}
     </div>
   );

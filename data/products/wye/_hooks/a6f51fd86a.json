@@ -1,0 +1,22 @@
+{
+  "id": "a6f51fd86a",
+  "hook": "",
+  "actions": [
+    {
+      "kind": "task",
+      "added": [
+        "task:wye.write-the-prd-for-implement-a"
+      ],
+      "session": "dfb890d304"
+    }
+  ],
+  "at": "2026-09-22T18:40:53.685Z",
+  "by": {
+    "run": "run:feature-1",
+    "stage": "stage:feature.prd"
+  },
+  "title": "Write the PRD",
+  "node": "goal:new-650",
+  "event": "stage:stage:feature.prd",
+  "depth": 0
+}

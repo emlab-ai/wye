@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseStage, workflowOf, workflowsOf, admits, nextStage, readinessOf, parseRun, runCard, replaceCard, removeCard, runSlug, logLine, autoRun, LIVE, stagesSection, blockingSection, withSection, type RunCtx, type RunState, type StageDef } from './runs';
+import { parseStage, workflowOf, workflowsOf, admits, nextStage, readinessOf, parseRun, runCard, replaceCard, removeCard, runSlug, logLine, autoRun, LIVE, stagesSection, stepStatus, blockingSection, withSection, type RunCtx, type RunState, type StageDef } from './runs';
 import type { GraphData, GraphEdge, GraphNode } from './graph';
 
 // workflows (decision:wf2.workflow-is-a-skill): a workflow is a skill whose stage cards are its steps, in document order
@@ -148,24 +148,27 @@ describe('the run page (decision:wf2.run-is-a-page)', () => {
   const w = workflowOf({ nodes: [wf, mk('stage:f.research', 10, 'Explore the idea', 'research'), mk('stage:f.prd', 20, 'Write the PRD', 'prd'), mk('stage:f.design', 30, 'Design')] }, incOf([]), 'workflow:feature')!;
   const run = (over: Partial<RunState> = {}): RunState => ({ id: 'run:feature-1', workflow: 'workflow:feature', on: 'module:idea', stage: 'stage:f.prd', status: 'running', produced: [], sessions: [], started: '2026-09-22', log: [], auto: 0, file: 'x/run-feature-1.md', docs: {}, ...over });
 
-  it('Stages is a chain: each stage, then the gate out of it and what starts next', () => {
+  it('Stages is the run\'s own stage nodes, all of them, from the first moment', () => {
     const out = stagesSection(w, run(), { research: 'module:idea-research' }, [{ label: 'every req in prd is agreed', ok: false, blocking: ['req:a'] }]);
-    expect(out.split('\n')).toEqual([
-      'Each stage starts only when the one before it has met its criterion and you press **Advance**.',
-      '',
-      '1. ✓ Explore the idea — done · produced module:idea-research',
-      '   - Gate → Write the PRD: passed',
-      '2. **Write the PRD — running now** · produces prd',
-      '   - **Gate → Design:** ○ every req in prd is agreed — not yet — you press Advance once it holds',
-      '3. Design — **next**',
-      '   - Gate → the run ends: every session done — then you press Advance',
-    ]);
+    expect(out).toContain('```yaml');
+    expect(out).toContain('- id: step:feature-1.research\n  title: 1. Explore the idea\n  status: done\n  stage: stage:f.research\n  part-of: run:feature-1');
+    expect(out).toContain('  produced: [module:idea-research]');
+    // the stage the run is on carries the live criterion and what it would start
+    expect(out).toContain('- id: step:feature-1.prd\n  title: 2. Write the PRD\n  status: running');
+    expect(out).toContain('  needs: ○ every req in prd is agreed (req:a)');
+    expect(out).toContain('  then: Design');
+    // and the ones ahead are there too, waiting
+    expect(out).toContain('- id: step:feature-1.design\n  title: 3. Design\n  status: todo');
+    expect(out).toContain('  then: the run ends');
+    expect(out).toContain(`wye run advance run:feature-1`);
   });
-  it('the stage the run is on says whether it is ready, and how it moves on', () => {
-    const ready = [{ label: 'every req in prd is agreed', ok: true, blocking: [] }];
-    expect(stagesSection(w, run({ status: 'waiting' }), {}, ready)).toContain('**ready — press Advance**');
-    expect(stagesSection(w, run({ status: 'blocked' }), {}, ready)).toContain('blocked — retry, skip or cancel it');
-    expect(stagesSection(w, run({ status: 'done' }), {}).split('\n').filter(l => /^\d\./.test(l)).every(l => /^\d\. ✓/.test(l))).toBe(true);
+  it('a step is ready when its criterion holds, and every step is done when the run is', () => {
+    const rowsOk = [{ label: 'every req in prd is agreed', ok: true, blocking: [] }];
+    expect(stagesSection(w, run({ status: 'waiting' }), {}, rowsOk)).toContain('  status: ready');
+    expect(stagesSection(w, run({ status: 'blocked' }), {}, rowsOk)).toContain('  status: blocked');
+    const done = stagesSection(w, run({ status: 'done' }), {});
+    expect(done.match(/status: done/g)).toHaveLength(3);
+    expect(stepStatus(run({ status: 'cancelled' }), 1, 2, false)).toBe('skipped');
   });
   it('a produced document is read back by the name its stage gave it, whatever the slug became', () => {
     const body = 'node: run:feature-1\ntype: run\nworkflow: workflow:feature\nruns-on: module:idea\nstage: stage:f.prd\ndoc-research: module:a-very-long-title-that-slugify-cut\ndoc-prd: module:idea-prd';

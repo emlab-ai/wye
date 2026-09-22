@@ -21,7 +21,7 @@ import { readSettings, agentSettings } from './settings';
 import { assignTask } from './work-io';
 import { nodeText } from './node-edit';
 import { sectionBody } from './pr-doc';
-import { LIVE, admits, autoRun, blockingSection, logLine, nextStage, parseRun, readinessOf, removeCard, replaceCard, runCard, runSlug, stageIndex, stagesSection, withSection, workflowOf, type Readiness, type RunCtx, type RunState, type StageDef, type WorkflowDef } from './runs';
+import { LIVE, admits, autoRun, blockingSection, logLine, nextStage, parseRun, readinessOf, removeCard, replaceCard, runCard, runSlug, stepId, stageIndex, stagesSection, withSection, workflowOf, type Readiness, type RunCtx, type RunState, type StageDef, type WorkflowDef } from './runs';
 
 export const runsPageId = (projectSlug: string) => `module:${projectSlug}-workflow-runs`;
 const RUNS_SLUG = 'workflow-runs';
@@ -371,6 +371,15 @@ async function sweepRun(scope: Scope, r: RunState, log: (m: string) => void = m 
   if (!node) { await block(`${r.on} is gone`); return; }
   if (!w || !stage) { await block(`${r.stage} is gone from ${r.workflow}`); return; }
   if (r.status === 'blocked') return;                        // a person retries, skips or cancels
+  // A person can move the run from the chain itself: the step card of the stage it is on carries a status, and
+  // setting it to done (or skipped) is the same gesture as pressing Advance — the engine owns those statuses
+  // otherwise, so without this the change would simply be written back.
+  const step = scope.idx.byId.get(stepId(r.id, r.stage));
+  if (step?.status === 'done' || step?.status === 'skipped') {
+    log(`${r.id}: ${step.id} was marked ${step.status} — advancing`);
+    await advanceRun(product, r.id, { by: 'person', skip: step.status === 'skipped' }).catch(e => log(`${r.id}: ${e instanceof Error ? e.message : e}`));
+    return;
+  }
   const ready = readinessOf(stage, await ctxFor(scope, r, stage, w));
   if (ready.ok && stage.gate === 'auto') {
     if (autoRun(r) >= MAX_DEPTH) {

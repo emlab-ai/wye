@@ -2,16 +2,17 @@
 node: run:feature-1
 type: run
 title: Feature — Implement a feature to install system skills and…
-status: waiting
+status: running
 workflow: workflow:feature
 runs-on: goal:new-650
-stage: stage:feature.research
+stage: stage:feature.prd
 auto: 0
 started: 2026-09-22
 part-of: module:v2-workflow-runs
 produced: [module:implement-a-feature-to-install-system-skills-and-templates-i]
 doc-research: module:implement-a-feature-to-install-system-skills-and-templates-i
 sessions: [39b69e4b09]
+doc-prd: module:implement-a-feature-to-install-system-skills-and-templates-i
 ---
 
 # Feature — Implement a feature to install system skills and…
@@ -22,24 +23,56 @@ Started on goal:new-650 — the Feature workflow.
 
 ## Stages
 
-Each stage starts only when the one before it has met its criterion and you press **Advance**.
+The stages of this run, in order — each one starts only when the one before it has met its `needs`. **To move the run on: press Advance on the strip at the top of this page, or set the stage's status below to `done`** (or `wye run advance run:feature-1`). A stage whose gate is automatic moves on by itself.
 
-1. **Explore the idea — done, waiting for you** · produced module:implement-a-feature-to-install-system-skills-and-templates-i
-   - **Gate → Write the PRD:** ✓ every session done — **ready — press Advance**
-2. Write the PRD — **next** · produces prd
-   - Gate → Tech design and test design: every req in prd is agreed · no open question in prd — then you press Advance
-3. Tech design and test design · produces dev-design, test-design
-   - Gate → Build the plan: every req in prd has satisfied-by · every req in prd has verified-by · no open contradiction — then you press Advance
-4. Build the plan · produces plan
-   - Gate → Dispatch the work: every req in prd has a task · every task in plan is ready — then you press Advance
-5. Dispatch the work
-   - Gate → the run ends: every task in plan is done — then it moves on by itself
+```yaml
+- id: step:feature-1.research
+  title: 1. Explore the idea
+  status: done
+  stage: stage:feature.research
+  part-of: run:feature-1
+  needs: every session done
+  then: Write the PRD
+  produced: [module:implement-a-feature-to-install-system-skills-and-templates-i]
+- id: step:feature-1.prd
+  title: 2. Write the PRD
+  status: running
+  stage: stage:feature.prd
+  part-of: run:feature-1
+  needs: ○ every req in prd is agreed (prd has no requirements) · ○ no open question in prd (question:install.opt-in-or-opt-out, question:install.unit, question:install.record-home, question:install.update-vs-edits, question:install.where-it-lands)
+  then: Tech design and test design
+  produced: [module:implement-a-feature-to-install-system-skills-and-templates-i]
+- id: step:feature-1.design
+  title: 3. Tech design and test design
+  status: todo
+  stage: stage:feature.design
+  part-of: run:feature-1
+  needs: every req in prd has satisfied-by · every req in prd has verified-by · no open contradiction
+  then: Build the plan
+  produces: dev-design, test-design
+- id: step:feature-1.plan
+  title: 4. Build the plan
+  status: todo
+  stage: stage:feature.plan
+  part-of: run:feature-1
+  needs: every req in prd has a task · every task in plan is ready
+  then: Dispatch the work
+  produces: plan
+- id: step:feature-1.dispatch
+  title: 5. Dispatch the work
+  status: todo
+  stage: stage:feature.dispatch
+  part-of: run:feature-1
+  needs: every task in plan is done
+  then: the run ends — automatic
+```
 
 ## Blocking
 
-**Ready — nothing is missing.** Advance to start **Write the PRD** — the Advance button at the top of this page, or `wye run advance run:feature-1`.
+**Waiting on 2 of 2** — **Tech design and test design** cannot start until these hold:
 
-- ✓ every session done
+- ○ every req in prd is agreed — prd has no requirements
+- ○ no open question in prd — question:install.opt-in-or-opt-out, question:install.unit, question:install.record-home, question:install.update-vs-edits, question:install.where-it-lands
 
 ## Log
 
@@ -47,6 +80,10 @@ Each stage starts only when the one before it has met its criterion and you pres
 - entered stage:feature.research — by person, 1 action(s), produced module:implement-a-feature-to-install-system-skills-and-templates-i
 - ready stage:feature.research — by the engine, every session done
 - moved to its own page — by wye, from a card in the Workflow runs document
+- advanced stage:feature.research — by person, every session done
+- entered stage:feature.prd — by person, 1 action(s), produced module:implement-a-feature-to-install-system-skills-and-templates-i
+- ready stage:feature.prd — by the engine, every req in prd is agreed; no open question in prd
+- not ready stage:feature.prd — by the engine, every req in prd is agreed; no open question in prd
 
 ## Result
 

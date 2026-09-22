@@ -213,37 +213,42 @@ export const autoRun = (r: Pick<RunState, 'auto'>) => r.auto;
 
 // Every stage of the workflow in order and where the run is: what is done, what is running now, what is still ahead,
 // with the documents each one produced. This is the answer to "where has this got to".
+// The run's stages as nodes, written when the run starts so the whole chain is in the graph from the first moment
+// (decision:wf2.run-is-a-page): one `step:` card per stage of the workflow, in order. Their statuses are a projection
+// of the run's own state — the engine rewrites them on every move, so the page, the graph and the run agree.
+export const stepId = (runId: string, stageId: string) => `step:${runId.replace(/^run:/, '')}.${stageId.split('.').pop() ?? stageId.replace(/^stage:/, '')}`;
+
+export function stepStatus(r: RunState, at: number, i: number, ready: boolean): string {
+  if (r.status === 'done') return 'done';
+  if (r.status === 'cancelled') return i < at ? 'done' : 'skipped';
+  if (i < at) return 'done';
+  if (i > at) return 'todo';
+  return r.status === 'blocked' ? 'blocked' : ready ? 'ready' : 'running';
+}
+
 export function stagesSection(w: WorkflowDef, r: RunState, bindings: Record<string, string> = {}, rows: Row[] = []): string {
   const at = stageIndex(w, r.stage);
-  const over = !LIVE.has(r.status);
-  const where = (s: StageDef) => {
+  const ready = rows.length > 0 && rows.every(x => x.ok);
+  const head = `The stages of this run, in order — each one starts only when the one before it has met its \`needs\`. **To move the run on: press Advance on the strip at the top of this page, or set the stage's status below to \`done\`** (or \`wye run advance ${r.id}\`). A stage whose gate is automatic moves on by itself.`;
+  const cards = w.stages.map((s, i) => {
+    const status = stepStatus(r, at, i, ready);
     const made = s.produces.map(n => bindings[n]).filter(Boolean);
-    return made.length ? ` · produced ${made.join(', ')}` : s.produces.length ? ` · produces ${s.produces.join(', ')}` : '';
-  };
-  // Under each stage, the gate out of it: what must hold, and who moves the run on. The stage the run is on shows the
-  // live state of each criterion; the ones ahead show what they will ask for, so the chain reads as a chain.
-  const gate = (s: StageDef, i: number) => {
-    const last = i === w.stages.length - 1;
-    const to = last ? 'Gate → the run ends' : `Gate → ${w.stages[i + 1].title}`;
-    const how = s.gate === 'auto' ? 'it moves on by itself' : 'you press Advance';
-    if (over || i < at) return `   - ${to}: passed`;
-    if (i === at) {
-      const live = (rows.length ? rows : s.until.map(p => ({ label: untilLabel(p), ok: false, blocking: [] }))).map(x => `${x.ok ? '✓' : '○'} ${x.label}`).join(' · ');
-      const ready = rows.length > 0 && rows.every(x => x.ok);
-      const verdict = r.status === 'blocked' ? 'blocked — retry, skip or cancel it' : ready ? (s.gate === 'auto' ? 'ready — it moves on by itself' : '**ready — press Advance**') : `not yet — ${how} once it holds`;
-      return `   - **${to}:** ${live} — ${verdict}`;
-    }
-    return `   - ${to}: ${untilLabels(s).join(' · ')} — then ${how}`;
-  };
-  const head = `Each stage starts only when the one before it has met its criterion${w.stages.some(s => s.gate === 'person') ? ' and you press **Advance**' : ''}.`;
-  const body = w.stages.flatMap((s, i) => {
-    const here = r.status === 'blocked' ? 'blocked' : r.status === 'waiting' ? 'done, waiting for you' : 'running now';
-    const line = over || i < at ? `${i + 1}. ✓ ${s.title} — done${where(s)}`
-      : i === at ? `${i + 1}. **${s.title} — ${here}**${where(s)}`
-      : `${i + 1}. ${s.title}${i === at + 1 ? ' — **next**' : ''}${where(s)}`;
-    return [line, gate(s, i)];
+    const needs = i === at && rows.length
+      ? rows.map(x => `${x.ok ? '✓' : '○'} ${x.label}${x.blocking.length ? ` (${x.blocking.join(', ')})` : ''}`).join(' · ')
+      : untilLabels(s).join(' · ');
+    const starts = i === w.stages.length - 1 ? 'the run ends' : w.stages[i + 1].title;
+    return [
+      `- id: ${stepId(r.id, s.id)}`,
+      `  title: ${i + 1}. ${s.title}`,
+      `  status: ${status}`,
+      `  stage: ${s.id}`,
+      `  part-of: ${r.id}`,
+      `  needs: ${needs || 'nothing'}`,
+      `  then: ${starts}${s.gate === 'auto' ? ' — automatic' : ''}`,
+      ...(made.length ? [`  produced: [${made.join(', ')}]`] : s.produces.length ? [`  produces: ${s.produces.join(', ')}`] : []),
+    ].join('\n');
   });
-  return [head, '', ...body].join('\n');
+  return [head, '', '```yaml', ...cards, '```'].join('\n');
 }
 export function blockingSection(rows: Row[], gate: Gate, o: { next?: string; over?: boolean; run?: string } = {}): string {
   if (o.over) return '_The run is over._';

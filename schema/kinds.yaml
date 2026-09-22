@@ -37,6 +37,7 @@ kinds:
   stage:          { purpose: one step of a workflow, a card in its document }
   state:          { purpose: a state machine owned by an entity }
   statement:      { purpose: what a constraint or a rule says — a child block of it (decision:wf2.parts-are-content) }
+  step:           { purpose: one stage of one run: a card in the run's page, written when the run starts so the whole chain is in the graph from the first moment, not only the stage it has reached }
   task:           { purpose: a unit of work for a human or agent — the work item every view lists and every worker takes }
   template:       { purpose: blocks a hook adds, as a card in the Hooks document: `body` is markdown with <node>, <slug>, <title>, <kind>, required: [body] }
   test:           { purpose: a verification, usually referenced as test:Class#Method }
@@ -83,7 +84,7 @@ verbs:
   see:            any → node   (inverse: seen-from)
   set-by:         state → node   (inverse: sets)
   skills:         hook | pr | skill | stage → skill
-  stage:          run → stage   (inverse: stage-of)
+  stage:          run | step → stage   (inverse: stage-of)
   submodules:     module → module   (inverse: part-of)
   supersedes:     any → node   (inverse: superseded-by)
   verified-by:    req | rule → node   (inverse: verifies)
@@ -102,6 +103,7 @@ statuses:
   req:         [shipped, api-only, unverified, proposed, question, superseded]
   rule:        [proposed, shipped, deprecated, superseded]
   run:         [running, waiting, blocked, done, cancelled]
+  step:        [todo, running, ready, done, skipped, blocked]
   task:        [todo, open, in-progress, blocked, review, done]
   workflow:    [active, paused]
 

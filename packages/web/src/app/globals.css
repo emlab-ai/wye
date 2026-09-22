@@ -881,7 +881,8 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .menu-sub-list { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 8px 8px 22px; max-width: 260px; } .menu-sub-list button { width: auto; padding: 2px 4px; }
 
 /* A workflow run, on the document it started from and in a node's column (decision:wf2.run-holds-the-state) */
-.run-strip { display: grid; gap: 8px; }
+/* the run's strip follows the page: the Advance that moves the run must be in reach wherever you are reading */
+.run-strip { display: grid; gap: 8px; position: sticky; top: 36px; z-index: 3; background: var(--surface); box-shadow: 0 6px 12px -8px rgba(0,0,0,.6); }
 .run-row + .run-row { border-top: 1px solid var(--line); padding-top: 8px; }
 .run-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .run-wf { font: 600 13px var(--font-b); }
 .run-acts { margin-left: auto; display: flex; gap: 6px; align-items: center; }
