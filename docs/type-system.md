@@ -184,5 +184,7 @@ wye check --root data/products/wye   # shapes, references, duplicates, contradic
 ## Reading the base ontology
 
 `schema/base-ontology.md` is the source: every base kind as a card with its props, inverses and shapes.
-`schema/kinds.yaml` says the same in prose — kinds, verbs, statuses and conventions — and is kept in step with it.
+`schema/kinds.yaml` says the same in prose — kinds, verbs, statuses and conventions. Its `kinds:`, `verbs:` and
+`statuses:` blocks are generated from the ontology (`npm run kinds`); `npm test` fails when they drift, so the
+summary cannot fall behind the cards. The rest of the file (conventions, aliases, prose nodes) is hand-written.
 The Types page in the app renders both plus the product's own types.

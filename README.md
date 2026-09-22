@@ -359,7 +359,7 @@ packages/desktop         the Electron shell that owns the server
 prompts/                 the worker contract (agent-system.md), the librarian, describe-module, analyse-request, define-tests
 skills/                  Claude Code skills (symlinked by install.sh)
 schema/base-ontology.md  the base types as type: cards (parser pass 1)
-schema/kinds.yaml        the same in prose: kinds, verbs, statuses, conventions
+schema/kinds.yaml        the same in prose (generated: npm run kinds): kinds, verbs, statuses, conventions
 templates/docs/          skeletons: prd, dev-design, test-design, plan, pr, skill, hooks, blank
 viewer/index.html        the phone-first viewer (reqs tree · force graph · text)
 test/                    node tests over the parser, ontology, memory, impact, evals; packages/web has vitest

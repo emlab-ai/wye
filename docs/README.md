@@ -7,7 +7,7 @@ like, the loop, the command line. These pages go deeper, one topic each.
 |---|---|
 | [The type system](type-system.md) | every block is a typed node; declaring a type, properties and value types, links and inverses, shapes, instances and collection documents, ids, statuses, time |
 | [Base ontology](../schema/base-ontology.md) | the source of the base kinds — every `type:` card with its props, inverses and shapes |
-| [Kinds and verbs in prose](../schema/kinds.yaml) | the same, readable: kinds, verbs, statuses, conventions |
+| [Kinds and verbs in prose](../schema/kinds.yaml) | the same, readable: kinds, verbs, statuses, conventions — generated from the ontology by `npm run kinds` |
 | [Agent contract](../prompts/agent-system.md) | what every agent session is told: read before acting, write as proposed blocks, cite ids |
 | [Contributing](../CONTRIBUTING.md) | running it, how the repo is organised, how a change starts as knowledge |
 | [Introduction, inside Wye](../data/products/wye/projects/v2/docs/intro.md) | the README's introduction as a page of Wye's own product |

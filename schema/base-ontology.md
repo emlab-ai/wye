@@ -15,12 +15,13 @@ A property line is `name: <value type>[?] [-(inverse)-> <name>]`. Value types: `
 property optional; without it `wye check` warns when an instance lacks it. `ref`/`list of` properties are edges
 named by the property; `-(inverse)-> name` is the name of the generated back link on the target. `open: true` on a
 type means instances may carry properties the type does not declare without a warning (all base types are open;
-`schema/kinds.yaml` still lists their required and recommended keys in prose).
+`schema/kinds.yaml`, generated from this file, still lists their required and recommended keys in prose).
 
 ```yaml
 - id: type:node
   purpose: the root type; every node has these
   open: true
+  statuses: [proposed, approved, shipped, deprecated, superseded, retired]
   props:
     title: string?
     status: string?
@@ -69,6 +70,7 @@ type means instances may carry properties the type does not declare without a wa
     (decision:wf2.req-free-text, decision:wf2.card-is-name-and-properties). text / when / then / unless as keys on the
     card are the old form, read but never written
   open: true
+  statuses: [shipped, api-only, unverified, proposed, question, superseded]
   props:
     text: text?
     when: text?
@@ -87,6 +89,7 @@ type means instances may carry properties the type does not declare without a wa
     `statement:` child block (and `note:` ones) under the card (decision:wf2.parts-are-content); `statement` as a
     key is the old form, read but never written
   open: true
+  statuses: [proposed, shipped, deprecated, superseded]
   props:
     statement: text?
     source: string?
@@ -193,10 +196,12 @@ type means instances may carry properties the type does not declare without a wa
   extends: type:node
   purpose: a contradiction between two nodes
   open: true
+  statuses: [drift]
 - id: type:question
   extends: type:node
   purpose: something the knowledge leaves unspecified; open until a person resolves it with a decision
   open: true
+  statuses: [open, resolved, rejected]
   props:
     q: text?
     context: text?
@@ -209,6 +214,7 @@ type means instances may carry properties the type does not declare without a wa
     in `supersedes:` (the parser fills its `until` and `superseded-by`). context / choice / alternatives /
     consequences are optional keys from the ADR form, never asked for
   open: true
+  statuses: [proposed, approved, rejected, superseded]
   props:
     date: date?
     text: text?
@@ -271,6 +277,7 @@ type means instances may carry properties the type does not declare without a wa
     person edits or deletes (decision:wf2.parts-are-content); `statement` as a key on the card is the old form,
     read but never written; `scope:` with ids stays a link
   open: true
+  statuses: [proposed, approved, retired]
   props:
     statement: text?
     scope: list of node? -(inverse)-> constrained-by
@@ -322,6 +329,7 @@ type means instances may carry properties the type does not declare without a wa
   extends: type:node
   purpose: what the product or a project sets out to achieve
   open: true
+  statuses: [proposed, on-track, at-risk, off-track, paused, complete, non-goal]
   props:
     target: string?
     progress: number?
@@ -332,6 +340,7 @@ type means instances may carry properties the type does not declare without a wa
     (decision:exec.task-is-the-unit): its status on the line (todo, open, in-progress, blocked, review, done), `#ready`
     the person's mark that a runner may take it, `worker` who holds it now
   open: true
+  statuses: [todo, open, in-progress, blocked, review, done]
   props:
     due: string?
     session: string?
@@ -352,6 +361,7 @@ type means instances may carry properties the type does not declare without a wa
     app at start, approval and end, by the agent and the person while they refine; the Agents page lists a session's
     requests. A base type because the app writes request pages in every product (rule:pr-type-base).
   open: true
+  statuses: [draft, refining, approved, building, done, failed, cancelled]
   props:
     session: string
     agent: string?
@@ -383,6 +393,7 @@ type means instances may carry properties the type does not declare without a wa
     `add <template>`, `assign task:<id> --worker <w>`, `notify "<text>"`), `once` per node (default true), status
     active | paused. Everything a hook writes is proposed and goes through review (decision:wf2.hooks-and-skills).
   open: true
+  statuses: [active, paused]
   props:
     on: string
     where: string?
