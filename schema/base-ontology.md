@@ -400,6 +400,48 @@ type means instances may carry properties the type does not declare without a wa
     do: text
     once: bool?
     skills: list of skill?
+- id: type:workflow
+  extends: type:skill
+  purpose: >
+    an ordered, gated pipeline a person runs on any node or document (decision:wf2.workflow-is-a-skill): a document
+    `workflow-<slug>.md` under the project's Skills page whose `stage:` cards are its steps, in document order. A
+    skill that declares stages is executed by the app, never pasted into a session's prompt — that is the whole
+    difference between the two. `takes:` says which kinds it may be started on (`*`, or a comma-separated list).
+  open: true
+  statuses: [active, paused]
+  props:
+    takes: string?
+- id: type:stage
+  extends: type:node
+  purpose: >
+    one step of a workflow, a card in its document: `do:` the actions a hook also runs (task / run / add / assign /
+    notify / dispatch), `produces:` the documents it creates from templates/docs when they are absent, `until:` its
+    exit criterion in the closed predicate set (decision:wf2.until-is-closed), `gate:` person (the default — the
+    person advances) or auto. A stage with no actions is a review stop.
+  open: true
+  props:
+    do: text?
+    produces: string?
+    until: string?
+    gate: enum [person, auto]?
+    worker: string?
+    skills: list of skill?
+- id: type:run
+  extends: type:node
+  purpose: >
+    one run of a workflow (decision:wf2.run-holds-the-state): a card in the project's Workflow runs document saying
+    which workflow, what it runs on, the stage it is at, its status, the documents it produced and the sessions it
+    started; its content blocks are the log. Readiness is computed from the graph on demand, never stored here.
+  open: true
+  statuses: [running, waiting, blocked, done, cancelled]
+  props:
+    workflow: list of workflow? -(inverse)-> runs
+    on: list of node? -(inverse)-> run-by
+    stage: list of stage? -(inverse)-> stage-of
+    produced: list of node? -(inverse)-> produced-by
+    sessions: list of string?
+    started: string?
+    finished: string?
 - id: type:template
   extends: type:node
   purpose: >

@@ -30,9 +30,11 @@ kinds:
   rationale:      { purpose: why a constraint or a rule holds — a child block of it }
   req:            { purpose: what the product must do for someone, in the person's own words }
   rule:           { purpose: an invariant, constraint, validation or policy — how a behaviour is guaranteed }
+  run:            { purpose: one run of a workflow: a card in the project's Workflow runs document saying which workflow, what it runs on, the stage it is at, its status, the documents it produced and the sessions it started }
   scope:          { purpose: where a constraint or a rule applies, in words — a child block of it (ids go in the card's `scope:` links) }
   setting:        { purpose: alias of flag; the parser normalises setting: ids to flag: }
   skill:          { purpose: an instruction a session follows, kept as a document under the project's Skills page }
+  stage:          { purpose: one step of a workflow, a card in its document }
   state:          { purpose: a state machine owned by an entity }
   statement:      { purpose: what a constraint or a rule says — a child block of it (decision:wf2.parts-are-content) }
   task:           { purpose: a unit of work for a human or agent — the work item every view lists and every worker takes }
@@ -45,6 +47,7 @@ kinds:
   value:          { purpose: a value object or enum never persisted on its own }
   verdict:        { purpose: the verdict pass's classification of one pair }
   when:           { purpose: the trigger of a requirement — a child block of it }
+  workflow:       { purpose: an ordered, gated pipeline a person runs on any node or document }
 
 verbs:
   about:          lesson → node   (inverse: lessons)
@@ -63,11 +66,11 @@ verbs:
   hooks:          pr → hook
   mentions:       any → node   (inverse: mentioned-by)
   navigates:      action → page   (inverse: reached-from)
-  on:             comment → node   (inverse: comments)
+  on:             comment | run → node   (inverse: run-by)
   owns:           entity → state   (inverse: owned-by)
   pair:           verdict → node
   part-of:        any → node   (inverse: has)
-  produced:       any → node   (inverse: produced-by)
+  produced:       any | run → node   (inverse: produced-by)
   rationale:      constraint → decision   (inverse: rationale-for)
   reads:          op | page → node   (inverse: read-by)
   refines:        req → req   (inverse: refined-by)
@@ -78,10 +81,12 @@ verbs:
   scope:          constraint → node   (inverse: constrained-by)
   see:            any → node   (inverse: seen-from)
   set-by:         state → node   (inverse: sets)
-  skills:         hook | pr | skill → skill
+  skills:         hook | pr | skill | stage → skill
+  stage:          run → stage   (inverse: stage-of)
   submodules:     module → module   (inverse: part-of)
   supersedes:     any → node   (inverse: superseded-by)
   verified-by:    req | rule → node   (inverse: verifies)
+  workflow:       run → workflow   (inverse: runs)
   writes:         action | op → node   (inverse: written-by)
 
 statuses:
@@ -95,7 +100,9 @@ statuses:
   question:    [open, resolved, rejected]
   req:         [shipped, api-only, unverified, proposed, question, superseded]
   rule:        [proposed, shipped, deprecated, superseded]
+  run:         [running, waiting, blocked, done, cancelled]
   task:        [todo, open, in-progress, blocked, review, done]
+  workflow:    [active, paused]
 
 goal-and-task-properties: |
   Goals and tasks carry their tracking fields in the trailing property group: `(owner: alex, target: 2026-10, progress: 40)`.
