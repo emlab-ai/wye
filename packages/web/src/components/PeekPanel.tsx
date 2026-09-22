@@ -26,6 +26,7 @@ import { EmbeddedCard } from './EmbeddedCard';
 import { TypeView } from './TypeView';
 import { Comments } from './Comments';
 import { HooksSection } from './HooksSection';
+import { WorkflowsSection } from './WorkflowsSection';
 import { CodeView } from './CodeView';
 import dynamic from 'next/dynamic';
 const DocEditor = dynamic(() => import('./DocEditor'), { ssr: false });
@@ -178,6 +179,7 @@ function NodeView({ id }: { id: string }) {
           {view === 'list' && <Relations out={d.relations.out} inc={withoutComments(d.relations.inc)} rows={rows} inverses={d.inverses} />}
           {view === 'graph' && (d.graph.nodes.length > 1 ? <PeekGraph focus={id} nodes={d.graph.nodes} edges={d.graph.edges} onPick={open} /> : <p className="muted rels-empty">Nothing links to or from this node yet.</p>)}
           <ExplainCard key={`explain-${id}`} id={id} />
+          <WorkflowsSection key={`wf-${id}`} id={id} />
           <HooksSection key={`hooks-${id}`} id={id} />
           {entry && (entry.kind === 'goal' || entry.kind === 'task') && entry.sessions && entry.sessions.length > 0 && <Produced key={id} sessions={entry.sessions} produced={(d.relations.out.find(([v]) => v === 'produced')?.[1]) ?? []} />}
         </details>
