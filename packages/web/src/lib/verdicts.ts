@@ -11,6 +11,7 @@ import path from 'node:path';
 import { REPO_ROOT } from './products';
 import { loadGraph } from './load';
 import { writeAtomic, withFileLock } from './write';
+import { claimWrite } from './changes';
 import { readContent, writeContent } from './node-content';
 import type { BlockChange } from './session-types';
 
@@ -77,6 +78,8 @@ export async function runVerdicts(productDir: string, product: string, ids: stri
       if (!fresh.length) return 0;
       const next = writeContent(md, id, n.line, n.form ?? 'yaml', [content.trim(), ...fresh].filter(Boolean).join('\n\n'));
       if (!next || next === md) return 0;
+      // the pass claims its own write, so the node is not credited to whatever session happened to be running
+      claimWrite(id, { by: 'wye', silent: true });
       await writeAtomic(file, next);
       return fresh.length;
     });

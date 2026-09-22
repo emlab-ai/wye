@@ -143,10 +143,14 @@ function Event({ e, answered, answers, showThinking, answer }: { e: ChatEvent; a
     case 'init': return <div className="ev ev-note">{time}<span className="muted">{e.text}{e.cwd ? ` · ${e.cwd}` : ''}</span></div>;
     case 'note': return e.requestId ? null : <div className="ev ev-note">{time}<span className="muted">{e.text}</span></div>;
     case 'log': return <div className="ev ev-note ev-log">{time}<span className="muted"><i>log</i> {e.text}</span></div>;
-    case 'knowledge': { // each tag carries its change (+ added, ~ changed, − removed) when block attribution knows it
+    case 'knowledge': { // what the session was asked, then the blocks it made of it: + added, ~ changed, − removed
       const ch = new Map((e.changes ?? []).map(c => [c.id, c.change]));
       const prose = (e.changes ?? []).filter(c => c.id.startsWith('block:')).length;
-      return <div className="ev ev-note ev-know">{time}<span className="muted"><i>knowledge</i></span><span className="tags">{(e.refs ?? []).map(r => <span key={r} className={ch.has(r) ? `ch-${ch.get(r)}` : ''}><SmartTag id={r} /></span>)}{prose > 0 && <small className="muted">{prose} paragraph{prose === 1 ? '' : 's'}</small>}</span></div>;
+      return <div className="ev ev-note ev-know">{time}<div className="know-body">
+        {e.prompt && <p className="know-asked muted"><i>asked</i> {e.prompt}</p>}
+        <span className="muted"><i>knowledge</i></span>
+        <span className="tags">{(e.refs ?? []).map(r => <span key={r} className={ch.has(r) ? `ch-${ch.get(r)}` : ''}><SmartTag id={r} /></span>)}{prose > 0 && <small className="muted">{prose} paragraph{prose === 1 ? '' : 's'}</small>}</span>
+      </div></div>;
     }
     case 'open': return <div className="ev ev-note ev-log">{time}<span className="muted"><i>opened</i> <Link href={e.text ?? '#'}>{e.text}</Link></span></div>;
     case 'summary': return <div className="ev ev-summary">{time}<div className="ev-body"><span className="ev-summary-tag">session summary</span><TranscriptMarkdown>{e.text ?? ''}</TranscriptMarkdown></div></div>;

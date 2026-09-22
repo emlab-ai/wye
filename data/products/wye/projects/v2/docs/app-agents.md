@@ -47,14 +47,14 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
 ```yaml
 - id: rule:block-attribution
-  source: packages/web/src/lib/watch.ts; packages/web/src/lib/graph-diff.ts; packages/web/src/lib/artifacts.ts#mergeBlocks; packages/web/src/app/api/[product]/node/[id]/route.ts; packages/web/src/lib/agent-host.ts#reportKnowledge
+  source: packages/web/src/lib/watch.ts; packages/web/src/lib/graph-diff.ts; packages/web/src/lib/artifacts.ts#creditBlockChanges; packages/web/src/lib/artifacts.ts#mergeBlocks; packages/web/src/app/api/[product]/node/[id]/route.ts; packages/web/src/lib/agent-host.ts#reportKnowledge
   status: shipped
-  verified-by: [test:web-lib#graph-diff, ui-test:session-changes]
+  verified-by: [test:web-lib#graph-diff, test:web-lib#artifacts, ui-test:session-changes]
   related-to: [rule:task-artifacts, req:wf2.sessions.block-attribution]
   title: Attribution is per block and derived.
 ```
 
-  - statement:block-attribution Attribution is per block and derived. The watcher keeps the graph as it last saw it; after every rebuild it diffs that against the new build (lib:graph-diff) and records the added / changed / removed nodes — typed blocks and block: paragraphs — as `artifacts.blocks` on every session whose recorded status is running (mergeBlocks: one entry per block; added then changed stays added, added then removed disappears). A node PUT with x-wf-session records the block as changed on that session at once. The app's own task-link writes (session, produced) are invisible to the diff. The console's knowledge row marks each tag + ~ − and counts paragraphs; the session strip shows +n ~n −n n¶ and links the changes page. No document is rewritten for attribution (decision:wf2.attribution-derived-not-written).
+  - statement:block-attribution Attribution is per block and derived. The watcher keeps the graph as it last saw it; after every rebuild it diffs that against the new build (lib:graph-diff) and records the added / changed / removed nodes — typed blocks and block: paragraphs — as `artifacts.blocks` on the session each change is **attributed** to (mergeBlocks: one entry per block; added then changed stays added, added then removed disappears). Attribution is the writer the watcher worked out for that change: the claim left by the route that wrote it (a node, document, content or propose call carries x-wf-session), else the one running session, else the person — so a session is never credited with what the app itself wrote (a run card, a hook's blocks, the verdict pass's lines, which claim as `wye`), with another session's work, or with what a person edited while it ran. Crediting every running session with the whole diff, as this once did, made the knowledge row unreadable. A node PUT with x-wf-session records the block as changed on that session at once. The app's own task-link writes (session, produced) are invisible to the diff. The console's knowledge row shows what the session was asked on top and then only its blocks, each tag marked + ~ − with the paragraphs counted (the documents and nodes it touched are the header strip's, not this row's); the session strip shows +n ~n −n n¶ and links the changes page. No document is rewritten for attribution (decision:wf2.attribution-derived-not-written).
 
 ```yaml
 - id: rule:session-page

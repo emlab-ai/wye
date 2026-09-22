@@ -76,13 +76,14 @@ onBuilt(async (productDir, before, after) => {
   if (!before || !st().watchers.has(productDir)) return; // a product nobody follows (a test's scratch, a CLI-only use) keeps no records
   const changes = diffGraphs(before, after, new Date().toISOString());
   if (!changes.length) return;
-  await creditBlockChanges(productDir, changes).catch(() => {});
   // change records (decision:exec.changes-from-the-rebuild-diff): the old and new value of every edited typed node,
   // credited to the writer that claimed it, else to the one running session, else "person"
   const running = (await listSessions(productDir).catch(() => [])).filter(x => x.status === 'running');
   const fileOf = new Map(after.nodes.map(n => [n.id, n.file]));
   const attribution = new Map(changes.map(c => { const c0 = takeClaim(c.id, fileOf.get(c.id) ?? ''); return [c.id, c0 ? { by: c0.by, session: c0.session, silent: c0.silent } : running.length === 1 ? { by: `agent:${running[0].id}`, session: running[0].id } : { by: 'person' }]; }));
   const who = (id: string) => attribution.get(id) ?? { by: 'person' };
+  // a session's artifacts are the blocks attributed to it, never the whole diff (lib/artifacts#creditBlockChanges)
+  await creditBlockChanges(productDir, changes, id => attribution.get(id)?.session).catch(() => {});
   const records = await recordChanges(productDir, slugOfDir(productDir), before, after, changes, who).catch(e => { console.log(`[wf] changes: ${e instanceof Error ? e.message : e}`); return []; });
   if (records.length) scheduleImpact(productDir, slugOfDir(productDir), records, m => console.log(`[wf] ${m}`));
   // hooks (decision:wf2.hooks-and-skills): what the diff means — created, status:<x>, linked:<verb> — fires the

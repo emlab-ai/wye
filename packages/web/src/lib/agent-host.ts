@@ -306,23 +306,24 @@ export function pump(l: Live) {
     });
   }).catch(() => { l.pumping = false; });
 }
-// After a turn, what the knowledge base got from it: the session's artifacts (documents credited by the disk
-// watcher, nodes changed through the API — lib/artifacts) that were not reported yet, as one `knowledge` event.
-// The watcher credits a write ~0.5 s after it lands, so the check waits a moment; a late credit shows up after the
-// next turn.
+// After a turn, what the knowledge base got from it: the blocks this session is credited with (lib/artifacts —
+// attributed to it, not everything that changed while it ran) that were not reported yet, as one `knowledge` event.
+// Only new, changed and deleted blocks: the documents and nodes it touched are the session's own header strip, and
+// listing them here put unmarked ids among the marked ones. `prompt` carries what the session was asked to do, so
+// the line reads as the task and then what came of it. The watcher credits a write ~0.5 s after it lands, so the
+// check waits a moment; a late credit shows up after the next turn.
 function reportKnowledge(l: Live, delay = 1200) {
   setTimeout(() => {
     getSession(l.productDir, l.id).then(s => {
-      // blocks first (typed ones as tags; paragraphs counted), then documents and nodes not yet shown
       const blocks = (s?.artifacts?.blocks ?? []).filter(b => !l.known.has(`${b.id}@${b.at}`));
+      if (!blocks.length) return;
       const typed = blocks.filter(b => !b.id.startsWith('block:'));
-      const fresh = [...new Set([...typed.map(b => b.id), ...(s?.artifacts?.docs ?? []), ...(s?.artifacts?.nodes ?? [])])].filter(x => !l.known.has(x));
-      if (!fresh.length && !blocks.length) return;
-      for (const x of fresh) l.known.add(x);
+      const fresh = [...new Set(typed.map(b => b.id))];
       for (const b of blocks) l.known.add(`${b.id}@${b.at}`);
       const n = (c: string) => blocks.filter(b => b.change === c).length;
       const counts = [n('added') && `+${n('added')} added`, n('changed') && `${n('changed')} changed`, n('removed') && `${n('removed')} removed`].filter(Boolean).join(' · ');
-      emit(l, { kind: 'knowledge', refs: fresh, text: `knowledge: ${counts || fresh.join(', ')}`, changes: blocks.map(b => ({ id: b.id, change: b.change })) });
+      const asked = (s?.instruction ?? '').split('\n').map(x => x.trim()).find(Boolean) ?? '';
+      emit(l, { kind: 'knowledge', refs: fresh, text: `knowledge: ${counts || fresh.join(', ')}`, prompt: asked.slice(0, 200), changes: blocks.map(b => ({ id: b.id, change: b.change })) });
     }).catch(() => {});
   }, delay);
 }

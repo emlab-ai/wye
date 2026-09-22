@@ -33,12 +33,16 @@ export async function recordArtifact(productDir: string, sessionId: string, what
   await mutateArtifacts(productDir, sessionId, a => { if (what.doc) a.docs.push(what.doc); if (what.node) a.nodes.push(what.node); if (what.blocks?.length) a.blocks = mergeBlocks(a.blocks ?? [], what.blocks); });
 }
 
-// The graph rebuilt after documents changed on disk: every running session is credited with the blocks that are
-// new, changed or gone (the app's own task-link writes are already invisible to the diff).
-export async function creditBlockChanges(productDir: string, changes: BlockChange[]): Promise<void> {
+// The graph rebuilt after documents changed on disk: a session is credited with the blocks **attributed to it** —
+// the writer the watcher worked out for each change (a claim from the route that wrote it, else the one running
+// session, else the person). Crediting every running session with the whole diff, as this once did, billed a session
+// for the app's own writes (run cards, verdict lines, what a hook wrote), for another session's work and for anything
+// a person edited while it ran, which is what made the knowledge list unreadable.
+export async function creditBlockChanges(productDir: string, changes: BlockChange[], sessionOf: (id: string) => string | undefined): Promise<void> {
   if (!changes.length) return;
-  const running = (await listSessions(productDir)).filter(s => s.status === 'running');
-  for (const s of running) await recordArtifact(productDir, s.id, { blocks: changes });
+  const per = new Map<string, BlockChange[]>();
+  for (const c of changes) { const s = sessionOf(c.id); if (!s) continue; const a = per.get(s) ?? []; a.push(c); per.set(s, a); }
+  for (const [id, blocks] of per) await recordArtifact(productDir, id, { blocks });
 }
 
 // A document changed on disk: credit every running session of the product and link their tasks. Called by the

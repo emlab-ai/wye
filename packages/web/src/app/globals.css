@@ -897,3 +897,8 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 /* coverage=1 on a req view: is the requirement satisfied and verified, and what is missing (spec §6) */
 .itable-cover { font: 12px var(--font-m); white-space: nowrap; } .itable-cover.ok { color: var(--accent); } .itable-cover.no button { color: var(--muted); }
 .itable tr.gap td:first-child { box-shadow: inset 2px 0 0 var(--line-2); }
+
+/* the knowledge event: what was asked above what came of it (req:wf2.sessions.knowledge-changes) */
+.ev-know .know-body { display: grid; gap: 2px; }
+.ev-know .know-asked { margin: 0 0 2px; font-size: 12px; }
+.ev-know .know-asked i { font-style: normal; text-transform: uppercase; font-size: 10px; letter-spacing: .04em; margin-right: 6px; }
