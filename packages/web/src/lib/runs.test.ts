@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseStage, workflowOf, workflowsOf, admits, nextStage, readinessOf, parseRun, runCard, replaceCard, runSlug, logLine, autoRun, LIVE, type RunCtx, type RunState, type StageDef } from './runs';
+import { parseStage, workflowOf, workflowsOf, admits, nextStage, readinessOf, parseRun, runCard, replaceCard, runSlug, logLine, autoRun, LIVE, stagesSection, blockingSection, withSection, type RunCtx, type RunState, type StageDef } from './runs';
 import type { GraphData, GraphEdge, GraphNode } from './graph';
 
 // workflows (decision:wf2.workflow-is-a-skill): a workflow is a skill whose stage cards are its steps, in document order
@@ -103,19 +103,20 @@ describe('readiness', () => {
 });
 
 describe('the run card', () => {
-  const r: RunState = { id: 'run:feature-3', workflow: 'workflow:feature', on: 'module:idea', stage: 'stage:f.prd', status: 'waiting', produced: ['module:idea-prd'], sessions: ['abc123'], started: '2026-09-22', log: ['started — by person', 'advanced stage:f.research — by person, every session done'] };
+  const r: RunState = { id: 'run:feature-3', workflow: 'workflow:feature', on: 'module:idea', stage: 'stage:f.prd', status: 'waiting', produced: ['module:idea-prd'], sessions: ['abc123'], started: '2026-09-22', log: ['started — by person', 'advanced stage:f.research — by person, every session done'], auto: 0, file: '' };
   it('round-trips through yaml, log and all', () => {
     const md = runCard(r);
     expect(md).toContain('- id: run:feature-3');
     expect(md).toContain('  workflow: workflow:feature');
+    expect(md).toContain('  runs-on: module:idea');
     expect(md).toContain('  produced: [module:idea-prd]');
-    const back = parseRun(node('run:feature-3', { status: 'waiting', body: md.replace(/^- /, '').replace(/^ {2}/gm, '') }))!;
+    const back = parseRun(node('run:feature-3', { status: 'waiting', file: '', body: md.replace(/^- /, '').replace(/^ {2}/gm, '') }))!;
     expect(back).toEqual(r);
   });
   it('replaces a card in place, leaving its neighbours alone', () => {
     const md = `# Runs\n\n\`\`\`yaml\n${runCard({ ...r, id: 'run:a' })}${runCard({ ...r, id: 'run:b', log: [] })}\`\`\`\n`;
     const next = replaceCard(md, 'run:a', runCard({ ...r, id: 'run:a', status: 'done', log: [] }))!;
-    expect(next).toContain('- id: run:a\n  workflow: workflow:feature\n  on: module:idea\n  stage: stage:f.prd\n  status: done');
+    expect(next).toContain('- id: run:a\n  workflow: workflow:feature\n  runs-on: module:idea\n  stage: stage:f.prd\n  status: done');
     expect(next).toContain('- id: run:b');
     expect(next.match(/- id: run:/g)).toHaveLength(2);
     expect(replaceCard(md, 'run:ghost', 'x')).toBeNull();
@@ -124,11 +125,46 @@ describe('the run card', () => {
     expect(runSlug('workflow:feature', ['run:feature-1', 'run:other-7'])).toBe('run:feature-2');
     expect(runSlug('workflow:feature', [])).toBe('run:feature-1');
     expect([...LIVE]).toEqual(['running', 'waiting', 'blocked']);
-    expect(autoRun(['started — by person', 'advanced s1 — by the engine, auto', 'advanced s2 — by the engine, auto'])).toBe(2);
-    expect(autoRun(['advanced s1 — by the engine, auto', 'advanced s2 — by person, ok'])).toBe(0);
+    expect(autoRun({ auto: 2 })).toBe(2);
+    expect(autoRun({ auto: 0 })).toBe(0);
   });
   it('writes a log line naming who did what', () => {
     expect(logLine({ what: 'advanced', stage: 'stage:f.prd', by: 'person', detail: 'every req in prd is agreed' }))
       .toBe('advanced stage:f.prd — by person, every req in prd is agreed');
+  });
+});
+
+describe('the run page (decision:wf2.run-is-a-page)', () => {
+  const wf = node('workflow:feature', { title: 'Feature', body: 'id: workflow:feature' });
+  const mk = (id: string, line: number, title: string, produces = '') => node(id, { line, title, body: `title: ${title}\ndo: task "x" --worker agent${produces ? `\nproduces: ${produces}` : ''}` });
+  const w = workflowOf({ nodes: [wf, mk('stage:f.research', 10, 'Explore the idea', 'research'), mk('stage:f.prd', 20, 'Write the PRD', 'prd'), mk('stage:f.design', 30, 'Design')] }, incOf([]), 'workflow:feature')!;
+  const run = (over: Partial<RunState> = {}): RunState => ({ id: 'run:feature-1', workflow: 'workflow:feature', on: 'module:idea', stage: 'stage:f.prd', status: 'running', produced: [], sessions: [], started: '2026-09-22', log: [], auto: 0, file: 'x/run-feature-1.md', ...over });
+
+  it('Stages says what is done, where it is now and what each one produced', () => {
+    const out = stagesSection(w, run(), { research: 'module:idea-research' });
+    expect(out.split('\n')).toEqual([
+      '- ✓ Explore the idea → module:idea-research',
+      '- ▶ Write the PRD → prd (not yet)  **running**',
+      '- · Design',
+    ]);
+    expect(stagesSection(w, run({ status: 'blocked' }))).toContain('- ✗ Write the PRD');
+    expect(stagesSection(w, run({ status: 'done' })).split('\n').every(l => l.startsWith('- ✓'))).toBe(true);
+  });
+  it('Blocking says what holds the stage back, or that only the person is missing', () => {
+    const rows = [{ label: 'every req in prd is agreed', ok: false, blocking: ['req:a', 'req:b'] }, { label: 'no open question in prd', ok: true, blocking: [] }];
+    const out = blockingSection(rows, 'person');
+    expect(out).toContain('Waiting on 1 of 2:');
+    expect(out).toContain('- · every req in prd is agreed — req:a, req:b');
+    expect(out).toContain('- ✓ no open question in prd');
+    expect(blockingSection([{ label: 'session done', ok: true, blocking: [] }], 'person')).toContain('Advance is yours');
+    expect(blockingSection([{ label: 'session done', ok: true, blocking: [] }], 'auto')).toContain('advances on its own');
+  });
+  it('a section the engine owns is replaced, and added when the page has no such heading', () => {
+    const md = '# Run\n\n## Asked\n\nthe idea\n\n## Blocking\n\n_placeholder_\n\n## Log\n\n- started\n';
+    const out = withSection(md, 'Blocking', 'Waiting on 1 of 2:');
+    expect(out).toContain('## Blocking\n\nWaiting on 1 of 2:\n\n## Log');
+    expect(out).toContain('## Asked\n\nthe idea');
+    expect(out).toContain('- started');
+    expect(withSection('# Run\n', 'Result', 'done')).toBe('# Run\n\n## Result\n\ndone\n');
   });
 });

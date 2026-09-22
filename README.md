@@ -310,6 +310,12 @@ cursor, what you type becomes the document the run starts from — as does the W
 the parser generates the inverse, a requirement's links to its decisions and its tests come for free; the stage's
 criterion is what notices when one is missing, and the coverage view is what you read before you advance.
 
+Every run is a page of its own — `run-<workflow>-<n>.md` under the project's Workflow runs — and that page is the
+state: its frontmatter says which workflow, what it runs on, the stage and the status; **Stages** says what is done
+and where it has got to; **Blocking** says, row by row, what the next stage is waiting for and which nodes hold it
+back; **Log** says what happened and by whom. It is a node like any other, so the graph shows the run beside the idea
+it came from and everything it produced.
+
 The Claude Code skills in `skills/` (linked by `install.sh`) teach an agent the contract from the other side:
 `wye-agent` (resolve a Wye link or id, read and write documents and nodes, report on a session),
 `wye-context` (query the graph before code, describe the change before building, `wye check` before done),

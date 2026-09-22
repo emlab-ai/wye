@@ -30,7 +30,7 @@ kinds:
   rationale:      { purpose: why a constraint or a rule holds — a child block of it }
   req:            { purpose: what the product must do for someone, in the person's own words }
   rule:           { purpose: an invariant, constraint, validation or policy — how a behaviour is guaranteed }
-  run:            { purpose: one run of a workflow: a card in the project's Workflow runs document saying which workflow, what it runs on, the stage it is at, its status, the documents it produced and the sessions it started }
+  run:            { purpose: one run of a workflow: a document of its own under the project's Workflow runs page }
   scope:          { purpose: where a constraint or a rule applies, in words — a child block of it (ids go in the card's `scope:` links) }
   setting:        { purpose: alias of flag; the parser normalises setting: ids to flag: }
   skill:          { purpose: an instruction a session follows, kept as a document under the project's Skills page }
@@ -66,7 +66,7 @@ verbs:
   hooks:          pr → hook
   mentions:       any → node   (inverse: mentioned-by)
   navigates:      action → page   (inverse: reached-from)
-  on:             comment | run → node   (inverse: run-by)
+  on:             comment → node   (inverse: comments)
   owns:           entity → state   (inverse: owned-by)
   pair:           verdict → node
   part-of:        any → node   (inverse: has)
@@ -77,6 +77,7 @@ verbs:
   refs:           entity → entity   (inverse: referenced-by)
   related-to:     any → node   (inverse: related-to)
   resolves:       any → node   (inverse: resolved-by)
+  runs-on:        run → node   (inverse: run-by)
   satisfied-by:   req → node   (inverse: satisfies)
   scope:          constraint → node   (inverse: constrained-by)
   see:            any → node   (inverse: seen-from)

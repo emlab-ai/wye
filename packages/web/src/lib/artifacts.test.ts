@@ -6,7 +6,7 @@ import { creditBlockChanges, mergeBlocks } from './artifacts';
 import { createSession, getSession } from './sessions';
 import type { BlockChange } from './session-types';
 
-const change = (id: string, ch: BlockChange['change'] = 'changed'): BlockChange => ({ id, change: ch, at: '2026-09-22T10:00:00Z', kind: id.split(':')[0], title: id, status: '', file: 'data/products/p/projects/v2/docs/prd.md' } as BlockChange);
+const change = (id: string, ch: BlockChange['change'] = 'changed'): BlockChange => ({ id, change: ch, at: '2026-09-22T10:00:00Z', kind: id.split(':')[0], title: id, status: '', doc: 'prd', file: 'data/products/p/projects/v2/docs/prd.md' } as unknown as BlockChange);
 
 describe("a session's artifacts", () => {
   it('credits each session only with the blocks attributed to it, and nobody with the rest', async () => {

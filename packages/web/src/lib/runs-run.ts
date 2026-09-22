@@ -13,13 +13,15 @@ import { slugify } from './templates';
 import { createDocFromTemplate } from './doc-create';
 import { appendCard } from './instances';
 import { claimWrite } from './changes';
-import { rebuild, writeAtomic, withFileLock, lint } from './write';
+import { rebuild, writeAtomic, withFileLock, lint, patchFrontmatter } from './write';
 import { fillTemplate, templateVars, MAX_DEPTH, type HookAction } from './hooks';
 import { runAction, newFiring, saveFiring, hooksEnabled, type Actor, type Firing } from './hooks-run';
 import { listSessions, onSessionEnd } from './sessions';
 import { readSettings, agentSettings } from './settings';
 import { assignTask } from './work-io';
-import { LIVE, admits, autoRun, logLine, nextStage, parseRun, readinessOf, replaceCard, runCard, runSlug, stageIndex, workflowOf, type Readiness, type RunCtx, type RunState, type StageDef, type WorkflowDef } from './runs';
+import { nodeText } from './node-edit';
+import { sectionBody } from './pr-doc';
+import { LIVE, admits, autoRun, blockingSection, logLine, nextStage, parseRun, readinessOf, replaceCard, runCard, runSlug, stageIndex, stagesSection, withSection, workflowOf, type Readiness, type RunCtx, type RunState, type StageDef, type WorkflowDef } from './runs';
 
 export const runsPageId = (projectSlug: string) => `module:${projectSlug}-workflow-runs`;
 const RUNS_SLUG = 'workflow-runs';
@@ -45,21 +47,68 @@ async function ensureRunsPage(scope: Scope, project: Project): Promise<string> {
   return id;
 }
 
-// The run card written or replaced in place, one log line appended, then the graph rebuilt. Called only when something
-// actually changed — see sweepRuns.
+// The run written, then the graph rebuilt. Called only when something actually changed — see sweepRuns.
+// A run is a page (decision:wf2.run-is-a-page): its frontmatter is the state, and the engine owns three of its
+// sections — Stages (where it has got to), Blocking (what stops the next stage) and Log (what happened). A run
+// written before there were run pages is still a card in the Workflow runs document, and keeps being one.
 async function writeRun(scope: Scope, project: Project, r: RunState, o: { by: string; line?: string }): Promise<RunState> {
   const next: RunState = { ...r, log: o.line ? [...r.log, o.line] : r.log };
+  if (!isPage(scope, r)) return writeRunCard(scope, project, next, o);
+  const file = path.join(REPO_ROOT, r.file);
+  claimWrite(r.id, { by: o.by }); claimWrite(r.file, { by: o.by });
+  const w = workflowOf(scope.graph, scope.idx, r.workflow);
+  const stage = w?.stages.find(x => x.id === r.stage);
+  const ready = w && stage ? readinessOf(stage, await ctxFor(scope, r, stage, w)) : null;
+  await withFileLock(file, async () => {
+    let md = await readFile(file, 'utf8');
+    const patch: Record<string, string> = { status: next.status, stage: next.stage, 'runs-on': next.on, produced: `[${next.produced.join(', ')}]`, sessions: `[${next.sessions.join(', ')}]`, auto: String(next.auto) };
+    if (next.finished) patch.finished = next.finished;
+    const fm = patchFrontmatter(md, patch); if (!fm.error) md = fm.md;
+    if (w) md = withSection(md, 'Stages', stagesSection(w, next, bindings(scope, next, w)));
+    md = withSection(md, 'Blocking', ready && stage ? blockingSection(ready.rows, stage.gate) : '_The stage this run points at is gone from its workflow._');
+    if (o.line) {
+      const kept = (sectionBody(md, 'Log') ?? '').split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('_'));
+      md = withSection(md, 'Log', [...kept, `- ${o.line}`].join('\n'));
+    }
+    // the run is over: what came of it, in the section the template keeps for it
+    if (!LIVE.has(next.status)) {
+      const made = next.produced.length ? `Produced ${next.produced.join(', ')}.` : 'Produced nothing.';
+      const ran = next.sessions.length ? ` ${next.sessions.length} session(s): ${next.sessions.join(', ')}.` : '';
+      md = withSection(md, 'Result', next.status === 'done'
+        ? `Finished ${next.finished ?? today()} — every stage of ${w?.title ?? next.workflow} done. ${made}${ran}`
+        : `${next.status[0].toUpperCase()}${next.status.slice(1)} at ${next.stage} on ${next.finished ?? today()}. ${made}${ran}`);
+    }
+    await writeAtomic(file, md);
+  });
+  await rebuild(scope.product.dir);
+  return next;
+}
+// A run node that is a document of its own — everything started since run pages landed.
+const isPage = (scope: Scope, r: RunState) => !!r.file && scope.graph.modules.some(m => m.id === r.id);
+// The old shape: one card among many in the project's Workflow runs document.
+async function writeRunCard(scope: Scope, project: Project, next: RunState, o: { by: string }): Promise<RunState> {
   await ensureRunsPage(scope, project);
   const file = path.join(project.docsDir, `${RUNS_SLUG}.md`);
-  claimWrite(r.id, { by: o.by });
+  claimWrite(next.id, { by: o.by });
   await withFileLock(file, async () => {
     const cur = await readFile(file, 'utf8');
     const card = runCard(next);
-    const out = replaceCard(cur, r.id, card) ?? appendCard(cur, card.replace(/\n$/, ''));
+    const out = replaceCard(cur, next.id, card) ?? appendCard(cur, card.replace(/\n$/, ''));
     if (out !== cur) await writeAtomic(file, out);
   });
   await rebuild(scope.product.dir);
   return next;
+}
+
+// The run's own page, from templates/docs/run.md, under the project's Workflow runs page so the tree nests it there.
+async function createRunDoc(scope: Scope, project: Project, r: RunState, o: { title: string; asked: string; parent: string }): Promise<string> {
+  const slug = `run-${r.id.replace(/^run:/, '')}`;
+  const abs = path.join(project.docsDir, `${slug}.md`);
+  const tpl = await readFile(path.join(REPO_ROOT, 'templates/docs/run.md'), 'utf8');
+  const vars: Record<string, string> = { node: r.id, title: o.title, status: r.status, workflow: r.workflow, on: r.on, stage: r.stage, date: r.started, parent: o.parent, asked: o.asked };
+  await writeAtomic(abs, tpl.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars ? vars[k] : m)));
+  await rebuild(scope.product.dir);
+  return path.relative(REPO_ROOT, abs);
 }
 
 // --- reading runs out of the graph ---
@@ -122,8 +171,14 @@ export async function startRun(product: string, workflow: string, on: string, o:
   if (live && !o.again) throw new Error(`${live.id} is already live on ${on} — pass again to start another`);
   const project = projectOf(scope, node.file); if (!project) throw new Error('no project to put the run in');
   const id = runSlug(workflow, runsIn(scope).map(r => r.id));
-  const r: RunState = { id, workflow, on, stage: w.stages[0].id, status: 'running', produced: [], sessions: [], started: today(), log: [logLine({ what: 'started', by: o.by, detail: `${w.title} on ${on}` })] };
-  await writeRun(scope, project, r, { by: o.by });
+  const parent = await ensureRunsPage(scope, project);
+  const title = `${w.title} — ${node.title || on}`;
+  const text = nodeText(node.body).split('\n').map(l => l.trim()).filter(Boolean).slice(0, 4).join(' ').slice(0, 400);
+  const asked = [`Started by ${o.by} on ${on} — the ${w.title} workflow.`, ...(text ? ['', `> ${text}`] : [])].join('\n');
+  const r: RunState = { id, workflow, on, stage: w.stages[0].id, status: 'running', produced: [], sessions: [], started: today(), auto: 0, file: '', log: [] };
+  r.file = await createRunDoc(scope, project, r, { title, asked, parent });
+  const fresh = await loadScope(product) ?? scope;
+  await writeRun(fresh, project, r, { by: o.by, line: logLine({ what: 'started', by: o.by, detail: `${w.title} on ${on}` }) });
   await enterStage(product, id, w.stages[0].id, { by: o.by });
   return { run: id };
 }
@@ -162,7 +217,7 @@ export async function enterStage(product: string, runId: string, stageId: string
     const vars = { ...templateVars(node), ...binds };
     const actor: Actor = { id: stage.id, title: stage.title, skills: stage.skills };
     const automation = await hooksEnabled();
-    const firing: Firing = newFiring({ by: { run: runId, stage: stageId }, title: stage.title, node: node.id, event: `stage:${stageId}`, depth: autoRun(r.log) });
+    const firing: Firing = newFiring({ by: { run: runId, stage: stageId }, title: stage.title, node: node.id, event: `stage:${stageId}`, depth: autoRun(r) });
     const sessions: string[] = [];
     if (stage.actions.length) {
       const fresh = await loadScope(product) ?? scope;
@@ -209,27 +264,27 @@ export async function advanceRun(product: string, runId: string, o: { by: string
   const next = nextStage(w, r.stage);
   const detail = o.skip && !ready.ok ? 'skipped, not ready' : ready.rows.map(x => x.label).join('; ');
   if (!next) {
-    await writeRun(scope, project, { ...r, status: 'done', finished: today() }, { by: o.by, line: logLine({ what: o.skip ? 'skipped' : 'advanced', stage: r.stage, by: o.by, detail: `${detail} — the last stage` }) });
+    await writeRun(scope, project, { ...r, status: 'done', finished: today(), auto: 0 }, { by: o.by, line: logLine({ what: o.skip ? 'skipped' : 'advanced', stage: r.stage, by: o.by, detail: `${detail} — the last stage` }) });
     return { stage: null, status: 'done' };
   }
-  await writeRun(scope, project, { ...r, stage: next.id, status: 'running' }, { by: o.by, line: logLine({ what: o.skip ? 'skipped' : 'advanced', stage: r.stage, by: o.by, detail }) });
+  await writeRun(scope, project, { ...r, stage: next.id, status: 'running', auto: o.by === 'the engine' ? r.auto + 1 : 0 }, { by: o.by, line: logLine({ what: o.skip ? 'skipped' : 'advanced', stage: r.stage, by: o.by, detail }) });
   await enterStage(product, runId, next.id, { by: o.by });
   return { stage: next.id, status: 'running' };
 }
 
-async function moveTo(product: string, runId: string, o: { by: string; stage?: string; status: string; what: string; detail?: string; enter: boolean }): Promise<void> {
+async function moveTo(product: string, runId: string, o: { by: string; stage?: string; status: string; what: string; detail?: string; enter: boolean; finished?: boolean }): Promise<void> {
   const scope = await loadScope(product); if (!scope) throw new Error(`no such product ${product}`);
   const r = runIn(scope, runId); if (!r) throw new Error(`${runId} is not in the graph`);
   const w = workflowOf(scope.graph, scope.idx, r.workflow);
   const stage = o.stage ?? r.stage;
   if (o.stage && !w?.stages.some(s => s.id === o.stage)) throw new Error(`${o.stage} is not a stage of ${r.workflow}`);
   const project = projectOf(scope, scope.idx.byId.get(r.on)?.file ?? ''); if (!project) throw new Error('no project for the run');
-  await writeRun(scope, project, { ...r, stage, status: o.status }, { by: o.by, line: logLine({ what: o.what, stage, by: o.by, ...(o.detail ? { detail: o.detail } : {}) }) });
+  await writeRun(scope, project, { ...r, stage, status: o.status, auto: 0, ...(o.finished ? { finished: today() } : {}) }, { by: o.by, line: logLine({ what: o.what, stage, by: o.by, ...(o.detail ? { detail: o.detail } : {}) }) });
   if (o.enter) await enterStage(product, runId, stage, { by: o.by });
 }
 export const reopenRun = (product: string, runId: string, stage: string, o: { by: string }) => moveTo(product, runId, { ...o, stage, status: 'running', what: 'reopened', enter: true });
 export const retryRun = (product: string, runId: string, o: { by: string }) => moveTo(product, runId, { ...o, status: 'running', what: 'retried', enter: true });
-export const cancelRun = (product: string, runId: string, o: { by: string }) => moveTo(product, runId, { ...o, status: 'cancelled', what: 'cancelled', enter: false });
+export const cancelRun = (product: string, runId: string, o: { by: string }) => moveTo(product, runId, { ...o, status: 'cancelled', what: 'cancelled', enter: false, finished: true });
 
 // `dispatch <doc>`: the ready, unheld tasks of a document handed to workers within the slots of Settings › Agents.
 export async function dispatchDoc(scope: Scope, doc: string, o: { workers?: number; by: string }): Promise<string[]> {
@@ -256,23 +311,38 @@ export async function sweepRuns(product: string, log: (m: string) => void = m =>
   const scope = await loadScope(product); if (!scope) return;
   for (const r of runsIn(scope)) {
     if (!LIVE.has(r.status)) continue;
-    const w = workflowOf(scope.graph, scope.idx, r.workflow);
-    const stage = w?.stages.find(s => s.id === r.stage);
-    const node = scope.idx.byId.get(r.on);
-    const project = projectOf(scope, node?.file ?? ''); if (!project) continue;
-    if (!node) { if (r.status !== 'blocked') await writeRun(scope, project, { ...r, status: 'blocked' }, { by: 'the engine', line: logLine({ what: 'blocked', stage: r.stage, by: 'the engine', detail: `${r.on} is gone` }) }); continue; }
-    if (!w || !stage) { if (r.status !== 'blocked') await writeRun(scope, project, { ...r, status: 'blocked' }, { by: 'the engine', line: logLine({ what: 'blocked', stage: r.stage, by: 'the engine', detail: `${r.stage} is gone from ${r.workflow}` }) }); continue; }
-    if (r.status === 'blocked') continue;                     // a person retries, skips or cancels
-    const ready = readinessOf(stage, await ctxFor(scope, r, stage, w));
-    if (ready.ok && stage.gate === 'auto') {
-      if (autoRun(r.log) >= MAX_DEPTH) { if (r.status !== 'waiting') await writeRun(scope, project, { ...r, status: 'waiting' }, { by: 'the engine', line: logLine({ what: 'held', stage: r.stage, by: 'the engine', detail: `${MAX_DEPTH} auto stages in a row — waiting for a person` }) }); continue; }
-      log(`${r.id}: ${r.stage} is ready and automatic — advancing`);
-      await advanceRun(product, r.id, { by: 'the engine' });
-      continue;
-    }
-    if (ready.ok && r.status !== 'waiting') await writeRun(scope, project, { ...r, status: 'waiting' }, { by: 'the engine', line: logLine({ what: 'ready', stage: r.stage, by: 'the engine', detail: ready.rows.map(x => x.label).join('; ') }) });
-    else if (!ready.ok && r.status === 'waiting') await writeRun(scope, project, { ...r, status: 'running' }, { by: 'the engine', line: logLine({ what: 'not ready', stage: r.stage, by: 'the engine', detail: ready.rows.filter(x => !x.ok).map(x => x.label).join('; ') }) });
+    // one sweep per run at a time: two rebuilds landing together would both read the old status and both write the
+    // same transition, which put the same line in the log twice and rebuilt for nothing
+    const key = `sweep|${r.id}`;
+    if (state().busy.has(key)) continue;
+    state().busy.add(key);
+    try { await sweepRun(scope, r); } finally { state().busy.delete(key); }
   }
+}
+
+async function sweepRun(scope: Scope, r: RunState, log: (m: string) => void = m => console.log(`[wf] ${m}`)): Promise<void> {
+  const product = scope.product.slug;
+  const w = workflowOf(scope.graph, scope.idx, r.workflow);
+  const stage = w?.stages.find(s => s.id === r.stage);
+  const node = scope.idx.byId.get(r.on);
+  const project = projectOf(scope, node?.file ?? ''); if (!project) return;
+  const block = (detail: string) => r.status === 'blocked' ? undefined : writeRun(scope, project, { ...r, status: 'blocked' }, { by: 'the engine', line: logLine({ what: 'blocked', stage: r.stage, by: 'the engine', detail }) });
+  if (!node) { await block(`${r.on} is gone`); return; }
+  if (!w || !stage) { await block(`${r.stage} is gone from ${r.workflow}`); return; }
+  if (r.status === 'blocked') return;                        // a person retries, skips or cancels
+  const ready = readinessOf(stage, await ctxFor(scope, r, stage, w));
+  if (ready.ok && stage.gate === 'auto') {
+    if (autoRun(r) >= MAX_DEPTH) {
+      if (r.status !== 'waiting') await writeRun(scope, project, { ...r, status: 'waiting' }, { by: 'the engine', line: logLine({ what: 'held', stage: r.stage, by: 'the engine', detail: `${MAX_DEPTH} automatic stages in a row — waiting for a person` }) });
+      return;
+    }
+    log(`${r.id}: ${r.stage} is ready and automatic — advancing`);
+    await advanceRun(product, r.id, { by: 'the engine' });
+    return;
+  }
+  // only a transition is written: the Blocking section changes with it, and an unchanged run is left alone
+  if (ready.ok && r.status !== 'waiting') await writeRun(scope, project, { ...r, status: 'waiting' }, { by: 'the engine', line: logLine({ what: 'ready', stage: r.stage, by: 'the engine', detail: ready.rows.map(x => x.label).join('; ') }) });
+  else if (!ready.ok && r.status === 'waiting') await writeRun(scope, project, { ...r, status: 'running' }, { by: 'the engine', line: logLine({ what: 'not ready', stage: r.stage, by: 'the engine', detail: ready.rows.filter(x => !x.ok).map(x => x.label).join('; ') }) });
 }
 
 // A session a stage started that ended anything but done blocks its run: the person retries, skips or cancels.

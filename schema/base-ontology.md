@@ -429,14 +429,17 @@ type means instances may carry properties the type does not declare without a wa
 - id: type:run
   extends: type:node
   purpose: >
-    one run of a workflow (decision:wf2.run-holds-the-state): a card in the project's Workflow runs document saying
-    which workflow, what it runs on, the stage it is at, its status, the documents it produced and the sessions it
-    started; its content blocks are the log. Readiness is computed from the graph on demand, never stored here.
+    one run of a workflow (decision:wf2.run-is-a-page): a document of its own under the project's Workflow runs page
+    — `run-<workflow>-<n>.md` — whose frontmatter is the state (which workflow, what it runs on, the stage it is at,
+    its status, what it produced, the sessions it started, `auto` the consecutive automatic advances) and whose
+    sections the engine owns: Stages (where it has got to), Blocking (what stops the next stage, computed and written
+    when it changes), Log (what happened and by whom) and Result. Runs made before run pages are cards in the
+    Workflow runs document and are still read.
   open: true
   statuses: [running, waiting, blocked, done, cancelled]
   props:
     workflow: list of workflow? -(inverse)-> runs
-    on: list of node? -(inverse)-> run-by
+    runs-on: list of node? -(inverse)-> run-by      # not `on`: type:comment owns that verb, and an inverse is keyed by its name
     stage: list of stage? -(inverse)-> stage-of
     produced: list of node? -(inverse)-> produced-by
     sessions: list of string?

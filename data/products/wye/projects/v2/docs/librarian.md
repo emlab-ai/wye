@@ -332,6 +332,22 @@ Definition — the librarian
   - choice:wf2.run-holds-the-state A run is a card in the project's Workflow runs document (`workflow-runs.md`; `runs.md` is already eval runs): the workflow, what it runs `on`, the stage it is at, its status (running | waiting | blocked | done | cancelled), the documents it produced, the sessions it started, and `log:` — entered, ready, advanced, reopened, skipped, blocked, and by whom. So any document can be a starting point without being polluted with stage properties, and the same document can be run twice. Readiness is **computed on demand and never written**: a derived value in markdown is rewritten by every rebuild, and every rewrite is another rebuild. The sweep after each build writes only a transition.
 
 ```yaml
+- id: decision:wf2.run-is-a-page
+  title: A run is a page of its own — its frontmatter the state, its sections what has got done and what is blocking
+  date: 2026-09-22
+  status: approved
+  supersedes: decision:wf2.run-holds-the-state
+  affects: [req:wf2.workflows, type:run, lib:runs, lib:runs-run, component:run-panel]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
+```
+
+  - context:wf2.run-is-a-page alex: "for workflows/skills we need to understand what is the current state, what is blocking to move to the next stage, each workflow run must create a run file, which is the source of truth for the state, and this one needs to be visible as graph too". A card among many in one Workflow runs document held the state but showed none of it: where the run had got to, and what the next stage was waiting for, were computed and shown in the app and nowhere else — not in git, not to an agent reading the run, not on a page a person could open.
+
+  - choice:wf2.run-is-a-page `run-<workflow>-<n>.md` under the project's Workflow runs page, so a run is a node, a page and a row of the runs view at once. The frontmatter is the state the engine reads and writes — workflow, `runs-on`, stage, status, produced, sessions, `auto` (the consecutive automatic advances, so the cap survives a restart), started, finished — and four sections are the engine's: **Asked** (what it was started from, in the person's words), **Stages** (every stage in order, ✓ done, ▶ where it is, · ahead, each with the document it produced), **Blocking** (the current stage's criterion row by row with the ids that hold each one back, or "Advance is yours"), **Log** (entered, ready, advanced, reopened, skipped, blocked — with who) and **Result** when it ends. Written only on a transition, so the page does not rewrite itself into a rebuild loop, and one sweep per run at a time, so two rebuilds landing together cannot write the same line twice. The property is `runs-on`, not `on`: type:comment owns the verb `on`, and an inverse is keyed by its name, so a run's target came out as a *comment* on the idea. Runs written before run pages are still cards and still move.
+
+```yaml
 - id: decision:wf2.until-is-closed
   title: A stage's exit criterion comes from a closed set of predicates, so it can be computed, shown and checked before it runs
   date: 2026-09-22

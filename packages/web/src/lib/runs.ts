@@ -135,21 +135,26 @@ export function readinessOf(stage: StageDef, ctx: RunCtx): Readiness {
 
 // One run of a workflow (decision:wf2.run-holds-the-state). The log is a `log:` block scalar on the card rather than
 // content blocks under it: one write per move, and a person reads the history in the card itself.
-export type RunState = { id: string; workflow: string; on: string; stage: string; status: string; produced: string[]; sessions: string[]; started: string; finished?: string; log: string[] };
+export type RunState = { id: string; workflow: string; on: string; stage: string; status: string; produced: string[]; sessions: string[]; started: string; finished?: string; log: string[]; auto: number; file: string };
 export const LIVE = new Set(['running', 'waiting', 'blocked']);
 const listOf = (v: string) => v.replace(/^\[|\]$/g, '').split(/[\s,]+/).filter(Boolean);
 
-export function parseRun(n: Pick<GraphNode, 'id' | 'kind' | 'status' | 'body'>): RunState | null {
+// A run from its node: the frontmatter of its document (decision:wf2.run-is-a-page) or, for a run written before
+// there were run pages, its card. `auto` is the consecutive auto-advance count — state, not a derived value, so the
+// cap survives a restart; the log lives in the document's `## Log` and is read by lib/runs-run, not from here.
+export function parseRun(n: Pick<GraphNode, 'id' | 'kind' | 'status' | 'body' | 'file'>): RunState | null {
   if (n.kind !== 'run') return null;
   const v = (k: string) => cardValue(n.body, k);
   if (!v('workflow')) return null;
   const finished = v('finished');
   const log = v('log').split('\n').map(l => l.replace(/^-\s+/, '').trim()).filter(Boolean);
-  return { id: n.id, workflow: v('workflow'), on: v('on'), stage: v('stage'), status: n.status || 'running', produced: listOf(v('produced')), sessions: listOf(v('sessions')), started: v('started'), ...(finished ? { finished } : {}), log };
+  return { id: n.id, workflow: v('workflow'), on: v('runs-on') || v('on'), stage: v('stage'), status: n.status || 'running', produced: listOf(v('produced')), sessions: listOf(v('sessions')), started: v('started'), ...(finished ? { finished } : {}), log, auto: Number(v('auto')) || 0, file: n.file ?? '' };
 }
+// A run written before run pages: its card, kept so those runs still move.
 export function runCard(r: RunState): string {
-  const rows = [`workflow: ${r.workflow}`, `on: ${r.on}`, `stage: ${r.stage}`, `status: ${r.status}`, `produced: [${r.produced.join(', ')}]`, `sessions: [${r.sessions.join(', ')}]`, `started: ${r.started}`, ...(r.finished ? [`finished: ${r.finished}`] : [])];
+  const rows = [`workflow: ${r.workflow}`, `runs-on: ${r.on}`, `stage: ${r.stage}`, `status: ${r.status}`, `produced: [${r.produced.join(', ')}]`, `sessions: [${r.sessions.join(', ')}]`, `started: ${r.started}`, ...(r.finished ? [`finished: ${r.finished}`] : [])];
   const log = r.log.length ? `\n  log: |\n${r.log.map(l => `    - ${l}`).join('\n')}` : '';
+  void r.auto;
   return `- id: ${r.id}\n${rows.map(l => `  ${l}`).join('\n')}${log}\n`;
 }
 // The card of an id replaced in place — its `- id:` line and every line indented under it. null when it is not there.
@@ -169,10 +174,43 @@ export function runSlug(workflow: string, taken: Iterable<string>): string {
 export function logLine(o: { what: string; stage?: string; by: string; detail?: string }): string {
   return `${o.what}${o.stage ? ` ${o.stage}` : ''} — by ${o.by}${o.detail ? `, ${o.detail}` : ''}`;
 }
-// How many `auto` advances happened in a row at the end of the log: an all-auto workflow stops at MAX_DEPTH rather
-// than running away (the cap hooks already use for their chains).
-export function autoRun(log: string[]): number {
-  let n = 0;
-  for (const l of [...log].reverse()) { if (!l.startsWith('advanced')) continue; if (/by the engine/.test(l)) n++; else break; }
-  return n;
+// How many `auto` advances happened in a row: an all-auto workflow stops at MAX_DEPTH rather than running away (the
+// cap hooks already use for their chains). A person's move — advance, reopen, skip, retry — puts it back to nought.
+export const autoRun = (r: Pick<RunState, 'auto'>) => r.auto;
+
+// --- the run page's sections (decision:wf2.run-is-a-page) ---
+
+// Every stage of the workflow in order and where the run is: what is done, what is running now, what is still ahead,
+// with the documents each one produced. This is the answer to "where has this got to".
+export function stagesSection(w: WorkflowDef, r: RunState, bindings: Record<string, string> = {}): string {
+  const at = stageIndex(w, r.stage);
+  return w.stages.map((s, i) => {
+    const mark = r.status === 'done' || i < at ? '✓' : i === at ? (r.status === 'blocked' ? '✗' : '▶') : '·';
+    const made = s.produces.map(n => bindings[n]).filter(Boolean);
+    const where = made.length ? ` → ${made.join(', ')}` : s.produces.length ? ` → ${s.produces.join(', ')} (not yet)` : '';
+    const now = i === at && r.status !== 'done' ? `  **${r.status}**` : '';
+    return `- ${mark} ${s.title}${where}${now}`;
+  }).join('\n');
+}
+
+// The current stage's criterion, row by row, with what holds each one back — what stops the next stage starting.
+export function blockingSection(rows: Row[], gate: Gate): string {
+  if (!rows.length) return '_Nothing is checked for this stage._';
+  const lines = rows.map(x => `- ${x.ok ? '✓' : '·'} ${x.label}${x.blocking.length ? ` — ${x.blocking.join(', ')}` : ''}`);
+  const all = rows.every(x => x.ok);
+  const lead = all
+    ? gate === 'person' ? 'Ready. Nothing is missing — Advance is yours.' : 'Ready. This stage advances on its own.'
+    : `Waiting on ${rows.filter(x => !x.ok).length} of ${rows.length}:`;
+  return [lead, '', ...lines].join('\n');
+}
+
+// A section the engine owns: what is under the heading, up to the next `## `, is replaced (the twin of pr-doc#withResult).
+export function withSection(md: string, heading: string, body: string): string {
+  const m = md.match(new RegExp(`^## ${heading}[^\\n]*\\n`, 'm'));
+  if (!m || m.index === undefined) return `${md.replace(/\s+$/, '')}\n\n## ${heading}\n\n${body}\n`;
+  const start = m.index + m[0].length;
+  const rest = md.slice(start);
+  const next = rest.search(/^## /m);
+  const end = next === -1 ? md.length : start + next;
+  return `${md.slice(0, start)}\n${body}\n${next === -1 ? '' : '\n'}${md.slice(end)}`;
 }
