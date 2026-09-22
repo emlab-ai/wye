@@ -350,6 +350,16 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     so the column can offer them; nothing is written until the person clicks.
   status: proposed
   part-of: module:app-storage
+- id: lib:recent
+  file: packages/web/src/lib/recent.ts
+  side: client
+  purpose: >
+    What the command box has been asked before (task:palette-recent-commands): the last texts sent from a product,
+    newest first, no duplicates — ↑ in the empty box walks back through them like a shell's history. Kept per
+    product in localStorage (`wf-recent-<product>`), never sent anywhere; a private window that throws simply has no
+    history.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

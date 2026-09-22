@@ -9,6 +9,7 @@ import { prDocPath } from '@/lib/pr-doc';
 import { SmartTag } from './SmartTag';
 import { AGENTS, type Session } from '@/lib/session-types';
 import { AttachStrip, useImageAttachments } from './Attachments';
+import { loadRecent, rememberRecent } from '@/lib/recent';
 
 // The one command box (decision:wf2.one-command-box): ⌘P / Ctrl+P opens it with what the person is looking at (the
 // document, the node under the cursor); every "Send to agent" opens it with the block's text, refs and source
@@ -38,6 +39,11 @@ export function CommandBox() {
   const [fresh, setFresh] = useState(false); // clear context first, when the target is a live conversation
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // what was sent before, per product (task:palette-recent-commands): ↑ in the empty box walks back, ↓ forward,
+  // Escape leaves the history; `at` is where the walk is, -1 when the box is the person's own text
+  const [recent, setRecent] = useState<string[]>([]);
+  const [at, setAt] = useState(-1);
+  const remember = (sent: string) => { setRecent(rememberRecent(product, sent)); setAt(-1); };
   const attach = useImageAttachments();
   const box = useRef<HTMLTextAreaElement>(null);
   // where the person is: the document page and the node under the cursor, so the agent starts from there
@@ -46,12 +52,26 @@ export function CommandBox() {
   const show = (d: SendRequest) => {
     const ids = d.refs?.length ? d.refs.join(', ') : '';
     setText(d.text ? `${ids ? `Work on ${ids}.\n\n` : ''}${d.text.trim()}` : '');
-    setReq(d); setMsg(null); setFresh(false); attach.clear();
+    setReq(d); setMsg(null); setFresh(false); attach.clear(); setAt(-1); setRecent(loadRecent(product));
+  };
+  // the history keys: ↑ from an empty box recalls the last command, then walks back; ↓ walks forward and out of it
+  const history = (e: { key: string; preventDefault: () => void }): boolean => {
+    if (e.key === 'ArrowUp' && (at >= 0 || !text.trim())) {
+      const n = Math.min(at + 1, recent.length - 1);
+      if (n < 0 || n === at) return false;
+      e.preventDefault(); setAt(n); setText(recent[n]); return true;
+    }
+    if (e.key === 'ArrowDown' && at >= 0) {
+      const n = at - 1;
+      e.preventDefault(); setAt(n); setText(n < 0 ? '' : recent[n]); return true;
+    }
+    return false;
   };
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p') { e.preventDefault(); if (req) setReq(null); else show(here()); }
-      else if (e.key === 'Escape' && req) setReq(null);
+      // Escape leaves a recalled command behind first, and closes the box on the next press (task:palette-recent-commands)
+      else if (e.key === 'Escape' && req) { if (at >= 0) { e.preventDefault(); e.stopPropagation(); setAt(-1); setText(''); } else setReq(null); }
     };
     const send = (e: Event) => show((e as CustomEvent<SendRequest>).detail);
     // capture phase: the shortcut works wherever the focus is, even inside controls that stop key events
@@ -88,6 +108,7 @@ export function CommandBox() {
       const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ pr: true, instruction, refs: req.refs ?? [], source: { ...(req.source ?? {}), ...(req.text ? { text: req.text.slice(0, 2000) } : {}) }, images: attach.images, skills: attachTo.skills, hooks: attachTo.hooks }) });
       const j = await r.json().catch(() => ({})); setBusy(false);
       if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not start'); return; }
+      remember(instruction);
       // the PR's page, the conversation in the column
       setReq(null); open(`session:${j.id}`); if (j.prDoc) location.assign(prDocPath(j.prDoc)); return;
     }
@@ -98,6 +119,7 @@ export function CommandBox() {
       const r = await fetch(`/api/${product}/sessions/${target}/message`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: instruction, refs, link: req.source?.link, images: attach.images, fresh }) });
       const j = await r.json().catch(() => ({})); setBusy(false);
       if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not send'); return; }
+      remember(instruction);
       setReq(null); open(`session:${target}`); return;
     }
     const sessionMode = target === 'runner' ? 'run' : 'chat';
@@ -106,6 +128,7 @@ export function CommandBox() {
     const j = await r.json().catch(() => ({})); setBusy(false);
     if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not start'); return; }
     try { localStorage.setItem(`wf-cwd-${product}`, cwd.trim()); localStorage.setItem(`wf-agent-${product}`, agent); } catch { /* ignore */ }
+    remember(instruction);
     setReq(null); open(`session:${j.id}`);
   };
   // Later (req:exec.capture, decision:exec.backlog-is-unassigned-work): the text becomes a task line — under the node
@@ -118,6 +141,7 @@ export function CommandBox() {
     const r = await fetch(`/api/${product}/work`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: instruction, partOf, project: req.source?.project, by: me || undefined }) });
     const j = await r.json().catch(() => ({})); setBusy(false);
     if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not capture'); return; }
+    remember(instruction);
     setReq(null); open(j.id);
   };
   const label = (s: Live) => `${AGENTS.find(a => a.id === s.agent)?.label ?? s.agent} · ${s.instruction.split('\n').find(l => l.trim())?.slice(0, 50) ?? s.id}`;
@@ -125,7 +149,7 @@ export function CommandBox() {
   return createPortal(
     <div className="modal-back palette-back" onMouseDown={e => { if (e.target === e.currentTarget) setReq(null); }}>
       <div className="modal palette" role="dialog" aria-label="Command" onDragOver={attach.onDragOver} onDrop={attach.onDrop}>
-        <textarea ref={box} className="palette-in" value={text} rows={text.split('\n').length > 3 ? 6 : 3} placeholder={isPr ? 'What do you want? — improve …, allow …, change … (Enter starts the PR; Shift+Enter for a new line)' : isNew ? 'What should the agent do? — fix …, build …, change … (Enter to run, Shift+Enter for a new line; paste a screenshot too)' : 'Your next message to that conversation (Enter to send, Shift+Enter for a new line; paste a screenshot too)'} onChange={e => setText(e.target.value)} onPaste={attach.onPaste} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (e.altKey) later(); else run(); } }} disabled={busy} />
+        <textarea ref={box} className="palette-in" value={text} rows={text.split('\n').length > 3 ? 6 : 3} placeholder={isPr ? 'What do you want? — improve …, allow …, change … (Enter starts the PR; Shift+Enter for a new line)' : isNew ? 'What should the agent do? — fix …, build …, change … (Enter to run, Shift+Enter for a new line; paste a screenshot too)' : 'Your next message to that conversation (Enter to send, Shift+Enter for a new line; paste a screenshot too)'} onChange={e => setText(e.target.value)} onPaste={attach.onPaste} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (e.altKey) later(); else run(); } else history(e); }} disabled={busy} />
         <AttachStrip images={attach.images} remove={attach.remove} />
         {refs.length > 0 && <div className="palette-ctx"><span className="muted">with</span>{refs.map(id => <SmartTag key={id} id={id} />)}{req.source?.blockId && <span className="muted">· this block</span>}</div>}
         <div className="palette-row palette-intent" role="radiogroup" aria-label="Mode">
@@ -159,7 +183,7 @@ export function CommandBox() {
           <button className="palette-go" onClick={run} disabled={(!text.trim() && !attach.images.length) || busy}>{busy ? 'Sending…' : isPr ? 'Start the PR ↵' : !isNew ? (fresh ? 'Restart & send ↵' : 'Send ↵') : target === 'runner' ? 'Queue ↵' : 'Talk ↵'}</button>
         </div>
         {msg && <p className="bad palette-msg">{msg}</p>}
-        <p className="muted palette-hint">⌘P opens this anywhere · Send to agent on any block opens it with the block · the conversation opens in the right column · Later (⌥↵) keeps it as a task for anyone</p>
+        <p className="muted palette-hint">⌘P opens this anywhere · Send to agent on any block opens it with the block · the conversation opens in the right column · Later (⌥↵) keeps it as a task for anyone{recent.length > 0 ? ' · ↑ what you asked before' : ''}</p>
       </div>
     </div>, document.body);
 }

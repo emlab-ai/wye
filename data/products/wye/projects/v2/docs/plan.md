@@ -62,7 +62,7 @@ Work that is planned but on no plan document yet, by area, and the tasks past pa
 
 - [ ] task:plan-page-comments Comments on a plan page reach the agent without the person retyping them: on Adjust the agent diffs the page against what it wrote and reads the person's edits as feedback. Part of req:wf2.ui.command-palette.
 
-- [ ] task:palette-recent-commands The command palette remembers the last commands per product and offers them when it opens (rerun, or edit and run). Part of req:wf2.ui.command-palette.
+- [x] task:palette-recent-commands The command palette remembers the last commands per product: the ten last sent texts in `wf-recent-<product>`, newest first, no duplicates — ↑ in the empty box recalls them like a shell's history, ↓ walks forward, Escape leaves the recalled one behind; nothing is kept when the send failed (lib/recent, component:command-box). Part of req:wf2.ui.command-palette.
 
 - [ ] task:ui-tests-in-ci The browser scenarios (ui-test:edit-node-flow, ui-test:table-rows) as a runnable e2e suite: playwright-core with the installed Chrome (channel chrome), packages/web/e2e/*.spec.ts, against the dev server; today they are run by hand. Part of req:wf2.ui.
 

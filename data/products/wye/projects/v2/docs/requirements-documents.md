@@ -435,7 +435,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   title: A request typed anywhere becomes a planned agent session
   status: proposed
   refines: req:wf2.ui.live
-  satisfied-by: [action:command-palette, rule:plan-first, op:session.open]
+  satisfied-by: [action:command-palette, component:command-box, rule:plan-first, op:session.open]
   verified-by: [ui-test:command-palette]
 ```
 
