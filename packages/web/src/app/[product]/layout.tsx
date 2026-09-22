@@ -17,7 +17,7 @@ import { REPO_ROOT } from '@/lib/products';
 import type { TreeItem } from '@/components/DocTree';
 import type { PrItem } from '@/components/PrFolder';
 import { prsPageId } from '@/lib/pr-doc';
-import { ensureBaseSkills, ensureHooksPage, hooksPageId, skillsPageId } from '@/lib/skills';
+import { ensureBaseSkills, ensureBaseWorkflows, ensureHooksPage, hooksPageId, skillsPageId } from '@/lib/skills';
 import type { SkillItem } from '@/components/SkillFolder';
 import { waitingReasons } from '@/lib/dispatch';
 import { GoneNotice } from '@/components/GoneNotice';
@@ -48,7 +48,7 @@ export default async function ProductLayout({ children, params }: { children: Re
   // prompts the first time, the skill documents go to the rail's Skills folder, Hooks is a menu link
   const mainOf = (p: typeof viewProject) => { if (!p) return null; const t = treeFor(scope, p.slug); return t.main && !['prs', 'skills', 'hooks'].includes(t.main.slug) ? t.main.module.id : null; };
  
-  if (viewProject) { try { await ensureViewPages(viewProject); const m = mainOf(viewProject); await ensureBaseSkills(viewProject, m); await ensureHooksPage(viewProject, m); } catch { /* read-only tree */ } }
+  if (viewProject) { try { await ensureViewPages(viewProject); const m = mainOf(viewProject); await ensureBaseSkills(viewProject, m); await ensureBaseWorkflows(viewProject, m); await ensureHooksPage(viewProject, m); } catch { /* read-only tree */ } }
  
   const views = viewProject ? [...SYSTEM_VIEWS.map(v => ({ slug: v.slug, title: v.title, icon: v.icon, project: viewProject.slug })), { slug: 'hooks', title: 'Hooks', icon: '⚓', project: viewProject.slug }] : [];
   const viewIds = new Set(viewProject ? [...SYSTEM_VIEWS.map(v => viewPageId(viewProject.slug, v.slug)), hooksPageId(viewProject.slug)] : []);

@@ -16,7 +16,7 @@ export const hooksPageId = (projectSlug: string) => `module:${projectSlug}-hooks
 export type SkillRole = 'librarian' | 'worker';
 
 // The base skills: which prompt file each comes from and the card that heads its document.
-export const BASE_SKILLS: { slug: string; title: string; role: SkillRole; file: string; takes?: string; writes?: string[] }[] = [
+export const BASE_SKILLS: { slug: string; title: string; role: SkillRole; file: string; takes?: string; writes?: string[]; skills?: string[] }[] = [
   { slug: 'refine', title: 'Refine a request', role: 'librarian', file: 'prompts/librarian-system.md', takes: 'pr', writes: ['req', 'decision', 'constraint', 'question', 'task'] },
   { slug: 'build', title: 'Build a request', role: 'worker', file: 'prompts/agent-system.md', takes: 'pr', writes: ['task', 'decision'] },
   { slug: 'describe-module', title: 'Describe a module from its code', role: 'worker', file: 'prompts/describe-module.md', takes: 'module', writes: ['req', 'lib', 'op'] },
@@ -24,7 +24,17 @@ export const BASE_SKILLS: { slug: string; title: string; role: SkillRole; file: 
   { slug: 'analyse-request', title: 'Analyse a request — changes, code, risks, contradictions', role: 'librarian', file: 'prompts/analyse-request.md', takes: 'pr', writes: ['constraint', 'question'] },
   { slug: 'import', title: 'Import a document — extract its types, requirements, facts and decisions', role: 'worker', file: 'prompts/import.md', takes: 'module', writes: ['type', 'req', 'decision', 'constraint', 'entity', 'fact', 'task', 'question'] },
   { slug: 'import-code', title: 'Import a module from its code — requirements, rules, entities, operations, tests', role: 'worker', file: 'prompts/import-code.md', takes: 'module', writes: ['req', 'rule', 'entity', 'state', 'op', 'lib', 'test', 'question'] },
+  // the stages of workflow:feature (decision:wf2.workflow-is-a-skill): each one an editable instruction
+  { slug: 'research', title: 'Explore an idea', role: 'worker', file: 'prompts/research.md', takes: '*', writes: ['question', 'decision', 'note'] },
+  { slug: 'prd', title: 'Write a PRD', role: 'librarian', file: 'prompts/prd.md', takes: 'module', writes: ['req', 'goal', 'question', 'entity'] },
+  { slug: 'tech-design', title: 'Write the technical design', role: 'librarian', file: 'prompts/tech-design.md', takes: 'module', writes: ['decision', 'entity', 'op', 'rule', 'state', 'page'] },
+  { slug: 'test-design', title: 'Write the test design', role: 'librarian', file: 'prompts/test-design.md', takes: 'module', writes: ['test', 'ui-test', 'question'], skills: ['skill:define-tests'] },
+  { slug: 'plan', title: 'Build the implementation plan', role: 'librarian', file: 'prompts/plan.md', takes: 'module', writes: ['task'] },
 ];
+
+// The workflows shipped as documents beside the skills (decision:wf2.workflow-is-a-skill): a workflow is a skill that
+// declares stages, so it lives under the same page and a person edits the pipeline as they edit a prompt.
+export const BASE_WORKFLOWS = ['feature'];
 
 const today = () => new Date().toISOString().slice(0, 10);
 const fill = (tpl: string, vars: Record<string, string>) => tpl.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars ? vars[k] : m));
@@ -45,9 +55,9 @@ export const ensureHooksPage = (project: Project, root: string | null) => ensure
 
 // The prompt file as a skill document: the card in the frontmatter, the prompt's own body under the title (its
 // first heading dropped — the document's title replaces it). Returns the markdown.
-export function skillDocFromPrompt(prompt: string, s: { slug: string; title: string; role: SkillRole; file: string; takes?: string; writes?: string[] }, parent: string): string {
+export function skillDocFromPrompt(prompt: string, s: { slug: string; title: string; role: SkillRole; file: string; takes?: string; writes?: string[]; skills?: string[] }, parent: string): string {
   const body = prompt.replace(/^# .*\n+/, '').trim();
-  const fm = [`node: skill:${s.slug}`, 'type: skill', `title: ${s.title}`, 'status: active', 'owner: unassigned', `last-verified: ${today()}`, `role: ${s.role}`, ...(s.takes ? [`takes: ${s.takes}`] : []), ...(s.writes ? [`writes: [${s.writes.join(', ')}]`] : []), `source: ${s.file}`, `part-of: ${parent}`];
+  const fm = [`node: skill:${s.slug}`, 'type: skill', `title: ${s.title}`, 'status: active', 'owner: unassigned', `last-verified: ${today()}`, `role: ${s.role}`, ...(s.takes ? [`takes: ${s.takes}`] : []), ...(s.writes ? [`writes: [${s.writes.join(', ')}]`] : []), ...(s.skills ? [`skills: [${s.skills.join(', ')}]`] : []), `source: ${s.file}`, `part-of: ${parent}`];
   return `---\n${fm.join('\n')}\n---\n\n# ${s.title}\n\n${body}\n`;
 }
 
@@ -61,6 +71,21 @@ export async function ensureBaseSkills(project: Project, root: string | null): P
     let prompt = ''; try { prompt = await readFile(path.join(REPO_ROOT, s.file), 'utf8'); } catch { continue; }
     await writeAtomic(file, skillDocFromPrompt(prompt, s, parent));
     written.push(s.slug);
+  }
+  return written;
+}
+
+// The shipped workflows under the Skills page, written when missing (decision:wf2.workflow-is-a-skill). Returns the
+// slugs written. `{{title}}` and the produced-document names in the stage cards are left for the engine to fill.
+export async function ensureBaseWorkflows(project: Project, root: string | null): Promise<string[]> {
+  const parent = await ensureSkillsPage(project, root);
+  const written: string[] = [];
+  for (const slug of BASE_WORKFLOWS) {
+    const file = path.join(project.docsDir, `workflow-${slug}.md`);
+    if (await exists(file)) continue;
+    let tpl = ''; try { tpl = await readFile(path.join(REPO_ROOT, `templates/docs/workflow-${slug}.md`), 'utf8'); } catch { continue; }
+    await writeAtomic(file, fill(tpl, { slug, date: today(), parent }));
+    written.push(slug);
   }
   return written;
 }
