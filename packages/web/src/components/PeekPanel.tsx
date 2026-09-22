@@ -158,7 +158,7 @@ function NodeView({ id }: { id: string }) {
       {d && d.self ? null : d && d.node.defined && d.type
         ? <><NodeEditor key={id} id={id} body={d.node.body} form={d.node.form ?? 'yaml'} type={d.type} props={d.props ?? []} entry={entry} relations={d.relations.out} onSaved={() => setTick(t => t + 1)} />
           {entry && entry.kind === 'task' && <TaskWork key={`work-${id}`} id={id} />}</>
-        : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : missing ? <p className="muted">Not in the graph yet — it appears here once the document is saved and rebuilt.</p> : <p className="muted">Loading {id}…</p>}
+        : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : missing ? <p className="muted">Saving…</p> : <p className="muted">Loading {id}…</p>}
       {isNode && <PageComments key={`comments-${id}`} product={product} node={id} />}
       {isNode && <NodeContent id={id} kind={entry?.kind ?? kind} />}
       {isNode && (

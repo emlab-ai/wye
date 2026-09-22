@@ -920,6 +920,10 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     return changedAny;
   };
   const settle = (assignSlugs = false) => { const taken = new Set(Object.keys(index)); for (const b of editor.document as unknown as AnyBlock[]) for (const k of b.children ?? []) if (k.type === 'node') { const p = k.props as unknown as { kind: string; slug: string }; if (p.slug) taken.add(`${p.kind}:${p.slug}`); } const d = dedupeNodes(); return settleCollections(editor as never, taken, assignSlugs) || d; };
+  // the node blocks the editor holds, by id: a change that brings a new one — from the slash menu, the block menu's
+  // Link › kind, a paste, a split — is saved at once, so the node is in the graph when the column asks for it
+  const knownNodes = useRef<Set<string> | null>(null);
+  const nodeIds = () => { const out = new Set<string>(); const walk = (bs: AnyBlock[]) => { for (const b of bs) { if (b.type === 'node') { const np = b.props as unknown as { kind: string; slug: string }; if (np.slug) out.add(`${np.kind}:${np.slug}`); } if (b.children?.length) walk(b.children as AnyBlock[]); } }; walk(editor.document as unknown as AnyBlock[]); return out; };
   const load = (md: string) => {
     loading.current = true;
     try {
@@ -929,6 +933,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       settle();
       judged.current = new Map((editor.document as unknown as LinkBlock[]).map(b => [String(b.id), blockText(b)]));
       lastExported.current = blocksToMarkdown(editor.document as unknown as AnyBlock[]);
+      knownNodes.current = nodeIds();
       const shrink = lastExported.current.replace(/\s+/g, '').length / Math.max(1, md.replace(/\s+/g, '').length);
       if (md.trim() && shrink < 0.9) throw new Error(`the editor could not represent this document faithfully (${Math.round(shrink * 100)}% of the text survived import)`);
       setLoadError(null);
@@ -970,9 +975,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     setState('saved'); // the rail and panels refresh on the graph event the save's build sends (LiveRefresh), once per burst
   }
   const settling = useRef(false);
-  // a save now, not after the debounce: a block the person just added must be in the graph — and openable in the
-  // column — the moment it exists (req:wf2.ui.new-block-opens)
-  const saveNow = () => { touched.current = true; changed(); if (timer.current) { clearTimeout(timer.current); timer.current = null; } flushSave(); };
+  // a save now, not after the debounce (req:wf2.ui.new-block-opens)
   const flushSave = () => {
     if (lastExported.current === null) return;
     const md = blocksToMarkdown(editor.document as unknown as AnyBlock[]);
@@ -983,6 +986,10 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     if (loading.current) return;
     if (!settling.current) { settling.current = true; try { settle(); } finally { settling.current = false; } }
     if (!touched.current || lastExported.current === null) return;
+    const ids = nodeIds();
+    const fresh = knownNodes.current !== null && [...ids].some(x => !knownNodes.current!.has(x));
+    knownNodes.current = ids;
+    if (fresh) { if (timer.current) { clearTimeout(timer.current); timer.current = null; } setTimeout(flushSave, 150); return; }   // after a menu has taken its trigger text out
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       if (lastExported.current === null) return;
@@ -1241,7 +1248,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   };
   const nodeItems = [...CARD_KINDS, ...ownKinds].map(kind => ({
     title: `${kind} block`, group: 'Wye', subtext: PARTS[kind] ? `a new ${kind} with its ${PARTS[kind].map(([k]) => k).join(', ')} blocks under it` : `a new ${kind} written as prose`,
-    onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'node', props: { kind, slug: fresh(), form: 'prose', textKey: 'text', check: kind === 'task' ? 'todo' : '', status: kind === 'task' ? 'open' : PARTS[kind] ? 'proposed' : '' }, ...(PARTS[kind] ? { children: PARTS[kind].map(([k, t]) => child(k, t)) } : {}) } as never); setTimeout(saveNow, 120); },   // after the menu has taken its trigger text out
+    onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'node', props: { kind, slug: fresh(), form: 'prose', textKey: 'text', check: kind === 'task' ? 'todo' : '', status: kind === 'task' ? 'open' : PARTS[kind] ? 'proposed' : '' }, ...(PARTS[kind] ? { children: PARTS[kind].map(([k, t]) => child(k, t)) } : {}) } as never); },
   }));
 
   // Drawings: a new empty scene, or the current code block turned into a monospace text element (ASCII diagrams).
