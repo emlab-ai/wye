@@ -4,6 +4,7 @@ import { parseBody } from '@/lib/graph';
 import { sameProse, setBodyField } from '@/lib/yaml-form';
 import { STATUSES } from '@/lib/props';
 import { usePeek } from './PeekProvider';
+import { useRouter } from 'next/navigation';
 import { Linkified } from './IdLink';
 import { PART_KINDS } from '@/lib/kinds';
 
@@ -56,27 +57,40 @@ function selectOn(host: CardHost) {
   return (e: React.MouseEvent) => { if ((e.target as Element).closest('a')) return; host.onSelect!(); };
 }
 
-// Complete on a step card (decision:wf2.run-is-a-page): one stage of one run, so the card carries the move that
-// finishes it and starts the next — the same Advance the run's strip offers, where the person is reading. It is
-// there only while the stage is `ready`: its criterion holds, nothing it started is still running, and pressing it
-// will work. A stage whose work is still out shows what is missing in `needs` instead of a button that would be
-// refused.
-function StepComplete({ p }: { p: CardP }) {
+// What a step card offers, and only when it would work (decision:wf2.run-is-a-page): **Review** while the stage is
+// `review` — its agent has finished and what its criterion still asks for is the person's — which opens the Inbox on
+// exactly the nodes that hold it back, where each one can be approved, answered or rejected; and **Complete** while
+// it is `ready`, which finishes the stage and starts the next. A stage whose work is still out offers neither: it
+// shows what is missing in `needs`.
+function StepActions({ p }: { p: CardP }) {
   const { product } = usePeek();
-  const [busy, setBusy] = useState(false);
+  const router = useRouter();
+  const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState('');
   const run = p.body.match(/^\s*part-of:\s*(run:[A-Za-z0-9_.\-]+)\s*$/m)?.[1];
-  if (!run || p.status !== 'ready') return null;
+  if (!run || (p.status !== 'ready' && p.status !== 'review')) return null;
   const complete = async () => {
-    setBusy(true); setMsg('');
+    setBusy('complete'); setMsg('');
     const r = await fetch(`/api/${product}/runs`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ run, action: 'advance' }) });
     const j = await r.json().catch(() => ({}));
-    setBusy(false);
+    setBusy('');
     if (!r.ok) setMsg(j.message ?? 'could not complete this stage');
+  };
+  // the ids that hold the stage back are the readiness rows' — asked for here so the card never keeps a stale copy
+  const review = async () => {
+    setBusy('review'); setMsg('');
+    const j = await fetch(`/api/${product}/runs?node=${encodeURIComponent(run)}`).then(r => r.ok ? r.json() : null).catch(() => null);
+    const rows: { blocking: string[] }[] = j?.runs?.[0]?.readiness?.rows ?? [];
+    const ids = [...new Set(rows.flatMap(x => x.blocking).filter(id => /^[a-z][a-z-]*:/.test(id)))];
+    setBusy('');
+    if (!ids.length) { setMsg('nothing of this stage waits for you'); return; }
+    router.push(`/${product}/inbox?ids=${ids.map(encodeURIComponent).join(',')}`);
   };
   return (
     <>
-      <button type="button" className="step-done" disabled={busy} title="Complete this stage and start the next one" onClick={complete}>{busy ? 'Completing…' : 'Complete stage →'}</button>
+      {p.status === 'review'
+        ? <button type="button" className="step-done" disabled={!!busy} title="Everything this stage is waiting on, in the Inbox: approve, answer or reject it" onClick={review}>{busy === 'review' ? 'Opening…' : 'Review →'}</button>
+        : <button type="button" className="step-done" disabled={!!busy} title="Complete this stage and start the next one" onClick={complete}>{busy === 'complete' ? 'Completing…' : 'Complete stage →'}</button>}
       {msg && <span className="bad small step-msg">{msg}</span>}
     </>
   );
@@ -129,7 +143,7 @@ export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<Car
         <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{(STATUSES.includes(p.status) ? [] : [p.status]).concat(STATUSES).map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
         {p.form === 'prose' && <input className={`nblock-extra ${p.extra ? '' : 'hover-only'}`} value={p.extra} placeholder="key: value" onChange={e => set({ extra: e.target.value })} />}
         <FoldToggle host={host} />
-        {p.kind === 'step' && <StepComplete p={p} />}
+        {p.kind === 'step' && <StepActions p={p} />}
         <span className="nblock-tools hover-only">
           <button type="button" className="nblock-send" onClick={() => setShowYaml(v => !v)} title="the id, and a card's yaml">{showYaml ? 'hide details' : 'details'}</button>
           <button type="button" className="nblock-send" title="Copy a link to this node" onClick={host.copyLink}>⧉</button>
