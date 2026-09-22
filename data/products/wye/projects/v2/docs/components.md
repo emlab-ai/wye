@@ -811,6 +811,33 @@ The editor's blocks and the components the pages are made of, by area.
     and dark.
   status: proposed
   part-of: module:components
+- id: component:run-panel
+  file: packages/web/src/components/RunPanel.tsx
+  side: client
+  purpose: >
+    One run of a workflow, as a person reads it (decision&#58;wf2.run-holds-the-state): which stage of how many, the
+    readiness of that stage row by row with the ids that hold each one back, and the moves that are the person's —
+    Advance (refused by the engine unless the rows are green), Reopen a stage, Skip with it recorded, Retry a
+    blocked one, Cancel. Used by the document's run strip and by a node's column; readiness comes from the API,
+    computed there.
+  status: proposed
+  part-of: module:components
+- id: component:run-strip
+  file: packages/web/src/components/RunStrip.tsx
+  side: client
+  purpose: >
+    The run strip on the document a workflow was started from (spec §5), in the shape of the PR head: the workflow,
+    the stage, what is still missing and the person's Advance. Nothing is rendered when no run is live on the
+    document — a document that was never run through a workflow looks exactly as it did.
+  status: proposed
+  part-of: module:components
+- id: component:workflows-section
+  file: packages/web/src/components/WorkflowsSection.tsx
+  side: client
+  purpose: >
+    (no header comment)
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

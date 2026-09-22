@@ -14,6 +14,10 @@ describe('hook cards', () => {
     expect(cardValue('do:\n  - run skill:x\n  - add tests\nonce: true', 'do')).toBe('run skill:x\nadd tests');
     expect(cardValue('body: |\n  - test:{{slug}}\n    title: t\n', 'body')).toBe('- test:{{slug}}\n  title: t');
     expect(cardValue('on: x', 'missing')).toBe('');
+    // both ends or neither: a do: line that ends in a quoted argument keeps it (else parseAction sees no action at all)
+    expect(cardValue('do: task "Write the PRD"', 'do')).toBe('task "Write the PRD"');
+    expect(parseAction(cardValue('do: task "Write the PRD"', 'do'))).toEqual({ kind: 'task', text: 'Write the PRD' });
+    expect(cardValue('title: "quoted"', 'title')).toBe('quoted');
   });
   it('parses actions', () => {
     expect(parseAction('run skill:define-tests')).toEqual({ kind: 'run', skill: 'skill:define-tests' });

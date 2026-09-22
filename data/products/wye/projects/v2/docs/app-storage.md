@@ -360,6 +360,38 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     history.
   status: proposed
   part-of: module:app-storage
+- id: lib:doc-create
+  file: packages/web/src/lib/doc-create.ts
+  side: server
+  purpose: >
+    Creating a page in a project from a template — the one path the doc route, a hook and a workflow stage all use
+    (rule:page-node-line: a typed page's card is its frontmatter, so the template's own module card is dropped).
+  status: proposed
+  part-of: module:app-storage
+- id: lib:runs-run
+  file: packages/web/src/lib/runs-run.ts
+  side: server
+  purpose: >
+    Workflows, the IO part (decision&#58;wf2.workflow-is-a-skill, decision&#58;wf2.run-holds-the-state): starting a
+    run on a node or document, entering a stage — the documents it produces created from templates/docs when they
+    are absent, its `do:` actions run through the hook runner with the stage as the actor — and the person's moves:
+    advance, reopen, skip, retry, cancel. Readiness is computed on demand (lib/runs#readinessOf) and never written
+    to the card: a derived value in markdown would be rewritten by every rebuild, and every rewrite is another
+    rebuild. The state is the `run:` card in the project's Workflow runs document; `sweepRuns` is what the watcher
+    calls after each build.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:runs
+  file: packages/web/src/lib/runs.ts
+  side: server
+  purpose: >
+    Workflows, the pure part (decision&#58;wf2.workflow-is-a-skill): a workflow is a skill that declares stages — a
+    document whose `stage:` cards are its steps, in document order, each with the same `do:` actions a hook runs,
+    the documents it produces and its exit criterion. This file parses a workflow, its stages and the closed
+    `until:` predicate set (decision&#58;wf2.until-is-closed), and evaluates that criterion against a graph as
+    readiness rows. The IO — starting a run, entering a stage, writing the run card — is lib/runs-run.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

@@ -19,12 +19,14 @@ export function cardValue(body: string, key: string): string {
   const i = lines.findIndex(l => new RegExp(`^${key}:(\\s|$)`).test(l));
   if (i < 0) return '';
   const raw = lines[i].slice(key.length + 1).trim();
-  if (raw && !/^[>|]-?$/.test(raw)) return raw.replace(/^["']|["']$/g, '');
+  // a quoted value loses its quotes only when both ends match: `do: task "x"` must keep the closing one, or the action
+  // parses as nothing at all
+  if (raw && !/^[>|]-?$/.test(raw)) return raw.replace(/^(["'])([\s\S]*)\1$/, '$2');
   const rest: string[] = [];
   for (const l of lines.slice(i + 1)) { if (!/^\s+\S/.test(l) && l.trim()) break; if (l.trim()) rest.push(l); }
   const indent = rest.length ? Math.min(...rest.map(l => l.match(/^\s*/)![0].length)) : 0;
   const out = rest.map(l => l.slice(indent));
-  if (!raw && out.every(l => /^-\s/.test(l))) return out.map(l => l.replace(/^-\s+/, '').replace(/^["']|["']$/g, '')).join('\n');
+  if (!raw && out.every(l => /^-\s/.test(l))) return out.map(l => l.replace(/^-\s+/, '').replace(/^(["'])([\s\S]*)\1$/, '$2')).join('\n');
   return out.join('\n');
 }
 

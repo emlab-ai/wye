@@ -579,6 +579,26 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/import-code/route.ts
   status: proposed
   part-of: module:api
+- id: op:api.runs
+  args: GET | POST /api/<product>/runs
+  does: >
+    (decision&#58;wf2.run-holds-the-state) — GET → every run with its stage, its status and the readiness of that
+    stage (computed here, never stored); ?node=<id> narrows to the runs on one node, which is what the run strip and
+    a column show.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/runs/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.workflows
+  args: GET | POST /api/<product>/workflows
+  does: >
+    (decision&#58;wf2.workflow-is-a-skill) — GET → the product's workflows with their stages, and the `until` lines
+    that do not parse (`bad`), so a criterion that can gate nothing is visible before it is run; ?node=<id> narrows
+    to the workflows that run on that node's kind — what ⌘P and a column offer.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/workflows/route.ts
+  status: proposed
+  part-of: module:api
 ```
 
 <!-- /list:op -->

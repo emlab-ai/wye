@@ -21,14 +21,14 @@ One card per results file: the suite, the graph and git shas, the model, the jud
   title: "own — 2026-09-22 (replayed)"
   suite: own
   date: 2026-09-22
-  graph-sha: "c5650b8740d7"
-  git: "1f52456c9d53"
+  graph-sha: "5f534f318df7"
+  git: "6eac634d83c4"
   model: "claude-haiku-4-5-20251001"
   judge: "claude-haiku-4-5-20251001 @ 6d31662f"
   prompts: "verdict 6d31662f, impact 291a2d1d, consolidation 1d527194"
   gate: passed
-  truth: "truth-wye-c5650b8740d7.json: requirements 74, supersessions 2, commits 9, sessions 19, consolidation 31"
-  truth: "errors: packet: recording missing in eval/recorded/semantic-wye.json for context \"A request from the command palette can carry images when: a \" — run once with --live (WATERFALL_LIVE=1); currency: recording missing in eval/recorded/semantic-wye.json for context \"The session page is derived from the session and the graph, \" — run once with --live (WATERFALL_LIVE=1); impact: recording missing in eval/recorded/semantic-wye.json for context \"A block just added shows in the column at once, and the colu\" — run once with --live (WATERFALL_LIVE=1)"
+  truth: "truth-wye-5f534f318df7.json: requirements 74, supersessions 2, commits 10, sessions 19, consolidation 31"
+  truth: "errors: packet: recording missing in eval/recorded/semantic-wye.json for context \"A request from the command palette can carry images when: a \" — run once with --live (WATERFALL_LIVE=1); currency: recording missing in eval/recorded/semantic-wye.json for context \"The session page is derived from the session and the graph, \" — run once with --live (WATERFALL_LIVE=1); impact: recording missing in eval/recorded/semantic-wye.json for context \"What the command box has been asked before (task:palette-rec\" — run once with --live (WATERFALL_LIVE=1)"
 ```
 
 ## Scores
