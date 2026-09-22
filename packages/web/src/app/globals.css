@@ -890,9 +890,11 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .run-acts .pri { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .run-acts button:disabled { opacity: .5; cursor: default; }
 .run-rows { list-style: none; margin: 6px 0 0; padding: 0; font: 12px var(--font-m); display: grid; gap: 2px; }
-/* Complete on a step card: the stage's own way to move the run on, beside its status */
-.step-done { border: 1px solid var(--accent); border-radius: 999px; padding: 1px 9px; color: var(--accent); background: none; font: 11px var(--font-m); cursor: pointer; }
-.step-done:hover { background: var(--accent); color: var(--accent-ink); } .step-done:disabled { opacity: .5; }
+/* Complete on a step card: an action, and it must not read as another status pill beside the status select — filled,
+   square-ish, with its arrow, and pushed to the far end of the head away from the pills */
+.step-done { margin-left: auto; border: 0; border-radius: 6px; padding: 3px 10px; background: var(--accent); color: var(--accent-ink); font: 600 11px var(--font-b); cursor: pointer; }
+.step-done:hover { filter: brightness(1.12); } .step-done:disabled { opacity: .5; cursor: default; }
+.step-done + .nblock-tools { margin-left: 6px; }
 .step-msg { margin-left: 6px; font-size: 11px; }
 .run-rows li.ok { color: var(--accent); } .run-rows li.no { color: var(--muted); }
 .run-made, .run-log { margin-top: 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }

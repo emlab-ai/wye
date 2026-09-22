@@ -57,14 +57,16 @@ function selectOn(host: CardHost) {
 }
 
 // Complete on a step card (decision:wf2.run-is-a-page): one stage of one run, so the card carries the move that
-// finishes it and starts the next — the same Advance the run's strip offers, where the person is reading. A stage
-// that is not ready is refused by the engine and says what is missing, right here.
+// finishes it and starts the next — the same Advance the run's strip offers, where the person is reading. It is
+// there only while the stage is `ready`: its criterion holds, nothing it started is still running, and pressing it
+// will work. A stage whose work is still out shows what is missing in `needs` instead of a button that would be
+// refused.
 function StepComplete({ p }: { p: CardP }) {
   const { product } = usePeek();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const run = p.body.match(/^\s*part-of:\s*(run:[A-Za-z0-9_.\-]+)\s*$/m)?.[1];
-  if (!run || ['done', 'skipped', 'todo', ''].includes(p.status)) return null;
+  if (!run || p.status !== 'ready') return null;
   const complete = async () => {
     setBusy(true); setMsg('');
     const r = await fetch(`/api/${product}/runs`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ run, action: 'advance' }) });
@@ -74,7 +76,7 @@ function StepComplete({ p }: { p: CardP }) {
   };
   return (
     <>
-      <button type="button" className="step-done" disabled={busy} title="Complete this stage and start the next one" onClick={complete}>{busy ? '…' : 'Complete ✓'}</button>
+      <button type="button" className="step-done" disabled={busy} title="Complete this stage and start the next one" onClick={complete}>{busy ? 'Completing…' : 'Complete stage →'}</button>
       {msg && <span className="bad small step-msg">{msg}</span>}
     </>
   );
