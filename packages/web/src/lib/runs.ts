@@ -5,6 +5,7 @@
 // IO — starting a run, entering a stage, writing the run card — is lib/runs-run.
 import { cardValue, parseAction, type HookAction } from './hooks';
 import type { GraphData, GraphIndex, GraphNode } from './graph';
+import { AGREED } from './pr-doc';
 
 export type Gate = 'person' | 'auto';
 export type StageDef = { id: string; title: string; actions: HookAction[]; produces: string[]; until: Predicate[]; badUntil: string[]; gate: Gate; worker?: string; skills: string[] };
@@ -78,3 +79,56 @@ export function nextStage(w: WorkflowDef, stageId: string): StageDef | null {
   return i < 0 || i + 1 >= w.stages.length ? null : w.stages[i + 1];
 }
 export const stageIndex = (w: WorkflowDef, stageId: string) => w.stages.findIndex(s => s.id === stageId);
+
+export type Row = { label: string; ok: boolean; blocking: string[] };
+export type Readiness = { rows: Row[]; ok: boolean };
+// What a predicate is evaluated against: the graph, the run's `produces` bindings (a name → the document's node id),
+// the sessions this stage entry started, and the project's check errors (counted only when a predicate asks).
+export type RunCtx = { graph: Pick<GraphData, 'nodes'>; idx: Pick<GraphIndex, 'byId' | 'out'>; docs: Record<string, string>; sessions: { id: string; status: string }[]; checkErrors: number };
+
+const fileOf = (ctx: RunCtx, doc: string): string | null => {
+  const id = ctx.docs[doc];
+  const n = id ? ctx.idx.byId.get(id) : ctx.graph.nodes.find(x => x.file.endsWith(`/${doc}.md`));
+  return n?.file || null;
+};
+const inDoc = (ctx: RunCtx, file: string, kind: string) => ctx.graph.nodes.filter(n => n.kind === kind && n.defined && n.file === file);
+const hasVerb = (ctx: RunCtx, id: string, verb: string) => (ctx.idx.out.get(id) ?? []).some(e => e.verb === verb && !!ctx.idx.byId.get(e.to)?.defined);
+const row = (label: string, blocking: string[]): Row => ({ label, ok: !blocking.length, blocking });
+
+// One predicate → one readiness row. A criterion that cannot be evaluated — an unbound document, a document with no
+// requirements in it at all — is a red row, never a green one: an exit criterion nobody can compute must not let a
+// stage through.
+function evaluate(p: Predicate, ctx: RunCtx): Row {
+  if (p.kind === 'manual') return row('advanced by hand', []);
+  if (p.kind === 'session-done') return row('every session done', ctx.sessions.filter(s => s.status !== 'done').map(s => `session:${s.id}`));
+  if (p.kind === 'check-passes') return row('wye check passes', ctx.checkErrors ? [`${ctx.checkErrors} check errors`] : []);
+  if (p.kind === 'no-open-contradiction') {
+    const open = ctx.graph.nodes.filter(n => n.kind === 'contradiction' && n.defined && !['resolved', 'dismissed', 'superseded'].includes(n.status));
+    return row('no open contradiction', open.map(n => n.id));
+  }
+  const file = fileOf(ctx, p.doc);
+  if (!file) return row(`${p.doc}: no such document yet`, [p.doc]);
+  if (p.kind === 'exists') return row(`${p.doc} exists`, []);
+  if (p.kind === 'reqs-agreed') {
+    const reqs = inDoc(ctx, file, 'req');
+    return row(`every req in ${p.doc} is agreed`, reqs.length ? reqs.filter(n => !AGREED.has(n.status)).map(n => n.id) : [`${p.doc} has no requirements`]);
+  }
+  if (p.kind === 'reqs-have') {
+    const reqs = inDoc(ctx, file, 'req');
+    return row(`every req in ${p.doc} has ${p.verb}`, reqs.length ? reqs.filter(n => !hasVerb(ctx, n.id, p.verb)).map(n => n.id) : [`${p.doc} has no requirements`]);
+  }
+  if (p.kind === 'reqs-have-task') {
+    const tasked = new Set(ctx.graph.nodes.filter(n => n.kind === 'task' && n.defined).flatMap(n => (ctx.idx.out.get(n.id) ?? []).filter(e => e.verb === 'part-of').map(e => e.to)));
+    const reqs = inDoc(ctx, file, 'req');
+    return row(`every req in ${p.doc} has a task`, reqs.length ? reqs.filter(n => !tasked.has(n.id)).map(n => n.id) : [`${p.doc} has no requirements`]);
+  }
+  if (p.kind === 'no-open-question') return row(`no open question in ${p.doc}`, inDoc(ctx, file, 'question').filter(n => !['answered', 'resolved', 'dismissed'].includes(n.status)).map(n => n.id));
+  if (p.kind === 'tasks-done') return row(`every task in ${p.doc} is done`, inDoc(ctx, file, 'task').filter(n => n.status !== 'done').map(n => n.id));
+  return row(`every task in ${p.doc} is ready`, inDoc(ctx, file, 'task').filter(n => cardValue(n.body, 'ready') !== 'true' && !cardValue(n.body, 'worker')).map(n => n.id));
+}
+
+// The readiness of a stage: one row per predicate, plus a red row for every `until` clause that did not parse.
+export function readinessOf(stage: StageDef, ctx: RunCtx): Readiness {
+  const rows = [...stage.badUntil.map(b => row(`until: "${b}" is not a criterion this engine knows`, [b])), ...stage.until.map(p => evaluate(p, ctx))];
+  return { rows, ok: rows.every(r => r.ok) };
+}

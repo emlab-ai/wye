@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseStage, workflowOf, workflowsOf, admits, nextStage } from './runs';
+import { parseStage, workflowOf, workflowsOf, admits, nextStage, readinessOf, type RunCtx, type StageDef } from './runs';
 import type { GraphData, GraphEdge, GraphNode } from './graph';
 
 // workflows (decision:wf2.workflow-is-a-skill): a workflow is a skill whose stage cards are its steps, in document order
@@ -52,5 +52,52 @@ describe('a workflow', () => {
     const w = workflowOf({ nodes: [bare, node('stage:w.one', { line: 9, file: 'w.md' })] }, incOf([]), 'workflow:w')!;
     expect(admits(w, 'anything')).toBe(true);
     expect(w.stages.map(s => s.id)).toEqual(['stage:w.one']);
+  });
+});
+
+describe('readiness', () => {
+  const PRD = 'data/products/p/projects/x/docs/prd.md';
+  const prdDoc = node('module:prd', { file: PRD });
+  const ctxOf = (nodes: GraphNode[], edges: GraphEdge[] = [], over: Partial<RunCtx> = {}): RunCtx => {
+    const all = [prdDoc, ...nodes];
+    const out = new Map<string, GraphEdge[]>();
+    for (const e of edges) out.set(e.from, [...(out.get(e.from) ?? []), e]);
+    return { graph: { nodes: all }, idx: { byId: new Map(all.map(n => [n.id, n])), out }, docs: { prd: 'module:prd' }, sessions: [], checkErrors: 0, ...over };
+  };
+  const stage = (until: string): StageDef => parseStage(node('stage:s', { body: `do: task "x" --worker agent\nuntil: ${until}` }))!;
+
+  it('every req in prd is agreed — names the ones that are not', () => {
+    const r = readinessOf(stage('every req in prd is agreed'), ctxOf([node('req:a', { file: PRD, status: 'approved' }), node('req:b', { file: PRD, status: 'proposed' })]));
+    expect(r.ok).toBe(false); expect(r.rows[0].blocking).toEqual(['req:b']);
+  });
+  it('every req in prd has satisfied-by — a dangling target does not count', () => {
+    const nodes = [node('req:a', { file: PRD, status: 'approved' }), node('req:b', { file: PRD, status: 'approved' }), node('decision:d', { file: 'x.md' })];
+    const edges: GraphEdge[] = [{ from: 'req:a', verb: 'satisfied-by', to: 'decision:d' }, { from: 'req:b', verb: 'satisfied-by', to: 'decision:ghost' }];
+    const r = readinessOf(stage('every req in prd has satisfied-by'), ctxOf(nodes, edges));
+    expect(r.ok).toBe(false); expect(r.rows[0].blocking).toEqual(['req:b']);
+  });
+  it('session done, tasks ready and done, open questions, contradictions, check', () => {
+    expect(readinessOf(stage('session done'), ctxOf([], [], { sessions: [{ id: 's1', status: 'done' }] })).ok).toBe(true);
+    expect(readinessOf(stage('session done'), ctxOf([], [], { sessions: [{ id: 's1', status: 'running' }] })).rows[0].blocking).toEqual(['session:s1']);
+    expect(readinessOf(stage('every task in prd is ready'), ctxOf([node('task:t', { file: PRD, body: 'id: task:t\nready: true' })])).ok).toBe(true);
+    expect(readinessOf(stage('every task in prd is ready'), ctxOf([node('task:t', { file: PRD, body: 'id: task:t' })])).ok).toBe(false);
+    expect(readinessOf(stage('every task in prd is done'), ctxOf([node('task:t', { file: PRD, status: 'done' })])).ok).toBe(true);
+    expect(readinessOf(stage('no open question in prd'), ctxOf([node('question:q', { file: PRD, status: 'answered' })])).ok).toBe(true);
+    expect(readinessOf(stage('no open question in prd'), ctxOf([node('question:q', { file: PRD, status: '' })])).rows[0].blocking).toEqual(['question:q']);
+    expect(readinessOf(stage('check passes'), ctxOf([], [], { checkErrors: 2 })).ok).toBe(false);
+    expect(readinessOf(stage('manual'), ctxOf([])).ok).toBe(true);
+  });
+  it('every req in prd has a task — a task part-of the req counts', () => {
+    const nodes = [node('req:a', { file: PRD }), node('task:t', { file: 'plan.md' })];
+    const edges: GraphEdge[] = [{ from: 'task:t', verb: 'part-of', to: 'req:a' }];
+    expect(readinessOf(stage('every req in prd has a task'), ctxOf(nodes, edges)).ok).toBe(true);
+    expect(readinessOf(stage('every req in prd has a task'), ctxOf(nodes)).rows[0].blocking).toEqual(['req:a']);
+  });
+  it('an empty PRD is not green, an unbound document is not green, a bad until is not green', () => {
+    expect(readinessOf(stage('every req in prd is agreed'), ctxOf([])).ok).toBe(false);
+    expect(readinessOf(stage('every req in plan is agreed'), ctxOf([])).ok).toBe(false);
+    const s = parseStage(node('stage:s', { body: 'do: task "x"\nuntil: when it feels right' }))!;
+    const r = readinessOf(s, ctxOf([]));
+    expect(r.ok).toBe(false); expect(r.rows[0].label).toContain('when it feels right');
   });
 });
