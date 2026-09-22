@@ -19,6 +19,7 @@ import { TaskWork } from './TaskWork';
 import { ChangedBadge } from './ChangedBadge';
 import { ExplainCard } from './ExplainCard';
 import { suggest } from '@/lib/node-blocks';
+import { ownBody } from '@/lib/embed';
 import { PageComments } from './PageHead';
 import { DocPeek } from './DocPeek';
 import { EmbeddedCard } from './EmbeddedCard';
@@ -156,7 +157,7 @@ function NodeView({ id }: { id: string }) {
       {head}
       {d && d.self && <TypeView type={d.self} instances={d.instances ?? []} index={index} product={product} onSaved={() => setTick(t => t + 1)} />}
       {d && d.self ? null : d && d.node.defined && d.type
-        ? <><NodeEditor key={id} id={id} body={d.node.body} form={d.node.form ?? 'yaml'} type={d.type} props={d.props ?? []} entry={entry} relations={d.relations.out} onSaved={() => setTick(t => t + 1)} />
+        ? <><NodeEditor key={id} id={id} body={ownBody(d.node)} form={d.node.form ?? 'yaml'} type={d.type} props={d.props ?? []} entry={entry} relations={d.relations.out} onSaved={() => setTick(t => t + 1)} />
           {entry && entry.kind === 'task' && <TaskWork key={`work-${id}`} id={id} />}</>
         : d ? <NodeCard id={id} body={d.node.body} entry={entry} /> : missing ? <p className="muted">Saving…</p> : <p className="muted">Loading {id}…</p>}
       {isNode && <PageComments key={`comments-${id}`} product={product} node={id} />}

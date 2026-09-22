@@ -183,6 +183,26 @@ Definition — the librarian
   - consequence:wf2.decision-free-text type:decision's context / choice / alternatives / consequences are optional keys nothing asks for; type:alternative, type:choice, type:consequence in schema/base-ontology.md and kinds.yaml.
 
 ```yaml
+- id: decision:wf2.parts-are-content
+  title: A node's text properties are its content — statement, scope, rationale, note as child blocks, like a requirement's when / then / unless
+  date: 2026-09-22
+  status: approved
+  refines: decision:wf2.req-free-text
+  affects: [type:constraint, type:rule, type:statement, type:scope, type:rationale, type:note, lib:parse, component:node-cards, component:node-editor, lib:node-blocks, lib:embed]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: goal:exec.define-first
+```
+
+  - choice:wf2.parts-are-content What a constraint or a rule says is content under its card: `statement:`, `scope:` (in words), `rationale:` and `note:` child blocks — four part types in the base ontology beside when / then / unless and context / choice / alternative / consequence — each a block the person edits, moves or deletes; a new constraint or rule is born with its parts (the slash menu), and the column offers the missing ones. A key with ids (`scope: [module:x]`, `rationale: decision:y`) is a link and stays on the card. The parser reads every part back into the old key as a generated value and marks it in `partKeys`, so the constraint packet, the constitution, the judge and search keep reading `statement` while the card and the column never show a part twice; a card with no title reads as its statement. scripts/parts-to-content.js moves what exists.
+
+  - context:wf2.parts-are-content A constraint card showed statement, scope and rationale as property rows — the person asked for it to be built like a requirement and a goal, where the text is blocks (2026-09-22). Requirements and decisions had already moved (decision:wf2.req-free-text, decision:wf2.decision-free-text); constraints and rules had not, and eight readers depend on `statement` on the body.
+
+  - alternative:wf2.parts-are-content Rewrite the eight readers to walk content — more code for the same result and every future reader would have to know; keep property rows for constraints — the inconsistency the person objected to.
+
+  - consequence:wf2.parts-are-content type:statement, type:scope, type:rationale, type:note; `partKeys` on a node; Wye's 8 constraints and 163 rules migrated; an agent that reads a rule with `wye node` still sees `statement:` in the body (read back), and the prompts still say "a rule with statement and source" — the write form for new rules is the part block.
+
+```yaml
 - id: decision:wf2.req-free-text
   title: A requirement is free text in the person's words — when / then / unless is not a template
   date: 2026-09-21

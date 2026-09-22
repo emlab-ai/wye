@@ -39,30 +39,35 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
 ```yaml
 - id: rule:question-decision-nodes
-  statement: >
-    The template gains a §D Decisions section (ADR keys date, context, options, choice, consequences, optional
-    decision-id) and §11 questions are yaml nodes with an id and q; the parser treats both as ordinary yaml nodes.
-    The section map (rule:section-map) places new decision and question nodes there.
   source: templates/module.md; schema/kinds.yaml
   status: proposed
   requires-tests: [test:core-parser#question-and-decision-nodes]
+  title: >
+    The template gains a §D Decisions section (ADR keys date, context, options, choice, consequences, optional dec
+```
+
+  - statement:question-decision-nodes The template gains a §D Decisions section (ADR keys date, context, options, choice, consequences, optional decision-id) and §11 questions are yaml nodes with an id and q; the parser treats both as ordinary yaml nodes. The section map (rule:section-map) places new decision and question nodes there.
+
+```yaml
 - id: rule:live-refresh
-  statement: >
-    The app follows the product on disk: a recursive watcher on data/products/<product> (lib/watch.ts, on
-    globalThis) rebuilds the graph 400 ms after a document changes and pushes change events (doc, graph, inbox,
-    session) over /api/<product>/events; the LiveRefresh client refreshes the server-rendered parts (rail, lists,
-    panels) on graph, inbox and session changes, so documents, tasks, questions and inbox items written by agents
-    or editors appear without a reload. A document being edited in the browser is not reloaded while a save is
-    pending.
   source: packages/web/src/lib/watch.ts; packages/web/src/app/api/[product]/events/route.ts; packages/web/src/components/LiveRefresh.tsx
   status: shipped
+  title: The app follows the product on disk:
+```
+
+  - statement:live-refresh The app follows the product on disk: a recursive watcher on data/products/<product> (lib/watch.ts, on globalThis) rebuilds the graph 400 ms after a document changes and pushes change events (doc, graph, inbox, session) over /api/<product>/events; the LiveRefresh client refreshes the server-rendered parts (rail, lists, panels) on graph, inbox and session changes, so documents, tasks, questions and inbox items written by agents or editors appear without a reload. A document being edited in the browser is not reloaded while a save is pending.
+
+```yaml
 - id: rule:product-layout
-  statement: data/products/<product>/_product.md (title, icon, description), projects/<project>/_project.md (title, kind project|goal, status, icon), projects/<project>/docs/*.md (pages), inbox/ (dropped notes and files, unprocessed), _build/graph.json (the product's knowledge, built by ctx from every page of every project; files and folders starting with _ and the inbox are skipped). Routes: /<product>, /<product>/knowledge[/<kind>], /<product>/graph, /<product>/inbox, /<product>/<project>, /<product>/<project>/d/<page>.
   source: packages/web/src/lib/products.ts; packages/web/src/lib/scope.ts; bin/wye-graph.js#findDocs
   status: unverified
   requires-tests: [test:server-api#serve-starts-with-two-projects]
+  title: >
+    data/products/<product>/_product.md (title, icon, description), projects/<project>/_project.md (title, kind pr
 
 ```
+
+  - statement:product-layout data/products/<product>/_product.md (title, icon, description), projects/<project>/_project.md (title, kind project|goal, status, icon), projects/<project>/docs/*.md (pages), inbox/ (dropped notes and files, unprocessed), _build/graph.json (the product's knowledge, built by ctx from every page of every project; files and folders starting with _ and the inbox are skipped). Routes: /<product>, /<product>/knowledge[/<kind>], /<product>/graph, /<product>/inbox, /<product>/<project>, /<product>/<project>/d/<page>.
 
 <!-- /list:rule -->
 

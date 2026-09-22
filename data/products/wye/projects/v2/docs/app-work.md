@@ -43,227 +43,190 @@ enforces.
 
 ```yaml
 - id: rule:work-state
-  statement: >
-    A task's status is the word on its line (todo, open, in-progress, blocked, review, done — `#ready` a mark beside
-    it); its state is derived from the session records and never written: queued when a session on it is queued,
-    working when one is running or live, stalled when the last one failed or was cancelled with the task not done,
-    held when a worker holds it with nothing running, unassigned otherwise. The sessions on a task are the ones its
-    `session:` names plus the ones whose refs name it. The app moves the status itself at two points only: to
-    in-progress when a session takes the task (Assign spends the ready mark), and to review when the session that
-    held it ends with the task not done (todo when that session failed or was cancelled).
   source: packages/web/src/lib/work.ts#stateOf; packages/web/src/lib/work-io.ts#assignTask; packages/web/src/lib/pr-doc.ts#requestTaskStatusOnEnd
   status: shipped
+  title: >
+    A task's status is the word on its line (todo, open, in-progress, blocked, review, done — `#ready` a mark besi
+```
+
+  - statement:work-state A task's status is the word on its line (todo, open, in-progress, blocked, review, done — `#ready` a mark beside it); its state is derived from the session records and never written: queued when a session on it is queued, working when one is running or live, stalled when the last one failed or was cancelled with the task not done, held when a worker holds it with nothing running, unassigned otherwise. The sessions on a task are the ones its `session:` names plus the ones whose refs name it. The app moves the status itself at two points only: to in-progress when a session takes the task (Assign spends the ready mark), and to review when the session that held it ends with the task not done (todo when that session failed or was cancelled).
+
+```yaml
 - id: rule:work-nesting
-  statement: >
-    On the Work view a plan's tasks nest under the plan's request task (`task:<plan-slug>`, written by the plan
-    template) or, for a plan created by an assignment, under the task the plan was assigned for (`task:` in the plan's
-    frontmatter; the plan embeds it instead of writing a second request task); a sub-task (part of task:x) nests
-    under its task. Roots and children are ordered by priority (lower first, unset last), then document and line.
   source: packages/web/src/lib/work.ts#workItems; packages/web/src/lib/pr-doc.ts#planDocBody
   status: shipped
+  title: >
+    On the Work view a plan's tasks nest under the plan's request task (`task:<plan-slug>`, written by the plan te
+```
+
+  - statement:work-nesting On the Work view a plan's tasks nest under the plan's request task (`task:<plan-slug>`, written by the plan template) or, for a plan created by an assignment, under the task the plan was assigned for (`task:` in the plan's frontmatter; the plan embeds it instead of writing a second request task); a sub-task (part of task:x) nests under its task. Roots and children are ordered by priority (lower first, unset last), then document and line.
+
+```yaml
 - id: rule:assign-refusal
-  statement: >
-    Assign refuses a done task and a task blocked by a task that is not done (422 with the reason); a task a session
-    already holds — queued or working — is refused with 409 until the same call comes with `force`, unless the holder
-    is a librarian and the call is Build. A person as worker sets `worker:` and nothing else happens; an agent gets
-    a conversation (chat) with the task, its document and what it serves as refs; `runner` a queued run session.
   source: packages/web/src/lib/work.ts#assignRefusal; packages/web/src/lib/work-io.ts#assignTask
   status: shipped
+  title: Assign refuses a done task and a task blocked by a task that is not done (422 with the reason);
+```
+
+  - statement:assign-refusal Assign refuses a done task and a task blocked by a task that is not done (422 with the reason); a task a session already holds — queued or working — is refused with 409 until the same call comes with `force`, unless the holder is a librarian and the call is Build. A person as worker sets `worker:` and nothing else happens; an agent gets a conversation (chat) with the task, its document and what it serves as refs; `runner` a queued run session.
+
+```yaml
 - id: rule:capture-home
-  statement: >
-    A captured task line goes under the node it was captured from when that node has a document and takes content
-    (not a page, plan or paragraph); else it is appended to the project's plan document (`plan.md`) under
-    "## Backlog", created when missing. The line carries `by:` and `since:`, `#ready` when asked, and `part-of:`
-    the source node. Its id is `task:<product>.<first six words>` with `-2`, `-3` on a collision.
   source: packages/web/src/lib/work-io.ts#captureTask
   status: shipped
+  title: >
+    A captured task line goes under the node it was captured from when that node has a document and takes content
+```
+
+  - statement:capture-home A captured task line goes under the node it was captured from when that node has a document and takes content (not a page, plan or paragraph); else it is appended to the project's plan document (`plan.md`) under "## Backlog", created when missing. The line carries `by:` and `since:`, `#ready` when asked, and `part-of:` the source node. Its id is `task:<product>.<first six words>` with `-2`, `-3` on a collision.
+
+```yaml
 - id: rule:take-ready
-  statement: >
-    A runner started with `--take-ready` asks op:api.work.next when nothing is queued for it; the app answers with the
-    oldest task that is `#ready`, unblocked, unassigned, not done, not archived and not on a plan still defining —
-    assigned as if a person had done it (a queued run session, the task in progress under the runner's agent) — and
-    the runner claims that session next. A task without the ready mark is never taken; `auto-take: off` in
-    _product.md switches the answer off.
   source: packages/web/src/lib/work.ts#nextReady; packages/web/src/lib/work-io.ts#nextForRunner; bin/wye.js#agent
   status: shipped
+  title: A runner started with `--take-ready` asks op:api.work.next when nothing is queued for it;
+```
+
+  - statement:take-ready A runner started with `--take-ready` asks op:api.work.next when nothing is queued for it; the app answers with the oldest task that is `#ready`, unblocked, unassigned, not done, not archived and not on a plan still defining — assigned as if a person had done it (a queued run session, the task in progress under the runner's agent) — and the runner claims that session next. A task without the ready mark is never taken; `auto-take: off` in _product.md switches the answer off.
+
+```yaml
 - id: rule:change-record
-  statement: >
-    Change records are made from the watcher's rebuild diff, one code path for every writer: for each changed typed
-    node (defined, not a paragraph, not a generated, structural or judge node) the record keeps `before` and
-    `after` — text (the title, or the first text key), status, every other key as a property — the keys that
-    differ, who, session, time and a state. Who: the writer's claim on the node or its file (the node, content and
-    document routes and wye propose claim with the session header or `x-wf-by`), else the one running session, else
-    "person". A change of only status and tracking keys (session, produced, worker, owner, priority, ready, dates…)
-    is recorded accepted and never listed; a person's edit of a proposed / draft / open block is accepted at once;
-    an agent's edit, and any edit of an approved or shipped node, is pending. Edits by the same writer on the same
-    node within five minutes fold into one record (the first `before`, the latest `after`). A silent claim (a
-    revert, an applied patch) makes no record: the app recorded it itself.
   source: packages/web/src/lib/changes.ts#recordsFromDiff; packages/web/src/lib/changes.ts#recordChanges; packages/web/src/lib/watch.ts
   status: shipped
+  title: Change records are made from the watcher's rebuild diff, one code path for every writer:
+```
+
+  - statement:change-record Change records are made from the watcher's rebuild diff, one code path for every writer: for each changed typed node (defined, not a paragraph, not a generated, structural or judge node) the record keeps `before` and `after` — text (the title, or the first text key), status, every other key as a property — the keys that differ, who, session, time and a state. Who: the writer's claim on the node or its file (the node, content and document routes and wye propose claim with the session header or `x-wf-by`), else the one running session, else "person". A change of only status and tracking keys (session, produced, worker, owner, priority, ready, dates…) is recorded accepted and never listed; a person's edit of a proposed / draft / open block is accepted at once; an agent's edit, and any edit of an approved or shipped node, is pending. Edits by the same writer on the same node within five minutes fold into one record (the first `before`, the latest `after`). A silent claim (a revert, an applied patch) makes no record: the app recorded it itself.
+
+```yaml
 - id: rule:change-review
-  statement: >
-    Accept marks the record accepted by the person and nothing else moves; Revert writes `before` back through the
-    node writer — only the keys that changed, a card's title as a property, a removed key as null — marks the record
-    reverted and saves the revert as its own accepted change with `revertOf`; a record whose node moved on since
-    (the current value's hash differs from `after`) is refused with the old value unless `force`; a node that is no
-    longer defined is refused with the old value to paste. An open contradicts / duplicate verdict on the new value
-    blocks Accept on the card until it is resolved on the block. The constraint packet ends with the packet's nodes
-    that have a pending record, so a worker knows the value it read is unreviewed.
   source: packages/web/src/app/api/[product]/changes/[id]/route.ts; packages/web/src/lib/changes.ts#revertPatch; packages/web/src/lib/packet.ts#packetFor
   status: shipped
+  title: Accept marks the record accepted by the person and nothing else moves;
+```
+
+  - statement:change-review Accept marks the record accepted by the person and nothing else moves; Revert writes `before` back through the node writer — only the keys that changed, a card's title as a property, a removed key as null — marks the record reverted and saves the revert as its own accepted change with `revertOf`; a record whose node moved on since (the current value's hash differs from `after`) is refused with the old value unless `force`; a node that is no longer defined is refused with the old value to paste. An open contradicts / duplicate verdict on the new value blocks Accept on the card until it is resolved on the block. The constraint packet ends with the packet's nodes that have a pending record, so a worker knows the value it read is unreviewed.
+
+```yaml
 - id: rule:review-readable
-  statement: >
-    An Inbox card is laid out for the person's decision, not for completeness. On the surface: the kind, the title
-    (a prose node's clipped title is replaced by its full first description, said once), one description that is
-    enough to understand the block — a requirement as "When …, then …, unless …", a decision as its choice, a
-    question as its question, the rest as their statement — or, for a change, what changed as status pills, a
-    property old → new, a text as a word diff; then only what asks for a decision: open contradicts / duplicate
-    verdicts with their reason, and the impact in one line (opened when an update, rework, contradiction or
-    question waits; folded when everything reached is unaffected or still pending). Nothing else on the surface:
-    who, when, where, the id, "checked against n neighbours · consistent", the unchanged frame, the other fields
-    (context, alternatives, consequences, source, evidence), refs, consistent and refines verdicts and the
-    reached-not-judged list are under a "details" fold. lib:review-summary decides these (pure, tested).
   source: packages/web/src/lib/review-summary.ts; packages/web/src/components/ChangeList.tsx; packages/web/src/components/ReviewList.tsx; packages/web/src/components/ImpactCard.tsx
   status: shipped
   verified-by: [test:web-lib#review-summary]
+  title: An Inbox card is laid out for the person's decision, not for completeness.
+```
+
+  - statement:review-readable An Inbox card is laid out for the person's decision, not for completeness. On the surface: the kind, the title (a prose node's clipped title is replaced by its full first description, said once), one description that is enough to understand the block — a requirement as "When …, then …, unless …", a decision as its choice, a question as its question, the rest as their statement — or, for a change, what changed as status pills, a property old → new, a text as a word diff; then only what asks for a decision: open contradicts / duplicate verdicts with their reason, and the impact in one line (opened when an update, rework, contradiction or question waits; folded when everything reached is unaffected or still pending). Nothing else on the surface: who, when, where, the id, "checked against n neighbours · consistent", the unchanged frame, the other fields (context, alternatives, consequences, source, evidence), refs, consistent and refines verdicts and the reached-not-judged list are under a "details" fold. lib:review-summary decides these (pure, tested).
+
+```yaml
 - id: rule:impact-candidates
-  statement: >
-    An edit's structural candidates are the changed node's content first (its `has` children, undecayed), then two
-    hops over the edges that carry meaning — outgoing satisfied-by, verified-by, governs, affects, resolves,
-    depends-on, refines, part-of; incoming refines, part-of, depends-on, governed-by, satisfied-by, verified-by,
-    affects, governs, mentions, related-to, has, resolves, produced — each verb with its own decay, a floor of 0.4,
-    never a step back along the inverse of the step just taken (a mechanism's other requirements are siblings, not
-    dependents), never through a page, plan, paragraph, verdict or contradiction, and mechanisms (op, component, lib,
-    test, page, action, entity, tool, store, flag, setting, gate) as leaves. Each candidate carries its path
-    ("refined-by → satisfied-by") and weight. The app adds the semantic hits structure did not reach (score ≥ 0.45)
-    marked "by text". A child whose text repeats the changed value verbatim is an update without a model call.
   source: lib/impact.js#structuralCandidates; lib/impact.js#verbatimUpdate; packages/web/src/lib/impact-run.ts#candidatesFor
   status: shipped
+  title: >
+    An edit's structural candidates are the changed node's content first (its `has` children, undecayed), then two
+```
+
+  - statement:impact-candidates An edit's structural candidates are the changed node's content first (its `has` children, undecayed), then two hops over the edges that carry meaning — outgoing satisfied-by, verified-by, governs, affects, resolves, depends-on, refines, part-of; incoming refines, part-of, depends-on, governed-by, satisfied-by, verified-by, affects, governs, mentions, related-to, has, resolves, produced — each verb with its own decay, a floor of 0.4, never a step back along the inverse of the step just taken (a mechanism's other requirements are siblings, not dependents), never through a page, plan, paragraph, verdict or contradiction, and mechanisms (op, component, lib, test, page, action, entity, tool, store, flag, setting, gate) as leaves. Each candidate carries its path ("refined-by → satisfied-by") and weight. The app adds the semantic hits structure did not reach (score ≥ 0.45) marked "by text". A child whose text repeats the changed value verbatim is an update without a model call.
+
+```yaml
 - id: rule:impact-run
-  statement: >
-    An impact run belongs to a pending change record: candidates are computed and stored on the record at once;
-    with `impact: auto` in _product.md (or on demand — the card's Impact, `wye impact`) the model judges them in
-    batches of ten through lib/judge.js#ask, the record updated as each batch lands, at most `impact-budget`
-    candidates (20) and three calls per run, answers cached in _build/impact.json per (node, before, after,
-    candidate text, model, prompt); one run per node in flight, a further edit reruns after; `manual` keeps the
-    candidates without verdicts; `off` (the default) makes no run. Tracking-only changes never run. Outcomes land
-    when the run is done: a rework becomes an unassigned task (`change:` the record) on the backlog, a contradicts
-    an open contradiction line under the changed node, an ask a question block there; an update waits for Apply.
   source: packages/web/src/lib/impact-run.ts#runImpact; packages/web/src/lib/impact-run.ts#landOutcomes; packages/web/src/lib/impact-run.ts#impactMode
   status: shipped
+  title: An impact run belongs to a pending change record:
+```
+
+  - statement:impact-run An impact run belongs to a pending change record: candidates are computed and stored on the record at once; with `impact: auto` in _product.md (or on demand — the card's Impact, `wye impact`) the model judges them in batches of ten through lib/judge.js#ask, the record updated as each batch lands, at most `impact-budget` candidates (20) and three calls per run, answers cached in _build/impact.json per (node, before, after, candidate text, model, prompt); one run per node in flight, a further edit reruns after; `manual` keeps the candidates without verdicts; `off` (the default) makes no run. Tracking-only changes never run. Outcomes land when the run is done: a rework becomes an unassigned task (`change:` the record) on the backlog, a contradicts an open contradiction line under the changed node, an ask a question block there; an update waits for Apply.
+
+```yaml
 - id: rule:impact-apply
-  statement: >
-    Apply writes a proposed update through the node writer (the edited text when the person changed it) only when
-    the candidate's current text still hashes as it did at the run — else 409, the patch is stale — records the write
-    as a change accepted by the person, marks the candidate applied, and schedules the verdict pass on it when it is
-    a decision, requirement, rule or constraint; Skip marks it declined with a reason; Apply all takes every update
-    not yet dealt with.
   source: packages/web/src/lib/impact-run.ts#applyPatch; packages/web/src/app/api/[product]/changes/[id]/impact/route.ts
   status: shipped
+  title: >
+    Apply writes a proposed update through the node writer (the edited text when the person changed it) only when
+```
+
+  - statement:impact-apply Apply writes a proposed update through the node writer (the edited text when the person changed it) only when the candidate's current text still hashes as it did at the run — else 409, the patch is stale — records the write as a change accepted by the person, marks the candidate applied, and schedules the verdict pass on it when it is a decision, requirement, rule or constraint; Skip marks it declined with a reason; Apply all takes every update not yet dealt with.
+
+```yaml
 - id: rule:librarian-tools
-  statement: >
-    A session with role librarian is claude on the host with prompts/librarian-system.md as its system prompt, in the
-    Wye repo, with `--allowedTools Bash(wf:*) Read Grep Glob` and `--disallowedTools Edit Write MultiEdit
-    NotebookEdit Bash(git:*) Bash(rm:*) Bash(npm:*) Bash(node:*) Agent Task`; its first message carries the plan
-    (status defining, role librarian), the protocol (explain first, ask along when / then / unless as a form, propose
-    with wye propose, report verdicts) and the wf reads — no folder, no code. Questions keep the permission channel,
-    so they render as question cards.
   source: packages/web/src/lib/agent-host.ts#startProcess; packages/web/src/lib/agent-host.ts#buildPrompt; packages/web/src/lib/agent-prompt.ts
   status: shipped
+  title: >
+    A session with role librarian is claude on the host with prompts/librarian-system.md as its system prompt, in
+```
+
+  - statement:librarian-tools A session with role librarian is claude on the host with prompts/librarian-system.md as its system prompt, in the Wye repo, with `--allowedTools Bash(wf:*) Read Grep Glob` and `--disallowedTools Edit Write MultiEdit NotebookEdit Bash(git:*) Bash(rm:*) Bash(npm:*) Bash(node:*) Agent Task`; its first message carries the plan (status defining, role librarian), the protocol (explain first, ask along when / then / unless as a form, propose with wye propose, report verdicts) and the wf reads — no folder, no code. Questions keep the permission channel, so they render as question cards.
+
+```yaml
 - id: rule:definition
-  statement: >
-    A plan's Definition section holds ids at its top level — `![[id]]` embeds, cards, prose lines; what is indented
-    under a block is that block's content, and verdicts and contradictions never count. wye propose writes one card
-    into the named document and embeds it there, or defines it on the plan itself under Definition with `home: none
-    yet` when no document is named; every typed block a running librarian session wrote (its claim on the write)
-    is embedded there by the watcher. The Definition is agreed when every block is approved, resolved, rejected,
-    done or shipped — a task once it is work rather than proposed — and no open contradiction touches an agreed one;
-    after every rebuild a plan in defining with an agreed Definition becomes defined, and a defined plan whose
-    Definition is no longer agreed goes back to defining; other statuses stay. A librarian's session ending leaves
-    the plan's status alone and puts the request task in review.
   source: packages/web/src/lib/pr-doc.ts#definitionIds; packages/web/src/lib/pr-doc.ts#definitionState; packages/web/src/lib/pr-docs.ts#refreshPlanStatuses; packages/web/src/lib/pr-docs.ts#trackDefinitions; packages/web/src/app/api/[product]/propose/route.ts
   status: shipped
+  title: A plan's Definition section holds ids at its top level — `![[id]]` embeds, cards, prose lines;
+```
+
+  - statement:definition A plan's Definition section holds ids at its top level — `![[id]]` embeds, cards, prose lines; what is indented under a block is that block's content, and verdicts and contradictions never count. wye propose writes one card into the named document and embeds it there, or defines it on the plan itself under Definition with `home: none yet` when no document is named; every typed block a running librarian session wrote (its claim on the write) is embedded there by the watcher. The Definition is agreed when every block is approved, resolved, rejected, done or shipped — a task once it is work rather than proposed — and no open contradiction touches an agreed one; after every rebuild a plan in defining with an agreed Definition becomes defined, and a defined plan whose Definition is no longer agreed goes back to defining; other statuses stay. A librarian's session ending leaves the plan's status alone and puts the request task in review.
+
+```yaml
 - id: rule:build
-  statement: >
-    Build assigns a plan's request task with `build: <plan ref>`: the instruction gains the Definition — every block's
-    id, status and text, the change records of the plan's sessions with before and after — the session works on that
-    plan (its id added to the plan's `session:`, no new plan document), the plan's status becomes building, and when
-    the session ends the Result lists each Definition block as implemented, changed or left; a librarian's hold on
-    the request task does not refuse it; the dialog names the unagreed blocks and says "Build anyway".
   source: packages/web/src/lib/work-io.ts#assignTask; packages/web/src/lib/pr-docs.ts#definitionContext; packages/web/src/lib/pr-docs.ts#finishPlanDoc
   status: shipped
+  title: Build assigns a plan's request task with `build:
+```
+
+  - statement:build Build assigns a plan's request task with `build: <plan ref>`: the instruction gains the Definition — every block's id, status and text, the change records of the plan's sessions with before and after — the session works on that plan (its id added to the plan's `session:`, no new plan document), the plan's status becomes building, and when the session ends the Result lists each Definition block as implemented, changed or left; a librarian's hold on the request task does not refuse it; the dialog names the unagreed blocks and says "Build anyway".
+
+```yaml
 - id: rule:todo-tasks
-  statement: >
-    A checkbox line whose first token is an id (`- [ ] task:slug Do the thing`) defines that node with status
-    open, `- [x]` with status done; a #status hashtag overrides. In the editor such a node shows a checkbox in its
-    header; toggling it rewrites the line. task is a node kind (alias tk:) and the default for the "task block"
-    slash item.
   source: lib/parse.js; packages/web/src/lib/import.ts#proseNode; packages/web/src/lib/serialize.ts#nodeToMarkdown
   status: unverified
   verified-by: [test:prose, test:web-lib#import]
+  title: >
+    A checkbox line whose first token is an id (`- [ ] task:slug Do the thing`) defines that node with status open
+```
+
+  - statement:todo-tasks A checkbox line whose first token is an id (`- [ ] task:slug Do the thing`) defines that node with status open, `- [x]` with status done; a #status hashtag overrides. In the editor such a node shows a checkbox in its header; toggling it rewrites the line. task is a node kind (alias tk:) and the default for the "task block" slash item.
+
+```yaml
 - id: rule:goals-and-tasks
-  statement: >
-    Goals and tasks are tracked like Atlassian goals. Every product has a Goals page and a Tasks page (search, status
-    chips, sub-goals nested under the goal they are part of, columns name / status / target or due / progress or goal /
-    owner / document); a row opens the item in the right column, whose node view adds a tracking section (status,
-    target, owner, progress, sub-goals, tasks and requirements that are part of it). A document may hold a goals or
-    tasks table: the lines between `<!-- goals -->` and `<!-- /goals -->` (or tasks) are ordinary goal/task lines to
-    the parser and an editable table in the editor (status select, target/due, progress, owner; "+ add" appends a
-    row). Progress is `(progress: n)` when given, else the share of done/shipped/complete parts. Goal statuses are
-    proposed, on-track, at-risk, off-track, paused, complete, non-goal.
   source: packages/web/src/components/TrackList.tsx; packages/web/src/lib/track.ts; packages/web/src/lib/doc.ts#nodeIndex; packages/web/src/components/DocEditor.tsx#RowNode
   status: shipped
   verified-by: [test:web-lib#import, test:web-lib#props]
+  title: Goals and tasks are tracked like Atlassian goals.
+```
+
+  - statement:goals-and-tasks Goals and tasks are tracked like Atlassian goals. Every product has a Goals page and a Tasks page (search, status chips, sub-goals nested under the goal they are part of, columns name / status / target or due / progress or goal / owner / document); a row opens the item in the right column, whose node view adds a tracking section (status, target, owner, progress, sub-goals, tasks and requirements that are part of it). A document may hold a goals or tasks table: the lines between `<!-- goals -->` and `<!-- /goals -->` (or tasks) are ordinary goal/task lines to the parser and an editable table in the editor (status select, target/due, progress, owner; "+ add" appends a row). Progress is `(progress: n)` when given, else the share of done/shipped/complete parts. Goal statuses are proposed, on-track, at-risk, off-track, paused, complete, non-goal.
+
+```yaml
 - id: rule:prs-folder
-  statement: >
-    The rail treats a project's PRs page (`module:<project>-prs`, lib/pr-doc#prsPageId) as a system folder: the
-    product layout takes it and its sub-documents out of the Documents tree and hands the PRs (every project, sorted
-    by the PR card's `started` descending) to the PRs folder in the rail's menu, whose entry is /<product>/prs; the
-    folder groups them by where they are — refining (draft and refining), approved, building — with the ended ones
-    folded under done. A PR is found by the tree, not by its type: what sits under the PRs page is a PR. Files stay
-    in the project's docs folder (decision:wf2.plans-system-folder).
   source: packages/web/src/app/[product]/layout.tsx#withoutPrs; packages/web/src/components/Rail.tsx; packages/web/src/components/PrFolder.tsx; packages/web/src/app/[product]/prs/page.tsx; packages/web/src/lib/pr-doc.ts#prsPageId
   status: shipped
   verified-by: [ui-test:plans-folder]
   related-to: [rule:documents-tree, rule:pr-doc]
+  title: >
+    The rail treats a project's PRs page (`module:<project>-prs`, lib/pr-doc#prsPageId) as a system folder:
+```
+
+  - statement:prs-folder The rail treats a project's PRs page (`module:<project>-prs`, lib/pr-doc#prsPageId) as a system folder: the product layout takes it and its sub-documents out of the Documents tree and hands the PRs (every project, sorted by the PR card's `started` descending) to the PRs folder in the rail's menu, whose entry is /<product>/prs; the folder groups them by where they are — refining (draft and refining), approved, building — with the ended ones folded under done. A PR is found by the tree, not by its type: what sits under the PRs page is a PR. Files stay in the project's docs folder (decision:wf2.plans-system-folder).
+
+```yaml
 - id: rule:plan-first
-  statement: >
-    A session started from the command palette carries `plan: true`, and its first message ends with a plan-first
-    section. Before changing code the agent (1) understands — `wye context` on the request, resolves the nodes,
-    reads their documents and the code involved; (2) models — names the subject of the request as one node
-    (`kind:slug`: the node under the cursor or the document the palette sent when they fit, else found, else the
-    new node the request creates), makes sure its type exists (`wye node type:<slug>`; else `wye type add`, a
-    proposed `type:` card in the product's ontology document) and picks the subject's page: the document where the
-    node is defined, else the one open in the palette, else the type's home, and only when the subject is new and
-    no document fits a new one (`wye doc create`); (3) writes the plan on that page, not in chat — the subject's
-    card when it is new, and everything understood as blocks in the page's sections: `req:` (proposed),
-    `decision:` (proposed), `question:` (open), `- [ ] task:` lines, links to the modules and code touched; `ctx
-    check` green; (4) shows it — `wye session open <id> <product/project/doc>[#node]` navigates the person's browser
-    to the page while the session stays in the context column, and one chat line says what is there; (5)
-    collaborates — the person edits, comments and answers on the page; one AskUserQuestion (header "Plan", "Build
-    what the page says?", Proceed / Adjust / Cancel) rendered as a question card (rule:agent-questions); Adjust
-    re-reads the page and revises it, Cancel ends the session; (6) builds only after Proceed, after re-reading the
-    page once more — code and tests for what the page says, then statuses (tasks done, reqs shipped) and `wf
-    session done`. The palette can switch the protocol off for a plain run. The flag is part of the prompt, not a
-    session mode: the session, host and console are the ones every conversation uses.
   source: packages/web/src/components/CommandBox.tsx; packages/web/src/lib/agent-host.ts#PLAN_FIRST; packages/web/src/lib/sessions.ts#createSession; bin/wye.js#session
   status: proposed
   verified-by: [ui-test:command-palette]
   related-to: [rule:agent-questions, rule:agent-host, component:command-box, decision:wf2.plan-is-a-page, op:session.open]
+  title: A session started from the command palette carries `plan:
+```
+
+  - statement:plan-first A session started from the command palette carries `plan: true`, and its first message ends with a plan-first section. Before changing code the agent (1) understands — `wye context` on the request, resolves the nodes, reads their documents and the code involved; (2) models — names the subject of the request as one node (`kind:slug`: the node under the cursor or the document the palette sent when they fit, else found, else the new node the request creates), makes sure its type exists (`wye node type:<slug>`; else `wye type add`, a proposed `type:` card in the product's ontology document) and picks the subject's page: the document where the node is defined, else the one open in the palette, else the type's home, and only when the subject is new and no document fits a new one (`wye doc create`); (3) writes the plan on that page, not in chat — the subject's card when it is new, and everything understood as blocks in the page's sections: `req:` (proposed), `decision:` (proposed), `question:` (open), `- [ ] task:` lines, links to the modules and code touched; `ctx check` green; (4) shows it — `wye session open <id> <product/project/doc>[#node]` navigates the person's browser to the page while the session stays in the context column, and one chat line says what is there; (5) collaborates — the person edits, comments and answers on the page; one AskUserQuestion (header "Plan", "Build what the page says?", Proceed / Adjust / Cancel) rendered as a question card (rule:agent-questions); Adjust re-reads the page and revises it, Cancel ends the session; (6) builds only after Proceed, after re-reading the page once more — code and tests for what the page says, then statuses (tasks done, reqs shipped) and `wf session done`. The palette can switch the protocol off for a plain run. The flag is part of the prompt, not a session mode: the session, host and console are the ones every conversation uses.
+
+```yaml
 - id: rule:task-artifacts
-  statement: >
-    A session's output is traceable from the task it worked on. While a session runs, the app records what it
-    produced: documents written on disk (credited by the watcher to every running session of the product, except
-    the app's own task-link writes), nodes it changed through the node API (the wf CLI sends its session id in
-    x-wf-session), and inbox items it filed (they carry the session id). Tasks among the session's refs get
-    `(session: <ids>, produced: module:…)` in their property group — `produced` is an edge — and marking a task
-    done with wye node set adds the session too. The task's panel shows a Produced section: the sessions (with
-    status and result), the documents, the nodes changed and the inbox items (questions, decisions) with their
-    review status — folded at the bottom of the column until asked for (rule:produced-collapsed). An html comment ends a prose node's text, so tables' closing markers never leak into a task.
   source: packages/web/src/lib/artifacts.ts; packages/web/src/components/Produced.tsx; lib/parse.js
   status: shipped
   verified-by: [test:prose]
+  title: A session's output is traceable from the task it worked on.
 ```
+
+  - statement:task-artifacts A session's output is traceable from the task it worked on. While a session runs, the app records what it produced: documents written on disk (credited by the watcher to every running session of the product, except the app's own task-link writes), nodes it changed through the node API (the wf CLI sends its session id in x-wf-session), and inbox items it filed (they carry the session id). Tasks among the session's refs get `(session: <ids>, produced: module:…)` in their property group — `produced` is an edge — and marking a task done with wye node set adds the session too. The task's panel shows a Produced section: the sessions (with status and result), the documents, the nodes changed and the inbox items (questions, decisions) with their review status — folded at the bottom of the column until asked for (rule:produced-collapsed). An html comment ends a prose node's text, so tables' closing markers never leak into a task.
 
 <!-- /list:rule -->
 

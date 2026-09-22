@@ -37,7 +37,16 @@ const MODULE: NodeBlock[] = [
   { key: 'decisions', label: 'Decisions', markdown: id => `## Decisions\n\n${view('decision', id)}`, present: hasView('decision') },
   { key: 'tasks', label: 'Tasks', markdown: id => `## Tasks\n\n${view('task', id)}`, present: hasView('task') },
 ];
-const BY_KIND: Record<string, NodeBlock[]> = { goal: GOAL, req: REQ, decision: DECISION, question: QUESTION, task: TASK, module: MODULE, pr: [] };
+const CONSTRAINT: NodeBlock[] = [
+  { key: 'statement', label: 'Statement', markdown: id => `- statement:${slugOf(id)} `, present: hasChild('statement') },
+  { key: 'scope', label: 'Scope', markdown: id => `- scope:${slugOf(id)} `, present: hasChild('scope') },
+  { key: 'rationale', label: 'Rationale', markdown: id => `- rationale:${slugOf(id)} `, present: hasChild('rationale') },
+];
+const RULE: NodeBlock[] = [
+  { key: 'statement', label: 'Statement', markdown: id => `- statement:${slugOf(id)} `, present: hasChild('statement') },
+  { key: 'note', label: 'Note', markdown: id => `- note:${slugOf(id)} `, present: () => false },
+];
+const BY_KIND: Record<string, NodeBlock[]> = { goal: GOAL, req: REQ, decision: DECISION, question: QUESTION, task: TASK, module: MODULE, pr: [], constraint: CONSTRAINT, rule: RULE };
 
 export const slugOf = (id: string) => id.slice(id.indexOf(':') + 1);
 export function blocksFor(kind: string): NodeBlock[] { return BY_KIND[kind] ?? []; }

@@ -49,48 +49,46 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
 ```yaml
 - id: rule:view-block
-  statement: >
-    A document may hold a view of a type's instances: one line `<!-- view:<slug> key=value … -->` (an HTML comment,
-    so other readers ignore it; not a node). The editor shows it as a `view` block — the type picker in its header,
-    component:instance-table under it, rows fetched from op:api.view and refetched on every graph change — and
-    writes the toolbar state back to the line as key=value pairs (q, status, group, sort, one key per column; a
-    value with spaces in double quotes); an empty query leaves the line as `<!-- view:<slug> -->`. Changing the
-    type clears the query. A type the product does not declare still lists its kind's nodes (with relations) and
-    the header says so. "Instances view" in the slash menu (group Waterfall) inserts one.
   source: packages/web/src/lib/import.ts#VIEW_LINE; packages/web/src/lib/serialize.ts; packages/web/src/components/ViewBlock.tsx; packages/web/src/lib/instance-table.ts#parseViewQuery
   status: shipped
   verified-by: [test:web-lib#import, test:web-lib#instance-table, ui-test:instance-table]
   related-to: [rule:type-tables, req:wf2.instances.view-block]
+  title: A document may hold a view of a type's instances:
+```
+
+  - statement:view-block A document may hold a view of a type's instances: one line `<!-- view:<slug> key=value … -->` (an HTML comment, so other readers ignore it; not a node). The editor shows it as a `view` block — the type picker in its header, component:instance-table under it, rows fetched from op:api.view and refetched on every graph change — and writes the toolbar state back to the line as key=value pairs (q, status, group, sort, one key per column; a value with spaces in double quotes); an empty query leaves the line as `<!-- view:<slug> -->`. Changing the type clears the query. A type the product does not declare still lists its kind's nodes (with relations) and the header says so. "Instances view" in the slash menu (group Waterfall) inserts one.
+
+```yaml
 - id: rule:context-panel
-  statement: >
-    While a block is being edited, the right panel's Context mode shows the product knowledge closest to that
-    block's text: the text is embedded locally (transformers.js, MiniLM) and ranked against every defined node by
-    cosine similarity blended 70/30 with a keyword score; the node being edited and ids it already links are
-    excluded. "+ link" inserts the node's tag at the cursor (padded with a space when glued to a word); the tag or
-    row opens the node. Embeddings are cached in the product's _build/embeddings.json and refreshed per node when
-    its text changes. Nothing is sent off the machine.
   source: packages/web/src/lib/semantic.ts; packages/web/src/components/ContextPanel.tsx; packages/web/src/app/api/[product]/context/route.ts
   status: shipped
   verified-by: [test:web-lib#semantic]
+  title: >
+    While a block is being edited, the right panel's Context mode shows the product knowledge closest to that bloc
+```
+
+  - statement:context-panel While a block is being edited, the right panel's Context mode shows the product knowledge closest to that block's text: the text is embedded locally (transformers.js, MiniLM) and ranked against every defined node by cosine similarity blended 70/30 with a keyword score; the node being edited and ids it already links are excluded. "+ link" inserts the node's tag at the cursor (padded with a space when glued to a word); the tag or row opens the node. Embeddings are cached in the product's _build/embeddings.json and refreshed per node when its text changes. Nothing is sent off the machine.
+
+```yaml
 - id: rule:inbox-review
-  statement: >
-    The Inbox is a review view over the documents, not a store: it lists the blocks nobody has approved yet —
-    decisions, requirements, rules, goals with `status: proposed` (or draft) and questions still open — grouped by
-    kind with their fields and refs. Approve / Reject / Resolve change the block's status in its document (prose
-    lines and yaml cards alike); "Approve all" takes a group. Raw notes without a document (pasted material) still
-    land in the inbox folder below the queue. The Questions page shows question blocks only.
   source: packages/web/src/lib/review.ts; packages/web/src/components/ReviewList.tsx; packages/web/src/lib/node-edit.ts
   status: shipped
+  title: The Inbox is a review view over the documents, not a store:
+```
+
+  - statement:inbox-review The Inbox is a review view over the documents, not a store: it lists the blocks nobody has approved yet — decisions, requirements, rules, goals with `status: proposed` (or draft) and questions still open — grouped by kind with their fields and refs. Approve / Reject / Resolve change the block's status in its document (prose lines and yaml cards alike); "Approve all" takes a group. Raw notes without a document (pasted material) still land in the inbox folder below the queue. The Questions page shows question blocks only.
+
+```yaml
 - id: rule:mindmap-layout
-  statement: >
-    The graph view lays out the focus node's tree (refines and has edges, outgoing from the focus, depth from the
-    preset) with dagre left-to-right, draws remaining structural edges among visible nodes as cross-links, and
-    hides mentions unless the preset is Everything.
   source: packages/web/src/lib/layout.ts#layoutMindMap
   status: unverified
   verified-by: [test:web-lib#layout]
   requires-tests: [test:web-components#graph-layout]
+  title: >
+    The graph view lays out the focus node's tree (refines and has edges, outgoing from the focus, depth from the
 ```
+
+  - statement:mindmap-layout The graph view lays out the focus node's tree (refines and has edges, outgoing from the focus, depth from the preset) with dagre left-to-right, draws remaining structural edges among visible nodes as cross-links, and hides mentions unless the preset is Everything.
 
 <!-- /list:rule -->
 

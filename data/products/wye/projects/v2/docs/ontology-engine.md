@@ -19,102 +19,104 @@ Ontology
 
 ```yaml
 - id: rule:type-tables
-  statement: >
-    A document may hold a table of any type the product declares: the lines between `<!-- table:<slug> -->` and
-    `<!-- /table:<slug> -->` are ordinary prose node lines of that kind (`- bug:<slug> Login fails #open (priority:
-    high, foundIn: 1.2)`) to the parser — so each row is an instance the type page and `wf` see — and an editable
-    table in the editor with a column for status and one per declared property (own and inherited, the root type's
-    left out): an enum property is a select, a bool a checkbox, a ref a text cell holding the id, anything else a
-    text cell. Values live in the line's trailing property group, whose keys may be camelCase like the type's
-    (lib/parse.js grammar). One "Data table" block in the slash menu serves goals, tasks and every own type: its
-    header has the type picker (decision:wf2.one-table-block); a table of a type the product no longer declares
-    keeps its rows with name and status only.
   source: packages/web/src/lib/serialize.ts#collectionMarker; packages/web/src/lib/import.ts#COLLECTION_OPEN; packages/web/src/components/DocEditor.tsx#TypeRow; packages/web/src/lib/props.ts#EXTRA_KEY
   status: shipped
   verified-by: [test:web-lib#import, test:web-lib#props]
   related-to: [rule:goals-and-tasks, req:ontology.type-table, rule:table-rows]
+  title: A document may hold a table of any type the product declares:
+```
+
+  - statement:type-tables A document may hold a table of any type the product declares: the lines between `<!-- table:<slug> -->` and `<!-- /table:<slug> -->` are ordinary prose node lines of that kind (`- bug:<slug> Login fails #open (priority: high, foundIn: 1.2)`) to the parser — so each row is an instance the type page and `wf` see — and an editable table in the editor with a column for status and one per declared property (own and inherited, the root type's left out): an enum property is a select, a bool a checkbox, a ref a text cell holding the id, anything else a text cell. Values live in the line's trailing property group, whose keys may be camelCase like the type's (lib/parse.js grammar). One "Data table" block in the slash menu serves goals, tasks and every own type: its header has the type picker (decision:wf2.one-table-block); a table of a type the product no longer declares keeps its rows with name and status only.
+
+```yaml
 - id: rule:ontology.content
-  statement: >
-    lib/parse.js keeps a stack of open containers — list items, named paragraph lines and the last card of a yaml
-    fence, each with the indent of its defining line; a block belongs to the deepest container shallower than its
-    own indent, else to the heading, and a heading empties the stack. A prose line's continuation lines (no blank
-    line, no list marker, no fence) stay its text; a fence is one block flushed at its closing line; the text of an
-    indented block is de-indented before it is hashed, so a child's id does not depend on its depth. Indented yaml
-    fences open a yaml region like top-level ones, so a card inside content defines its node. type:node declares
-    `content: list of block -(inverse)-> parent`; the parser writes the edge as `has` until every reader moved.
   source: lib/parse.js:368-410 (open, parentFor, flush); lib/parse.js:281; schema/base-ontology.md:23
   status: shipped
+  title: >
+    lib/parse.js keeps a stack of open containers — list items, named paragraph lines and the last card of a yaml
+```
+
+  - statement:ontology.content lib/parse.js keeps a stack of open containers — list items, named paragraph lines and the last card of a yaml fence, each with the indent of its defining line; a block belongs to the deepest container shallower than its own indent, else to the heading, and a heading empties the stack. A prose line's continuation lines (no blank line, no list marker, no fence) stay its text; a fence is one block flushed at its closing line; the text of an indented block is de-indented before it is hashed, so a child's id does not depend on its depth. Indented yaml fences open a yaml region like top-level ones, so a card inside content defines its node. type:node declares `content: list of block -(inverse)-> parent`; the parser writes the edge as `has` until every reader moved.
+
+```yaml
 - id: rule:ontology.open-kinds
-  statement: >
-    The id regex is built per parse from the base kinds plus the slugs of every type: card in the base ontology
-    and the product's documents; the web rebuilds its regex from graph.kinds on the server and in the client
-    provider.
   source: lib/parse.js:188; packages/web/src/lib/ids.ts:8
   status: proposed
+  title: The id regex is built per parse from the base kinds plus the slugs of every type:
+```
+
+  - statement:ontology.open-kinds The id regex is built per parse from the base kinds plus the slugs of every type: card in the base ontology and the product's documents; the web rebuilds its regex from graph.kinds on the server and in the client provider.
+
+```yaml
 - id: rule:ontology.narrow-only
-  statement: >
-    A child type may only narrow an inherited property — make it required or narrow its ref type to a subtype —
-    never widen it; widening, an extends cycle and an unknown parent are wye check errors.
   source: lib/parse.js:168
   status: proposed
+  title: >
+    A child type may only narrow an inherited property — make it required or narrow its ref type to a subtype — ne
+```
+
+  - statement:ontology.narrow-only A child type may only narrow an inherited property — make it required or narrow its ref type to a subtype — never widen it; widening, an extends cycle and an unknown parent are wye check errors.
+
+```yaml
 - id: rule:ontology.open-types
-  statement: >
-    A type is closed unless it says `open: true`: instances of a closed type get an "undeclared property" warning
-    for keys the type does not declare; all base types are open, so existing documents get no new warnings.
   source: lib/graph.js:157; schema/base-ontology.md
   status: proposed
+  title: A type is closed unless it says `open:
+```
+
+  - statement:ontology.open-types A type is closed unless it says `open: true`: instances of a closed type get an "undeclared property" warning for keys the type does not declare; all base types are open, so existing documents get no new warnings.
+
+```yaml
 - id: rule:ontology.inverse-generated
-  statement: >
-    Inverse edges are generated by the parser (generated: true) and never written to markdown; the CLI graph keeps
-    them in out only, the web index drops them and reads inverses from graph.inverses.
   source: lib/parse.js:468; lib/graph.js:14; packages/web/src/lib/graph.ts:24
   status: proposed
+  title: Inverse edges are generated by the parser (generated:
+```
+
+  - statement:ontology.inverse-generated Inverse edges are generated by the parser (generated: true) and never written to markdown; the CLI graph keeps them in out only, the web index drops them and reads inverses from graph.inverses.
+
+```yaml
 - id: rule:ontology.block-id
-  statement: >
-    A block node's id is block:<document slug>.<hash> where hash is the FNV-1a anchor hash of the decoration-free
-    text — identical to the #b-<hash> anchor the web already gives the block.
   source: lib/parse.js:67; packages/web/src/lib/anchors.ts
   status: proposed
+  title: >
+    A block node's id is block:<document slug>.<hash> where hash is the FNV-1a anchor hash of the decoration-free
+```
+
+  - statement:ontology.block-id A block node's id is block:<document slug>.<hash> where hash is the FNV-1a anchor hash of the decoration-free text — identical to the #b-<hash> anchor the web already gives the block.
+
+```yaml
 - id: rule:ontology.hidden-kinds
-  statement: >
-    field, prop and block nodes exist for addressing, links and properties; they are hidden from the rail, the
-    knowledge pages, search (unless the query names block:), the review queue, the semantic index, the node index
-    sent to the browser and the published site (wye site --blocks keeps them).
   source: packages/web/src/lib/graph.ts:14; lib/graph.js; bin/wye-graph.js
   status: proposed
+  title: field, prop and block nodes exist for addressing, links and properties;
+```
+
+  - statement:ontology.hidden-kinds field, prop and block nodes exist for addressing, links and properties; they are hidden from the rail, the knowledge pages, search (unless the query names block:), the review queue, the semantic index, the node index sent to the browser and the published site (wye site --blocks keeps them).
+
+```yaml
 - id: rule:collection-document
-  statement: >
-    A product type's instances collect in one document (req:ontology.instance-home): the first instance written through
-    op:types.add — "+ add" on the type page, the ⌁ picker's NEW NODE from selected text, `wye node add` — creates the
-    type's collection document in the project that declares the type, titled with the type card's `plural:` else the
-    English plural of its name (city → Cities, box → Boxes, test-case → Test cases; lib/instances#pluralTitle), holding
-    one `<!-- table:<slug> -->` block (rule:type-tables), and writes `home: module:<slug>` on the type card (lib/type-edit
-    #setTypeProps) so every later instance lands there; an existing document of that slug is taken as it is and gets
-    the table. A type whose card already names a home keeps it — a row when that document has the type's table, a
-    card otherwise. A base kind has no collection: its card goes to the page the caller names. The route answers with
-    the document (`doc`, `created`, `row`) and every path shows it: the type page's "+ add" and "instances in", the
-    picker's after-note, the CLI's line. The instance's own row never links to itself (lib/link-all).
   source: packages/web/src/app/api/[product]/types/[slug]/route.ts#POST; packages/web/src/lib/instances.ts#pluralTitle; packages/web/src/lib/instances.ts#collectionDoc; packages/web/src/lib/instances.ts#appendRow; lib/parse.js#collectTypes
   status: shipped
   verified-by: [test:instances-web, test:web-lib#link-all]
   governs: [op:types.add, page:web/types, component:add-instance, component:doc-editor]
   related-to: [rule:type-tables, decision:ontology.collection-document]
+  title: A product type's instances collect in one document (req:ontology.instance-home):
+```
+
+  - statement:collection-document A product type's instances collect in one document (req:ontology.instance-home): the first instance written through op:types.add — "+ add" on the type page, the ⌁ picker's NEW NODE from selected text, `wye node add` — creates the type's collection document in the project that declares the type, titled with the type card's `plural:` else the English plural of its name (city → Cities, box → Boxes, test-case → Test cases; lib/instances#pluralTitle), holding one `<!-- table:<slug> -->` block (rule:type-tables), and writes `home: module:<slug>` on the type card (lib/type-edit #setTypeProps) so every later instance lands there; an existing document of that slug is taken as it is and gets the table. A type whose card already names a home keeps it — a row when that document has the type's table, a card otherwise. A base kind has no collection: its card goes to the page the caller names. The route answers with the document (`doc`, `created`, `row`) and every path shows it: the type page's "+ add" and "instances in", the picker's after-note, the CLI's line. The instance's own row never links to itself (lib/link-all).
+
+```yaml
 - id: rule:comment-row
-  statement: >
-    A comment is a row of the Comments document of the project the commented node belongs to (req:ontology.comment-home):
-    `- comment:<node slug>-<4 hex> <text on one line> (on: <id>, by: <who>, date: <yyyy-mm-dd>)` inside that document's
-    `<!-- table:comment -->` block — the document is type:comment's collection document, `comments.md` in the project's
-    docs, created from the blank template on the project's first comment. `on` is the ref property of type:comment
-    (schema/base-ontology.md), so the node's comments are its inverse edge `comments`; a `#` or a trailing parenthesis
-    in the text is softened so the line stays one node. The comment is never nested under the node. `by` is the
-    caller's name, `agent:<session>` for a session, else "person"; the writer claims the write so the change record
-    names it.
   source: packages/web/src/lib/comments.ts#commentRow; packages/web/src/lib/comments.ts#addComment; packages/web/src/app/api/[product]/comments/route.ts; schema/base-ontology.md
   status: shipped
   verified-by: [test:comments-web]
   governs: [op:api.comments, component:comments, lib:comments]
   related-to: [decision:ontology.comment-is-a-ref, rule:collection-document]
+  title: A comment is a row of the Comments document of the project the commented node belongs to
 ```
+
+  - statement:comment-row A comment is a row of the Comments document of the project the commented node belongs to (req:ontology.comment-home): `- comment:<node slug>-<4 hex> <text on one line> (on: <id>, by: <who>, date: <yyyy-mm-dd>)` inside that document's `<!-- table:comment -->` block — the document is type:comment's collection document, `comments.md` in the project's docs, created from the blank template on the project's first comment. `on` is the ref property of type:comment (schema/base-ontology.md), so the node's comments are its inverse edge `comments`; a `#` or a trailing parenthesis in the text is softened so the line stays one node. The comment is never nested under the node. `by` is the caller's name, `agent:<session>` for a session, else "person"; the writer claims the write so the change record names it.
 
 <!-- /list:rule -->
 

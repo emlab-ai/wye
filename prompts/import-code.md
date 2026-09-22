@@ -29,7 +29,7 @@ one by one. Ids: `<kind>:<page-slug>.<short-slug>`.
    not, `question` when you cannot tell; `refines` where one narrows another; `satisfied-by:` the `lib:` / `op:` /
    `component:` cards below that deliver it; `verified-by:` its tests.
 3. **Rules** — `## Rules`, `rule:` cards for what the code guarantees — validations, invariants, calculations,
-   limits — each with `statement:` and `source: <file>#<symbol>`; `governs:` the requirement or entity it protects.
+   limits — each with `source: <file>#<symbol>` on the card, its statement as a `- statement:<slug> …` line under it (what it says lives in content, like a requirement's when / then), and `governs:` the requirement or entity it protects.
    A calculation is a rule with the formula in its statement.
 4. **Entities and states** — `## Entities`, `entity:` cards for the things the module keeps (`fields:`, `source:`),
    `state:` cards for their state machines (`states:`, `transitions:`), `value:` for enums.

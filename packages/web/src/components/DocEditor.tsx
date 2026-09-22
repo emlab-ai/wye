@@ -1252,6 +1252,8 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const PARTS: Record<string, [string, string][]> = {
     decision: [['context', 'what forced it'], ['choice', 'what was chosen, and why'], ['alternative', 'a way not taken, and why not'], ['consequence', 'what follows']],
     req: [['when', 'the trigger — when …'], ['then', 'the outcome — the person gets …'], ['unless', 'the exception — unless …']],
+    constraint: [['statement', 'what must hold'], ['scope', 'where it applies'], ['rationale', 'why']],
+    rule: [['statement', 'what the code guarantees'], ['note', 'a remark']],
   };
   const nodeItems = [...CARD_KINDS, ...ownKinds].map(kind => ({
     title: `${kind} block`, group: 'Wye', subtext: PARTS[kind] ? `a new ${kind} with its ${PARTS[kind].map(([k]) => k).join(', ')} blocks under it` : `a new ${kind} written as prose`,

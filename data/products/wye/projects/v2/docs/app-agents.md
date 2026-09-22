@@ -47,218 +47,153 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
 ```yaml
 - id: rule:block-attribution
-  statement: >
-    Attribution is per block and derived. The watcher keeps the graph as it last saw it; after every rebuild it
-    diffs that against the new build (lib:graph-diff) and records the added / changed / removed nodes — typed blocks
-    and block: paragraphs — as `artifacts.blocks` on every session whose recorded status is running (mergeBlocks:
-    one entry per block; added then changed stays added, added then removed disappears). A node PUT with
-    x-wf-session records the block as changed on that session at once. The app's own task-link writes (session,
-    produced) are invisible to the diff. The console's knowledge row marks each tag + ~ − and counts paragraphs;
-    the session strip shows +n ~n −n n¶ and links the changes page. No document is rewritten for attribution
-    (decision:wf2.attribution-derived-not-written).
   source: packages/web/src/lib/watch.ts; packages/web/src/lib/graph-diff.ts; packages/web/src/lib/artifacts.ts#mergeBlocks; packages/web/src/app/api/[product]/node/[id]/route.ts; packages/web/src/lib/agent-host.ts#reportKnowledge
   status: shipped
   verified-by: [test:web-lib#graph-diff, ui-test:session-changes]
   related-to: [rule:task-artifacts, req:wf2.sessions.block-attribution]
+  title: Attribution is per block and derived.
+```
+
+  - statement:block-attribution Attribution is per block and derived. The watcher keeps the graph as it last saw it; after every rebuild it diffs that against the new build (lib:graph-diff) and records the added / changed / removed nodes — typed blocks and block: paragraphs — as `artifacts.blocks` on every session whose recorded status is running (mergeBlocks: one entry per block; added then changed stays added, added then removed disappears). A node PUT with x-wf-session records the block as changed on that session at once. The app's own task-link writes (session, produced) are invisible to the diff. The console's knowledge row marks each tag + ~ − and counts paragraphs; the session strip shows +n ~n −n n¶ and links the changes page. No document is rewritten for attribution (decision:wf2.attribution-derived-not-written).
+
+```yaml
 - id: rule:session-page
-  statement: >
-    The session page is computed, never stored: lib:session-page joins the session record with the current graph on
-    every render and on every graph or session change while the session is live. Todo rows are the tasks the session
-    added or changed (artifacts.blocks), the tasks among its refs and the tasks whose `session:` names it — once each,
-    in that order — with `done` read from the graph now; the check box is read-only (the document or the task's card
-    changes it). Every other block is grouped by kind (req, decision, question, rule, goal, page, component, … then
-    alphabetical) with its status now; paragraphs are a count with a link to the changes page; "plan on" is every
-    `open` event of the transcript, latest first, once per path. The transcript and the log are left out of the
-    page's payload.
   source: packages/web/src/lib/session-page.ts; packages/web/src/app/[product]/sessions/[id]/page.tsx; packages/web/src/app/api/[product]/sessions/[id]/page/route.ts; packages/web/src/components/SessionPage.tsx
   status: shipped
   verified-by: [test:web-lib#session-page, ui-test:session-page]
   related-to: [rule:block-attribution, decision:wf2.session-page-derived]
+  title: The session page is computed, never stored:
+```
+
+  - statement:session-page The session page is computed, never stored: lib:session-page joins the session record with the current graph on every render and on every graph or session change while the session is live. Todo rows are the tasks the session added or changed (artifacts.blocks), the tasks among its refs and the tasks whose `session:` names it — once each, in that order — with `done` read from the graph now; the check box is read-only (the document or the task's card changes it). Every other block is grouped by kind (req, decision, question, rule, goal, page, component, … then alphabetical) with its status now; paragraphs are a count with a link to the changes page; "plan on" is every `open` event of the transcript, latest first, once per path. The transcript and the log are left out of the page's payload.
+
+```yaml
 - id: rule:agent-slots
   title: agent-slots
-  statement: >
-    Worker sessions the app hosts never exceed Settings › Agents › parallel runners, whoever starts them — a task
-    assignment, a hook, an import, the PR dispatcher: `startChat` (lib/agent-host) counts the live worker sessions
-    (a librarian conversation is the person talking and is not counted; a resume is not a new slot) and a start
-    that finds every slot taken leaves the session `queued` with "waiting for a slot — n of N agents running"; the
-    oldest queued worker starts when any session ends (onSessionEnd, key agent-slots). A terminal status set from
-    outside — Cancel on the session page, `wye session done | fail` — ends the hosted process (stopChat, hard:
-    SIGKILL after the grace) and takes the session out of the slot queue, so no agent outlives its session. The
-    count is per machine, across products. A task whose own page is the work — an import, a hook's task under a
-    node — is assigned with `page: true` and gets no request page: the session's first message names the page
-    to fill instead (decision:wf2.import-code-is-a-session).
   source: packages/web/src/lib/agent-host.ts#startChat
   status: shipped
   verified-by: [test:web-lib#agent-host]
   related-to: [rule:agent-sessions, decision:wf2.pr-scheduler, decision:wf2.import-code-is-a-session]
+```
+
+  - statement:agent-slots Worker sessions the app hosts never exceed Settings › Agents › parallel runners, whoever starts them — a task assignment, a hook, an import, the PR dispatcher: `startChat` (lib/agent-host) counts the live worker sessions (a librarian conversation is the person talking and is not counted; a resume is not a new slot) and a start that finds every slot taken leaves the session `queued` with "waiting for a slot — n of N agents running"; the oldest queued worker starts when any session ends (onSessionEnd, key agent-slots). A terminal status set from outside — Cancel on the session page, `wye session done | fail` — ends the hosted process (stopChat, hard: SIGKILL after the grace) and takes the session out of the slot queue, so no agent outlives its session. The count is per machine, across products. A task whose own page is the work — an import, a hook's task under a node — is assigned with `page: true` and gets no request page: the session's first message names the page to fill instead (decision:wf2.import-code-is-a-session).
+
+```yaml
 - id: rule:app-link
   title: app-link
-  statement: >
-    `appLink(href, origin)` (lib/app-link.ts) decides whether a URL is this app's and what it points at; it is pure:
-    the origin comes from the page (window.location.origin) and localhost / 127.0.0.1 on the same port count as
-    the app as well. Every transcript renderer (component:console, component:session-page) goes through
-    component:transcript-markdown, which maps `a` to that decision and adds lib:remark-tags; no transcript renders
-    its own `<a>`. The desktop's `will-navigate` handler opens every URL outside the app's origin externally, so
-    an in-app click is the only way to leave a page. The plain-text form (`plainAppLinks`) labels the same URLs
-    where no tag can render: the session page's title and the Agents rows.
   source: packages/web/src/lib/app-link.ts:1
   status: shipped
   related-to: [rule:session-page, decision:wf2.desktop-electron]
+```
+
+  - statement:app-link `appLink(href, origin)` (lib/app-link.ts) decides whether a URL is this app's and what it points at; it is pure: the origin comes from the page (window.location.origin) and localhost / 127.0.0.1 on the same port count as the app as well. Every transcript renderer (component:console, component:session-page) goes through component:transcript-markdown, which maps `a` to that decision and adds lib:remark-tags; no transcript renders its own `<a>`. The desktop's `will-navigate` handler opens every URL outside the app's origin externally, so an in-app click is the only way to leave a page. The plain-text form (`plainAppLinks`) labels the same URLs where no tag can render: the session page's title and the Agents rows.
+
+```yaml
 - id: rule:pr-type-base
-  statement: >
-    type:pr is declared in schema/base-ontology.md, read first for every product, so a PR page (`node: pr:<slug>`)
-    parses in any product: the app writes PR pages wherever a request is made, and a type the app writes instances
-    of is never a product-local card. schema/kinds.yaml lists pr as a base kind.
   source: schema/base-ontology.md; schema/kinds.yaml; lib/parse.js#parseFiles
   status: shipped
   verified-by: [test:page-node]
   related-to: [rule:pr-doc, rule:page-node-line, rule:ontology.open-kinds]
+  title: type:pr is declared in schema/base-ontology.md, read first for every product, so a PR page (`node:
+```
+
+  - statement:pr-type-base type:pr is declared in schema/base-ontology.md, read first for every product, so a PR page (`node: pr:<slug>`) parses in any product: the app writes PR pages wherever a request is made, and a type the app writes instances of is never a product-local card. schema/kinds.yaml lists pr as a base kind.
+
+```yaml
 - id: rule:pr-doc
-  statement: >
-    The PR page is written, not derived: lib:pr-doc makes the slug (`pr-` + the first words of the request
-    slugified, `-2`, `-3` on a collision in the project), the body from templates/docs/pr.md (frontmatter `node:
-    pr:<slug>`, `type: pr`, `session`, `agent`, `started`, `status`, `part-of: module:<project>-prs`; Request /
-    Context / Definition / Impact / Tasks / Result), the Result section from the session's summary and the
-    artifacts.blocks inside the PR's window (`started`…`finished`, minus the PR's own page and the PRs page), the
-    readiness list from the Definition and the Tasks (`readiness`), and a session's PRs from the graph (`prsOf`:
-    pr nodes whose `session` names the id, oldest first, tasks `part of` the PR counted). lib/pr-docs does the IO:
-    `ensurePrsPage` writes `prs.md` when missing; `createPrDoc` runs only for a person's request — a PR session
-    (⌘P in PR mode, Ask Wye — born refining) and every fresh request the person types into a PR conversation
-    (agent-host#restartFresh, after `closePrDoc` cancelled the PR the session left unfinished) — and stores `prDoc`
-    (a stored `planDoc` is read as prDoc); an assigned task, a hook's task, an import and an ad-hoc conversation
-    get no page (constraint:wf2.pr-is-the-persons): their session works on the task's own document.
-    `finishPrDoc` runs from lib:sessions' end hook (done / failed / cancelled) and rewrites Result; a librarian
-    leaving puts a refining PR back to draft; `adoptPrDoc` adds a handed-off session's id to `session`;
-    `approvePr` / `cancelPr` / `reopenPr` are the person's moves. The first message carries "The request page"
-    (agent-host#refiningNote for a librarian, #prDocNote for a worker: where it is, what goes where). The sessions
-    API answers each session with `prs` (SessionPr[]). `/<product>/sessions/<id>` redirects to the current PR page
-    when the session has one, else to `/changes`.
   source: packages/web/src/lib/pr-doc.ts; packages/web/src/lib/pr-docs.ts; packages/web/src/lib/sessions.ts#onSessionEnd; packages/web/src/app/api/[product]/sessions/route.ts; packages/web/src/lib/agent-host.ts#prDocNote; packages/web/src/lib/agent-host.ts#refiningNote; packages/web/src/lib/agent-host.ts#restartFresh; templates/docs/pr.md
   status: shipped
   verified-by: [test:web-lib#pr-doc, test:web-lib#pr-docs, ui-test:plan-doc]
   related-to: [rule:embed-line, rule:block-attribution, decision:wf2.pr-lifecycle]
+  title: The PR page is written, not derived:
+```
+
+  - statement:pr-doc The PR page is written, not derived: lib:pr-doc makes the slug (`pr-` + the first words of the request slugified, `-2`, `-3` on a collision in the project), the body from templates/docs/pr.md (frontmatter `node: pr:<slug>`, `type: pr`, `session`, `agent`, `started`, `status`, `part-of: module:<project>-prs`; Request / Context / Definition / Impact / Tasks / Result), the Result section from the session's summary and the artifacts.blocks inside the PR's window (`started`…`finished`, minus the PR's own page and the PRs page), the readiness list from the Definition and the Tasks (`readiness`), and a session's PRs from the graph (`prsOf`: pr nodes whose `session` names the id, oldest first, tasks `part of` the PR counted). lib/pr-docs does the IO: `ensurePrsPage` writes `prs.md` when missing; `createPrDoc` runs only for a person's request — a PR session (⌘P in PR mode, Ask Wye — born refining) and every fresh request the person types into a PR conversation (agent-host#restartFresh, after `closePrDoc` cancelled the PR the session left unfinished) — and stores `prDoc` (a stored `planDoc` is read as prDoc); an assigned task, a hook's task, an import and an ad-hoc conversation get no page (constraint:wf2.pr-is-the-persons): their session works on the task's own document. `finishPrDoc` runs from lib:sessions' end hook (done / failed / cancelled) and rewrites Result; a librarian leaving puts a refining PR back to draft; `adoptPrDoc` adds a handed-off session's id to `session`; `approvePr` / `cancelPr` / `reopenPr` are the person's moves. The first message carries "The request page" (agent-host#refiningNote for a librarian, #prDocNote for a worker: where it is, what goes where). The sessions API answers each session with `prs` (SessionPr[]). `/<product>/sessions/<id>` redirects to the current PR page when the session has one, else to `/changes`.
+
+```yaml
 - id: rule:column-frame
-  statement: >
-    The context column is a flex column: `.peek-nav` (the bar) is fixed at the top, `.peek-body` is the one scroll
-    container under it, and a session's `.console-input` is `position: sticky; bottom: 0` inside it, so the session
-    header and the conversation scroll as one under the bar and above the message box. The console has no height and
-    no scroll of its own; the conversation's stick-to-bottom follows the nearest scroll ancestor.
   source: packages/web/src/app/globals.css (.peek, .peek-nav, .peek-body, .console, .console-input); packages/web/src/components/Console.tsx
   status: shipped
+  title: The context column is a flex column:
+```
+
+  - statement:column-frame The context column is a flex column: `.peek-nav` (the bar) is fixed at the top, `.peek-body` is the one scroll container under it, and a session's `.console-input` is `position: sticky; bottom: 0` inside it, so the session header and the conversation scroll as one under the bar and above the message box. The console has no height and no scroll of its own; the conversation's stick-to-bottom follows the nearest scroll ancestor.
+
+```yaml
 - id: rule:content-editor
-  statement: >
-    `DocEditor` takes a `scope` — a node id. Scoped, it loads the node's text as its first block and the content
-    markdown under it (given by `NodeContent` from op:node.content with the document's hash) through the same
-    import as a page, and saves with PUT …/node/<id>/content under that hash — the first block's inline text as
-    `text`, the rest as `content` (decision:wf2.text-is-first-block); it publishes no editing context and never clears the selected node, so
-    the column keeps showing the node whose content it edits; the half-wipe guard and the dev handles are the
-    page's only. A block asks its own editor through a DOM event (`emit`: wf:select, wf:peek) that bubbles to the
-    editor's container — two editors on one page never hear each other — and in a scoped editor a select opens
-    the child on the chip stack instead of selecting it at the root (decision:ontology.depth-by-navigation); an
-    embedded card reads the same scope from `EditorScope`. The page editor ignores a block change while it has no
-    focus (a reload after the column saved), so the selected node survives the refetch. `NodeContent` refetches on
-    every graph change; the editor ignores a refetch while its own save is pending.
   source: packages/web/src/components/DocEditor.tsx:527 (scope, rootRef, publishContext, save); packages/web/src/components/PeekPanel.tsx:157; packages/web/src/components/EditorScope.ts; packages/web/src/components/EmbedBlock.tsx
   status: shipped
+  title: >
+    `DocEditor` takes a `scope` — a node id.
+```
+
+  - statement:content-editor `DocEditor` takes a `scope` — a node id. Scoped, it loads the node's text as its first block and the content markdown under it (given by `NodeContent` from op:node.content with the document's hash) through the same import as a page, and saves with PUT …/node/<id>/content under that hash — the first block's inline text as `text`, the rest as `content` (decision:wf2.text-is-first-block); it publishes no editing context and never clears the selected node, so the column keeps showing the node whose content it edits; the half-wipe guard and the dev handles are the page's only. A block asks its own editor through a DOM event (`emit`: wf:select, wf:peek) that bubbles to the editor's container — two editors on one page never hear each other — and in a scoped editor a select opens the child on the chip stack instead of selecting it at the root (decision:ontology.depth-by-navigation); an embedded card reads the same scope from `EditorScope`. The page editor ignores a block change while it has no focus (a reload after the column saved), so the selected node survives the refetch. `NodeContent` refetches on every graph change; the editor ignores a refetch while its own save is pending.
+
+```yaml
 - id: rule:agent-sessions
-  statement: >
-    Any block can be sent to an agent: "Send to agent" sits in every block's drag-handle menu, on node block headers,
-    on goal/task table rows and in the right column's node view. It opens the one command box (component:command-box,
-    the same ⌘P opens — decision:wf2.one-command-box) with the block text and the ids it defines or links prefilled;
-    the request starts a new conversation by default — with the agent (Claude Code, Codex, the Waterfall clerk) and
-    the working folder used last, and plan-first (rule:clean-slate) — or goes into a live conversation chosen in
-    "to", whose agent restarts from nothing first when "clear context first" is ticked; sending creates
-    a session (`data/products/<product>/_sessions/<id>.json`, status queued, gitignored) and opens it in the right
-    column, which shows the instruction, refs, status and a log that is polled while the session is queued or
-    running. The Agents page lists sessions (active first). Runners update a session with PATCH { status, line,
-    result }.
   source: packages/web/src/components/CommandBox.tsx; packages/web/src/components/SessionView.tsx; packages/web/src/lib/sessions.ts; packages/web/src/app/api/[product]/sessions
   status: shipped
+  title: Any block can be sent to an agent:
+```
+
+  - statement:agent-sessions Any block can be sent to an agent: "Send to agent" sits in every block's drag-handle menu, on node block headers, on goal/task table rows and in the right column's node view. It opens the one command box (component:command-box, the same ⌘P opens — decision:wf2.one-command-box) with the block text and the ids it defines or links prefilled; the request starts a new conversation by default — with the agent (Claude Code, Codex, the Waterfall clerk) and the working folder used last, and plan-first (rule:clean-slate) — or goes into a live conversation chosen in "to", whose agent restarts from nothing first when "clear context first" is ticked; sending creates a session (`data/products/<product>/_sessions/<id>.json`, status queued, gitignored) and opens it in the right column, which shows the instruction, refs, status and a log that is polled while the session is queued or running. The Agents page lists sessions (active first). Runners update a session with PATCH { status, line, result }.
+
+```yaml
 - id: rule:agent-runner
-  statement: >
-    External agents connect through the `wf` CLI (bin/wye.js) against the running web app. `wye agent listen --product
-    p --agent claude-code|codex` registers a runner (heartbeat every 10 s to /api/<product>/runners, entries expire
-    after 30 s), claims the oldest queued session for its agent (POST /sessions/claim, first come first served),
-    builds a prompt (instruction + every ref and the source link resolved to text + how to talk back), runs the
-    agent command with the prompt on stdin (`claude -p …` / `codex exec …`, overridable with --cmd), streams every
-    output line into the session log, and marks the session done or failed from the exit code. Agents read and write
-    through `wye resolve|doc|node|context|node set|doc write|session log|done|fail|handoff`. A hand-off creates a
-    queued child session for another agent carrying the instruction, refs, log tail and result; the parent is
-    cancelled if still active and both are linked. `/wye-restore <id>` picks a session up interactively (`wye session
-    take`). The Sessions page shows runners online, how many are working, and every session's live log.
   source: bin/wye.js; packages/web/src/lib/sessions.ts; skills/wye-agent/SKILL.md; skills/wye-restore/SKILL.md
   status: shipped
+  title: External agents connect through the `wf` CLI (bin/wye.js) against the running web app.
+```
+
+  - statement:agent-runner External agents connect through the `wf` CLI (bin/wye.js) against the running web app. `wye agent listen --product p --agent claude-code|codex` registers a runner (heartbeat every 10 s to /api/<product>/runners, entries expire after 30 s), claims the oldest queued session for its agent (POST /sessions/claim, first come first served), builds a prompt (instruction + every ref and the source link resolved to text + how to talk back), runs the agent command with the prompt on stdin (`claude -p …` / `codex exec …`, overridable with --cmd), streams every output line into the session log, and marks the session done or failed from the exit code. Agents read and write through `wye resolve|doc|node|context|node set|doc write|session log|done|fail|handoff`. A hand-off creates a queued child session for another agent carrying the instruction, refs, log tail and result; the parent is cancelled if still active and both are linked. `/wye-restore <id>` picks a session up interactively (`wye session take`). The Sessions page shows runners online, how many are working, and every session's live log.
+
+```yaml
 - id: rule:agent-host
-  statement: >
-    Chat sessions are hosted by the app: the server spawns the agent as a child process (Claude Code with
-    `-p --input-format stream-json --output-format stream-json --permission-prompt-tool stdio`, Codex with
-    `codex exec --json`, one process per turn resumed by thread id, spawned with stdin closed — `codex exec` appends
-    a piped stdin to the prompt and waits for its EOF, so an open pipe hung every turn with no output until
-    2026-09-20; a failed turn's message is the turn's error, said once), keeps the conversation open, normalises the
-    agent's events into ChatEvents (user, assistant, thinking, tool_use, tool_result, result, permission, stderr,
-    exit), persists them to the session transcript and streams them to the UI over server-sent events. The console
-    in the right column shows the transcript live (rule:console-flow), renders the agent's questions as forms and
-    other permission requests as Allow/Deny cards (rule:agent-questions), offers Stop, and Resume (which restarts
-    Claude Code with --resume and its own session id). Stop (console or Agents row) ends the process and records
-    the session done with "stopped by the user — Resume or a message continues with the same context"; Close
-    (Agents row) ends the process, drops the waiting items and records cancelled — a cancelled conversation does not
-    resume on a plain message, only on a fresh one or Resume (req:wf2.sessions.stop-from-list). A stopped process
-    counts as gone at once (`Live.stopped`: isLive false, the pump quiet, the exit handler leaves the status alone). Sending a message while a turn runs queues it. The host
-    lives on globalThis so dev reloads do not orphan processes; agents die with the server, and the desktop app owns
-    the server. The host does not ask Claude to replay user messages (no --replay-user-messages) and the transcript
-    drops a user event that repeats the previous one before the turn ended (dedupeUserEvents), because a turn has
-    exactly one user message. A running agent process keeps the arguments and the stdout handler it was spawned
-    with: a host code change reaches a session only when its process restarts (Stop / Resume).
   source: packages/web/src/lib/agent-host.ts; packages/web/src/components/Console.tsx; packages/web/src/app/api/[product]/sessions/[id]/{stream,message,control}/route.ts
   status: shipped
+  title: Chat sessions are hosted by the app:
+```
+
+  - statement:agent-host Chat sessions are hosted by the app: the server spawns the agent as a child process (Claude Code with `-p --input-format stream-json --output-format stream-json --permission-prompt-tool stdio`, Codex with `codex exec --json`, one process per turn resumed by thread id, spawned with stdin closed — `codex exec` appends a piped stdin to the prompt and waits for its EOF, so an open pipe hung every turn with no output until 2026-09-20; a failed turn's message is the turn's error, said once), keeps the conversation open, normalises the agent's events into ChatEvents (user, assistant, thinking, tool_use, tool_result, result, permission, stderr, exit), persists them to the session transcript and streams them to the UI over server-sent events. The console in the right column shows the transcript live (rule:console-flow), renders the agent's questions as forms and other permission requests as Allow/Deny cards (rule:agent-questions), offers Stop, and Resume (which restarts Claude Code with --resume and its own session id). Stop (console or Agents row) ends the process and records the session done with "stopped by the user — Resume or a message continues with the same context"; Close (Agents row) ends the process, drops the waiting items and records cancelled — a cancelled conversation does not resume on a plain message, only on a fresh one or Resume (req:wf2.sessions.stop-from-list). A stopped process counts as gone at once (`Live.stopped`: isLive false, the pump quiet, the exit handler leaves the status alone). Sending a message while a turn runs queues it. The host lives on globalThis so dev reloads do not orphan processes; agents die with the server, and the desktop app owns the server. The host does not ask Claude to replay user messages (no --replay-user-messages) and the transcript drops a user event that repeats the previous one before the turn ended (dedupeUserEvents), because a turn has exactly one user message. A running agent process keeps the arguments and the stdout handler it was spawned with: a host code change reaches a session only when its process restarts (Stop / Resume).
+
+```yaml
 - id: rule:session-queue
-  statement: >
-    Every message to a chat session goes through the session's persistent queue (items with id, text, refs, link,
-    images, fresh, plan, addedAt, sentAt, doneAt, failedAt, error in the session file). The host hands the next item
-    to the agent as soon as it is idle — one item per turn, or every pending item joined into one message when the
-    session's batch mode is "all", but a fresh item always alone (nextTake: a batch stops before it) — and a
-    resumed agent takes what waited. An item's state is derived from its stamps (queueState: waiting → working →
-    done | failed, decision:wf2.queue-item-state): the host remembers the ids it handed to the open turn
-    (`Live.turn`) and stamps them on the turn's `result` (failed when is_error), on a process exit during the turn
-    (failed, "agent exited with N during the turn") and on a Codex turn's close. The console's queue panel and the
-    Agents row show every item with its state (component:queue-list): working first, waiting in order — each with
-    its fresh/keep toggle and a remove button — the finished ones folded under "n done"; the summary reads
-    "1 working · 2 waiting · 5 done". All session mutations (queue, transcript, status, log) run under the session
-    file's lock with unique temp names, because concurrent read-modify-write cycles corrupted a file once.
   source: packages/web/src/lib/sessions.ts#enqueue; packages/web/src/lib/sessions.ts#markTurnEnd; packages/web/src/lib/session-types.ts#nextTake; packages/web/src/lib/agent-host.ts#pump; packages/web/src/components/QueueList.tsx
   status: shipped
+  title: >
+    Every message to a chat session goes through the session's persistent queue (items with id, text, refs, link,
+```
+
+  - statement:session-queue Every message to a chat session goes through the session's persistent queue (items with id, text, refs, link, images, fresh, plan, addedAt, sentAt, doneAt, failedAt, error in the session file). The host hands the next item to the agent as soon as it is idle — one item per turn, or every pending item joined into one message when the session's batch mode is "all", but a fresh item always alone (nextTake: a batch stops before it) — and a resumed agent takes what waited. An item's state is derived from its stamps (queueState: waiting → working → done | failed, decision:wf2.queue-item-state): the host remembers the ids it handed to the open turn (`Live.turn`) and stamps them on the turn's `result` (failed when is_error), on a process exit during the turn (failed, "agent exited with N during the turn") and on a Codex turn's close. The console's queue panel and the Agents row show every item with its state (component:queue-list): working first, waiting in order — each with its fresh/keep toggle and a remove button — the finished ones folded under "n done"; the summary reads "1 working · 2 waiting · 5 done". All session mutations (queue, transcript, status, log) run under the session file's lock with unique temp names, because concurrent read-modify-write cycles corrupted a file once.
+
+```yaml
 - id: rule:subagents-in-console
-  statement: >
-    Claude Code runs with --forward-subagent-text; events produced inside a subagent carry the parent tool use id
-    and the console nests them, collapsible, under the Task call that started them, with the subagent type,
-    description, event and tool-call counts and whether it has finished (the parent's tool_result arrived).
   source: packages/web/src/lib/agent-host.ts#onClaudeLine; packages/web/src/components/Console.tsx#Subagent
   status: shipped
+  title: Claude Code runs with --forward-subagent-text;
+```
+
+  - statement:subagents-in-console Claude Code runs with --forward-subagent-text; events produced inside a subagent carry the parent tool use id and the console nests them, collapsible, under the Task call that started them, with the subagent type, description, event and tool-call counts and whether it has finished (the parent's tool_result arrived).
+
+```yaml
 - id: rule:agent-questions
-  statement: >
-    An agent's question (Claude Code's AskUserQuestion, which arrives as a permission request over the stdio
-    permission channel) is rendered as a question card, never as a permission dump: header, question, options as
-    choice buttons with descriptions (multi-select when asked, an "Other…" free-text row, text and number kinds).
-    Answer is enabled once every question has a value and returns the choices to the agent inside the tool input as
-    `answers: { "<question>": "<label>" }` (multi-select comma-separated) — the shape Claude Code reads; Skip denies
-    the request and the agent goes on without an answer. An answered card shows what was chosen; a permission
-    answered without answers reads "allowed without an answer". Every other permission request shows the tool and
-    what it wants to do (the command, the file) with the raw input folded away, and Allow/Deny. Nothing answers a
-    permission on the person's behalf.
   source: packages/web/src/components/AskQuestions.tsx; packages/web/src/components/Console.tsx#Event; packages/web/src/lib/agent-host.ts#answerPermission
   status: proposed
+  title: >
+    An agent's question (Claude Code's AskUserQuestion, which arrives as a permission request over the stdio permi
+```
+
+  - statement:agent-questions An agent's question (Claude Code's AskUserQuestion, which arrives as a permission request over the stdio permission channel) is rendered as a question card, never as a permission dump: header, question, options as choice buttons with descriptions (multi-select when asked, an "Other…" free-text row, text and number kinds). Answer is enabled once every question has a value and returns the choices to the agent inside the tool input as `answers: { "<question>": "<label>" }` (multi-select comma-separated) — the shape Claude Code reads; Skip denies the request and the agent goes on without an answer. An answered card shows what was chosen; a permission answered without answers reads "allowed without an answer". Every other permission request shows the tool and what it wants to do (the command, the file) with the raw input folded away, and Allow/Deny. Nothing answers a permission on the person's behalf.
+
+```yaml
 - id: rule:agent-contract
-  statement: >
-    Every agent Waterfall starts receives the Waterfall contract as its system prompt (prompts/agent-system.md, plus
-    data/products/<product>/_agent.md, served at /api/<product>/agent-prompt): read Waterfall before acting (wf
-    context / resolve / doc, wye graph packet), cite node ids, and record knowledge — every decision made by the person
-    or the agent above all, plus new requirements, rules and questions — in the product inbox with `wye inbox add`,
-    never directly into the documents. Statuses of existing nodes may be set directly. Claude Code gets it via
-    --append-system-prompt (+ --add-dir for the Waterfall repo); Codex gets it on top of the first turn; runners
-    fetch it from the API.
   source: prompts/agent-system.md; packages/web/src/lib/agent-prompt.ts; packages/web/src/lib/agent-host.ts; bin/wye.js
   status: shipped
+  title: >
+    Every agent Waterfall starts receives the Waterfall contract as its system prompt (prompts/agent-system.md, pl
 ```
+
+  - statement:agent-contract Every agent Waterfall starts receives the Waterfall contract as its system prompt (prompts/agent-system.md, plus data/products/<product>/_agent.md, served at /api/<product>/agent-prompt): read Waterfall before acting (wf context / resolve / doc, wye graph packet), cite node ids, and record knowledge — every decision made by the person or the agent above all, plus new requirements, rules and questions — in the product inbox with `wye inbox add`, never directly into the documents. Statuses of existing nodes may be set directly. Claude Code gets it via --append-system-prompt (+ --add-dir for the Waterfall repo); Codex gets it on top of the first turn; runners fetch it from the API.
 
 <!-- /list:rule -->
 

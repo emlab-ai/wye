@@ -13,7 +13,7 @@ import { STATUSES, GOAL_STATUSES, TASK_STATUSES } from '@/lib/props';
 
 // The keys a card's main text lives under (the same order the server's patchYamlCard uses)
 const TEXT_KEYS = ['text', 'statement', 'description', 'purpose', 'q', 'title'];
-const HIDDEN = new Set(['id', 'title', 'status', 'session']);
+const HIDDEN = new Set(['id', 'title', 'status', 'session', 'statement', 'note', 'when', 'then', 'unless', 'context', 'choice', 'alternatives', 'consequences']);   // part kinds: the text lives in child blocks (decision:wf2.parts-are-content), never in a property row
 // tracking fields of goals and tasks, shown as property rows like any other (component:track-editor folded in here)
 const TRACK: Record<string, { name: string; type: string }[]> = {
   goal: [{ name: 'target', type: 'month' }, { name: 'owner', type: 'string' }, { name: 'progress', type: 'progress' }, { name: 'part-of', type: 'ref goal' }],

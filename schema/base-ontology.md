@@ -82,7 +82,10 @@ type means instances may carry properties the type does not declare without a wa
     shipped requires verified-by
 - id: type:rule
   extends: type:node
-  purpose: an invariant, constraint, validation or policy — how a behaviour is guaranteed
+  purpose: >
+    an invariant, constraint, validation or policy — how a behaviour is guaranteed. Its text is content: a
+    `statement:` child block (and `note:` ones) under the card (decision:wf2.parts-are-content); `statement` as a
+    key is the old form, read but never written
   open: true
   props:
     statement: text?
@@ -243,14 +246,33 @@ type means instances may carry properties the type does not declare without a wa
   extends: type:node
   purpose: what follows from a decision — a child block of it
   open: true
+- id: type:statement
+  extends: type:node
+  purpose: what a constraint or a rule says — a child block of it (decision:wf2.parts-are-content)
+  open: true
+- id: type:scope
+  extends: type:node
+  purpose: where a constraint or a rule applies, in words — a child block of it (ids go in the card's `scope:` links)
+  open: true
+- id: type:rationale
+  extends: type:node
+  purpose: why a constraint or a rule holds — a child block of it
+  open: true
+- id: type:note
+  extends: type:node
+  purpose: a remark under a rule, a constraint or any node — a child block of it
+  open: true
 - id: type:constraint
   extends: type:node
   purpose: >
     a rule about the product or how it is built that no code enforces — "local-first", "markdown is canonical";
-    the approved ones are the constitution every agent prompt carries (decision:memory.constraint-type)
+    the approved ones are the constitution every agent prompt carries (decision:memory.constraint-type). Its text
+    is content: `statement:`, `scope:` (in words) and `rationale:` child blocks under the card, each a block the
+    person edits or deletes (decision:wf2.parts-are-content); `statement` as a key on the card is the old form,
+    read but never written; `scope:` with ids stays a link
   open: true
   props:
-    statement: text
+    statement: text?
     scope: list of node? -(inverse)-> constrained-by
     rationale: ref decision? -(inverse)-> rationale-for
   shapes:

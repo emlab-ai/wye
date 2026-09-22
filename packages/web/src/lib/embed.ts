@@ -8,7 +8,15 @@ import type { CardP } from '@/components/NodeCards';
 
 export type ApiNode = { id: string; kind: string; status: string; body: string; form?: string; file?: string; title?: string };
 
-export function cardFromNode(n: ApiNode): CardP {
+// the keys the parser read back from a node's part children (decision:wf2.parts-are-content) are the parts' text,
+// not the card's own: a card never shows them — the parts are blocks under it
+export function ownBody(n: { body: string; partKeys?: string[] }): string {
+  if (!n.partKeys?.length) return n.body;
+  const drop = new Set(n.partKeys);
+  return n.body.split('\n').filter(l => { const m = l.match(/^([A-Za-z][A-Za-z0-9_-]*):/); return !(m && drop.has(m[1])); }).join('\n');
+}
+export function cardFromNode(raw: ApiNode): CardP {
+  const n = { ...raw, body: ownBody(raw as ApiNode & { partKeys?: string[] }) };
   const [kind, ...rest] = n.id.split(':'); const slug = rest.join(':');
   if (n.form === 'prose') {
     const rows = parseBody(n.body);

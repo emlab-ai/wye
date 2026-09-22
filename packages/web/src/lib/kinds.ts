@@ -24,4 +24,4 @@ export function skeleton(kind: CardKind, slug: string, date = new Date().toISOSt
 }
 // The parts of a requirement or a decision (decision:wf2.req-free-text, decision:wf2.decision-free-text): child blocks
 // with a text and nothing else — no status, no properties, no details.
-export const PART_KINDS = new Set(['when', 'then', 'unless', 'context', 'choice', 'alternative', 'consequence']);
+export const PART_KINDS = new Set(['when', 'then', 'unless', 'context', 'choice', 'alternative', 'consequence', 'statement', 'scope', 'rationale', 'note']);

@@ -219,36 +219,41 @@ Built 2026-09-20 (pr:18). `wye eval` runs in the CLI process: it parses the prod
     excerpt) with the model and prompt hash: semantic-<product>, consolidation, judge, compare-shk, public-*.
     Committed; CI replays them and a suite whose recording is missing fails (rule:eval-replay-or-fail).
 - id: rule:eval-replay-or-fail
-  statement: >
-    Without `--live` (WATERFALL_LIVE=1) a suite is served only by its recording; an answer the recording lacks
-    throws MissingRecording and the suite fails — it never silently shrinks to what was recorded.
   source: eval/lib/record.js:22
   status: shipped
+  title: Without `--live` (WATERFALL_LIVE=1) a suite is served only by its recording;
+```
+
+  - statement:eval-replay-or-fail Without `--live` (WATERFALL_LIVE=1) a suite is served only by its recording; an answer the recording lacks throws MissingRecording and the suite fails — it never silently shrinks to what was recorded.
+
+```yaml
 - id: rule:eval-gate
-  statement: >
-    Every gated score carries its tolerance (5 points unless the score says otherwise); a run compares each score
-    with the latest previous file of the same suite, writes previous and delta beside it, and exits 2 after every
-    suite ran when a delta is below minus the tolerance (a lower-is-better score flips); `--baseline "<why>"`
-    accepts the new scores and writes the reason into the file; sizes and counts marked `gated: false` are never
-    gated.
   source: eval/lib/results.js:24
   status: shipped
+  title: Every gated score carries its tolerance (5 points unless the score says otherwise);
+```
+
+  - statement:eval-gate Every gated score carries its tolerance (5 points unless the score says otherwise); a run compares each score with the latest previous file of the same suite, writes previous and delta beside it, and exits 2 after every suite ran when a delta is below minus the tolerance (a lower-is-better score flips); `--baseline "<why>"` accepts the new scores and writes the reason into the file; sizes and counts marked `gated: false` are never gated.
+
+```yaml
 - id: rule:eval-arms-offline
-  statement: >
-    A tier-2 run cannot reach the app (WYE_URL points at a closed port) and works in a scratch worktree pinned to
-    the commit the pair started from; the with arm's memory — the packet, the constitution, the product
-    instructions, the plan's definition — arrives only in its first message, the without arm gets the base
-    contract only; a kept run is never re-run, `--resume` makes the missing ones.
   source: eval/compare/index.js:26
   status: shipped
+  title: >
+    A tier-2 run cannot reach the app (WYE_URL points at a closed port) and works in a scratch worktree pinned to
+```
+
+  - statement:eval-arms-offline A tier-2 run cannot reach the app (WYE_URL points at a closed port) and works in a scratch worktree pinned to the commit the pair started from; the with arm's memory — the packet, the constitution, the product instructions, the plan's definition — arrives only in its first message, the without arm gets the base contract only; a kept run is never re-run, `--resume` makes the missing ones.
+
+```yaml
 - id: rule:eval-cards
-  statement: >
-    After every results file is written the Evaluation project's runs document is regenerated from all of them: an
-    eval-run per file, an eval-score per number (not for compare, whose numbers live on the pair), an eval-pair
-    per pair with its arms hidden until every run is marked, an eval-public per public row.
   source: eval/lib/cards.js:50
   status: shipped
+  title: >
+    After every results file is written the Evaluation project's runs document is regenerated from all of them:
 ```
+
+  - statement:eval-cards After every results file is written the Evaluation project's runs document is regenerated from all of them: an eval-run per file, an eval-score per number (not for compare, whose numbers live on the pair), an eval-pair per pair with its arms hidden until every run is marked, an eval-public per public row.
 
 ## Work
 

@@ -45,8 +45,8 @@ The kind is decided by what the block *is*, not by where it came from. Getting i
   `- alternative:<slug> a way not taken and why not`, `- consequence:<slug> what follows` — each a block the person
   keeps, edits or deletes, so write the ones that have something to say. Anything the person said in chat that
   settles a question is a decision.
-- A **rule** (`rule:`) is an invariant the code enforces — a validation, a policy, a guarantee — with `statement`
-  and `source: file#symbol`. A rule without a source is a wish.
+- A **rule** (`rule:`) is an invariant the code enforces — a validation, a policy, a guarantee — with `source: file#symbol`
+  on the card and what it guarantees as a `- statement:<slug> …` block under it. A rule without a source is a wish.
 - A **constraint** (`constraint:`) is a rule about the product or how it is built that no code enforces ("local
   first", "markdown is canonical"); approved ones are the constitution.
 - A **question** (`question:`) is what the knowledge leaves open, with `q` and `context`; a **task** (`task:`) is a

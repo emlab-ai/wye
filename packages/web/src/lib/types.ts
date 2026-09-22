@@ -18,7 +18,8 @@ export function isImplicit(p: PropDef): boolean { return p.from === 'type:node';
 export function subtypesOf(g: GraphData, slug: string): TypeDef[] { return (g.types ?? []).filter(t => t.extends === 'type:' + slug); }
 export function nodeProps(g: GraphData, n: GraphNode): NodeProp[] {
   const t = typeOf(g, n.id); if (!t) return [];
-  const rows = new Map(parseBody(n.body).map(r => [r.key, r.value]));
+  const drop = new Set(n.partKeys ?? []);   // generated from the node's part children — not the card's own values
+  const rows = new Map(parseBody(n.body).filter(r => !drop.has(r.key)).map(r => [r.key, r.value]));
   return t.props.map(p => ({ ...p, value: rows.get(p.name) ?? '' }));
 }
 // what an incoming edge with this verb is called from the target's side ('' when the verb has no declared inverse)

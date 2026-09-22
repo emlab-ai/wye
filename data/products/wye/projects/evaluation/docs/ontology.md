@@ -67,13 +67,12 @@ table and view blocks.
 
 ```yaml
 - id: constraint:wf2.no-custom-pages
-  statement: >
-    Nothing in the app is a page of its own: every screen is a document made of the existing blocks, and a new kind
-    of data is a new type whose instances the data table and the instances view show. A view that needs a
-    component that does not exist is a reason to extend a block, never to add a page.
   scope: [module:app, module:app-knowledge, module:memory-review]
   status: proposed
   by: alex
   date: 2026-09-20
   evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  title: Nothing in the app is a page of its own:
 ```
+
+  - statement:wf2.no-custom-pages Nothing in the app is a page of its own: every screen is a document made of the existing blocks, and a new kind of data is a new type whose instances the data table and the instances view show. A view that needs a component that does not exist is a reason to extend a block, never to add a page.

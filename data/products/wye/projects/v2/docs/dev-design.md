@@ -377,274 +377,379 @@ A node's details: properties, content, and what a card shows of it.
     decisions:       List<entity:decision>       # only when seeded from a task
     contradictions:  List<entity:contradiction>  # only when seeded from a task
 - id: rule:markdown-canonical
-  statement: >
-    No DB table stores a node body or edge list; the DB references nodes by id string only. The in-memory graph is
-    rebuilt only from files by the watcher; every write, from the UI, an agent or a delta, goes through the writer
-    and the file.
   source: packages/server/src/services/graph.ts#write; packages/server/src/db/schema.ts
   status: retired
   requires-tests: [test:server-services#no-body-duplication, test:server-services#ui-write-is-file-write]
+  title: No DB table stores a node body or edge list;
+```
+
+  - statement:markdown-canonical No DB table stores a node body or edge list; the DB references nodes by id string only. The in-memory graph is rebuilt only from files by the watcher; every write, from the UI, an agent or a delta, goes through the writer and the file.
+
+```yaml
 - id: rule:hosting-columns
-  statement: >
-    Every table has tenantId (default "local"), createdBy (the agent or user name), createdAt and updatedAt;
-    agent_session has tokenHash. No code path reads tenantId or tokenHash locally.
   source: packages/server/src/db/schema.ts#baseColumns
   status: retired
   requires-tests: [test:server-services#hosting-columns-present]
+  title: >
+    Every table has tenantId (default "local"), createdBy (the agent or user name), createdAt and updatedAt;
+```
+
+  - statement:hosting-columns Every table has tenantId (default "local"), createdBy (the agent or user name), createdAt and updatedAt; agent_session has tokenHash. No code path reads tenantId or tokenHash locally.
+
+```yaml
 - id: rule:created-by
-  statement: >
-    The agent name from the X-Agent header or MCP client info is attached to the request context; every row
-    written in that request gets it as createdBy; missing name is "anonymous".
   source: packages/server/src/middleware/agent.ts
   status: retired
   requires-tests: [test:server-api#agent-header-recorded]
+  title: The agent name from the X-Agent header or MCP client info is attached to the request context;
+```
+
+  - statement:created-by The agent name from the X-Agent header or MCP client info is attached to the request context; every row written in that request gets it as createdBy; missing name is "anonymous".
+
+```yaml
 - id: rule:project-scoped
-  statement: >
-    Every tool resolves its project argument by id or unique name before doing anything else and answers not_found
-    when unknown.
   source: packages/server/src/tools/_scope.ts
   status: retired
   requires-tests: [test:server-api#unknown-project]
+  title: >
+    Every tool resolves its project argument by id or unique name before doing anything else and answers not_found
+```
+
+  - statement:project-scoped Every tool resolves its project argument by id or unique name before doing anything else and answers not_found when unknown.
+
+```yaml
 - id: rule:watcher-debounce
-  statement: >
-    File events under a project's graph path are debounced 200 ms per file; a re-parse runs for the whole project,
-    replaces the registry graph, recomputes node hashes, upserts structural contradictions and emits graph.changed
-    with the ids whose hash changed.
   source: packages/server/src/registry.ts#watch
   status: retired
   requires-tests: [test:server-services#watch-reparse]
+  title: File events under a project's graph path are debounced 200 ms per file;
+```
+
+  - statement:watcher-debounce File events under a project's graph path are debounced 200 ms per file; a re-parse runs for the whole project, replaces the registry graph, recomputes node hashes, upserts structural contradictions and emits graph.changed with the ids whose hash changed.
+
+```yaml
 - id: rule:last-good-graph
-  statement: >
-    If a parse throws, the registry keeps the previous graph and node hashes, records lastError with file and
-    line, and emits graph.parse_error; reads keep answering from the previous graph and writes to the broken file
-    are refused with invalid_patch.
   source: packages/server/src/registry.ts#reparse
   status: retired
   requires-tests: [test:server-services#parse-error-keeps-last-good]
+  title: >
+    If a parse throws, the registry keeps the previous graph and node hashes, records lastError with file and line
+```
+
+  - statement:last-good-graph If a parse throws, the registry keeps the previous graph and node hashes, records lastError with file and line, and emits graph.parse_error; reads keep answering from the previous graph and writes to the broken file are refused with invalid_patch.
+
+```yaml
 - id: rule:structural-import
-  statement: >
-    After every parse, each drift node yields one contradiction per contradicts edge pair and each explicit
-    contradicts edge yields one, keyed (project, sideA, sideB) with sides sorted; existing rows are touched,
-    missing rows that were open are closed as resolved with reason "removed from markdown", and rows previously
-    resolved reopen if the pair reappears.
   source: packages/server/src/services/contradictions.ts#importStructural
   status: retired
   requires-tests: [test:server-services#structural-import-idempotent]
+  title: >
+    After every parse, each drift node yields one contradiction per contradicts edge pair and each explicit contra
+```
+
+  - statement:structural-import After every parse, each drift node yields one contradiction per contradicts edge pair and each explicit contradicts edge yields one, keyed (project, sideA, sideB) with sides sorted; existing rows are touched, missing rows that were open are closed as resolved with reason "removed from markdown", and rows previously resolved reopen if the pair reappears.
+
+```yaml
 - id: rule:config-print
-  statement: >
-    On start the server prints a `claude mcp add wye -- <stdio command>` line, a `claude mcp add --transport
-    http wye <url>` line, and a `[mcp_servers.wye]` TOML block with command/args and a second with
-    url, each ready to paste.
   source: packages/server/src/main.ts#printAgentConfig
   status: retired
   requires-tests: [test:server-api#config-print]
+  title: >
+    On start the server prints a `claude mcp add wye -- <stdio command>` line, a `claude mcp add --transport http
+```
+
+  - statement:config-print On start the server prints a `claude mcp add wye -- <stdio command>` line, a `claude mcp add --transport http wye <url>` line, and a `[mcp_servers.wye]` TOML block with command/args and a second with url, each ready to paste.
+
+```yaml
 - id: rule:one-tool-set
-  statement: >
-    Tools are defined once as {name, schema (zod), handler}; the MCP server registers each as an MCP tool and the
-    HTTP router mounts each at POST /api/v1/<name>; there is no tool reachable by one transport and not the other.
   source: packages/server/src/tools/index.ts
   status: retired
   requires-tests: [test:server-api#same-cases-http-and-mcp]
+  title: Tools are defined once as {name, schema (zod), handler};
+```
+
+  - statement:one-tool-set Tools are defined once as {name, schema (zod), handler}; the MCP server registers each as an MCP tool and the HTTP router mounts each at POST /api/v1/<name>; there is no tool reachable by one transport and not the other.
+
+```yaml
 - id: rule:error-shape
-  statement: >
-    Handlers throw ToolError(code, message, details); the HTTP layer maps code to status (409 conflict, 422
-    invalid_patch and lint_failed, 404 not_found, 401 unauthorized) and the MCP layer returns isError with the
-    same JSON in the content.
   source: packages/server/src/errors.ts
   status: retired
   requires-tests: [test:server-api#error-shape]
+  title: Handlers throw ToolError(code, message, details);
+```
+
+  - statement:error-shape Handlers throw ToolError(code, message, details); the HTTP layer maps code to status (409 conflict, 422 invalid_patch and lint_failed, 404 not_found, 401 unauthorized) and the MCP layer returns isError with the same JSON in the content.
+
+```yaml
 - id: rule:sse-refresh
-  statement: >
-    The server emits value:sse-event over GET /api/v1/events; the web app subscribes once per project and
-    refetches only the affected node, list or graph neighbourhood named in the event payload.
   source: packages/server/src/events.ts; packages/web/src/lib/events.ts
   status: retired
   requires-tests: [ui-test:edit-node-flow]
+  title: The server emits value:sse-event over GET /api/v1/events;
+```
+
+  - statement:sse-refresh The server emits value:sse-event over GET /api/v1/events; the web app subscribes once per project and refetches only the affected node, list or graph neighbourhood named in the event payload.
+
+```yaml
 - id: rule:patch-in-place
-  statement: >
-    The writer locates the node's yaml block by the file and line the parser recorded and the id on its first
-    line, replaces exactly those lines, and leaves every other byte of the file unchanged; a node defined by a
-    table row or a heading is patched by rewriting that row or the block under the heading.
   source: packages/core/src/writer.ts#patchNode
   status: retired
   requires-tests: [test:core-writer#patch-body, test:core-writer#patch-preserves-neighbours, test:core-writer#round-trip-stability]
+  title: >
+    The writer locates the node's yaml block by the file and line the parser recorded and the id on its first line
+```
+
+  - statement:patch-in-place The writer locates the node's yaml block by the file and line the parser recorded and the id on its first line, replaces exactly those lines, and leaves every other byte of the file unchanged; a node defined by a table row or a heading is patched by rewriting that row or the block under the heading.
+
+```yaml
 - id: rule:edge-serialisation
-  statement: >
-    addEdges and removeEdges are written as typed keys when the verb has one (refines, satisfied-by, verified-by,
-    governed-by, gated-by, reads, writes, calls, contradicts, owns, set-by, applies-to, see, resolves, depends-on)
-    and otherwise as `a -(verb)-> b` lines under an edges key; removing the last item of a key removes the key.
   source: packages/core/src/writer.ts#serialiseEdges
   status: retired
   requires-tests: [test:core-writer#edge-add-remove]
+  title: >
+    addEdges and removeEdges are written as typed keys when the verb has one (refines, satisfied-by, verified-by,
+```
+
+  - statement:edge-serialisation addEdges and removeEdges are written as typed keys when the verb has one (refines, satisfied-by, verified-by, governed-by, gated-by, reads, writes, calls, contradicts, owns, set-by, applies-to, see, resolves, depends-on) and otherwise as `a -(verb)-> b` lines under an edges key; removing the last item of a key removes the key.
+
+```yaml
 - id: rule:section-map
-  statement: >
-    schema/kinds.yaml gains a sections map from kind to the ## heading the template uses (req → R, entity → 1,
-    value → 2, state → 3, op → 4, page → 5, rule → 6, gate → 8, decision → D, question → 11); createNode appends
-    to the end of that section and creates the heading in template order when absent.
   source: packages/core/src/writer.ts#createNode; schema/kinds.yaml#sections
   status: retired
   requires-tests: [test:core-writer#create-in-section, test:core-writer#create-adds-heading]
+  title: >
+    schema/kinds.yaml gains a sections map from kind to the ## heading the template uses (req → R, entity → 1, val
+```
+
+  - statement:section-map schema/kinds.yaml gains a sections map from kind to the ## heading the template uses (req → R, entity → 1, value → 2, state → 3, op → 4, page → 5, rule → 6, gate → 8, decision → D, question → 11); createNode appends to the end of that section and creates the heading in template order when absent.
+
+```yaml
 - id: rule:if-match
-  statement: >
-    A node's hash is sha256 of its dedented body as the parser produces it; graph.patch requires ifMatch and
-    refuses with conflict {current, hash} when it differs from the registry's hash; graph.create needs no hash.
   source: packages/core/src/writer.ts#hashOf; packages/server/src/services/graph.ts#patch
   status: retired
   requires-tests: [test:core-writer#conflict]
+  title: A node's hash is sha256 of its dedented body as the parser produces it;
+```
+
+  - statement:if-match A node's hash is sha256 of its dedented body as the parser produces it; graph.patch requires ifMatch and refuses with conflict {current, hash} when it differs from the registry's hash; graph.create needs no hash.
+
+```yaml
 - id: rule:validate-before-write
-  statement: >
-    Before touching disk the writer re-parses the patched file text together with the project's other files in
-    memory and runs check; a parse failure is invalid_patch, a lint error is lint_failed with the messages, and
-    only then is the file written.
   source: packages/core/src/writer.ts#validate
   status: retired
   requires-tests: [test:core-writer#reject-parse-error, test:core-writer#reject-lint-error]
+  title: >
+    Before touching disk the writer re-parses the patched file text together with the project's other files in mem
+```
+
+  - statement:validate-before-write Before touching disk the writer re-parses the patched file text together with the project's other files in memory and runs check; a parse failure is invalid_patch, a lint error is lint_failed with the messages, and only then is the file written.
+
+```yaml
 - id: rule:stub-targets-warn
-  statement: >
-    An edge to an id no file describes is accepted; the write result carries warnings listing the stub ids,
-    matching v0.1's rule that referenced-but-undescribed nodes are visible, not refused.
   source: packages/core/src/writer.ts#validate
   status: retired
   requires-tests: [test:core-writer#stub-target-warns]
+  title: An edge to an id no file describes is accepted;
+```
+
+  - statement:stub-targets-warn An edge to an id no file describes is accepted; the write result carries warnings listing the stub ids, matching v0.1's rule that referenced-but-undescribed nodes are visible, not refused.
+
+```yaml
 - id: rule:atomic-file-write
-  statement: >
-    A file is written to <file>.tmp-<pid> and renamed over the original; the watcher ignores .tmp- files.
   source: packages/core/src/writer.ts#writeAtomic
   status: retired
   requires-tests: [test:core-writer#concurrent-writes-serialised]
+  title: A file is written to <file>.tmp-<pid> and renamed over the original;
+```
+
+  - statement:atomic-file-write A file is written to <file>.tmp-<pid> and renamed over the original; the watcher ignores .tmp- files.
+
+```yaml
 - id: rule:per-file-queue
-  statement: >
-    Writes are serialised per absolute file path through a promise chain; a write waits for the previous write to
-    the same file to finish and re-reads the file before applying.
   source: packages/core/src/writer.ts#queue
   status: retired
   requires-tests: [test:core-writer#concurrent-writes-serialised]
+  title: Writes are serialised per absolute file path through a promise chain;
+```
+
+  - statement:per-file-queue Writes are serialised per absolute file path through a promise chain; a write waits for the previous write to the same file to finish and re-reads the file before applying.
+
+```yaml
 - id: rule:cli-fallback
-  statement: >
-    ctx reads WATERFALL_URL (default http://localhost:7777); if a GET /api/v1/projects.list answers within 300 ms
-    it calls the server, otherwise it runs core on the local files; output is rendered by the same formatter
-    either way.
   source: packages/cli/src/client.ts
   status: retired
   requires-tests: [test:cli#server-and-local-identical]
+  title: ctx reads WATERFALL_URL (default http://localhost:7777);
+```
+
+  - statement:cli-fallback ctx reads WATERFALL_URL (default http://localhost:7777); if a GET /api/v1/projects.list answers within 300 ms it calls the server, otherwise it runs core on the local files; output is rendered by the same formatter either way.
+
+```yaml
 - id: rule:clerk-triggers
-  statement: >
-    A clerk run is queued on decisions.post, on tasks.create, on tasks.update when links change, and on clerk.run;
-    never on a markdown change alone.
   source: packages/server/src/clerk/queue.ts#enqueue
   status: retired
   requires-tests: [test:clerk#task-run-no-delta, test:server-api#clerk-run-on-demand]
+  title: >
+    A clerk run is queued on decisions.post, on tasks.create, on tasks.update when links change, and on clerk.run;
+```
+
+  - statement:clerk-triggers A clerk run is queued on decisions.post, on tasks.create, on tasks.update when links change, and on clerk.run; never on a markdown change alone.
+
+```yaml
 - id: rule:decision-immutable
-  statement: >
-    The decision table has no update path except clerkStatus; decisions.post with supersedes sets supersedesId on
-    the new row and never touches the old one.
   source: packages/server/src/services/decisions.ts#post
   status: retired
   requires-tests: [test:server-services#decision-immutable]
+  title: The decision table has no update path except clerkStatus;
+```
+
+  - statement:decision-immutable The decision table has no update path except clerkStatus; decisions.post with supersedes sets supersedesId on the new row and never touches the old one.
+
+```yaml
 - id: rule:post-wait
-  statement: >
-    decisions.post awaits the queued clerk run with a 5 s timeout; on completion it returns {decision, related,
-    contradictions, deltaId}, on timeout {decision, clerkStatus: pending}, and when the clerk is disabled
-    {decision, clerkStatus: skipped}.
   source: packages/server/src/services/decisions.ts#post
   status: retired
   requires-tests: [test:server-api#decisions-post-waits, test:server-api#decisions-post-pending]
+  title: decisions.post awaits the queued clerk run with a 5 s timeout;
+```
+
+  - statement:post-wait decisions.post awaits the queued clerk run with a 5 s timeout; on completion it returns {decision, related, contradictions, deltaId}, on timeout {decision, clerkStatus: pending}, and when the clerk is disabled {decision, clerkStatus: skipped}.
+
+```yaml
 - id: rule:packet-task-seeds
-  statement: >
-    When graph.packet receives a task id, seeds are the task's linked node ids in link order (instead of search
-    hits); after the node blocks, open decisions whose affects intersect the emitted nodes and open contradictions
-    with a side among them are appended, within the same budget.
   source: packages/core/src/packet.ts#fromTask
   status: retired
   requires-tests: [test:server-services#packet-from-task]
+  title: >
+    When graph.packet receives a task id, seeds are the task's linked node ids in link order (instead of search hi
+```
+
+  - statement:packet-task-seeds When graph.packet receives a task id, seeds are the task's linked node ids in link order (instead of search hits); after the node blocks, open decisions whose affects intersect the emitted nodes and open contradictions with a side among them are appended, within the same budget.
+
+```yaml
 - id: rule:clerk-context
-  statement: >
-    A run's input is the trigger row, graph.packet around the affected nodes (budget from the task or 8000), every
-    decision whose affects intersects the two-hop neighbourhood, and open contradictions with a side in it; the
-    input's sha256 is the run's inputHash.
   source: packages/server/src/clerk/context.ts
   status: retired
   requires-tests: [test:clerk#context-assembly]
+  title: >
+    A run's input is the trigger row, graph.packet around the affected nodes (budget from the task or 8000), every
+```
+
+  - statement:clerk-context A run's input is the trigger row, graph.packet around the affected nodes (budget from the task or 8000), every decision whose affects intersects the two-hop neighbourhood, and open contradictions with a side in it; the input's sha256 is the run's inputHash.
+
+```yaml
 - id: rule:clerk-tools
-  statement: >
-    The clerk's tool list is graph.get, graph.neighbors, graph.impact, graph.search, graph.packet, decisions.list,
-    contradictions.list, propose_delta and report_contradiction; it is built from a fixed array, not from the
-    public registry.
   source: packages/server/src/clerk/tools.ts
   status: retired
   requires-tests: [test:clerk#tool-set-is-closed]
+  title: >
+    The clerk's tool list is graph.get, graph.neighbors, graph.impact, graph.search, graph.packet, decisions.list,
+```
+
+  - statement:clerk-tools The clerk's tool list is graph.get, graph.neighbors, graph.impact, graph.search, graph.packet, decisions.list, contradictions.list, propose_delta and report_contradiction; it is built from a fixed array, not from the public registry.
+
+```yaml
 - id: rule:clerk-no-self-trigger
-  statement: >
-    The clerk's session kind is internal; tasks.create, tasks.update and decisions.post refuse an internal session
-    with unauthorized, so no clerk output can queue another run.
   source: packages/server/src/tools/_scope.ts#refuseInternal
   status: retired
   requires-tests: [test:clerk#tool-set-is-closed]
+  title: The clerk's session kind is internal;
+```
+
+  - statement:clerk-no-self-trigger The clerk's session kind is internal; tasks.create, tasks.update and decisions.post refuse an internal session with unauthorized, so no clerk output can queue another run.
+
+```yaml
 - id: rule:clerk-propose-only
-  statement: >
-    propose_delta stores a graph_delta row with status proposed and returns its id; the clerk process has no
-    reference to the writer.
   source: packages/server/src/clerk/tools.ts#proposeDelta
   status: retired
   requires-tests: [test:clerk#no-disk-write]
+  title: propose_delta stores a graph_delta row with status proposed and returns its id;
+```
+
+  - statement:clerk-propose-only propose_delta stores a graph_delta row with status proposed and returns its id; the clerk process has no reference to the writer.
+
+```yaml
 - id: rule:clerk-delta-shape
-  statement: >
-    A decision run's delta contains one create op for a decision node (id decision:<module>.<slug>, keys date,
-    context, options, choice, consequences, decision-id) in the module owning most affected nodes, zero or more
-    create or patch ops for req, rule and flag nodes with status proposed, and edge ops; it never contains a
-    status op to shipped.
   source: packages/server/src/clerk/prompt.ts; packages/server/src/clerk/tools.ts#validateShape
   status: retired
   requires-tests: [test:clerk#decision-becomes-adr-node]
+  title: >
+    A decision run's delta contains one create op for a decision node (id decision:<module>.<slug>, keys date, con
+```
+
+  - statement:clerk-delta-shape A decision run's delta contains one create op for a decision node (id decision:<module>.<slug>, keys date, context, options, choice, consequences, decision-id) in the module owning most affected nodes, zero or more create or patch ops for req, rule and flag nodes with status proposed, and edge ops; it never contains a status op to shipped.
+
+```yaml
 - id: rule:delta-validated
-  statement: >
-    Before a graph_delta row is stored its ops are applied to an in-memory copy of the project files and parsed; a
-    failure rejects propose_delta with invalid_patch and the run fails.
   source: packages/server/src/services/deltas.ts#validate
   status: retired
   requires-tests: [test:server-services#delta-validated-on-store]
+  title: >
+    Before a graph_delta row is stored its ops are applied to an in-memory copy of the project files and parsed;
+```
+
+  - statement:delta-validated Before a graph_delta row is stored its ops are applied to an in-memory copy of the project files and parsed; a failure rejects propose_delta with invalid_patch and the run fails.
+
+```yaml
 - id: rule:delta-atomic
-  statement: >
-    deltas.apply groups ops by file, applies each group through the writer with the current hashes, and if any
-    group fails restores every file already written from its pre-apply content, records the error on the delta and
-    leaves status proposed.
   source: packages/server/src/services/deltas.ts#apply
   status: retired
   requires-tests: [test:server-services#delta-apply-atomic]
+  title: >
+    deltas.apply groups ops by file, applies each group through the writer with the current hashes, and if any gro
+```
+
+  - statement:delta-atomic deltas.apply groups ops by file, applies each group through the writer with the current hashes, and if any group fails restores every file already written from its pre-apply content, records the error on the delta and leaves status proposed.
+
+```yaml
 - id: rule:clerk-budget
-  statement: >
-    A run stops with status failed and error "budget" after 40 tool calls or when cumulative input tokens exceed
-    200k; both limits are config with those defaults.
   source: packages/server/src/clerk/runner.ts#loop
   status: retired
   requires-tests: [test:clerk#budget-stops-run]
+  title: >
+    A run stops with status failed and error "budget" after 40 tool calls or when cumulative input tokens exceed 2
+```
+
+  - statement:clerk-budget A run stops with status failed and error "budget" after 40 tool calls or when cumulative input tokens exceed 200k; both limits are config with those defaults.
+
+```yaml
 - id: rule:clerk-cache
-  statement: >
-    Before calling the model the runner looks for a done clerk_run with the same inputHash and model; a hit copies
-    its output into the new run with status done and zero tokens.
   source: packages/server/src/clerk/runner.ts#cached
   status: retired
   requires-tests: [test:clerk#cache-hit]
+  title: Before calling the model the runner looks for a done clerk_run with the same inputHash and model;
+```
+
+  - statement:clerk-cache Before calling the model the runner looks for a done clerk_run with the same inputHash and model; a hit copies its output into the new run with status done and zero tokens.
+
+```yaml
 - id: rule:clerk-classify
-  statement: >
-    For each rule, req and decision in the two-hop neighbourhood the clerk must call report_contradiction with a
-    verdict from value:pair-verdict and a one-sentence explanation; contradicts and duplicate create semantic
-    contradiction rows, consistent and refines are recorded in the run output only.
   source: packages/server/src/clerk/classify.ts
   status: retired
   requires-tests: [test:clerk#classification-fixtures, test:clerk#decision-vs-rule-finding]
+  title: >
+    For each rule, req and decision in the two-hop neighbourhood the clerk must call report_contradiction with a v
+```
+
+  - statement:clerk-classify For each rule, req and decision in the two-hop neighbourhood the clerk must call report_contradiction with a verdict from value:pair-verdict and a one-sentence explanation; contradicts and duplicate create semantic contradiction rows, consistent and refines are recorded in the run output only.
+
+```yaml
 - id: rule:side-ids
-  statement: >
-    A contradiction side is either a node id (kind:slug) or decision:<uuid>; the UI and the check resolve each
-    side to its text through the graph or the decision table.
   source: packages/server/src/services/contradictions.ts#sideText
   status: retired
   requires-tests: [test:clerk#decision-vs-rule-finding]
+  title: A contradiction side is either a node id (kind:slug) or decision:<uuid>;
+```
+
+  - statement:side-ids A contradiction side is either a node id (kind:slug) or decision:<uuid>; the UI and the check resolve each side to its text through the graph or the decision table.
+
+```yaml
 - id: rule:strict-open-contradiction
-  statement: >
-    graph.check with strict adds an error for every open contradiction where either side is a node with status
-    shipped (or a req with no status); without strict it is a warning with the count.
   source: packages/core/src/check.ts#openContradictions
   status: retired
   requires-tests: [test:core-check#strict-open-contradiction]
+  title: >
+    graph.check with strict adds an error for every open contradiction where either side is a node with status shi
 ```
+
+  - statement:strict-open-contradiction graph.check with strict adds an error for every open contradiction where either side is a node with status shipped (or a req with no status); without strict it is a warning with the count.
