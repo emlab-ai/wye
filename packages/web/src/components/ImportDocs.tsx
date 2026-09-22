@@ -46,7 +46,7 @@ function BriefBox({ brief, setBrief, placeholder, skill, on }: { brief: string; 
 export function ImportDocs({ product, project: initialProject, projects, docs, defaultParent = '', initial = [], onClose }: { product: string; project: string; projects: { slug: string; title: string }[]; docs: { slug: string; title: string; project?: string }[]; defaultParent?: string; initial?: Picked[]; onClose: () => void }) {
   const router = useRouter();
   const [mode, setMode] = useState<'md' | 'code'>('md');
-  const [project, setProject] = useState(initialProject);
+  const project = initialProject;   // the sheet's Add to says the folder; no picker here
   const [parent, setParent] = useState(defaultParent);
   const [analyse, setAnalyse] = useState(true);
   const [brief, setBrief] = useState('');
@@ -109,7 +109,6 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
             {picked.length > 0 && <span className="muted small">{mdCount} markdown file{mdCount === 1 ? '' : 's'}{picked.length > mdCount ? ` + ${picked.length - mdCount} image${picked.length - mdCount === 1 ? '' : 's'}` : ''}</span>}
           </div>
           {picked.length > 0 && <ul className="import-list">{picked.slice(0, 12).map(p => <li key={p.path}><code>{p.path}</code><button className="linkish" onClick={() => setPicked(ps => ps.filter(x => x.path !== p.path))} aria-label={`remove ${p.path}`}>×</button></li>)}{picked.length > 12 && <li className="muted">… and {picked.length - 12} more</li>}</ul>}
-          {!parent && projects.length > 1 && <div className="import-grid"><label><span>Folder</span><select value={project} onChange={e => setProject(e.target.value)}>{projects.map(p => <option key={p.slug} value={p.slug}>{p.title}</option>)}</select></label></div>}
           <label className="check"><input type="checkbox" checked={analyse} onChange={e => setAnalyse(e.target.checked)} /><span><b>Analyse with agent</b> — an agent reads each page and rewrites it in place into requirements, decisions, facts, entities and tasks, all proposed; types the product lacks are proposed too.</span></label>
           <div className="sec-actions"><button className="pri" disabled={busy || (!mdCount && !pasted.trim())} onClick={importMd}>{busy ? 'Importing…' : `Import${count ? ` ${count}` : ''}`}</button><button disabled={busy} onClick={onClose}>Cancel</button>{msg && <span className="notice">{msg}</span>}</div>
         </div>
