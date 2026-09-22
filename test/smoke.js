@@ -6,7 +6,7 @@ const assert = require('assert');
 const { parseFiles } = require('../lib/parse');
 const { Graph } = require('../lib/graph');
 
-const pilot = process.env.PILOT || path.join(process.env.HOME, 'Projects/yessensei/src/docs/context-graph/inventory.md');
+const pilot = process.env.PILOT || (process.env.HOME ? path.join(process.env.HOME, 'Projects/yessensei/src/docs/context-graph/inventory.md') : '');
 if (!fs.existsSync(pilot)) { console.log('skip: pilot not found at ' + pilot); process.exit(0); }
 process.chdir(path.dirname(path.dirname(path.dirname(pilot))));
 const g = new Graph(parseFiles([pilot]));

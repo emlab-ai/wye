@@ -176,7 +176,7 @@ export function protectCode(md: string): string {
 
 // [label](kind:slug) → ⟦label|kind:slug⟧ so the browser markdown parser never sees a scheme-less link.
 export function liftLinks(md: string): string {
-  return md.replace(/\[([^\]]+)\]\(([a-z-]+:[A-Za-z0-9_./#\-]+)\)/g, (_, label, id) => `⟦${label}|${cleanId(id)}⟧`);
+  return md.replace(/\[([^\]]+)\]\(((?!(?:https?:|mailto:|[a-z-]+:\/\/))[a-z-]+:[A-Za-z0-9_./#\-]+)\)/g, (_, label, id) => `⟦${label}|${cleanId(id)}⟧`);
 }
 // Split text runs on ⟦label|id⟧ markers into link inline content.
 export function expandLinks(items: Inline[]): Inline[] {

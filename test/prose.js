@@ -113,3 +113,17 @@ console.log('ok — prose nodes: ' + g.stats().nodes + ' nodes');
   fs.rmSync(root, { recursive: true, force: true });
   console.log('ok prose: an id alone on a line is an empty node; a real definition wins');
 }
+// a markdown link with a URL scheme (https:, http:, mailto:, anything://) is not a node id
+{
+  const fs = require('fs'), os = require('os'), path = require('path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wf-prose-'));
+  fs.writeFileSync(path.join(dir, 'a.md'), '---\nnode: module:a\ntitle: A\n---\n\nSee [Tana](https://tana.inc/docs/nodes-and-references) and the [Sales requirement](req:sale.close) for details.\n');
+  const { parseFiles } = require('../lib/parse');
+  const g = parseFiles([path.join(dir, 'a.md')], dir);
+  const forward = g.edges.filter(e => !e.generated && e.verb === 'related-to');
+  assert.strictEqual(forward.length, 1, 'one edge from the paragraph');
+  assert.strictEqual(forward[0].to, 'req:sale.close', 'edge points to req:sale.close');
+  assert(!g.nodes.some(n => n.kind === 'https' || n.id.startsWith('https:')), 'no https stub node created');
+  console.log('ok prose: URL link is not picked up as a node id');
+}
+

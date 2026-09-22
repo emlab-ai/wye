@@ -16,7 +16,7 @@ describe('settings', () => {
     expect(await jevKey(root)).toBe('sk-abcdef1234');
     expect(publicSettings(s).jev).toEqual({ set: true, last4: '1234' });
     const mode = (await stat(path.join(root, '_settings.json'))).mode & 0o777;
-    expect(mode).toBe(0o600);
+    if (process.platform !== 'win32') expect(mode).toBe(0o600);
     const gone = await writeSettings({ jev: { key: '' } }, root);
     expect(gone.jev?.key ?? '').toBe('');
     expect(publicSettings(gone).jev).toEqual({ set: false, last4: '' });
