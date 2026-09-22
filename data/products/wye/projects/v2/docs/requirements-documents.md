@@ -615,6 +615,38 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - unless:wf2.editor.embed-text-is-editor the node is referenced only — then there is nothing to edit
 
+```yaml
+- id: req:wf2.ui.new-block-opens
+  title: A block just added shows in the column at once, and the column follows the caret
+  status: shipped
+  refines: req:wf2.ui.node-content
+  satisfied-by: [component:doc-editor, component:peek-panel, component:peek-provider, lib:parse, lib:import]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-documents
+```
+
+  - when:wf2.ui.new-block-opens the person adds a block of any kind — from the slash menu, the block menu, a paste, a split, a part under a decision, in a page or in the column's editor — or moves the caret into another block
+
+  - then:wf2.ui.new-block-opens the new block is saved at once (not after the typing pause) and is a node even with nothing typed yet, so the column can show it; the column comes back to its Context root and shows the block under the caret — its node when it is one — while the chips of what was opened stay one click away
+
+  - unless:wf2.ui.new-block-opens the caret moved because of a reload or a save from elsewhere, not the person — then the column stays where it was
+
+```yaml
+- id: req:wf2.page.new-sheet-editor
+  title: The New page sheet is the page's editor, not a title box
+  status: shipped
+  refines: req:wf2.page.new-dialog
+  satisfied-by: [component:new-page, component:doc-editor, op:doc.create]
+  by: alex
+  evidence: [session:017wTEs8Jy8fzwycEec3ktJC]
+  part-of: module:req-documents
+```
+
+  - when:wf2.page.new-sheet-editor the person types a title and presses Enter, clicks into the body, or picks Blank in the New page sheet
+
+  - then:wf2.page.new-sheet-editor the page is made with that title and the sheet's body becomes its editor — the same editor as the page, caret on a fresh line after the page's card — with the title input editing the page's title; Open as a page ↗ goes to it; Template, Typed page and Import make a shaped page instead and open it
+
 ## Open questions
 
 <!-- list:question -->

@@ -18,7 +18,7 @@ interface Ctx {
   openId: string | null; stack: StackEntry[]; cursor: number;
   open: (id: string) => void; back: () => void; go: (i: number) => void; togglePin: (i: number) => void; remove: (i: number) => void; close: () => void;
   // the node a click on a block selected (rule:block-select): the Context root shows it ahead of the caret's block
-  focused: string | null; select: (id: string) => void; setFocused: (id: string | null) => void;
+  focused: string | null; select: (id: string) => void; setFocused: (id: string | null) => void; followCaret: () => void;
   hrefFor: (id: string) => string | null;
   ownKinds: string[]; // the product's own types (type: cards), beyond the base kinds
   ownTypes: OwnType[]; // the same types with their table columns
@@ -78,6 +78,8 @@ export function PeekProvider({ product, index: indexProp, kinds, types, children
   // Context root and shows the node; the chips stay so what was open is one click away.
   const [focused, setFocused] = useState<string | null>(null);
   const select = useCallback((id: string) => { if (!id) return; setFocused(id); setPanelOpen(true); setNav(n => ({ ...n, cursor: -1 })); }, [setPanelOpen]);
+  // the caret moved to another block: back to the Context root, which shows the block under the caret; nothing pushed, nothing popped
+  const followCaret = useCallback(() => setNav(n => (n.cursor === -1 ? n : { ...n, cursor: -1 })), []);
   const back = useCallback(() => setNav(n => ({ ...n, cursor: Math.max(-1, n.cursor - 1) })), []);
   const go = useCallback((i: number) => setNav(n => ({ ...n, cursor: Math.min(i, n.stack.length - 1) })), []);
   const togglePin = useCallback((i: number) => setNav(n => ({ ...n, stack: n.stack.map((e, k) => k === i ? { ...e, pinned: !e.pinned } : e) })), []);
@@ -87,6 +89,6 @@ export function PeekProvider({ product, index: indexProp, kinds, types, children
   // a document's node opens the document itself (whatever the node's kind, rule:page-node-line); any other node its anchor
   const hrefFor = useCallback((id: string) => { const e = index[id]; const r = e?.file ? docRoute(e.file) : null; if (!r) return null; return e.doc ? `/${product}/${r.project}/d/${e.doc}` : `/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(id)}`; }, [index, product]);
   useEffect(() => { const h = (e: KeyboardEvent) => { if (e.key === 'Escape') back(); }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [back]);
-  return <PeekCtx.Provider value={{ product, index, ownKinds, ownTypes, openId, stack, cursor, open, back, go, togglePin, remove, close, focused, select, setFocused, hrefFor, editing, setEditing, showContext, setShowContext, panelOpen, setPanelOpen, relatedOpen, setRelatedOpen }}>{children}</PeekCtx.Provider>;
+  return <PeekCtx.Provider value={{ product, index, ownKinds, ownTypes, openId, stack, cursor, open, back, go, togglePin, remove, close, focused, select, setFocused, followCaret, hrefFor, editing, setEditing, showContext, setShowContext, panelOpen, setPanelOpen, relatedOpen, setRelatedOpen }}>{children}</PeekCtx.Provider>;
 }
 export function usePeek(): Ctx { const c = useContext(PeekCtx); if (!c) throw new Error('PeekProvider missing'); return c; }

@@ -90,7 +90,7 @@ export function prepare(body: string): Prepared {
 // the block's text; `expand` parses each one with the whole pipeline again, so nesting has no fixed depth and does
 // not rely on the markdown parser's own (unreliable) nesting of mixed content under list items.
 const ITEM_LINE = /^(\s*)(?:[-*+]|\d+[.)])\s/;
-const NAMED_LINE = new RegExp('^(\\s*)' + ID_RE.source + '\\s');
+const NAMED_LINE = new RegExp('^(\\s*)' + ID_RE.source + '(?:\\s|$)');
 const BLOCK_START = /^(\s*([-*+]|\d+[.)])\s|\s*[|#>]|\s*(```|~~~)|\s*$|\s*<!--)|^---\s*$/;
 const indentOf = (l: string) => l.match(/^\s*/)![0].length;
 export function liftContent(md: string, contents: string[]): string {
@@ -332,8 +332,10 @@ function proseNode(b: AnyBlock, yaml: Prepared['yaml'], drawings: Prepared['draw
   const items = b.content as Inline[];
   const head = items[0];
   if (!head || head.type !== 'text') return null;
-  const m = (head as InlineText).text.match(new RegExp('^(' + ID_RE.source + ')\\s+'));
+  // an id alone — a block added with nothing typed yet — is a node block with empty text too (the parser agrees)
+  const m = (head as InlineText).text.match(new RegExp('^(' + ID_RE.source + ')(?:\\s+|$)'));
   if (!m) return null;
+  if (m[0] === m[1] && (items.length > 1 || (head as InlineText).text.trim() !== m[1])) return null;   // the id is the whole line, not the start of a longer run
   const id = cleanId(m[1]); const [kind, ...rest] = id.split(':');
   const restItems: Inline[] = [{ ...(head as InlineText), text: (head as InlineText).text.slice(m[0].length) }, ...items.slice(1)];
   // status hashtag and trailing (k: v) group live in the last text run

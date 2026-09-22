@@ -747,7 +747,7 @@ function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEveryw
 // editing context, and a click on a child block opens the child in the column (decision:ontology.depth-by-navigation).
 export default function DocEditor({ product, project, slug, body, ifMatch, fallback, scope = null, autoFocus = false, textOnly = false }: { product: string; project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode; scope?: string | null; autoFocus?: boolean; textOnly?: boolean }) {
   const router = useRouter();
-  const { open: openPeek, select, setFocused, index, hrefFor, setEditing, setShowContext, ownKinds, ownTypes } = usePeek();
+  const { open: openPeek, select, setFocused, followCaret, index, hrefFor, setEditing, setShowContext, ownKinds, ownTypes } = usePeek();
   const scoped = scope !== null;
   // node blocks render inside the editor, so they ask for the column through an event that bubbles to this
   // container (emit): wf:peek pushes the node on the chip stack, wf:select selects it (the Context root shows it;
@@ -885,7 +885,9 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     // a block change while the editor has no focus (a reload after an outside change, a save from the column's content
     // editor) is not the person moving the caret: the selected node stays selected (rule:block-select)
     const active = typeof document !== 'undefined' && !!rootRef.current?.contains(document.activeElement);
-    if (bid !== lastBlockId.current) { lastBlockId.current = bid; if (!scoped && active) setFocused(null); if (touched.current && !loading.current && settle(true)) changed(); }
+    // the caret moved to another block on its own: the column comes back to its Context root and follows the caret —
+    // the block under it, its node when it is one — while the chips of what was opened stay (rule:column-follows-caret)
+    if (bid !== lastBlockId.current) { lastBlockId.current = bid; if (!scoped && active) { setFocused(null); followCaret(); } if (touched.current && !loading.current && settle(true)) changed(); }
     if (scoped) return; // a content editor never drives the Context root: the column shows its node already
     if (!block || !Array.isArray(block.content)) { setEditing(null); return; }
     const text = blockText(block as unknown as LinkBlock);
@@ -948,7 +950,12 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     if (lastExported.current !== null && norm(lastExported.current) === norm(body)) return;
     if (timer.current) return; // the person is mid-edit: their save goes out first, the next refresh brings the merge
     load(body);
-    if (!ready) { setReady(true); if (autoFocus) setTimeout(() => { try { const last = (editor.document as unknown as AnyBlock[])[0]; editor.focus(); if (last) editor.setTextCursorPosition(last as never, 'end'); } catch { /* not mounted */ } }, 50); }   // an embedded card's editor opens where the click was going: in the text
+    if (!ready) { setReady(true); if (autoFocus) setTimeout(() => { try {
+        // the caret lands on a text block at the end: after a trailing card, view or image a paragraph is added to type into
+        const blocks = editor.document as unknown as AnyBlock[]; let last = blocks[blocks.length - 1];
+        if (last && (!Array.isArray(last.content) || last.type === 'node')) { editor.insertBlocks([{ type: 'paragraph', content: [] } as never], last as never, 'after'); const b2 = editor.document as unknown as AnyBlock[]; last = b2[b2.length - 1]; }
+        editor.focus(); if (last) editor.setTextCursorPosition(last as never, 'end');
+      } catch { /* not mounted */ } }, 50); }   // an embedded card's editor opens where the click was going: in the text
     // a link to a block: find it by anchor and bring it into view
     const frag = typeof location !== 'undefined' ? location.hash.replace(/^#/, '') : '';
     if (frag) setTimeout(() => {

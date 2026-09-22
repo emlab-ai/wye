@@ -286,3 +286,13 @@ describe('restoreCode', () => {
     expect(restoreCode(`a &lt; b ${BS}n ${PIPE} ⟦kitchen items|entity:kitchen-item⟧`)).toBe('a < b \\n | [kitchen items](entity:kitchen-item)');
   });
 });
+
+describe('an id alone on a line', () => {
+  it('is a node block with empty text, as the parser reads it — not a paragraph with a tag', () => {
+    const fake = (md: string): AnyBlock[] => md.split(/\n\n+/).filter(Boolean).map(ch => ch.startsWith('- [ ] ') ? { type: 'checkListItem', props: { checked: false }, content: [t(ch.slice(6))] } : { type: 'paragraph', content: [t(ch.replace(/\n/g, ' '))] }) as AnyBlock[];
+    const blocks = importMarkdown('goal:new-1\n\n- [ ] task:new-3\n\nreq:x and text\n', fake);
+    expect(blocks.map(b => b.type)).toEqual(['node', 'node', 'node']);
+    expect((blocks[0].props as { slug: string }).slug).toBe('new-1');
+    expect((blocks[1].props as { check: string; status: string }).check).toBe('todo');
+  });
+});
