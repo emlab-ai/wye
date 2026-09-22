@@ -11,7 +11,7 @@ started: 2026-09-22
 part-of: module:v2-workflow-runs
 produced: [module:implement-a-feature-to-install-system-skills-and-templates-i]
 doc-research: module:implement-a-feature-to-install-system-skills-and-templates-i
-sessions: [39b69e4b09]
+sessions: [39b69e4b09, dfb890d304]
 doc-prd: module:implement-a-feature-to-install-system-skills-and-templates-i
 ---
 
@@ -34,14 +34,16 @@ The stages of this run, in order — each one starts only when the one before it
   needs: every session done
   then: Write the PRD
   produced: [module:implement-a-feature-to-install-system-skills-and-templates-i]
+  session: session:39b69e4b09
 - id: step:feature-1.prd
   title: 2. Write the PRD
   status: running
   stage: stage:feature.prd
   part-of: run:feature-1
-  needs: ○ every req in prd is agreed (prd has no requirements) · ○ no open question in prd (question:install.opt-in-or-opt-out, question:install.unit, question:install.record-home, question:install.update-vs-edits, question:install.where-it-lands)
+  needs: ○ every req in prd is agreed (req:install.library, req:install.library.templates, req:install.library.new-template, req:install.fresh, req:install.fresh.from-template, req:install.install and 6 more) · ○ no open question in prd (question:install.opt-in-or-opt-out, question:install.unit, question:install.record-home, question:install.update-vs-edits, question:install.where-it-lands, question:install.edit-linked and 4 more)
   then: Tech design and test design
   produced: [module:implement-a-feature-to-install-system-skills-and-templates-i]
+  session: session:dfb890d304
 - id: step:feature-1.design
   title: 3. Tech design and test design
   status: todo
@@ -71,8 +73,8 @@ The stages of this run, in order — each one starts only when the one before it
 
 **Waiting on 2 of 2** — **Tech design and test design** cannot start until these hold:
 
-- ○ every req in prd is agreed — prd has no requirements
-- ○ no open question in prd — question:install.opt-in-or-opt-out, question:install.unit, question:install.record-home, question:install.update-vs-edits, question:install.where-it-lands
+- ○ every req in prd is agreed — req:install.library, req:install.library.templates, req:install.library.new-template, req:install.fresh, req:install.fresh.from-template, req:install.install, req:install.install.preview, req:install.install.other-projects, req:install.update, req:install.uninstall, req:install.picker, req:install.cli
+- ○ no open question in prd — question:install.opt-in-or-opt-out, question:install.unit, question:install.record-home, question:install.update-vs-edits, question:install.where-it-lands, question:install.edit-linked, question:install.duplicate-ids, question:install.existing-products, question:install.system-library-home, question:install.package-definition
 
 ## Log
 

@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode, type RefObject } from 'react';
 import { parseBody } from '@/lib/graph';
 import { sameProse, setBodyField } from '@/lib/yaml-form';
 import { STATUSES } from '@/lib/props';
+import { usePeek } from './PeekProvider';
 import { Linkified } from './IdLink';
 import { PART_KINDS } from '@/lib/kinds';
 
@@ -55,6 +56,30 @@ function selectOn(host: CardHost) {
   return (e: React.MouseEvent) => { if ((e.target as Element).closest('a')) return; host.onSelect!(); };
 }
 
+// Complete on a step card (decision:wf2.run-is-a-page): one stage of one run, so the card carries the move that
+// finishes it and starts the next — the same Advance the run's strip offers, where the person is reading. A stage
+// that is not ready is refused by the engine and says what is missing, right here.
+function StepComplete({ p }: { p: CardP }) {
+  const { product } = usePeek();
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const run = p.body.match(/^\s*part-of:\s*(run:[A-Za-z0-9_.\-]+)\s*$/m)?.[1];
+  if (!run || ['done', 'skipped', 'todo', ''].includes(p.status)) return null;
+  const complete = async () => {
+    setBusy(true); setMsg('');
+    const r = await fetch(`/api/${product}/runs`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ run, action: 'advance' }) });
+    const j = await r.json().catch(() => ({}));
+    setBusy(false);
+    if (!r.ok) setMsg(j.message ?? 'could not complete this stage');
+  };
+  return (
+    <>
+      <button type="button" className="step-done" disabled={busy} title="Complete this stage and start the next one" onClick={complete}>{busy ? '…' : 'Complete ✓'}</button>
+      {msg && <span className="bad small step-msg">{msg}</span>}
+    </>
+  );
+}
+
 // A prose key's text area. Its text is local while typed: the stored value comes back trimmed and folded
 // (sameProse), so taking it over the input on every render would drop the space the person just typed; a change
 // from elsewhere (another editor, an agent) still replaces the text when it differs beyond folding.
@@ -102,6 +127,7 @@ export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<Car
         <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{(STATUSES.includes(p.status) ? [] : [p.status]).concat(STATUSES).map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
         {p.form === 'prose' && <input className={`nblock-extra ${p.extra ? '' : 'hover-only'}`} value={p.extra} placeholder="key: value" onChange={e => set({ extra: e.target.value })} />}
         <FoldToggle host={host} />
+        {p.kind === 'step' && <StepComplete p={p} />}
         <span className="nblock-tools hover-only">
           <button type="button" className="nblock-send" onClick={() => setShowYaml(v => !v)} title="the id, and a card's yaml">{showYaml ? 'hide details' : 'details'}</button>
           <button type="button" className="nblock-send" title="Copy a link to this node" onClick={host.copyLink}>⧉</button>

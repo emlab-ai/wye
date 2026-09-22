@@ -15,13 +15,13 @@ import { appendCard } from './instances';
 import { claimWrite } from './changes';
 import { rebuild, writeAtomic, withFileLock, lint, patchFrontmatter } from './write';
 import { fillTemplate, templateVars, MAX_DEPTH, type HookAction } from './hooks';
-import { runAction, newFiring, saveFiring, hooksEnabled, type Actor, type Firing } from './hooks-run';
+import { runAction, newFiring, saveFiring, hooksEnabled, listFirings, type Actor, type Firing } from './hooks-run';
 import { listSessions, onSessionEnd } from './sessions';
 import { readSettings, agentSettings } from './settings';
 import { assignTask } from './work-io';
 import { nodeText } from './node-edit';
 import { sectionBody } from './pr-doc';
-import { LIVE, admits, autoRun, blockingSection, logLine, nextStage, parseRun, readinessOf, removeCard, replaceCard, runCard, runSlug, stepId, stageIndex, stagesSection, withSection, workflowOf, type Readiness, type RunCtx, type RunState, type StageDef, type WorkflowDef } from './runs';
+import { LIVE, admits, autoRun, blockingSection, logLine, nextStage, parseRun, readinessOf, removeCard, replaceCard, runCard, runSlug, someOf, stageKey, stepId, stageIndex, stagesSection, withSection, workflowOf, type Readiness, type RunCtx, type RunState, type StageDef, type WorkflowDef } from './runs';
 
 export const runsPageId = (projectSlug: string) => `module:${projectSlug}-workflow-runs`;
 const RUNS_SLUG = 'workflow-runs';
@@ -63,6 +63,8 @@ async function writeRun(scope: Scope, project: Project, r: RunState, o: { by: st
   claimWrite(r.id, { by: o.by }); claimWrite(r.file, { by: o.by });
   const w = workflowOf(scope.graph, scope.idx, r.workflow);
   const stage = w?.stages.find(x => x.id === r.stage);
+  const ses = await sessionsOfRun(scope.product.dir, r.id);
+  if (ses.all.length) { next.sessions = [...new Set([...next.sessions, ...ses.all])]; next.stageSessions = { ...next.stageSessions, ...ses.byStage }; }
   const ready = w && stage ? readinessOf(stage, await ctxFor(scope, r, stage, w)) : null;
   let wrote = false;
   await withFileLock(file, async () => {
@@ -141,6 +143,24 @@ function bindings(scope: Scope, r: RunState, w: WorkflowDef): Record<string, str
   return { ...out, ...r.docs };
 }
 
+// Which sessions belong to this run, and to each of its stages: every firing the engine wrote carries `by.run` and
+// `by.stage`, and a session started from one carries that firing — so this is exact, and it holds for sessions
+// started before the run began recording anything itself.
+export async function sessionsOfRun(productDir: string, runId: string): Promise<{ all: string[]; byStage: Record<string, string[]> }> {
+  const stageOf = new Map<string, string>();
+  for (const f of await listFirings(productDir).catch(() => [])) if (f.by?.run === runId && f.by.stage) stageOf.set(f.id, f.by.stage);
+  const byStage: Record<string, string[]> = {}; const all: string[] = [];
+  if (!stageOf.size) return { all, byStage };
+  for (const s of await listSessions(productDir).catch(() => [])) {
+    const stage = s.hook?.firing ? stageOf.get(s.hook.firing) : undefined;
+    if (!stage) continue;
+    all.push(s.id);
+    const k = stageKey(stage);
+    byStage[k] = [...(byStage[k] ?? []), s.id];
+  }
+  return { all, byStage };
+}
+
 export async function ctxFor(scope: Scope, r: RunState, stage: StageDef, w: WorkflowDef): Promise<RunCtx> {
   const sessions = (await listSessions(scope.product.dir).catch(() => [])).filter(s => r.sessions.includes(s.id)).map(s => ({ id: s.id, status: s.status }));
   // the lint is only run when a predicate asks for it, so the sweep after every build stays cheap
@@ -189,7 +209,7 @@ export async function startRun(product: string, workflow: string, on: string, o:
   const title = runTitle(w.title, node.title || on);
   const text = nodeText(node.body).split('\n').map(l => l.trim()).filter(Boolean).slice(0, 4).join(' ').slice(0, 400);
   const asked = [`Started by ${o.by} on ${on} — the ${w.title} workflow.`, ...(text ? ['', `> ${text}`] : [])].join('\n');
-  const r: RunState = { id, workflow, on, stage: w.stages[0].id, status: 'running', produced: [], sessions: [], started: today(), auto: 0, file: '', log: [], docs: {} };
+  const r: RunState = { id, workflow, on, stage: w.stages[0].id, status: 'running', produced: [], sessions: [], started: today(), auto: 0, file: '', log: [], docs: {}, stageSessions: {} };
   r.file = await createRunDoc(scope, project, r, { title, asked, parent });
   const fresh = await loadScope(product) ?? scope;
   await writeRun(fresh, project, r, { by: o.by, line: logLine({ what: 'started', by: o.by, detail: `${w.title} on ${on}` }) });
@@ -217,11 +237,13 @@ export async function enterStage(product: string, runId: string, stageId: string
     for (const name of stage.produces) {
       if (binds[name]) continue;
       const title = `${node.title || docSlug(node.file)} — ${name}`;
-      const slug = slugify(title);
+      // the name of what the stage produces must survive: slugify cuts at 60, so a long target title would give the
+      // research and the PRD of one run the same slug — and the second stage would write into the first one's document
+      const slug = `${slugify(node.title || docSlug(node.file)).slice(0, 48).replace(/-+$/, '')}-${name}`;
       const already = [...documentTree(scope.graph).byFile.values()].find(d => d.slug === slug);
       if (already) { binds[name] = already.module.id; made.push(already.module.id); continue; }
       const parent = scope.graph.modules.some(m => m.id === node.id) ? docSlug(node.file) : undefined;
-      const res = await createDocFromTemplate(scope, project, { title, template: name, parent });
+      const res = await createDocFromTemplate(scope, project, { title, template: name, parent, slug });
       if (!res.ok) throw new Error(`${name}: ${res.message}`);
       binds[name] = res.node; made.push(res.node);
     }
@@ -250,7 +272,9 @@ export async function enterStage(product: string, runId: string, stageId: string
     const detail = [firing.actions.length ? `${firing.actions.length} action(s)` : 'no actions', ...(made.length ? [`produced ${made.join(', ')}`] : []), ...(automation ? [] : ['automation off — nothing assigned'])].join(', ');
     const after = await loadScope(product) ?? scope;
     const now = runIn(after, runId) ?? r;
-    await writeRun(after, project, { ...now, produced: [...new Set([...now.produced, ...r.produced])], docs: { ...now.docs, ...r.docs, ...binds }, sessions: [...new Set([...now.sessions, ...sessions])], stage: stageId, status: 'running' }, { by: o.by, line: logLine({ what: 'entered', stage: stageId, by: o.by, detail }) });
+    const key = stageKey(stageId);
+    const mine = [...new Set([...(now.stageSessions[key] ?? []), ...(r.stageSessions[key] ?? []), ...sessions])];
+    await writeRun(after, project, { ...now, produced: [...new Set([...now.produced, ...r.produced])], docs: { ...now.docs, ...r.docs, ...binds }, sessions: [...new Set([...now.sessions, ...sessions])], stageSessions: { ...now.stageSessions, ...r.stageSessions, ...(mine.length ? { [key]: mine } : {}) }, stage: stageId, status: 'running' }, { by: o.by, line: logLine({ what: 'entered', stage: stageId, by: o.by, detail }) });
   } finally { state().busy.delete(key); }
 }
 
@@ -272,7 +296,7 @@ export async function advanceRun(product: string, runId: string, o: { by: string
   const w = workflowOf(scope.graph, scope.idx, r.workflow); if (!w) throw new Error(`${r.workflow} is not a workflow`);
   const stage = w.stages.find(s => s.id === r.stage); if (!stage) throw new Error(`${r.stage} is not a stage of ${r.workflow}`);
   const ready = readinessOf(stage, await ctxFor(scope, r, stage, w));
-  if (!ready.ok && !o.skip) throw new Error(`${r.stage} is not ready: ${ready.rows.filter(x => !x.ok).map(x => `${x.label}${x.blocking.length ? ` (${x.blocking.join(', ')})` : ''}`).join('; ')}`);
+  if (!ready.ok && !o.skip) throw new Error(`${r.stage} is not ready: ${ready.rows.filter(x => !x.ok).map(x => `${x.label}${x.blocking.length ? ` (${someOf(x.blocking, 4)})` : ''}`).join('; ')}`);
   const node = scope.idx.byId.get(r.on);
   const project = projectOf(scope, node?.file ?? ''); if (!project) throw new Error('no project for the run');
   const next = nextStage(w, r.stage);

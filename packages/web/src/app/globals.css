@@ -881,8 +881,7 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .menu-sub-list { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 8px 8px 22px; max-width: 260px; } .menu-sub-list button { width: auto; padding: 2px 4px; }
 
 /* A workflow run, on the document it started from and in a node's column (decision:wf2.run-holds-the-state) */
-/* the run's strip follows the page: the Advance that moves the run must be in reach wherever you are reading */
-.run-strip { display: grid; gap: 8px; position: sticky; top: 36px; z-index: 3; background: var(--surface); box-shadow: 0 6px 12px -8px rgba(0,0,0,.6); }
+.run-strip { display: grid; gap: 8px; }
 .run-row + .run-row { border-top: 1px solid var(--line); padding-top: 8px; }
 .run-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .run-wf { font: 600 13px var(--font-b); }
 .run-acts { margin-left: auto; display: flex; gap: 6px; align-items: center; }
@@ -891,6 +890,10 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .run-acts .pri { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .run-acts button:disabled { opacity: .5; cursor: default; }
 .run-rows { list-style: none; margin: 6px 0 0; padding: 0; font: 12px var(--font-m); display: grid; gap: 2px; }
+/* Complete on a step card: the stage's own way to move the run on, beside its status */
+.step-done { border: 1px solid var(--accent); border-radius: 999px; padding: 1px 9px; color: var(--accent); background: none; font: 11px var(--font-m); cursor: pointer; }
+.step-done:hover { background: var(--accent); color: var(--accent-ink); } .step-done:disabled { opacity: .5; }
+.step-msg { margin-left: 6px; font-size: 11px; }
 .run-rows li.ok { color: var(--accent); } .run-rows li.no { color: var(--muted); }
 .run-made, .run-log { margin-top: 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .run-row.s-blocked .run-head .muted { color: var(--bad, #b00); }

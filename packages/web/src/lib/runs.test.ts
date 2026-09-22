@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseStage, workflowOf, workflowsOf, admits, nextStage, readinessOf, parseRun, runCard, replaceCard, removeCard, runSlug, logLine, autoRun, LIVE, stagesSection, stepStatus, blockingSection, withSection, type RunCtx, type RunState, type StageDef } from './runs';
+import { parseStage, workflowOf, workflowsOf, admits, nextStage, readinessOf, parseRun, runCard, replaceCard, removeCard, runSlug, logLine, autoRun, LIVE, stagesSection, stepStatus, someOf, blockingSection, withSection, type RunCtx, type RunState, type StageDef } from './runs';
 import type { GraphData, GraphEdge, GraphNode } from './graph';
 
 // workflows (decision:wf2.workflow-is-a-skill): a workflow is a skill whose stage cards are its steps, in document order
@@ -103,7 +103,7 @@ describe('readiness', () => {
 });
 
 describe('the run card', () => {
-  const r: RunState = { id: 'run:feature-3', workflow: 'workflow:feature', on: 'module:idea', stage: 'stage:f.prd', status: 'waiting', produced: ['module:idea-prd'], sessions: ['abc123'], started: '2026-09-22', log: ['started — by person', 'advanced stage:f.research — by person, every session done'], auto: 0, file: '', docs: {} };
+  const r: RunState = { id: 'run:feature-3', workflow: 'workflow:feature', on: 'module:idea', stage: 'stage:f.prd', status: 'waiting', produced: ['module:idea-prd'], sessions: ['abc123'], started: '2026-09-22', log: ['started — by person', 'advanced stage:f.research — by person, every session done'], auto: 0, file: '', docs: {}, stageSessions: {} };
   it('round-trips through yaml, log and all', () => {
     const md = runCard(r);
     expect(md).toContain('- id: run:feature-3');
@@ -146,7 +146,7 @@ describe('the run page (decision:wf2.run-is-a-page)', () => {
   const wf = node('workflow:feature', { title: 'Feature', body: 'id: workflow:feature' });
   const mk = (id: string, line: number, title: string, produces = '') => node(id, { line, title, body: `title: ${title}\ndo: task "x" --worker agent${produces ? `\nproduces: ${produces}` : ''}` });
   const w = workflowOf({ nodes: [wf, mk('stage:f.research', 10, 'Explore the idea', 'research'), mk('stage:f.prd', 20, 'Write the PRD', 'prd'), mk('stage:f.design', 30, 'Design')] }, incOf([]), 'workflow:feature')!;
-  const run = (over: Partial<RunState> = {}): RunState => ({ id: 'run:feature-1', workflow: 'workflow:feature', on: 'module:idea', stage: 'stage:f.prd', status: 'running', produced: [], sessions: [], started: '2026-09-22', log: [], auto: 0, file: 'x/run-feature-1.md', docs: {}, ...over });
+  const run = (over: Partial<RunState> = {}): RunState => ({ id: 'run:feature-1', workflow: 'workflow:feature', on: 'module:idea', stage: 'stage:f.prd', status: 'running', produced: [], sessions: [], started: '2026-09-22', log: [], auto: 0, file: 'x/run-feature-1.md', docs: {}, stageSessions: {}, ...over });
 
   it('Stages is the run\'s own stage nodes, all of them, from the first moment', () => {
     const out = stagesSection(w, run(), { research: 'module:idea-research' }, [{ label: 'every req in prd is agreed', ok: false, blocking: ['req:a'] }]);
@@ -161,6 +161,9 @@ describe('the run page (decision:wf2.run-is-a-page)', () => {
     expect(out).toContain('- id: step:feature-1.design\n  title: 3. Design\n  status: todo');
     expect(out).toContain('  then: the run ends');
     expect(out).toContain(`wye run advance run:feature-1`);
+    // the session working on the stage the run is on, and a long list of ids cut short
+    expect(stagesSection(w, run({ stageSessions: { prd: ['39b69e4b09'] } }), {}, [])).toContain('  session: session:39b69e4b09');
+    expect(someOf(['a', 'b', 'c'], 2)).toBe('a, b and 1 more');
   });
   it('a step is ready when its criterion holds, and every step is done when the run is', () => {
     const rowsOk = [{ label: 'every req in prd is agreed', ok: true, blocking: [] }];

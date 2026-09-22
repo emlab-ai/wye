@@ -9,7 +9,7 @@ import { treeFor, type Scope } from './scope';
 
 export type CreatedDoc = { ok: true; slug: string; node: string } | { ok: false; error: 'conflict' | 'invalid'; message: string };
 
-export async function createDocFromTemplate(scope: Scope, project: Project, o: { title: string; template: string; parent?: string; kind?: string }): Promise<CreatedDoc> {
+export async function createDocFromTemplate(scope: Scope, project: Project, o: { title: string; template: string; parent?: string; kind?: string; slug?: string }): Promise<CreatedDoc> {
   const title = o.title.trim();
   if (!title) return { ok: false, error: 'invalid', message: 'title required' };
   const kind = (o.kind ?? 'module').trim();
@@ -17,7 +17,9 @@ export async function createDocFromTemplate(scope: Scope, project: Project, o: {
   if (!type) return { ok: false, error: 'invalid', message: `unknown type ${kind}` };
   const tree = treeFor(scope, project.slug);
   const parentDoc = o.parent ? [...tree.byFile.values()].find(x => x.slug === o.parent) : undefined;
-  const slug = slugify(title);
+  // an explicit slug when the caller needs one that does not come from the title (a workflow stage's document: the
+  // title may be long, and slugify's cut would give two stages of one run the same slug)
+  const slug = o.slug ? slugify(o.slug) : slugify(title);
   const abs = path.join(project.docsDir, `${slug}.md`);
   try { await access(abs); return { ok: false, error: 'conflict', message: `${slug}.md exists` }; } catch { /* new */ }
   let tpl = '';

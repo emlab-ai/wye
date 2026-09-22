@@ -161,3 +161,16 @@ assert(out2('req:cnt.card').includes('has>' + bid('Under the card.')) && out2('r
 assert.strictEqual(g2.node('rule:cnt.under').status, 'proposed', 'a typed line inside content is a prose node');
 assert(out2(forms).includes('has>' + bid('Plain again.')), 'the content ends at the next top-level block');
 console.log('ok — content: indented blocks under a paragraph node, a list item and a card, three levels deep');
+
+// a req's parts written right under its line, no blank line between: they are that req's, not the previous one's
+{
+  const md4 = '---\nnode: module:prt\ntitle: P\n---\n\n# P\n\nreq:prt.a First. #proposed\n  - when:prt.a a happens\n  - then:prt.a a shows\n\nreq:prt.a.b Second. #proposed\n  - when:prt.a.b b happens\n\nAfter.\n';
+  const f4 = path.join(dir, 'prt.md'); fs.writeFileSync(f4, md4);
+  const g4 = new Graph(parseFiles([f4]));
+  const out4 = id => (g4.out.get(id) || []).filter(e => !e.generated).map(e => e.verb + '>' + e.to).sort();
+  assert.deepStrictEqual(out4('req:prt.a').filter(e => e.startsWith('has>')), ['has>then:prt.a', 'has>when:prt.a'], 'the first req has its own parts: ' + out4('req:prt.a'));
+  assert.deepStrictEqual(out4('req:prt.a.b').filter(e => e.startsWith('has>')), ['has>when:prt.a.b'], 'the second req has its own part: ' + out4('req:prt.a.b'));
+  assert(/^when: b happens$/m.test(g4.node('req:prt.a.b').body), 'the part\'s text is read back as the key');
+  assert(out4('block:prt.' + blockHash('# P')).includes('has>req:prt.a.b') && out4('block:prt.' + blockHash('# P')).includes('has>' + 'block:prt.' + blockHash('After.')), 'the heading still has the reqs and the paragraph after');
+}
+console.log('ok — parts right under a prose node are its content');

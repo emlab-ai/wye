@@ -153,7 +153,7 @@ export function readinessOf(stage: StageDef, ctx: RunCtx): Readiness {
 
 // One run of a workflow (decision:wf2.run-holds-the-state). The log is a `log:` block scalar on the card rather than
 // content blocks under it: one write per move, and a person reads the history in the card itself.
-export type RunState = { id: string; workflow: string; on: string; stage: string; status: string; produced: string[]; sessions: string[]; started: string; finished?: string; log: string[]; auto: number; file: string; docs: Record<string, string> };
+export type RunState = { id: string; workflow: string; on: string; stage: string; status: string; produced: string[]; sessions: string[]; started: string; finished?: string; log: string[]; auto: number; file: string; docs: Record<string, string>; stageSessions: Record<string, string[]> };
 export const LIVE = new Set(['running', 'waiting', 'blocked']);
 const listOf = (v: string) => v.replace(/^\[|\]$/g, '').split(/[\s,]+/).filter(Boolean);
 
@@ -170,7 +170,10 @@ export function parseRun(n: Pick<GraphNode, 'id' | 'kind' | 'status' | 'body' | 
   // recovered from the slug, which slugify may have truncated
   const docs: Record<string, string> = {};
   for (const m of n.body.matchAll(/^doc-([a-z][a-z0-9-]*):\s*(\S+)\s*$/gm)) docs[m[1]] = m[2];
-  return { id: n.id, workflow: v('workflow'), on: v('runs-on') || v('on'), stage: v('stage'), status: n.status || 'running', produced: listOf(v('produced')), sessions: listOf(v('sessions')), started: v('started'), ...(finished ? { finished } : {}), log, auto: Number(v('auto')) || 0, file: n.file ?? '', docs };
+  // `session-<stage>: [id, …]` — which sessions each stage started, so its step card can name the one at work
+  const stageSessions: Record<string, string[]> = {};
+  for (const m of n.body.matchAll(/^session-([a-z0-9][a-z0-9-]*):\s*(.+)$/gm)) stageSessions[m[1]] = listOf(m[2]);
+  return { id: n.id, workflow: v('workflow'), on: v('runs-on') || v('on'), stage: v('stage'), status: n.status || 'running', produced: listOf(v('produced')), sessions: listOf(v('sessions')), started: v('started'), ...(finished ? { finished } : {}), log, auto: Number(v('auto')) || 0, file: n.file ?? '', docs, stageSessions };
 }
 // A run written before run pages: its card, kept so those runs still move.
 export function runCard(r: RunState): string {
@@ -216,7 +219,12 @@ export const autoRun = (r: Pick<RunState, 'auto'>) => r.auto;
 // The run's stages as nodes, written when the run starts so the whole chain is in the graph from the first moment
 // (decision:wf2.run-is-a-page): one `step:` card per stage of the workflow, in order. Their statuses are a projection
 // of the run's own state — the engine rewrites them on every move, so the page, the graph and the run agree.
-export const stepId = (runId: string, stageId: string) => `step:${runId.replace(/^run:/, '')}.${stageId.split('.').pop() ?? stageId.replace(/^stage:/, '')}`;
+export const stageKey = (stageId: string) => stageId.split('.').pop() ?? stageId.replace(/^stage:/, '');
+export const stepId = (runId: string, stageId: string) => `step:${runId.replace(/^run:/, '')}.${stageKey(stageId)}`;
+// A long list of ids is unreadable on a card and in the strip: show the first few and say how many more there are.
+export function someOf(ids: string[], keep = 6): string {
+  return ids.length <= keep ? ids.join(', ') : `${ids.slice(0, keep).join(', ')} and ${ids.length - keep} more`;
+}
 
 export function stepStatus(r: RunState, at: number, i: number, ready: boolean): string {
   if (r.status === 'done') return 'done';
@@ -234,7 +242,7 @@ export function stagesSection(w: WorkflowDef, r: RunState, bindings: Record<stri
     const status = stepStatus(r, at, i, ready);
     const made = s.produces.map(n => bindings[n]).filter(Boolean);
     const needs = i === at && rows.length
-      ? rows.map(x => `${x.ok ? '✓' : '○'} ${x.label}${x.blocking.length ? ` (${x.blocking.join(', ')})` : ''}`).join(' · ')
+      ? rows.map(x => `${x.ok ? '✓' : '○'} ${x.label}${x.blocking.length ? ` (${someOf(x.blocking)})` : ''}`).join(' · ')
       : untilLabels(s).join(' · ');
     const starts = i === w.stages.length - 1 ? 'the run ends' : w.stages[i + 1].title;
     return [
@@ -246,6 +254,7 @@ export function stagesSection(w: WorkflowDef, r: RunState, bindings: Record<stri
       `  needs: ${needs || 'nothing'}`,
       `  then: ${starts}${s.gate === 'auto' ? ' — automatic' : ''}`,
       ...(made.length ? [`  produced: [${made.join(', ')}]`] : s.produces.length ? [`  produces: ${s.produces.join(', ')}`] : []),
+      ...((r.stageSessions[stageKey(s.id)] ?? []).length ? [`  session: ${(r.stageSessions[stageKey(s.id)] ?? []).map(x => `session:${x}`).join(', ')}`] : []),
     ].join('\n');
   });
   return [head, '', '```yaml', ...cards, '```'].join('\n');

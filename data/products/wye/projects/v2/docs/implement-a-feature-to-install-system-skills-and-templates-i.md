@@ -240,3 +240,226 @@ Seven forks. The PRD cannot be written past them; each is answerable by a person
 ```
 
   symlink removed, and project file cleared
+
+## Problem statement
+
+Wye writes twelve skill documents, the Feature workflow and a hooks page with two active hooks into a project the first time anyone opens its product, without being asked (decision:wf2.hooks-and-skills, decision:wf2.workflow-is-a-skill). The copy is frozen on that day: when Wye changes a shipped prompt, no project follows. Commit 40e115e changed the librarian prompt, and five installed copies still carry the old wording, which every librarian session follows. Deleting a copy brings it back on the next page load, and yessensei holds two sets with the same ids. Page templates are files of the Wye repository behind a fixed list in the New page sheet, so a person can neither see, edit nor add one. The problem belongs to the person who runs a product in Wye: they cannot choose what their projects carry, cannot keep it current and cannot remove it. It is solved when a new project starts empty, a person installs a package into a project and removes it again, every installed project follows the version Wye ships without a manual copy, and the templates are documents a person can open in the app.
+
+## Goals and non-goals
+
+Goals:
+
+- A new project starts empty: no skill, workflow or hook is in it until a person puts it there (decision:install.fresh-project).
+- The thing a person installs is a package — a named set of skills, workflows, hooks and templates that travel together (decision:install.package-is-the-unit).
+- Install and uninstall are acts a person takes on one project, from the app or the command line (decision:install.per-project).
+- An installed project follows the version Wye ships without anyone copying it again (decision:install.linked-not-copied).
+- Page templates are documents a person can open in the app, and the New page sheet offers what the system and the project's packages hold, not a fixed list.
+
+Non-goals:
+
+- No remote catalogue, marketplace or download: the packages are what this repository ships (constraint:wf2.local-first).
+- No package versions, pinning or three-way merge in this feature. A later version scheme would make update an act the person takes; until then an installed package is always the shipped one.
+- No change to how skills, workflows and hooks run once they are in a project: decision:wf2.hooks-and-skills and decision:wf2.workflow-is-a-skill keep their mechanism; only when and by whose choice the documents appear changes.
+- No automatic install when a product or project is opened, including for the products already on disk; what happens to those is question:install.existing-products.
+
+## Requirements
+
+One behaviour per node, each observable from outside the product. The ids are dotted paths: `req:install.library.templates` refines `req:install.library`.
+
+### The system library
+
+req:install.library A person sees every package Wye ships, what each one holds and which projects of the product have it installed. #proposed
+  - when:install.library a person opens the system library in the app
+  - then:install.library each package is listed with its skills, workflows, hooks and templates, and the projects it is installed in
+
+req:install.library.templates Page templates are documents in the system library that a person opens, reads and edits in the app. #proposed
+  - when:install.library.templates a person opens a template from the system library
+  - then:install.library.templates it reads like any other document, and a change saved to it is what the next page made from that template starts with
+
+req:install.library.new-template A person adds a page template of their own to the system library, and from then on it is offered wherever a template is chosen. #proposed
+  - when:install.library.new-template a person creates a new template in the system library
+  - then:install.library.new-template the New page sheet offers it the next time it opens
+
+### A new project starts empty
+
+req:install.fresh A new project has no skills, workflows or hooks until a person installs a package into it. #proposed
+  - when:install.fresh a person creates a project, or opens a product whose project has nothing installed
+  - then:install.fresh the project's Skills folder and Hooks page are empty, and no hook fires on anything done in it
+  - unless:install.fresh the project was created from a project template, which brings the packages it names (req:install.fresh.from-template)
+
+req:install.fresh.from-template A project created from a project template starts with the packages the template names already installed. #proposed
+  - when:install.fresh.from-template a person creates a project and picks a project template
+  - then:install.fresh.from-template the project opens with the template's pages in place and the template's packages listed as installed
+
+### Install
+
+req:install.install A person installs a package into one project, and its skills, workflows, hooks and templates appear in that project. #proposed
+  - when:install.install a person chooses Install on a package for a project
+  - then:install.install the package's skills show in the project's Skills folder, its workflows can be run, its hooks show on the Hooks page, and the package shows as installed in that project
+  - unless:install.install the package is already installed in that project: the person is told so and nothing changes
+
+req:install.install.preview Before a package is installed, the person sees what it will put in the project, and which of its hooks start agent sessions. #proposed
+  - when:install.install.preview a person is about to install a package
+  - then:install.install.preview the skills, workflows, templates and hooks it holds are listed, each hook with what it fires on and whether it starts an agent session, and nothing is installed until the person confirms
+
+req:install.install.other-projects Installing a package in one project changes nothing in the product's other projects. #proposed
+  - when:install.install.other-projects a package is installed in one project of a product with several
+  - then:install.install.other-projects the other projects' skills, workflows and hooks are as they were
+
+### Staying current
+
+req:install.update When Wye's shipped version of a package changes, every project that has it installed follows the new version without anyone acting. #proposed
+  - when:install.update a skill, workflow, hook or template of an installed package is changed in the system library
+  - then:install.update the next agent session, run or new page in any project that has the package installed uses the changed version
+
+### Uninstall
+
+req:install.uninstall A person uninstalls a package from a project, and what it put there is gone and stays gone. #proposed
+  - when:install.uninstall a person chooses Uninstall on a package installed in a project
+  - then:install.uninstall its skills, workflows, hooks and templates are no longer in the project, the package no longer shows as installed there, and opening the product again does not bring them back
+  - unless:install.uninstall a session already running with one of its skills finishes as it started; the blocks its hooks already wrote stay where they are
+
+### Choosing a template
+
+req:install.picker The New page sheet offers the templates of the system library and of the packages installed in the project — never a fixed list. #proposed
+  - when:install.picker a person opens the New page sheet in a project
+  - then:install.picker the Template choice lists the system library's page templates and those of the project's installed packages, by name
+
+### From the command line
+
+req:install.cli A person or an agent lists, installs and uninstalls packages from the command line, with the same result as in the app. #proposed
+  - when:install.cli someone runs the list, install or uninstall command for a project
+  - then:install.cli the project ends in the same state the same act in the app would leave, and the list shows what is installed in each project
+
+## Decisions
+
+The person answered the research's questions under each one. These are those answers written as decisions. When they are approved, the questions they answer can be resolved.
+
+```yaml
+- id: decision:install.fresh-project
+  title: A new project starts with no skills, workflows or hooks unless it is made from a template
+  text: >
+    Answers question:install.opt-in-or-opt-out. Installing is opt-in: nothing is written into a project when it is
+    opened. A project made from a project template gets the packages that template names. This replaces the
+    "written on first open" clause of decision:wf2.hooks-and-skills and decision:wf2.workflow-is-a-skill, but not
+    their mechanism.
+  date: 2026-09-22
+  affects: [decision:wf2.hooks-and-skills, decision:wf2.workflow-is-a-skill, req:install.fresh, req:install.fresh.from-template]
+  satisfies: [req:install.fresh]
+  by: malapheev
+  evidence: the answer under question:install.opt-in-or-opt-out in this document; session:dfb890d304
+  status: proposed
+- id: decision:install.package-is-the-unit
+  title: What a person installs is a package — one name for several skills, workflows, hooks and templates
+  text: >
+    Answers question:install.unit. A package can hold several documents of any of those kinds. It is installed,
+    listed and uninstalled as a whole, so workflow:feature arrives together with its five stage skills.
+  date: 2026-09-22
+  affects: [req:install.install, req:install.uninstall, req:install.library]
+  by: malapheev
+  evidence: the answer under question:install.unit in this document; session:dfb890d304
+  status: proposed
+- id: decision:install.per-project
+  title: A package is installed into a project, not into the whole product
+  text: >
+    Answers question:install.where-it-lands. Each project has its own set of installed packages. The project
+    is no longer chosen by whichever one holds the PRs page.
+  date: 2026-09-22
+  affects: [req:install.install.other-projects, req:install.install]
+  satisfies: [req:install.install.other-projects]
+  by: malapheev
+  evidence: the answer under question:install.where-it-lands in this document; session:dfb890d304
+  status: proposed
+- id: decision:install.linked-not-copied
+  title: An installed package is linked to the system's copy, not copied, so a project follows what Wye ships
+  text: >
+    Answers question:install.update-vs-edits and the uninstall half of question:install.uninstall-semantics.
+    Installing places a symlink to the system library's documents in the project, and the project records
+    which packages it holds. Update needs no act: the link always reads the shipped version. Uninstall removes
+    the link and clears the record. If packages get versions later, update becomes a step the person takes,
+    and that is out of scope here. What happens when someone edits a linked document is
+    question:install.edit-linked.
+  date: 2026-09-22
+  affects: [req:install.update, req:install.uninstall, lib:skills]
+  satisfies: [req:install.update]
+  by: malapheev
+  evidence: the answers under question:install.update-vs-edits and question:install.uninstall-semantics in this document; session:dfb890d304
+  status: proposed
+- id: decision:install.templates-are-documents
+  title: Page templates are documents in the system library, not files behind a fixed list
+  text: >
+    Answers question:install.templates-as-knowledge ("just docs"). A page template is a document a person can
+    open and edit. The New page sheet lists what the system library and the project's installed packages hold.
+  date: 2026-09-22
+  affects: [req:install.library.templates, req:install.picker, req:wf2.page.new-dialog, lib:templates]
+  satisfies: [req:install.library.templates, req:install.picker]
+  by: malapheev
+  evidence: the answer under question:install.templates-as-knowledge in this document; session:dfb890d304
+  status: proposed
+```
+
+## Questions the requirements raise
+
+The research's questions above still stand until the person resolves them against the decisions. question:install.record-home stays open because its answer ("copy, or symlink, or a project.wye file?") names options without choosing one. These are the questions the requirements add.
+
+```yaml
+- id: question:install.edit-linked
+  q: >
+    A person edits a skill or template that is linked from the system library. Does that edit change it for every
+    project that has the package installed, or does the project get its own copy that stops following Wye?
+  context: >
+    Under decision:install.linked-not-copied the project's document is the system's document, so an edit in the
+    app edits what every project and product reads. decision:wf2.hooks-and-skills made skills documents "so a
+    person edits what the agents follow". A project that wants its own version must detach the document, and
+    that brings back the frozen copy described in the research.
+  about: [decision:install.linked-not-copied, req:install.update, req:install.library.templates]
+  status: open
+- id: question:install.duplicate-ids
+  q: >
+    Two projects of the same product install the same package. Its skill and workflow ids would then be defined
+    in two places. Which one does the product read, or is a package's id scoped to the project?
+  context: >
+    decision:install.per-project against constraint:wf2.one-defining-place, which requires every id to be
+    defined in exactly one place. yessensei already shows the failure: two copies of skill:refine, and the graph
+    (last wins) and skillBody (first wins) disagree about which one runs. Linking removes the drift between the
+    copies, but not the second definition.
+  about: [decision:install.per-project, constraint:wf2.one-defining-place, req:install.install.other-projects]
+  status: open
+- id: question:install.existing-products
+  q: >
+    The five products on disk already hold copies written on first open, some of them out of date. Do they become
+    installed packages, linked to the system's version, or stay as they are until a person uninstalls them?
+  context: >
+    wye/evaluation, eval-mab/cr, yessensei/inventory and yessensei/offline, zz-import/main. None of those copies
+    was edited by a person (see the research), so linking them loses nothing, but it would be an install the
+    person did not ask for. Leaving them means they never get the corrected librarian prompt.
+  about: [req:install.fresh, decision:install.fresh-project]
+  status: open
+- id: question:install.system-library-home
+  q: >
+    Where does the system library live, so that a person can open it in the app? Is it a product of its own, a
+    project in every product, or a place outside the products?
+  context: >
+    req:install.library and req:install.library.templates need it to be visible and editable as documents.
+    constraint:wf2.no-custom-pages says it must be a document made of existing blocks, not a page of its own.
+    Today the shipped material is in prompts/ and templates/ at the repository root, and the app shows neither.
+  about: [req:install.library, constraint:wf2.no-custom-pages]
+  status: open
+- id: question:install.package-definition
+  q: >
+    What says which documents make up a package — a card listing them, a folder, or a manifest file in the
+    system library?
+  context: >
+    decision:install.package-is-the-unit makes the package the unit, but nothing defines one today. The
+    twelve skills are listed in BASE_SKILLS and the one workflow in BASE_WORKFLOWS, both in lib/skills.ts, and
+    templates/docs/hooks.md ships hooks. req:install.library.new-template also needs to say whether a person's
+    own template belongs to a package or to the library alone.
+  about: [decision:install.package-is-the-unit, req:install.library, req:install.library.new-template]
+  status: open
+```
+
+## Coverage
+
+Every requirement above with what satisfies it, what verifies it and the tasks on it. A gap is a requirement no decision satisfies or no test verifies, and the design stage of a workflow will not advance past one (decision:wf2.traceability-is-the-verb).
+
+<!-- view:req coverage=1 scope=project as=table -->
