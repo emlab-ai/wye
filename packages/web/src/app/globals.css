@@ -659,7 +659,11 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 
 /* the rail's PRs system folder (component:request-folder): a menu entry with a caret, the requests as rows beneath, grouped by where they are */
 .pr-folder .pf-head { display: flex; align-items: center; gap: 2px; position: relative; } .pr-folder .pf-head a { flex: 1; } .pr-folder .pf-head.on a { background: var(--sunk); }
-.rail-menu .pf-caret { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 18px; height: 22px; padding: 0; justify-content: center; color: var(--ink-2); font-size: 11px; opacity: 0; border-radius: 4px; }   /* the fold caret takes the icon's slot on hover (Notion-style), so nothing floats in the gutter */
+/* The fold caret takes the icon's slot on hover (Notion-style), so nothing floats in the gutter — and it needs the
+   z-index: hiding the icon gives it opacity < 1, which makes it a stacking context that would otherwise paint over
+   the caret (both z-index auto, the icon later in the DOM) exactly when the caret is visible, so every click on the
+   caret would open the folder's page instead of folding it. */
+.rail-menu .pf-caret { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 18px; height: 22px; padding: 0; justify-content: center; color: var(--ink-2); font-size: 11px; opacity: 0; border-radius: 4px; z-index: 1; }
 .rail-menu .pf-head:hover .pf-caret, .rail-menu .pf-caret:focus-visible { opacity: 1; }
 .rail-menu .pf-head:hover > a > i { opacity: 0; }
 .rail-menu .pf-caret:hover { background: var(--line); }

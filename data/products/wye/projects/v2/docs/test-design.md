@@ -787,6 +787,18 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
     state for it; a task with no session on it shows Assign and no result
   status: proposed
   verifies: [req:wf2.ui.tasks, req:exec.done-comes-back]
+- id: ui-test:rail.fold-caret
+  file: (to run by hand in the browser, or with playwright-core against the dev server)
+  title: The fold caret of a rail folder folds it, and does not open its page
+  scenario: >
+    hover the rail's PRs or Skills folder so the caret takes the icon's slot, and click the caret: the folder folds
+    and the URL does not change; click it again and it unfolds, and the state survives a reload. The regression it
+    guards: the caret is only visible while the head is hovered, and hovering sets the icon's opacity to 0 — which
+    makes the icon a stacking context that painted over the caret (both z-index auto, the icon later in the DOM), so
+    every click on the caret opened the folder's page instead. Only a real click in a browser catches it:
+    elementFromPoint with nothing hovered reports the caret, and jsdom has no layout at all.
+  status: proposed
+  verifies: [req:wf2.hooks]
 ```
 
 ## Fixture
