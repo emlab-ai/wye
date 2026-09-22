@@ -7,8 +7,9 @@ import { EmbeddedCard } from './EmbeddedCard';
 import { StatusPill } from './Pills';
 import { Linkified } from './IdLink';
 import { assetBase, docRoute } from '@/lib/doc';
-import { EMPTY_FILTERS, filterRows, filtersToQuery, groupRows, sortRows, type Filters, type InstanceRow, type InstanceTable as Table } from '@/lib/instance-table';
+import { EMPTY_FILTERS, coverageOf, filterRows, filtersToQuery, groupRows, sortRows, type Filters, type InstanceRow, type InstanceTable as Table } from '@/lib/instance-table';
 import { pluralTitle } from '@/lib/instances';
+import { requestSend } from './CommandBox';
 
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');
 const items = (v: string) => v.replace(/^\[|\]$/g, '').split(',').map(s => s.trim()).filter(Boolean);
@@ -16,7 +17,7 @@ const items = (v: string) => v.replace(/^\[|\]$/g, '').split(',').map(s => s.tri
 // Every instance of one type (or node of one kind) as a filterable table: search, status chips with counts, a chip
 // row per enum / bool column, a select per ref column, group by, sort by column. The filter state is the caller's:
 // a page keeps it in the URL (urlState), a view block in its key=value line (onChange).
-export function InstanceTable({ product, table, initial, urlState, onChange, readOnly, as = 'table', compact = false, onNew }: { product: string; table: Table; initial?: Filters; urlState?: boolean; onChange?: (f: Filters) => void; as?: 'table' | 'list'; readOnly?: boolean; compact?: boolean; onNew?: (title: string) => Promise<string | null> }) {
+export function InstanceTable({ product, table, initial, urlState, onChange, readOnly, as = 'table', compact = false, onNew, coverage = false }: { product: string; table: Table; initial?: Filters; urlState?: boolean; onChange?: (f: Filters) => void; as?: 'table' | 'list'; readOnly?: boolean; compact?: boolean; onNew?: (title: string) => Promise<string | null>; coverage?: boolean }) {
   const { open, openId, index } = usePeek();
   const [f, setF] = useState<Filters>(initial ?? EMPTY_FILTERS);
   useEffect(() => { setF(initial ?? EMPTY_FILTERS); }, [initial]);
@@ -35,13 +36,21 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
   const sortOn = (col: string) => set({ sort: f.sort === col ? '-' + col : f.sort === '-' + col ? '' : col });
   const arrow = (col: string) => f.sort === col ? ' ▲' : f.sort === '-' + col ? ' ▼' : '';
   const active = Object.values(f.props).some(Boolean) || f.q || f.status;
-  const span = 2 + table.columns.length + (table.typed ? 0 : 1);
+  // `coverage=1` on a req view: one more cell per row saying whether the requirement is covered and what is missing
+  const cover = coverage && table.slug === 'req';
+  const span = 2 + table.columns.length + (table.typed ? 0 : 1) + (cover ? 1 : 0);
   const Row = ({ r }: { r: InstanceRow }) => {
     const where = docRoute(r.file);
     const page = index[r.id]?.doc; // a page instance (rule:page-node-line) links to the document itself
     const href = page && where ? `/${product}/${where.project}/d/${page}` : where ? `/${product}/${where.project}/d/${where.doc}#n-${encodeURIComponent(r.id)}` : '';
     return (
-      <tr className={r.id === openId ? 'on' : ''} onClick={() => open(r.id)} role="button">
+      <tr className={`${r.id === openId ? 'on' : ''} ${cover && coverageOf(r).gap.length ? 'gap' : ''}`} onClick={() => open(r.id)} role="button">
+        {cover && (() => { const c = coverageOf(r); return (
+          <td className={`itable-cover ${c.gap.length ? 'no' : 'ok'}`} title={c.gap.length ? c.gap.join('; ') : `${c.satisfiedBy.length} satisfying, ${c.verifiedBy.length} verifying, ${c.tasks.length} task(s)`}>
+            {c.gap.length === 0
+              ? <span>✓ covered{c.tasks.length ? ` · ${c.tasks.length} task${c.tasks.length > 1 ? 's' : ''}` : ''}</span>
+              : <button className="linkish" onClick={e => { e.stopPropagation(); requestSend({ text: `${c.verifiedBy.length ? 'Design how' : 'Define the test cases for how'} ${r.id} is ${c.verifiedBy.length ? 'satisfied' : 'verified'}: ${plain(r.title)}`, refs: [r.id] }); }} title="Send this gap to an agent">{c.gap.join(' · ')}</button>}
+          </td>); })()}
         <td><div className="itable-id"><SmartTag id={r.id} /><StatusPill status={r.status} />{href && <Link className="klist-doc" href={href} title={page ? 'a page — open it' : r.doc} onClick={e => e.stopPropagation()}>{page ? '📄' : '↗'}</Link>}</div><div className="itable-title">{r.title !== r.id && !r.id.endsWith(':' + r.title) ? plain(r.title) : ''}</div></td>
         {table.columns.map(c => <td key={c.name} className={r.props[c.name] ? '' : 'empty'}>{r.props[c.name] ? <Linkified text={r.props[c.name].replace(/^\[|\]$/g, '')} base={assetBase(r.file)} /> : <span className="muted">—</span>}</td>)}
         {!table.typed && <td className="itable-rels">{(r.rels ?? []).slice(0, 6).map(e => <span key={e.verb + e.to} className="klist-rel"><small>{e.verb}</small><SmartTag id={e.to} /></span>)}</td>}
@@ -88,6 +97,7 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
       ) : (
       <div className="ttable"><table className="type-instances itable-grid">
         <thead><tr>
+          {cover && <th>coverage</th>}
           <th onClick={() => sortOn('title')} className="sortable">id{arrow('title')}</th>
           {table.columns.map(c => <th key={c.name} onClick={() => sortOn(c.name)} className="sortable">{c.name}{arrow(c.name)}</th>)}
           {!table.typed && <th>relations</th>}

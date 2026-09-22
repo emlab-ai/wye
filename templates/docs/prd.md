@@ -44,6 +44,14 @@ Ids are dotted paths: `req:<mod>.<capability>.<detail>` refines `req:<mod>.<capa
   requires-tests: []
 ```
 
+## Coverage
+
+Every requirement above with what satisfies it, what verifies it and the tasks on it — a gap is a requirement no
+decision satisfies or no test verifies, and the design stage of a workflow will not advance past one
+(decision:wf2.traceability-is-the-verb). Click a gap to send it to an agent.
+
+<!-- view:req coverage=1 scope=project as=table -->
+
 ## 11. Open questions
 
 ```yaml

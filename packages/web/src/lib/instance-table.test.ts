@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { instanceTable, parseFilters, filterRows, groupRows, sortRows, filtersToQuery, parseViewQuery, viewQuery, type InstanceRow } from './instance-table';
+import { instanceTable, parseFilters, filterRows, groupRows, sortRows, filtersToQuery, parseViewQuery, viewQuery, type InstanceRow, coverageOf } from './instance-table';
 import type { GraphData, GraphNode, TypeDef } from './graph';
 
 const P = (name: string, from: string, type: string, extra: Partial<TypeDef['props'][number]> = {}) => ({ name, from, type, ref: null, many: false, required: false, inverse: null, enum: null, ...extra });
@@ -81,5 +81,15 @@ describe('view line', () => {
   it('writes the filters back as key=value pairs, empty ones dropped, spaces quoted', () => {
     expect(viewQuery({ q: 'login page', status: 'open', group: '', sort: '-priority', props: { owner: 'person:ann', priority: '' } })).toBe('q="login page" status=open sort=-priority owner=person:ann');
     expect(viewQuery({ q: '', status: '', group: '', sort: '', props: {} })).toBe('');
+  });
+});
+
+describe('coverage', () => {
+  const row = (props: Record<string, string>) => ({ props });
+  it('reads what satisfies a req, what verifies it and its tasks; a gap names what is missing', () => {
+    expect(coverageOf(row({ 'satisfied-by': '[decision:d, op:o]', 'verified-by': 'test:t', tasks: '[task:a]' })))
+      .toEqual({ satisfiedBy: ['decision:d', 'op:o'], verifiedBy: ['test:t'], tasks: ['task:a'], gap: [] });
+    expect(coverageOf(row({})).gap).toEqual(['no decision satisfies it', 'no test verifies it']);
+    expect(coverageOf(row({ 'satisfied-by': 'decision:d' })).gap).toEqual(['no test verifies it']);
   });
 });

@@ -41,6 +41,9 @@ export function instanceTable(g: GraphData, slug: string): InstanceTable {
     // goal's Requirements / Tasks are (decision:wf2.column-is-content)
     const partOf = g.edges.filter(e => e.from === n.id && e.verb === 'part-of').map(e => e.to);
     if (partOf.length) row.props['part-of'] = partOf.length === 1 ? partOf[0] : `[${partOf.join(', ')}]`;
+    // the tasks on a requirement (the inverse of a task's part-of): what a coverage view reads beside satisfied-by and
+    // verified-by (decision:wf2.traceability-is-the-verb)
+    if (n.kind === 'req') { const tasks = g.edges.filter(e => e.to === n.id && e.verb === 'part-of' && e.from.startsWith('task:')).map(e => e.from); if (tasks.length) row.props.tasks = `[${tasks.join(', ')}]`; }
     else row.rels = g.edges.filter(e => e.from === n.id && e.verb !== 'mentions' && e.verb !== 'has').map(e => ({ verb: e.verb, to: e.to }));
     if (slug === 'node') row.text = plain(nodeText(n)).slice(0, 400);
     return row;
@@ -48,6 +51,17 @@ export function instanceTable(g: GraphData, slug: string): InstanceTable {
   const count = new Map<string, number>();
   for (const r of rows) if (r.status) count.set(r.status, (count.get(r.status) ?? 0) + 1);
   return { slug, typed: !!t, columns: cols, rows, statuses: [...count].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])) };
+}
+
+const items = (v: string) => v.replace(/^\[|\]$/g, '').split(',').map(s => s.trim()).filter(Boolean);
+
+// The coverage of a requirement (decision:wf2.traceability-is-the-verb): what satisfies it, what verifies it, the
+// tasks on it. A gap is a requirement missing either side — what the Design stage's criterion refuses to advance past,
+// and what `coverage=1` on a req view marks so a person can see it before they advance.
+export function coverageOf(r: Pick<InstanceRow, 'props'>): { satisfiedBy: string[]; verifiedBy: string[]; tasks: string[]; gap: string[] } {
+  const of = (k: string) => items(r.props[k] ?? '');
+  const satisfiedBy = of('satisfied-by'), verifiedBy = of('verified-by'), tasks = of('tasks');
+  return { satisfiedBy, verifiedBy, tasks, gap: [...(satisfiedBy.length ? [] : ['no decision satisfies it']), ...(verifiedBy.length ? [] : ['no test verifies it'])] };
 }
 
 // The toolbar state from a query string: q, status, group, sort and one value per known column.
@@ -71,7 +85,6 @@ function nodeText(n: { body?: string }): string {
 }
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');
 // a cell holds one value or a list `[a, b]`; a filter value matches the whole value or one item of the list
-const items = (v: string) => v.replace(/^\[|\]$/g, '').split(',').map(s => s.trim()).filter(Boolean);
 const hasValue = (cell: string | undefined, want: string) => !!cell && (cell === want || items(cell).includes(want));
 
 export function filterRows(rows: InstanceRow[], f: Filters): InstanceRow[] {

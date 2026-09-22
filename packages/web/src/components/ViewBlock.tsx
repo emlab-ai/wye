@@ -31,8 +31,11 @@ export const ViewBlock = createReactBlockSpec(
       const asTable = /(^|\s)as=table(\s|$)/.test(rawQuery);
       // `scope=project` keeps the rows of this document's project; the default is the whole product (decision:wf2.views-are-pages)
       const scopeProject = /(^|\s)scope=project(\s|$)/.test(rawQuery);
-      const query = rawQuery.replace(/(^|\s)as=(table|list)(?=\s|$)/, '').replace(/(^|\s)scope=(project|product)(?=\s|$)/, '').trim();
-      const withAs = (q: string) => [q, asTable ? 'as=table' : '', scopeProject ? 'scope=project' : ''].filter(Boolean).join(' ');
+      // `coverage=1` on a req view adds the coverage cell: what satisfies each requirement, what verifies it, its tasks,
+      // and a gap where either side is missing (decision:wf2.traceability-is-the-verb)
+      const coverage = /(^|\s)coverage=1(\s|$)/.test(rawQuery);
+      const query = rawQuery.replace(/(^|\s)as=(table|list)(?=\s|$)/, '').replace(/(^|\s)scope=(project|product)(?=\s|$)/, '').replace(/(^|\s)coverage=1(?=\s|$)/, '').trim();
+      const withAs = (q: string) => [q, asTable ? 'as=table' : '', scopeProject ? 'scope=project' : '', coverage ? 'coverage=1' : ''].filter(Boolean).join(' ');
       const hostRef = useRef<HTMLDivElement>(null);
       const [project, setProject] = useState('');
       useEffect(() => { setProject((hostRef.current?.closest('.doc-editor') as HTMLElement | null)?.dataset.project ?? ''); }, []);
@@ -53,8 +56,8 @@ export const ViewBlock = createReactBlockSpec(
       const options = [...ownTypes.map(t => t.slug), ...BASE_VIEW_KINDS.filter(k => !ownTypes.some(t => t.slug === k))]; if (!options.includes(slug)) options.push(slug);
       const initial = table ? parseViewQuery(query, table.columns.map(c => c.name)) : undefined;
       const onChange = (f: Filters) => { const q = viewQuery(f); if (q !== query) props.editor.updateBlock(props.block, { props: { query: withAs(q) } } as never); };
-      const setAs = (t: boolean) => props.editor.updateBlock(props.block, { props: { query: [query, t ? 'as=table' : '', scopeProject ? 'scope=project' : ''].filter(Boolean).join(' ') } } as never);
-      const setScope = (proj: boolean) => props.editor.updateBlock(props.block, { props: { query: [query, asTable ? 'as=table' : '', proj ? 'scope=project' : ''].filter(Boolean).join(' ') } } as never);
+      const setAs = (t: boolean) => props.editor.updateBlock(props.block, { props: { query: [query, t ? 'as=table' : '', scopeProject ? 'scope=project' : '', coverage ? 'coverage=1' : ''].filter(Boolean).join(' ') } } as never);
+      const setScope = (proj: boolean) => props.editor.updateBlock(props.block, { props: { query: [query, asTable ? 'as=table' : '', proj ? 'scope=project' : '', coverage ? 'coverage=1' : ''].filter(Boolean).join(' ') } } as never);
       const scoped = table && scopeProject && project ? { ...table, rows: table.rows.filter(r => r.file.includes(`/projects/${project}/`)) } : table;
       // a new instance from the list's empty last line: the document this view is in as its home (a base kind has no
       // collection), `part-of` from the view's own filter so the row lands where the list shows it
@@ -81,7 +84,7 @@ export const ViewBlock = createReactBlockSpec(
             </select>
             {err && <span className="bad">{err}</span>}
           </div>
-          {scoped && initial && <InstanceTable product={product} table={scoped} initial={initial} onChange={onChange} as={asTable ? 'table' : 'list'} readOnly compact={!!scope} onNew={onNew} />}
+          {scoped && initial && <InstanceTable product={product} table={scoped} initial={initial} onChange={onChange} as={asTable ? 'table' : 'list'} readOnly compact={!!scope} onNew={onNew} coverage={coverage} />}
           {scoped && !scoped.rows.length && <p className="muted small">No {slug}s yet.</p>}
         </div>
       );

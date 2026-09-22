@@ -890,3 +890,7 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .run-rows li.ok { color: var(--accent); } .run-rows li.no { color: var(--muted); }
 .run-made, .run-log { margin-top: 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .run-row.s-blocked .run-head .muted { color: var(--bad, #b00); }
+
+/* coverage=1 on a req view: is the requirement satisfied and verified, and what is missing (spec §6) */
+.itable-cover { font: 12px var(--font-m); white-space: nowrap; } .itable-cover.ok { color: var(--accent); } .itable-cover.no button { color: var(--muted); }
+.itable tr.gap td:first-child { box-shadow: inset 2px 0 0 var(--line-2); }
