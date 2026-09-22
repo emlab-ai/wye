@@ -23,7 +23,13 @@ import { addInboxItem } from './inbox';
 import type { GraphNode } from './graph';
 
 export type FiringAction = { kind: HookAction['kind']; session?: string; added?: string[]; error?: string };
-export type Firing = { id: string; hook: string; title: string; node: string; event: string; at: string; depth: number; actions: FiringAction[] };
+// `hook` stays what `once` is keyed on (and what the old records carry); `by` says which actor ran it — a hook, or a
+// workflow run's stage (decision:wf2.workflow-is-a-skill), which is how one firing store serves both engines.
+export type Firing = { id: string; hook: string; title: string; node: string; event: string; at: string; depth: number; actions: FiringAction[]; by?: { hook?: string; run?: string; stage?: string } };
+// Who is running the actions: a hook, or a stage of a workflow run. The runner only needs an id, a title and the
+// skills to attach, so it takes this instead of a HookDef.
+export type Actor = { id: string; title: string; skills: string[] };
+const actorOf = (h: HookDef): Actor => ({ id: h.id, title: h.title, skills: h.skills });
 
 const g = globalThis as unknown as { __wfHooks?: { wfUrl: string; busy: Set<string> } };
 const state = () => (g.__wfHooks ??= { wfUrl: process.env.WYE_URL || process.env.WF_URL || 'http://localhost:3456', busy: new Set() });
@@ -43,7 +49,12 @@ export async function listFirings(productDir: string): Promise<Firing[]> {
 export async function getFiring(productDir: string, id: string): Promise<Firing | null> {
   try { return JSON.parse(await readFile(path.join(dirOf(productDir), `${id}.json`), 'utf8')); } catch { return null; }
 }
-async function saveFiring(productDir: string, f: Firing): Promise<void> {
+// A firing of a stage's actions: the same record a hook writes, with `by` naming the run and the stage instead. It is
+// not keyed by `hook`, so the `once` bookkeeping never sees it.
+export function newFiring(o: { by: Firing['by']; title: string; node: string; event: string; depth: number }): Firing {
+  return { id: randomBytes(5).toString('hex'), hook: '', actions: [], at: new Date().toISOString(), ...o };
+}
+export async function saveFiring(productDir: string, f: Firing): Promise<void> {
   await mkdir(dirOf(productDir), { recursive: true });
   await writeFile(path.join(dirOf(productDir), `${f.id}.json`), JSON.stringify(f, null, 2));
 }
@@ -80,12 +91,12 @@ export async function fire(product: string, events: (HookEvent & { depth?: numbe
     for (const h of [...matched, ...forced.filter(h => !matched.includes(h))]) {
       const key = `${h.id}|${ev.id}`;
       if (state().busy.has(key)) continue; state().busy.add(key);
-      const f: Firing = { id: randomBytes(5).toString('hex'), hook: h.id, title: h.title, node: ev.id, event: ev.event, at: new Date().toISOString(), depth: ev.depth ?? 0, actions: [] };
+      const f: Firing = { id: randomBytes(5).toString('hex'), hook: h.id, title: h.title, node: ev.id, event: ev.event, at: new Date().toISOString(), depth: ev.depth ?? 0, actions: [], by: { hook: h.id } };
       fired.add(key);
       try {
         await saveFiring(productDir, f); // recorded before the actions: a crash mid-way still counts as fired
         for (const a of h.actions) {
-          try { f.actions.push(await runAction(scope, h, a, ev, node, f, log)); }
+          try { f.actions.push(await runAction(scope, actorOf(h), a, ev, node, f, log)); }
           catch (e) { f.actions.push({ kind: a.kind, error: e instanceof Error ? e.message : String(e) }); }
         }
         await saveFiring(productDir, f);
@@ -97,20 +108,23 @@ export async function fire(product: string, events: (HookEvent & { depth?: numbe
   return out;
 }
 
-async function runAction(scope: Scope, h: HookDef, a: HookAction, ev: HookEvent, node: GraphNode | undefined, f: Firing, log: (m: string) => void): Promise<FiringAction> {
-  if (a.kind === 'run') return { kind: 'run', session: await startSkillSession(scope, h, a.skill, ev, node, f) };
-  if (a.kind === 'add') { if (!node) throw new Error(`${ev.id} is not in the graph`); return { kind: 'add', added: await addFromTemplate(scope, h, a.template, a.to, node, log) }; }
-  if (a.kind === 'task') { if (!node) throw new Error(`${ev.id} is not in the graph`); return await taskUnder(scope, h, a, node, f); }
-  if (a.kind === 'assign') return await assignExisting(scope, h, a, f);
-  if (a.kind === 'notify') { if (!node) throw new Error(`${ev.id} is not in the graph`); return { kind: 'notify', added: [await notify(scope, h, a.text, node, ev)] }; }
+export async function runAction(scope: Scope, actor: Actor, a: HookAction, ev: HookEvent, node: GraphNode | undefined, f: Firing, log: (m: string) => void): Promise<FiringAction> {
+  if (a.kind === 'run') return { kind: 'run', session: await startSkillSession(scope, actor, a.skill, ev, node, f) };
+  if (a.kind === 'add') { if (!node) throw new Error(`${ev.id} is not in the graph`); return { kind: 'add', added: await addFromTemplate(scope, actor, a.template, a.to, node, log) }; }
+  if (a.kind === 'task') { if (!node) throw new Error(`${ev.id} is not in the graph`); return await taskUnder(scope, actor, a, node, f); }
+  if (a.kind === 'assign') return await assignExisting(scope, actor, a, f);
+  if (a.kind === 'notify') { if (!node) throw new Error(`${ev.id} is not in the graph`); return { kind: 'notify', added: [await notify(scope, actor, a.text, node, ev)] }; }
+  // a workflow: the run starts on the node the event names, and its first stage is entered at once (lib/runs-run)
+  if (a.kind === 'workflow') { if (!node) throw new Error(`${ev.id} is not in the graph`); const { startRun } = await import('./runs-run'); const r = await startRun(scope.product.slug, a.workflow, node.id, { by: actor.id }); return { kind: 'workflow', added: [r.run] }; }
+  if (a.kind === 'dispatch') { const { dispatchDoc } = await import('./runs-run'); return { kind: 'dispatch', added: await dispatchDoc(scope, a.doc, { workers: a.workers, by: actor.id }) }; }
   throw new Error(`unknown action ${JSON.stringify(a)}`);
 }
 
 // `task "<text>" [--worker w] [--skill s]`: a task line under the node — part of it, ready, by the hook — so Work
 // lists it; with a worker it is assigned at once (lib/work-io#assignTask: an agent starts a session with the skill
 // in its first message and the task in progress; a person's name is just set). Returns the task id (and the session).
-async function taskUnder(scope: Scope, h: HookDef, a: { text: string; worker?: string; skill?: string }, node: GraphNode, f: Firing): Promise<FiringAction> {
-  const by = `hook:${h.id.replace(/^hook:/, '')}`;
+async function taskUnder(scope: Scope, actor: Actor, a: { text: string; worker?: string; skill?: string }, node: GraphNode, f: Firing): Promise<FiringAction> {
+  const by = actor.id;
   const text = fillTemplate(a.text, templateVars(node));
   claimWrite(node.id, { by });
   const made = await captureTask(scope, { text, partOf: node.id, by, ready: !a.worker });
@@ -120,27 +134,27 @@ async function taskUnder(scope: Scope, h: HookDef, a: { text: string; worker?: s
   const fresh = await loadScope(scope.product.slug); if (!fresh) throw new Error('the product could not be reloaded');
   const settings = agentSettings(await readSettings());
   const worker = a.worker === 'agent' ? settings.agent : a.worker;
-  const skills = [...new Set([...(a.skill ? [a.skill] : []), ...h.skills])];
-  const r = await assignTask(fresh, made.id, { worker, wfUrl: state().wfUrl, by, force: true, skills, hook: { id: h.id, firing: f.id, ...(a.skill ? { skill: a.skill } : {}) } });
+  const skills = [...new Set([...(a.skill ? [a.skill] : []), ...actor.skills])];
+  const r = await assignTask(fresh, made.id, { worker, wfUrl: state().wfUrl, by, force: true, skills, hook: { id: actor.id, firing: f.id, ...(a.skill ? { skill: a.skill } : {}) } });
   if (!r.ok) return { kind: 'task', added: [made.id], error: `assigned to nobody — ${r.message}` };
   return { kind: 'task', added: [made.id], ...(r.session ? { session: r.session } : {}) };
 }
 
 // `assign task:<id> [--worker w] [--skill s]`: an existing task to a worker (the default agent when none is named).
-async function assignExisting(scope: Scope, h: HookDef, a: { task: string; worker?: string; skill?: string }, f: Firing): Promise<FiringAction> {
+async function assignExisting(scope: Scope, actor: Actor, a: { task: string; worker?: string; skill?: string }, f: Firing): Promise<FiringAction> {
   const settings = agentSettings(await readSettings());
   const worker = !a.worker || a.worker === 'agent' ? settings.agent : a.worker;
-  const skills = [...new Set([...(a.skill ? [a.skill] : []), ...h.skills])];
-  const r = await assignTask(scope, a.task, { worker, wfUrl: state().wfUrl, by: `hook:${h.id.replace(/^hook:/, '')}`, force: true, skills, hook: { id: h.id, firing: f.id, ...(a.skill ? { skill: a.skill } : {}) } });
+  const skills = [...new Set([...(a.skill ? [a.skill] : []), ...actor.skills])];
+  const r = await assignTask(scope, a.task, { worker, wfUrl: state().wfUrl, by: actor.id, force: true, skills, hook: { id: actor.id, firing: f.id, ...(a.skill ? { skill: a.skill } : {}) } });
   if (!r.ok) throw new Error(r.message);
   return { kind: 'assign', added: [a.task], ...(r.session ? { session: r.session } : {}) };
 }
 
 // `notify "<text>"`: a note in the product's inbox from the hook, naming the node; the watcher's inbox event shows it
 // as a toast on every open page (component:live-refresh).
-async function notify(scope: Scope, h: HookDef, text: string, node: GraphNode, ev: HookEvent): Promise<string> {
+async function notify(scope: Scope, actor: Actor, text: string, node: GraphNode, ev: HookEvent): Promise<string> {
   const filled = fillTemplate(text, templateVars(node));
-  return addInboxItem(scope.product.dir, { type: 'note', title: `hook: ${filled}`, text: `${h.id} on ${node.id} (${ev.event}).`, from: `hook:${h.id.replace(/^hook:/, '')}`, refs: [node.id, h.id] });
+  return addInboxItem(scope.product.dir, { type: 'note', title: `hook: ${filled}`, text: `${actor.id} on ${node.id} (${ev.event}).`, from: actor.id, refs: [node.id, actor.id] });
 }
 
 // "Run now" on a node's Hooks section: the hook fires on that node as if its event had just happened — the once
@@ -156,7 +170,7 @@ export async function runHook(product: string, hookId: string, nodeId: string): 
 // Wye repo; a worker skill runs in the product's repo), refs = the node and what it is part of, the first message as
 // any session's (instruction, resolved refs, constraints in force) plus the skill's body and the hook's attached
 // skills. The session carries the firing (Session.hook) so what it writes fires hooks one level deeper.
-async function startSkillSession(scope: Scope, h: HookDef, skill: string, ev: HookEvent, node: GraphNode | undefined, f: Firing): Promise<string> {
+async function startSkillSession(scope: Scope, actor: Actor, skill: string, ev: HookEvent, node: GraphNode | undefined, f: Firing): Promise<string> {
   const product = scope.product.slug, productDir = scope.product.dir;
   const skills = await listSkills(scope);
   const meta = skills.find(s => s.id === skill);
@@ -172,11 +186,11 @@ async function startSkillSession(scope: Scope, h: HookDef, skill: string, ev: Ho
     instruction: `Run ${skill} on ${ev.id}: ${title}`,
     refs: [ev.id, ...partOf, ...(ev.session ? [`session:${ev.session}`] : [])],
     source: route ? { project: route.project, doc: route.doc, link: `${product}/${route.project}/${route.doc}` } : {},
-    hook: { id: h.id, firing: f.id, skill },
+    hook: { id: actor.id, firing: f.id, skill },
   });
-  await updateSession(productDir, s.id, { line: `started by ${h.id} on ${ev.id} (${ev.event})` });
+  await updateSession(productDir, s.id, { line: `started by ${actor.id} on ${ev.id} (${ev.event})` });
   // the hook's own attached skills; the PR's and the type cards' come with buildPrompt
-  const first = (await buildPrompt(product, s, state().wfUrl, productDir)) + await skillsSection(scope, [skill], 'Skill') + await skillsSection(scope, h.skills.filter(x => x !== skill), 'Skills of the hook');
+  const first = (await buildPrompt(product, s, state().wfUrl, productDir)) + await skillsSection(scope, [skill], 'Skill') + await skillsSection(scope, actor.skills.filter(x => x !== skill), 'Skills attached');
   await startChat(productDir, product, s.id, { wfUrl: state().wfUrl, firstMessage: first, shown: s.instruction });
   return s.id;
 }
@@ -184,7 +198,7 @@ async function startSkillSession(scope: Scope, h: HookDef, skill: string, ev: Ho
 // `add <template>`: the template's markdown — a `template:<name>` card's body in the product, else
 // templates/hooks/<name>.md — filled for the node and appended under it as content (proposed child blocks, `by:
 // hook:<slug>`), or with `to: <doc slug>` at that document's end. Deterministic, no model. Returns the ids added.
-async function addFromTemplate(scope: Scope, h: HookDef, template: string, to: string | undefined, node: GraphNode, log: (m: string) => void): Promise<string[]> {
+async function addFromTemplate(scope: Scope, actor: Actor, template: string, to: string | undefined, node: GraphNode, log: (m: string) => void): Promise<string[]> {
   const card = scope.idx.byId.get(`template:${template}`);
   let md = card ? cardValue(card.body, 'body') : '';
   if (!md) { try { md = await readFile(path.join(REPO_ROOT, 'templates/hooks', `${template}.md`), 'utf8'); } catch { /* none */ } }
@@ -192,7 +206,7 @@ async function addFromTemplate(scope: Scope, h: HookDef, template: string, to: s
   const filled = fillTemplate(md, templateVars(node)).replace(/\s+$/, '');
   const ids = filled.split('\n').map(l => l.match(/^\s*-\s+(?:id:\s*)?([a-z-]+:[A-Za-z0-9_.\-]+)(?:\s|$)/)?.[1] ?? '').filter(Boolean);
   // the writer's mark on every block the template adds: proposed, by the hook — a card gets `by:`, a prose line the group
-  const by = `hook:${h.id.replace(/^hook:/, '')}`;
+  const by = actor.id;
   const marked = filled.split('\n').map((l, i, arr) => {
     const item = l.match(/^(\s*)-\s+(?:id:\s*)?[a-z-]+:[A-Za-z0-9_.\-]+(\s.*)?$/);
     if (!item) return l;
@@ -223,7 +237,7 @@ async function addFromTemplate(scope: Scope, h: HookDef, template: string, to: s
     if (!ok) throw new Error(`${node.id} has no content in its document (${node.form ?? 'yaml'} form)`);
   }
   await rebuild(scope.product.dir);
-  log(`${h.id}: ${template} added under ${to ?? node.id}`);
+  log(`${actor.id}: ${template} added under ${to ?? node.id}`);
   return ids;
 }
 

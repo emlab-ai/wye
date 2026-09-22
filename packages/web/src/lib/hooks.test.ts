@@ -24,6 +24,9 @@ describe('hook cards', () => {
     expect(parseAction('assign task:a --skill define-tests')).toEqual({ kind: 'assign', task: 'task:a', skill: 'skill:define-tests' });
     expect(parseAction('task "Define test cases for {{title}}" --worker agent --skill skill:define-tests')).toEqual({ kind: 'task', text: 'Define test cases for {{title}}', worker: 'agent', skill: 'skill:define-tests' });
     expect(parseAction('task "Review {{title}}"')).toEqual({ kind: 'task', text: 'Review {{title}}' });
+    expect(parseAction('run workflow:feature')).toEqual({ kind: 'workflow', workflow: 'workflow:feature' });
+    expect(parseAction('dispatch plan')).toEqual({ kind: 'dispatch', doc: 'plan' });
+    expect(parseAction('dispatch plan --workers 3')).toEqual({ kind: 'dispatch', doc: 'plan', workers: 3 });
     expect(parseAction('notify "done"')).toEqual({ kind: 'notify', text: 'done' });
     expect(parseAction('dance')).toBeNull();
   });
@@ -35,6 +38,9 @@ describe('hook cards', () => {
     expect(parseHook(hookNode('on: req.created\ndo: run x\nonce: false'))!.once).toBe(false);
     expect(parseHook(hookNode('on: nonsense\ndo: run x'))).toBeNull();
     expect(parseHook(node('req:x'))).toBeNull();
+  });
+  it('fills a hyphenated binding name — {{dev-design}} is how a stage names the document it produced', () => {
+    expect(fillTemplate('in {{dev-design}}', { 'dev-design': 'module:x-dev-design' })).toBe('in module:x-dev-design');
   });
 });
 

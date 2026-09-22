@@ -6,7 +6,7 @@ import type { GraphData, GraphNode } from './graph';
 import type { BlockChange } from './session-types';
 
 export type HookEvent = { kind: string; id: string; event: string; verb?: string; session?: string; role?: string };
-export type HookAction = { kind: 'run'; skill: string } | { kind: 'add'; template: string; to?: string } | { kind: 'task'; text: string; worker?: string; skill?: string } | { kind: 'assign'; task: string; worker?: string; skill?: string } | { kind: 'notify'; text: string };
+export type HookAction = { kind: 'run'; skill: string } | { kind: 'workflow'; workflow: string } | { kind: 'add'; template: string; to?: string } | { kind: 'task'; text: string; worker?: string; skill?: string } | { kind: 'assign'; task: string; worker?: string; skill?: string } | { kind: 'notify'; text: string } | { kind: 'dispatch'; doc: string; workers?: number };
 export type HookDef = { id: string; title: string; on: { kind: string; event: string }; where: Record<string, string>; actions: HookAction[]; once: boolean; status: string; skills: string[] };
 
 export const HOOK_EVENTS = ['created', 'status:<x>', 'linked:<verb>', 'pr.approved', 'pr.built', 'session.done'];
@@ -34,12 +34,16 @@ const flags = (rest: string): Record<string, string> => { const o: Record<string
 export function parseAction(line: string): HookAction | null {
   const l = line.trim().replace(/^-\s+/, '');
   let m: RegExpMatchArray | null;
+  // a workflow is a skill with stages (decision:wf2.workflow-is-a-skill): `run workflow:<id>` starts a run, not a session
+  if ((m = l.match(/^run\s+workflow:([A-Za-z0-9_.\-]+)$/))) return { kind: 'workflow', workflow: `workflow:${m[1]}` };
   if ((m = l.match(/^run\s+(skill:[A-Za-z0-9_.\-]+)$/))) return { kind: 'run', skill: m[1] };
   if ((m = l.match(/^run\s+([A-Za-z0-9_.\-]+)$/))) return { kind: 'run', skill: `skill:${m[1]}` };
   if ((m = l.match(/^add\s+(?:template:)?([A-Za-z0-9_.\-]+)(?:\s+to\s+(\S+))?$/))) return { kind: 'add', template: m[1], ...(m[2] ? { to: m[2] } : {}) };
   // task "<text>" [--worker w] [--skill skill:x]: a task line under the node (Work lists it), assigned when a worker is named
   if ((m = l.match(/^task\s+"([^"]+)"(.*)$/))) { const o = flags(m[2]); return { kind: 'task', text: m[1], ...(o.worker ? { worker: o.worker } : {}), ...(o.skill ? { skill: o.skill.startsWith('skill:') ? o.skill : `skill:${o.skill}` } : {}) }; }
   if ((m = l.match(/^assign\s+(task:[A-Za-z0-9_.\-]+)(.*)$/))) { const o = flags(m[2]); return { kind: 'assign', task: m[1], ...(o.worker ? { worker: o.worker } : {}), ...(o.skill ? { skill: o.skill.startsWith('skill:') ? o.skill : `skill:${o.skill}` } : {}) }; }
+  // dispatch <doc> [--workers N]: the ready tasks of a document handed to workers within the slots of Settings › Agents
+  if ((m = l.match(/^dispatch\s+([a-z][a-z0-9-]*)(.*)$/))) { const o = flags(m[2]); return { kind: 'dispatch', doc: m[1], ...(o.workers ? { workers: Number(o.workers) } : {}) }; }
   if ((m = l.match(/^notify\s+"?(.+?)"?$/))) return { kind: 'notify', text: m[1] };
   return null;
 }
@@ -114,9 +118,10 @@ export function matchHooks(hooks: HookDef[], ev: HookEvent, node: GraphNode | un
   });
 }
 
-// A template with {{node}} (the id), {{slug}}, {{title}}, {{kind}} — and any extra var — filled; unknown names stay.
+// A template with {{node}} (the id), {{slug}}, {{title}}, {{kind}} — and any extra var, a stage's produced
+// documents among them ({{dev-design}}) — filled; unknown names stay.
 export function fillTemplate(md: string, vars: Record<string, string>): string {
-  return md.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars ? vars[k] : m));
+  return md.replace(/\{\{([\w-]+)\}\}/g, (m, k) => (k in vars ? vars[k] : m));
 }
 export function templateVars(node: Pick<GraphNode, 'id' | 'kind' | 'title'>): Record<string, string> {
   return { node: node.id, slug: node.id.slice(node.id.indexOf(':') + 1), title: node.title, kind: node.kind };

@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 
-type Hook = { id: string; title: string; on: string; where: Record<string, string>; actions: { kind: string; skill?: string; template?: string; text?: string; task?: string; worker?: string }[]; once: boolean; status: string; firings: number };
+type Hook = { id: string; title: string; on: string; where: Record<string, string>; actions: { kind: string; skill?: string; template?: string; text?: string; task?: string; worker?: string; workflow?: string; doc?: string }[]; once: boolean; status: string; firings: number };
 type Firing = { id: string; hook: string; event: string; at: string; depth: number; actions: { kind: string; session?: string; added?: string[]; error?: string }[] };
 
-const actionText = (a: Hook['actions'][number]) => a.kind === 'run' ? `run ${a.skill}` : a.kind === 'add' ? `add ${a.template}` : a.kind === 'task' ? `task "${a.text}"${a.worker ? ` → ${a.worker}` : ''}` : a.kind === 'assign' ? `assign ${a.task}${a.worker ? ` → ${a.worker}` : ''}` : `notify "${a.text}"`;
+const actionText = (a: Hook['actions'][number]) => a.kind === 'run' ? `run ${a.skill}` : a.kind === 'workflow' ? `run ${a.workflow}` : a.kind === 'dispatch' ? `dispatch ${a.doc}` : a.kind === 'add' ? `add ${a.template}` : a.kind === 'task' ? `task "${a.text}"${a.worker ? ` → ${a.worker}` : ''}` : a.kind === 'assign' ? `assign ${a.task}${a.worker ? ` → ${a.worker}` : ''}` : `notify "${a.text}"`;
 
 // The column's Hooks section (decision:wf2.hooks-and-skills, H2): the hooks that can fire on this node's kind — on
 // which event, doing what — and what fired on it so far (the session, the blocks); "Run now" fires one by hand, the

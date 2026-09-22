@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseStage, workflowOf, workflowsOf, admits, nextStage, readinessOf, type RunCtx, type StageDef } from './runs';
+import { parseStage, workflowOf, workflowsOf, admits, nextStage, readinessOf, parseRun, runCard, replaceCard, runSlug, logLine, autoRun, LIVE, type RunCtx, type RunState, type StageDef } from './runs';
 import type { GraphData, GraphEdge, GraphNode } from './graph';
 
 // workflows (decision:wf2.workflow-is-a-skill): a workflow is a skill whose stage cards are its steps, in document order
@@ -99,5 +99,36 @@ describe('readiness', () => {
     const s = parseStage(node('stage:s', { body: 'do: task "x"\nuntil: when it feels right' }))!;
     const r = readinessOf(s, ctxOf([]));
     expect(r.ok).toBe(false); expect(r.rows[0].label).toContain('when it feels right');
+  });
+});
+
+describe('the run card', () => {
+  const r: RunState = { id: 'run:feature-3', workflow: 'workflow:feature', on: 'module:idea', stage: 'stage:f.prd', status: 'waiting', produced: ['module:idea-prd'], sessions: ['abc123'], started: '2026-09-22', log: ['started — by person', 'advanced stage:f.research — by person, every session done'] };
+  it('round-trips through yaml, log and all', () => {
+    const md = runCard(r);
+    expect(md).toContain('- id: run:feature-3');
+    expect(md).toContain('  workflow: workflow:feature');
+    expect(md).toContain('  produced: [module:idea-prd]');
+    const back = parseRun(node('run:feature-3', { status: 'waiting', body: md.replace(/^- /, '').replace(/^ {2}/gm, '') }))!;
+    expect(back).toEqual(r);
+  });
+  it('replaces a card in place, leaving its neighbours alone', () => {
+    const md = `# Runs\n\n\`\`\`yaml\n${runCard({ ...r, id: 'run:a' })}${runCard({ ...r, id: 'run:b', log: [] })}\`\`\`\n`;
+    const next = replaceCard(md, 'run:a', runCard({ ...r, id: 'run:a', status: 'done', log: [] }))!;
+    expect(next).toContain('- id: run:a\n  workflow: workflow:feature\n  on: module:idea\n  stage: stage:f.prd\n  status: done');
+    expect(next).toContain('- id: run:b');
+    expect(next.match(/- id: run:/g)).toHaveLength(2);
+    expect(replaceCard(md, 'run:ghost', 'x')).toBeNull();
+  });
+  it('numbers a run after the ones already taken, knows which are live, and caps an auto chain', () => {
+    expect(runSlug('workflow:feature', ['run:feature-1', 'run:other-7'])).toBe('run:feature-2');
+    expect(runSlug('workflow:feature', [])).toBe('run:feature-1');
+    expect([...LIVE]).toEqual(['running', 'waiting', 'blocked']);
+    expect(autoRun(['started — by person', 'advanced s1 — by the engine, auto', 'advanced s2 — by the engine, auto'])).toBe(2);
+    expect(autoRun(['advanced s1 — by the engine, auto', 'advanced s2 — by person, ok'])).toBe(0);
+  });
+  it('writes a log line naming who did what', () => {
+    expect(logLine({ what: 'advanced', stage: 'stage:f.prd', by: 'person', detail: 'every req in prd is agreed' }))
+      .toBe('advanced stage:f.prd — by person, every req in prd is agreed');
   });
 });

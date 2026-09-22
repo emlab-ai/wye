@@ -132,3 +132,47 @@ export function readinessOf(stage: StageDef, ctx: RunCtx): Readiness {
   const rows = [...stage.badUntil.map(b => row(`until: "${b}" is not a criterion this engine knows`, [b])), ...stage.until.map(p => evaluate(p, ctx))];
   return { rows, ok: rows.every(r => r.ok) };
 }
+
+// One run of a workflow (decision:wf2.run-holds-the-state). The log is a `log:` block scalar on the card rather than
+// content blocks under it: one write per move, and a person reads the history in the card itself.
+export type RunState = { id: string; workflow: string; on: string; stage: string; status: string; produced: string[]; sessions: string[]; started: string; finished?: string; log: string[] };
+export const LIVE = new Set(['running', 'waiting', 'blocked']);
+const listOf = (v: string) => v.replace(/^\[|\]$/g, '').split(/[\s,]+/).filter(Boolean);
+
+export function parseRun(n: Pick<GraphNode, 'id' | 'kind' | 'status' | 'body'>): RunState | null {
+  if (n.kind !== 'run') return null;
+  const v = (k: string) => cardValue(n.body, k);
+  if (!v('workflow')) return null;
+  const finished = v('finished');
+  const log = v('log').split('\n').map(l => l.replace(/^-\s+/, '').trim()).filter(Boolean);
+  return { id: n.id, workflow: v('workflow'), on: v('on'), stage: v('stage'), status: n.status || 'running', produced: listOf(v('produced')), sessions: listOf(v('sessions')), started: v('started'), ...(finished ? { finished } : {}), log };
+}
+export function runCard(r: RunState): string {
+  const rows = [`workflow: ${r.workflow}`, `on: ${r.on}`, `stage: ${r.stage}`, `status: ${r.status}`, `produced: [${r.produced.join(', ')}]`, `sessions: [${r.sessions.join(', ')}]`, `started: ${r.started}`, ...(r.finished ? [`finished: ${r.finished}`] : [])];
+  const log = r.log.length ? `\n  log: |\n${r.log.map(l => `    - ${l}`).join('\n')}` : '';
+  return `- id: ${r.id}\n${rows.map(l => `  ${l}`).join('\n')}${log}\n`;
+}
+// The card of an id replaced in place — its `- id:` line and every line indented under it. null when it is not there.
+export function replaceCard(md: string, id: string, card: string): string | null {
+  const lines = md.split('\n');
+  const start = lines.findIndex(l => new RegExp(`^-\\s+id:\\s*${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`).test(l));
+  if (start < 0) return null;
+  let end = start + 1;
+  while (end < lines.length && (/^\s+\S/.test(lines[end]) || (!lines[end].trim() && /^\s+\S/.test(lines[end + 1] ?? '')))) end++;
+  return [...lines.slice(0, start), ...card.replace(/\n$/, '').split('\n'), ...lines.slice(end)].join('\n');
+}
+export function runSlug(workflow: string, taken: Iterable<string>): string {
+  const base = workflow.replace(/^workflow:/, '');
+  const used = new Set([...taken]);
+  for (let n = 1; ; n++) { const id = `run:${base}-${n}`; if (!used.has(id)) return id; }
+}
+export function logLine(o: { what: string; stage?: string; by: string; detail?: string }): string {
+  return `${o.what}${o.stage ? ` ${o.stage}` : ''} — by ${o.by}${o.detail ? `, ${o.detail}` : ''}`;
+}
+// How many `auto` advances happened in a row at the end of the log: an all-auto workflow stops at MAX_DEPTH rather
+// than running away (the cap hooks already use for their chains).
+export function autoRun(log: string[]): number {
+  let n = 0;
+  for (const l of [...log].reverse()) { if (!l.startsWith('advanced')) continue; if (/by the engine/.test(l)) n++; else break; }
+  return n;
+}

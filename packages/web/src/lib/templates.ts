@@ -1,4 +1,4 @@
-export const TEMPLATES = ['blank', 'prd', 'dev-design', 'test-design', 'plan'] as const;
+export const TEMPLATES = ['blank', 'prd', 'dev-design', 'test-design', 'plan', 'research'] as const;
 export type TemplateName = typeof TEMPLATES[number];
 
 export function slugify(title: string): string {
