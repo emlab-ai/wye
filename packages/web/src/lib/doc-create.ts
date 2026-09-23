@@ -27,7 +27,11 @@ export async function createDocFromTemplate(scope: Scope, project: Project, o: {
   catch { return { ok: false, error: 'invalid', message: `unknown template ${o.template}` }; }
   let md = instantiate(tpl, { title, slug, parent: parentDoc ? parentDoc.module.id : '', date: new Date().toISOString().slice(0, 10), kind, props: type.props.filter(p => p.required && !['title', 'status'].includes(p.name)).map(p => p.name) });
   if (!parentDoc) md = md.replace(/^part-of: \n/m, '').replace(/\npart-of: $/m, '');
-  if (kind !== 'module') md = md.replace(new RegExp('\\n```yaml\\nid: ' + kind + ':' + slug + '\\n[\\s\\S]*?\\n```\\n'), '\n');
+  // a typed page's card is its frontmatter (rule:page-node-line), so the template's own card — and the heading that
+  // introduces it — go: what is left is the page's sections
+  if (kind !== 'module') md = md.replace(new RegExp('\\n## [^\\n]*' + kind + ':' + slug + '\\n+```yaml\\nid: ' + kind + ':' + slug + '\\n[\\s\\S]*?\\n```\\n'), '\n')
+    .replace(new RegExp('\\n```yaml\\nid: ' + kind + ':' + slug + '\\n[\\s\\S]*?\\n```\\n'), '\n')
+    .replace(/\n{3,}/g, '\n\n');   // the gap the card left
   await mkdir(project.docsDir, { recursive: true });
   await writeAtomic(abs, md);
   return { ok: true, slug, node: `${kind}:${slug}` };

@@ -153,7 +153,10 @@ function bindings(scope: Scope, r: RunState, w: WorkflowDef): Record<string, str
     const slug = docSlug(n.file);
     for (const name of names) if (slug.endsWith(`-${name}`) || slug === name) out[name] = id;
   }
-  return { ...out, ...r.docs };
+  // a binding whose document is gone is dropped, so re-entering the stage makes it again instead of writing into a
+  // node nobody defines any more
+  for (const [name, id] of Object.entries(r.docs)) if (scope.idx.byId.get(id)?.defined) out[name] = id;
+  return out;
 }
 
 // Which sessions belong to this run, and to each of its stages: every firing the engine wrote carries `by.run` and
@@ -262,7 +265,8 @@ export async function enterStage(product: string, runId: string, stageId: string
       // every document a run produces hangs off the run's own page, so the arc is one branch of the tree instead of
       // siblings scattered at the top (a run started from a node — a goal, a requirement — has no document to nest under)
       const parent = r.file ? docSlug(r.file) : scope.graph.modules.some(m => m.id === node.id) ? docSlug(node.file) : undefined;
-      const res = await createDocFromTemplate(scope, project, { title, template: name, parent, slug });
+      // a page, not a module: what a run produces is a document of the run, never a bounded area of the product
+      const res = await createDocFromTemplate(scope, project, { title, template: name, parent, slug, kind: 'doc' });
       if (!res.ok) throw new Error(`${name}: ${res.message}`);
       binds[name] = res.node; made.push(res.node);
     }

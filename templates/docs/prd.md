@@ -9,7 +9,7 @@ part-of: {{parent}}
 
 # {{title}}
 
-## 0. module:{{slug}}
+## 0. {{kind}}:{{slug}}
 
 ```yaml
 id: {{kind}}:{{slug}}

@@ -13,6 +13,7 @@ kinds:
   context:        { purpose: what forced a decision — a child block of it }
   contradiction:  { purpose: two nodes that cannot both hold — found by the verdict pass or written by hand }
   decision:       { purpose: a choice that was made, in the person's words }
+  doc:            { purpose: a page that is only a page — prose and blocks — and not a bounded area of the product the way type:module is }
   drift:          { purpose: a contradiction between two nodes }
   entity:         { purpose: a persisted thing }
   flag:           { purpose: a runtime setting that changes behaviour }

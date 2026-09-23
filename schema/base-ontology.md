@@ -445,6 +445,13 @@ type means instances may carry properties the type does not declare without a wa
     sessions: list of string?
     started: string?
     finished: string?
+- id: type:doc
+  extends: type:node
+  purpose: >
+    a page that is only a page — prose and blocks — and not a bounded area of the product the way type:module is.
+    What a workflow stage produces (a research write-up, a PRD, a design, a plan) is one of these, so a run's
+    documents do not enter the product's list of modules.
+  open: true
 - id: type:step
   extends: type:node
   purpose: >
