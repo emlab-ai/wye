@@ -73,6 +73,16 @@ async function writeRun(scope: Scope, project: Project, r: RunState, o: { by: st
   await withFileLock(file, async () => {
     const was = await readFile(file, 'utf8');
     let md = was;
+    // what a run accumulates — the documents it produced, their names, its sessions — is merged with what the file
+    // already says, never replaced: a sweep holding a state read a moment ago must not drop what a stage wrote since.
+    const onDisk = parseRun({ id: next.id, kind: 'run', status: next.status, body: (was.match(/^---\n([\s\S]*?)\n---/) ?? ['', ''])[1], file: next.file });
+    if (onDisk) {
+      // a bound document is one this run made: `produced` is the union, so the graph's edges name every one of them
+      next.produced = [...new Set([...onDisk.produced, ...next.produced, ...Object.values(onDisk.docs), ...Object.values(next.docs)])];
+      next.sessions = [...new Set([...onDisk.sessions, ...next.sessions])];
+      next.docs = { ...onDisk.docs, ...next.docs };
+      for (const [k, v] of Object.entries(onDisk.stageSessions)) next.stageSessions[k] = [...new Set([...v, ...(next.stageSessions[k] ?? [])])];
+    }
     const patch: Record<string, string> = { status: next.status, stage: next.stage, 'runs-on': next.on, produced: `[${next.produced.join(', ')}]`, sessions: `[${next.sessions.join(', ')}]`, auto: String(next.auto) };
     for (const [name, id] of Object.entries(next.docs)) patch[`doc-${name}`] = id;
     if (next.finished) patch.finished = next.finished;
@@ -249,7 +259,9 @@ export async function enterStage(product: string, runId: string, stageId: string
       const slug = `${slugify(node.title || docSlug(node.file)).slice(0, 48).replace(/-+$/, '')}-${name}`;
       const already = [...documentTree(scope.graph).byFile.values()].find(d => d.slug === slug);
       if (already) { binds[name] = already.module.id; made.push(already.module.id); continue; }
-      const parent = scope.graph.modules.some(m => m.id === node.id) ? docSlug(node.file) : undefined;
+      // every document a run produces hangs off the run's own page, so the arc is one branch of the tree instead of
+      // siblings scattered at the top (a run started from a node — a goal, a requirement — has no document to nest under)
+      const parent = r.file ? docSlug(r.file) : scope.graph.modules.some(m => m.id === node.id) ? docSlug(node.file) : undefined;
       const res = await createDocFromTemplate(scope, project, { title, template: name, parent, slug });
       if (!res.ok) throw new Error(`${name}: ${res.message}`);
       binds[name] = res.node; made.push(res.node);
@@ -375,6 +387,29 @@ async function migrateRunCard(scope: Scope, project: Project, r: RunState, log: 
   log(`${r.id}: moved to ${file}`);
 }
 
+// A document the run produced before run pages nested them — or one made when the run had no page — sits at the top
+// of the tree with no parent. The run adopts it: `part-of` is written only when the document has none, so a document
+// a person moved somewhere on purpose is never dragged back.
+async function adoptProduced(scope: Scope, r: RunState, log: (m: string) => void): Promise<boolean> {
+  let any = false;
+  for (const id of [...new Set([...r.produced, ...Object.values(r.docs)])]) {
+    const n = scope.idx.byId.get(id); if (!n?.file || !scope.graph.modules.some(m => m.id === id)) continue;
+    const abs = path.join(REPO_ROOT, n.file);
+    const done = await withFileLock(abs, async () => {
+      const md = await readFile(abs, 'utf8');
+      if (/^part-of:\s*\S/m.test(md.split('\n---')[0] ?? '')) return false;
+      const out = patchFrontmatter(md, { 'part-of': r.id });
+      if (out.error || out.md === md) return false;
+      claimWrite(n.file, { by: 'wye', silent: true });
+      await writeAtomic(abs, out.md);
+      return true;
+    });
+    if (done) { any = true; log(`${r.id}: ${id} is now part of the run`); }
+  }
+  if (any) await rebuild(scope.product.dir);
+  return any;
+}
+
 // --- the sweep: what the watcher calls after every build ---
 
 // Only a transition is written. Anything else would rewrite a card, which rebuilds, which sweeps again.
@@ -398,6 +433,7 @@ async function sweepRun(scope: Scope, r: RunState, log: (m: string) => void = m 
   const node = scope.idx.byId.get(r.on);
   const project = projectOf(scope, node?.file ?? ''); if (!project) return;
   if (!isPage(scope, r)) { await migrateRunCard(scope, project, r, log); return; }
+  if (await adoptProduced(scope, r, log)) return;             // the tree changed; the next sweep reads it
   const block = (detail: string) => r.status === 'blocked' ? undefined : writeRun(scope, project, { ...r, status: 'blocked' }, { by: 'the engine', line: logLine({ what: 'blocked', stage: r.stage, by: 'the engine', detail }) });
   if (!node) { await block(`${r.on} is gone`); return; }
   if (!w || !stage) { await block(`${r.stage} is gone from ${r.workflow}`); return; }
