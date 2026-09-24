@@ -43,7 +43,7 @@ export function NewPage({ product, project: initialProject, projects, docs, defa
     making.current = (async () => {
       const t = titleRefLatest.current.trim() || (opts.template && opts.template !== 'blank' ? opts.template.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase()) : opts.type ? `New ${opts.type}` : 'New page');
       setBusy(true); setMsg(null);
-      const r = await fetch(`/api/${product}/${effectiveProject}/doc`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: t, template: opts.template ?? 'blank', parent, type: opts.type ?? 'module' }) });
+      const r = await fetch(`/api/${product}/${effectiveProject}/doc`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: t, template: opts.template ?? 'blank', parent, type: opts.type }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) { setBusy(false); setMsg(j.message ?? j.error ?? 'could not create the page'); making.current = null; return null; }
       const g = await fetch(`/api/${product}/${effectiveProject}/doc/${j.slug}`); const d = await g.json().catch(() => ({}));
@@ -99,10 +99,10 @@ export function NewPage({ product, project: initialProject, projects, docs, defa
               {!page && chip('Import…', '↥', () => setMode('import'))}
               {!page && chip('Template', '▤', () => setPick(p => (p === 'template' ? null : 'template')), pick === 'template' ? 'on' : '')}
               {!page && ownTypes.length > 0 && chip('Typed page', '◇', () => setPick(p => (p === 'type' ? null : 'type')), pick === 'type' ? 'on' : '')}
-              {!page && chip('Mind map', '◈', () => create({ template: 'map', type: 'map' }))}
+              {!page && chip('Mind map', '◈', () => create({ template: 'map' }))}
               {!page && chip('Blank', '＋', () => ensurePage())}
             </div>
-            {pick === 'template' && <div className="np-picks">{TEMPLATES.filter(t => t !== 'blank' && t !== 'map').map(t => <button key={t} type="button" onClick={() => create({ template: t })} disabled={busy}>{t.replace(/-/g, ' ')}</button>)}</div>}
+            {pick === 'template' && <div className="np-picks">{TEMPLATES.filter(t => t !== 'blank').map(t => <button key={t} type="button" onClick={() => create({ template: t })} disabled={busy}>{t.replace(/-/g, ' ')}</button>)}</div>}
             {pick === 'type' && <div className="np-picks">{ownTypes.map(t => <button key={t.slug} type="button" onClick={() => create({ type: t.slug })} disabled={busy} title={t.slug}>{t.slug}</button>)}</div>}
             {msg && <p className="notice">{msg}</p>}
             {parentDoc && <p className="muted small">under {parentDoc.icon ? `${parentDoc.icon} ` : ''}{parentDoc.title}</p>}

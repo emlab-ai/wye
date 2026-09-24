@@ -12,7 +12,12 @@ export type CreatedDoc = { ok: true; slug: string; node: string } | { ok: false;
 export async function createDocFromTemplate(scope: Scope, project: Project, o: { title: string; template: string; parent?: string; kind?: string; slug?: string }): Promise<CreatedDoc> {
   const title = o.title.trim();
   if (!title) return { ok: false, error: 'invalid', message: 'title required' };
-  const kind = (o.kind ?? 'module').trim();
+  let tpl = '';
+  try { tpl = await readFile(path.join(REPO_ROOT, 'templates/docs', `${o.template}.md`), 'utf8'); }
+  catch { return { ok: false, error: 'invalid', message: `unknown template ${o.template}` }; }
+  // a template whose node line names a kind (`node: map:{{slug}}`) is a template for pages of that kind: picking it is
+  // picking the type, so the caller need not say both. A caller that does say wins.
+  const kind = (o.kind ?? tpl.match(/^node:\s*([a-z][a-z0-9-]*):\{\{slug\}\}/m)?.[1] ?? 'module').trim();
   const type = (scope.graph.types ?? []).find(t => t.slug === kind);
   if (!type) return { ok: false, error: 'invalid', message: `unknown type ${kind}` };
   const tree = treeFor(scope, project.slug);
@@ -22,9 +27,6 @@ export async function createDocFromTemplate(scope: Scope, project: Project, o: {
   const slug = o.slug ? slugify(o.slug) : slugify(title);
   const abs = path.join(project.docsDir, `${slug}.md`);
   try { await access(abs); return { ok: false, error: 'conflict', message: `${slug}.md exists` }; } catch { /* new */ }
-  let tpl = '';
-  try { tpl = await readFile(path.join(REPO_ROOT, 'templates/docs', `${o.template}.md`), 'utf8'); }
-  catch { return { ok: false, error: 'invalid', message: `unknown template ${o.template}` }; }
   let md = instantiate(tpl, { title, slug, parent: parentDoc ? parentDoc.module.id : '', date: new Date().toISOString().slice(0, 10), kind, props: type.props.filter(p => p.required && !['title', 'status'].includes(p.name)).map(p => p.name) });
   if (!parentDoc) md = md.replace(/^part-of: \n/m, '').replace(/\npart-of: $/m, '');
   // a typed page's card is its frontmatter (rule:page-node-line), so the template's own card — and the heading that

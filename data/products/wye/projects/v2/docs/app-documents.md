@@ -594,6 +594,21 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
 <!-- /list:decision -->
 
+```yaml
+- id: decision:page.template-names-the-kind
+  title: A template whose node line names a kind is a template for pages of that kind
+  date: 2026-09-24
+  status: proposed
+  affects: [lib:doc-create, component:new-page]
+  by: claude
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-documents
+```
+
+  - choice:page.template-names-the-kind When a template's front matter reads `node: <kind>:{{slug}}`, creating a page from it makes a page of that kind unless the caller asks for another. Picking "Mind map" in the new-page sheet, or `map` in its template list, is one choice, not two — and the same holds for any typed template added later. A caller that does name a type still wins, which is how a workflow stage keeps writing `doc` pages.
+
+  - alternative:page.template-names-the-kind A chip that passes the template and the type together — rejected after shipping it: the template list beside it then made the same page untyped, so the same template meant two different things depending on which control you used.
+
 ## Libraries
 
 <!-- list:lib -->
@@ -754,7 +769,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
   verdict:f6d9d75af886 duplicate req:document-opened-in-the — A and B express the same behavior: person stays put, content shows 'not found', document replaces notice when file returns, stated at different formality levels. (kind: duplicate, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:document-opened-in-the decision:wf2.deleted-outside-stays-put)
 
-  contradiction:wye.f6d9d75af886 decision:wf2.deleted-outside-stays-put duplicates req:document-opened-in-the — A and B express the same behavior: person stays put, content shows 'not found', document replaces notice when file returns, stated at different formality levels. #approved (between: decision:wf2.deleted-outside-stays-put req:document-opened-in-the, conflict: static, reason: A and B express the same behavior: person stays put  content shows 'not found'  document replaces notice when file returns  stated at different formality levels.)
+  contradiction:wye.f6d9d75af886 decision:wf2.deleted-outside-stays-put duplicates req:document-opened-in-the — A and B express the same behavior: person stays put, content shows 'not found', document replaces notice when file returns, stated at different formality levels. #resolved (between: decision:wf2.deleted-outside-stays-put req:document-opened-in-the, conflict: static, reason: A and B express the same behavior: person stays put  content shows 'not found'  document replaces notice when file returns  stated at different formality levels.)
 
   verdict:152ee458ed63 refines decision:wf2.deleted-outside-drops-edits — A refines B by specifying the sub-case: unsaved edits are dropped when a file is deleted externally, narrowing B's main decision. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:wf2.deleted-outside-drops-edits decision:wf2.deleted-outside-stays-put)
 

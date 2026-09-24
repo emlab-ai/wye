@@ -23,7 +23,7 @@ export function NewDoc({ product, project: initialProject, projects, docs, defau
   const [msg, setMsg] = useState<string | null>(null);
   async function create() {
     setBusy(true); setMsg(null);
-    const r = await fetch(`/api/${product}/${effectiveProject}/doc`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title, template, parent, type }) });
+    const r = await fetch(`/api/${product}/${effectiveProject}/doc`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title, template, parent, type: type === 'module' ? undefined : type }) });
     const j = await r.json(); setBusy(false);
     if (!r.ok) { setMsg(j.message ?? j.error); return; }
     setOpen(false); setTitle(''); router.push(`/${product}/${effectiveProject}/d/${j.slug}`); router.refresh();
