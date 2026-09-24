@@ -387,3 +387,18 @@ Definition — the librarian
   - choice:wf2.traceability-is-the-verb Nothing is derived or guessed. The stage's skill writes the verb — a decision or an operation `satisfies <the req>`, a test `verifies <the req>`, a task is `part-of <the req>` — and the parser generates the inverse, so traceability needs no new edge machinery; what it needs is something to notice when the verb was not written, and that is the stage's `until` (`every req in prd has satisfied-by, every req in prd has verified-by`), which refuses to advance and names the bare requirements. `<!-- view:req coverage=1 -->` is what the person reads while deciding: a cell per requirement, ✓ covered with its task count or the gap as a button that opens ⌘P prefilled for it.
 
   - alternative:wf2.traceability-is-the-verb Deriving the links (same-session provenance, semantic matching) — rejected: a guessed traceability link is worse than a missing one, because it reads as verified when nothing checked it. One session per requirement — rejected: a 30-requirement PRD would mean 60 sessions, and the designs lose the coherence of being written together.
+
+```yaml
+- id: decision:run.the-page-is-its-map
+  title: A run page opens as a map of its stages, in order, each showing where it stands
+  date: 2026-09-25
+  status: proposed
+  affects: [type:run, lib:runs, component:map-canvas, page:web/document]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:librarian
+```
+
+  - choice:run.the-page-is-its-map A run's page renders the map canvas under its strip: the stages in a row, left to right, each carrying its status — done, review, running, todo, blocked — and what it produced hanging under it as a reference. The run's own text is one toggle away, as on any map. The positions are written into the page's `## Layout` section when the run is written, so a run map can be rearranged and stays that way; a run whose page has none yet (one that ran before this) is read straight off the page, in the order its stages are written.
+
+  - consequence:run.the-page-is-its-map Each stage card now carries `depends-on:` the stage before it. The sequence was only ever implied by the order of the cards; it is a fact of the graph now, so impact and the canvas both see it, and the arrangement reads the dependency backwards to put the earlier stage on the left.

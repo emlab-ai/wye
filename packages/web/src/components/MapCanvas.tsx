@@ -29,9 +29,11 @@ const CARD_W = 380;           // an opened node is the editor's card, at the wid
 const EDGE_GAP = 7;           // an arrowhead stops beside a card, not on its border
 const SIDES: Side[] = ['top', 'right', 'bottom', 'left'];
 const POS: Record<Side, Position> = { top: Position.Top, right: Position.Right, bottom: Position.Bottom, left: Position.Left };
-// dagre ranks an edge from its source: `part-of` points from the part to the whole, so it is read backwards for the
-// arrangement — a parent to the left of what belongs to it, the way a mind map is read.
-const ranked = (edges: GraphEdge[]) => edges.map(e => (e.verb === 'part-of' ? { ...e, from: e.to, to: e.from } : e));
+// dagre ranks an edge from its source: `part-of` points from the part to the whole and `depends-on` from the later
+// thing to the earlier one, so both are read backwards for the arrangement — the whole to the left of its parts, the
+// stage that comes first to the left of the one that waits for it.
+const BACKWARDS = new Set(['part-of', 'depends-on']);
+const ranked = (edges: GraphEdge[]) => edges.map(e => (BACKWARDS.has(e.verb) ? { ...e, from: e.to, to: e.from } : e));
 const kindOf = (id: string) => id.split(':')[0];
 const nameOf = (id: string) => id.split(':').slice(1).join(':');
 
@@ -66,6 +68,7 @@ function MapCard({ id, data, selected }: NodeProps<Node<NodeData>>) {
         ? <input className="mnode-edit" autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={save} onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setDraft(data.title); setEditing(false); } }} />
         : <span className="mnode-title" onDoubleClick={e => { e.stopPropagation(); setEditing(true); }}>{data.title || nameOf(id)}</span>}
       {data.isRef && <span className="mnode-ref" title="This node is written on another page">↗</span>}
+      {data.status && <span className={`mnode-state pill s ${data.status}`}>{data.status}</span>}
       {fold}
       <button type="button" className="mnode-add nodrag" title="Add a linked node" onClick={e => { e.stopPropagation(); data.onChild(id, { x: e.clientX, y: e.clientY }); }}>+</button>
     </div>
@@ -87,6 +90,10 @@ const EDGE_TYPES = { floating: FloatingEdge };
 
 export function MapCanvas({ product, project, slug, nodes, edges, off, spots, types, children }: Props) {
   const rf = useRef<ReactFlowInstance | null>(null);
+  const canvas = useRef<HTMLDivElement>(null);
+  // whether the view is where the person put it: until they pan or zoom, the canvas keeps fitting itself, so a run map
+  // that opens while the right column is still appearing is not left half off-screen
+  const moved = useRef(false);
   const [pic, setPic] = useState<Picture>({ nodes, edges, off, spots });
   const { select, setShowContext } = usePeek();
   const [msg, setMsg] = useState('');
@@ -134,6 +141,12 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => flush(), FLUSH_MS);
   }, [flush]);
+  useEffect(() => {
+    const el = canvas.current; if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => { if (!moved.current) rf.current?.fitView({ padding: 0.2, maxZoom: 1 }); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   useEffect(() => {
     const go = () => flush(true);
     window.addEventListener('pagehide', go);
@@ -299,7 +312,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
     <section className="mwrap">
       <div className="mbar">
         <button type="button" onClick={addOnCanvas}>+ Node</button>
-        <button type="button" onClick={() => rf.current?.fitView({ padding: 0.2, maxZoom: 1 })}>Fit</button>
+        <button type="button" onClick={() => { moved.current = false; rf.current?.fitView({ padding: 0.2, maxZoom: 1 }); }}>Fit</button>
         <button type="button" onClick={tidy} title="Arrange every node, left to right">Tidy</button>
         {!!pic.off?.length && <button type="button" onClick={() => void placeOff()} title={pic.off.map(n => n.id).join('\n')}>Place {pic.off.length} card{pic.off.length > 1 ? 's' : ''}</button>}
         <span className="muted small">double click to add · + beside a node for a child · drag between nodes to link · click a link to name it · right click to remove</span>
@@ -308,12 +321,12 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
         <span className="mbar-gap" />
         <button type="button" className={text ? 'on' : ''} onClick={() => setText(t => !t)}>{text ? 'Map' : 'Page text'}</button>
       </div>
-      <div className="mcanvas" onMouseMove={onPointer} onMouseLeave={() => setNear(null)} onDoubleClick={e => { if ((e.target as Element).closest('.react-flow__node, .react-flow__edge, .mpop')) return; onPaneDoubleClick(e); }}>
+      <div ref={canvas} className="mcanvas" onMouseMove={onPointer} onMouseLeave={() => setNear(null)} onDoubleClick={e => { if ((e.target as Element).closest('.react-flow__node, .react-flow__edge, .mpop')) return; onPaneDoubleClick(e); }}>
         <ReactFlow
           nodes={rfNodes} edges={rfEdges} nodeTypes={NODE_TYPES} edgeTypes={EDGE_TYPES} onInit={i => { rf.current = i; }}
           onNodesChange={onChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
           onEdgeClick={onEdgeClick} onNodeClick={onNodeClick} onNodeContextMenu={onNodeContextMenu} onPaneClick={() => setPop(null)}
-          onMove={() => setNear(null)}
+          onMove={(e: MouseEvent | TouchEvent | null) => { if (e) moved.current = true; setNear(null); }}
           fitView fitViewOptions={{ padding: 0.2, maxZoom: 1 }} minZoom={0.1} deleteKeyCode={null} zoomOnDoubleClick={false}
           nodesDraggable nodesConnectable connectionMode={'loose' as never} proOptions={{ hideAttribution: true }}
         >

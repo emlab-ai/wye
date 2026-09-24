@@ -926,7 +926,8 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 /* a map page is the canvas and nothing else (decision:map.canvas-is-the-page): it fills the frame under the top bar,
    with no properties, no comments and no page below it — the page's own text is a toggle in the toolbar */
 .content:has(.page-map) { display: flex; flex-direction: column; overflow: hidden; }
-.page-map { flex: 1; min-height: 0; min-width: 0; width: 100%; max-width: none; padding: 0; display: flex; }
+.page-map { flex: 1; min-height: 0; min-width: 0; width: 100%; max-width: none; padding: 0; display: flex; flex-direction: column; }
+.page-map > .run-strip { flex: none; margin: 0; border-radius: 0; border-left: 0; border-right: 0; border-top: 0; }
 .mwrap { position: relative; flex: 1; min-width: 0; margin: 0; display: flex; flex-direction: column; }
 .mbar { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 7px 14px; }
 .mbar .small { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -945,6 +946,13 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .mnode-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: text; }
 .mnode-edit { width: 180px; background: var(--ground); border: 1px solid var(--accent); border-radius: 5px; padding: 1px 5px; font: inherit; color: var(--ink); }
 .mnode-ref { color: var(--muted); font-size: 11px; }
+/* a node's status, which on a run's stage is where the run stands (decision:run.the-page-is-its-map) */
+.mnode-state { flex: none; font-size: 9px; padding: 1px 7px; }
+.mnode.s-done, .mnode.s-shipped { border-color: var(--ok); }
+.mnode.s-running { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 3px 14px rgba(0,0,0,.16); }
+.mnode.s-review, .mnode.s-ready { border-color: var(--warn); }
+.mnode.s-blocked { border-color: var(--bad); }
+.mnode.s-skipped { opacity: .6; }
 .mnode .react-flow__handle-bottom { left: 28%; }
 .mnode .react-flow__handle { width: 9px; height: 9px; background: var(--line-2); border: 2px solid var(--ground); opacity: 0; transition: opacity .12s; }
 .mnode.near .react-flow__handle, .mnode.on .react-flow__handle { opacity: 1; }

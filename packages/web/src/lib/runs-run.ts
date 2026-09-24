@@ -10,6 +10,7 @@ import { loadScope, treeFor, type Scope } from './scope';
 import { REPO_ROOT, type Project } from './products';
 import { docRoute, docSlug, documentTree } from './doc';
 import { slugify } from './templates';
+import { parseLayout, writeLayout } from './map';
 import { createDocFromTemplate } from './doc-create';
 import { appendCard } from './instances';
 import { claimWrite } from './changes';
@@ -21,7 +22,7 @@ import { readSettings, agentSettings } from './settings';
 import { assignTask } from './work-io';
 import { nodeText } from './node-edit';
 import { sectionBody } from './pr-doc';
-import { LIVE, admits, autoRun, blockingSection, logLine, nextStage, parseRun, readinessOf, removeCard, replaceCard, runCard, runSlug, someOf, stageKey, stepId, stageIndex, stagesSection, withSection, workflowOf, type Readiness, type RunCtx, type RunState, type StageDef, type WorkflowDef } from './runs';
+import { LIVE, admits, autoRun, blockingSection, logLine, nextStage, parseRun, readinessOf, removeCard, replaceCard, runCard, runLayout, runSlug, someOf, stageKey, stepId, stageIndex, stagesSection, withSection, workflowOf, type Readiness, type RunCtx, type RunState, type StageDef, type WorkflowDef } from './runs';
 
 export const runsPageId = (projectSlug: string) => `module:${projectSlug}-workflow-runs`;
 const RUNS_SLUG = 'workflow-runs';
@@ -87,7 +88,13 @@ async function writeRun(scope: Scope, project: Project, r: RunState, o: { by: st
     for (const [name, id] of Object.entries(next.docs)) patch[`doc-${name}`] = id;
     if (next.finished) patch.finished = next.finished;
     const fm = patchFrontmatter(md, patch); if (!fm.error) md = fm.md;
-    if (w) md = withSection(md, 'Stages', stagesSection(w, next, bindings(scope, next, w), ready?.rows ?? [], working));
+    if (w) {
+      const bound = bindings(scope, next, w);
+      md = withSection(md, 'Stages', stagesSection(w, next, bound, ready?.rows ?? [], working));
+      // the run's page opens as a map (decision:run.the-page-is-its-map): its stages are the nodes, so the page carries
+      // their positions like any map — written once, kept as the person leaves them
+      md = writeLayout(md, runLayout(w, next, bound, parseLayout(md)));
+    }
     const after = w ? nextStage(w, next.stage) : null;
     md = withSection(md, 'Blocking', ready && stage ? blockingSection(ready.rows, stage.gate, { ...(after ? { next: after.title } : {}), over: !LIVE.has(next.status), run: next.id }) : '_The stage this run points at is gone from its workflow._');
     if (o.line) {

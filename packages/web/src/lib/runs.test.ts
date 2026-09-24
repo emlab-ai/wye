@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseStage, workflowOf, workflowsOf, admits, nextStage, readinessOf, parseRun, runCard, replaceCard, removeCard, runSlug, logLine, autoRun, LIVE, stagesSection, stepStatus, someOf, blockingSection, withSection, type RunCtx, type RunState, type StageDef } from './runs';
+import { parseStage, workflowOf, workflowsOf, admits, nextStage, readinessOf, parseRun, runCard, replaceCard, removeCard, runSlug, runLayout, runSpots, logLine, autoRun, LIVE, stagesSection, stepStatus, someOf, blockingSection, withSection, type RunCtx, type RunState, type StageDef } from './runs';
 import type { GraphData, GraphEdge, GraphNode } from './graph';
 
 // workflows (decision:wf2.workflow-is-a-skill): a workflow is a skill whose stage cards are its steps, in document order
@@ -142,6 +142,30 @@ describe('the run card', () => {
   });
 });
 
+describe('the run\'s map (decision:run.the-page-is-its-map)', () => {
+  const wf2 = node('workflow:feature', { title: 'Feature', body: 'id: workflow:feature' });
+  const mk2 = (id: string, line: number, title: string, produces = '') => node(id, { line, title, body: `title: ${title}\ndo: task "x" --worker agent${produces ? `\nproduces: ${produces}` : ''}` });
+  const w2 = workflowOf({ nodes: [wf2, mk2('stage:f.research', 10, 'Explore the idea', 'research'), mk2('stage:f.prd', 20, 'Write the PRD', 'prd')] }, incOf([]), 'workflow:feature')!;
+  const r2: RunState = { id: 'run:feature-1', workflow: 'workflow:feature', on: 'module:idea', stage: 'stage:f.prd', status: 'running', produced: [], sessions: [], started: '2026-09-22', log: [], auto: 0, file: 'x/run-feature-1.md', docs: {}, stageSessions: {} };
+
+  it('puts the stages in a row and what each produced under it, and keeps a position it is given', () => {
+    const spots = runLayout(w2, r2, { research: 'module:idea-research' }, [{ id: 'step:feature-1.prd', x: 999, y: 7, ref: false, open: false }]);
+    expect(spots.find(s => s.id === 'step:feature-1.research')).toEqual({ id: 'step:feature-1.research', x: 0, y: 0, ref: false, open: false });
+    expect(spots.find(s => s.id === 'module:idea-research')).toEqual({ id: 'module:idea-research', x: 0, y: 150, ref: true, open: false });
+    expect(spots.find(s => s.id === 'step:feature-1.prd')!.x).toBe(999);   // where the person left it
+  });
+  it('reads the same map off a run page that has no layout yet', () => {
+    const g = {
+      nodes: [node('step:feature-1.research', { kind: 'step', line: 10, file: 'x/run-feature-1.md' }), node('step:feature-1.prd', { kind: 'step', line: 20, file: 'x/run-feature-1.md' }), node('module:idea-research', { file: 'x/other.md' })],
+      edges: [{ from: 'step:feature-1.research', verb: 'produced', to: 'module:idea-research' }, { from: 'step:feature-1.prd', verb: 'part-of', to: 'run:feature-1' }],
+    };
+    const spots = runSpots(g as never, 'x/run-feature-1.md');
+    expect(spots.map(s => s.id)).toEqual(['step:feature-1.research', 'module:idea-research', 'step:feature-1.prd']);
+    expect(spots[1].ref).toBe(true);
+    expect(spots[2].x).toBe(340);
+  });
+});
+
 describe('the run page (decision:wf2.run-is-a-page)', () => {
   const wf = node('workflow:feature', { title: 'Feature', body: 'id: workflow:feature' });
   const mk = (id: string, line: number, title: string, produces = '') => node(id, { line, title, body: `title: ${title}\ndo: task "x" --worker agent${produces ? `\nproduces: ${produces}` : ''}` });
@@ -161,6 +185,9 @@ describe('the run page (decision:wf2.run-is-a-page)', () => {
     expect(out).toContain('  then: Design');
     // and the ones ahead are there too, waiting
     expect(out).toContain('- id: step:feature-1.design\n  title: 3. Design\n  status: todo');
+    // each stage but the first waits for the one before it — the sequence, as a fact the map draws
+    expect(out).toContain('  part-of: run:feature-1\n  depends-on: step:feature-1.research');
+    expect(out.match(/depends-on:/g)).toHaveLength(2);
     expect(out).toContain('  then: the run ends');
     expect(out).toContain(`wye run advance run:feature-1`);
     // the session working on the stage the run is on, and a long list of ids cut short

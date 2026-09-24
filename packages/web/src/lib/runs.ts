@@ -4,6 +4,7 @@
 // predicate set (decision:wf2.until-is-closed), and evaluates that criterion against a graph as readiness rows. The
 // IO — starting a run, entering a stage, writing the run card — is lib/runs-run.
 import { cardValue, parseAction, type HookAction } from './hooks';
+import type { Spot } from './map';
 import { replaceCard, removeCard } from './instances';
 export { replaceCard, removeCard };
 import type { GraphData, GraphIndex, GraphNode } from './graph';
@@ -240,6 +241,7 @@ export function stagesSection(w: WorkflowDef, r: RunState, bindings: Record<stri
       `  status: ${status}`,
       `  stage: ${s.id}`,
       `  part-of: ${r.id}`,
+      ...(i > 0 ? [`  depends-on: ${stepId(r.id, w.stages[i - 1].id)}`] : []),
       `  needs: ${needs || 'nothing'}`,
       `  then: ${starts}${s.gate === 'auto' ? ' — automatic' : ''}`,
       ...(made.length ? [`  produced: [${made.join(', ')}]`] : s.produces.length ? [`  produces: ${s.produces.join(', ')}`] : []),
@@ -248,6 +250,33 @@ export function stagesSection(w: WorkflowDef, r: RunState, bindings: Record<stri
   });
   return [head, '', '```yaml', ...cards, '```'].join('\n');
 }
+// Where a run's map puts things (decision:run.the-page-is-its-map): the stages in a row, in order, and what each one
+// produced under it — a reference, because a produced document lives in its own file. Positions already on the page
+// are kept, so a run map can be rearranged by hand and stays that way.
+export function runLayout(w: WorkflowDef, r: RunState, bindings: Record<string, string>, spots: Spot[]): Spot[] {
+  const STEP_X = 340, DOC_Y = 150;
+  let out = spots;
+  w.stages.forEach((s, i) => {
+    out = seedIn(out, stepId(r.id, s.id), i * STEP_X, 0, false);
+    s.produces.map(n => bindings[n]).filter(Boolean).forEach((id, k) => { out = seedIn(out, id, i * STEP_X, DOC_Y + k * 70, true); });
+  });
+  return out;
+}
+// The same map for a run whose page has no Layout — an old run, or one written before its page was a map: its steps in
+// the order the page writes them, with what each produced under it. Read only; the next write records it properly.
+export function runSpots(g: Pick<GraphData, 'nodes' | 'edges'>, file: string): Spot[] {
+  const steps = g.nodes.filter(n => n.defined && n.kind === 'step' && n.file === file).sort((a, b) => a.line - b.line);
+  const out: Spot[] = [];
+  steps.forEach((n, i) => {
+    out.push({ id: n.id, x: i * 340, y: 0, ref: false, open: false });
+    g.edges.filter(e => !e.generated && e.from === n.id && e.verb === 'produced')
+      .forEach((e, k) => { if (!out.some(sp => sp.id === e.to)) out.push({ id: e.to, x: i * 340, y: 150 + k * 70, ref: true, open: false }); });
+  });
+  return out;
+}
+const seedIn = (spots: Spot[], id: string, x: number, y: number, ref: boolean): Spot[] =>
+  spots.some(sp => sp.id === id) ? spots : [...spots, { id, x, y, ref, open: false }];
+
 export function blockingSection(rows: Row[], gate: Gate, o: { next?: string; over?: boolean; run?: string } = {}): string {
   if (o.over) return '_The run is over._';
   if (!rows.length) return '_Nothing is checked for this stage._';

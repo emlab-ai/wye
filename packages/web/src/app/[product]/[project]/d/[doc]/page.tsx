@@ -14,6 +14,7 @@ import { LiveDocument } from '@/components/LiveDocument';
 import { DocNotFound } from '@/components/DocNotFound';
 import { MapCanvas } from '@/components/MapCanvas';
 import { mapGraph, parseLayout } from '@/lib/map';
+import { runSpots } from '@/lib/runs';
 import { GoneNotice } from '@/components/GoneNotice';
 
 export default async function DocPage({ params }: { params: Promise<{ product: string; project: string; doc: string }> }) {
@@ -36,13 +37,18 @@ export default async function DocPage({ params }: { params: Promise<{ product: s
   const rsc = await isRscRequest();
   // a map page is a canvas (decision:map.page-owns-its-nodes): its cards are the nodes, so the canvas takes the place of
   // the reader and the page's own text stays a fold away
-  const isMap = d.module.kind === 'map';
-  const spots = isMap ? parseLayout(md) : [];
+  // a map page and a run page are both canvases: a run's stages are its nodes, so its sequence and where it stands are
+  // the first thing the page shows (decision:run.the-page-is-its-map)
+  const isMap = d.module.kind === 'map' || d.module.kind === 'run';
+  let spots = isMap ? parseLayout(md) : [];
+  // a run whose page was written before it had a map: its stages are read straight from the page, in order
+  if (isMap && !spots.length && d.module.kind === 'run') spots = runSpots(scope.graph, d.file);
   const drawn = isMap ? mapGraph(scope.graph, scope.idx, d.file, d.module.id, spots) : null;
   // a map page is a canvas and nothing else (decision:map.canvas-is-the-page): no properties, no comments, no linked
   // pages — the canvas fills the frame under the top bar, and the page's own text is one toggle away in its toolbar
   if (drawn) return (
     <div className="page page-map">
+      {d.module.kind === 'run' && <RunStrip product={product} node={d.module.id} />}
       <MapCanvas product={product} project={project} slug={d.slug} nodes={drawn.nodes} edges={drawn.edges} off={drawn.off} spots={spots} types={(scope.graph.types ?? []).map(t => ({ slug: t.slug, nestsIn: t.nestsIn, props: t.props.map(pr => ({ name: pr.name, ref: pr.ref })) }))}>
         <LiveDocument product={product} project={project} slug={d.slug} body={body} ifMatch={hashOf(body)}>
           {rsc ? null : <DocumentReader doc={split} index={scope.index} />}
