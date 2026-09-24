@@ -43,7 +43,7 @@ export default async function DocPage({ params }: { params: Promise<{ product: s
   // pages — the canvas fills the frame under the top bar, and the page's own text is one toggle away in its toolbar
   if (drawn) return (
     <div className="page page-map">
-      <MapCanvas product={product} project={project} slug={d.slug} nodes={drawn.nodes} edges={drawn.edges} off={drawn.off} spots={spots} types={(scope.graph.types ?? []).map(t => ({ slug: t.slug, props: t.props.map(pr => ({ name: pr.name, ref: pr.ref })) }))}>
+      <MapCanvas product={product} project={project} slug={d.slug} nodes={drawn.nodes} edges={drawn.edges} off={drawn.off} spots={spots} types={(scope.graph.types ?? []).map(t => ({ slug: t.slug, nestsIn: t.nestsIn, props: t.props.map(pr => ({ name: pr.name, ref: pr.ref })) }))}>
         <LiveDocument product={product} project={project} slug={d.slug} body={body} ifMatch={hashOf(body)}>
           {rsc ? null : <DocumentReader doc={split} index={scope.index} />}
         </LiveDocument>

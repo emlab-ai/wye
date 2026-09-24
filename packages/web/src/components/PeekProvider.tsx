@@ -12,7 +12,7 @@ export type EditingContext = { docSlug: string; blockId: string; text: string; l
 export type StackEntry = { id: string; pinned: boolean };
 // A product's own type as the editor needs it: its slug and the properties a table of it shows (own and inherited,
 // the root type's left out).
-export type OwnType = { slug: string; plural?: string; cols: { name: string; type: string; enum: string[] | null; ref: string | null; required: boolean }[] };
+export type OwnType = { slug: string; plural?: string; nestsIn?: string[]; cols: { name: string; type: string; enum: string[] | null; ref: string | null; required: boolean }[] };
 interface Ctx {
   product: string; index: Record<string, IndexEntry>;
   openId: string | null; stack: StackEntry[]; cursor: number;
@@ -20,7 +20,10 @@ interface Ctx {
   // the node a click on a block selected (rule:block-select): the Context root shows it ahead of the caret's block
   focused: string | null; select: (id: string) => void; setFocused: (id: string | null) => void; followCaret: () => void;
   hrefFor: (id: string) => string | null;
-  ownKinds: string[]; // the product's own types (type: cards), beyond the base kinds
+  ownKinds: string[]; // the product's own types (type: cards), beyond the base kinds, nested ones left out
+  // kind → the kinds it may sit under (decision:ontology.a-type-can-be-nested-only): `nests['when'] = ['req', …]`.
+  // A kind in here is never offered where a node is made from nothing, only under a node of a kind it nests in.
+  nests: Record<string, string[]>;
   ownTypes: OwnType[]; // the same types with their table columns
   editing: EditingContext | null; setEditing: (e: EditingContext | null) => void; showContext: boolean; setShowContext: (v: boolean) => void;
   panelOpen: boolean; setPanelOpen: (v: boolean) => void;
@@ -29,7 +32,7 @@ interface Ctx {
 }
 const PeekCtx = createContext<Ctx | null>(null);
 
-export function PeekProvider({ product, index: indexProp, kinds, types, children }: { product: string; index: Record<string, IndexEntry> | null; kinds?: string[]; types?: OwnType[]; children: ReactNode }) {
+export function PeekProvider({ product, index: indexProp, kinds, types, nests: nestsProp, children }: { product: string; index: Record<string, IndexEntry> | null; kinds?: string[]; types?: OwnType[]; nests?: Record<string, string[]>; children: ReactNode }) {
   // the product's open kind list (its type: cards) so tags, node lines and the editor recognise person:ana as an id
   setKinds(kinds);
   // the node index (decision:wf2.parse-cache): the full page load carries it in the HTML; a refresh or a client
@@ -45,8 +48,10 @@ export function PeekProvider({ product, index: indexProp, kinds, types, children
     window.addEventListener('wf:change', onChange);
     return () => { live = false; window.removeEventListener('wf:change', onChange); if (timer) clearTimeout(timer); };
   }, [product]); // eslint-disable-line react-hooks/exhaustive-deps
-  const ownKinds = useMemo(() => (kinds ?? []).filter(k => !(KINDS as readonly string[]).includes(k)), [kinds]);
-  const ownTypes = useMemo(() => types ?? [], [types]);
+  const nests = useMemo(() => nestsProp ?? {}, [nestsProp]);
+  const ownKinds = useMemo(() => (kinds ?? []).filter(k => !(KINDS as readonly string[]).includes(k) && !(nestsProp ?? {})[k]), [kinds, nestsProp]);
+  // a type that may only nest is not something a page or a node is made from (decision:ontology.a-type-can-be-nested-only)
+  const ownTypes = useMemo(() => (types ?? []).filter(t => !t.nestsIn?.length), [types]);
   // One state object so pushes, pops and pins stay consistent: `cursor` indexes `stack`; -1 is the Context root.
   const [nav, setNav] = useState<{ stack: StackEntry[]; cursor: number }>({ stack: [], cursor: -1 });
   const { stack, cursor } = nav;
@@ -89,6 +94,6 @@ export function PeekProvider({ product, index: indexProp, kinds, types, children
   // a document's node opens the document itself (whatever the node's kind, rule:page-node-line); any other node its anchor
   const hrefFor = useCallback((id: string) => { const e = index[id]; const r = e?.file ? docRoute(e.file) : null; if (!r) return null; return e.doc ? `/${product}/${r.project}/d/${e.doc}` : `/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(id)}`; }, [index, product]);
   useEffect(() => { const h = (e: KeyboardEvent) => { if (e.key === 'Escape') back(); }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [back]);
-  return <PeekCtx.Provider value={{ product, index, ownKinds, ownTypes, openId, stack, cursor, open, back, go, togglePin, remove, close, focused, select, setFocused, followCaret, hrefFor, editing, setEditing, showContext, setShowContext, panelOpen, setPanelOpen, relatedOpen, setRelatedOpen }}>{children}</PeekCtx.Provider>;
+  return <PeekCtx.Provider value={{ product, index, ownKinds, ownTypes, nests, openId, stack, cursor, open, back, go, togglePin, remove, close, focused, select, setFocused, followCaret, hrefFor, editing, setEditing, showContext, setShowContext, panelOpen, setPanelOpen, relatedOpen, setRelatedOpen }}>{children}</PeekCtx.Provider>;
 }
 export function usePeek(): Ctx { const c = useContext(PeekCtx); if (!c) throw new Error('PeekProvider missing'); return c; }

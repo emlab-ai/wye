@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { typeOf, isA, instancesOf, nodeProps, inverseLabel, type TypeDef } from './types';
+import { typeOf, isA, instancesOf, nodeProps, inverseLabel, nestedUnder, nestingMap, rootTypes, type TypeDef } from './types';
 import { indexGraph, type GraphData } from './graph';
 import { ID_RE, setKinds, idsIn } from './ids';
 
@@ -49,5 +49,26 @@ describe('open kinds', () => {
     expect(new RegExp(ID_RE.source).test('person:ana')).toBe(true);
     const idx = indexGraph(g);
     expect((idx.out.get('employee:cy') ?? []).length).toBe(0); // generated edges are not indexed in the web
+  });
+});
+
+describe('a type that may only nest', () => {
+  const types = [
+    { slug: 'req' }, { slug: 'decision' }, { slug: 'city' },
+    { slug: 'when', nestsIn: ['req', 'rule'] },
+    { slug: 'context', nestsIn: ['decision'] },
+    { slug: 'note', nestsIn: ['node'] },
+  ];
+  it('keeps nested types out of the list a node is made from', () => {
+    expect(rootTypes(types).map(t => t.slug)).toEqual(['req', 'decision', 'city']);
+  });
+  it('offers them under a node of a kind they nest in, and `node` under anything', () => {
+    expect(nestedUnder(types, 'req').map(t => t.slug)).toEqual(['when', 'note']);
+    expect(nestedUnder(types, 'decision').map(t => t.slug)).toEqual(['context', 'note']);
+    expect(nestedUnder(types, 'city').map(t => t.slug)).toEqual(['note']);
+    expect(nestedUnder(types, '').map(t => t.slug)).toEqual([]);
+  });
+  it('says which kinds nest, and where', () => {
+    expect(nestingMap(types)).toEqual({ when: ['req', 'rule'], context: ['decision'], note: ['node'] });
   });
 });

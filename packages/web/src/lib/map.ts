@@ -7,6 +7,7 @@
 import type { GraphData, GraphEdge, GraphIndex } from './graph';
 import { HIDDEN_KINDS } from './graph';
 import { PART_KINDS } from './kinds';
+import { nestingMap } from './types';
 import { appendCard } from './instances';
 
 export type Spot = { id: string; x: number; y: number; ref: boolean; open: boolean };
@@ -73,7 +74,7 @@ export function addCard(md: string, card: string): string {
 // its order, and the edges between them. Being written on the page is not enough — a card's own parts (its when, its
 // then) and anything else added to the markdown stay off the board until they are put on it, which is what `off`
 // lists. A layout line whose node is gone is left out rather than drawn as a hole.
-export function mapGraph(g: Pick<GraphData, 'nodes' | 'edges'>, idx: Pick<GraphIndex, 'byId'>, file: string, mapId: string, spots: Spot[]): MapGraph {
+export function mapGraph(g: Pick<GraphData, 'nodes' | 'edges' | 'types'>, idx: Pick<GraphIndex, 'byId'>, file: string, mapId: string, spots: Spot[]): MapGraph {
   const nodes: MapNode[] = [];
   const here = new Set<string>();
   for (const s of spots) {
@@ -83,9 +84,11 @@ export function mapGraph(g: Pick<GraphData, 'nodes' | 'edges'>, idx: Pick<GraphI
     here.add(n.id);
   }
   const edges = g.edges.filter(e => !e.generated && here.has(e.from) && here.has(e.to) && e.from !== e.to);
-  // the page's own cards that the board does not hold yet — a card written in the text, or one an agent added
+  // the page's own cards that the board does not hold yet — a card written in the text, or one an agent added. A kind
+  // that may only nest (a when, a context) is part of its card, never a card of its own.
+  const nested = nestingMap(g.types ?? []);
   const off = g.nodes
-    .filter(n => n.defined && n.file === file && n.id !== mapId && !here.has(n.id) && n.form !== 'block' && !HIDDEN_KINDS.has(n.kind) && !PART_KINDS.has(n.kind))
+    .filter(n => n.defined && n.file === file && n.id !== mapId && !here.has(n.id) && n.form !== 'block' && !HIDDEN_KINDS.has(n.kind) && !PART_KINDS.has(n.kind) && !nested[n.kind])
     .map(n => ({ id: n.id, kind: n.kind, title: n.title }));
   return { nodes, edges, off };
 }

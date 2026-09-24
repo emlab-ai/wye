@@ -658,10 +658,26 @@ function linkRequestFrom(editor: Ed, at: { left: number; bottom: number }): Link
 // "▣ block": the selection becomes a typed block (req:wf2.editor.make-block) — a long document is reshaped into the
 // graph passage by passage. Whole blocks selected: the first becomes the node (its text), the rest its content; a
 // passage inside a paragraph: it leaves the paragraph and becomes the node after it. The kind is picked here.
-type MakeBlockRequest = { x: number; y: number };
+type MakeBlockRequest = { x: number; y: number; under: string };
+// The kind of the node block the cursor is in, or the one it sits under — a passage inside a requirement's children
+// answers `req`. '' when the cursor is in the page's own text. It is what says whether a `when` may be made here
+// (decision:ontology.a-type-can-be-nested-only).
+function nodeKindAt(editor: { getTextCursorPosition: () => { block: { id: string } }; document: unknown }): string {
+  let at = ''; try { at = editor.getTextCursorPosition().block.id; } catch { return ''; }
+  const kindOfBlock = (b: AnyBlock) => (b.type === 'node' ? (b.props as unknown as { kind: string }).kind : '');
+  const walk = (bs: AnyBlock[], parent: string): string => {
+    for (const b of bs) {
+      if ((b as { id?: string }).id === at) return kindOfBlock(b) || parent;
+      const found = b.children?.length ? walk(b.children as AnyBlock[], kindOfBlock(b) || parent) : '';
+      if (found) return found;
+    }
+    return '';
+  };
+  return walk(editor.document as AnyBlock[], '');
+}
 const BLOCK_KINDS = ['req', 'decision', 'task', 'question', 'rule', 'constraint', 'goal', 'lesson', 'test', 'ui-test', 'entity', 'comment'];
 function MakeBlockPicker({ req, onClose, pick }: { req: MakeBlockRequest; onClose: () => void; pick: (kind: string) => void }) {
-  const { ownKinds } = usePeek();
+  const { ownKinds, nests } = usePeek();
   const el = useRef<HTMLDivElement>(null);
   const [q, setQ] = useState('');
   useEffect(() => {
@@ -670,7 +686,10 @@ function MakeBlockPicker({ req, onClose, pick }: { req: MakeBlockRequest; onClos
     document.addEventListener('mousedown', close); document.addEventListener('keydown', key);
     return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', key); };
   }, [onClose]);
-  const kinds = [...new Set([...BLOCK_KINDS, ...ownKinds])].filter(k => !q.trim() || k.includes(q.trim().toLowerCase()));
+  // a kind that may only nest is offered here only when the selection sits in a node it nests in — a when under a
+  // requirement, a context under a decision; `node` nests under anything
+  const under = [...new Set(Object.keys(nests))].filter(k => nests[k].some(pk => pk === req.under || pk === 'node'));
+  const kinds = [...new Set([...under, ...BLOCK_KINDS, ...ownKinds])].filter(k => !nests[k] || under.includes(k)).filter(k => !q.trim() || k.includes(q.trim().toLowerCase()));
   const x = Math.min(req.x, (typeof window !== 'undefined' ? window.innerWidth : 9999) - 260), y = Math.min(req.y, (typeof window !== 'undefined' ? window.innerHeight : 9999) - 320);
   return (
     <div ref={el} className="pg-menu block-menu make-block" style={{ left: x, top: y }} onMouseDown={e => e.stopPropagation()}>
@@ -747,7 +766,7 @@ function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEveryw
 // editing context, and a click on a child block opens the child in the column (decision:ontology.depth-by-navigation).
 export default function DocEditor({ product, project, slug, body, ifMatch, fallback, scope = null, autoFocus = false, textOnly = false }: { product: string; project: string; slug: string; body: string; ifMatch: string; fallback?: ReactNode; scope?: string | null; autoFocus?: boolean; textOnly?: boolean }) {
   const router = useRouter();
-  const { open: openPeek, select, setFocused, followCaret, index, hrefFor, setEditing, setShowContext, ownKinds, ownTypes } = usePeek();
+  const { open: openPeek, select, setFocused, followCaret, index, hrefFor, setEditing, setShowContext, ownKinds, ownTypes, nests } = usePeek();
   const scoped = scope !== null;
   // node blocks render inside the editor, so they ask for the column through an event that bubbles to this
   // container (emit): wf:peek pushes the node on the chip stack, wf:select selects it (the Context root shows it;
@@ -1255,10 +1274,15 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     constraint: [['statement', 'what must hold'], ['scope', 'where it applies'], ['rationale', 'why']],
     rule: [['statement', 'what the code guarantees'], ['note', 'a remark']],
   };
-  const nodeItems = [...CARD_KINDS, ...ownKinds].map(kind => ({
-    title: `${kind} block`, group: 'Wye', subtext: PARTS[kind] ? `a new ${kind} with its ${PARTS[kind].map(([k]) => k).join(', ')} blocks under it` : `a new ${kind} written as prose`,
+  const nodeItem = (kind: string, group: string, subtext: string) => ({
+    title: `${kind} block`, group, subtext,
     onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'node', props: { kind, slug: fresh(), form: 'prose', textKey: 'text', check: kind === 'task' ? 'todo' : '', status: kind === 'task' ? 'open' : PARTS[kind] ? 'proposed' : '' }, ...(PARTS[kind] ? { children: PARTS[kind].map(([k, t]) => child(k, t)) } : {}) } as never); },
-  }));
+  });
+  const nodeItems = [...CARD_KINDS, ...ownKinds].map(kind => nodeItem(kind, 'Wye', PARTS[kind] ? `a new ${kind} with its ${PARTS[kind].map(([k]) => k).join(', ')} blocks under it` : `a new ${kind} written as prose`));
+  // the kinds that may only nest, offered when the cursor is in a node they nest in and nowhere else
+  // (decision:ontology.a-type-can-be-nested-only)
+  const nestedItems = (under: string) => (under ? Object.keys(nests) : []).filter(k => nests[k].some(pk => pk === under || pk === 'node'))
+    .map(kind => nodeItem(kind, `In this ${under}`, `a ${kind} of this ${under}`));
 
   // Drawings: a new empty scene, or the current code block turned into a monospace text element (ASCII diagrams).
   const codeToDrawing = async (cur: AnyBlock) => {
@@ -1329,7 +1353,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><AnnotateItem annotate={imageToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
         <FormattingToolbarController formattingToolbar={() => <SelectionMenu actions={{
           linkNode: at => setLinkReq(linkRequestFrom(editor as unknown as Ed, at)),
-          makeBlock: at => setMakeReq({ x: at.left, y: at.bottom }),
+          makeBlock: at => setMakeReq({ x: at.left, y: at.bottom, under: nodeKindAt(editor as unknown as { getTextCursorPosition: () => { block: { id: string } }; document: unknown }) }),
           ask: at => { const r = askRequestFrom(editor as unknown as Ed, at); setAskReq({ ...r, doc: slug, project, pageLink: `${location.origin}/${product}/${project}/d/${slug}`, refs: [...new Set([...r.refs, `module:${slug}`])] }); },
           comment: () => { let b: AnyBlock | undefined; try { b = editor.getTextCursorPosition().block as unknown as AnyBlock; } catch { b = undefined; } if (b) blockAct('comment', b); },
         }} />} />
@@ -1345,7 +1369,8 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
             const hits = Object.values(index).filter(e => e.kind === kind && e.defined && (!n || e.id.toLowerCase().includes(n) || e.title.toLowerCase().includes(n))).sort((a, b) => Number(a.id.slice(kind.length + 1).startsWith(n) ? 0 : 1) - Number(b.id.slice(kind.length + 1).startsWith(n) ? 0 : 1) || a.id.length - b.id.length).slice(0, 12);
             return hits.map(e => ({ title: e.id, subtext: e.title, group: `Reference a ${kind}`, onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: 'embed', props: { node: e.id } } as never); touched.current = true; changed(); } }));
           }
-          return filterSuggestionItems([...getDefaultReactSlashMenuItems(editor), ...imageItems, ...nodeItems, ...collectionItems, ...drawingItems], q);
+          const under = nodeKindAt(editor as unknown as { getTextCursorPosition: () => { block: { id: string } }; document: unknown });
+          return filterSuggestionItems([...getDefaultReactSlashMenuItems(editor), ...imageItems, ...nestedItems(under), ...nodeItems, ...collectionItems, ...drawingItems], q);
         }} />
         <SuggestionMenuController triggerCharacter="@" minQueryLength={1} getItems={async q => mentionItems(q)} />
       </BlockNoteView>

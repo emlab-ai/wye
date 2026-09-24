@@ -13,6 +13,25 @@ export function isBaseType(t: TypeDef): boolean { return !t.file || t.file.start
 export function instancesOf(g: GraphData, slug: string): GraphNode[] {
   return g.nodes.filter(n => n.defined && n.kind !== 'type' && isA(g, n.id, slug)).sort((a, b) => a.id.localeCompare(b.id));
 }
+// A type that may only sit under another (decision:ontology.a-type-can-be-nested-only): a `when` belongs to a req, a
+// `context` to a decision. Such a kind is never offered where a node is made from nothing — a new page, a node on a
+// map, the block menu at the top of a document — and is offered under a node of a kind it nests in. `node` means any.
+export type Nestable = { slug: string; nestsIn?: string[] };
+export const nestsIn = (t: Nestable | undefined): string[] => t?.nestsIn ?? [];
+export const isNested = (t: Nestable | undefined): boolean => nestsIn(t).length > 0;
+export const rootTypes = <T extends Nestable>(types: T[]): T[] => types.filter(t => !isNested(t));
+// The kinds a node of this kind may hold, in the order the types were declared.
+export function nestedUnder<T extends Nestable>(types: T[], kind: string): T[] {
+  if (!kind) return [];
+  return types.filter(t => nestsIn(t).some(p => p === kind || p === 'node'));
+}
+// The same question as a map, for the client: kind → the kinds it may sit under.
+export function nestingMap(types: Nestable[]): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const t of types) if (isNested(t)) out[t.slug] = nestsIn(t);
+  return out;
+}
+
 // the root type's properties are what every node has; pages fold them away unless a node fills one in
 export function isImplicit(p: PropDef): boolean { return p.from === 'type:node'; }
 export function subtypesOf(g: GraphData, slug: string): TypeDef[] { return (g.types ?? []).filter(t => t.extends === 'type:' + slug); }

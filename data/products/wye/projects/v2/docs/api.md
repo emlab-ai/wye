@@ -599,6 +599,23 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/workflows/route.ts
   status: proposed
   part-of: module:api
+- id: op:api.map
+  args: GET | POST /api/<product>/<project>/map/<slug>
+  does: >
+    The map page's one endpoint (decision:map.page-owns-its-nodes): a canvas gesture in, the page rewritten and the
+    canvas's next picture out. GET → what to draw; POST { action, … } → one gesture: node { kind, title?, x, y,
+    parent?, verb? } a card added to the page, positioned, linked to its parent child the same with a parent
+    required (decision:map.children-are-linked-nodes) ref { id, x, y } a node from another document put on the
+    canvas link { from, to, verb? } the verb written on the source's card verb { from, to, verb, was } the edge
+    renamed unlink { from, to, verb } the edge taken off drop { id } off the canvas, and out of the page when the
+    page defines it layout { moves: [{ id, x, y }] } positions only — one silent write, no rebuild (the fast path)
+    open { id, open } the node shown as its full card, or back as a pill — the same fast path Every action but
+    `layout` rebuilds the graph, because it changed the knowledge; `layout` changed only where things sit, which is
+    the map's own business (decision:map.layout-is-a-fenced-section) and must keep up with a dragging hand.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/[project]/map/[slug]/route.ts
+  status: proposed
+  part-of: module:api
 ```
 
 <!-- /list:op -->

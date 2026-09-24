@@ -392,6 +392,28 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     readiness rows. The IO — starting a run, entering a stage, writing the run card — is lib/runs-run.
   status: proposed
   part-of: module:app-storage
+- id: lib:floating
+  file: packages/web/src/lib/floating.ts
+  side: server
+  purpose: >
+    Where a link between two nodes should touch them (decision:map.links-take-the-nearest-sides): the canvas draws
+    every edge from the side of one card that faces the other, so a node below its parent is joined bottom to top
+    and one to the left is joined left to right — never the long sweep a fixed right-to-left handle pair gives. Pure
+    geometry over two boxes; the canvas turns it into a curve.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:map
+  file: packages/web/src/lib/map.ts
+  side: server
+  purpose: >
+    A map page, the pure part (decision:map.page-owns-its-nodes): a document of type:map whose cards are the nodes
+    of a canvas and whose links are its edges. This file reads and writes the one thing the canvas owns — the `##
+    Layout` section, a fenced block of `<id> <x>,<y>` lines with `ref` on a node that lives in another document and
+    `open` on one shown as its full card (decision:map.layout-is-a-fenced-section) — works out what the canvas
+    should draw, and says which verbs an edge between two kinds may take (decision:map.verbs-from-the-ontology). The
+    IO is the map route.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

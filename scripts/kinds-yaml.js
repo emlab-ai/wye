@@ -61,7 +61,7 @@ function blocks(g) {
     // required: what an instance must carry — the type's own and inherited requirements, minus the root type's
     const required = t.props.filter(p => p.required && p.from !== 'type:node').map(p => p.name);
     const purpose = summary(purposeOf(body.get(t.id)) || oneLine(t.purpose) || `a ${t.slug}`);
-    kinds.push([t.slug, purpose, required]);
+    kinds.push([t.slug, purpose, required, t.nestsIn || []]);
     if (t.statuses.length) statuses.push([t.slug, t.statuses]);
     // a ref / list property is a verb: who may say it, and what it points at
     for (const p of t.props) {
@@ -84,8 +84,8 @@ function blocks(g) {
   }
 
   const kw = width(kinds.map(([slug]) => slug + ':'), 16);
-  const kindLines = kinds.map(([slug, purpose, required]) =>
-    `  ${pad(slug + ':', kw)}{ purpose: ${purpose}${required.length ? `, required: [${required.join(', ')}]` : ''} }`);
+  const kindLines = kinds.map(([slug, purpose, required, nestsIn]) =>
+    `  ${pad(slug + ':', kw)}{ purpose: ${purpose}${required.length ? `, required: [${required.join(', ')}]` : ''}${nestsIn.length ? `, nests-in: [${nestsIn.join(', ')}]` : ''} }`);
   const verbLines = [...verbs.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([name, v]) => {
     const from = [...v.from].sort().join(' | ') || 'any';
     const to = [...v.to].sort().join(' | ');

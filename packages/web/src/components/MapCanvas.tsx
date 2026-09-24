@@ -5,6 +5,7 @@ import '@xyflow/react/dist/style.css';
 import { layoutMindMap } from '@/lib/layout';
 import { edgeEnds, type Side } from '@/lib/floating';
 import { verbsFor, type MapNode, type OffNode, type Spot } from '@/lib/map';
+import { rootTypes } from '@/lib/types';
 import type { GraphEdge } from '@/lib/graph';
 import { usePeek } from './PeekProvider';
 import { EmbeddedCard } from './EmbeddedCard';
@@ -16,7 +17,7 @@ import { EmbeddedCard } from './EmbeddedCard';
 // (decision:map.selection-goes-to-the-context-panel) rather than in a second card floating over the canvas. Dragging is the one gesture that is not knowledge — positions are kept locally and flushed to the page's
 // Layout section as one silent write once the hand stops (decision:map.layout-is-a-fenced-section), which is what keeps
 // the canvas as quick as a mind-map editor.
-type TypeLite = { slug: string; props?: { name: string; ref: string | null }[] };
+type TypeLite = { slug: string; nestsIn?: string[]; props?: { name: string; ref: string | null }[] };
 interface Props { product: string; project: string; slug: string; nodes: MapNode[]; edges: GraphEdge[]; off: OffNode[]; spots: Spot[]; types: TypeLite[]; children?: ReactNode }
 type Picture = { nodes: MapNode[]; edges: GraphEdge[]; off?: OffNode[]; spots?: Spot[]; id?: string | null };
 type NodeData = { kind: string; title: string; status: string; isRef: boolean; near: boolean; open: boolean; onChild: (id: string, at: { x: number; y: number }) => void; onRename: (id: string, title: string) => void; onOpen: (id: string, open: boolean) => void };
@@ -92,8 +93,10 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState(false);
   const [sure, setSure] = useState(false);
-  const kinds = useMemo(() => [...types].map(t => t.slug).sort(), [types]);
-  const [kind, setKind] = useState(() => (types.some(t => t.slug === 'req') ? 'req' : types[0]?.slug ?? 'req'));
+  // a node on the board is made from nothing, so a kind that may only nest is not offered here
+  // (decision:ontology.a-type-can-be-nested-only)
+  const kinds = useMemo(() => rootTypes(types).map(t => t.slug).sort(), [types]);
+  const [kind, setKind] = useState(() => (types.some(t => t.slug === 'req') ? 'req' : rootTypes(types)[0]?.slug ?? 'req'));
   // the one popup: a new node (on the canvas or off a parent) or the verb of one edge
   const [pop, setPop] = useState<null | { mode: 'new'; at: { x: number; y: number }; flow: { x: number; y: number }; parent?: string } | { mode: 'verb'; at: { x: number; y: number }; from: string; to: string; was: string } | { mode: 'node'; at: { x: number; y: number }; id: string; isRef: boolean }>(null);
   const [title, setTitle] = useState('');

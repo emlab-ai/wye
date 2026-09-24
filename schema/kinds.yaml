@@ -5,12 +5,12 @@
 
 kinds:
   action:         { purpose: something a user can do on a page }
-  alternative:    { purpose: a way not taken — a child block of the decision that considered it, its text saying what it was and why not }
-  choice:         { purpose: what was chosen, when a decision wants it as a block of its own under the decision rather than in its text }
+  alternative:    { purpose: a way not taken — a child block of the decision that considered it, its text saying what it was and why not, nests-in: [decision] }
+  choice:         { purpose: what was chosen, when a decision wants it as a block of its own under the decision rather than in its text, nests-in: [decision] }
   comment:        { purpose: a remark on a node — kept as a card in the Comments document of the node's project, never nested under the node, required: [on] }
-  consequence:    { purpose: what follows from a decision — a child block of it }
+  consequence:    { purpose: what follows from a decision — a child block of it, nests-in: [decision] }
   constraint:     { purpose: a rule about the product or how it is built that no code enforces — "local-first", "markdown is canonical" }
-  context:        { purpose: what forced a decision — a child block of it }
+  context:        { purpose: what forced a decision — a child block of it, nests-in: [decision] }
   contradiction:  { purpose: two nodes that cannot both hold — found by the verdict pass or written by hand }
   decision:       { purpose: a choice that was made, in the person's words }
   doc:            { purpose: a page that is only a page — prose and blocks — and not a bounded area of the product the way type:module is }
@@ -23,33 +23,33 @@ kinds:
   lesson:         { purpose: procedural memory — "this broke because …", "here we always …" — learned in a session and kept for the next one, required: [statement] }
   map:            { purpose: a page whose blocks are a graph: the nodes drawn on its canvas are cards in this document }
   module:         { purpose: a bounded area of the product; one document per module }
-  note:           { purpose: a remark under a rule, a constraint or any node — a child block of it }
+  note:           { purpose: a remark under a rule, a constraint or any node — a child block of it, nests-in: [node] }
   op:             { purpose: a query, mutation, endpoint or tool — the public API surface }
   page:           { purpose: a screen the user can navigate to }
   pr:             { purpose: A Prompt Request — a person's request to change the knowledge, one page per request, required: [session] }
   product:        { purpose: a thing being built; groups projects }
   question:       { purpose: something the knowledge leaves unspecified; open until a person resolves it with a decision }
-  rationale:      { purpose: why a constraint or a rule holds — a child block of it }
+  rationale:      { purpose: why a constraint or a rule holds — a child block of it, nests-in: [rule, constraint] }
   req:            { purpose: what the product must do for someone, in the person's own words }
   rule:           { purpose: an invariant, constraint, validation or policy — how a behaviour is guaranteed }
   run:            { purpose: one run of a workflow: a document of its own under the project's Workflow runs page }
-  scope:          { purpose: where a constraint or a rule applies, in words — a child block of it (ids go in the card's `scope:` links) }
+  scope:          { purpose: where a constraint or a rule applies, in words — a child block of it (ids go in the card's `scope:` links), nests-in: [rule, constraint] }
   setting:        { purpose: alias of flag; the parser normalises setting: ids to flag: }
   skill:          { purpose: an instruction a session follows, kept as a document under the project's Skills page }
   stage:          { purpose: one step of a workflow, a card in its document }
   state:          { purpose: a state machine owned by an entity }
-  statement:      { purpose: what a constraint or a rule says — a child block of it (decision:wf2.parts-are-content) }
+  statement:      { purpose: what a constraint or a rule says — a child block of it (decision:wf2.parts-are-content), nests-in: [rule, constraint] }
   step:           { purpose: one stage of one run: a card in the run's page, written when the run starts so the whole chain is in the graph from the first moment, not only the stage it has reached }
   task:           { purpose: a unit of work for a human or agent — the work item every view lists and every worker takes }
   template:       { purpose: blocks a hook adds, as a card in the Hooks document: `body` is markdown with <node>, <slug>, <title>, <kind>, required: [body] }
   test:           { purpose: a verification, usually referenced as test:Class#Method }
-  then:           { purpose: the outcome of a requirement — a child block of it }
+  then:           { purpose: the outcome of a requirement — a child block of it, nests-in: [req, rule, test, ui-test] }
   tool:           { purpose: an MCP tool or CLI command an agent can call }
   ui-test:        { purpose: an end-to-end spec }
-  unless:         { purpose: the exception of a requirement — a child block of it }
+  unless:         { purpose: the exception of a requirement — a child block of it, nests-in: [req, rule, test, ui-test] }
   value:          { purpose: a value object or enum never persisted on its own }
   verdict:        { purpose: the verdict pass's classification of one pair }
-  when:           { purpose: the trigger of a requirement — a child block of it }
+  when:           { purpose: the trigger of a requirement — a child block of it, nests-in: [req, rule, test, ui-test] }
   workflow:       { purpose: an ordered, gated pipeline a person runs on any node or document }
 
 verbs:

@@ -6,6 +6,7 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { stat } from 'node:fs/promises';
+import { statSync } from 'node:fs';
 import { REPO_ROOT } from './products';
 import { indexGraph, type GraphData, type GraphIndex } from './graph';
 import { nodeIndex, type IndexEntry } from './doc';
@@ -14,11 +15,27 @@ import { loadGraph } from './load';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const req = createRequire(path.join(REPO_ROOT, 'package.json'));
 type Lib = { newParseCache(): unknown; buildGraph(root: string, o: { cache?: unknown; cwd?: string }): { graph: GraphData; files: string[] }; checkLines(graph: GraphData, o: { repo: string; strict?: boolean }): { errors: string[]; warnings: string[]; output: string } };
-const lib = (): Lib => ({ ...req('./lib/parse.js'), ...req('./lib/build.js') });
+const LIB = ['./lib/parse.js', './lib/build.js'];
+// The parser is CommonJS, required once and kept in Node's module cache, which Next's reload does not touch: editing
+// lib/parse.js while the dev server runs used to leave it building yesterday's graph, silently. In development the
+// files' mtimes are checked and the modules dropped when they change; the parse caches go with them, because they hold
+// what the old parser made of each file.
+function lib(): Lib {
+  if (process.env.NODE_ENV !== 'production') {
+    const s = st();
+    const stamp = LIB.map(f => { try { return String(statSync(req.resolve(f)).mtimeMs); } catch { return ''; } }).join('|');
+    if (stamp !== s.libStamp) {
+      s.libStamp = stamp;
+      for (const f of LIB) { try { delete req.cache[req.resolve(f)]; } catch { /* not cached */ } }
+      s.caches.clear();   // a cache holds what the old parser made of each file
+    }
+  }
+  return { ...req('./lib/parse.js'), ...req('./lib/build.js') };
+}
 
 export type Cached = { graph: GraphData; idx: GraphIndex; index: Record<string, IndexEntry>; stamp: string; builtAt: number };
 export type BuiltListener = ((productDir: string, before: GraphData | null, after: GraphData) => Promise<void> | void) & { key?: string };
-type State = { caches: Map<string, unknown>; graphs: Map<string, Cached>; running: Map<string, Promise<BuildResult>>; queued: Map<string, Promise<BuildResult>>; listeners: BuiltListener[]; lastBuilt: Map<string, number>; after: Map<string, Promise<void>> };
+type State = { libStamp?: string; caches: Map<string, unknown>; graphs: Map<string, Cached>; running: Map<string, Promise<BuildResult>>; queued: Map<string, Promise<BuildResult>>; listeners: BuiltListener[]; lastBuilt: Map<string, number>; after: Map<string, Promise<void>> };
 const g = globalThis as unknown as { __wfBuild?: State };
 // on globalThis across dev reloads; a reload that adds a field finds the old state and fills it in
 const st = (): State => { const s = (g.__wfBuild ??= { caches: new Map(), graphs: new Map(), running: new Map(), queued: new Map(), listeners: [], lastBuilt: new Map(), after: new Map() }); s.after ??= new Map(); return s; };

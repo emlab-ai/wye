@@ -450,3 +450,20 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
   - alternative:ontology.comment-is-a-ref keep the child-block model and make the Comments document a generated view (the comment would be spread over every document, and a comment on a paragraph would change that document's text); write the comment as a child when made inside a document and to the Comments document otherwise (two shapes for one type).
 
   - consequence:ontology.comment-is-a-ref decision:ontology.uniform-content is narrowed — its "a comment is a block of type comment in its parent's content" no longer holds; task:ontology.child-nodes-design loses its comment half to task:ontology.comments-document and keeps the content model; question:ontology.child-nodes is answered differently than recorded.
+
+```yaml
+- id: decision:ontology.a-type-can-be-nested-only
+  title: A type card says which kinds may hold it, and a type that nests is never offered on its own
+  date: 2026-09-24
+  status: proposed
+  affects: [type:when, type:then, type:unless, type:context, type:note, lib:types, component:doc-editor, component:map-canvas]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:ontology-engine
+```
+
+  - context:ontology.a-type-can-be-nested-only A when, a then, a context are types like any other, so every list that offers a type offered them: a page could be made of kind `when`, and a map's node picker listed all eleven of them. Alex: "some types can only be nested like given/when/then types, must not be visible at root, they only must be child to type req, and test — they also should be not visible on the top/root type selectors and only visible when / command is used on appropriate type."
+
+  - choice:ontology.a-type-can-be-nested-only A type card may carry `nests-in: [req, rule, test]`, the kinds that may hold it; `node` means any. Such a type is left out of every place a node is made from nothing — the new-page types, a map's node picker, the block menu at the top of a document — and offered in the slash menu only while the cursor is in a node of a kind it nests in, grouped as "In this req". The check warns when one is written with no holder of an allowed kind. The base ontology declares it for when / then / unless (req, rule, test, ui-test), context / choice / alternative / consequence (decision), statement / scope / rationale (rule, constraint) and note (any node).
+
+  - alternative:ontology.a-type-can-be-nested-only The app's own PART_KINDS list, which already existed for other purposes — rejected: a product that declares a type of its own could never say the same thing about it, and the ontology is where the shape of the knowledge is declared, not the app.

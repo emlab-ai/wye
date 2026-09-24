@@ -838,6 +838,20 @@ The editor's blocks and the components the pages are made of, by area.
     (no header comment)
   status: proposed
   part-of: module:components
+- id: component:map-canvas
+  file: packages/web/src/components/MapCanvas.tsx
+  side: client
+  purpose: >
+    The canvas of a map page (component&#58;map-canvas, req&#58;wf2.map.canvas). Its nodes and edges are the page's
+    own cards and the links they carry, so a gesture here is an edit to the knowledge: a double click on the canvas
+    adds a node, the + on a node grows a child, dragging between two nodes links them, a click on a link names it, a
+    right click on a node removes it, and a click on a node shows it in the app's own Context panel
+    (decision:map.selection-goes-to-the-context-panel) rather than in a second card floating over the canvas.
+    Dragging is the one gesture that is not knowledge — positions are kept locally and flushed to the page's Layout
+    section as one silent write once the hand stops (decision:map.layout-is-a-fenced-section), which is what keeps
+    the canvas as quick as a mind-map editor.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

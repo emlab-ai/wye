@@ -227,46 +227,57 @@ type means instances may carry properties the type does not declare without a wa
 - id: type:when
   extends: type:node
   purpose: the trigger of a requirement — a child block of it
+  nests-in: [req, rule, test, ui-test]
   open: true
 - id: type:then
   extends: type:node
   purpose: the outcome of a requirement — a child block of it
+  nests-in: [req, rule, test, ui-test]
   open: true
 - id: type:unless
   extends: type:node
   purpose: the exception of a requirement — a child block of it
+  nests-in: [req, rule, test, ui-test]
   open: true
 - id: type:context
   extends: type:node
   purpose: what forced a decision — a child block of it
+  nests-in: [decision]
   open: true
 - id: type:alternative
   extends: type:node
   purpose: a way not taken — a child block of the decision that considered it, its text saying what it was and why not
+  nests-in: [decision]
   open: true
 - id: type:choice
   extends: type:node
   purpose: what was chosen, when a decision wants it as a block of its own under the decision rather than in its text
+  nests-in: [decision]
   open: true
 - id: type:consequence
   extends: type:node
   purpose: what follows from a decision — a child block of it
+  nests-in: [decision]
   open: true
 - id: type:statement
   extends: type:node
   purpose: what a constraint or a rule says — a child block of it (decision:wf2.parts-are-content)
+  nests-in: [rule, constraint]
   open: true
 - id: type:scope
   extends: type:node
   purpose: where a constraint or a rule applies, in words — a child block of it (ids go in the card's `scope:` links)
+  nests-in: [rule, constraint]
   open: true
 - id: type:rationale
   extends: type:node
   purpose: why a constraint or a rule holds — a child block of it
+  nests-in: [rule, constraint]
   open: true
 - id: type:note
   extends: type:node
   purpose: a remark under a rule, a constraint or any node — a child block of it
+  nests-in: [node]
   open: true
 - id: type:constraint
   extends: type:node
