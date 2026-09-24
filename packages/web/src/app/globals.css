@@ -923,13 +923,21 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .review-answer .pri:disabled { opacity: .45; cursor: default; }
 
 /* ===== the map canvas (component:map-canvas, req:wf2.map.canvas) ===== */
-/* a map page's nodes are the page's own cards: a node is a pill-sized box, not an editable card, because a map is read
-   at a glance and edited through the panel beside it */
-.mwrap { position: relative; margin: 10px 0 0; }
-.mbar { display: flex; align-items: center; gap: 8px; padding: 0 2px 6px; }
-.mbar button { background: var(--surface); border: 1px solid var(--line-2); border-radius: 7px; padding: 3px 10px; font: 500 12px var(--font-m); color: var(--ink); cursor: pointer; }
+/* a map page is the canvas and nothing else (decision:map.canvas-is-the-page): it fills the frame under the top bar,
+   with no properties, no comments and no page below it — the page's own text is a toggle in the toolbar */
+.content:has(.page-map) { display: flex; flex-direction: column; overflow: hidden; }
+.page-map { flex: 1; min-height: 0; min-width: 0; width: 100%; max-width: none; padding: 0; display: flex; }
+.mwrap { position: relative; flex: 1; min-width: 0; margin: 0; display: flex; flex-direction: column; }
+.mbar { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 7px 14px; }
+.mbar .small { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mbar button { flex: none; background: var(--surface); border: 1px solid var(--line-2); border-radius: 7px; padding: 3px 10px; font: 500 12px var(--font-m); color: var(--ink); cursor: pointer; }
 .mbar button:hover { border-color: var(--accent); }
-.mcanvas { position: relative; height: min(74vh, 820px); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--ground); }
+.mbar button.on { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+.mbar-gap { flex: none; margin-left: auto; }
+.mcanvas { position: relative; flex: 1; min-height: 0; overflow: hidden; background: var(--ground); border-top: 1px solid var(--line); }
+/* the page's text, over the canvas, in the reading column it has everywhere else */
+.msheet { position: absolute; inset: 0; z-index: 26; overflow: auto; background: var(--ground); padding: 18px 24px 80px; }
+.msheet > * { max-width: 900px; margin: 0 auto; }
 .mnode { display: flex; align-items: center; gap: 8px; max-width: 280px; padding: 6px 12px 6px 8px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 9px; box-shadow: 0 2px 10px rgba(0,0,0,.12); font: 13px var(--font-b, inherit); color: var(--ink); }
 .mnode.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), 0 2px 10px rgba(0,0,0,.12); }
 .mnode.is-ref { border-style: dashed; background: var(--sunk); }
@@ -937,12 +945,14 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .mnode-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: text; }
 .mnode-edit { width: 150px; background: var(--ground); border: 1px solid var(--accent); border-radius: 5px; padding: 1px 5px; font: inherit; color: var(--ink); }
 .mnode-ref { color: var(--muted); font-size: 11px; }
-.mnode .react-flow__handle { width: 9px; height: 9px; background: var(--line-2); border: 2px solid var(--ground); }
-.mnode .react-flow__handle:hover { background: var(--accent); }
-/* the + that grows a child: only on hover, and it keeps its own mouse so a click on it never starts a drag */
-.mnode-add { position: absolute; right: -30px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); font: 600 13px/1 var(--font-m); cursor: pointer; display: none; align-items: center; justify-content: center; padding: 0; z-index: 2; }
-.mnode:hover .mnode-add, .mnode.on .mnode-add { display: inline-flex; }
-.mnode-add:hover { border-color: var(--accent); color: var(--accent); }
+.mnode .react-flow__handle { width: 9px; height: 9px; background: var(--line-2); border: 2px solid var(--ground); opacity: 0; transition: opacity .12s; }
+.mnode.near .react-flow__handle, .mnode.on .react-flow__handle { opacity: 1; }
+.mnode .react-flow__handle:hover { background: var(--accent); opacity: 1; }
+/* the + that grows a child: shown while the pointer is near the node (the canvas decides what "near" is), so the gap
+   between the card and the button can be crossed without losing it */
+.mnode-add { position: absolute; right: -32px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); font: 600 15px/1 var(--font-m); cursor: pointer; display: none; align-items: center; justify-content: center; padding: 0; z-index: 2; }
+.mnode.near .mnode-add { display: inline-flex; }
+.mnode-add:hover { border-color: var(--accent); color: var(--accent); background: var(--sunk); }
 /* one popup: the new node's type and title, or an edge's verb */
 .mpop { position: fixed; z-index: 30; width: 270px; display: flex; flex-direction: column; gap: 6px; padding: 10px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
 .mpop-head { font: 600 11px var(--font-m); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
@@ -956,10 +966,4 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .mpop-row { display: flex; align-items: center; gap: 10px; }
 .mpop-row button:first-child { background: var(--ink); color: var(--ground); border: 0; border-radius: 6px; padding: 4px 12px; font: 500 12px var(--font-m); cursor: pointer; }
 .mpop-row .linkish { margin-left: auto; }
-/* the node's card, beside the canvas: the same embedded card the editor shows, so the canvas edits the knowledge */
-.mside { position: absolute; top: 40px; right: 10px; width: 350px; max-height: calc(min(74vh, 820px) - 20px); overflow: auto; padding: 10px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.2); z-index: 20; }
-.mside-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.mside-foot { display: flex; align-items: center; gap: 12px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
-.mside-foot .bad { color: var(--bad); }
-.mdoc { margin: 14px 0 0; }
-.mdoc > summary { font: 500 12px var(--font-m); color: var(--muted); cursor: pointer; padding: 4px 0; }
+.mpop-row button.bad { background: var(--bad); color: #fff; border: 0; border-radius: 6px; padding: 4px 12px; font: 500 12px var(--font-m); cursor: pointer; }

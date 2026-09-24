@@ -509,3 +509,46 @@ What this module must do is written where it was decided — the PRD and the dev
   - choice:map.delete-tidies-this-page-only Deleting a node on a map removes its card and every `verb: <id>` the same document carried to it, so the page it leaves behind is whole. Links from other pages stay and become references to a node that is gone — exactly what happens when a page is deleted, and what the check reports.
 
   - alternative:map.delete-tidies-this-page-only Rewriting every reference across the product, the way a retype does — rejected: a retype keeps the knowledge and only renames it, while a delete throws it away, and a gesture on a canvas must not quietly edit pages you are not looking at.
+
+```yaml
+- id: decision:map.canvas-is-the-page
+  title: A map page is the canvas and nothing else — full frame, no properties, no comments, no page below it
+  date: 2026-09-24
+  status: proposed
+  affects: [page:web/document, component:map-canvas]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-graph
+```
+
+  - context:map.canvas-is-the-page The first build put the canvas where a document's content goes: under the title, the properties and the Comments box, in the 900-pixel reading column, at a fixed height. Alex, seeing it: "mind map page must be full screen, no comments panel, no page header", and then "remove this fuckin margins, it must be full size central pannel".
+
+  - choice:map.canvas-is-the-page A map page renders the canvas alone, filling the frame under the top bar. Its toolbar carries one toggle, "Page text", which brings the ordinary editor over the canvas when the page's prose or front matter needs editing. The properties, the comments and the links a document shows are all on the node the Context panel holds, which is where a map's knowledge is read anyway.
+
+```yaml
+- id: decision:map.selection-goes-to-the-context-panel
+  title: Clicking a node on the canvas selects it in the app's Context panel, not in a card of the canvas's own
+  date: 2026-09-24
+  status: proposed
+  affects: [component:map-canvas]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-graph
+```
+
+  - choice:map.selection-goes-to-the-context-panel A click on a node is the same selection a click on a block makes (rule:block-select): the right-hand Context panel shows the node's card, its comments, its content and its links. The canvas floats nothing over itself. Alex, on the panel the first build grew: "we already have context panel on right, no need to show this as additional node". Removing a node moved to a right click, where a canvas expects it.
+
+```yaml
+- id: decision:map.links-take-the-nearest-sides
+  title: A link leaves each card by the side that faces the other, not by a fixed pair of handles
+  date: 2026-09-24
+  status: proposed
+  affects: [lib:floating, component:map-canvas]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-graph
+```
+
+  - choice:map.links-take-the-nearest-sides Every edge is a floating edge: the ends are computed from the two boxes — the point where the line joining their centres leaves each — so a child below its parent is joined bottom to top and one to the left, left to right. Each card carries a handle on all four sides for drawing, and the drawn edge ignores which one was used.
+
+  - alternative:map.links-take-the-nearest-sides The one source handle on the right and one target handle on the left that React Flow gives by default — rejected on sight: "make connection going from the closes side to closest side, not shite like now". A node dragged above its parent had its link sweep all the way round the card.

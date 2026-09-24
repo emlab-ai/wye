@@ -39,22 +39,26 @@ export default async function DocPage({ params }: { params: Promise<{ product: s
   const isMap = d.module.kind === 'map';
   const spots = isMap ? parseLayout(md) : [];
   const drawn = isMap ? mapGraph(scope.graph, scope.idx, d.file, d.module.id, spots) : null;
+  // a map page is a canvas and nothing else (decision:map.canvas-is-the-page): no properties, no comments, no linked
+  // pages — the canvas fills the frame under the top bar, and the page's own text is one toggle away in its toolbar
+  if (drawn) return (
+    <div className="page page-map">
+      <MapCanvas product={product} project={project} slug={d.slug} nodes={drawn.nodes} edges={drawn.edges} spots={spots} types={(scope.graph.types ?? []).map(t => ({ slug: t.slug, props: t.props.map(pr => ({ name: pr.name, ref: pr.ref })) }))}>
+        <LiveDocument product={product} project={project} slug={d.slug} body={body} ifMatch={hashOf(body)}>
+          {rsc ? null : <DocumentReader doc={split} index={scope.index} />}
+        </LiveDocument>
+      </MapCanvas>
+    </div>
+  );
   return (
     <div className="page">
       {split.frontmatter.type === 'pr' && <PrHead product={product} prRef={`${product}/${project}/${d.slug}`} />}
       <RunStrip product={product} node={d.module.id} />
       <DocProps product={product} project={project} slug={d.slug} file={d.file} fm={split.frontmatter} node={d.module.id} types={scope.graph.types ?? []} />
       {['imported', 'raw', 'importing'].includes(split.frontmatter.status ?? '') && <ImportedNotice product={product} project={project} slug={d.slug} node={d.module.id} status={split.frontmatter.status} source={split.frontmatter.source} />}
-      {drawn && <MapCanvas product={product} project={project} slug={d.slug} node={d.module.id} nodes={drawn.nodes} edges={drawn.edges} spots={spots} types={(scope.graph.types ?? []).map(t => ({ slug: t.slug, props: t.props.map(pr => ({ name: pr.name, ref: pr.ref })) }))} />}
-      {drawn
-        ? <details className="mdoc"><summary>The page behind the map</summary>
-            <LiveDocument product={product} project={project} slug={d.slug} body={body} ifMatch={hashOf(body)}>
-              {rsc ? null : <DocumentReader doc={split} index={scope.index} />}
-            </LiveDocument>
-          </details>
-        : <LiveDocument product={product} project={project} slug={d.slug} body={body} ifMatch={hashOf(body)}>
-            {rsc ? null : <DocumentReader doc={split} index={scope.index} />}
-          </LiveDocument>}
+      <LiveDocument product={product} project={project} slug={d.slug} body={body} ifMatch={hashOf(body)}>
+        {rsc ? null : <DocumentReader doc={split} index={scope.index} />}
+      </LiveDocument>
       {linked.length > 0 && (
         <section className="linked"><h2>Linked pages</h2>
           <ul>{linked.map(l => { const r = docRoute(l.file); return <li key={l.file}><Link href={r ? `/${product}/${r.project}/d/${r.doc}` : '#'}>{l.title}</Link> <span className="muted">{l.count} links{r && r.project !== project ? ` · ${r.project}` : ''}</span></li>; })}</ul>
