@@ -32,9 +32,11 @@ describe('collection document (decision:ontology.collection-document)', () => {
     expect(pluralTitle({ ...team, slug: 'person', plural: 'People' })).toBe('People');
   });
   it('the document is the blank page with one table block of the type', () => {
-    const md = collectionDoc('# Cities\n\nWrite here. Anything.\n\n```yaml\nid: module:cities\npurpose: >\n  What this document covers, for whom.\n```\n', 'city');
+    const md = collectionDoc('---\nnode: module:cities\ntitle: Cities\n---\n\n# Cities\n\nWrite here. Anything.\n', 'city');
     expect(md).toContain('<!-- table:city -->\n<!-- /table:city -->');
     expect(md).not.toContain('Write here.');
+    // the collection page carries the one card a blank page does not: it is the home of the type
+    expect(md).toContain('```yaml\nid: module:cities\npurpose: every city of the product, one row each — the home of type:city\n```');
     expect(md).toContain('purpose: every city of the product, one row each');
   });
   it('a row goes before the closing marker; a document without the table gets one', () => {

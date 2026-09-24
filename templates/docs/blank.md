@@ -10,10 +10,3 @@ part-of: {{parent}}
 # {{title}}
 
 Write here. An `id: kind:slug` inside a yaml block becomes a card; a `kind:slug` in the text becomes a tag.
-
-```yaml
-id: {{kind}}:{{slug}}
-purpose: >
-  What this document covers, for whom.
-part-of: {{parent}}
-```

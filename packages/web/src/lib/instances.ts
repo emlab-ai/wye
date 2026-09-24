@@ -33,10 +33,13 @@ export function pluralTitle(t: Pick<TypeDef, 'slug' | 'plural'>): string {
   return title.charAt(0).toUpperCase() + title.slice(1);
 }
 // The blank template's placeholder paragraph becomes the type's table block, and the document card says what it holds.
+// A type's collection document, from the blank page: the hint line becomes the table markers, and the page gets the
+// one card a blank page does not — it is the home of the type (decision:ontology.collection-document), which is what
+// its purpose says.
 export function collectionDoc(blank: string, slug: string): string {
-  return blank
-    .replace(/^Write here\..*$/m, `<!-- table:${slug} -->\n<!-- /table:${slug} -->`)
-    .replace(/^purpose: >\n  What this document covers, for whom\.$/m, `purpose: every ${slug} of the product, one row each — the home of type:${slug}`);
+  const node = blank.match(/^node:\s*(\S+)$/m)?.[1] ?? `module:${slug}`;
+  const card = ['```yaml', `id: ${node}`, `purpose: every ${slug} of the product, one row each — the home of type:${slug}`, '```'].join('\n');
+  return blank.replace(/^Write here\..*$/m, `${card}\n\n<!-- table:${slug} -->\n<!-- /table:${slug} -->`);
 }
 // A row goes before the type's closing table marker; a document without the type's table gets one at the end.
 export function appendRow(md: string, slug: string, row: string): string {
