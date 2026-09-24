@@ -1,17 +1,18 @@
 // A map page, the pure part (decision:map.page-owns-its-nodes): a document of type:map whose cards are the nodes of
 // a canvas and whose links are its edges. This file reads and writes the one thing the canvas owns — the `## Layout`
-// section, a fenced block of `<id> <x>,<y>` lines, `ref` on a node that lives in another document
+// section, a fenced block of `<id> <x>,<y>` lines with `ref` on a node that lives in another document and `open` on
+// one shown as its full card
 // (decision:map.layout-is-a-fenced-section) — works out what the canvas should draw, and says which verbs an edge
 // between two kinds may take (decision:map.verbs-from-the-ontology). The IO is the map route.
 import type { GraphData, GraphEdge, GraphIndex } from './graph';
 import { HIDDEN_KINDS } from './graph';
 import { appendCard } from './instances';
 
-export type Spot = { id: string; x: number; y: number; ref: boolean };
+export type Spot = { id: string; x: number; y: number; ref: boolean; open: boolean };
 export type MapNode = { id: string; kind: string; title: string; status: string; defined: boolean; ref: boolean; x: number; y: number };
 export type MapGraph = { nodes: MapNode[]; edges: GraphEdge[] };
 
-const LINE = /^([a-z][a-z0-9-]*:[A-Za-z0-9_][A-Za-z0-9_./#-]*)\s+(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)(\s+ref)?\s*$/;
+const LINE = /^([a-z][a-z0-9-]*:[A-Za-z0-9_][A-Za-z0-9_./#-]*)\s+(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)((?:\s+(?:ref|open))*)\s*$/;
 // Where the section's body starts and ends — the twin of pr-doc#sectionBody, because `$` under /m ends at the first
 // line and would read one position out of a map that has many.
 function layoutAt(md: string): { start: number; end: number } | null {
@@ -28,7 +29,8 @@ export function parseLayout(md: string): Spot[] {
   const out: Spot[] = [];
   for (const raw of sec.split('\n')) {
     const m = raw.trim().match(LINE); if (!m) continue;
-    out.push({ id: m[1], x: Number(m[2]), y: Number(m[3]), ref: !!m[4] });
+    const flags = (m[4] ?? '').split(/\s+/);
+    out.push({ id: m[1], x: Number(m[2]), y: Number(m[3]), ref: flags.includes('ref'), open: flags.includes('open') });
   }
   return out;
 }
@@ -36,7 +38,7 @@ export function parseLayout(md: string): Spot[] {
 // The Layout section rewritten, in the order given. The section is added when the page has none, so a map made
 // before this, or by hand, gains one on the first drag.
 export function writeLayout(md: string, spots: Spot[]): string {
-  const body = ['```text', ...spots.map(s => `${s.id} ${Math.round(s.x)},${Math.round(s.y)}${s.ref ? ' ref' : ''}`), '```'].join('\n');
+  const body = ['```text', ...spots.map(s => `${s.id} ${Math.round(s.x)},${Math.round(s.y)}${s.ref ? ' ref' : ''}${s.open ? ' open' : ''}`), '```'].join('\n');
   const at = layoutAt(md);
   if (!at) return `${md.replace(/\s+$/, '')}\n\n## Layout\n\n${body}\n`;
   return `${md.slice(0, at.start)}\n${body}\n${at.end === md.length ? '' : '\n'}${md.slice(at.end)}`;
@@ -45,8 +47,15 @@ export function writeLayout(md: string, spots: Spot[]): string {
 // One node's position set, keeping the rest as they are and adding it when it is new.
 export function moveIn(spots: Spot[], id: string, x: number, y: number, ref = false): Spot[] {
   const at = spots.findIndex(s => s.id === id);
-  if (at < 0) return [...spots, { id, x, y, ref }];
+  if (at < 0) return [...spots, { id, x, y, ref, open: false }];
   return spots.map((s, i) => (i === at ? { ...s, x, y } : s));
+}
+// A node shown as its full card, or back as a pill (decision:map.a-node-opens-into-its-card) — kept beside its position,
+// so a map opens as it was left.
+export function openIn(spots: Spot[], id: string, open: boolean, ref = false): Spot[] {
+  const at = spots.findIndex(s => s.id === id);
+  if (at < 0) return [...spots, { id, x: 0, y: 0, ref, open }];
+  return spots.map((s, i) => (i === at ? { ...s, open } : s));
 }
 export const dropIn = (spots: Spot[], id: string): Spot[] => spots.filter(s => s.id !== id);
 

@@ -7,6 +7,7 @@ import { edgeEnds, type Side } from '@/lib/floating';
 import { verbsFor, type MapNode, type Spot } from '@/lib/map';
 import type { GraphEdge } from '@/lib/graph';
 import { usePeek } from './PeekProvider';
+import { EmbeddedCard } from './EmbeddedCard';
 
 // The canvas of a map page (component:map-canvas, req:wf2.map.canvas). Its nodes and edges are the page's own cards and
 // the links they carry, so a gesture here is an edit to the knowledge: a double click on the canvas adds a node, the +
@@ -18,11 +19,12 @@ import { usePeek } from './PeekProvider';
 type TypeLite = { slug: string; props?: { name: string; ref: string | null }[] };
 interface Props { product: string; project: string; slug: string; nodes: MapNode[]; edges: GraphEdge[]; spots: Spot[]; types: TypeLite[]; children?: ReactNode }
 type Picture = { nodes: MapNode[]; edges: GraphEdge[]; spots?: Spot[]; id?: string | null };
-type NodeData = { kind: string; title: string; status: string; isRef: boolean; near: boolean; onChild: (id: string, at: { x: number; y: number }) => void; onRename: (id: string, title: string) => void };
+type NodeData = { kind: string; title: string; status: string; isRef: boolean; near: boolean; open: boolean; onChild: (id: string, at: { x: number; y: number }) => void; onRename: (id: string, title: string) => void; onOpen: (id: string, open: boolean) => void };
 
 const FLUSH_MS = 350;         // a hand at rest: the whole Layout section goes in one write
 const CHILD_GAP = 90, CHILD_DY = 80, NODE_GUESS = 200;
 const NEAR = 70;              // how close the pointer comes before a node offers its +, in canvas pixels
+const CARD_W = 360;           // an opened node is the editor's card, at the width the graph page gives it
 const SIDES: Side[] = ['top', 'right', 'bottom', 'left'];
 const POS: Record<Side, Position> = { top: Position.Top, right: Position.Right, bottom: Position.Bottom, left: Position.Left };
 const kindOf = (id: string) => id.split(':')[0];
@@ -31,20 +33,35 @@ const nameOf = (id: string) => id.split(':').slice(1).join(':');
 // A node: its kind, its title, and the + that grows a child. The + appears while the pointer is near the node — not
 // only while it is over it, which made the + impossible to reach: it sits beside the card, and crossing the gap would
 // have taken the hover away. Renaming happens in place on a double click — the same op:node.edit the card would use, so
-// the card and the canvas never disagree.
+// the card and the canvas never disagree. Opened (decision:map.a-node-opens-into-its-card), the node becomes the very
+// card the editor and the graph page show, editable field by field, and its "from" line is the drag grip so the fields
+// keep their own mouse.
 function MapCard({ id, data, selected }: NodeProps<Node<NodeData>>) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(data.title);
   useEffect(() => setDraft(data.title), [data.title]);
   const save = () => { setEditing(false); if (draft.trim() && draft.trim() !== data.title) data.onRename(id, draft.trim()); };
+  const frame = `mnode ${selected ? 'on' : ''} ${data.near || selected ? 'near' : ''} ${data.isRef ? 'is-ref' : ''} s-${data.status || 'none'}`;
+  const fold = (
+    <button type="button" className="mnode-fold nodrag" title={data.open ? 'Show the title alone' : 'Show the whole card'}
+      onClick={e => { e.stopPropagation(); data.onOpen(id, !data.open); }}>{data.open ? '⌃' : '⌄'}</button>
+  );
+  if (data.open) return (
+    <div className={`${frame} open`} data-id={id}>
+      {SIDES.map(p => <Handle key={p} id={p} type="source" position={POS[p]} />)}
+      {fold}
+      <EmbeddedCard id={id} />
+    </div>
+  );
   return (
-    <div className={`mnode ${selected ? 'on' : ''} ${data.near || selected ? 'near' : ''} ${data.isRef ? 'is-ref' : ''} s-${data.status || 'none'}`} data-id={id}>
+    <div className={frame} data-id={id}>
       {SIDES.map(p => <Handle key={p} id={p} type="source" position={POS[p]} />)}
       <span className="mnode-kind pill k" style={{ background: `var(--k-${data.kind}, var(--k-other))` }}>{data.kind}</span>
       {editing
         ? <input className="mnode-edit" autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={save} onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setDraft(data.title); setEditing(false); } }} />
         : <span className="mnode-title" onDoubleClick={e => { e.stopPropagation(); setEditing(true); }}>{data.title || nameOf(id)}</span>}
       {data.isRef && <span className="mnode-ref" title="This node is written on another page">↗</span>}
+      {fold}
       <button type="button" className="mnode-add nodrag" title="Add a linked node" onClick={e => { e.stopPropagation(); data.onChild(id, { x: e.clientX, y: e.clientY }); }}>+</button>
     </div>
   );
@@ -78,6 +95,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, spots, types, 
   const [title, setTitle] = useState('');
   const [verb, setVerb] = useState('part-of');
   const [near, setNear] = useState<string | null>(null);
+  const [open, setOpen] = useState<Set<string>>(() => new Set(spots.filter(sp => sp.open).map(sp => sp.id)));
 
   // where each node sits: the page's Layout for the ones it records, dagre for the ones it does not (a card written by
   // hand or by an agent appears in a sensible place instead of at the origin)
@@ -98,7 +116,10 @@ export function MapCanvas({ product, project, slug, nodes, edges, spots, types, 
     const j = (await r.json().catch(() => ({}))) as Picture & { ok?: boolean; message?: string; id?: string };
     if (!r.ok) { setMsg(j.message || 'that did not work'); return null; }
     setMsg('');
-    if (j.nodes && j.edges) setPic({ nodes: j.nodes, edges: j.edges, spots: j.spots });
+    if (j.nodes && j.edges) {
+      setPic({ nodes: j.nodes, edges: j.edges, spots: j.spots });
+      if (j.spots) setOpen(new Set(j.spots.filter(sp => sp.open).map(sp => sp.id)));
+    }
     return j;
   }, [product, project, slug]);
 
@@ -123,6 +144,10 @@ export function MapCanvas({ product, project, slug, nodes, edges, spots, types, 
     return () => { window.removeEventListener('pagehide', go); flush(true); };
   }, [flush]);
 
+  const onOpen = useCallback((id: string, want: boolean) => {
+    setOpen(cur => { const next = new Set(cur); if (want) next.add(id); else next.delete(id); return next; });
+    void fetch(`/api/${product}/${project}/map/${slug}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'open', id, open: want }) });
+  }, [product, project, slug]);
   const onChild = useCallback((id: string, at: { x: number; y: number }) => {
     setTitle(''); setPop({ mode: 'new', at, flow: { x: 0, y: 0 }, parent: id });
   }, []);
@@ -148,7 +173,8 @@ export function MapCanvas({ product, project, slug, nodes, edges, spots, types, 
   const computed = useMemo(() => {
     const rfNodes: Node[] = pic.nodes.map(n => ({
       id: n.id, type: 'map', position: seeded.at.get(n.id) ?? { x: 0, y: 0 },
-      data: { kind: n.kind, title: n.title, status: n.status, isRef: n.ref, near: n.id === near, onChild, onRename } satisfies NodeData,
+      data: { kind: n.kind, title: n.title, status: n.status, isRef: n.ref, near: n.id === near, open: open.has(n.id), onChild, onRename, onOpen } satisfies NodeData,
+      ...(open.has(n.id) ? { style: { width: CARD_W }, dragHandle: '.embed-from' } : {}),
     }));
     const rfEdges: Edge[] = pic.edges.map(e => ({
       id: `${e.from}|${e.verb}|${e.to}`, source: e.from, target: e.to, label: e.verb, type: 'floating',
@@ -157,7 +183,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, spots, types, 
       labelStyle: { fontSize: 10, fill: 'var(--muted)' }, labelBgStyle: { fill: 'var(--ground)' }, labelBgPadding: [4, 2] as [number, number],
     }));
     return { rfNodes, rfEdges };
-  }, [pic, seeded, near, onChild, onRename]);
+  }, [pic, seeded, near, open, onChild, onRename, onOpen]);
   const [rfNodes, setNodes, onNodesChange] = useNodesState(computed.rfNodes);
   const [rfEdges, setEdges, onEdgesChange] = useEdgesState(computed.rfEdges);
   useEffect(() => {

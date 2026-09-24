@@ -552,3 +552,18 @@ What this module must do is written where it was decided — the PRD and the dev
   - choice:map.links-take-the-nearest-sides Every edge is a floating edge: the ends are computed from the two boxes — the point where the line joining their centres leaves each — so a child below its parent is joined bottom to top and one to the left, left to right. Each card carries a handle on all four sides for drawing, and the drawn edge ignores which one was used.
 
   - alternative:map.links-take-the-nearest-sides The one source handle on the right and one target handle on the left that React Flow gives by default — rejected on sight: "make connection going from the closes side to closest side, not shite like now". A node dragged above its parent had its link sweep all the way round the card.
+
+```yaml
+- id: decision:map.a-node-opens-into-its-card
+  title: A node on the canvas opens into the very card the editor shows, and the map remembers which are open
+  date: 2026-09-24
+  status: proposed
+  affects: [component:map-canvas, lib:map, op:api.map]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-graph
+```
+
+  - choice:map.a-node-opens-into-its-card A circle on a node's bottom edge, half out of the card, opens it into the EmbeddedCard the document editor and the graph page already use — every field editable in place, its "from" line the drag grip — and closes it back to the title. Which nodes are open is written beside their positions in the `## Layout` section as an `open` flag, on the same silent write a drag uses, so a map opens as it was left and the graph never sees it.
+
+  - alternative:map.a-node-opens-into-its-card Keeping the card only in the Context panel — rejected by Alex, who asked for it on the node itself: comparing two nodes' contents means seeing both at once, which a single panel cannot do. Holding the open set in the browser — rejected: it is part of how the map reads, so it belongs with the positions, which the page already keeps.

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { claimWrite } from '@/lib/changes';
 import { docRoute, projectTree } from '@/lib/doc';
-import { addCard, dropIn, mapGraph, moveIn, parseLayout, withLink, withoutLink, writeLayout } from '@/lib/map';
+import { addCard, dropIn, mapGraph, moveIn, openIn, parseLayout, withLink, withoutLink, writeLayout } from '@/lib/map';
 import { cardText, newInstanceCard, removeCard, replaceCard } from '@/lib/instances';
 import { REPO_ROOT } from '@/lib/products';
 import { loadScope, type Scope } from '@/lib/scope';
@@ -21,6 +21,7 @@ import { rebuild, withFileLock, writeAtomic } from '@/lib/write';
 //   unlink { from, to, verb }                       the edge taken off
 //   drop   { id }                                   off the canvas, and out of the page when the page defines it
 //   layout { moves: [{ id, x, y }] }                positions only — one silent write, no rebuild (the fast path)
+//   open   { id, open }                             the node shown as its full card, or back as a pill — the same fast path
 // Every action but `layout` rebuilds the graph, because it changed the knowledge; `layout` changed only where things
 // sit, which is the map's own business (decision:map.layout-is-a-fenced-section) and must keep up with a dragging hand.
 type Act =
@@ -30,7 +31,8 @@ type Act =
   | { action: 'verb'; from: string; to: string; verb: string; was: string }
   | { action: 'unlink'; from: string; to: string; verb: string }
   | { action: 'drop'; id: string }
-  | { action: 'layout'; moves: { id: string; x: number; y: number }[] };
+  | { action: 'layout'; moves: { id: string; x: number; y: number }[] }
+  | { action: 'open'; id: string; open: boolean };
 
 async function locate(product: string, project: string, slug: string) {
   const scope = await loadScope(product, project); if (!scope) return null;
@@ -77,6 +79,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
       if (out !== md) await writeAtomic(abs, out);
     });
     return NextResponse.json({ ok: true, moved: moves.length });
+  }
+
+  // opening a card is where a node is read, not what it says: the same silent write as a drag
+  if (body.action === 'open') {
+    const id = (body.id ?? '').trim();
+    const n = scope.idx.byId.get(id);
+    if (!n?.defined) return bad(`${id} is not a node`, 404);
+    claimWrite(d.file, { ...who, silent: true });
+    await withFileLock(abs, async () => {
+      const md = await readFile(abs, 'utf8');
+      const out = writeLayout(md, openIn(parseLayout(md), id, !!body.open, n.file !== d.file));
+      if (out !== md) await writeAtomic(abs, out);
+    });
+    return NextResponse.json({ ok: true, id, open: !!body.open });
   }
 
   let created: string | null = null;

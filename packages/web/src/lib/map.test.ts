@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseLayout, writeLayout, moveIn, dropIn, mapGraph, verbsFor, withLink, withoutLink, addCard } from './map';
+import { parseLayout, writeLayout, moveIn, dropIn, openIn, mapGraph, verbsFor, withLink, withoutLink, addCard } from './map';
 import type { GraphData, GraphEdge, GraphNode, TypeDef } from './graph';
 
 // a map page (decision:map.page-owns-its-nodes): its cards are the nodes, its Layout section holds where they sit
@@ -9,29 +9,40 @@ const page = (layout: string) => `---\nnode: map:auth\n---\n\n# Auth\n\nsome pro
 
 describe('the Layout section', () => {
   it('reads a position, a reference, and ignores what is not one', () => {
-    expect(parseLayout(page('req:a 0,0\ndecision:b 260,-40 ref\nnot a line\n'))).toEqual([
-      { id: 'req:a', x: 0, y: 0, ref: false },
-      { id: 'decision:b', x: 260, y: -40, ref: true },
+    expect(parseLayout(page('req:a 0,0\ndecision:b 260,-40 ref\nreq:c 10,10 open\nreq:d 0,5 ref open\nnot a line\n'))).toEqual([
+      { id: 'req:a', x: 0, y: 0, ref: false, open: false },
+      { id: 'decision:b', x: 260, y: -40, ref: true, open: false },
+      { id: 'req:c', x: 10, y: 10, ref: false, open: true },
+      { id: 'req:d', x: 0, y: 5, ref: true, open: true },
     ]);
     expect(parseLayout('# A page with no layout at all')).toEqual([]);
   });
   it('round-trips, rounding to whole pixels, and keeps the rest of the page', () => {
     const md = page('req:a 0,0');
-    const out = writeLayout(md, [{ id: 'req:a', x: 12.4, y: -7.8, ref: false }, { id: 'req:b', x: 260, y: 0, ref: true }]);
+    const out = writeLayout(md, [{ id: 'req:a', x: 12.4, y: -7.8, ref: false, open: true }, { id: 'req:b', x: 260, y: 0, ref: true, open: false }]);
     expect(out).toContain('some prose');
-    expect(parseLayout(out)).toEqual([{ id: 'req:a', x: 12, y: -8, ref: false }, { id: 'req:b', x: 260, y: 0, ref: true }]);
+    expect(parseLayout(out)).toEqual([{ id: 'req:a', x: 12, y: -8, ref: false, open: true }, { id: 'req:b', x: 260, y: 0, ref: true, open: false }]);
     expect(out.match(/## Layout/g)).toHaveLength(1);
   });
   it('adds the section to a page that has none', () => {
-    const out = writeLayout('---\nnode: map:auth\n---\n\n# Auth\n', [{ id: 'req:a', x: 1, y: 2, ref: false }]);
+    const out = writeLayout('---\nnode: map:auth\n---\n\n# Auth\n', [{ id: 'req:a', x: 1, y: 2, ref: false, open: false }]);
     expect(out).toContain('## Layout\n\n```text\nreq:a 1,2\n```');
     expect(parseLayout(out)).toHaveLength(1);
   });
   it('moves a node, adds one it has never seen, and drops one', () => {
     const spots = parseLayout(page('req:a 0,0\nreq:b 10,10'));
-    expect(moveIn(spots, 'req:a', 50, 60).find(s => s.id === 'req:a')).toEqual({ id: 'req:a', x: 50, y: 60, ref: false });
+    expect(moveIn(spots, 'req:a', 50, 60).find(s => s.id === 'req:a')).toEqual({ id: 'req:a', x: 50, y: 60, ref: false, open: false });
     expect(moveIn(spots, 'req:c', 1, 2, true)).toHaveLength(3);
     expect(dropIn(spots, 'req:a').map(s => s.id)).toEqual(['req:b']);
+  });
+  it('opens a node into its card and keeps that beside its position', () => {
+    const spots = parseLayout(page('req:a 0,0\nreq:b 10,10 open'));
+    const open = openIn(spots, 'req:a', true);
+    expect(open.find(s => s.id === 'req:a')).toEqual({ id: 'req:a', x: 0, y: 0, ref: false, open: true });
+    expect(parseLayout(writeLayout(page(''), open))).toEqual(open);
+    // a move keeps the card open; closing keeps where it sits
+    expect(moveIn(open, 'req:a', 5, 5).find(s => s.id === 'req:a')!.open).toBe(true);
+    expect(openIn(spots, 'req:b', false).find(s => s.id === 'req:b')).toEqual({ id: 'req:b', x: 10, y: 10, ref: false, open: false });
   });
 });
 
@@ -41,7 +52,7 @@ describe('a new card on a map page', () => {
     const out = addCard(md, '- id: req:b\n  title: B');
     expect(out.indexOf('req:b')).toBeLessThan(out.indexOf('## Layout'));
     expect(out.match(/```yaml/g)).toHaveLength(1);
-    expect(parseLayout(out)).toEqual([{ id: 'req:a', x: 0, y: 0, ref: false }]);
+    expect(parseLayout(out)).toEqual([{ id: 'req:a', x: 0, y: 0, ref: false, open: false }]);
   });
   it('opens a fence above the Layout section on a page that has no cards yet', () => {
     const out = addCard(`# Auth\n\n## Layout\n\n\`\`\`text\n\`\`\`\n`, '- id: req:a');
@@ -65,7 +76,7 @@ describe('what the canvas draws', () => {
   const idx = { byId: new Map(g.nodes.map(n => [n.id, n])) };
 
   it('draws the map\'s own cards, the references that resolve, and the edges between them', () => {
-    const spots = [{ id: 'req:a', x: 0, y: 0, ref: false }, { id: 'req:far', x: 300, y: 0, ref: true }, { id: 'req:gone', x: 9, y: 9, ref: true }];
+    const spots = [{ id: 'req:a', x: 0, y: 0, ref: false, open: false }, { id: 'req:far', x: 300, y: 0, ref: true, open: false }, { id: 'req:gone', x: 9, y: 9, ref: true, open: false }];
     const m = mapGraph(g, idx, FILE, 'map:auth', spots);
     // the map's own nodes — never the page itself, never its blocks — plus the reference; the missing one is left out
     expect(m.nodes.map(n => n.id).sort()).toEqual(['decision:b', 'req:a', 'req:far']);
