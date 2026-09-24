@@ -21,6 +21,7 @@ kinds:
   goal:           { purpose: what the product or a project sets out to achieve }
   hook:           { purpose: "when this happens to that kind of node, do this" — a card in the project's Hooks document, required: [on, do] }
   lesson:         { purpose: procedural memory — "this broke because …", "here we always …" — learned in a session and kept for the next one, required: [statement] }
+  map:            { purpose: a page whose blocks are a graph: the nodes drawn on its canvas are cards in this document }
   module:         { purpose: a bounded area of the product; one document per module }
   note:           { purpose: a remark under a rule, a constraint or any node — a child block of it }
   op:             { purpose: a query, mutation, endpoint or tool — the public API surface }

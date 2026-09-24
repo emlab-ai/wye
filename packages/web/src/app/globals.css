@@ -921,3 +921,45 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .review-answer textarea:focus { border-color: var(--accent); outline: none; }
 .review-answer .pri { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 6px 12px; font: 600 12px var(--font-b); cursor: pointer; }
 .review-answer .pri:disabled { opacity: .45; cursor: default; }
+
+/* ===== the map canvas (component:map-canvas, req:wf2.map.canvas) ===== */
+/* a map page's nodes are the page's own cards: a node is a pill-sized box, not an editable card, because a map is read
+   at a glance and edited through the panel beside it */
+.mwrap { position: relative; margin: 10px 0 0; }
+.mbar { display: flex; align-items: center; gap: 8px; padding: 0 2px 6px; }
+.mbar button { background: var(--surface); border: 1px solid var(--line-2); border-radius: 7px; padding: 3px 10px; font: 500 12px var(--font-m); color: var(--ink); cursor: pointer; }
+.mbar button:hover { border-color: var(--accent); }
+.mcanvas { position: relative; height: min(74vh, 820px); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--ground); }
+.mnode { display: flex; align-items: center; gap: 8px; max-width: 280px; padding: 6px 12px 6px 8px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 9px; box-shadow: 0 2px 10px rgba(0,0,0,.12); font: 13px var(--font-b, inherit); color: var(--ink); }
+.mnode.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), 0 2px 10px rgba(0,0,0,.12); }
+.mnode.is-ref { border-style: dashed; background: var(--sunk); }
+.mnode-kind { flex: none; }
+.mnode-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: text; }
+.mnode-edit { width: 150px; background: var(--ground); border: 1px solid var(--accent); border-radius: 5px; padding: 1px 5px; font: inherit; color: var(--ink); }
+.mnode-ref { color: var(--muted); font-size: 11px; }
+.mnode .react-flow__handle { width: 9px; height: 9px; background: var(--line-2); border: 2px solid var(--ground); }
+.mnode .react-flow__handle:hover { background: var(--accent); }
+/* the + that grows a child: only on hover, and it keeps its own mouse so a click on it never starts a drag */
+.mnode-add { position: absolute; right: -30px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); font: 600 13px/1 var(--font-m); cursor: pointer; display: none; align-items: center; justify-content: center; padding: 0; z-index: 2; }
+.mnode:hover .mnode-add, .mnode.on .mnode-add { display: inline-flex; }
+.mnode-add:hover { border-color: var(--accent); color: var(--accent); }
+/* one popup: the new node's type and title, or an edge's verb */
+.mpop { position: fixed; z-index: 30; width: 270px; display: flex; flex-direction: column; gap: 6px; padding: 10px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.mpop-head { font: 600 11px var(--font-m); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.mpop label { display: flex; align-items: center; gap: 8px; font: 12px var(--font-m); color: var(--ink-2); }
+.mpop label span { width: 38px; flex: none; }
+.mpop select, .mpop input { flex: 1; min-width: 0; background: var(--ground); border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 6px; font: 12px var(--font-m); color: var(--ink); }
+.mpop-verbs { display: flex; flex-wrap: wrap; gap: 4px; }
+.mpop-verbs button { background: var(--ground); border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 9px; font: 500 11px var(--font-m); color: var(--ink-2); cursor: pointer; }
+.mpop-verbs button.on { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+.mpop-verbs button:hover { border-color: var(--accent); }
+.mpop-row { display: flex; align-items: center; gap: 10px; }
+.mpop-row button:first-child { background: var(--ink); color: var(--ground); border: 0; border-radius: 6px; padding: 4px 12px; font: 500 12px var(--font-m); cursor: pointer; }
+.mpop-row .linkish { margin-left: auto; }
+/* the node's card, beside the canvas: the same embedded card the editor shows, so the canvas edits the knowledge */
+.mside { position: absolute; top: 40px; right: 10px; width: 350px; max-height: calc(min(74vh, 820px) - 20px); overflow: auto; padding: 10px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.2); z-index: 20; }
+.mside-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.mside-foot { display: flex; align-items: center; gap: 12px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.mside-foot .bad { color: var(--bad); }
+.mdoc { margin: 14px 0 0; }
+.mdoc > summary { font: 500 12px var(--font-m); color: var(--muted); cursor: pointer; padding: 4px 0; }

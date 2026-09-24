@@ -20,6 +20,32 @@ export function appendCard(md: string, card: string): string {
   return md.replace(/\s*$/, '') + '\n\n```yaml\n' + card + '\n```\n';
 }
 
+// Where a card sits in a document: its `- id:` line and every line indented under it, blanks inside the card included.
+// null when the id has no card there. The three card edits below are this one scan.
+function cardAt(md: string, id: string): { lines: string[]; start: number; end: number } | null {
+  const lines = md.split('\n');
+  const start = lines.findIndex(l => new RegExp(`^-\\s+id:\\s*${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`).test(l));
+  if (start < 0) return null;
+  let end = start + 1;
+  while (end < lines.length && (/^\s+\S/.test(lines[end]) || (!lines[end].trim() && /^\s+\S/.test(lines[end + 1] ?? '')))) end++;
+  return { lines, start, end };
+}
+// The card as it is written, `- id:` line and all. null when it is not there.
+export function cardText(md: string, id: string): string | null {
+  const at = cardAt(md, id); if (!at) return null;
+  return at.lines.slice(at.start, at.end).join('\n');
+}
+// The card of an id replaced in place. null when it is not there.
+export function replaceCard(md: string, id: string, card: string): string | null {
+  const at = cardAt(md, id); if (!at) return null;
+  return [...at.lines.slice(0, at.start), ...card.replace(/\n$/, '').split('\n'), ...at.lines.slice(at.end)].join('\n');
+}
+// The card of an id taken out of the document, with the blank line it leaves. null when it is not there.
+export function removeCard(md: string, id: string): string | null {
+  const at = cardAt(md, id); if (!at) return null;
+  return [...at.lines.slice(0, at.start), ...at.lines.slice(at.end)].join('\n');
+}
+
 // --- the type's collection document (decision:ontology.collection-document, req:ontology.instance-home) ---
 
 // The document's title: the type card's `plural:`, else the English plural of the type's name — city → Cities,

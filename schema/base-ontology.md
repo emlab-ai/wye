@@ -452,6 +452,15 @@ type means instances may carry properties the type does not declare without a wa
     What a workflow stage produces (a research write-up, a PRD, a design, a plan) is one of these, so a run's
     documents do not enter the product's list of modules.
   open: true
+- id: type:map
+  extends: type:node
+  purpose: >
+    a page whose blocks are a graph (decision:map.page-owns-its-nodes): the nodes drawn on its canvas are cards in
+    this document — same ids, same review, same check — and the edges are the links those cards already carry, so a
+    map says what its markdown says and nothing more. A node defined elsewhere may be shown as a reference: the map
+    keeps its position, never its content. Positions live in a fenced `## Layout` section
+    (decision:map.layout-is-a-fenced-section), invisible to the graph.
+  open: true
 - id: type:step
   extends: type:node
   purpose: >

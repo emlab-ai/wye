@@ -4,6 +4,8 @@
 // predicate set (decision:wf2.until-is-closed), and evaluates that criterion against a graph as readiness rows. The
 // IO — starting a run, entering a stage, writing the run card — is lib/runs-run.
 import { cardValue, parseAction, type HookAction } from './hooks';
+import { replaceCard, removeCard } from './instances';
+export { replaceCard, removeCard };
 import type { GraphData, GraphIndex, GraphNode } from './graph';
 import { AGREED } from './pr-doc';
 
@@ -181,24 +183,6 @@ export function runCard(r: RunState): string {
   const log = r.log.length ? `\n  log: |\n${r.log.map(l => `    - ${l}`).join('\n')}` : '';
   void r.auto;
   return `- id: ${r.id}\n${rows.map(l => `  ${l}`).join('\n')}${log}\n`;
-}
-// The card of an id replaced in place — its `- id:` line and every line indented under it. null when it is not there.
-export function replaceCard(md: string, id: string, card: string): string | null {
-  const lines = md.split('\n');
-  const start = lines.findIndex(l => new RegExp(`^-\\s+id:\\s*${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`).test(l));
-  if (start < 0) return null;
-  let end = start + 1;
-  while (end < lines.length && (/^\s+\S/.test(lines[end]) || (!lines[end].trim() && /^\s+\S/.test(lines[end + 1] ?? '')))) end++;
-  return [...lines.slice(0, start), ...card.replace(/\n$/, '').split('\n'), ...lines.slice(end)].join('\n');
-}
-// The card of an id taken out of the document, with the blank line it leaves. null when it is not there.
-export function removeCard(md: string, id: string): string | null {
-  const lines = md.split('\n');
-  const start = lines.findIndex(l => new RegExp(`^-\\s+id:\\s*${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`).test(l));
-  if (start < 0) return null;
-  let end = start + 1;
-  while (end < lines.length && (/^\s+\S/.test(lines[end]) || (!lines[end].trim() && /^\s+\S/.test(lines[end + 1] ?? '')))) end++;
-  return [...lines.slice(0, start), ...lines.slice(end)].join('\n');
 }
 export function runSlug(workflow: string, taken: Iterable<string>): string {
   const base = workflow.replace(/^workflow:/, '');

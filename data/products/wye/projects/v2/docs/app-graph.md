@@ -401,3 +401,111 @@ What this module must do is written where it was decided — the PRD and the dev
 ```
 
 <!-- /list:op -->
+
+
+## Decisions
+
+```yaml
+- id: decision:map.page-owns-its-nodes
+  title: A mind map is a document whose own blocks are its nodes, and the canvas is a second editor for it
+  date: 2026-09-24
+  status: proposed
+  affects: [type:map, lib:map, component:map-canvas, op:api.map]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-graph
+```
+
+  - context:map.page-owns-its-nodes alex asked for "new type of the page, like mind map — add new nodes, then add child blocks and form graph, click a relationship to set its type, click a node to see its context, hover next to a node for an add-link button". The graph page already draws the product as editable cards (component:graph-view, lib:layout, React Flow) but it is a view over a preset and a focus: it can neither create a node nor draw an edge, and a new node has no home document.
+
+  - choice:map.page-owns-its-nodes A page of type:map. The nodes created on it are blocks in that document — same ids, same cards, same review, same check — so a map says exactly what its markdown says and nothing more, and the same file opens in the ordinary editor. A node defined elsewhere can be shown on the map as a reference: the map keeps its position and never its content, and removing it takes the position, not the node.
+
+  - alternative:map.page-owns-its-nodes A saved view over the product graph (a focus, a filter and an arrangement) — rejected: nothing could be authored on it without first choosing a home document for each node. Making the existing graph page editable — rejected for the same reason, and it has no map of your own to keep. A map as a block inside any document, like a view block — not now, and the natural next step: a canvas inside a text editor fights it for space and drag events.
+
+```yaml
+- id: decision:map.children-are-linked-nodes
+  title: A child on the map is a linked node of its own, not content inside the card
+  date: 2026-09-24
+  status: proposed
+  affects: [component:map-canvas]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-graph
+```
+
+  - choice:map.children-are-linked-nodes The hover affordance beside a node makes another node on the canvas, joined by an edge — the mind-map gesture. In the markdown it is another block in the same document with `part-of` the parent, and the verb can be changed on the edge afterwards. A node's own content (its when / then lines, its prose) is still edited inside the card, which is the EmbeddedCard the graph page already uses.
+
+```yaml
+- id: decision:map.verbs-from-the-ontology
+  title: An edge's type comes from the verbs the ontology declares for the two kinds, and anything else may still be typed
+  date: 2026-09-24
+  status: proposed
+  affects: [lib:map, component:map-canvas]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-graph
+```
+
+  - choice:map.verbs-from-the-ontology Clicking an edge offers the verbs that make sense between those kinds — a req offers satisfied-by, verified-by, refines; a decision offers supersedes, affects — read from the type cards, which already declare every verb and its inverse. Anything else can be typed and becomes an ordinary verb. So a map's links are the product's links: the inverses are generated, and impact and the constraint packets see them as structural.
+
+  - alternative:map.verbs-from-the-ontology Free text only — rejected: satisfies / satisfied by / satisfied-by drift apart and the graph stops treating those links as structural. A fixed mind-map list (part-of, refines, related-to) — rejected: what you draw on a map would be weaker than what the same nodes say in a document.
+
+```yaml
+- id: decision:map.layout-is-a-fenced-section
+  title: Node positions live in a fenced Layout section of the map, and moving a node writes nothing to the knowledge
+  date: 2026-09-24
+  status: proposed
+  affects: [type:map, lib:map, op:api.map]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-graph
+```
+
+  - choice:map.layout-is-a-fenced-section A Layout section holding a fenced block, one line per node — the id, its x and y, and `ref` for a node that lives elsewhere. Fenced, because an id inside a fence creates no node and no edge (measured), so the arrangement is invisible to the graph; and in one place on the map, because a reference's position cannot be written on a card in another document. Dragging never touches the server: the canvas holds positions in memory and writes the whole block once on drop, debounced and coalesced, with the write marked silent (as impact-run and the verdict pass mark theirs) so arranging a map leaves no change record, no attribution and no verdict pass. Rearranging is not knowledge.
+
+  - consequence:map.layout-is-a-fenced-section Measured on this product (7.2k nodes, 114 files) before the design was fixed: a node property write is 10 to 40 ms and a content write with its rebuild and check 30 to 43 ms, so every gesture but the drag can be one server call and still feel instant.
+
+```yaml
+- id: decision:map.drawn-before-named
+  title: A link drawn between two nodes says related-to until it is named
+  date: 2026-09-24
+  status: proposed
+  affects: [component:map-canvas, op:api.map]
+  by: claude
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-graph
+```
+
+  - choice:map.drawn-before-named Dragging from one node to another writes the link at once with the verb `related-to`, and the verb popup opens on it straight away. Drawing and naming are one gesture in two beats, so a map can be sketched at the speed of thinking and named afterwards.
+
+  - alternative:map.drawn-before-named Taking the ontology's first verb for that pair — tried and rejected the same hour: a req dragged to a decision came out as `supersedes`, which is a claim nobody made. Asking for the verb before writing anything — rejected: it stops the hand mid-gesture, and a link that is not yet written cannot be seen.
+
+```yaml
+- id: decision:map.a-drawn-node-is-proposed
+  title: A node drawn on a canvas is proposed knowledge, not settled knowledge
+  date: 2026-09-24
+  status: proposed
+  affects: [op:api.map]
+  by: claude
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-graph
+```
+
+  - choice:map.a-drawn-node-is-proposed A node the canvas creates is written `status: proposed` when the type's statuses allow it. A sketch on a map is a proposal, whoever draws it, and it reaches the Inbox the way every other proposal does.
+
+  - consequence:map.a-drawn-node-is-proposed It also keeps the check quiet: a req with no status is shipped to the ontology, so three nodes sketched in a minute were three errors ("requirement has no satisfied-by") until this.
+
+```yaml
+- id: decision:map.delete-tidies-this-page-only
+  title: Deleting a node takes the links this page carries to it, and leaves the rest of the product alone
+  date: 2026-09-24
+  status: proposed
+  affects: [op:api.map, lib:map]
+  by: claude
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-graph
+```
+
+  - choice:map.delete-tidies-this-page-only Deleting a node on a map removes its card and every `verb: <id>` the same document carried to it, so the page it leaves behind is whole. Links from other pages stay and become references to a node that is gone — exactly what happens when a page is deleted, and what the check reports.
+
+  - alternative:map.delete-tidies-this-page-only Rewriting every reference across the product, the way a retype does — rejected: a retype keeps the knowledge and only renames it, while a delete throws it away, and a gesture on a canvas must not quietly edit pages you are not looking at.
