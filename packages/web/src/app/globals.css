@@ -3,6 +3,7 @@
   --accent:#1F6F6B; --accent-ink:#FFFFFF; --accent-soft:#DDEEEC;
   --k-req:#C8612A; --k-rule:#2E6E9E; --k-entity:#3E8A57; --k-op:#7452B3; --k-page:#B5405F; --k-action:#D08A2E; --k-gate:#8C8A2A; --k-flag:#8C8A2A; --k-state:#1F8F8A; --k-value:#6C7A82; --k-test:#7A8C96; --k-ui-test:#7A8C96; --k-drift:#C93B3B; --k-module:#333A37; --k-product:#333A37; --k-field:#4E7F8C; --k-decision:#5B6FB5; --k-question:#B5405F; --k-goal:#B8860B; --k-task:#1F8F8A; --k-type:#6B4FBB; --k-prop:#8A7FB5; --k-block:#A0A5A2; --k-other:#8A8F8C;
   --ok:#2F8F4E; --warn:#C48A12; --bad:#C93B3B;
+  --pill-ink:#FFFFFF;
   --font-b:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
   --font-m:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   color-scheme: light;
@@ -13,6 +14,7 @@
     --accent:#5FBFB8; --accent-ink:#0F1A19; --accent-soft:#1B302E;
     --k-req:#E8834C; --k-rule:#5B9BD0; --k-entity:#63B47B; --k-op:#A182E0; --k-page:#E0688A; --k-action:#E5A64E; --k-gate:#BEBB55; --k-flag:#BEBB55; --k-state:#4FC1BB; --k-value:#98A7AF; --k-test:#9FB0BA; --k-ui-test:#9FB0BA; --k-drift:#EB6B6B; --k-module:#D3D8D5; --k-product:#D3D8D5; --k-field:#7FB3C2; --k-decision:#8FA1E6; --k-question:#E0688A; --k-goal:#E0B84C; --k-task:#4FC1BB; --k-type:#9D86E8; --k-prop:#B3A8DE; --k-block:#8A8F8C; --k-other:#A0A5A2;
     --ok:#56B975; --warn:#E0AE3D; --bad:#EB6B6B;
+    --pill-ink:#101413;
     color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -36,7 +38,11 @@ code, pre { font-family: var(--font-m); }
 .mark { width: 9px; height: 9px; border-radius: 50%; margin-top: 7px; background: var(--ok); }
 .mark.unverified, .mark.api-only { background: var(--warn); } .mark.proposed { background: transparent; border: 1.5px dashed var(--muted); } .mark.question { background: var(--bad); }
 .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; font: 500 11px var(--font-m); text-transform: uppercase; border: 1px solid var(--line-2); color: var(--ink-2); }
-.pill.k { border-color: transparent; color: #fff; }
+/* A kind pill fills with the kind's colour, so its text must go the other way from the theme: the light theme's kind
+   colours are deep (white reads on them), the dark theme's are brightened so a tag's dot shows on a dark ground — and
+   white on #D3D8D5 (module, product) was invisible. One variable, set per theme, rather than a rule per kind: the
+   pill's background is an inline style, so there is no kind class to hang one on. */
+.pill.k { border-color: transparent; color: var(--pill-ink); }
 .pill.s.shipped { color: var(--ok); border-color: var(--ok); } .pill.s.proposed { color: var(--muted); border-style: dashed; } .pill.s.unverified, .pill.s.api-only { color: var(--warn); border-color: var(--warn); } .pill.s.question, .pill.s.drift { color: var(--bad); border-color: var(--bad); }
 .pill.stub { border-style: dashed; color: var(--muted); }
 @media (max-width: 720px) {
