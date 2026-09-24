@@ -25,6 +25,10 @@ describe('where a link touches a card', () => {
     expect([from.side, to.side]).toEqual(['bottom', 'top']);
     expect(from.y).toBeLessThan(to.y);
   });
+  it('holds the point off the box when a gap is asked for', () => {
+    expect(edgeEnd(box(0, 0), box(400, 0), 6)).toEqual({ x: 206, y: 20, side: 'right' });
+    expect(edgeEnd(box(0, 0), box(0, 400), 6)).toEqual({ x: 100, y: 46, side: 'bottom' });
+  });
   it('picks a side even when one card sits on the other', () => {
     expect(edgeEnd(box(0, 0), box(0, 0)).side).toBe('right');
   });

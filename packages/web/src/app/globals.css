@@ -938,12 +938,12 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 /* the page's text, over the canvas, in the reading column it has everywhere else */
 .msheet { position: absolute; inset: 0; z-index: 26; overflow: auto; background: var(--ground); padding: 18px 24px 80px; }
 .msheet > * { max-width: 900px; margin: 0 auto; }
-.mnode { position: relative; display: flex; align-items: center; gap: 8px; max-width: 320px; padding: 6px 12px 6px 8px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 9px; box-shadow: 0 2px 10px rgba(0,0,0,.12); font: 13px var(--font-b, inherit); color: var(--ink); }
-.mnode.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), 0 2px 10px rgba(0,0,0,.12); }
+.mnode { position: relative; display: flex; align-items: center; gap: 10px; min-width: 120px; max-width: 360px; min-height: 42px; padding: 9px 16px 9px 10px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: 0 3px 14px rgba(0,0,0,.16); font: 14px/1.35 var(--font-b, inherit); color: var(--ink); }
+.mnode.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), 0 3px 14px rgba(0,0,0,.16); }
 .mnode.is-ref { border-style: dashed; background: var(--sunk); }
-.mnode-kind { flex: none; }
+.mnode-kind { flex: none; padding: 3px 9px; font-size: 10px; }
 .mnode-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: text; }
-.mnode-edit { width: 150px; background: var(--ground); border: 1px solid var(--accent); border-radius: 5px; padding: 1px 5px; font: inherit; color: var(--ink); }
+.mnode-edit { width: 180px; background: var(--ground); border: 1px solid var(--accent); border-radius: 5px; padding: 1px 5px; font: inherit; color: var(--ink); }
 .mnode-ref { color: var(--muted); font-size: 11px; }
 .mnode .react-flow__handle-bottom { left: 28%; }
 .mnode .react-flow__handle { width: 9px; height: 9px; background: var(--line-2); border: 2px solid var(--ground); opacity: 0; transition: opacity .12s; }

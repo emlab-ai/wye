@@ -567,3 +567,18 @@ What this module must do is written where it was decided — the PRD and the dev
   - choice:map.a-node-opens-into-its-card A circle on a node's bottom edge, half out of the card, opens it into the EmbeddedCard the document editor and the graph page already use — every field editable in place, its "from" line the drag grip — and closes it back to the title. Which nodes are open is written beside their positions in the `## Layout` section as an `open` flag, on the same silent write a drag uses, so a map opens as it was left and the graph never sees it.
 
   - alternative:map.a-node-opens-into-its-card Keeping the card only in the Context panel — rejected by Alex, who asked for it on the node itself: comparing two nodes' contents means seeing both at once, which a single panel cannot do. Holding the open set in the browser — rejected: it is part of how the map reads, so it belongs with the positions, which the page already keeps.
+
+```yaml
+- id: decision:map.tidy-arranges-the-whole-map
+  title: Tidy re-arranges a map with the graph's own layout, and a whole ranks before its parts
+  date: 2026-09-24
+  status: proposed
+  affects: [component:map-canvas, lib:layout]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-graph
+```
+
+  - choice:map.tidy-arranges-the-whole-map A Tidy button runs the same dagre pass the graph page uses (lib:layout), at each node's measured size, and writes every position through the ordinary silent layout write — so a map grown by hand can be straightened in one click and nothing but the arrangement changes. For ranking, `part-of` is read backwards, because it points from the part to the whole: the whole sits to the left of what belongs to it, which is how a mind map is read.
+
+  - consequence:map.tidy-arranges-the-whole-map Nodes also grew: 14px text, a 42-pixel-tall card and a rounder frame, and a link now stops seven pixels short of the card it points at, so an arrowhead sits beside the border instead of on it.

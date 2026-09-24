@@ -22,11 +22,15 @@ type Picture = { nodes: MapNode[]; edges: GraphEdge[]; spots?: Spot[]; id?: stri
 type NodeData = { kind: string; title: string; status: string; isRef: boolean; near: boolean; open: boolean; onChild: (id: string, at: { x: number; y: number }) => void; onRename: (id: string, title: string) => void; onOpen: (id: string, open: boolean) => void };
 
 const FLUSH_MS = 350;         // a hand at rest: the whole Layout section goes in one write
-const CHILD_GAP = 90, CHILD_DY = 80, NODE_GUESS = 200;
+const CHILD_GAP = 90, CHILD_DY = 90, NODE_GUESS = 230;
 const NEAR = 70;              // how close the pointer comes before a node offers its +, in canvas pixels
-const CARD_W = 360;           // an opened node is the editor's card, at the width the graph page gives it
+const CARD_W = 380;           // an opened node is the editor's card, at the width the graph page gives it
+const EDGE_GAP = 7;           // an arrowhead stops beside a card, not on its border
 const SIDES: Side[] = ['top', 'right', 'bottom', 'left'];
 const POS: Record<Side, Position> = { top: Position.Top, right: Position.Right, bottom: Position.Bottom, left: Position.Left };
+// dagre ranks an edge from its source: `part-of` points from the part to the whole, so it is read backwards for the
+// arrangement — a parent to the left of what belongs to it, the way a mind map is read.
+const ranked = (edges: GraphEdge[]) => edges.map(e => (e.verb === 'part-of' ? { ...e, from: e.to, to: e.from } : e));
 const kindOf = (id: string) => id.split(':')[0];
 const nameOf = (id: string) => id.split(':').slice(1).join(':');
 
@@ -74,7 +78,7 @@ function FloatingEdge({ source, target, markerEnd, style, label, labelStyle, lab
   const a = useInternalNode(source), b = useInternalNode(target);
   if (!a || !b) return null;
   const box = (n: NonNullable<typeof a>) => ({ x: n.internals.positionAbsolute.x, y: n.internals.positionAbsolute.y, w: n.measured.width ?? NODE_GUESS, h: n.measured.height ?? 36 });
-  const { from, to } = edgeEnds(box(a), box(b));
+  const { from, to } = edgeEnds(box(a), box(b), EDGE_GAP);
   const [path, labelX, labelY] = getBezierPath({ sourceX: from.x, sourceY: from.y, sourcePosition: POS[from.side], targetX: to.x, targetY: to.y, targetPosition: POS[to.side] });
   return <BaseEdge path={path} markerEnd={markerEnd} style={style} label={label} labelX={labelX} labelY={labelY} labelStyle={labelStyle} labelShowBg labelBgStyle={labelBgStyle} labelBgPadding={[4, 2]} labelBgBorderRadius={4} />;
 }
@@ -105,7 +109,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, spots, types, 
     for (const n of pic.nodes) if (Number.isFinite(n.x) && Number.isFinite(n.y)) at.set(n.id, { x: n.x, y: n.y });
     if (missing.length) {
       const full = pic.nodes.map(n => ({ ...n, section: '', subsection: '', body: '', file: '', line: 0 }));
-      const { positions } = layoutMindMap(full, pic.edges, null);
+      const { positions } = layoutMindMap(full, ranked(pic.edges), null);
       for (const m of missing) at.set(m.id, positions.get(m.id) ?? { x: 0, y: 0 });
     }
     return { at, missing: missing.map(m => m.id) };
@@ -152,7 +156,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, spots, types, 
     setTitle(''); setPop({ mode: 'new', at, flow: { x: 0, y: 0 }, parent: id });
   }, []);
   // the node the pointer is near enough to offer its + (in flow coordinates, so it holds at any zoom)
-  const onMove = useCallback((e: React.MouseEvent) => {
+  const onPointer = useCallback((e: React.MouseEvent) => {
     const i = rf.current; if (!i) return;
     const p = i.screenToFlowPosition({ x: e.clientX, y: e.clientY });
     let hit: string | null = null, best = NEAR;
@@ -276,6 +280,16 @@ export function MapCanvas({ product, project, slug, nodes, edges, spots, types, 
     setBusy(true); const ok = await send({ action: 'drop', id }); setBusy(false);
     if (ok) { setSure(false); setPop(null); }
   }
+  // Tidy: the arrangement the graph page uses (dagre, left to right), applied to every node at its measured size and
+  // written as one layout call — a map that has grown by hand can always be straightened without losing anything.
+  function tidy() {
+    const full = pic.nodes.map(n => ({ ...n, section: '', subsection: '', body: '', file: '', line: 0 }));
+    const sizes = new Map(rfNodes.map(n => [n.id, { width: n.measured?.width ?? NODE_GUESS, height: n.measured?.height ?? 42 }]));
+    const { positions } = layoutMindMap(full, ranked(pic.edges), null, sizes);
+    setNodes(prev => prev.map(n => ({ ...n, position: positions.get(n.id) ?? n.position })));
+    for (const [id, p] of positions) queue(id, p.x, p.y);
+    setTimeout(() => rf.current?.fitView({ padding: 0.2, maxZoom: 1 }), 80);
+  }
   function addOnCanvas() {
     const box = rf.current?.getViewport();
     const flow = rf.current?.screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 }) ?? { x: box?.x ?? 0, y: box?.y ?? 0 };
@@ -287,17 +301,19 @@ export function MapCanvas({ product, project, slug, nodes, edges, spots, types, 
       <div className="mbar">
         <button type="button" onClick={addOnCanvas}>+ Node</button>
         <button type="button" onClick={() => rf.current?.fitView({ padding: 0.2, maxZoom: 1 })}>Fit</button>
+        <button type="button" onClick={tidy} title="Arrange every node, left to right">Tidy</button>
         <span className="muted small">double click to add · + beside a node for a child · drag between nodes to link · click a link to name it · right click to remove</span>
         {busy && <span className="muted small">saving…</span>}
         {msg && <span className="notice small">{msg}</span>}
         <span className="mbar-gap" />
         <button type="button" className={text ? 'on' : ''} onClick={() => setText(t => !t)}>{text ? 'Map' : 'Page text'}</button>
       </div>
-      <div className="mcanvas" onMouseMove={onMove} onMouseLeave={() => setNear(null)} onDoubleClick={e => { if ((e.target as Element).closest('.react-flow__node, .react-flow__edge, .mpop')) return; onPaneDoubleClick(e); }}>
+      <div className="mcanvas" onMouseMove={onPointer} onMouseLeave={() => setNear(null)} onDoubleClick={e => { if ((e.target as Element).closest('.react-flow__node, .react-flow__edge, .mpop')) return; onPaneDoubleClick(e); }}>
         <ReactFlow
           nodes={rfNodes} edges={rfEdges} nodeTypes={NODE_TYPES} edgeTypes={EDGE_TYPES} onInit={i => { rf.current = i; }}
           onNodesChange={onChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
           onEdgeClick={onEdgeClick} onNodeClick={onNodeClick} onNodeContextMenu={onNodeContextMenu} onPaneClick={() => setPop(null)}
+          onMove={() => setNear(null)}
           fitView fitViewOptions={{ padding: 0.2, maxZoom: 1 }} minZoom={0.1} deleteKeyCode={null} zoomOnDoubleClick={false}
           nodesDraggable nodesConnectable connectionMode={'loose' as never} proOptions={{ hideAttribution: true }}
         >
