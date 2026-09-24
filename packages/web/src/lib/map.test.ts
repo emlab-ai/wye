@@ -64,7 +64,7 @@ describe('a new card on a map page', () => {
 describe('what the canvas draws', () => {
   const elsewhere = 'data/products/p/projects/x/docs/other.md';
   const g = {
-    nodes: [node('map:auth'), node('req:a'), node('decision:b'), node('block:map-auth.abc', { form: 'block' }), node('req:far', { file: elsewhere }), node('req:gone', { file: elsewhere, defined: false })],
+    nodes: [node('map:auth'), node('req:a'), node('decision:b'), node('when:a.1'), node('req:written', { title: 'written in the text' }), node('block:map-auth.abc', { form: 'block' }), node('req:far', { file: elsewhere }), node('req:gone', { file: elsewhere, defined: false })],
     edges: [
       { from: 'req:a', verb: 'part-of', to: 'decision:b' },
       { from: 'req:a', verb: 'refines', to: 'req:far' },
@@ -74,17 +74,30 @@ describe('what the canvas draws', () => {
     ] as GraphEdge[],
   } satisfies Pick<GraphData, 'nodes' | 'edges'>;
   const idx = { byId: new Map(g.nodes.map(n => [n.id, n])) };
+  const spots = [
+    { id: 'req:a', x: 0, y: 0, ref: false, open: false },
+    { id: 'decision:b', x: 0, y: 120, ref: false, open: false },
+    { id: 'req:far', x: 300, y: 0, ref: true, open: false },
+    { id: 'req:gone', x: 9, y: 9, ref: true, open: false },
+  ];
 
-  it('draws the map\'s own cards, the references that resolve, and the edges between them', () => {
-    const spots = [{ id: 'req:a', x: 0, y: 0, ref: false, open: false }, { id: 'req:far', x: 300, y: 0, ref: true, open: false }, { id: 'req:gone', x: 9, y: 9, ref: true, open: false }];
+  it('draws the nodes the layout names — its own and the references that resolve — and the edges between them', () => {
     const m = mapGraph(g, idx, FILE, 'map:auth', spots);
-    // the map's own nodes — never the page itself, never its blocks — plus the reference; the missing one is left out
-    expect(m.nodes.map(n => n.id).sort()).toEqual(['decision:b', 'req:a', 'req:far']);
+    expect(m.nodes.map(n => n.id)).toEqual(['req:a', 'decision:b', 'req:far']);   // the missing reference is left out
     expect(m.nodes.find(n => n.id === 'req:far')!.ref).toBe(true);
-    // a card with no position yet is still drawn: the canvas places it
-    expect(Number.isNaN(m.nodes.find(n => n.id === 'decision:b')!.x)).toBe(true);
-    // no generated edge, no self link, nothing pointing off the map
-    expect(m.edges.map(e => `${e.from}|${e.verb}|${e.to}`)).toEqual(['req:a|part-of|decision:b', 'req:a|refines|req:far', 'req:a|mentions|req:gone'].filter(x => !x.includes('gone')));
+    expect(m.nodes.find(n => n.id === 'req:a')!.ref).toBe(false);
+    // no generated edge, no self link, nothing pointing off the board
+    expect(m.edges.map(e => `${e.from}|${e.verb}|${e.to}`)).toEqual(['req:a|part-of|decision:b', 'req:a|refines|req:far']);
+  });
+  it('leaves a card off the board until it is put there, and says which are off', () => {
+    const m = mapGraph(g, idx, FILE, 'map:auth', spots);
+    // a card's parts (when/then/unless) are never board material; a card written in the text waits to be placed
+    expect(m.off.map(n => n.id)).toEqual(['req:written']);
+    expect(m.nodes.map(n => n.id)).not.toContain('when:a.1');
+    // once it has a line it is drawn, and nothing is left off
+    const m2 = mapGraph(g, idx, FILE, 'map:auth', [...spots, { id: 'req:written', x: 40, y: 40, ref: false, open: false }]);
+    expect(m2.nodes.map(n => n.id)).toContain('req:written');
+    expect(m2.off).toEqual([]);
   });
 });
 

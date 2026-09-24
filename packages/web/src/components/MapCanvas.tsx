@@ -4,7 +4,7 @@ import { ReactFlow, Background, BaseEdge, Controls, MiniMap, Handle, Position, M
 import '@xyflow/react/dist/style.css';
 import { layoutMindMap } from '@/lib/layout';
 import { edgeEnds, type Side } from '@/lib/floating';
-import { verbsFor, type MapNode, type Spot } from '@/lib/map';
+import { verbsFor, type MapNode, type OffNode, type Spot } from '@/lib/map';
 import type { GraphEdge } from '@/lib/graph';
 import { usePeek } from './PeekProvider';
 import { EmbeddedCard } from './EmbeddedCard';
@@ -17,8 +17,8 @@ import { EmbeddedCard } from './EmbeddedCard';
 // Layout section as one silent write once the hand stops (decision:map.layout-is-a-fenced-section), which is what keeps
 // the canvas as quick as a mind-map editor.
 type TypeLite = { slug: string; props?: { name: string; ref: string | null }[] };
-interface Props { product: string; project: string; slug: string; nodes: MapNode[]; edges: GraphEdge[]; spots: Spot[]; types: TypeLite[]; children?: ReactNode }
-type Picture = { nodes: MapNode[]; edges: GraphEdge[]; spots?: Spot[]; id?: string | null };
+interface Props { product: string; project: string; slug: string; nodes: MapNode[]; edges: GraphEdge[]; off: OffNode[]; spots: Spot[]; types: TypeLite[]; children?: ReactNode }
+type Picture = { nodes: MapNode[]; edges: GraphEdge[]; off?: OffNode[]; spots?: Spot[]; id?: string | null };
 type NodeData = { kind: string; title: string; status: string; isRef: boolean; near: boolean; open: boolean; onChild: (id: string, at: { x: number; y: number }) => void; onRename: (id: string, title: string) => void; onOpen: (id: string, open: boolean) => void };
 
 const FLUSH_MS = 350;         // a hand at rest: the whole Layout section goes in one write
@@ -84,9 +84,9 @@ function FloatingEdge({ source, target, markerEnd, style, label, labelStyle, lab
 }
 const EDGE_TYPES = { floating: FloatingEdge };
 
-export function MapCanvas({ product, project, slug, nodes, edges, spots, types, children }: Props) {
+export function MapCanvas({ product, project, slug, nodes, edges, off, spots, types, children }: Props) {
   const rf = useRef<ReactFlowInstance | null>(null);
-  const [pic, setPic] = useState<Picture>({ nodes, edges, spots });
+  const [pic, setPic] = useState<Picture>({ nodes, edges, off, spots });
   const { select, setShowContext } = usePeek();
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
@@ -101,19 +101,8 @@ export function MapCanvas({ product, project, slug, nodes, edges, spots, types, 
   const [near, setNear] = useState<string | null>(null);
   const [open, setOpen] = useState<Set<string>>(() => new Set(spots.filter(sp => sp.open).map(sp => sp.id)));
 
-  // where each node sits: the page's Layout for the ones it records, dagre for the ones it does not (a card written by
-  // hand or by an agent appears in a sensible place instead of at the origin)
-  const seeded = useMemo(() => {
-    const at = new Map<string, { x: number; y: number }>();
-    const missing = pic.nodes.filter(n => !Number.isFinite(n.x) || !Number.isFinite(n.y));
-    for (const n of pic.nodes) if (Number.isFinite(n.x) && Number.isFinite(n.y)) at.set(n.id, { x: n.x, y: n.y });
-    if (missing.length) {
-      const full = pic.nodes.map(n => ({ ...n, section: '', subsection: '', body: '', file: '', line: 0 }));
-      const { positions } = layoutMindMap(full, ranked(pic.edges), null);
-      for (const m of missing) at.set(m.id, positions.get(m.id) ?? { x: 0, y: 0 });
-    }
-    return { at, missing: missing.map(m => m.id) };
-  }, [pic]);
+  // where each node sits: its line in the page's Layout, which is also what put it on the board
+  const seeded = useMemo(() => new Map(pic.nodes.map(n => [n.id, { x: n.x, y: n.y }])), [pic]);
 
   const send = useCallback(async (body: Record<string, unknown>): Promise<Picture | null> => {
     const r = await fetch(`/api/${product}/${project}/map/${slug}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -121,7 +110,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, spots, types, 
     if (!r.ok) { setMsg(j.message || 'that did not work'); return null; }
     setMsg('');
     if (j.nodes && j.edges) {
-      setPic({ nodes: j.nodes, edges: j.edges, spots: j.spots });
+      setPic({ nodes: j.nodes, edges: j.edges, off: j.off, spots: j.spots });
       if (j.spots) setOpen(new Set(j.spots.filter(sp => sp.open).map(sp => sp.id)));
     }
     return j;
@@ -176,7 +165,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, spots, types, 
 
   const computed = useMemo(() => {
     const rfNodes: Node[] = pic.nodes.map(n => ({
-      id: n.id, type: 'map', position: seeded.at.get(n.id) ?? { x: 0, y: 0 },
+      id: n.id, type: 'map', position: seeded.get(n.id) ?? { x: 0, y: 0 },
       data: { kind: n.kind, title: n.title, status: n.status, isRef: n.ref, near: n.id === near, open: open.has(n.id), onChild, onRename, onOpen } satisfies NodeData,
       ...(open.has(n.id) ? { style: { width: CARD_W }, dragHandle: '.embed-from' } : {}),
     }));
@@ -195,14 +184,6 @@ export function MapCanvas({ product, project, slug, nodes, edges, spots, types, 
     setNodes(prev => { const at = new Map(prev.map(n => [n.id, n.position])); return computed.rfNodes.map(n => ({ ...n, position: at.get(n.id) ?? n.position, measured: prev.find(p => p.id === n.id)?.measured })); });
     setEdges(computed.rfEdges);
   }, [computed, setNodes, setEdges]);
-  // a card the page does not place yet: dagre put it somewhere, so record that as its position
-  const placed = useRef(new Set<string>());
-  useEffect(() => {
-    const fresh = seeded.missing.filter(id => !placed.current.has(id));
-    if (!fresh.length) return;
-    for (const id of fresh) { placed.current.add(id); const p = seeded.at.get(id); if (p) queue(id, p.x, p.y); }
-  }, [seeded, queue]);
-
   const onChange = useCallback((changes: NodeChange[]) => {
     onNodesChange(changes);
     for (const c of changes) if (c.type === 'position' && c.position && c.dragging === false) queue(c.id, c.position.x, c.position.y);
@@ -280,6 +261,21 @@ export function MapCanvas({ product, project, slug, nodes, edges, spots, types, 
     setBusy(true); const ok = await send({ action: 'drop', id }); setBusy(false);
     if (ok) { setSure(false); setPop(null); }
   }
+  // the page's own cards that are not on the board yet, put on it in a column under what is there — the map decides
+  // what it holds (decision:map.the-board-holds-what-was-put-on-it), so this is a deliberate act, never a side effect
+  async function placeOff() {
+    const waiting = pic.off ?? []; if (!waiting.length) return;
+    const bottom = rfNodes.length ? Math.max(...rfNodes.map(n => n.position.y + (n.measured?.height ?? 42))) : 0;
+    const left = rfNodes.length ? Math.min(...rfNodes.map(n => n.position.x)) : 0;
+    const moves = waiting.map((n, i) => ({ id: n.id, x: left, y: bottom + 60 + i * 60 }));
+    setBusy(true);
+    await fetch(`/api/${product}/${project}/map/${slug}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'layout', moves }) });
+    const fresh = await fetch(`/api/${product}/${project}/map/${slug}`).then(r => r.json()).catch(() => null);
+    setBusy(false);
+    if (fresh?.nodes) setPic({ nodes: fresh.nodes, edges: fresh.edges, off: fresh.off, spots: fresh.spots });
+    setTimeout(() => rf.current?.fitView({ padding: 0.2, maxZoom: 1 }), 80);
+  }
+
   // Tidy: the arrangement the graph page uses (dagre, left to right), applied to every node at its measured size and
   // written as one layout call — a map that has grown by hand can always be straightened without losing anything.
   function tidy() {
@@ -302,6 +298,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, spots, types, 
         <button type="button" onClick={addOnCanvas}>+ Node</button>
         <button type="button" onClick={() => rf.current?.fitView({ padding: 0.2, maxZoom: 1 })}>Fit</button>
         <button type="button" onClick={tidy} title="Arrange every node, left to right">Tidy</button>
+        {!!pic.off?.length && <button type="button" onClick={() => void placeOff()} title={pic.off.map(n => n.id).join('\n')}>Place {pic.off.length} card{pic.off.length > 1 ? 's' : ''}</button>}
         <span className="muted small">double click to add · + beside a node for a child · drag between nodes to link · click a link to name it · right click to remove</span>
         {busy && <span className="muted small">saving…</span>}
         {msg && <span className="notice small">{msg}</span>}

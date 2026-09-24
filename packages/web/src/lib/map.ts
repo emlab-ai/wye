@@ -6,11 +6,13 @@
 // between two kinds may take (decision:map.verbs-from-the-ontology). The IO is the map route.
 import type { GraphData, GraphEdge, GraphIndex } from './graph';
 import { HIDDEN_KINDS } from './graph';
+import { PART_KINDS } from './kinds';
 import { appendCard } from './instances';
 
 export type Spot = { id: string; x: number; y: number; ref: boolean; open: boolean };
 export type MapNode = { id: string; kind: string; title: string; status: string; defined: boolean; ref: boolean; x: number; y: number };
-export type MapGraph = { nodes: MapNode[]; edges: GraphEdge[] };
+export type OffNode = { id: string; kind: string; title: string };
+export type MapGraph = { nodes: MapNode[]; edges: GraphEdge[]; off: OffNode[] };
 
 const LINE = /^([a-z][a-z0-9-]*:[A-Za-z0-9_][A-Za-z0-9_./#-]*)\s+(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)((?:\s+(?:ref|open))*)\s*$/;
 // Where the section's body starts and ends — the twin of pr-doc#sectionBody, because `$` under /m ends at the first
@@ -67,22 +69,25 @@ export function addCard(md: string, card: string): string {
   return `${appendCard(md.slice(0, m.index).replace(/\s+$/, ''), card).replace(/\s+$/, '')}\n\n${md.slice(m.index)}`;
 }
 
-// What the canvas draws: every node the map's document defines, plus every `ref` the layout names, with the edges
-// between them. A node of the map's own document that has no position yet still appears — the canvas lays it out —
-// and a `ref` whose node is gone is left out rather than drawn as a hole.
+// What the canvas draws (decision:map.the-board-holds-what-was-put-on-it): the nodes the `## Layout` section names, in
+// its order, and the edges between them. Being written on the page is not enough — a card's own parts (its when, its
+// then) and anything else added to the markdown stay off the board until they are put on it, which is what `off`
+// lists. A layout line whose node is gone is left out rather than drawn as a hole.
 export function mapGraph(g: Pick<GraphData, 'nodes' | 'edges'>, idx: Pick<GraphIndex, 'byId'>, file: string, mapId: string, spots: Spot[]): MapGraph {
-  const own = g.nodes.filter(n => n.defined && n.file === file && n.id !== mapId && !HIDDEN_KINDS.has(n.kind) && n.form !== 'block');
-  const at = new Map(spots.map(s => [s.id, s]));
-  const nodes: MapNode[] = own.map(n => ({ id: n.id, kind: n.kind, title: n.title, status: n.status, defined: true, ref: false, x: at.get(n.id)?.x ?? NaN, y: at.get(n.id)?.y ?? NaN }));
-  const here = new Set(nodes.map(n => n.id));
+  const nodes: MapNode[] = [];
+  const here = new Set<string>();
   for (const s of spots) {
-    if (!s.ref || here.has(s.id)) continue;
-    const n = idx.byId.get(s.id); if (!n?.defined) continue;
-    nodes.push({ id: n.id, kind: n.kind, title: n.title, status: n.status, defined: true, ref: true, x: s.x, y: s.y });
+    const n = idx.byId.get(s.id);
+    if (!n?.defined || here.has(n.id) || n.id === mapId) continue;
+    nodes.push({ id: n.id, kind: n.kind, title: n.title, status: n.status, defined: true, ref: n.file !== file, x: s.x, y: s.y });
     here.add(n.id);
   }
   const edges = g.edges.filter(e => !e.generated && here.has(e.from) && here.has(e.to) && e.from !== e.to);
-  return { nodes, edges };
+  // the page's own cards that the board does not hold yet — a card written in the text, or one an agent added
+  const off = g.nodes
+    .filter(n => n.defined && n.file === file && n.id !== mapId && !here.has(n.id) && n.form !== 'block' && !HIDDEN_KINDS.has(n.kind) && !PART_KINDS.has(n.kind))
+    .map(n => ({ id: n.id, kind: n.kind, title: n.title }));
+  return { nodes, edges, off };
 }
 
 // The verbs an edge between two kinds may take (decision:map.verbs-from-the-ontology): every property of the source

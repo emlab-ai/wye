@@ -582,3 +582,18 @@ What this module must do is written where it was decided — the PRD and the dev
   - choice:map.tidy-arranges-the-whole-map A Tidy button runs the same dagre pass the graph page uses (lib:layout), at each node's measured size, and writes every position through the ordinary silent layout write — so a map grown by hand can be straightened in one click and nothing but the arrangement changes. For ranking, `part-of` is read backwards, because it points from the part to the whole: the whole sits to the left of what belongs to it, which is how a mind map is read.
 
   - consequence:map.tidy-arranges-the-whole-map Nodes also grew: 14px text, a 42-pixel-tall card and a rounder frame, and a link now stops seven pixels short of the card it points at, so an arrowhead sits beside the border instead of on it.
+
+```yaml
+- id: decision:map.the-board-holds-what-was-put-on-it
+  title: A map draws the nodes its Layout names, not every card the page happens to define
+  date: 2026-09-24
+  status: proposed
+  affects: [lib:map, component:map-canvas]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-graph
+```
+
+  - context:map.the-board-holds-what-was-put-on-it The first rule was "every card the document defines is a node", so opening a node's card and giving it a when, a then and an unless put three new boxes on the canvas. Alex: "I've added some child nodes to req, when, then etc and they appear on the map, this is wrong, only explicitly added nodes must be visible on the board."
+
+  - choice:map.the-board-holds-what-was-put-on-it The `## Layout` section is the membership list: a node is on the board because it has a line there, which every gesture that adds one writes. A card's own parts are never board material, and a card written in the page's text — by hand or by an agent — waits off the board until it is put on it, which a "Place N cards" button in the toolbar does in one click.
