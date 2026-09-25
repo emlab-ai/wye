@@ -144,7 +144,7 @@ function BlockContextMenu({ menu, onClose, act, canPaste }: { menu: BlockMenu; o
 // A comment on a plain block (a paragraph, a list item — anything that is not a typed node): the block's node in the
 // graph is `block:<doc>.<hash>` (rule:block-node); the column cannot show it yet (task:ontology.block-peek), so the
 // comment is taken here, where the menu was, and goes to the project's Comments document like any other.
-function CommentPop({ at, on, product, onClose }: { at: { x: number; y: number }; on: string; product: string; onClose: () => void }) {
+function CommentPop({ at, on, product, words, onPosted, onClose }: { at: { x: number; y: number }; on: string; product: string; words?: string; onPosted?: (id: string) => void; onClose: () => void }) {
   const el = useRef<HTMLDivElement>(null);
   const [text, setText] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   useEffect(() => {
@@ -155,15 +155,17 @@ function CommentPop({ at, on, product, onClose }: { at: { x: number; y: number }
   }, [onClose]);
   const post = async () => {
     const t = text.trim(); if (!t || busy) return; setBusy(true); setErr('');
-    const r = await fetch(`/api/${product}/comments`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ on, text: t }) });
+    // a comment on a passage quotes it, and the words are linked to the comment so the text shows where it sits
+    const r = await fetch(`/api/${product}/comments`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ on, text: words ? `“${words}” — ${t}` : t }) });
     const j = await r.json().catch(() => ({})); setBusy(false);
     if (!r.ok) { setErr(j.message ?? 'could not write the comment'); return; }
-    toast(j.doc ? `Comment saved in ${j.doc.title}` : 'Comment saved'); onClose();
+    if (words && j.id) onPosted?.(j.id as string);
+    toast(words ? 'Comment on these words' : j.doc ? `Comment saved in ${j.doc.title}` : 'Comment saved'); onClose();
   };
   const x = Math.min(at.x, (typeof window !== 'undefined' ? window.innerWidth : 9999) - 320), y = Math.min(at.y, (typeof window !== 'undefined' ? window.innerHeight : 9999) - 140);
   return (
     <div ref={el} className="pg-menu comment-pop" style={{ left: x, top: y }} onMouseDown={e => e.stopPropagation()}>
-      <div className="menu-head muted">comment on this block</div>
+      <div className="menu-head muted">{words ? `comment on “${words.length > 40 ? words.slice(0, 40) + '…' : words}”` : 'comment on this block'}</div>
       <textarea autoFocus rows={3} value={text} placeholder="Say it… (⌘↩ posts)" onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void post(); } }} />
       <div className="sec-actions"><button className="pri" disabled={busy || !text.trim()} onClick={post}>{busy ? 'saving…' : 'Post'}</button><button onClick={onClose}>Cancel</button>{err && <span className="notice">{err}</span>}</div>
     </div>
@@ -1176,7 +1178,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const fresh = () => `new-${Math.floor(Math.random() * 900 + 100)}`;
   // the block under a right-click: BlockNote wraps every block in .bn-block-outer[data-id]; the innermost one is the block
   const [blockMenu, setBlockMenu] = useState<BlockMenu | null>(null);
-  const [commentPop, setCommentPop] = useState<{ x: number; y: number; on: string } | null>(null);
+  const [commentPop, setCommentPop] = useState<{ x: number; y: number; on: string; words?: string; range?: { from: number; to: number } } | null>(null);
   const closeCommentPop = useCallback(() => setCommentPop(null), []);
   const [tagMenu, setTagMenu] = useState<TagMenu | null>(null);
   const closeTagMenu = useCallback(() => setTagMenu(null), []);
@@ -1239,7 +1241,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       touched.current = true; changed();
     }
   };
-  const blockAct = (what: BlockAct, b: AnyBlock) => {
+  const blockAct = (what: BlockAct, b: AnyBlock, at?: { x: number; y: number }) => {
     const id = String((b as { id?: string }).id); const np = b.type === 'node' ? b.props as unknown as { kind: string; slug: string; form: string; body: string } : null;
     const nodeId = np?.slug ? `${np.kind}:${np.slug}` : '';
     if (what === 'delete') { editor.removeBlocks([id]); touched.current = true; changed(); return; }
@@ -1288,7 +1290,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       // a plain block: its graph node is block:<doc node slug>.<hash of its text> (rule:block-node)
       const docId = docNodeOf(index, slug) ?? `module:${slug}`; const docKey = docId.slice(docId.indexOf(':') + 1);
       const on = `block:${docKey}.${blockHash(b.type === 'embed' ? `![[${(b.props as { node?: string }).node ?? ''}]]` : rowText(b))}`;
-      setCommentPop({ x: blockMenu?.x ?? 0, y: blockMenu?.y ?? 0, on }); return;
+      setCommentPop({ x: at?.x ?? blockMenu?.x ?? 0, y: at?.y ?? blockMenu?.y ?? 0, on }); return;
     }
     if (what === 'expire' && np) { setNodeProp(b, 'until', new Date().toISOString().slice(0, 10)); touched.current = true; changed(); return; }
     if (what === 'done' && np) { editor.updateBlock(b as never, { props: { ...b.props, status: 'done', check: (b.props as { check?: string }).check ? 'done' : (b.props as { check?: string }).check } } as never); touched.current = true; changed(); return; }
@@ -1377,7 +1379,14 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       }}>
       {tagMenu && <TagContextMenu menu={tagMenu} onClose={closeTagMenu} act={tagAct} />}
       {blockMenu && <BlockContextMenu menu={blockMenu} onClose={closeBlockMenu} act={blockAct} canPaste={!!CLIP || typeof navigator !== 'undefined' && !!navigator.clipboard?.readText} />}
-      {commentPop && <CommentPop at={commentPop} on={commentPop.on} product={product} onClose={closeCommentPop} />}
+      {commentPop && <CommentPop at={commentPop} on={commentPop.on} product={product} words={commentPop.words} onClose={closeCommentPop}
+        onPosted={id => {
+          const r = commentPop.range; if (!r || !commentPop.words) return;
+          const tt = (editor as unknown as { _tiptapEditor: { view: { focus: () => void }; commands: { setTextSelection: (x: { from: number; to: number }) => boolean } } })._tiptapEditor;
+          tt.view.focus(); tt.commands.setTextSelection(r);
+          editor.createLink(id, commentPop.words);
+          touched.current = true; changed();
+        }} />}
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}{!lintMsg && elsewhere > 0 && <span className="muted" title="ctx check finds an error in another document of the product — not in this one">{elsewhere} check error{elsewhere === 1 ? '' : 's'} elsewhere</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false} emojiPicker={false}>
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><AnnotateItem annotate={imageToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
@@ -1385,7 +1394,17 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
           linkNode: at => setLinkReq(linkRequestFrom(editor as unknown as Ed, at)),
           makeBlock: at => setMakeReq({ x: at.left, y: at.bottom, under: nodeKindAt(editor as unknown as { getTextCursorPosition: () => { block: { id: string } }; document: unknown }) }),
           ask: at => { const r = askRequestFrom(editor as unknown as Ed, at); setAskReq({ ...r, doc: slug, project, pageLink: `${location.origin}/${product}/${project}/d/${slug}`, refs: [...new Set([...r.refs, `module:${slug}`])] }); },
-          comment: () => { let b: AnyBlock | undefined; try { b = editor.getTextCursorPosition().block as unknown as AnyBlock; } catch { b = undefined; } if (b) blockAct('comment', b); },
+          comment: at => {
+            let words = ''; try { words = editor.getSelectedText().trim(); } catch { words = ''; }
+            if (words) {
+              const tt = (editor as unknown as { _tiptapEditor: { state: { selection: { from: number; to: number } } } })._tiptapEditor;
+              const on = docNodeOf(index, slug) ?? `module:${slug}`;
+              setCommentPop({ x: at.left, y: at.bottom + 8, on, words, range: { from: tt.state.selection.from, to: tt.state.selection.to } });
+              return;
+            }
+            let b: AnyBlock | undefined; try { b = editor.getTextCursorPosition().block as unknown as AnyBlock; } catch { b = undefined; }
+            if (b) blockAct('comment', b, { x: at.left, y: at.bottom + 8 });
+          },
         }} />} />
         <SuggestionMenuController triggerCharacter="/" getItems={async q => {
           // "Image in this block": a file picked from disk goes into the current node block's text (paste does the same)

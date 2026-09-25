@@ -12,7 +12,7 @@ export type SelectionMenuActions = {
   linkNode: (at: Rect) => void;
   makeBlock: (at: Rect) => void;
   ask: (at: Rect) => void;
-  comment: () => void;
+  comment: (at: Rect) => void;
 };
 
 const TYPES: { key: string; label: string; type: string; props?: Record<string, unknown> }[] = [
@@ -81,7 +81,7 @@ export function SelectionMenu({ actions }: { actions: SelectionMenuActions }) {
         <button className="selmenu-wide" onClick={() => actions.makeBlock(selRect())} title="Turn the selection into a typed block — a requirement, a decision, a task…">▣ block</button>
       </div>
       {link !== null && <form className="selmenu-link" onSubmit={e => { e.preventDefault(); applyLink(); }}><input autoFocus value={link} placeholder="https://… or a path" onChange={e => setLink(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') setLink(null); }} /><button type="submit" disabled={!link.trim()}>Link</button></form>}
-      <button className="selmenu-row selmenu-action" onClick={() => actions.comment()} title="Comment on this block">
+      <button className="selmenu-row selmenu-action" onClick={() => actions.comment(selRect())} title="Comment on the selected words">
         <span className="selmenu-ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg></span><span className="selmenu-label">Comment</span>
       </button>
       <button className="selmenu-row selmenu-action" onClick={() => actions.ask(selRect())} title="Send the selection with a command to an agent">
