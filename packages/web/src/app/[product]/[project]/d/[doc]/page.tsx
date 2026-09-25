@@ -15,7 +15,7 @@ import { DocNotFound } from '@/components/DocNotFound';
 import { MapCanvas } from '@/components/MapCanvas';
 import { mapGraph, parseLayout } from '@/lib/map';
 import { runSpots } from '@/lib/runs';
-import { buildTimeline, parseTimelineQuery } from '@/lib/timeline';
+import { buildTimeline, facetsOf, parseTimelineQuery } from '@/lib/timeline';
 import { TimelineView } from '@/components/TimelineView';
 import { GoneNotice } from '@/components/GoneNotice';
 
@@ -51,9 +51,12 @@ export default async function DocPage({ params }: { params: Promise<{ product: s
     const query = split.frontmatter.query ?? '';
     const timeline = buildTimeline(scope.graph, scope.idx, parseTimelineQuery(query));
     const kinds = [...new Set(scope.graph.nodes.filter(n => n.defined && n.kind !== 'type' && n.form !== 'block').map(n => n.kind))].sort();
+    // what this page can filter by: the properties the nodes it draws actually carry, with their values
+    const q = parseTimelineQuery(query);
+    const facets = facetsOf(scope.graph.nodes.filter(n => n.defined && n.form !== 'block' && (!q.kinds.length || q.kinds.includes(n.kind))));
     return (
       <div className="page page-map">
-        <TimelineView product={product} project={project} slug={d.slug} query={query} timeline={timeline} kinds={kinds} />
+        <TimelineView product={product} project={project} slug={d.slug} query={query} timeline={timeline} kinds={kinds} facets={facets} />
       </div>
     );
   }

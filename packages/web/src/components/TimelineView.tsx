@@ -9,16 +9,17 @@ import { daysBetween, isDay, parseTimelineQuery, ticksFor, timelineQueryString, 
 // and the rows are whatever the query groups by, a property or a path of links (`worker.part-of` puts a person's work
 // under their team). Clicking a bar selects the node in the Context panel, the way a click on a block does
 // (rule:block-select); the dates themselves are edited on its card there.
-interface Props { product: string; project: string; slug: string; query: string; timeline: Timeline; kinds: string[] }
+interface Props { product: string; project: string; slug: string; query: string; timeline: Timeline; kinds: string[]; facets: { name: string; values: string[] }[] }
 
 const QUICK_ROWS = ['worker', 'owner', 'status', 'kind', 'part-of'];
 const MIN_BAR = 0.8;   // a one-day bar is still visible, in percent of the window
 const LANE = 26;       // the height of one lane of bars inside a row
 
-export function TimelineView({ product, project, slug, query, timeline, kinds }: Props) {
+export function TimelineView({ product, project, slug, query, timeline, kinds, facets }: Props) {
   const router = useRouter();
   const { select, setShowContext, index } = usePeek();
   const [saving, setSaving] = useState(false);
+  const [adding, setAdding] = useState<{ name: string; value: string } | null>(null);   // the filter being written
   const q = useMemo(() => parseTimelineQuery(query), [query]);
 
   // the query lives in the page's front matter, so changing it is an ordinary document write
@@ -31,6 +32,13 @@ export function TimelineView({ product, project, slug, query, timeline, kinds }:
   const set = (patch: Partial<TimelineQuery>) => void write({ ...q, ...patch });
   const toggleKind = (k: string) => set({ kinds: q.kinds.includes(k) ? q.kinds.filter(x => x !== k) : [...q.kinds, k] });
   const toggleRow = (r: string) => set({ rows: q.rows.includes(r) ? q.rows.filter(x => x !== r) : [...q.rows, r] });
+  // a filter is one property (or path) and a value: `quarter=q3`, `worker=ana,bo`, `worker.part-of=Till`
+  const setFilter = (name: string, value: string) => {
+    const props = { ...q.props };
+    if (value.trim()) props[name.trim()] = value.trim(); else delete props[name.trim()];
+    set({ props });
+  };
+  const values = (name: string) => facets.find(f => f.name === name)?.values ?? [];
 
   const { from, to } = timeline;
   const span = isDay(from) && isDay(to) ? Math.max(1, daysBetween(from, to)) : 0;
@@ -72,6 +80,28 @@ export function TimelineView({ product, project, slug, query, timeline, kinds }:
           <span className="muted small">to</span>
           <input className="tl-date" type="date" value={q.to} onChange={e => set({ to: e.target.value })} />
           {(q.from || q.to) && <button className="tl-chip" onClick={() => set({ from: '', to: '' })} title="Fit the window to what is on the chart">fit</button>}
+        </span>
+        <span className="tl-group">
+          <span className="muted small">where</span>
+          {Object.entries(q.props).map(([k, v]) => (
+            <span key={k} className="tl-filter">
+              <b>{k}</b>
+              <input list={`tlv-${k}`} defaultValue={v} onBlur={e => { if (e.target.value.trim() !== v) setFilter(k, e.target.value); }} onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
+              <datalist id={`tlv-${k}`}>{values(k).map(x => <option key={x} value={x} />)}</datalist>
+              <button className="tl-x" onClick={() => setFilter(k, '')} title={`Drop ${k}`}>×</button>
+            </span>
+          ))}
+          {adding
+            ? <span className="tl-filter adding">
+                <input autoFocus list="tl-props" placeholder="property" value={adding.name} onChange={e => setAdding({ ...adding, name: e.target.value })}
+                  onKeyDown={e => { if (e.key === 'Escape') setAdding(null); if (e.key === 'Enter' && adding.name.trim()) (e.currentTarget.nextElementSibling?.nextElementSibling as HTMLInputElement | null)?.focus(); }} />
+                <datalist id="tl-props">{facets.map(f => <option key={f.name} value={f.name} />)}</datalist>
+                <input list={`tlv-new`} placeholder="is…" value={adding.value} onChange={e => setAdding({ ...adding, value: e.target.value })}
+                  onKeyDown={e => { if (e.key === 'Escape') setAdding(null); if (e.key === 'Enter' && adding.name.trim() && adding.value.trim()) { setFilter(adding.name, adding.value); setAdding(null); } }} />
+                <datalist id="tlv-new">{values(adding.name).map(x => <option key={x} value={x} />)}</datalist>
+                <button className="tl-x" onClick={() => { if (adding.name.trim() && adding.value.trim()) setFilter(adding.name, adding.value); setAdding(null); }} title="Add this filter">✓</button>
+              </span>
+            : <button className="tl-chip" onClick={() => setAdding({ name: '', value: '' })} title="Filter by a property — quarter=q3, worker=ana, worker.part-of=Till">+ filter</button>}
         </span>
         <input className="tl-find" defaultValue={q.q} placeholder="words…" onBlur={e => { if (e.target.value.trim() !== q.q) set({ q: e.target.value.trim() }); }} onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
         <span className="tl-count muted small">{timeline.total} on the chart{timeline.undated ? ` · ${timeline.undated} with no dates` : ''}{saving ? ' · saving…' : ''}</span>

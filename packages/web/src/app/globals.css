@@ -1095,6 +1095,13 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .tl-rows-in, .tl-find, .tl-date { background: var(--ground); border: 1px solid var(--line-2); border-radius: 7px; padding: 3px 8px; color: var(--ink); font: 12px var(--font-m); }
 .tl-rows-in { width: 190px; } .tl-find { width: 130px; } .tl-date { font-size: 11px; }
 .tl-rows-in:focus, .tl-find:focus, .tl-date:focus { outline: none; border-color: var(--accent); }
+.tl-filter { display: inline-flex; align-items: center; gap: 3px; padding: 1px 3px 1px 8px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 999px; font: 11px var(--font-m); color: var(--ink-2); }
+.tl-filter b { font-weight: 600; color: var(--ink); }
+.tl-filter input { width: 88px; background: transparent; border: 0; border-bottom: 1px dotted var(--line-2); color: var(--ink); font: 11px var(--font-m); padding: 0 2px; }
+.tl-filter input:focus { outline: none; border-bottom-color: var(--accent); }
+.tl-filter.adding { border-color: var(--accent); } .tl-filter.adding input { width: 78px; }
+.tl-x { border: 0; background: none; color: var(--muted); cursor: pointer; font: 12px var(--font-m); padding: 0 3px; }
+.tl-x:hover { color: var(--ink); }
 .tl-count { margin-left: auto; }
 .tl-empty { padding: 28px 24px; max-width: 620px; }
 .tlchart { flex: 1; min-height: 0; overflow: auto; padding: 0 14px 40px; }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTimeline, days, parseTimelineQuery, spanOf, ticksFor, timelineQueryString, type TimelineQuery } from './timeline';
+import { buildTimeline, days, facetsOf, parseTimelineQuery, spanOf, ticksFor, timelineQueryString, type TimelineQuery } from './timeline';
 import { indexGraph, type GraphData, type GraphNode } from './graph';
 
 const node = (id: string, body = '', o: Partial<GraphNode> = {}): GraphNode =>
@@ -85,6 +85,21 @@ describe('the rows of a chart', () => {
     expect(run('kind=task rows=status').rows.map(r => r.labels[0]).sort()).toEqual(['done', 'open']);
     expect(run('rows=kind').rows.map(r => r.labels[0]).sort()).toEqual(['goal', 'task']);
     expect(run('kind=task').rows.map(r => r.labels[0])).toEqual(['everything']);
+  });
+  it('filters by any property, by a path, by several values at once, and by nothing at all', () => {
+    const ids = (q: string) => run(q).rows.flatMap(r => r.items.map(i => i.id)).sort();
+    expect(ids('kind=task worker=person:ana')).toEqual(['task:a', 'task:b']);      // by the id it points at
+    expect(ids('kind=task worker=Ana')).toEqual(['task:a', 'task:b']);             // or by its title
+    expect(ids('kind=task worker=ana,bo')).toEqual(['task:a', 'task:b', 'task:c']); // a comma is "or"
+    expect(ids('kind=task worker.part-of=POS')).toEqual(['task:a', 'task:b', 'task:c']);
+    expect(ids('kind=task worker=none')).toEqual(['task:d']);                       // the ones that say nothing for it
+    expect(ids('kind=task worker=nobody-at-all')).toEqual([]);
+  });
+  it('offers the properties and values the drawn nodes carry', () => {
+    const f = facetsOf(g.nodes);
+    expect(f.map(x => x.name)).toContain('worker');
+    expect(f.find(x => x.name === 'worker')!.values).toEqual(['person:ana', 'person:bo']);
+    expect(f.map(x => x.name)).not.toContain('starts');   // the dates are the axis, not a filter
   });
   it('filters by kind, status, a word and a property before it groups', () => {
     expect(run('kind=task status=open rows=worker').rows.flatMap(r => r.items.map(i => i.id)).sort()).toEqual(['task:a', 'task:c', 'task:d']);

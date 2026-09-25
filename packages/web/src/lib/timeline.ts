@@ -48,7 +48,8 @@ export function spanOf(n: Pick<GraphNode, 'body'>): Span | null {
 // `kind=task,goal rows=worker.part-of,worker from=2026-09-01 to=2026-12-31 status=open q=login owner=ana`
 export function parseTimelineQuery(query: string): TimelineQuery {
   const m: Record<string, string> = {};
-  for (const [, k, quoted, bare] of (query || '').matchAll(/([A-Za-z][\w-]*)=(?:"([^"]*)"|(\S+))/g)) m[k] = quoted ?? bare ?? '';
+  // a key may be a path — `worker.part-of=Till` filters by the team of the worker
+  for (const [, k, quoted, bare] of (query || '').matchAll(/([A-Za-z][\w.-]*)=(?:"([^"]*)"|(\S+))/g)) m[k] = quoted ?? bare ?? '';
   const list = (s: string) => (s || '').split(',').map(x => x.trim()).filter(Boolean);
   const { kind, rows, from, to, q, status, ...props } = m;
   return { kinds: list(kind), rows: list(rows), from: day(from ?? ''), to: day(to ?? ''), q: (q ?? '').trim(), status: list(status), props };
@@ -94,10 +95,15 @@ export function buildTimeline(g: Pick<GraphData, 'nodes'>, idx: Pick<GraphIndex,
     if (kinds.size && !kinds.has(n.kind)) return false;
     if (statuses.size && !statuses.has(n.status || '')) return false;
     if (q && !`${n.id} ${n.title}`.toLowerCase().includes(q)) return false;
+    // a filter is `<property or path>=<value>`, and a comma is "or": `quarter=q3,q4`. The value matches the node the
+    // property points at (by id or by title) or the plain words it holds, so `worker=ana` and `worker=person:ana`
+    // both find her work. `none` matches a node that says nothing for it.
     for (const [k, v] of Object.entries(query.props)) {
       const step = walk(n, k, idx, idx.out);
-      const have = step ? `${step.id} ${step.label}` : '';
-      if (!have.toLowerCase().includes(v.toLowerCase())) return false;
+      const have = step ? `${step.id} ${step.label}`.toLowerCase() : '';
+      const any = v.split(',').map(x => x.trim().toLowerCase()).filter(Boolean)
+        .some(want => (want === 'none' ? !step : have.includes(want)));
+      if (!any) return false;
     }
     return true;
   });
@@ -131,6 +137,26 @@ export function buildTimeline(g: Pick<GraphData, 'nodes'>, idx: Pick<GraphIndex,
   const from = query.from || (all.length ? all.reduce((m, i) => (i.from < m ? i.from : m), all[0].from) : '');
   const to = query.to || (all.length ? all.reduce((m, i) => (i.to > m ? i.to : m), all[0].to) : '');
   return { rows: list, from, to, total: all.length, undated: wanted.length - dated.length };
+}
+
+// What a page can filter by: the property names the drawn nodes carry, with the values they hold, so the strip can
+// offer both instead of asking a person to remember them. Links are named by the node they point at.
+export function facetsOf(nodes: Pick<GraphNode, 'body' | 'kind' | 'status'>[], skip: string[] = []): { name: string; values: string[] }[] {
+  const drop = new Set(['id', 'title', 'text', 'status', 'starts', 'ends', 'duration', 'due', 'started', 'finished', 'since', 'until', 'evidence', 'session', 'content', ...skip]);
+  const seen = new Map<string, Map<string, number>>();
+  for (const n of nodes) {
+    for (const r of parseBody(n.body ?? '')) {
+      const key = r.key; const value = (r.value ?? '').trim();
+      if (drop.has(key) || !value || value.length > 60 || r.prose) continue;
+      if (!seen.has(key)) seen.set(key, new Map());
+      const vals = seen.get(key)!;
+      for (const one of value.split(/[,\s]+/).filter(Boolean).slice(0, 4)) vals.set(one, (vals.get(one) ?? 0) + 1);
+    }
+  }
+  return [...seen.entries()]
+    .map(([name, vals]) => ({ name, values: [...vals.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 14).map(([v]) => v) }))
+    .filter(f => f.values.length)
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // The ticks a chart draws across a window: days while it is short, weeks, then months.
