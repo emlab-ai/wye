@@ -3,7 +3,7 @@ import remarkGfm from 'remark-gfm';
 import remarkTags from '@/lib/remark-tags';
 import { headingSlug, type SplitDoc, type IndexEntry } from '@/lib/doc';
 import { NodeCard } from './NodeCard';
-import { SmartTag } from './SmartTag';
+import { ContextLink } from './ContextLink';
 import { EmbeddedCard } from './EmbeddedCard';
 import { EMBED_LINE } from '@/lib/import';
 import type { ReactNode } from 'react';
@@ -14,7 +14,8 @@ const text = (c: ReactNode): string => Array.isArray(c) ? c.map(text).join('') :
 // that needs the document as text without editing.
 export function DocumentReader({ doc, index }: { doc: SplitDoc; index: Record<string, IndexEntry> }) {
   const components = {
-    a: ({ href, children }: { href?: string; children?: ReactNode }) => href?.startsWith('#tag:') ? <SmartTag id={href.slice(5)} label={text(children)} /> : href && /^[a-z-]+:[A-Za-z0-9_./#-]+$/.test(href) && !href.includes('//') ? <SmartTag id={href} label={text(children)} /> : <a href={href}>{children}</a>,
+    // a link to a node inside the page's prose is a context link on the words it sits on (decision:wf2.a-link-is-on-the-words)
+    a: ({ href, children }: { href?: string; children?: ReactNode }) => href?.startsWith('#tag:') ? <ContextLink id={href.slice(5)} label={text(children)} /> : href && /^[a-z-]+:[A-Za-z0-9_./#-]+$/.test(href) && !href.includes('//') ? <ContextLink id={href} label={text(children)} /> : <a href={href}>{children}</a>,
     h2: ({ children }: { children?: ReactNode }) => <h2 id={headingSlug(text(children))}>{children}</h2>,
     h3: ({ children }: { children?: ReactNode }) => <h3 id={headingSlug(text(children))}>{children}</h3>,
     table: ({ children }: { children?: ReactNode }) => <div className="tbl"><table>{children}</table></div>,

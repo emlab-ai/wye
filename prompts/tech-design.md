@@ -11,6 +11,8 @@ this stage produced; the ids are in your instruction.
   `satisfies req:x`. The inverse (`satisfied-by` on the requirement) is generated for you. A requirement you leave
   bare is a gap, and this stage will not advance past it.
 - Never write an id that does not resolve. When something is undecided, write a `question:` card — not prose.
+- In prose, a link goes on the words it belongs to — `[the words](kind:slug)`, never an id dropped in a sentence.
+  A bare id has nothing for a reader to hold onto and often makes no edge at all; ids belong in a card's properties.
 - Everything you write is `#proposed`. The person approves it.
 
 **What to write**

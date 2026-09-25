@@ -107,6 +107,11 @@ you cannot answer are `question:` blocks; answers you get from the person are `d
   every task of the product with its state and worker — so you can see what is already planned before adding to it.
   Never take a task that is not assigned to you unless it says `#ready` and you were started with `--take-ready`.
 - Ids look like `kind:product.slug`; links in text become edges ("part of goal:x", "depends on entity:y").
+- **A link goes on the words it belongs to**, as `[the words](kind:slug)` — never an id dropped mid-sentence.
+  "a [Prompt Request](module:v2-prs), not a pull request" reads; "a Prompt Request (module:v2-prs)" is noise a
+  person has to step over, and a bare id in a paragraph often makes no edge at all. Every link earns its place:
+  if the sentence says nothing about that node, leave it out. A card's properties (`part-of:`, `satisfied-by:`)
+  are where bare ids belong.
 - Anything indented two spaces under a node's line is that node's content — blocks of any kind, each a node with
   content of its own, to any depth. A sub-task is a task line indented under its task; no heading is needed.
 

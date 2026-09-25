@@ -852,6 +852,19 @@ The editor's blocks and the components the pages are made of, by area.
     the canvas as quick as a mind-map editor.
   status: proposed
   part-of: module:components
+- id: component:context-link
+  file: packages/web/src/components/ContextLink.tsx
+  side: client
+  purpose: >
+    A context link (decision:wf2.a-link-is-on-the-words): a link to a node inside prose is the words it belongs to,
+    underlined with a dotted line in the colour of its kind — not a pill carrying an id. An id dropped in the middle
+    of a sentence has nothing to hold onto and says nothing to a reader; where one is still written, the node's
+    title stands in for it, so the sentence reads. Hovering opens the node's card, a click selects it in the Context
+    panel (rule:block-select) so you keep your place, ⌘-click opens its document. What an id alone reads as: its
+    title when that is a name — short, no sentence in it — else its slug. A type's title is its whole purpose, and a
+    sentence pasted mid-paragraph is exactly the noise this is here to remove.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

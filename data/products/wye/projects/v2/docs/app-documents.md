@@ -609,6 +609,23 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
   - alternative:page.template-names-the-kind A chip that passes the template and the type together — rejected after shipping it: the template list beside it then made the same page untyped, so the same template meant two different things depending on which control you used.
 
+```yaml
+- id: decision:wf2.a-link-is-on-the-words
+  title: A link to a node sits on the words it belongs to, and is drawn as those words
+  date: 2026-09-25
+  status: proposed
+  affects: [component:doc-editor, component:context-panel, page:web/document]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-documents
+```
+
+  - context:wf2.a-link-is-on-the-words Every id in a paragraph rendered as a pill carrying the id. A paragraph with four of them read like a list of database keys, and the pill said nothing about why the link was there. Alex: "smart tags in the text are nice but if too much of them they create a noise, also having tag with just id not helping it at all, so every context link must have a purpose, and must be connected to a specific text… it is much better just to link it to a text 'Prompt request', and show it as a context link, so dotted underscore under text."
+
+  - choice:wf2.a-link-is-on-the-words A link to a node inside prose is the words it belongs to, underlined with a dotted line in the colour of its kind. Hovering opens the node's card, a click selects it in the Context panel so the reader keeps their place. Making one is a selection: select the words, the Context panel searches for them — or for anything typed in its box — and one click attaches the node to those words. Where an id still stands alone in a sentence, it is drawn as the node's name rather than its id, so the sentence at least reads while the text waits to be written properly.
+
+  - consequence:wf2.a-link-is-on-the-words The prompts and the skill documents say it now: a link goes on the words, `[the words](kind:slug)`, and ids belong in a card's properties. Measured while doing it: an id dropped in a paragraph often makes no edge at all, while the same id on a phrase makes a `related-to` edge — so the pill was not only noisy, it was frequently not even a link.
+
 ## Libraries
 
 <!-- list:lib -->

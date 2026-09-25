@@ -27,7 +27,7 @@ function loadHover(product: string, id: string): Promise<Hover | null> {
 }
 if (typeof window !== 'undefined') window.addEventListener('wf:change', e => { if ((e as CustomEvent<{ kinds: string[] }>).detail.kinds.includes('graph')) cache.clear(); });
 
-function TagHover({ id, anchor, onEnter, onLeave }: { id: string; anchor: DOMRect; onEnter: () => void; onLeave: () => void }) {
+export function TagHover({ id, anchor, onEnter, onLeave }: { id: string; anchor: DOMRect; onEnter: () => void; onLeave: () => void }) {
   const { product, index, open } = usePeek();
   const [h, setH] = useState<Hover | null | undefined>(undefined);
   useEffect(() => { let live = true; loadHover(product, id).then(v => { if (live) setH(v); }); return () => { live = false; }; }, [product, id]);
@@ -45,6 +45,19 @@ function TagHover({ id, anchor, onEnter, onLeave }: { id: string; anchor: DOMRec
       {h?.text && <div className="tag-hover-text">{h.text}</div>}
       {h && h.props.length > 0 && <dl className="tag-hover-props">{h.props.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
     </div>, document.body);
+}
+
+// The hover that opens a node's card after a moment and keeps it while the pointer is in either (req:wf2.ui.tag-hover).
+export function useNodeHover() {
+  const ref = useRef<HTMLAnchorElement>(null);
+  const [hover, setHover] = useState<DOMRect | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inCard = useRef(false);
+  const show = () => { if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => { if (ref.current) setHover(ref.current.getBoundingClientRect()); }, 350); };
+  const hide = () => { if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => { if (!inCard.current) setHover(null); }, 180); };
+  const drop = () => { if (timer.current) clearTimeout(timer.current); setHover(null); };
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  return { ref, hover, show, hide, drop, enterCard: () => { inCard.current = true; if (timer.current) clearTimeout(timer.current); }, leaveCard: () => { inCard.current = false; hide(); } };
 }
 
 export function SmartTag({ id, label }: { id: string; label?: string }) {

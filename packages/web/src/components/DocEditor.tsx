@@ -18,6 +18,7 @@ import type { Inline } from '@/lib/mdflow';
 import { CARD_KINDS } from '@/lib/kinds';
 import { NodeCard, type CardP, type CardHost } from './NodeCards';
 import { SmartTag } from './SmartTag';
+import { ContextLink } from './ContextLink';
 import { DrawingBlock, newDrawingSlug, sceneFromText, sceneFromImage } from './DrawingBlock';
 import { ViewBlock } from './ViewBlock';
 import { EmbedBlock } from './EmbedBlock';
@@ -38,7 +39,7 @@ import { AskAgentBox, type AskRequest } from './AskAgent';
 // kind:slug as inline content: a clickable tag in the editor, plain id text when serialised.
 const Tag = createReactInlineContentSpec(
   { type: 'tag', propSchema: { id: { default: '' } }, content: 'none' },
-  { render: props => <SmartTag id={props.inlineContent.props.id} />, toExternalHTML: props => <span>{props.inlineContent.props.id}</span> },
+  { render: props => <ContextLink id={props.inlineContent.props.id} />, toExternalHTML: props => <span>{props.inlineContent.props.id}</span> },
 );
 
 // An image inside a block's text (a bug's screenshot next to its words): the markdown keeps ![alt](assets/x.png) in
@@ -912,7 +913,17 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     const text = blockText(block as unknown as LinkBlock);
     const linked = blockLinked(block as unknown as LinkBlock);
     const np = block.type === 'node' ? block.props as unknown as { kind: string; slug: string } : null;
-    setEditing({ docSlug: slug, blockId: String((block as { id?: string }).id ?? ''), text, linked, nodeId: np && np.slug ? `${np.kind}:${np.slug}` : undefined, insert: (id: string) => {
+    // what is selected right now, and where: the panel searches for it, and a link it offers wraps these very words
+    const tt = (editor as unknown as { _tiptapEditor: { state: { selection: { from: number; to: number } }; view: { focus: () => void }; commands: { setTextSelection: (r: { from: number; to: number }) => boolean } } })._tiptapEditor;
+    const range = { from: tt.state.selection.from, to: tt.state.selection.to };
+    let selection = ''; try { selection = editor.getSelectedText().trim(); } catch { selection = ''; }
+    setEditing({ docSlug: slug, blockId: String((block as { id?: string }).id ?? ''), text, linked, nodeId: np && np.slug ? `${np.kind}:${np.slug}` : undefined, selection, attach: (id: string) => {
+      if (!selection) return;
+      tt.view.focus();
+      tt.commands.setTextSelection(range);
+      editor.createLink(id, selection);
+      touched.current = true; changed(); publishContext();
+    }, insert: (id: string) => {
       editor.focus();
       // a tag glued to the previous word would change it; pad with a space unless the cursor already follows one
       const st = (editor as unknown as { _tiptapEditor: { state: { selection: { from: number }; doc: { textBetween: (a: number, b: number) => string } } } })._tiptapEditor.state;

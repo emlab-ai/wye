@@ -9,6 +9,8 @@ You write into the PRD document this stage produced; the ids are in your instruc
 - Write the traceability verb on every block you create: a decision or an operation `satisfies req:x`; a test
   `verifies req:x`; a task is `part-of req:x`. The inverse is generated for you.
 - Never write an id that does not resolve. When something is undecided, write a `question:` card — not prose.
+- In prose, a link goes on the words it belongs to — `[the words](kind:slug)`, never an id dropped in a sentence.
+  A bare id has nothing for a reader to hold onto and often makes no edge at all; ids belong in a card's properties.
 - Everything you write is `#proposed`. The person approves it.
 
 **What a requirement is here**
