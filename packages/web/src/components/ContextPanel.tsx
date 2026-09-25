@@ -14,6 +14,7 @@ type Hit = { id: string; score: number; semantic: number; keyword: number; snipp
 export function ContextPanel() {
   const { product, index, editing, open } = usePeek();
   const [q, setQ] = useState('');
+  const [busy, setBusy] = useState(false);
   const [hits, setHits] = useState<Hit[]>([]);
   const [state, setState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [msg, setMsg] = useState('');
@@ -29,19 +30,25 @@ export function ContextPanel() {
     const key = text.trim() + '|' + linkedKey;
     if (text.trim().length < 3) { setHits([]); setState('idle'); return; }
     if (key === last.current) return;
+    // asking is deliberate — a selection, or words typed in the box — so it answers at once and without the judge,
+    // whose call takes seconds; the passive search on the block you are writing keeps its judgement
+    const asked = !!(q.trim() || selection);
     timer.current = setTimeout(async () => {
       last.current = key; setState('loading');
       try {
-        const r = await fetch(`/api/${product}/context`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, exclude: editing?.linked ?? [], limit: 12, judge: true }) });
+        const r = await fetch(`/api/${product}/context`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, exclude: asked ? [] : (editing?.linked ?? []), limit: 12, judge: !asked }) });
         const j = await r.json();
         if (!r.ok) { setState('error'); setMsg(j.message ?? j.error); return; }
         setHits(j.hits); setMin(j.jev ? j.min : null); setState('ready');
       } catch (e) { setState('error'); setMsg(e instanceof Error ? e.message : String(e)); }
-    }, 600);
+    }, asked ? 150 : 600);
     return () => { if (timer.current) clearTimeout(timer.current); };
   }, [text, linkedKey, product, editing]);
   if (!editing) return <p className="muted rels-empty">Put the cursor in a paragraph or block: the knowledge closest to what you are writing shows up here.</p>;
-  const shown = hits.filter(h => h.score > 0.3 || (min !== null && (h.p ?? 0) >= min)); // a hit Jev is sure of shows whatever the search score
+  const asked = !!(q.trim() || selection);
+  // when asked, show what the search found — the person is choosing, not being judged for; when writing, the ones
+  // worth the interruption (a hit Jev is sure of shows whatever the search score)
+  const shown = asked ? hits : hits.filter(h => h.score > 0.3 || (min !== null && (h.p ?? 0) >= min));
   return (
     <div className="ctx">
       <input className="ctx-find" value={q} placeholder="find anything in this product…" onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') setQ(''); }} />
@@ -51,10 +58,10 @@ export function ContextPanel() {
           : <><span className="muted">for</span> “{text.slice(0, 140)}{text.length > 140 ? '…' : ''}”</>}
       </p>
       {!selection && <p className="muted small ctx-hint">Select the words a link belongs to — a link with nothing to hold onto says nothing.</p>}
-      {state === 'loading' && !hits.length && <p className="muted">Searching…</p>}
+      {state === 'loading' && !shown.length && <p className="muted">Searching…</p>}
       {state === 'error' && <p className="notice">Search failed: {msg}</p>}
       {state === 'idle' && text.trim().length < 3 && <p className="muted">Keep typing — a few words are enough.</p>}
-      {state !== 'idle' && !shown.length && state !== 'loading' && <p className="muted">Nothing close enough in this product's knowledge yet.</p>}
+      {state !== 'idle' && !shown.length && state !== 'loading' && <p className="muted">{asked ? 'Nothing found — try other words, or make a node of these.' : "Nothing close enough in this product's knowledge yet."}</p>}
       <ul className="ctx-hits">
         {shown.map(h => {
           const e = index[h.id];
@@ -71,7 +78,15 @@ export function ContextPanel() {
           );
         })}
       </ul>
+      {selection && (
+        <div className="ctx-make">
+          <span className="muted small">or make it a</span>
+          {MAKE_KINDS.map(k => <button key={k} className="ctx-new" disabled={busy} onClick={async () => { setBusy(true); await editing.make(k); setBusy(false); }} title={`Make ${k}:… titled “${selection.slice(0, 40)}” and link these words to it`}>{k}</button>)}
+        </div>
+      )}
     </div>
   );
 }
+// the kinds a person reaches for while writing; anything else is made from the ⌁ picker or its own page
+const MAKE_KINDS = ['req', 'decision', 'question', 'task', 'entity', 'rule'];
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');

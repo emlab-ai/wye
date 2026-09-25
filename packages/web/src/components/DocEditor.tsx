@@ -923,6 +923,14 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       tt.commands.setTextSelection(range);
       editor.createLink(id, selection);
       touched.current = true; changed(); publishContext();
+    }, make: async (kind: string) => {
+      if (!selection) return null;
+      const made = await createNode(kind, selection);
+      if (!made) return null;
+      tt.view.focus(); tt.commands.setTextSelection(range);
+      editor.createLink(made.id, selection);
+      touched.current = true; changed(); publishContext();
+      return made.id;
     }, insert: (id: string) => {
       editor.focus();
       // a tag glued to the previous word would change it; pad with a space unless the cursor already follows one

@@ -12,6 +12,8 @@ export type EditingContext = {
   // searches for the selection when there is one and links it in place, so a link always sits on something a reader
   // can see. `insert` drops a tag at the cursor — the old way, kept for the places that have no selection to speak of.
   selection: string; attach: (id: string) => void; insert: (id: string) => void;
+  // a node made from the selected words and linked to them in one go: the words are its title
+  make: (kind: string) => Promise<string | null>;
 };
 // The right column is a navigation stack: the root is Context (on document pages) and every opened node is pushed
 // on top. `back` pops; `go(i)` jumps to an entry, dropping what is above it — except pinned entries, which are kept.

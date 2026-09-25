@@ -102,6 +102,10 @@ code, pre { font-family: var(--font-m); }
 .ctx-src { font-size: 12px; color: var(--ink-2); margin: 0 0 8px; line-height: 1.4; }
 .ctx-hits { list-style: none; margin: 0; padding: 0; } .ctx-hits li { padding: 7px 0; border-bottom: 1px solid var(--line); transition: opacity .2s; } .ctx-hits li.stale { opacity: .5; }
 .ctx-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; } .ctx-score { margin-left: auto; font: 11px var(--font-m); color: var(--muted); } .ctx-score.ctx-sure { color: var(--accent); font-weight: 600; }
+.ctx-make { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.ctx-new { background: var(--surface); border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 9px; font: 500 11px var(--font-m); color: var(--ink-2); cursor: pointer; }
+.ctx-new:hover { border-color: var(--accent); color: var(--ink); }
+.ctx-new:disabled { opacity: .4; }
 .ctx-find { width: 100%; margin: 0 0 8px; padding: 5px 9px; background: var(--ground); border: 1px solid var(--line-2); border-radius: 8px; color: var(--ink); font: 13px var(--font-b); }
 .ctx-find:focus { outline: none; border-color: var(--accent); }
 .ctx-hint { margin: -2px 0 8px; }
@@ -447,8 +451,10 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .code-block { position: relative; display: block; width: 100%; margin: 6px 0; border-radius: 10px; overflow: hidden; background: var(--sunk); border: 1px solid var(--line); }
 .code-block > section, .code-block .monaco-editor { width: 100% !important; }
 .code-block .monaco-editor, .code-block .monaco-editor .margin, .code-block .monaco-editor-background { background: transparent !important; }
-.code-lang { position: absolute; right: 8px; top: 6px; z-index: 2; opacity: 0; font: 11px var(--font-m); color: var(--muted); background: var(--surface); border: 1px solid var(--line-2); border-radius: 5px; padding: 1px 4px; }
-.code-block:hover .code-lang, .code-lang:focus { opacity: 1; }
+/* the language, top right of the block and always legible: the editor's own select styling would stretch it across
+   the block and strip its background, which put the word over the first line of code */
+.code-block > select.code-lang { position: absolute !important; right: 8px !important; top: 6px !important; left: auto !important; bottom: auto !important; z-index: 3; width: auto !important; min-width: 0; max-width: 45%; opacity: .55 !important; font: 11px var(--font-m); line-height: 1.6; color: var(--ink-2) !important; background: var(--surface) !important; border: 1px solid var(--line-2) !important; border-radius: 5px; padding: 1px 6px !important; cursor: pointer; }
+.code-block:hover > select.code-lang, .code-block > select.code-lang:focus, .code-block > select.code-lang:hover { opacity: 1 !important; color: var(--ink) !important; border-color: var(--accent) !important; }
 [data-theme="dark"] .code-block { background: #141614; border-color: #2a2e2a; }
 .rail-theme { margin-left: auto; opacity: 0; } .rail-ws:hover .rail-theme, .rail-theme:focus-visible { opacity: 1; } .rail-theme {  border: 0; background: none; color: var(--muted); font-size: 15px; cursor: pointer; padding: 2px 6px; border-radius: 6px; line-height: 1; } .rail-theme:hover { background: var(--sunk); color: var(--ink); }
 .seg-group { display: inline-flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; }
