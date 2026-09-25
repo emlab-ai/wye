@@ -639,9 +639,9 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
   - context:wf2.a-comment-can-sit-on-words A comment could only be made on a whole block. Alex: "when we add comment to a text and not block we somehow need to wrap this text into linkable block, so it will display comment when selected."
 
-  - choice:wf2.a-comment-can-sit-on-words Select the words, write the comment in the Context panel, and the comment becomes a node on the page — quoting the words — which those words then link to. The passage is addressable because the link is in the text, so it survives every edit around it; the words carry a dotted line in the comment's own colour, hovering shows what was said, and a click selects the comment in the panel. No block is split and no anchor depends on a hash that changes when a sentence is reworded.
+  - choice:wf2.a-comment-can-sit-on-words Select the words and they become a node of their own — `type:text`, a passage — defined by the link that names them: `[the words](text:doc.slug)` in the markdown is the node, its title is the words. The comment is then an ordinary comment on an ordinary node, so the passage answers everything a node answers: comments, links, what is near it. The words carry a dotted line, hovering shows the passage and what was said about it, a click selects it in the panel. No block is split, and no anchor depends on a hash that changes when a sentence is reworded.
 
-  - alternative:wf2.a-comment-can-sit-on-words Anchoring the comment to the block and remembering the quoted words — rejected: a block's id is a hash of its text, so the anchor breaks the moment the paragraph is edited, which is when a comment matters most. Splitting the passage into a block of its own — rejected: it changes the prose to hold a remark about it.
+  - alternative:wf2.a-comment-can-sit-on-words Anchoring the comment to the block and remembering the quoted words — rejected: a block's id is a hash of its text, so the anchor breaks the moment the paragraph is edited, which is when a comment matters most. Linking the words to the comment itself — built and rejected the same hour: Alex, seeing it, "now i can add comment to block comment" — a remark is not a thing to hang remarks on. Splitting the passage into a block of its own — rejected: it changes the prose to hold a remark about it.
 
 ## Libraries
 

@@ -274,6 +274,14 @@ type means instances may carry properties the type does not declare without a wa
   purpose: why a constraint or a rule holds — a child block of it
   nests-in: [rule, constraint]
   open: true
+- id: type:text
+  extends: type:node
+  purpose: >
+    a passage of a document that someone needed to point at (decision:wf2.a-comment-can-sit-on-words): the words
+    themselves, addressable, so a comment, a question or a link can sit on them without splitting the paragraph or
+    pretending the passage is a requirement. The link that names it defines it — `[the words](text:doc.slug)` in the
+    text is the node, its title is the words — so nothing has to be written twice.
+  open: true
 - id: type:note
   extends: type:node
   purpose: a remark under a rule, a constraint or any node — a child block of it

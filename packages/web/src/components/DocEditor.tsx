@@ -155,11 +155,11 @@ function CommentPop({ at, on, product, words, onPosted, onClose }: { at: { x: nu
   }, [onClose]);
   const post = async () => {
     const t = text.trim(); if (!t || busy) return; setBusy(true); setErr('');
-    // a comment on a passage quotes it, and the words are linked to the comment so the text shows where it sits
-    const r = await fetch(`/api/${product}/comments`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ on, text: words ? `“${words}” — ${t}` : t }) });
+    // `on` is already the passage when there is one: the comment is an ordinary comment on an ordinary node
+    const r = await fetch(`/api/${product}/comments`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ on, text: t }) });
     const j = await r.json().catch(() => ({})); setBusy(false);
     if (!r.ok) { setErr(j.message ?? 'could not write the comment'); return; }
-    if (words && j.id) onPosted?.(j.id as string);
+    onPosted?.(String(j.id ?? ''));
     toast(words ? 'Comment on these words' : j.doc ? `Comment saved in ${j.doc.title}` : 'Comment saved'); onClose();
   };
   const x = Math.min(at.x, (typeof window !== 'undefined' ? window.innerWidth : 9999) - 320), y = Math.min(at.y, (typeof window !== 'undefined' ? window.innerHeight : 9999) - 140);
@@ -807,7 +807,9 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     if (url.origin === location.origin && !url.pathname.includes('/d/assets/')) router.push(url.pathname + url.search + url.hash);
     else window.open(url.href, '_blank', 'noopener');
   };
-  const isId = (href: string) => new RegExp('^' + ID_RE.source + '$').test(href);
+  // any kind:slug is a link the editor may write: the kinds it knows come from the last build, and a link to a kind
+  // this page has not heard of yet — a passage node, a type declared a moment ago — must not be silently dropped
+  const isId = (href: string) => new RegExp('^' + ID_RE.source + '$').test(href) || /^[a-z][a-z0-9-]*:[A-Za-z0-9_][A-Za-z0-9_./#-]*$/.test(href);
   const editor = useCreateBlockNote({ schema, uploadFile,
     links: {
       isValidLink: (href: string) => !href || isId(href) || /^(?:(?:https?|ftp|mailto|tel):|[^a-z]|[a-z0-9+.-]+(?:[^a-z+.:-]|$))/i.test(href),
@@ -934,16 +936,14 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       touched.current = true; changed(); publishContext();
       return made.id;
     }, comment: async (body: string) => {
-      const words = selection.trim(); const note = body.trim();
-      if (!words || !note) return null;
-      const on = docNodeOf(index, slug) ?? `module:${slug}`;
-      const r = await fetch(`/api/${product}/comments`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ on, text: `“${words}” — ${note}`, project }) });
+      const note = body.trim(); if (!selection.trim() || !note) return null;
+      const on = await passageOf(selection, range);
+      if (!on) return null;
+      const r = await fetch(`/api/${product}/comments`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ on, text: note, project }) });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok || !j.id) { setLintMsg(`could not comment: ${j.message ?? j.error ?? 'failed'}`); return null; }
-      tt.view.focus(); tt.commands.setTextSelection(range);
-      editor.createLink(j.id, words);
-      touched.current = true; changed(); publishContext();
-      return j.id as string;
+      if (!r.ok) { setLintMsg(`could not comment: ${j.message ?? j.error ?? 'failed'}`); return null; }
+      publishContext();
+      return on;
     }, insert: (id: string) => {
       editor.focus();
       // a tag glued to the previous word would change it; pad with a space unless the cursor already follows one
@@ -1016,6 +1016,26 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     }, 300);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, body, ifMatch]);
+
+  // The selected words made addressable (decision:wf2.a-comment-can-sit-on-words): they are wrapped in a link to a
+  // `text:` node — the link is what defines it — and the document is saved, so the node is in the graph by the time a
+  // comment or anything else is hung on it. Returns its id, or null when there is nothing selected.
+  async function passageOf(words: string, range: { from: number; to: number }): Promise<string | null> {
+    const w = words.trim(); if (!w) return null;
+    const docId = docNodeOf(index, slug) ?? `module:${slug}`;
+    const key = docId.slice(docId.indexOf(':') + 1);
+    const base = `text:${key}.${slugify(w.split(/\s+/).slice(0, 6).join(' ')) || 'passage'}`;
+    let id = base; for (let n = 2; index[id]; n++) id = `${base}-${n}`;
+    const tt = (editor as unknown as { _tiptapEditor: { view: { focus: () => void }; commands: { setTextSelection: (r: { from: number; to: number }) => boolean } } })._tiptapEditor;
+    tt.view.focus(); tt.commands.setTextSelection(range);
+    editor.createLink(id, w);
+    touched.current = true;
+    // the comment is written against the node, so the node has to exist first: this save builds the graph
+    const md = blocksToMarkdown(editor.document as unknown as AnyBlock[]);
+    lastExported.current = md;
+    await save(md);
+    return id;
+  }
 
   async function save(md: string) {
     setState('saving');
@@ -1178,7 +1198,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   const fresh = () => `new-${Math.floor(Math.random() * 900 + 100)}`;
   // the block under a right-click: BlockNote wraps every block in .bn-block-outer[data-id]; the innermost one is the block
   const [blockMenu, setBlockMenu] = useState<BlockMenu | null>(null);
-  const [commentPop, setCommentPop] = useState<{ x: number; y: number; on: string; words?: string; range?: { from: number; to: number } } | null>(null);
+  const [commentPop, setCommentPop] = useState<{ x: number; y: number; on: string; words?: string } | null>(null);
   const closeCommentPop = useCallback(() => setCommentPop(null), []);
   const [tagMenu, setTagMenu] = useState<TagMenu | null>(null);
   const closeTagMenu = useCallback(() => setTagMenu(null), []);
@@ -1379,14 +1399,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       }}>
       {tagMenu && <TagContextMenu menu={tagMenu} onClose={closeTagMenu} act={tagAct} />}
       {blockMenu && <BlockContextMenu menu={blockMenu} onClose={closeBlockMenu} act={blockAct} canPaste={!!CLIP || typeof navigator !== 'undefined' && !!navigator.clipboard?.readText} />}
-      {commentPop && <CommentPop at={commentPop} on={commentPop.on} product={product} words={commentPop.words} onClose={closeCommentPop}
-        onPosted={id => {
-          const r = commentPop.range; if (!r || !commentPop.words) return;
-          const tt = (editor as unknown as { _tiptapEditor: { view: { focus: () => void }; commands: { setTextSelection: (x: { from: number; to: number }) => boolean } } })._tiptapEditor;
-          tt.view.focus(); tt.commands.setTextSelection(r);
-          editor.createLink(id, commentPop.words);
-          touched.current = true; changed();
-        }} />}
+      {commentPop && <CommentPop at={commentPop} on={commentPop.on} product={product} words={commentPop.words} onClose={closeCommentPop} />}
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}{!lintMsg && elsewhere > 0 && <span className="muted" title="ctx check finds an error in another document of the product — not in this one">{elsewhere} check error{elsewhere === 1 ? '' : 's'} elsewhere</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false} emojiPicker={false}>
         <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><AnnotateItem annotate={imageToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
@@ -1398,8 +1411,9 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
             let words = ''; try { words = editor.getSelectedText().trim(); } catch { words = ''; }
             if (words) {
               const tt = (editor as unknown as { _tiptapEditor: { state: { selection: { from: number; to: number } } } })._tiptapEditor;
-              const on = docNodeOf(index, slug) ?? `module:${slug}`;
-              setCommentPop({ x: at.left, y: at.bottom + 8, on, words, range: { from: tt.state.selection.from, to: tt.state.selection.to } });
+              const range = { from: tt.state.selection.from, to: tt.state.selection.to };
+              // the words become a passage node first, so the comment sits on them and not on the page
+              void passageOf(words, range).then(on => { if (on) setCommentPop({ x: at.left, y: at.bottom + 8, on, words }); });
               return;
             }
             let b: AnyBlock | undefined; try { b = editor.getTextCursorPosition().block as unknown as AnyBlock; } catch { b = undefined; }

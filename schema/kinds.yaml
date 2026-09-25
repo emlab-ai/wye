@@ -43,6 +43,7 @@ kinds:
   task:           { purpose: a unit of work for a human or agent — the work item every view lists and every worker takes }
   template:       { purpose: blocks a hook adds, as a card in the Hooks document: `body` is markdown with <node>, <slug>, <title>, <kind>, required: [body] }
   test:           { purpose: a verification, usually referenced as test:Class#Method }
+  text:           { purpose: a passage of a document that someone needed to point at }
   then:           { purpose: the outcome of a requirement — a child block of it, nests-in: [req, rule, test, ui-test] }
   tool:           { purpose: an MCP tool or CLI command an agent can call }
   ui-test:        { purpose: an end-to-end spec }
