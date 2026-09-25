@@ -274,6 +274,18 @@ type means instances may carry properties the type does not declare without a wa
   purpose: why a constraint or a rule holds — a child block of it
   nests-in: [rule, constraint]
   open: true
+- id: type:timed
+  extends: type:node
+  purpose: >
+    the properties of something that happens in time (decision:ontology.a-type-can-mix-in): a type that says
+    `mixes-in: [type:timed]` takes them on without claiming to be one — a task, a goal, a run. `starts` and `ends` are
+    plan time, what a timeline draws; `duration` stands in for the end when only the start is known ("3d", "2w"), and
+    for the start when only the end is. They are not `since` / `until`, which say when a node held true.
+  open: true
+  props:
+    starts: date?
+    ends: date?
+    duration: string?
 - id: type:text
   extends: type:node
   purpose: >
@@ -346,6 +358,7 @@ type means instances may carry properties the type does not declare without a wa
     prompt: string?
 - id: type:goal
   extends: type:node
+  mixes-in: [type:timed]
   purpose: what the product or a project sets out to achieve
   open: true
   statuses: [proposed, on-track, at-risk, off-track, paused, complete, non-goal]
@@ -354,6 +367,7 @@ type means instances may carry properties the type does not declare without a wa
     progress: number?
 - id: type:task
   extends: type:node
+  mixes-in: [type:timed]
   purpose: >
     a unit of work for a human or agent — the work item every view lists and every worker takes
     (decision:exec.task-is-the-unit): its status on the line (todo, open, in-progress, blocked, review, done), `#ready`
@@ -371,6 +385,7 @@ type means instances may carry properties the type does not declare without a wa
     ready: bool?                                      # `#ready` on the line: defined enough for a runner to take
 - id: type:pr
   extends: type:module
+  mixes-in: [type:timed]
   purpose: >
     A Prompt Request — a person's request to change the knowledge, one page per request (never an agent's, a
     task's, a hook's or an import's: constraint:wf2.pr-is-the-persons): `pr-<slug>` under the project's PRs page, holding the
@@ -447,6 +462,7 @@ type means instances may carry properties the type does not declare without a wa
     skills: list of skill?
 - id: type:run
   extends: type:node
+  mixes-in: [type:timed]
   purpose: >
     one run of a workflow (decision:wf2.run-is-a-page): a document of its own under the project's Workflow runs page
     — `run-<workflow>-<n>.md` — whose frontmatter is the state (which workflow, what it runs on, the stage it is at,
@@ -471,6 +487,15 @@ type means instances may carry properties the type does not declare without a wa
     What a workflow stage produces (a research write-up, a PRD, a design, a plan) is one of these, so a run's
     documents do not enter the product's list of modules.
   open: true
+- id: type:timeline
+  extends: type:node
+  purpose: >
+    a page that draws when things happen (decision:wf2.timeline-is-a-query): its `query:` line says which nodes it
+    watches, what the rows group by — a property, or a path of links like `worker.part-of` — and the window. Nothing
+    is stored per item: a node is on the chart because it says when it happens, and leaves when it stops saying so.
+  open: true
+  props:
+    query: string?
 - id: type:map
   extends: type:node
   purpose: >
@@ -482,6 +507,7 @@ type means instances may carry properties the type does not declare without a wa
   open: true
 - id: type:step
   extends: type:node
+  mixes-in: [type:timed]
   purpose: >
     one stage of one run (decision:wf2.run-is-a-page): a card in the run's page, written when the run starts so the
     whole chain is in the graph from the first moment, not only the stage it has reached. `stage` is the definition

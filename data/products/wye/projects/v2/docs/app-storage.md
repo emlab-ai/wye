@@ -414,6 +414,16 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     IO is the map route.
   status: proposed
   part-of: module:app-storage
+- id: lib:timeline
+  file: packages/web/src/lib/timeline.ts
+  side: server
+  purpose: >
+    A timeline (decision&#58;wf2.timeline-is-a-query): what a Gantt page draws, worked out from the graph and one
+    query line — which nodes are on it, when each one happens, and what the rows are. Pure: the graph in, rows of
+    bars out. The query is the view block's language (lib/instance-table) with three keys of its own: `rows` says
+    what the Y axis groups by, `from` and `to` the window.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

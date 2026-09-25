@@ -597,3 +597,22 @@ What this module must do is written where it was decided — the PRD and the dev
   - context:map.the-board-holds-what-was-put-on-it The first rule was "every card the document defines is a node", so opening a node's card and giving it a when, a then and an unless put three new boxes on the canvas. Alex: "I've added some child nodes to req, when, then etc and they appear on the map, this is wrong, only explicitly added nodes must be visible on the board."
 
   - choice:map.the-board-holds-what-was-put-on-it The `## Layout` section is the membership list: a node is on the board because it has a line there, which every gesture that adds one writes. A card's own parts are never board material, and a card written in the page's text — by hand or by an agent — waits off the board until it is put on it, which a "Place N cards" button in the toolbar does in one click.
+
+```yaml
+- id: decision:wf2.timeline-is-a-query
+  title: A timeline page is a query, not a list of what is on it
+  date: 2026-09-25
+  status: proposed
+  affects: [type:timeline, lib:timeline, component:timeline-view]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-graph
+```
+
+  - context:wf2.timeline-is-a-query Alex asked for a Gantt view with a flexible Y axis: "i can group tasks by type/person etc… if i want to find all linked tasks, or assigned tasks for a person, or group of people (which is type) belonging to a team (which is also type) so i want to be able to build timeline page and setup it in flexible way".
+
+  - choice:wf2.timeline-is-a-query A page of `type:timeline` carries one `query:` line — the kinds it draws, the filters, the window, and `rows`, which groups the Y axis. A row can group by a property, by `kind` or `status`, or by a **path of links**: `worker.part-of,worker` reads "the team of the worker, then the worker", which is how a person's tasks sit under their team. Nothing is stored per item: a node is on the chart because it says when it happens and leaves when it stops, and the strip at the top of the page edits the query in place.
+
+  - choice:wf2.timeline-is-a-query.dates When a node happens comes from `starts` / `ends`, with `duration` standing in for whichever end is missing; a run or a session's own `started` / `finished`; and a `due` date as a point. `since` / `until` stay off this axis — they say when a node held true, which is a different question (decision:memory.bitemporal).
+
+  - alternative:wf2.timeline-is-a-query A timeline that holds what was put on it, the way a map does — rejected: a plan is answered by "every task of this team", and a hand-curated list would go stale the moment a task was added. Dragging bars to change dates — not yet: the chart reads, the card writes.

@@ -467,3 +467,20 @@ decision:ontology.uniform-content says every node has `content` — the blocks u
   - choice:ontology.a-type-can-be-nested-only A type card may carry `nests-in: [req, rule, test]`, the kinds that may hold it; `node` means any. Such a type is left out of every place a node is made from nothing — the new-page types, a map's node picker, the block menu at the top of a document — and offered in the slash menu only while the cursor is in a node of a kind it nests in, grouped as "In this req". The check warns when one is written with no holder of an allowed kind. The base ontology declares it for when / then / unless (req, rule, test, ui-test), context / choice / alternative / consequence (decision), statement / scope / rationale (rule, constraint) and note (any node).
 
   - alternative:ontology.a-type-can-be-nested-only The app's own PART_KINDS list, which already existed for other purposes — rejected: a product that declares a type of its own could never say the same thing about it, and the ontology is where the shape of the knowledge is declared, not the app.
+
+```yaml
+- id: decision:ontology.a-type-can-mix-in
+  title: A type can take on another type's properties without being one of them
+  date: 2026-09-25
+  status: proposed
+  affects: [type:timed, type:task, type:goal, type:run, lib:types]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:ontology-engine
+```
+
+  - context:ontology.a-type-can-mix-in A timeline needs `starts`, `ends` and `duration` on the things that happen in time — a task, a goal, a run — but a type extends one parent, and a task is not a kind of "timed thing". Alex, asking for the timeline: "maybe add it through time mixin on types".
+
+  - choice:ontology.a-type-can-mix-in A type card may carry `mixes-in: [type:timed]`: the properties of those types join its own, after what it inherits and before what it declares, so it may still narrow them. It says nothing about what the type *is* — the chain, `isA` and every check stay exactly as they were. The base ontology declares `type:timed` (starts, ends, duration) and mixes it into task, goal, run, step and pr.
+
+  - alternative:ontology.a-type-can-mix-in Putting the properties on `type:node` — rejected: every node would carry a start and an end, including a when, a block and a comment, and the ontology would be saying that everything happens in time. Declaring them on each kind — rejected: a product's own type could never join in without copying them.

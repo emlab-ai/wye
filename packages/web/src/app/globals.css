@@ -412,7 +412,43 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .nblock.done .nblock-text { opacity: .6; }
 .status-sel { border-color: transparent; } .nblock:hover .status-sel, .nblock:focus-within .status-sel { border-color: var(--line-2); }
 .nblock-extra { opacity: 0; } .nblock:hover .nblock-extra, .nblock:focus-within .nblock-extra, .nblock-extra:not(:placeholder-shown) { opacity: 1; }
-.bn-editor a[href^="module:"], .bn-editor a[href^="req:"], .bn-editor a[href^="rule:"], .bn-editor a[href^="entity:"], .bn-editor a[href^="op:"], .bn-editor a[href^="page:"], .bn-editor a[href^="task:"], .bn-editor a[href^="decision:"], .bn-editor a[href^="question:"], .bn-editor a[href^="state:"], .bn-editor a[href^="value:"], .bn-editor a[href^="test:"], .bn-editor a[href^="goal:"], .bn-editor a[href^="constraint:"], .bn-editor a[href^="lesson:"], .bn-editor a[href^="text:"] { color: inherit; text-decoration: underline dotted var(--line-2); text-decoration-thickness: 1.5px; text-underline-offset: 3.5px; }
+/* A node link is NOT a hyperlink: it points at knowledge inside this product, not out at the web,
+   so it keeps the text's own colour, takes a dotted underline and carries a corner wedge — never
+   the accent colour and solid underline that mean "this leaves the page".
+   Listing known prefixes could never hold: kinds are data-driven per product (fact:, stage:,
+   workflow: are not even in the --k-* token set), so every unlisted kind fell through to the
+   generic `a` rule and rendered as a web link. Inverted — inside the editor everything is a node
+   link unless it is an actual URL. `.nlink` (the rendered view) already had the dotted underline,
+   in the kind's own colour; this gives the editor's plain anchors the same treatment. */
+.bn-editor a:not([href^="http"]):not([href^="mailto:"]) {
+  color: inherit;
+  text-decoration: underline dotted var(--k-other);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3.5px;
+}
+.bn-editor a:not([href^="http"]):not([href^="mailto:"]):hover {
+  text-decoration-style: solid;
+  text-decoration-color: var(--accent);
+}
+/* the reference marker, on BOTH the rendered `.nlink` and the editor's anchors so a linked word
+   looks the same whether you are reading it or editing it. Sized in em so it rides along at any
+   font size; inline-block keeps the parent's underline from running through it. */
+.nlink::after,
+.bn-editor a:not([href^="http"]):not([href^="mailto:"])::after {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: 2px;
+  vertical-align: .38em;
+  border-top: .3em solid currentColor;
+  border-left: .3em solid transparent;
+  opacity: .45;
+}
+.nlink:hover::after,
+.bn-editor a:not([href^="http"]):not([href^="mailto:"]):hover::after {
+  opacity: 1;
+}
 .linknode button.create span { color: var(--accent); }
 .nblock-props { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 6px 0 2px; font-size: 13px; }
 .nblock-props > div { display: contents; }
@@ -1048,3 +1084,40 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .mpop-row button:first-child { background: var(--ink); color: var(--ground); border: 0; border-radius: 6px; padding: 4px 12px; font: 500 12px var(--font-m); cursor: pointer; }
 .mpop-row .linkish { margin-left: auto; }
 .mpop-row button.bad { background: var(--bad); color: #fff; border: 0; border-radius: 6px; padding: 4px 12px; font: 500 12px var(--font-m); cursor: pointer; }
+
+/* ===== the timeline page (component:timeline-view, decision:wf2.timeline-is-a-query) ===== */
+.tlwrap { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.tlbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 8px 14px; border-bottom: 1px solid var(--line); }
+.tl-group { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.tl-chip { background: var(--surface); border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 9px; font: 500 11px var(--font-m); color: var(--ink-2); cursor: pointer; }
+.tl-chip:hover { border-color: var(--accent); color: var(--ink); }
+.tl-chip.on { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+.tl-rows-in, .tl-find, .tl-date { background: var(--ground); border: 1px solid var(--line-2); border-radius: 7px; padding: 3px 8px; color: var(--ink); font: 12px var(--font-m); }
+.tl-rows-in { width: 190px; } .tl-find { width: 130px; } .tl-date { font-size: 11px; }
+.tl-rows-in:focus, .tl-find:focus, .tl-date:focus { outline: none; border-color: var(--accent); }
+.tl-count { margin-left: auto; }
+.tl-empty { padding: 28px 24px; max-width: 620px; }
+.tlchart { flex: 1; min-height: 0; overflow: auto; padding: 0 14px 40px; }
+/* the head and every row: a fixed label column, then a track the bars sit in, positioned by percent of the window */
+.tl-head, .tl-row { display: grid; grid-template-columns: 240px minmax(0, 1fr); align-items: stretch; gap: 10px; }
+.tl-head { position: sticky; top: 0; z-index: 2; background: var(--ground); padding: 8px 0 4px; border-bottom: 1px solid var(--line); }
+.tl-head .tl-track { height: 18px; }
+.tl-track { position: relative; min-height: 30px; }
+.tl-tick { position: absolute; top: 0; transform: translateX(-50%); font: 10px var(--font-m); color: var(--muted); white-space: nowrap; }
+.tl-tick.major { color: var(--ink-2); font-weight: 600; }
+.tl-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); opacity: .5; }
+.tl-grid.major { opacity: 1; }
+.tl-now { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); opacity: .7; }
+.tl-row { border-bottom: 1px solid var(--line); padding: 5px 0; }
+.tl-row:hover { background: color-mix(in srgb, var(--sunk) 55%, transparent); }
+.tl-rowhead { display: flex; align-items: center; gap: 2px; font: 12.5px var(--font-b); color: var(--ink); min-width: 0; padding-top: 4px; }
+.tl-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tl-label.up { color: var(--muted); } .tl-label b { color: var(--line-2); font-weight: 400; }
+.tl-rowcount { margin-left: auto; font: 10px var(--font-m); }
+/* a bar is the node: its kind colours it, a milestone is a diamond, a done one is quieter */
+.tl-bar { position: absolute; top: 3px; height: 22px; border: 0; border-radius: 5px; background: var(--k-other); color: var(--ground); font: 500 11px var(--font-m); text-align: left; padding: 0 6px; overflow: hidden; cursor: pointer; white-space: nowrap; }
+.tl-bar:hover { filter: brightness(1.15); box-shadow: 0 0 0 1px var(--accent); }
+.tl-bar.k-task { background: var(--k-task); } .tl-bar.k-goal { background: var(--k-goal); } .tl-bar.k-run { background: var(--k-op); } .tl-bar.k-pr { background: var(--k-page); } .tl-bar.k-step { background: var(--k-state); } .tl-bar.k-session { background: var(--k-value); } .tl-bar.k-req { background: var(--k-req); } .tl-bar.k-decision { background: var(--k-decision); }
+.tl-bar.s-done, .tl-bar.s-shipped { opacity: .45; }
+.tl-bar.point { width: 14px; height: 14px; top: 7px; border-radius: 3px; transform: translateX(-7px) rotate(45deg); padding: 0; }
+.tl-bar.point .tl-bar-label { display: none; }

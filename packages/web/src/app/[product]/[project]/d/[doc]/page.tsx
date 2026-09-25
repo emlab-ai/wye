@@ -15,6 +15,8 @@ import { DocNotFound } from '@/components/DocNotFound';
 import { MapCanvas } from '@/components/MapCanvas';
 import { mapGraph, parseLayout } from '@/lib/map';
 import { runSpots } from '@/lib/runs';
+import { buildTimeline, parseTimelineQuery } from '@/lib/timeline';
+import { TimelineView } from '@/components/TimelineView';
 import { GoneNotice } from '@/components/GoneNotice';
 
 export default async function DocPage({ params }: { params: Promise<{ product: string; project: string; doc: string }> }) {
@@ -44,6 +46,17 @@ export default async function DocPage({ params }: { params: Promise<{ product: s
   // a run whose page was written before it had a map: its stages are read straight from the page, in order
   if (isMap && !spots.length && d.module.kind === 'run') spots = runSpots(scope.graph, d.file);
   const drawn = isMap ? mapGraph(scope.graph, scope.idx, d.file, d.module.id, spots) : null;
+  // a timeline page is its chart (decision:wf2.timeline-is-a-query): the query in its front matter says what it draws
+  if (d.module.kind === 'timeline') {
+    const query = split.frontmatter.query ?? '';
+    const timeline = buildTimeline(scope.graph, scope.idx, parseTimelineQuery(query));
+    const kinds = [...new Set(scope.graph.nodes.filter(n => n.defined && n.kind !== 'type' && n.form !== 'block').map(n => n.kind))].sort();
+    return (
+      <div className="page page-map">
+        <TimelineView product={product} project={project} slug={d.slug} query={query} timeline={timeline} kinds={kinds} />
+      </div>
+    );
+  }
   // a map page is a canvas and nothing else (decision:map.canvas-is-the-page): no properties, no comments, no linked
   // pages — the canvas fills the frame under the top bar, and the page's own text is one toggle away in its toolbar
   if (drawn) return (

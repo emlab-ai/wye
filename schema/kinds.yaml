@@ -45,6 +45,8 @@ kinds:
   test:           { purpose: a verification, usually referenced as test:Class#Method }
   text:           { purpose: a passage of a document that someone needed to point at }
   then:           { purpose: the outcome of a requirement — a child block of it, nests-in: [req, rule, test, ui-test] }
+  timed:          { purpose: the properties of something that happens in time }
+  timeline:       { purpose: a page that draws when things happen: its `query:` line says which nodes it watches, what the rows group by }
   tool:           { purpose: an MCP tool or CLI command an agent can call }
   ui-test:        { purpose: an end-to-end spec }
   unless:         { purpose: the exception of a requirement — a child block of it, nests-in: [req, rule, test, ui-test] }

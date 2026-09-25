@@ -865,6 +865,17 @@ The editor's blocks and the components the pages are made of, by area.
     sentence pasted mid-paragraph is exactly the noise this is here to remove.
   status: proposed
   part-of: module:components
+- id: component:timeline-view
+  file: packages/web/src/components/TimelineView.tsx
+  side: client
+  purpose: >
+    The timeline page (component&#58;timeline-view, decision&#58;wf2.timeline-is-a-query): a strip that edits the
+    page's query and a chart under it. Every bar is a node that says when it happens — `starts` / `ends`, a
+    `duration`, a `due` date — and the rows are whatever the query groups by, a property or a path of links
+    (`worker.part-of` puts a person's work under their team). Clicking a bar selects the node in the Context panel,
+    the way a click on a block does (rule:block-select); the dates themselves are edited on its card there.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->
