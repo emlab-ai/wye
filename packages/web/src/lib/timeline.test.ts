@@ -71,6 +71,16 @@ describe('the rows of a chart', () => {
     expect([t.total, t.undated]).toEqual([4, 1]);
     expect([t.from, t.to]).toEqual(['2026-09-01', '2026-09-20']);
   });
+  it('stacks what overlaps into lanes, and leaves what does not on one', () => {
+    const t = run('kind=task,goal rows=kind');
+    const goals = t.rows.find(r => r.labels[0] === 'goal')!;
+    expect(goals.lanes).toBe(1);
+    const tasks = t.rows.find(r => r.labels[0] === 'task')!;
+    expect(tasks.lanes).toBeGreaterThan(1);                       // 09-01→09-05 and 09-02→09-03 cannot share a lane
+    expect(tasks.items.find(i => i.id === 'task:a')!.lane).toBe(0);
+    expect(tasks.items.find(i => i.id === 'task:d')!.lane).toBe(1);
+    expect(tasks.items.find(i => i.id === 'task:b')!.lane).toBe(0); // 09-08 is clear of 09-05, so back to the first lane
+  });
   it('groups by a plain property, a kind, or nothing at all', () => {
     expect(run('kind=task rows=status').rows.map(r => r.labels[0]).sort()).toEqual(['done', 'open']);
     expect(run('rows=kind').rows.map(r => r.labels[0]).sort()).toEqual(['goal', 'task']);

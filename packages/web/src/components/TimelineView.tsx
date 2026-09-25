@@ -13,6 +13,7 @@ interface Props { product: string; project: string; slug: string; query: string;
 
 const QUICK_ROWS = ['worker', 'owner', 'status', 'kind', 'part-of'];
 const MIN_BAR = 0.8;   // a one-day bar is still visible, in percent of the window
+const LANE = 26;       // the height of one lane of bars inside a row
 
 export function TimelineView({ product, project, slug, query, timeline, kinds }: Props) {
   const router = useRouter();
@@ -44,7 +45,7 @@ export function TimelineView({ product, project, slug, query, timeline, kinds }:
     const width = Math.max(MIN_BAR, at(i.to) - left);
     const title = `${i.title} · ${i.from}${i.to !== i.from ? ` → ${i.to}` : ''}${i.status ? ` · ${i.status}` : ''}`;
     return (
-      <button key={i.id} className={`tl-bar k-${i.kind} ${i.point ? 'point' : ''} s-${i.status || 'none'}`} style={{ left: `${left}%`, width: i.point ? undefined : `${width}%` }}
+      <button key={i.id} className={`tl-bar k-${i.kind} ${i.point ? 'point' : ''} s-${i.status || 'none'}`} style={{ left: `${left}%`, width: i.point ? undefined : `${width}%`, top: 3 + i.lane * LANE }}
         title={title} onClick={() => open(i.id)}>
         <span className="tl-bar-label">{i.title}</span>
       </button>
@@ -99,7 +100,7 @@ export function TimelineView({ product, project, slug, query, timeline, kinds }:
                   ))}
                   <span className="tl-rowcount muted">{r.items.length}</span>
                 </div>
-                <div className="tl-track">
+                <div className="tl-track" style={{ minHeight: r.lanes * LANE + 4 }}>
                   {ticks.map(t => <i key={t.at} className={`tl-grid ${t.major ? 'major' : ''}`} style={{ left: `${at(t.at)}%` }} />)}
                   {now !== null && <span className="tl-now" style={{ left: `${now}%` }} />}
                   {r.items.map(bar)}

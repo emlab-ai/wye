@@ -6,10 +6,10 @@ import { parseBody, type GraphData, type GraphEdge, type GraphIndex, type GraphN
 
 export type TimelineQuery = { kinds: string[]; rows: string[]; from: string; to: string; q: string; status: string[]; props: Record<string, string> };
 export type Span = { from: string; to: string; point: boolean };
-export type Item = Span & { id: string; kind: string; title: string; status: string };
+export type Item = Span & { id: string; kind: string; title: string; status: string; lane: number };
 // A row of the chart: one per combination of the `rows` levels — `labels` is what each level answered, so the view
 // can draw a header when a level changes and the row itself for the deepest one.
-export type Row = { key: string; labels: string[]; ids: string[]; items: Item[] };
+export type Row = { key: string; labels: string[]; ids: string[]; items: Item[]; lanes: number };
 export type Timeline = { rows: Row[]; from: string; to: string; total: number; undated: number };
 
 const DAY = 86400000;
@@ -109,10 +109,22 @@ export function buildTimeline(g: Pick<GraphData, 'nodes'>, idx: Pick<GraphIndex,
     const labels = levels.length ? steps.map(s2 => (s2 ? s2.label : '—')) : ['everything'];
     const ids = levels.length ? steps.map(s2 => s2?.id ?? '') : [''];
     const key = labels.join(' ▸ ');
-    if (!rows.has(key)) rows.set(key, { key, labels, ids, items: [] });
-    rows.get(key)!.items.push({ id: n.id, kind: n.kind, title: n.title || n.id, status: n.status || '', ...span });
+    if (!rows.has(key)) rows.set(key, { key, labels, ids, items: [], lanes: 1 });
+    rows.get(key)!.items.push({ id: n.id, kind: n.kind, title: n.title || n.id, status: n.status || '', lane: 0, ...span });
   }
-  for (const r of rows.values()) r.items.sort((a, b) => a.from.localeCompare(b.from) || a.title.localeCompare(b.title));
+  // two things that overlap in one row go on lanes under each other, the way a Gantt stacks them — a row is as tall
+  // as it needs to be and nothing is drawn over anything
+  for (const r of rows.values()) {
+    r.items.sort((a, b) => a.from.localeCompare(b.from) || a.title.localeCompare(b.title));
+    const ends: string[] = [];
+    for (const i of r.items) {
+      let lane = ends.findIndex(end => end < i.from);
+      if (lane < 0) { lane = ends.length; ends.push(''); }
+      ends[lane] = i.to;
+      i.lane = lane;
+    }
+    r.lanes = Math.max(1, ends.length);
+  }
   // a row with no name last, so "—" does not lead the chart
   const list = [...rows.values()].sort((a, b) => Number(a.labels[0] === '—') - Number(b.labels[0] === '—') || a.key.localeCompare(b.key));
   const all = list.flatMap(r => r.items);
