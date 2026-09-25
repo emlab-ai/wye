@@ -931,6 +931,17 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       editor.createLink(made.id, selection);
       touched.current = true; changed(); publishContext();
       return made.id;
+    }, comment: async (body: string) => {
+      const words = selection.trim(); const note = body.trim();
+      if (!words || !note) return null;
+      const on = docNodeOf(index, slug) ?? `module:${slug}`;
+      const r = await fetch(`/api/${product}/comments`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ on, text: `“${words}” — ${note}`, project }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.id) { setLintMsg(`could not comment: ${j.message ?? j.error ?? 'failed'}`); return null; }
+      tt.view.focus(); tt.commands.setTextSelection(range);
+      editor.createLink(j.id, words);
+      touched.current = true; changed(); publishContext();
+      return j.id as string;
     }, insert: (id: string) => {
       editor.focus();
       // a tag glued to the previous word would change it; pad with a space unless the cursor already follows one

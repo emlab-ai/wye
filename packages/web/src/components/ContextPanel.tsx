@@ -15,6 +15,7 @@ export function ContextPanel() {
   const { product, index, editing, open } = usePeek();
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);   // the comment being written on the selected words
   const [hits, setHits] = useState<Hit[]>([]);
   const [state, setState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [msg, setMsg] = useState('');
@@ -79,10 +80,19 @@ export function ContextPanel() {
         })}
       </ul>
       {selection && (
-        <div className="ctx-make">
-          <span className="muted small">or make it a</span>
-          {MAKE_KINDS.map(k => <button key={k} className="ctx-new" disabled={busy} onClick={async () => { setBusy(true); await editing.make(k); setBusy(false); }} title={`Make ${k}:… titled “${selection.slice(0, 40)}” and link these words to it`}>{k}</button>)}
-        </div>
+        <>
+          <div className="ctx-make">
+            <span className="muted small">make these words a</span>
+            {MAKE_KINDS.map(k => <button key={k} className="ctx-new" disabled={busy} onClick={async () => { setBusy(true); await editing.make(k); setBusy(false); }} title={`Make ${k}:… titled “${selection.slice(0, 40)}” and link these words to it`}>{k}</button>)}
+            <button className="ctx-new" disabled={busy} onClick={() => setNote(note === null ? '' : null)} title="Comment on these words">💬 comment</button>
+          </div>
+          {note !== null && (
+            <form className="ctx-note" onSubmit={async e => { e.preventDefault(); if (!note.trim()) return; setBusy(true); const id = await editing.comment(note); setBusy(false); if (id) setNote(null); }}>
+              <input autoFocus value={note} placeholder={`what about “${selection.slice(0, 30)}${selection.length > 30 ? '…' : ''}”?`} onChange={e => setNote(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') setNote(null); }} />
+              <button className="pri" disabled={busy || !note.trim()}>Comment</button>
+            </form>
+          )}
+        </>
       )}
     </div>
   );

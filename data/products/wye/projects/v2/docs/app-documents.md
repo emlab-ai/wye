@@ -626,6 +626,23 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
   - consequence:wf2.a-link-is-on-the-words The prompts and the skill documents say it now: a link goes on the words, `[the words](kind:slug)`, and ids belong in a card's properties. Measured while doing it: an id dropped in a paragraph often makes no edge at all, while the same id on a phrase makes a `related-to` edge — so the pill was not only noisy, it was frequently not even a link.
 
+```yaml
+- id: decision:wf2.a-comment-can-sit-on-words
+  title: A comment on a passage is a node the words link to
+  date: 2026-09-25
+  status: proposed
+  affects: [component:context-panel, component:doc-editor, type:comment]
+  by: alex
+  evidence: [session:01CSgdACao6iVNLY8peMSUGK]
+  part-of: module:app-documents
+```
+
+  - context:wf2.a-comment-can-sit-on-words A comment could only be made on a whole block. Alex: "when we add comment to a text and not block we somehow need to wrap this text into linkable block, so it will display comment when selected."
+
+  - choice:wf2.a-comment-can-sit-on-words Select the words, write the comment in the Context panel, and the comment becomes a node on the page — quoting the words — which those words then link to. The passage is addressable because the link is in the text, so it survives every edit around it; the words carry a dotted line in the comment's own colour, hovering shows what was said, and a click selects the comment in the panel. No block is split and no anchor depends on a hash that changes when a sentence is reworded.
+
+  - alternative:wf2.a-comment-can-sit-on-words Anchoring the comment to the block and remembering the quoted words — rejected: a block's id is a hash of its text, so the anchor breaks the moment the paragraph is edited, which is when a comment matters most. Splitting the passage into a block of its own — rejected: it changes the prose to hold a remark about it.
+
 ## Libraries
 
 <!-- list:lib -->

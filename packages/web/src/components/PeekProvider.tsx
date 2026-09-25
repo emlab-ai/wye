@@ -14,6 +14,9 @@ export type EditingContext = {
   selection: string; attach: (id: string) => void; insert: (id: string) => void;
   // a node made from the selected words and linked to them in one go: the words are its title
   make: (kind: string) => Promise<string | null>;
+  // a comment on the selected words (decision:wf2.a-comment-can-sit-on-words): the comment is a node on this page and
+  // the words link to it, so the text carries its own mark and the comment shows when the words are selected
+  comment: (text: string) => Promise<string | null>;
 };
 // The right column is a navigation stack: the root is Context (on document pages) and every opened node is pushed
 // on top. `back` pops; `go(i)` jumps to an entry, dropping what is above it — except pinned entries, which are kept.
