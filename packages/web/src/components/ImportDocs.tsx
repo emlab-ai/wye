@@ -11,6 +11,13 @@ export type Picked = { path: string; file: File };
 type Doc = { slug: string; title: string; folder: boolean; parent: string | null; from: string | null };
 type MdResult = { docs: Doc[]; skipped: { path: string; reason: string }[]; assets: string[]; analyse: boolean };
 type CodeResult = { project: string; slug: string; node: string; task: string; session?: string; error?: string };
+type PathResult = { requestSlug: string; total: number };
+
+// What lands as a document or an asset — everything else (an app's own config, an attachment of another kind) is
+// dropped before it ever reaches a request, not just skipped once it gets there.
+const IMPORTABLE = /\.(md|markdown|png|jpe?g|gif|webp|svg)$/i;
+// A folder path segment nothing should walk into: a dot-folder (.obsidian, .git, .trash) or node_modules.
+const skipDir = (name: string) => name.startsWith('.') || name === 'node_modules';
 
 // A drop's items, walked: folders keep their paths ("notes/2026/plan.md"). Files only, markdown or images.
 export async function filesOfDrop(dt: DataTransfer): Promise<Picked[]> {
@@ -23,12 +30,12 @@ export async function filesOfDrop(dt: DataTransfer): Promise<Picked[]> {
         const reader = (e as FileSystemDirectoryEntry).createReader();
         const all: FileSystemEntry[] = [];
         for (;;) { const batch = await new Promise<FileSystemEntry[]>((res, rej) => reader.readEntries(res, rej)); if (!batch.length) break; all.push(...batch); }
-        for (const c of all) if (!c.name.startsWith('.') && c.name !== 'node_modules') await walk(c, prefix + e.name + '/');
+        for (const c of all) if (!skipDir(c.name)) await walk(c, prefix + e.name + '/');
       }
     };
     for (const e of entries) if (e) await walk(e, '');
   } else for (const f of [...dt.files]) out.push({ path: f.name, file: f });
-  return out.filter(p => /\.(md|markdown|png|jpe?g|gif|webp|svg)$/i.test(p.path));
+  return out.filter(p => IMPORTABLE.test(p.path));
 }
 
 // What the person wants the agent to do with these pages, on top of the skill: kept as `brief:` on each imported page
@@ -58,6 +65,8 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
   const [name, setName] = useState('');
   const [codePath, setCodePath] = useState('');
   const [codeResult, setCodeResult] = useState<CodeResult | null>(null);
+  const [pathIn, setPathIn] = useState('');   // a folder already on this machine — the desktop app reads it directly, no upload
+  const [pathResult, setPathResult] = useState<PathResult | null>(null);
   const fileIn = useRef<HTMLInputElement>(null); const dirIn = useRef<HTMLInputElement>(null);
   useEffect(() => { if (dirIn.current) dirIn.current.setAttribute('webkitdirectory', ''); }, []);
   const parentProject = docs.find(d => d.slug === parent)?.project;
@@ -67,28 +76,46 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
 
   const pick = (list: FileList | null, keepPath: boolean) => {
     if (!list) return;
-    const add: Picked[] = [...list].map(f => ({ path: keepPath ? ((f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name) : f.name, file: f }));
+    const add: Picked[] = [...list]
+      .map(f => ({ path: keepPath ? ((f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name) : f.name, file: f }))
+      .filter(p => IMPORTABLE.test(p.path) && !p.path.split('/').some(skipDir));
     setPicked(ps => [...ps, ...add.filter(a => !ps.some(p => p.path === a.path))]);
   };
   async function importMd() {
     setBusy(true); setMsg(null);
-    const fd = new FormData();
-    for (const p of picked) fd.append(p.path, p.file, p.path);
-    if (pasted.trim()) { const name = (pasted.match(/^#\s+(.+?)\s*$/m)?.[1] ?? 'pasted').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'pasted'; fd.append(`${name}.md`, new Blob([pasted], { type: 'text/markdown' }), `${name}.md`); }
-    if (parent) fd.append('parent', parent);
-    fd.append('analyse', analyse ? '1' : '0');
-    if (analyse && brief.trim()) fd.append('brief', brief.trim());
-    const r = await fetch(`/api/${product}/${effectiveProject}/import`, { method: 'POST', body: fd });
-    const j = await r.json(); setBusy(false);
-    if (!r.ok) { setMsg(j.message ?? j.error); return; }
-    setResult(j); setPicked([]); setPasted(''); router.refresh();
+    try {
+      const fd = new FormData();
+      for (const p of picked) fd.append(p.path, p.file, p.path);
+      if (pasted.trim()) { const name = (pasted.match(/^#\s+(.+?)\s*$/m)?.[1] ?? 'pasted').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'pasted'; fd.append(`${name}.md`, new Blob([pasted], { type: 'text/markdown' }), `${name}.md`); }
+      if (parent) fd.append('parent', parent);
+      fd.append('analyse', analyse ? '1' : '0');
+      if (analyse && brief.trim()) fd.append('brief', brief.trim());
+      const r = await fetch(`/api/${product}/${effectiveProject}/import`, { method: 'POST', body: fd });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j) { setMsg(j?.message ?? j?.error ?? `import failed (${r.status})`); return; }
+      setResult(j); setPicked([]); setPasted(''); router.refresh();
+    } catch (e) { setMsg(e instanceof Error ? e.message : 'could not reach the server'); }
+    finally { setBusy(false); }
   }
   async function importCode() {
     setBusy(true); setMsg(null);
-    const r = await fetch(`/api/${product}/import-code`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, path: codePath, project: effectiveProject, parent: parent || undefined, analyse, brief: analyse && brief.trim() ? brief.trim() : undefined }) });
-    const j = await r.json(); setBusy(false);
-    if (!r.ok) { setMsg(j.message ?? j.error); return; }
-    setCodeResult(j); router.refresh();
+    try {
+      const r = await fetch(`/api/${product}/import-code`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, path: codePath, project: effectiveProject, parent: parent || undefined, analyse, brief: analyse && brief.trim() ? brief.trim() : undefined }) });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j) { setMsg(j?.message ?? j?.error ?? `import failed (${r.status})`); return; }
+      setCodeResult(j); router.refresh();
+    } catch (e) { setMsg(e instanceof Error ? e.message : 'could not reach the server'); }
+    finally { setBusy(false); }
+  }
+  async function importPath() {
+    setBusy(true); setMsg(null);
+    try {
+      const r = await fetch(`/api/${product}/${effectiveProject}/import`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path: pathIn.trim(), parent: parent || undefined, analyse, brief: analyse && brief.trim() ? brief.trim() : undefined }) });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j) { setMsg(j?.message ?? j?.error ?? `import failed (${r.status})`); return; }
+      setPathResult(j); router.refresh();
+    } catch (e) { setMsg(e instanceof Error ? e.message : 'could not reach the server'); }
+    finally { setBusy(false); }
   }
   const first = result?.docs.find(d => !d.folder) ?? result?.docs[0];
   return (
@@ -97,7 +124,7 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
         <button role="tab" aria-selected={mode === 'md'} className={mode === 'md' ? 'on' : ''} onClick={() => setMode('md')}>Markdown</button>
         <button role="tab" aria-selected={mode === 'code'} className={mode === 'code' ? 'on' : ''} onClick={() => setMode('code')}>From code</button>
       </div>
-      {mode === 'md' && !result && <div className="import-split">
+      {mode === 'md' && !result && !pathResult && <div className="import-split">
         <div className="import-main">
           <p className="muted small">Paste a document, or pick <code>.md</code> files or a folder (the folder's tree is kept). Each becomes a page, unchanged. Drop files here too.</p>
           <textarea className="import-paste" value={pasted} rows={7} placeholder={'Paste markdown here — a PRD, meeting notes, a glossary… The first heading becomes the title.'} onChange={e => setPasted(e.target.value)} />
@@ -111,6 +138,14 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
           {picked.length > 0 && <ul className="import-list">{picked.slice(0, 12).map(p => <li key={p.path}><code>{p.path}</code><button className="linkish" onClick={() => setPicked(ps => ps.filter(x => x.path !== p.path))} aria-label={`remove ${p.path}`}>×</button></li>)}{picked.length > 12 && <li className="muted">… and {picked.length - 12} more</li>}</ul>}
           <label className="check"><input type="checkbox" checked={analyse} onChange={e => setAnalyse(e.target.checked)} /><span><b>Analyse with agent</b> — an agent reads each page and rewrites it in place into requirements, decisions, facts, entities and tasks, all proposed; types the product lacks are proposed too.</span></label>
           <div className="sec-actions"><button className="pri" disabled={busy || (!mdCount && !pasted.trim())} onClick={importMd}>{busy ? 'Importing…' : `Import${count ? ` ${count}` : ''}`}</button><button disabled={busy} onClick={onClose}>Cancel</button>{msg && <span className="notice">{msg}</span>}</div>
+          <div className="import-path">
+            <span className="muted small">Or a big folder already on this machine — an Obsidian vault, a wiki export:</span>
+            <div className="import-grid">
+              <input value={pathIn} placeholder="/Users/you/Documents/Notes — read on this machine, not uploaded" onChange={e => setPathIn(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && pathIn.trim()) importPath(); }} />
+              <button disabled={busy || !pathIn.trim()} onClick={importPath}>{busy ? 'Starting…' : 'Import sequentially'}</button>
+            </div>
+            <p className="muted small">Makes a request page listing every file as a task, then imports and — if Analyse with agent is on — hands each one to an agent, one at a time, so it never starts more than one agent session at once.</p>
+          </div>
         </div>
         <BriefBox brief={brief} setBrief={setBrief} on={analyse} placeholder={'e.g. Only the requirements and open questions; keep the rest as prose. Treat every bullet under "Facts" as a fact. These are meeting notes: decisions and tasks, nothing else.'} skill="skill:import" />
       </div>}
@@ -120,6 +155,10 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
         <ul className="import-list">{result.docs.filter(d => !d.folder).slice(0, 12).map(d => <li key={d.slug}><a href={`/${product}/${effectiveProject}/d/${d.slug}`}>{d.title}</a> <span className="muted small">{d.from}</span></li>)}</ul>
         {result.skipped.length > 0 && <p className="muted small">skipped: {result.skipped.map(s => `${s.path} (${s.reason})`).join(', ')}</p>}
         <div className="sec-actions">{first && <button className="pri" onClick={() => { onClose(); router.push(`/${product}/${effectiveProject}/d/${first.slug}`); }}>Open {first.title}</button>}<button onClick={onClose}>Close</button></div>
+      </>}
+      {mode === 'md' && pathResult && <>
+        <p><b>{pathResult.total} file{pathResult.total === 1 ? '' : 's'}</b> queued on the request page — each is written, then {analyse ? 'handed to an agent, one at a time' : 'left for its own Analyse button'}. Reopen the page any time to see how far it got.</p>
+        <div className="sec-actions"><button className="pri" onClick={() => { onClose(); router.push(`/${product}/${effectiveProject}/d/${pathResult.requestSlug}`); }}>Open the import request</button><button onClick={onClose}>Close</button></div>
       </>}
       {mode === 'code' && !codeResult && <div className="import-split">
         <div className="import-main">
