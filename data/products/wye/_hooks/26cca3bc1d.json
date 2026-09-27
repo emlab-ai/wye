@@ -1,0 +1,29 @@
+{
+  "id": "26cca3bc1d",
+  "hook": "",
+  "actions": [
+    {
+      "kind": "task",
+      "added": [
+        "task:wye.tech-design-for-implement-a-feature"
+      ],
+      "session": "5340e4ddaa"
+    },
+    {
+      "kind": "task",
+      "added": [
+        "task:wye.test-design-for-implement-a-feature"
+      ],
+      "session": "786a99f913"
+    }
+  ],
+  "at": "2026-09-22T20:11:51.862Z",
+  "by": {
+    "run": "run:feature-1",
+    "stage": "stage:feature.design"
+  },
+  "title": "Tech design and test design",
+  "node": "goal:new-650",
+  "event": "stage:stage:feature.design",
+  "depth": 0
+}

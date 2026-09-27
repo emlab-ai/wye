@@ -950,3 +950,670 @@ scratch product with the real claude. Not in CI yet (task:ui-tests-in-ci).
     - instance-table: coverageOf — what satisfies a req, what verifies it, its tasks, and a gap naming which side is missing
   count: 94
 ```
+
+## Install from the command line (req:install.cli)
+
+What the list, install and uninstall commands must show so that a person can trust them to do what the app does. The command names are not fixed yet; each check compares the command's result with the same act in the app on a scratch product.
+
+```yaml
+- id: test:install.cli-list
+  title: The command-line list shows, for each project of the product, the packages installed in it — the same as the app shows
+  steps: >
+    On a scratch product with two projects, install package A in the first and packages A and B in the second (in
+    the app). Run the list command: it names both projects, A under the first, A and B under the second, and
+    nothing else; its --json output matches what the app's list of installed packages returns for each project.
+    Uninstall B in the app and list again: B is gone from the second project.
+  covers: [req:install.cli]
+  status: proposed
+- id: test:install.cli-install-parity
+  title: Installing a package from the command line leaves the project exactly as installing it in the app does
+  steps: >
+    Two scratch products made from the same fixture. Install package A into project p of the first with the
+    install command, and into project p of the second with Install in the app. Compare the two project folders
+    and the two graphs: the same files and links, the same record of installed packages, the same skills in the
+    Skills folder, the same workflows runnable and the same hooks on the Hooks page. The command exits 0 and says
+    what it installed.
+  covers: [req:install.cli]
+  status: proposed
+- id: test:install.cli-uninstall-parity
+  title: Uninstalling a package from the command line leaves the project exactly as uninstalling it in the app does, and it stays gone
+  steps: >
+    Two scratch products with package A installed in project p. Uninstall it with the uninstall command in the
+    first and with Uninstall in the app in the second. Compare the two project folders and graphs: identical, with
+    A's skills, workflows, hooks and templates gone and A no longer listed as installed. Restart the server and
+    open both products: A has not come back in either.
+  covers: [req:install.cli]
+  status: proposed
+- id: test:install.cli-refusals
+  title: The command line refuses what the app refuses, in words, and changes nothing
+  steps: >
+    On a scratch product: install a package already installed in the project, uninstall a package the project
+    does not have, install a package name the system library does not hold, and name a project that does not
+    exist. Each command exits non-zero with a sentence saying why (already installed, not installed, no such
+    package, no such project), and the product's files and graph are byte-for-byte what they were before. The
+    app refuses the first two acts with the same reason.
+  covers: [req:install.cli]
+  status: proposed
+- id: test:install.cli-one-project
+  title: A command-line install or uninstall touches only the project it names
+  steps: >
+    A scratch product with three projects. Install package A into the second with the install command, then
+    uninstall it: after each command the first and third projects' files, skills, workflows and hooks are
+    unchanged, and the list shows A only against the second project while it is installed.
+  covers: [req:install.cli]
+  status: proposed
+- id: ui-test:install.cli-agent
+  title: An agent session installs and uninstalls a package with the same commands, and the app shows the result live
+  steps: >
+    Start an agent session on a scratch product and ask it to install package A into project p and then list what
+    is installed. With the app open on p: the Skills folder and the Hooks page show A's skills and hooks without a
+    reload once the command returns, and the session's transcript shows the install and list commands and their
+    output. Ask it to uninstall A: the Skills folder and Hooks page empty again.
+  covers: [req:install.cli]
+  status: proposed
+```
+
+## Choosing a template (req:install.picker)
+
+What the New page sheet's Template choice must show so that a person can trust it lists what the system library and the project's installed packages hold, and nothing written into the app's code. Each check runs on a scratch product with its own copy of the system library.
+
+```yaml
+- id: test:install.picker-system-templates
+  title: With no package installed, the Template choice lists exactly the system library's page templates, by name
+  steps: >
+    On a scratch project with no package installed, open the New page sheet. The Template choice lists one entry
+    per page template document in the system library, each under that document's title, and no other entry. The
+    list the sheet is built from (the API it calls) returns the same names.
+  covers: [req:install.picker]
+  status: proposed
+- id: test:install.picker-not-fixed
+  title: Adding, renaming or removing a template document in the system library changes the Template choice without a code change
+  steps: >
+    On the scratch system library: add a page template document "Runbook", rename an existing one, and remove a
+    third. Open the New page sheet again: "Runbook" is listed, the renamed one shows its new title and not the old,
+    the removed one is gone. No file under packages/ was touched; the names prd, dev design, test design and plan
+    appear only while documents with those titles are in the library.
+  covers: [req:install.picker]
+  status: proposed
+- id: test:install.picker-package-templates
+  title: A package's templates are offered in the project it is installed in, and only there, and leave with it
+  steps: >
+    A scratch product with projects p and q and a package A holding page template "Incident review". Install A in
+    p: the sheet opened in p lists "Incident review" next to the system library's templates; the sheet opened in q
+    does not. Uninstall A from p: the sheet in p no longer lists it, and restarting the server does not bring it
+    back.
+  covers: [req:install.picker]
+  status: proposed
+- id: ui-test:install.picker-choose
+  title: A person picks a template by name in the sheet and the new page starts from that template document
+  steps: >
+    With the app open on a project that has a package installed, open New page, open Template, and check the
+    names read as the template documents' titles (no file names, no slugs). Pick the package's template: the new
+    page opens with the template document's headings and blocks. Edit the template document in the library, open
+    New page again and pick it: the new page carries the edit.
+  covers: [req:install.picker]
+  status: proposed
+```
+
+## Uninstalling a package (req:install.uninstall)
+
+What must be true after a person uninstalls a package from a project: everything it placed there is gone, it does not come back, and what already happened with it is left alone. Under decision:install.linked-not-copied uninstall removes the project's link and clears its record — it never touches the system library's documents. Each check runs on a scratch product with package A (skills, a workflow, a hook, a template) installed in project p.
+
+```yaml
+- id: test:install.uninstall-removes
+  title: After uninstall, the package's skills, workflows, hooks and templates are no longer in the project, and it no longer shows as installed there
+  steps: >
+    Uninstall A from p. The project folder holds none of A's links; p's record of installed packages no longer
+    names A; the graph of the product has none of A's skill:, workflow: or hook: ids defined in p; the skills list
+    for p, the workflows that can be run on p's documents, p's Hooks page and the New page sheet for p show nothing
+    of A. The system library's documents of A are byte-for-byte what they were before.
+  covers: [req:install.uninstall]
+  status: proposed
+- id: test:install.uninstall-stays-gone
+  title: Opening the product again, restarting the server or rendering a page does not bring an uninstalled package back
+  steps: >
+    Uninstall A from p, restart the server, open the product and every page of p, and run `wye skills` and
+    `wye skill <id>` for one of A's skills against p. Nothing of A is written back into p (the project folder is
+    unchanged), the skills list for p still lacks it, and asking for one of A's skills in p gets no body — neither
+    from the system library nor from the built-in fallback in prompts/.
+  covers: [req:install.uninstall]
+  status: proposed
+- id: test:install.uninstall-hooks-stop
+  title: After uninstall, the package's hooks no longer fire on anything done in the project
+  steps: >
+    A's hook fires on a requirement being approved in p. Approve a requirement in p before uninstall: one firing
+    and its session. Uninstall A, approve another requirement in p: no firing is recorded, no session starts and no
+    block is written.
+  covers: [req:install.uninstall]
+  status: proposed
+- id: test:install.uninstall-running-session
+  title: A session already running with one of the package's skills finishes as it started
+  steps: >
+    Start a session in p whose brief is one of A's skills (a recorded agent, so it runs without a model). While it
+    is running, uninstall A. The session keeps the instruction it started with, can log and propose blocks, and
+    `wye session done` closes it as done; its transcript and result show no error caused by the uninstall.
+  covers: [req:install.uninstall]
+  status: proposed
+- id: test:install.uninstall-hook-blocks-stay
+  title: Blocks the package's hooks already wrote stay where they are after uninstall
+  steps: >
+    Let A's hook write its blocks in p (task lines with by: hook:<slug>), note the documents' bytes, then uninstall
+    A. The documents holding those blocks are byte-for-byte unchanged, and each block is still a node of the graph
+    with its status, by: and part-of: as before.
+  covers: [req:install.uninstall]
+  status: proposed
+- id: test:install.uninstall-only-this
+  title: Uninstalling a package from one project leaves the project's other packages and the product's other projects as they were
+  steps: >
+    Install A and B in p and A in a second project q. Uninstall A from p. B's skills, workflows, hooks and templates
+    are still in p and B is listed as installed; q still has A listed, its skills in the Skills folder, its workflow
+    runnable and its hook on q's Hooks page; q's folder is byte-for-byte unchanged.
+  covers: [req:install.uninstall]
+  status: proposed
+- id: ui-test:install.uninstall-in-app
+  title: A person chooses Uninstall on an installed package and sees its skills, hooks and templates leave the project
+  steps: >
+    In the app, open where p's installed packages are listed and choose Uninstall on A. Without a reload, A is no
+    longer shown as installed, the Skills folder and Hooks page no longer list its skills and hooks, the workflow
+    menu on a document of p no longer offers its workflow, and the New page sheet no longer offers its templates.
+    Reload the browser: still gone.
+  covers: [req:install.uninstall]
+  status: proposed
+```
+
+## Following the shipped version (req:install.update)
+
+What must be true when a document of an installed package changes in the system library: the next session, run or new page in every project that has the package uses the changed version, and nobody runs a command, restarts the server or touches the project for it. Under decision:install.linked-not-copied the project holds a link, so each check changes only the system library's document and then reads through the project. Each check runs with the server running on a scratch product with package A (a skill, a workflow, a hook, a template) installed in project p of product P and project r of a second product R, and not installed in project q of P.
+
+```yaml
+- id: test:install.update-skill
+  title: After a skill of an installed package is changed in the system library, the next agent session in the project follows the new text
+  steps: >
+    Note p's folder bytes. Change the body of A's skill s in the system library (add a marker sentence). Without
+    running any command in p or restarting the server: `wye skill s` against p prints the marker, and the next
+    session started in p with s as its brief (a recorded agent) carries the marker in its instruction. p's folder
+    is byte-for-byte what it was.
+  covers: [req:install.update]
+  status: proposed
+- id: test:install.update-workflow
+  title: After a workflow of an installed package is changed in the system library, the next run on a project's document uses the new stages
+  steps: >
+    Add a stage to A's workflow w in the system library and change the brief of an existing stage. Start a run of
+    w on a document of p: its run card lists the added stage in order, and the changed stage's session starts
+    with the changed brief. No command was run in p for it.
+  covers: [req:install.update]
+  status: proposed
+- id: test:install.update-hook
+  title: After a hook of an installed package is changed in the system library, its next firing in the project follows the new version
+  steps: >
+    A's hook h fires on a requirement being approved and starts a session with skill s. In the system library,
+    change h to start its session with skill t (also in A) instead. Approve a requirement in p: the firing is
+    recorded against h, and the session it starts has t as its brief. Change h's trigger to a different event,
+    approve another requirement in p: no firing.
+  covers: [req:install.update]
+  status: proposed
+- id: test:install.update-template
+  title: After a template of an installed package is changed in the system library, the next new page made from it in the project carries the change
+  steps: >
+    Add a heading to A's template in the system library. Create a new page in p from that template (through the
+    server's create-page call the New page sheet uses): the page has the added heading. A page made from it
+    before the change is unchanged.
+  covers: [req:install.update]
+  status: proposed
+- id: test:install.update-every-project
+  title: One change in the system library reaches every project that has the package installed, in every product, and no project that does not
+  steps: >
+    Change A's skill s in the system library once. In p (product P) and r (product R), `wye skill s` prints the
+    changed body and a new session with s carries it. In q (P, A not installed) s is still not a skill of the
+    project and nothing of A appears. No project's folder changed.
+  covers: [req:install.update]
+  status: proposed
+- id: test:install.update-graph-follows
+  title: The product's graph and the app show the changed version without a restart
+  steps: >
+    With the server running and an events stream open on P, change the title of A's workflow w in the system
+    library. Within the watcher's settle time the stream reports a rebuild for P, the graph of P serves w with the
+    new title, and a check of P stays at 0 errors. Same for R. The server was not restarted.
+  covers: [req:install.update]
+  status: proposed
+- id: ui-test:install.update-in-app
+  title: A person changes a skill in the system library and sees the change in each project that has the package, without reloading
+  steps: >
+    Open the system library in the app and edit A's skill s (add a sentence). Open p's Skills folder and s: the
+    sentence is there. Switch to product R and open s in r: the sentence is there. Open q's Skills folder: s is not
+    listed. No page asked to update, reinstall or reload.
+  covers: [req:install.update]
+  status: proposed
+```
+
+## The system library (req:install.library)
+
+What the system library must show so that a person can trust it as the list of what Wye ships and where it is in use: every package, what each one holds, and which projects of the current product have it installed. Where the library lives and what defines a package are still open (question:install.system-library-home, question:install.package-definition), so each check compares the library's view with the system library's own definition of each package, whatever form that takes. Under constraint:wf2.no-custom-pages the library is a document with an instances view, so the checks read that view's rows. Each check runs on a scratch product P with projects p1, p2 and p3, and its own copy of the system library holding packages A, B and C.
+
+```yaml
+- id: test:install.library-every-package
+  title: The system library lists every package Wye ships, and nothing else
+  steps: >
+    Open the system library's view: it has one row per package the system library defines — A, B and C — by name,
+    and no other row. Add a package D to the scratch copy of the system library: within the watcher's settle time
+    the view has a row for D without a restart. Remove D: its row is gone.
+  covers: [req:install.library]
+  status: proposed
+- id: test:install.library-contents
+  title: Each package's row shows the skills, workflows, hooks and templates it holds, exactly as the package defines them
+  steps: >
+    For each of A, B and C, the row lists its skills, workflows, hooks and templates under those four names, each
+    by name, and the set equals what the package's definition names — nothing missing, nothing from another
+    package. A package with no hooks shows an empty hooks entry rather than omitting it. Add a template to B's
+    definition: B's row lists it on the next read.
+  covers: [req:install.library]
+  status: proposed
+- id: test:install.library-installed-in
+  title: Each package's row names the projects of the product that have it installed, and follows installs and uninstalls
+  steps: >
+    Install A in p1 and p2 and B in p3; leave C uninstalled. A's row names p1 and p2, B's names p3, C's says it is
+    installed nowhere. Uninstall A from p2 and install C in p2 (through the same calls the app's Install and
+    Uninstall use): A names only p1, C names p2, without a restart. The names agree with each project's own record
+    of what is installed in it.
+  covers: [req:install.library]
+  status: proposed
+- id: test:install.library-this-product
+  title: The projects named against a package are only the current product's
+  steps: >
+    A second scratch product R has package A installed in its project r. Open the library from P: A's row names
+    P's projects that have it and never r. Open it from R: A names r and none of P's projects. Package rows and
+    their contents are the same from both products.
+  covers: [req:install.library]
+  status: proposed
+- id: ui-test:install.library-view
+  title: A person opens the system library in the app and reads every package, what it holds and where it is installed
+  steps: >
+    With A installed in p1 and p2, open the system library from P in the app. It opens like any other document:
+    one row per package with its skills, workflows, hooks and templates and the projects it is installed in. A's
+    row names p1 and p2; C's says nowhere. Click one of A's skills and one of its templates: each opens as a
+    document. No page of its own was needed to show this — the rows are an instances view.
+  covers: [req:install.library]
+  status: proposed
+```
+
+## Page templates in the system library (req:install.library.templates)
+
+What must be true so that a person can treat a page template as a document: it opens through the same read as any other document, an edit saved to it lands in the template's own markdown file, and the next page made from it starts with that edit. Where the library lives is still open (question:install.system-library-home) and whether an edit to a linked template is shared or copied is question:install.edit-linked, so each check edits the template in the scratch copy of the system library itself, never through a project. Each check runs with the server running on a scratch product P with project p and its own copy of the system library holding a page template T with a heading, a paragraph and a `{{title}}` placeholder.
+
+```yaml
+- id: test:install.templates-open-as-document
+  title: A template in the system library opens through the same read as any other document, with its title, headings and blocks
+  steps: >
+    Read T through the document read the app's editor uses (the same call that serves a page of p). It returns T's
+    title, its heading and paragraph as blocks, and its placeholder as written — not a raw file, not an error, not
+    an empty document. `wye doc` on T's path prints the same content. No route or reader exists for templates
+    alone: the read is the one every document goes through.
+  covers: [req:install.library.templates]
+  status: proposed
+- id: test:install.templates-edit-lands-in-file
+  title: An edit saved to a template is written to that template's own markdown file, and nowhere else
+  steps: >
+    Save a change to T (add a second heading) through the document save call the editor uses. T's markdown file in
+    the system library now holds the heading and `git diff` shows only that file changed; no copy of T appeared in
+    p or anywhere else in P. Restart the server and read T again: the heading is still there.
+  covers: [req:install.library.templates]
+  status: proposed
+- id: test:install.templates-edit-next-page
+  title: After a template is edited, the next page made from it starts with the edit, and pages made before stay as they were
+  steps: >
+    Create page X in p from T through the server's create-page call the New page sheet uses. Save an edit to T (add
+    a heading "Risks" and change the paragraph). Create page Y from T: Y has "Risks" and the changed paragraph, and
+    its `{{title}}` is filled with Y's title. X is byte-for-byte what it was. No command was run and the server was
+    not restarted between the edit and Y.
+  covers: [req:install.library.templates]
+  status: proposed
+- id: test:install.templates-graph-clean
+  title: Template documents in the system library leave the product's check at 0 errors and put no placeholder ids in its graph
+  steps: >
+    With two templates in the library that both carry typed blocks with `{{slug}}` in their ids (as the PRD and
+    plan skeletons do), run a check of P: 0 errors, and no duplicate-id error from the two templates. No node of
+    P's graph has an id containing `{{`. Edit one template to add another placeholder block: the check stays at 0.
+  covers: [req:install.library.templates]
+  status: proposed
+- id: ui-test:install.templates-open-edit
+  title: A person opens a template from the system library, reads it like any document, edits it, and the next new page carries the edit
+  steps: >
+    Open the system library in the app and click template T. It opens in the editor like any page: the heading,
+    paragraph and blocks render as they do elsewhere, and the placeholder reads as a placeholder, not as a broken
+    link or an error. Add a heading and leave the page. Open New page in p, pick T: the new page opens with the
+    added heading and its own title where the placeholder was. Reopen T: the heading is still there.
+  covers: [req:install.library.templates]
+  status: proposed
+```
+
+## A person's own template in the system library (req:install.library.new-template)
+
+What must be true once a person adds a page template of their own to the system library: it is offered the next time any template choice opens — in the New page sheet first, and in every other place that makes a page from a named template — with nothing run, restarted or copied by hand. Where the library lives is still open (question:install.system-library-home), so each check adds the template to the scratch copy of the system library itself, through the app's own create-page path, never by writing a file. Each check runs with the server running on a scratch product P with projects p and q and its own copy of the system library.
+
+```yaml
+- id: test:install.new-template-offered-next-open
+  title: A template a person adds to the system library is listed by the New page sheet the next time it opens, in every project
+  steps: >
+    Read the list the New page sheet's Template choice is built from (the API it calls) in p: "Runbook" is not in
+    it. Create a document titled "Runbook" in the system library, with a heading and a `{{title}}` placeholder,
+    through the create-page call the app uses. Read the list again in p and in q, with no command run and no
+    server restart in between: each lists "Runbook" once, under its title, beside the templates that were there
+    before, none of which is gone or renamed.
+  covers: [req:install.library.new-template]
+  status: proposed
+- id: test:install.new-template-every-chooser
+  title: A person's new template is accepted everywhere a page is made from a named template, and each page starts from it
+  steps: >
+    With "Runbook" added as above, make a page from it in p through each place that takes a template name: the New
+    page sheet's create call, the New document dialog's create call, `wye doc create P/p/<slug> --template <runbook>`,
+    and a workflow stage whose `produces` names it. None is refused as an unknown template; each new page holds
+    Runbook's heading with its own title where `{{title}}` was. The New document dialog's template list names
+    Runbook as the sheet does.
+  covers: [req:install.library.new-template]
+  status: proposed
+- id: test:install.new-template-stays
+  title: A person's new template lives in the system library as one file and is still offered after a restart
+  steps: >
+    After adding "Runbook", `git status` of the scratch repo shows one new markdown file in the system library and
+    nothing new in p, q or anywhere else in P. Restart the server: the Template choice in p still lists Runbook,
+    and `wye check` of P is at 0 errors.
+  covers: [req:install.library.new-template]
+  status: proposed
+- id: ui-test:install.new-template-add-and-pick
+  title: A person adds a template in the system library, and the New page sheet offers it the next time it opens, without a reload
+  steps: >
+    With the app open on p, open New page and look at Template: note what it lists, and close it. Open the system
+    library, add a page "Runbook" there, write a heading in it. Without reloading the browser, open New page in p
+    again: Template lists "Runbook" by its title. Pick it: the new page opens with Runbook's heading and its own
+    title. Switch to q and open New page: Runbook is offered there too.
+  covers: [req:install.library.new-template]
+  status: proposed
+```
+
+## A new project starts empty (req:install.fresh)
+
+What must be true of a project nobody has installed a package into: its Skills folder and Hooks page are empty, nothing is written into it when it or its product is opened, and no hook fires on what is done in it. Today `ensureBaseSkills`, `ensureBaseWorkflows` and `ensureHooksPage` write copies on every open of a product (packages/web/src/app/[product]/layout.tsx); decision:install.fresh-project ends that, and these checks fail until it does. Each check runs with the server running on a scratch product P with its own copy of the system library; the project-template path is req:install.fresh.from-template's.
+
+```yaml
+- id: test:install.fresh-new-project-empty
+  title: A project created without a template has no skills, workflows or hooks, however it is created
+  steps: >
+    In P create project a with the app's New project action and project b with the command line, neither from a
+    project template. For each: the list of skills and of workflows for the project is empty, its hooks list is
+    empty, the list of installed packages is empty, and its folder holds no skill document, no workflow document
+    and no hook card. `wye check` of P is at 0 errors.
+  covers: [req:install.fresh]
+  status: proposed
+- id: test:install.fresh-open-writes-nothing
+  title: Opening a product or a project that has nothing installed writes nothing into it
+  steps: >
+    With project a from above, commit the scratch repo. Open P's home, open a, open one of a's documents, restart
+    the server and open them again. `git status` of the scratch repo is clean: no Skills page, skill document,
+    workflow or Hooks card was written into a (or anywhere in P), and a's skills, workflows and hooks lists are
+    still empty.
+  covers: [req:install.fresh]
+  status: proposed
+- id: test:install.fresh-no-hook-fires
+  title: Nothing done in a project with no package installed fires a hook
+  steps: >
+    In project a with nothing installed: add a requirement and approve it, add a decision and approve it, mark a
+    task done, and end an agent session started on a's document. No hook firing is recorded for P, no task line
+    is added by a hook, and no agent session is started by a hook. In a second project c of P with package A
+    installed (A holds a hook that fires on a requirement being approved), approving a requirement does fire it —
+    so the silence in a is not the engine being off.
+  covers: [req:install.fresh]
+  status: proposed
+- id: test:install.fresh-other-project-installed
+  title: A package installed in one project of the product does not show up in a project created later
+  steps: >
+    With package A installed in project c of P, create project d without a template. d's skills, workflows,
+    hooks and installed packages are all empty, and A's skills are not offered to a session started on a
+    document of d; c still lists A as installed.
+  covers: [req:install.fresh]
+  status: proposed
+- id: ui-test:install.fresh-empty-in-app
+  title: A person creates a project and sees an empty Skills folder and Hooks page
+  steps: >
+    In the app on P, create a project with New project, choosing no template. Open it: the Skills folder shows no
+    skill and no workflow, and the Hooks page shows no hook card. Reload the browser and open a document of the project: the
+    Skills folder and Hooks page are still empty.
+  covers: [req:install.fresh]
+  status: proposed
+```
+
+## A project made from a project template (req:install.fresh.from-template)
+
+What must be true of a project a person creates from a project template: the template's pages are in place and the packages it names are installed — exactly those, installed the same way Install would install them, in that project only. Nothing yet says what a project template is or how it names its packages (question:install.project-template), so each check uses a scratch project template T in the scratch copy of the system library that names packages A and B and one page, "Overview"; A holds a skill, a workflow, a page template and a hook that fires on a requirement being approved. Each check runs with the server running on a scratch product P with its own copy of the system library and an existing project p with nothing installed.
+
+```yaml
+- id: test:install.from-template-packages-installed
+  title: A project made from a project template lists exactly the packages the template names as installed, however it is created
+  steps: >
+    In P create project t1 from T with the app's New project action and project t2 from T with the command line.
+    For each: the list of installed packages is A and B, nothing else; its skills, workflows, hooks and page
+    templates are A's and B's, each listed once. `wye check` of P is at 0 errors.
+  covers: [req:install.fresh.from-template]
+  status: proposed
+- id: test:install.from-template-same-as-install
+  title: The packages a template brings are installed exactly as if the person had installed them by hand
+  steps: >
+    Create project t1 from T, and project h without a template, then Install A and then B into h. Compare t1 and h
+    apart from the template's pages: the same package files and links, the same record of installed packages,
+    the same skills, workflows and hooks in the graph. Uninstall A from t1: it leaves t1 exactly as uninstalling
+    A leaves h, and B stays installed in both.
+  covers: [req:install.fresh.from-template]
+  status: proposed
+- id: test:install.from-template-pages-in-place
+  title: A project made from a project template opens with the template's pages already written
+  steps: >
+    Create project t1 from T. Its folder holds the template's Overview page, with the template's content and any
+    `{{title}}` / `{{slug}}` placeholder filled with t1's; the project's document list shows it under its title.
+    Open t1 and restart the server: `git status` shows nothing written beyond what creating t1 wrote.
+  covers: [req:install.fresh.from-template]
+  status: proposed
+- id: test:install.from-template-hooks-live
+  title: The hooks a template's packages bring fire in the new project from the first act
+  steps: >
+    In project t1 made from T, add a requirement and approve it: A's hook fires once, and its firing is recorded
+    against t1. Approving a requirement in p, which has nothing installed, fires nothing.
+  covers: [req:install.fresh.from-template]
+  status: proposed
+- id: test:install.from-template-other-projects
+  title: Creating a project from a template installs nothing into the product's other projects
+  steps: >
+    Commit the scratch repo, then create project t1 from T. `git status` shows changes only inside t1's folder;
+    p's skills, workflows, hooks and installed packages are still empty, and a project t3 then created without a
+    template is empty too.
+  covers: [req:install.fresh.from-template]
+  status: proposed
+- id: test:install.from-template-no-packages
+  title: A project template that names no package gives its pages and nothing installed
+  steps: >
+    With a scratch project template T0 that has the Overview page and names no package, create project t0 from
+    it: the Overview page is there, and its installed packages, skills, workflows and hooks are all empty.
+  covers: [req:install.fresh.from-template]
+  status: proposed
+- id: ui-test:install.from-template-in-app
+  title: A person creates a project from a project template and finds its pages, skills and hooks already there
+  steps: >
+    In the app on P, create a project with New project, choosing T. It opens with the Overview page in its
+    document list; the Skills folder shows A's and B's skills and workflows, the Hooks page shows their hooks,
+    and the project's installed packages list A and B. Open p: its Skills folder and Hooks page are still empty.
+  covers: [req:install.fresh.from-template]
+  status: proposed
+```
+
+## Installing a package (req:install.install)
+
+What must be true after a person installs a package into a project: every skill, workflow, hook and template it holds is there together and working, the project lists it as installed, and installing it a second time changes nothing. What the person sees before confirming is req:install.install.preview's, and the product's other projects are req:install.install.other-projects'. Under decision:install.package-is-the-unit the whole package arrives at once, and under decision:install.linked-not-copied what arrives is a link to the system library's documents. Each check runs on a scratch product with its own copy of the system library, a project p with nothing installed, and a package A holding two skills, a workflow whose stages use them, a hook and a page template.
+
+```yaml
+- id: test:install.install-places
+  title: After install, every skill, workflow, hook and template of the package is in the project, and the project lists the package as installed
+  steps: >
+    Install A into p. p's record of installed packages names A; the graph of the product defines A's two skill:
+    ids, its workflow: id and its hook: id in p, each once; `wye skills` for p lists both skills and the workflow;
+    `wye skill <id>` for one of them prints the system library's body. Nothing of A is left out: the count of
+    documents A holds in the system library equals the count p now has from A. The system library's documents
+    are byte-for-byte what they were before.
+  covers: [req:install.install]
+  status: proposed
+- id: test:install.install-workflow-runs
+  title: A workflow that arrived with the package can be run on a document of the project
+  steps: >
+    Before install, the workflow choice on a document of p does not offer A's workflow. Install A, then start
+    A's workflow on a document of p (a recorded agent, so it runs without a model): a run: card is written, its
+    first stage starts a session whose brief is A's first stage skill, and advancing the stage starts the next one.
+  covers: [req:install.install]
+  status: proposed
+- id: test:install.install-hook-fires
+  title: A hook that arrived with the package shows on the project's Hooks page and fires on what is done in the project
+  steps: >
+    A's hook fires on a requirement being approved. Approve a requirement in p before install: no firing, no
+    session. Install A: p's Hooks page holds A's hook with its trigger and its skill. Approve another requirement
+    in p: exactly one firing is recorded against p, its session starts with A's hook's skill as its brief.
+  covers: [req:install.install]
+  status: proposed
+- id: test:install.install-template-offered
+  title: A page template that arrived with the package is offered in the project and a new page starts from it
+  steps: >
+    Before install, the New page sheet for p does not list A's template. Install A: it lists it by its title.
+    Create a page from it in p: the new page carries the template document's headings and blocks with its
+    placeholders filled from the new page's title and slug.
+  covers: [req:install.install]
+  status: proposed
+- id: test:install.install-already-installed
+  title: Installing a package the project already has says so and changes nothing
+  steps: >
+    Install A into p, commit the scratch repo, then install A into p again (in the app and with the install
+    command). Each is answered with a sentence that A is already installed in p; `git status` is clean; p's record
+    names A once; the graph defines each of A's ids once; approving a requirement in p fires A's hook once, not
+    twice.
+  covers: [req:install.install]
+  status: proposed
+- id: test:install.install-survives-restart
+  title: An installed package is still installed after the server restarts and the product is opened again
+  steps: >
+    Install A into p, restart the server and open the product and every page of p. p's record still names A, its
+    skills, workflow, hook and template are all still in p, the project folder is unchanged by the reopen, and
+    approving a requirement in p still fires A's hook.
+  covers: [req:install.install]
+  status: proposed
+- id: ui-test:install.install-in-app
+  title: A person chooses Install on a package for a project and sees its skills, workflows, hooks and templates appear there
+  steps: >
+    In the app on p, open the list of packages, choose Install on A and confirm. Without a reload, A shows as
+    installed in p; the Skills folder lists its skills and workflow; the workflow menu on a document of p offers
+    its workflow; the Hooks page shows its hook; the New page sheet offers its template. Choose Install on A again:
+    the app says A is already installed in p and nothing else on screen changes. Reload the browser: all still there.
+  covers: [req:install.install]
+  status: proposed
+```
+
+## What a package will put in the project, before it is installed (req:install.install.preview)
+
+What the person must see between choosing Install and the package arriving: everything the package holds, each hook with what it fires on and whether it starts an agent session, and no change to the project until they confirm. A hook starts an agent session when its `do:` makes a task with `--worker agent` (hook:req-approved-tests does); a `notify` hook does not. Each check runs on a scratch product with its own copy of the system library, a project p with nothing installed, and a package A holding two skills, a workflow, a page template and two hooks: h1 on `req.status:approved` doing `task … --worker agent --skill …`, and h2 on `test.created` doing `notify …`.
+
+```yaml
+- id: test:install.preview-lists-contents
+  title: Before install, the person is shown every skill, workflow, template and hook the package holds, and nothing it does not
+  steps: >
+    Ask for the preview of A for p (the call the app's Install makes before it confirms). It names A's two skills,
+    its workflow, its template and its two hooks, each by title and grouped by kind; the count of each kind equals
+    what A holds in the system library; no document of another package and nothing already in p is listed. Add a
+    third skill to A in the scratch system library and ask again: it is listed.
+  covers: [req:install.install.preview]
+  status: proposed
+- id: test:install.preview-hooks-agent
+  title: Each hook in the preview shows what it fires on and whether it starts an agent session
+  steps: >
+    In the preview of A, h1 shows its trigger (a requirement approved) and is marked as starting an agent session
+    with its skill named; h2 shows its trigger (a test created) and is marked as not starting one. Change h2's do:
+    in the scratch system library to `task … --worker agent` and ask again: h2 is now marked as starting a session.
+  covers: [req:install.install.preview]
+  status: proposed
+- id: test:install.preview-nothing-until-confirm
+  title: Nothing is installed while the preview is open or after the person cancels it
+  steps: >
+    Commit the scratch repo. Open the preview of A for p, then cancel. `git status` is clean; p's record of
+    installed packages does not name A; the graph defines none of A's ids in p; approving a requirement in p
+    records no firing and starts no session. Open the preview again and confirm: A is installed (as in
+    test:install.install-places).
+  covers: [req:install.install.preview]
+  status: proposed
+- id: test:install.preview-matches-install
+  title: What the preview listed is exactly what the install puts in the project
+  steps: >
+    Take the list from the preview of A for p, confirm, then list what p now has from A (skills, workflow, template,
+    hooks with their triggers): the two lists are the same, item for item, and each hook the preview marked as
+    starting an agent session is the one whose firing, on approving a requirement in p, starts a session.
+  covers: [req:install.install.preview]
+  status: proposed
+- id: ui-test:install.preview-in-app
+  title: A person chooses Install, reads what the package will put in the project and which hooks start agents, then confirms or cancels
+  steps: >
+    In the app on p, choose Install on A. Before anything changes, a sheet lists A's skills, workflow, template and
+    hooks; h1 reads as starting an agent session and h2 does not, each with what it fires on. Cancel: the Skills
+    folder and Hooks page of p are still empty and A is not shown as installed. Choose Install again and confirm:
+    A's skills, workflow, hook and template appear as in ui-test:install.install-in-app.
+  covers: [req:install.install.preview]
+  status: proposed
+```
+
+## Installing in one project leaves the others as they were (req:install.install.other-projects)
+
+What must stay the same in the product's other projects when a package is installed in one: their files, their skills, workflows, hooks and templates, their record of installed packages, and what fires when something is done in them. Under decision:install.per-project each project has its own set of packages. Each check runs on a scratch product with its own copy of the system library and three projects: p with nothing installed, q with package B installed (a skill, a workflow, a hook that fires on a requirement being approved, a page template), and r with nothing installed. Package A is the one of req:install.install: two skills, a workflow, a hook that fires on a requirement being approved, and a page template. The install is done in the app and, in a second run, with the install command.
+
+```yaml
+- id: test:install.other-projects-files
+  title: Installing a package in one project writes nothing in the product's other projects
+  steps: >
+    Commit the scratch repo, then install A into p. `git status` shows changes only inside p's folder (and, if the
+    record of installed packages is one per product, only A's line against p in it); q's and r's folders are
+    byte-for-byte what they were. Restart the server and open every page of q and r: still unchanged.
+  covers: [req:install.install.other-projects]
+  status: proposed
+- id: test:install.other-projects-skills-workflows
+  title: The other projects' skills and workflows are the same list before and after the install
+  steps: >
+    Take `wye skills` for q and for r, and the workflow choice on a document of each, before installing A into p
+    and after. The lists are identical: q still has B's skill and workflow and nothing of A; r is still empty. A
+    session started on a document of q is offered B's skill and not A's; a session on a document of r is offered
+    neither.
+  covers: [req:install.install.other-projects]
+  status: proposed
+- id: test:install.other-projects-hooks
+  title: A hook the install brings fires only in the project it was installed in, and the other projects' hooks fire as before
+  steps: >
+    Install A into p. q's and r's Hooks pages are what they were (q shows B's hook, r shows none). Approve a
+    requirement in q: exactly one firing, B's hook's, and no firing of A's hook. Approve a requirement in r:
+    nothing fires. Approve a requirement in p: A's hook fires once and B's does not.
+  covers: [req:install.install.other-projects]
+  status: proposed
+- id: test:install.other-projects-templates
+  title: The other projects' New page sheet offers the same templates before and after the install
+  steps: >
+    Before and after installing A into p, list the templates the New page sheet offers in q and in r. The lists
+    are identical: q offers the system library's templates and B's, r only the system library's; A's template
+    appears in neither, and only in p.
+  covers: [req:install.install.other-projects]
+  status: proposed
+- id: test:install.other-projects-same-package
+  title: Installing a package in one project leaves another project that already has it as it was
+  steps: >
+    Install A in q as well as B, commit, then install A into p. q's folder is byte-for-byte unchanged, q's record
+    still names A and B once each, `wye skill <id>` for A's skill in q prints the same body, and approving a
+    requirement in q fires A's hook exactly once, not once per project that has it. Which project's definition the
+    product reads when both define A's ids is question:install.duplicate-ids; this check holds whichever way it
+    is answered.
+  covers: [req:install.install.other-projects]
+  status: proposed
+- id: ui-test:install.other-projects-in-app
+  title: A person installs a package in one project and sees the other projects unchanged
+  steps: >
+    In the app, open q's Skills folder and Hooks page in one tab and p in another. Install A into p and confirm.
+    Without a reload, p shows A's skills, workflow, hook and template; the tab on q still shows only B's, and r's
+    Skills folder and Hooks page are still empty. The New page sheet in q does not offer A's template.
+  covers: [req:install.install.other-projects]
+  status: proposed
+```

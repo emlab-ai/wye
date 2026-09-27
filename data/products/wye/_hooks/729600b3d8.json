@@ -1,0 +1,21 @@
+{
+  "id": "729600b3d8",
+  "hook": "hook:req-approved-tests",
+  "title": "An approved requirement gets a task to define its test cases, and an agent starts on it",
+  "node": "req:install.library",
+  "event": "status:approved",
+  "at": "2026-09-22T19:24:41.643Z",
+  "depth": 0,
+  "actions": [
+    {
+      "kind": "task",
+      "added": [
+        "task:wye.define-test-cases-for-a-person-3"
+      ],
+      "session": "38bd32de4d"
+    }
+  ],
+  "by": {
+    "hook": "hook:req-approved-tests"
+  }
+}

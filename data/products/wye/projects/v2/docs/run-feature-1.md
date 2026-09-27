@@ -53,7 +53,7 @@ The stages of this run, in order — each one starts only when the one before it
   stage: stage:feature.design
   part-of: run:feature-1
   depends-on: step:feature-1.prd
-  needs: ○ every req in prd has satisfied-by (req:install.library, req:install.library.templates, req:install.library.new-template, req:install.fresh, req:install.fresh.from-template, req:install.install and 6 more) · ○ every req in prd has verified-by (req:install.library, req:install.library.templates, req:install.library.new-template, req:install.fresh, req:install.fresh.from-template, req:install.install and 6 more) · ○ no open contradiction (contradiction:wye.e0f217651378, contradiction:wye.a4ab2c5826d6, contradiction:wye.344704eb5ce7, contradiction:wye.3b8dc8b9d832, contradiction:wye.3e8a0f2aadb1)
+  needs: ✓ every req in prd has satisfied-by · ✓ every req in prd has verified-by · ○ no open contradiction (contradiction:wye.e0f217651378, contradiction:wye.a4ab2c5826d6, contradiction:wye.344704eb5ce7, contradiction:wye.3b8dc8b9d832, contradiction:wye.3e8a0f2aadb1)
   then: Build the plan
   produced: [module:implement-a-feature-to-install-system-skills-and-dev-design, module:implement-a-feature-to-install-system-skills-and-test-design]
   session: session:786a99f913, session:5340e4ddaa
@@ -78,10 +78,10 @@ The stages of this run, in order — each one starts only when the one before it
 
 ## Blocking
 
-**Waiting on 3 of 3** — **Build the plan** cannot start until these hold:
+**Waiting on 1 of 3** — **Build the plan** cannot start until these hold:
 
-- ○ every req in prd has satisfied-by — req:install.library, req:install.library.templates, req:install.library.new-template, req:install.fresh, req:install.fresh.from-template, req:install.install, req:install.install.preview, req:install.install.other-projects, req:install.update, req:install.uninstall, req:install.picker, req:install.cli
-- ○ every req in prd has verified-by — req:install.library, req:install.library.templates, req:install.library.new-template, req:install.fresh, req:install.fresh.from-template, req:install.install, req:install.install.preview, req:install.install.other-projects, req:install.update, req:install.uninstall, req:install.picker, req:install.cli
+- ✓ every req in prd has satisfied-by
+- ✓ every req in prd has verified-by
 - ○ no open contradiction — contradiction:wye.e0f217651378, contradiction:wye.a4ab2c5826d6, contradiction:wye.344704eb5ce7, contradiction:wye.3b8dc8b9d832, contradiction:wye.3e8a0f2aadb1
 
 ## Log
