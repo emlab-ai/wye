@@ -1,7 +1,8 @@
 'use client';
 import { useDark, useThemeChoice, type ThemeChoice } from '@/lib/theme';
+import { IconMoon, IconSun } from './Icons';
 
-// Appearance (req:wf2.ui.theme): three choices on the Settings page; the rail's ☾/☀ button flips between light and dark.
+// Appearance (req:wf2.ui.theme): three choices on the Settings page; the rail's moon/sun button flips between light and dark.
 export function ThemeSettings() {
   const [choice, set] = useThemeChoice();
   const opt = (v: ThemeChoice, label: string) => <button type="button" className={`seg ${choice === v ? 'on' : ''}`} aria-pressed={choice === v} onClick={() => set(v)}>{label}</button>;
@@ -17,5 +18,5 @@ export function ThemeSettings() {
 export function ThemeButton() {
   const dark = useDark();
   const [, set] = useThemeChoice();
-  return <button type="button" className="rail-theme" onClick={() => set(dark ? 'light' : 'dark')} title={dark ? 'Switch to light' : 'Switch to dark'} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}>{dark ? '☀' : '☾'}</button>;
+  return <button type="button" className="rail-theme" onClick={() => set(dark ? 'light' : 'dark')} title={dark ? 'Switch to light' : 'Switch to dark'} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}>{dark ? <IconSun /> : <IconMoon />}</button>;
 }
