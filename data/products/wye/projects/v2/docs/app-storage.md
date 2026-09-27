@@ -71,6 +71,43 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
 <!-- /list:rule -->
 
+## Decisions
+
+<!-- list:decision -->
+
+```yaml
+- id: decision:wf2.delete-to-trash
+  title: Deleting a product moves its folder to _trash; nothing is erased
+  date: 2026-09-27
+  status: approved
+  affects: [lib:delete-product]
+  related-to: [rule:product-layout, lib:products]
+```
+
+  - choice:wf2.delete-to-trash Deleting a product renames its registry folder to <data>/_trash/<slug>-<stamp> instead of unlinking it. A product is months of knowledge and a person deleting one in a web UI has no undo; a rename keeps every file, recoverable from Finder, while rm does not. The stamp is to the second and a collision appends a counter, so the same slug can be deleted, made again and deleted again without either copy being lost. _trash is not committed (.gitignore), and nothing in the app reads it — a product comes back by being moved out of it by hand.
+
+```yaml
+- id: decision:wf2.deleted-relocated-folder-stays
+  title: A product relocated beside its code keeps that folder when it is deleted
+  date: 2026-09-27
+  status: approved
+  affects: [lib:delete-product]
+  related-to: [rule:product-layout, decision:wf2.delete-to-trash]
+```
+
+  - choice:wf2.deleted-relocated-folder-stays When a product's folder was moved out of the data folder — `root:` in _product.md, so its documents sit beside its code — deleting the product trashes only the registry entry and leaves that folder exactly where it is, untouched. The app owns its own registry, not a folder someone else's repo holds; moving a person's knowledge out from beside their code because they pressed delete in a browser is a surprise no confirmation dialog earns. The deletion says which of the two cases it is and what survives, and pointing a product at that folder again brings everything back.
+
+```yaml
+- id: decision:wf2.app-vs-product-settings
+  title: The app's settings and a product's settings are different pages
+  date: 2026-09-27
+  status: approved
+  affects: [lib:settings, lib:products]
+  related-to: [rule:product-layout, decision:wf2.delete-to-trash]
+```
+
+  - choice:wf2.app-vs-product-settings Settings split along the boundary their storage already has: what lives in <data>/_settings.json is about the app on this machine — the theme, the agents, the Jev key — and sits at /settings, reached from the rail's workspace row; what lives in a product's own _product.md is about that product — where its folder is, deleting it — and sits at /<product>/settings, where the rail's gear points. One page mixing the two made a machine-wide key look like a product's property.
+
 ## Libraries
 
 <!-- list:lib -->
@@ -81,6 +118,12 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   side: server
   purpose: >
     Server-only registry of products and projects, read from the data folder: <data>/products/<product>/_product.md <data>/products/<product>/projects/<project>/_project.md <data>/products/<product>/projects/<project>/docs/*.md <data>/products/<product>/_build/graph.json (one graph per product: all its projects' docs) <dat
+  part-of: module:app-storage
+- id: lib:delete-product
+  file: packages/web/src/lib/delete-product.ts
+  side: server
+  purpose: >
+    Deleting a product: its registry folder is moved to <data>/_trash/<slug>-<stamp> rather than unlinked (decision:wf2.delete-to-trash), a product relocated beside its code keeps that folder (decision:wf2.deleted-relocated-folder-stays), and the product to land on next is named. Takes the data root, so it is tested against a temp folder with real files.
   part-of: module:app-storage
 - id: lib:watch
   file: packages/web/src/lib/watch.ts
