@@ -58,6 +58,23 @@ export function ContextPanel() {
           ? <><span className="muted">linking</span> “{selection.slice(0, 80)}{selection.length > 80 ? '…' : ''}”</>
           : <><span className="muted">for</span> “{text.slice(0, 140)}{text.length > 140 ? '…' : ''}”</>}
       </p>
+      {selection && (
+        <>
+          <div className="ctx-make">
+            <span className="ctx-make-label">make these words a</span>
+            <div className="ctx-make-kinds">
+              {MAKE_KINDS.map(k => <button key={k} className="ctx-new" disabled={busy} onClick={async () => { setBusy(true); await editing.make(k); setBusy(false); }} title={`Make ${k}:… titled “${selection.slice(0, 40)}” and link these words to it`}>{k}</button>)}
+              <button className={`ctx-new ctx-new-note ${note !== null ? 'on' : ''}`} disabled={busy} onClick={() => setNote(note === null ? '' : null)} aria-expanded={note !== null} title="Comment on these words">comment</button>
+            </div>
+          </div>
+          {note !== null && (
+            <form className="ctx-note" onSubmit={async e => { e.preventDefault(); if (!note.trim()) return; setBusy(true); const id = await editing.comment(note); setBusy(false); if (id) setNote(null); }}>
+              <input autoFocus value={note} placeholder={`what about “${selection.slice(0, 30)}${selection.length > 30 ? '…' : ''}”?`} onChange={e => setNote(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') setNote(null); }} />
+              <button className="pri" disabled={busy || !note.trim()}>Comment</button>
+            </form>
+          )}
+        </>
+      )}
       {!selection && <p className="muted small ctx-hint">Select the words a link belongs to — a link with nothing to hold onto says nothing.</p>}
       {state === 'loading' && !shown.length && <p className="muted">Searching…</p>}
       {state === 'error' && <p className="notice">Search failed: {msg}</p>}
@@ -69,8 +86,7 @@ export function ContextPanel() {
           return (
             <li key={h.id} className={state === 'loading' ? 'stale' : ''}>
               <div className="ctx-row">
-                <SmartTag id={h.id} />
-                {e?.status && <StatusPill status={e.status} />}
+                <span className="ctx-who"><SmartTag id={h.id} />{e?.status && <StatusPill status={e.status} />}</span>
                 <span className={`ctx-score ${min !== null && h.p !== undefined && h.p >= min ? 'ctx-sure' : ''}`} title={h.p !== undefined ? `Jev ${Math.round(h.p * 100)}% — ${min !== null && h.p >= min ? 'linked when you leave the editor' : 'below the link threshold'} · search ${h.score.toFixed(2)}` : `semantic ${h.semantic.toFixed(2)} · keywords ${h.keyword.toFixed(2)}`}>{Math.round((h.p ?? h.score) * 100)}%</span>
                 <button className="ctx-link" onClick={() => editing.attach(h.id)} disabled={!selection} title={selection ? `Link “${selection.slice(0, 40)}” to ${h.id}` : 'Select the words this belongs to first'}>link</button>
               </div>
@@ -79,21 +95,6 @@ export function ContextPanel() {
           );
         })}
       </ul>
-      {selection && (
-        <>
-          <div className="ctx-make">
-            <span className="muted small">make these words a</span>
-            {MAKE_KINDS.map(k => <button key={k} className="ctx-new" disabled={busy} onClick={async () => { setBusy(true); await editing.make(k); setBusy(false); }} title={`Make ${k}:… titled “${selection.slice(0, 40)}” and link these words to it`}>{k}</button>)}
-            <button className="ctx-new" disabled={busy} onClick={() => setNote(note === null ? '' : null)} title="Comment on these words">💬 comment</button>
-          </div>
-          {note !== null && (
-            <form className="ctx-note" onSubmit={async e => { e.preventDefault(); if (!note.trim()) return; setBusy(true); const id = await editing.comment(note); setBusy(false); if (id) setNote(null); }}>
-              <input autoFocus value={note} placeholder={`what about “${selection.slice(0, 30)}${selection.length > 30 ? '…' : ''}”?`} onChange={e => setNote(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') setNote(null); }} />
-              <button className="pri" disabled={busy || !note.trim()}>Comment</button>
-            </form>
-          )}
-        </>
-      )}
     </div>
   );
 }
