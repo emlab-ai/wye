@@ -14,8 +14,12 @@ export async function POST(req: Request) {
   const slug = slugify(title);
   const dir = path.join(DATA_ROOT, 'products', slug);
   try { await access(dir); return NextResponse.json({ error: 'conflict', message: `${slug} exists` }, { status: 409 }); } catch { /* new */ }
-  await mkdir(path.join(dir, 'projects'), { recursive: true });
+  const projectDir = path.join(dir, 'projects', 'main');
+  await mkdir(path.join(projectDir, 'docs'), { recursive: true });
   await mkdir(path.join(dir, 'inbox'), { recursive: true });
   await writeAtomic(path.join(dir, '_product.md'), `---\ntitle: ${title}\nicon: ${body.icon ?? '📦'}\ndescription: ${body.description ?? ''}\n---\n`);
+  // every product needs at least one project to hold documents — without it, req:wf2.page.new-dialog's project
+  // fallback (projects[0]?.slug ?? '') is empty and "+ New page" silently fails
+  await writeAtomic(path.join(projectDir, '_project.md'), `---\ntitle: Main\nkind: project\nstatus: proposed\nicon: 📁\ndescription:\n---\n`);
   return NextResponse.json({ ok: true, slug });
 }
