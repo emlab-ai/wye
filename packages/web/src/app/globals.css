@@ -587,6 +587,8 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .import-list { list-style: none; margin: 4px 0 6px; padding: 0; max-height: 160px; overflow: auto; font-size: 12.5px; }
 .import-list li { display: flex; gap: 6px; align-items: baseline; padding: 1px 0; min-width: 0; }
 .import-list li code, .import-list li a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.import-path { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.import-path .import-grid { grid-template-columns: 1fr auto; align-items: center; }
 .import-form .small { font-size: 12px; margin: 2px 0 6px; }
 .pg-tree, .pg-tree ul { list-style: none; margin: 0; padding: 0; }
 .pg-row { display: flex; align-items: center; gap: 4px; padding-right: 8px; border-radius: 8px; margin: 1px 6px; }

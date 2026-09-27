@@ -1,14 +1,27 @@
 import { NextResponse } from 'next/server';
 import { loadScope, treeFor } from '@/lib/scope';
 import { plan, write, type ImportFile } from '@/lib/import-docs';
+import { startBatchImport } from '@/lib/import-run';
 import { rebuild } from '@/lib/write';
 
-// op:api.import — POST multipart: every "file" part is a markdown file, its name the path inside the import (a
+// op:api.import — two shapes. Multipart: every "file" part is a markdown file, its name the path inside the import (a
 // folder drop keeps "notes/2026/plan.md"); fields `parent` (a document slug), `analyse` ("0" declines the agent).
 // Writes the documents (lib:import-docs), rebuilds, returns what landed and what was skipped. The agent comes
-// after, through hook:import-analyse on `module.created where status=imported` (req:wf2.import.markdown).
+// after, through hook:import-analyse on `module.created where status=imported` (req:wf2.import.markdown). JSON
+// `{ path, parent?, analyse?, brief? }`: a folder already on this machine (the desktop app owns the file system —
+// no browser upload for a vault of hundreds of files) — lib:import-run reads it, makes a request page listing every
+// file as a task, and imports them one at a time so at most one agent session runs from this import at once
+// (req:wf2.import.markdown-path).
 export async function POST(req: Request, { params }: { params: Promise<{ product: string; project: string }> }) {
   const { product, project } = await params;
+  if ((req.headers.get('content-type') ?? '').includes('application/json')) {
+    const body = (await req.json().catch(() => ({}))) as { path?: string; parent?: string; analyse?: boolean; brief?: string };
+    const rootPath = (body.path ?? '').trim();
+    if (!rootPath) return NextResponse.json({ error: 'invalid', message: 'path required' }, { status: 422 });
+    const r = await startBatchImport(product, project, { rootPath, parent: body.parent, brief: body.brief, analyse: body.analyse !== false });
+    if (!r.ok) return NextResponse.json({ error: r.error, message: r.message }, { status: r.error === 'not_found' ? 404 : 422 });
+    return NextResponse.json(r);
+  }
   const scope = await loadScope(product, project); if (!scope || !scope.project) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const form = await req.formData();
   const files: ImportFile[] = []; const images = new Map<string, Buffer>();
