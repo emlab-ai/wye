@@ -36,11 +36,11 @@ async function dirs(p: string): Promise<string[]> {
 // `root: <path>` in _product.md, that folder holds everything but _product.md — the projects and their documents, the
 // graph, sessions, changes, hooks, inbox — so a product's knowledge can live beside its code (~ is the home folder).
 export function resolveRoot(root: string): string { return path.resolve(root.replace(/^~(?=$|\/)/, os.homedir())); }
-export const registryDir = (slug: string) => path.join(DATA_ROOT, 'products', slug);
+export const registryDir = (slug: string, dataRoot: string = DATA_ROOT) => path.join(dataRoot, 'products', slug);
 const dirSlugs = new Map<string, string>(); // product folder → slug, for the callers that only hold the folder
 export function slugOfDir(productDir: string): string { return dirSlugs.get(path.resolve(productDir)) ?? path.basename(productDir); }
-export async function listProducts(): Promise<Product[]> {
-  const base = path.join(DATA_ROOT, 'products');
+export async function listProducts(dataRoot: string = DATA_ROOT): Promise<Product[]> {
+  const base = path.join(dataRoot, 'products');
   return Promise.all((await dirs(base)).map(async slug => {
     const meta = await readMeta(path.join(base, slug, '_product.md'), slug);
     const dir = meta.settings.root ? resolveRoot(meta.settings.root) : path.join(base, slug);

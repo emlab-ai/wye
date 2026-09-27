@@ -3,3 +3,4 @@ node_modules/
 packages/web/.next/
 data/_settings.json
 packages/desktop/dist/
+data/_trash/

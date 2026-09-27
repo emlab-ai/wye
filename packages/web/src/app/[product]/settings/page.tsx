@@ -1,21 +1,23 @@
-import { readSettings, publicSettings } from '@/lib/settings';
-import { SettingsJev } from '@/components/SettingsJev';
-import { SettingsAgents } from '@/components/SettingsAgents';
+import Link from 'next/link';
+import path from 'node:path';
+import { getProduct, registryDir } from '@/lib/products';
 import { SettingsFolder } from '@/components/SettingsFolder';
-import { ThemeSettings } from '@/components/ThemeSwitch';
+import { DeleteProduct } from '@/components/DeleteProduct';
 
-// The app's settings (Jev auto-linking design §0). Reached from every product's rail but not about one product: what is
-// stored here applies to the whole app on this machine.
-export default async function SettingsPage({ params }: { params: Promise<{ product: string }> }) {
+// One product's settings: where its folder is, and deleting it. What belongs to the app on this machine rather than to
+// this product — the theme, agents, the Jev key — is at /settings.
+export default async function ProductSettingsPage({ params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
-  const s = publicSettings(await readSettings());
+  const p = await getProduct(product);
+  const relocated = !!p && path.resolve(p.dir) !== path.resolve(registryDir(product));
   return (
     <div className="page">
-      <header className="doc-head"><h1 className="prop-in h1" style={{ margin: 0 }}>Settings</h1><p className="sub">the app on this machine — and where this product keeps its folder</p></header>
-      <ThemeSettings />
+      <header className="doc-head">
+        <h1 className="prop-in h1" style={{ margin: 0 }}>{p?.meta.title ?? product} settings</h1>
+        <p className="sub">this product — the app&apos;s own are in <Link href={`/settings?from=${product}`}>App settings</Link></p>
+      </header>
       <SettingsFolder product={product} />
-      <SettingsAgents initial={s.agents} />
-      <SettingsJev initial={s.jev} />
+      {p && <DeleteProduct product={product} title={p.meta.title || product} relocated={relocated} dir={p.dir} />}
     </div>
   );
 }
