@@ -14,6 +14,21 @@ export function withExtra(extra: string, key: string, value: string): string {
   if (value.trim()) m[key] = value.trim(); else delete m[key];
   return Object.entries(m).map(([k, v]) => `${k}: ${v}`).join(', ');
 }
+// Each type's statuses (decision:wf2.statuses-per-type): its own list — the product's override for a base kind, set in
+// _product.md, already applied by the parser — else the nearest ancestor's. A picker offers these and nothing else.
+export function statusesByKind(types: { slug: string; chain?: string[]; statuses?: string[] }[]): Record<string, string[]> {
+  const bySlug = new Map(types.map(t => [t.slug, t]));
+  const out: Record<string, string[]> = {};
+  for (const t of types) {
+    for (const id of [...(t.chain ?? [`type:${t.slug}`])].reverse()) { const s = bySlug.get(id.replace(/^type:/, ''))?.statuses; if (s?.length) { out[t.slug] = s; break; } }
+  }
+  return out;
+}
+// the picker's options for a node: its type's statuses, plus the one it has when that is not among them
+export function statusOptions(byKind: Record<string, string[]>, kind: string, current = ''): string[] {
+  const list = byKind[kind] ?? byKind.node ?? STATUSES.filter(Boolean);
+  return ['', ...(current && !list.includes(current) ? [current] : []), ...list];
+}
 export const GOAL_STATUSES = ['proposed', 'on-track', 'at-risk', 'off-track', 'paused', 'complete', 'non-goal'];
 // every status the parser knows (lib/parse.js STATUS_TAG), for nodes of any other kind
 export const STATUSES = ['', 'proposed', 'approved', 'unverified', 'api-only', 'shipped', 'deprecated', 'question', 'open', 'in-progress', 'blocked', 'done', 'non-goal', 'draft', 'active', 'complete', 'on-track', 'at-risk', 'off-track', 'paused', 'resolved', 'rejected', 'superseded', 'retired', 'dismissed', 'review', 'refining', 'building', 'running', 'waiting', 'todo', 'ready', 'skipped', 'cancelled', 'failed'];

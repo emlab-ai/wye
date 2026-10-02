@@ -9,7 +9,7 @@ import { Linkified } from './IdLink';
 import { parseBody } from '@/lib/graph';
 import type { TypeDef, NodeProp } from '@/lib/types';
 import { assetBase, type IndexEntry } from '@/lib/doc';
-import { STATUSES, GOAL_STATUSES, TASK_STATUSES } from '@/lib/props';
+import { statusOptions } from '@/lib/props';
 
 // The keys a card's main text lives under (the same order the server's patchYamlCard uses)
 const TEXT_KEYS = ['text', 'statement', 'description', 'purpose', 'q', 'title'];
@@ -29,7 +29,7 @@ const glyph = (f: Field) => f.name === 'status' ? '◔' : f.type === 'progress' 
 // their tracking fields; empty optional ones fold under "n more properties". Every change saves to the defining
 // line or the yaml card and rebuilds the graph (op:node.edit).
 export function NodeEditor({ id, body, form, type, props, entry, relations = [], onSaved }: { id: string; body: string; form: string; type: TypeDef | null; props: NodeProp[]; entry?: IndexEntry; relations?: [string, string[]][]; onSaved: () => void }) {
-  const { product, index, open: openNode } = usePeek(); const router = useRouter();
+  const { product, index, open: openNode, statuses: byKind } = usePeek(); const router = useRouter();
   const [addingFor, setAddingFor] = useState<string | null>(null); const [addText, setAddText] = useState('');
   const [addProp, setAddProp] = useState<{ name: string; value: string } | null>(null);
   const kind = id.split(':')[0]; const prose = form === 'prose';
@@ -66,7 +66,7 @@ export function NodeEditor({ id, body, form, type, props, entry, relations = [],
   const commit = (f: Field) => { const v = (vals[f.name] ?? '').trim(); if (v !== f.value.trim()) save({ props: { [f.name]: v || null } }); };
   // instances of a ref's type to suggest; `ref node` means anything, too many to list — the tags still show
   const suggest = (f: Field) => f.ref && f.ref !== 'node' ? Object.values(index).filter(e => e.defined && e.kind === f.ref && e.id !== id).sort((a, b) => a.id.localeCompare(b.id)) : [];
-  const statuses = kind === 'goal' ? ['', ...GOAL_STATUSES] : kind === 'task' ? ['', ...TASK_STATUSES] : STATUSES;
+  const statuses = statusOptions(byKind, kind); // the type's own statuses (decision:wf2.statuses-per-type)
   const base = entry?.file ? assetBase(entry.file) : '';
   const computed = entry?.parts && entry.progress !== undefined && entry.progress === Math.round(100 * entry.parts.done / entry.parts.total) ? entry.progress : undefined;
   const always = new Set((TRACK[kind] ?? []).map(t => t.name));

@@ -1,12 +1,12 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { statusOptions, statusesByKind } from '@/lib/props';
 import type { PropDef, TypeDef } from '@/lib/graph';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import { Cover, IconPicker, PageComments, TagsRow } from './PageHead';
 
-const STATUSES = ['proposed', 'partial', 'shipped', 'deprecated'];
 // frontmatter keys the header shows in its own places (or never): not properties of the type
 const HEAD_KEYS = new Set(['node', 'type', 'title', 'status', 'icon', 'cover', 'tags', 'owner', 'last-verified', 'order', 'sources', 'source-roots', 'text', 'part-of']);
 const glyph = (p: PropDef) => p.ref ? '↗' : p.type === 'text' ? '≡' : p.type === 'date' || p.type === 'month' ? '▦' : p.type === 'bool' ? '☑' : p.enum ? '◇' : p.type === 'number' ? '#' : '⋯';
@@ -112,7 +112,7 @@ export function DocProps({ product, project, slug, file, fm, node, types, titled
           {choices.map(t => <option key={t.slug} value={t.slug}>{t.slug}</option>)}
         </select>
         <code className="cid doc-id" title="the page's node">{node}</code>
-        <select className="status-sel" value={vals.status ?? ''} onChange={e => { setVals(v => ({ ...v, status: e.target.value })); }} onBlur={() => commit('status')}>{[vals.status ?? '', ...STATUSES].filter((v, i, a) => a.indexOf(v) === i).map(v => <option key={v} value={v}>{v || '—'}</option>)}</select>
+        <select className="status-sel" value={vals.status ?? ''} onChange={e => { setVals(v => ({ ...v, status: e.target.value })); }} onBlur={() => commit('status')}>{statusOptions(statusesByKind(types), kind, vals.status ?? '').map(v => <option key={v} value={v}>{v || '—'}</option>)}</select>
         <span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'error' ? 'save failed' : ''}</span>
         {msg && <span className={`muted doc-msg ${state === 'error' ? 'bad' : ''}`}>{msg}</span>}
         {!type && <span className="doc-warn">unknown type — the page is not in the graph</span>}

@@ -24,7 +24,7 @@ import { ViewBlock } from './ViewBlock';
 import { EmbedBlock } from './EmbedBlock';
 import { usePeek, type OwnType } from './PeekProvider';
 import { ID_RE, KINDS } from '@/lib/ids';
-import { parseExtra, withExtra, GOAL_STATUSES, TASK_STATUSES, STATUSES } from '@/lib/props';
+import { parseExtra, withExtra, statusOptions } from '@/lib/props';
 import { setBodyField } from '@/lib/yaml-form';
 import { filterRows, parseViewQuery, viewQuery, EMPTY_FILTERS, type Filters, type InstanceRow } from '@/lib/instance-table';
 import { slugify } from '@/lib/templates';
@@ -221,13 +221,13 @@ function SendToAgentItem() {
 // progress, owner. Tracking fields live in the node's trailing property group.
 function RowNode({ p, set, contentRef, block, editor }: { p: { kind: string; slug: string; status: string; extra: string; check: string; row: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; editor: EditorLike }) {
   const rowRef = useRef<HTMLDivElement>(null);
-  const { index } = usePeek();
+  const { index, statuses: byKind } = usePeek();
   const idOf = (b: AnyBlock) => { const bp = b.props as unknown as { kind: string; slug: string }; return `${bp.kind}:${bp.slug}`; };
   const peek = () => { const b = withSlug(editor, index, block); if ((b.props as unknown as { slug: string }).slug) emit('wf:select', rowRef.current, idOf(b)); };
   const id = `${p.kind}:${p.slug}`; const e = index[id];
   const empty = !p.slug && !rowText(block);
   const ex = parseExtra(p.extra);
-  const statuses = p.kind === 'goal' ? GOAL_STATUSES : TASK_STATUSES;
+  const statuses = statusOptions(byKind, p.kind).filter(Boolean);
   const done = p.check === 'done' || p.status === 'done' || p.status === 'complete';
   const explicit = ex.progress ? Number(ex.progress) : undefined;
   const progress = explicit ?? (done ? 100 : e?.progress);
@@ -269,7 +269,7 @@ function RowNode({ p, set, contentRef, block, editor }: { p: { kind: string; slu
 // the node's trailing property group, so the line stays `- bug:slug Text #status (severity: high, …)`.
 function TypeRow({ p, set, contentRef, block, type, editor }: { p: { kind: string; slug: string; status: string; extra: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; type: OwnType; editor: EditorLike }) {
   const rowRef = useRef<HTMLDivElement>(null);
-  const { index } = usePeek();
+  const { index, statuses: byKind } = usePeek();
   const id = `${p.kind}:${p.slug}`;
   const peek = () => { const b = withSlug(editor, index, block); const bp = b.props as unknown as { kind: string; slug: string }; if (bp.slug) emit('wf:select', rowRef.current, `${bp.kind}:${bp.slug}`); };
   const empty = !p.slug && !rowText(block);
@@ -289,7 +289,7 @@ function TypeRow({ p, set, contentRef, block, type, editor }: { p: { kind: strin
       </div>
       <div className="nrow-cell" contentEditable={false} ref={stopEditorEvents}>
         <select className={`status-sel s-${p.status}`} value={p.status} onChange={ev => set({ status: ev.target.value })}>
-          {(STATUSES.includes(p.status) ? [] : [p.status]).concat(STATUSES).map(st => <option key={st} value={st}>{st || '— status'}</option>)}
+          {statusOptions(byKind, p.kind, p.status).map(st => <option key={st} value={st}>{st || '— status'}</option>)}
         </select>
       </div>
       {type.cols.map(c => (

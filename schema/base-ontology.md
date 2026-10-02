@@ -70,7 +70,7 @@ type means instances may carry properties the type does not declare without a wa
     (decision:wf2.req-free-text, decision:wf2.card-is-name-and-properties). text / when / then / unless as keys on the
     card are the old form, read but never written
   open: true
-  statuses: [shipped, api-only, unverified, proposed, question, superseded]
+  statuses: [proposed, approved, rejected, shipped, api-only, unverified, question, superseded]
   props:
     text: text?
     when: text?
@@ -89,7 +89,7 @@ type means instances may carry properties the type does not declare without a wa
     `statement:` child block (and `note:` ones) under the card (decision:wf2.parts-are-content); `statement` as a
     key is the old form, read but never written
   open: true
-  statuses: [proposed, shipped, deprecated, superseded]
+  statuses: [proposed, approved, rejected, shipped, deprecated, superseded]
   props:
     statement: text?
     source: string?

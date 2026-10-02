@@ -7,6 +7,8 @@ import { InstanceTable } from '@/components/InstanceTable';
 import { docRoute } from '@/lib/doc';
 import { AddInstance } from '@/components/AddInstance';
 import { pluralTitle } from '@/lib/instances';
+import { statusesByKind } from '@/lib/props';
+import { TypeStatuses } from '@/components/TypeStatuses';
 
 // A type's page: its properties (own and inherited), its subtypes, and every instance as a table with one column per
 // property — the database view, derived from the documents, never stored.
@@ -37,6 +39,11 @@ export default async function TypePage({ params, searchParams }: { params: Promi
         {t.purpose && <p className="lede">{t.purpose}</p>}
         <p className="sub">{t.extends ? <>extends <Link href={`/${product}/types/${t.extends.slice(5)}`}>{t.extends}</Link> · </> : 'the root type · '}{instances.length} instance{instances.length === 1 ? '' : 's'}{r ? <> · declared in <Link href={`/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(t.id)}`}>{r.project} / {r.doc}</Link></> : ' · base ontology (schema/base-ontology.md)'}{homeRoute && <> · instances in <Link href={`/${product}/${homeRoute.project}/d/${homeRoute.doc}`}>{homeTitle}</Link></>}{t.open && ' · open: instances may carry undeclared properties'}</p>
       </header>
+
+      <section className="kind-section">
+        <h2>Statuses</h2>
+        <TypeStatuses product={product} slug={slug} statuses={statusesByKind(scope.graph.types ?? [])[slug] ?? []} base={base} />
+      </section>
 
       <section className="kind-section">
         <h2>Properties <span className="muted">{declared.length}</span></h2>

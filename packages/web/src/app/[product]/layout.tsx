@@ -13,6 +13,7 @@ import { loadScope, treeFor } from '@/lib/scope';
 import { isBaseType, isImplicit, nestingMap } from '@/lib/types';
 import { loadMarkdown } from '@/lib/load';
 import { outline, splitDocument, docRoute, taskProgress, isSystemSlug, systemSlug, bareSlug, type DocNode } from '@/lib/doc';
+import { statusesByKind } from '@/lib/props';
 import { REPO_ROOT } from '@/lib/products';
 import type { TreeItem } from '@/components/DocTree';
 import type { PrItem } from '@/components/PrFolder';
@@ -78,7 +79,7 @@ export default async function ProductLayout({ children, params }: { children: Re
   const ownTypes = (scope.graph.types ?? []).filter(t => !isBaseType(t)).map(t => ({ slug: t.slug, ...(t.nestsIn?.length ? { nestsIn: t.nestsIn } : {}), ...(t.plural ? { plural: t.plural } : {}), cols: t.props.filter(p => !isImplicit(p)).map(p => ({ name: p.name, type: p.type, enum: p.enum, ref: p.ref, required: p.required })) }));
  
   return (
-    <PeekProvider product={scope.product.slug} index={rsc ? null : scope.index} kinds={scope.graph.kinds} types={ownTypes} nests={nestingMap(scope.graph.types ?? [])}>
+    <PeekProvider product={scope.product.slug} index={rsc ? null : scope.index} kinds={scope.graph.kinds} types={ownTypes} nests={nestingMap(scope.graph.types ?? [])} statuses={statusesByKind(scope.graph.types ?? [])}>
       <Shell>
         <Rail products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} prs={prs} views={views} skills={skills} skillsPage={skillsPage} headings={headings} />
         <LiveRefresh product={scope.product.slug} />

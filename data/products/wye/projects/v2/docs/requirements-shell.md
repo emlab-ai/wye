@@ -311,3 +311,20 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - context:wf2.answers-reach-the-librarian The person answered the librarian's questions and saw "no answer recorded" on every card: the answers were on the cards as `answer:`, but the card only counted blocks under it. A question the librarian wrote into the Definition (no tool waiting on it) took an answer on the card and told nobody.
 
   - choice:wf2.answers-reach-the-librarian A question card with no blocks under it shows its `answer` field, editable, with who gave it. Answering a Definition question on the page sends the answer to the PR's latest librarian conversation, resumed when it has stopped.
+
+
+```yaml
+- id: decision:wf2.statuses-per-type
+  title: A status picker offers its type's statuses only; a product can set its own list for any type in Types
+  date: 2026-10-02
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [type:node, type:req, type:rule]
+```
+
+  - context:wf2.statuses-per-type Every card's status picker offered 35 statuses whatever the card was. The person: "keep only basic statuses, but let user to modify enum list somewhere in types section" — and, of a req, "where is Approved status?": a req in a PR counts as agreed only when approved, and req's list had no approved.
+
+  - choice:wf2.statuses-per-type A picker offers the node's type's `statuses:`, else its nearest ancestor's (a city takes node's), plus the status it already has. The Statuses section of a type page edits the list: a product type keeps it on its card; a base kind's list is the product's override, `statuses-<type>: [..]` in its _product.md, applied when the graph is built; "default" puts the base list back. req and rule gain approved and rejected in the base list.
+
+  - alternative:wf2.statuses-per-type One edited list in schema/base-ontology.md for every product — a change for one product would reach all; product types only — the base kinds, the ones most used, would stay fixed.

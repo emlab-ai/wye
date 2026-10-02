@@ -2,7 +2,7 @@
 import { useEffect, useState, type ReactNode, type RefObject } from 'react';
 import { parseBody } from '@/lib/graph';
 import { sameProse, setBodyField } from '@/lib/yaml-form';
-import { STATUSES } from '@/lib/props';
+import { statusOptions } from '@/lib/props';
 import { usePeek } from './PeekProvider';
 import { useRouter } from 'next/navigation';
 import { Linkified } from './IdLink';
@@ -119,6 +119,7 @@ export function NodeCard({ p, set, host }: { p: CardP; set: (patch: Partial<Card
 // A typed block (requirement, entity, rule, task, …): header with kind, id and status; the text; a yaml card's
 // other keys read-only under it, the yaml toggle to edit them.
 export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<CardP>) => void; host: CardHost }) {
+  const { statuses } = usePeek();
   const [showYaml, setShowYaml] = useState(false);
   // a yaml card's `text` beside its title is its description (decision:wf2.card-is-name-and-properties): read and
   // edited in the column, not on the card — the card is the name and the properties
@@ -140,7 +141,7 @@ export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<Car
         )}
         <button type="button" className="pill k nblock-peek" style={{ background: `var(--k-${p.kind}, var(--k-other))` }} title="Open this node in the column" onClick={host.open ?? host.peek}>{p.kind}</button>
         {(showYaml || !p.slug) && <input className="nblock-slug" value={p.slug} spellCheck={false} readOnly={host.slugReadOnly} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />}
-        <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{(STATUSES.includes(p.status) ? [] : [p.status]).concat(STATUSES).map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
+        <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{statusOptions(statuses, p.kind, p.status).map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
         {p.form === 'prose' && <input className={`nblock-extra ${p.extra ? '' : 'hover-only'}`} value={p.extra} placeholder="key: value" onChange={e => set({ extra: e.target.value })} />}
         <FoldToggle host={host} />
         {p.kind === 'step' && <StepActions p={p} />}
@@ -209,6 +210,7 @@ export function QuestionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
 // A decision card: context, choice and alternatives are what matters (rule:card-essence); consequences, date, affects
 // and every other key sit in "details" with the id and the yaml, like the question card.
 export function DecisionCard({ p, set, host }: { p: CardP; set: (patch: Partial<CardP>) => void; host: CardHost }) {
+  const { statuses } = usePeek();
   const [details, setDetails] = useState(false);
   const rows = parseBody(p.body);
   const get = (k: string) => rows.find(r => r.key === k)?.value ?? '';
@@ -219,7 +221,7 @@ export function DecisionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
       <div className="nblock-head" contentEditable={false} ref={host.stop} onClick={host.onHeadClick}>
         <button type="button" className="pill k nblock-peek" style={{ background: 'var(--k-decision)' }} title="Open this decision in the column" onClick={host.open ?? host.peek}>decision</button>
         {(details || !p.slug) && <input className="nblock-slug" value={p.slug} spellCheck={false} readOnly={host.slugReadOnly} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />}
-        <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{STATUSES.map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
+        <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{statusOptions(statuses, 'decision', p.status).map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
         <FoldToggle host={host} />
         <span className="nblock-tools hover-only">
           <button type="button" className="nblock-send" title="Copy a link to this decision" onClick={host.copyLink}>⧉</button>

@@ -6,6 +6,8 @@ import type { IndexEntry } from '@/lib/doc';
 import type { OwnProp } from '@/lib/type-edit';
 import { SmartTag } from './SmartTag';
 import { KindPill, StatusPill } from './Pills';
+import { usePeek } from './PeekProvider';
+import { TypeStatuses } from './TypeStatuses';
 
 // The value type of a property as a choice (decision:ontology.one-of-many-of): a scalar, one of / many of a type
 // (a link, with an inverse), one of / many of a list of values (a select / a multi-select). Read from and written
@@ -41,6 +43,7 @@ const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/
 // inherited ones greyed with their declaring type, then every instance — the "connected" list of a type.
 export function TypeView({ type, instances, index, product, onSaved }: { type: TypeDef; instances: { id: string; title: string; status: string }[]; index: Record<string, IndexEntry>; product: string; onSaved: () => void }) {
   const base = !type.file || type.file.startsWith('schema/');
+  const { statuses: byKind } = usePeek(); // the type's statuses, its override applied (lib/props statusesByKind)
   const own = type.props.filter(p => p.from === type.id), inherited = type.props.filter(p => p.from !== type.id && p.from !== 'type:node');
   const toOwn = (): OwnProp[] => own.map(p => ({ name: p.name, type: p.type, required: p.required, inverse: p.inverse ?? '' }));
   const [rows, setRows] = useState<OwnProp[]>(toOwn);
@@ -72,6 +75,11 @@ export function TypeView({ type, instances, index, product, onSaved }: { type: T
           {type.file && <div><dt>declared in</dt><dd className="muted">{base ? 'schema/base-ontology.md' : type.file.split('/').pop()}</dd></div>}
         </dl>
       </article>
+
+      <section className="props">
+        <h4>Statuses</h4>
+        <TypeStatuses product={product} slug={type.slug} statuses={byKind[type.slug] ?? []} base={base} />
+      </section>
 
       <section className="props">
         <h4>Properties <span className="muted">{own.length}{inherited.length ? ` + ${inherited.length} inherited` : ''}</span></h4>

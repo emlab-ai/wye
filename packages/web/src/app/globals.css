@@ -1134,3 +1134,6 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .tl-bar.s-done, .tl-bar.s-shipped { opacity: .45; }
 .tl-bar.point { width: 14px; height: 14px; top: 7px; border-radius: 3px; transform: translateX(-7px) rotate(45deg); padding: 0; }
 .tl-bar.point .tl-bar-label { display: none; }
+/* a type's statuses (decision:wf2.statuses-per-type): the chips, then the list as one editable line */
+.type-statuses .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.type-statuses-edit { display: flex; gap: 8px; align-items: center; } .type-statuses-edit input { flex: 1; max-width: 520px; font: 13px var(--font-m); padding: 4px 8px; border: 1px solid var(--line-2); border-radius: 6px; background: transparent; color: var(--ink); }
