@@ -24,8 +24,7 @@ export async function createDocFromTemplate(scope: Scope, project: Project, o: {
   const parentDoc = o.parent ? [...tree.byFile.values()].find(x => x.slug === o.parent) : undefined;
   // an explicit slug when the caller needs one that does not come from the title (a workflow stage's document: the
   // title may be long, and slugify's cut would give two stages of one run the same slug)
-  // A slug from the title steps to the next free one (`goals` → `goals-2`): the file it would take may be one the tree
-  // hides — a project's goals.md, work.md, prs.md are its rail pages — so the person sees no page by that name to blame
+  // Pages may share a title: a slug from the title steps to the next free one (`goals` → `goals-2`)
   let slug = o.slug ? slugify(o.slug) : slugify(title);
   const taken = async (s: string) => !!scope.idx.byId.get(`${kind}:${s}`)?.defined || await access(path.join(project.docsDir, `${s}.md`)).then(() => true, () => false);
   if (await taken(slug)) {
