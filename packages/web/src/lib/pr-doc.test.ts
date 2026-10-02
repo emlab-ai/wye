@@ -26,7 +26,7 @@ describe('prDocBody', () => {
     expect(md).toContain('session: abc123\nagent: claude-code\nstarted: 2026-09-18T12:00:00.000Z\npart-of: module:app-agents\n---');
     expect(md).toContain('## Request\n\n> page link on the session, it looks good\n> \n> ## but\n> should be a plan\n\n_from: module:app-agents · refs: req:x_\n\n## Context');
     for (const h of ['## Context', '## Definition', '## Impact', '## Tasks', '## Result']) expect(md).toContain(h);
-    expect(md).toContain('part of pr:41');
+    expect(md).not.toContain('their check state'); // no instruction lines for the agent on the person's page
   });
   it('writes the request as a task line under Tasks with the worker and the session (req:exec.request-is-a-task)', () => {
     const md = prDocBody(TPL, { ...vars, title: 'Fix (the) #thing', partOf: 'goal:g1' });

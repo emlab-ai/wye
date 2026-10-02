@@ -16,7 +16,7 @@ describe('pr questions', () => {
   it('adds the Questions section before Tasks once, then appends to it', () => {
     const md = '# X\n\n## Definition\n\nd\n\n## Tasks\n\n- [ ] task:pr-26 X #todo\n';
     const one = withQuestions(md, '```yaml\n- id: question:pr-26.a\n  q: A?\n  status: open\n```');
-    expect(one).toContain('## Definition\n\nd\n\n## Questions\n\n_What the librarian needs from you');
+    expect(one).toContain('## Definition\n\nd\n\n## Questions\n\n```yaml');
     expect(one.indexOf('## Questions')).toBeLessThan(one.indexOf('## Tasks'));
     const two = withQuestions(one, '```yaml\n- id: question:pr-26.b\n  q: B?\n  status: open\n```');
     expect(two.match(/## Questions/g)).toHaveLength(1); expect(two).toContain('question:pr-26.a'); expect(two).toContain('question:pr-26.b');
