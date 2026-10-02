@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { claimWrite } from '@/lib/changes';
-import { docRoute, projectTree } from '@/lib/doc';
+import { docRoute, pageBySlug, projectTree } from '@/lib/doc';
 import { addCard, dropIn, mapGraph, moveIn, openIn, parseLayout, withLink, withoutLink, writeLayout } from '@/lib/map';
 import { cardText, newInstanceCard, removeCard, replaceCard } from '@/lib/instances';
 import { REPO_ROOT } from '@/lib/products';
@@ -36,7 +36,7 @@ type Act =
 
 async function locate(product: string, project: string, slug: string) {
   const scope = await loadScope(product, project); if (!scope) return null;
-  const d = [...projectTree(scope.graph, project).byFile.values()].find(x => x.slug === slug && docRoute(x.file)?.project === project);
+  const d = pageBySlug(projectTree(scope.graph, project).byFile.values(), project, decodeURIComponent(slug));
   return d ? { scope, d } : null;
 }
 const bad = (message: string, status = 422) => NextResponse.json({ error: status === 409 ? 'conflict' : 'invalid', message }, { status });

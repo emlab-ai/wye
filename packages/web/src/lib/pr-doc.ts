@@ -65,7 +65,8 @@ export function fromLine(s: Pick<Session, 'refs' | 'source'>, docNode?: string):
 }
 
 // The app path of a plan document ref (product/project/slug).
-export function prDocPath(ref: string): string { const [product, project, slug] = ref.split('/'); return `/${product}/${project}/d/${slug}`; }
+// A PR page is a system page (lib/doc SYSTEM_DIR): its URL slug carries the mark whether the ref does or not.
+export function prDocPath(ref: string): string { const [product, project, slug] = ref.split('/'); return `/${product}/${project}/d/~${slug.replace(/^~/, '')}`; }
 
 const MARK: Record<BlockChange['change'], string> = { added: 'added', changed: 'changed', removed: 'removed' };
 

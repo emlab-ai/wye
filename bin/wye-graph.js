@@ -33,13 +33,15 @@ const graphFile = opt('graph', path.join(BUILD, 'graph.json'));
 
 // Every .md under the root (a product folder: projects/*/docs/*.md, or a flat docs folder), skipping _build and
 // files or folders that start with "_" (product and project metadata, generated output).
+// a project's .wye/ (the app's system pages) is read after its docs/: where a node is defined twice, the person's page wins
+const docOrder = (a, b) => { const k = f => f.replace(/\/\.wye\//, '/~wye/'); return k(a) < k(b) ? -1 : k(a) > k(b) ? 1 : 0; };
 function findDocs(files) {
     if (files.length) return files.map(f => path.resolve(f));
     if (!fs.existsSync(ROOT)) die(`no ${ROOT}; pass files explicitly or --root`);
     const out = [];
     const walk = dir => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { if (e.name.startsWith('_') || e.name === 'node_modules' || e.name === 'inbox') continue; const p = path.join(dir, e.name); if (e.isDirectory()) walk(p); else if (e.name.endsWith('.md')) out.push(path.resolve(p)); } };
     walk(ROOT);
-    return out.sort();
+    return out.sort(docOrder);
 }
 function die(msg) { console.error('wye: ' + msg); process.exit(2); }
 function load() { if (!fs.existsSync(graphFile)) die(`no ${graphFile} — run \`wye build\` first`); return Graph.load(graphFile); }

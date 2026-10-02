@@ -215,3 +215,36 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - then:wf2.ui.theme the palette switches at once — the pages, the editor, code blocks and file previews (Monaco), drawings — and the choice is kept in the browser; a page loads in the chosen theme without a light flash; System follows the OS and moves with it
 
+
+
+```yaml
+- id: decision:wf2.system-pages-in-wye
+  title: The pages the app writes live in projects/<p>/.wye/, never in the person's docs/
+  date: 2026-10-02
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [decision:wf2.views-are-pages, rule:prs-folder, rule:pr-doc, decision:wf2.hooks-and-skills, decision:wf2.workflow-is-a-skill, decision:wf2.run-is-a-page]
+```
+
+  - context:wf2.system-pages-in-wye Creating a page called "Goals" failed with "goals.md exists": the rail's Goals view was goals.md in the same docs/ folder, hidden from the Documents tree, so the person was told about a file they could not see. The person: "all system files must be in the .wye folder, so it must not collide with user created files".
+
+  - choice:wf2.system-pages-in-wye The rail views and folders (goals, work, hooks, skills, prs), the PR pages (pr-N), the skills (skill-*), the workflows (workflow-*), the runs (workflow-runs, run-*) and the Comments page are written to projects/<p>/.wye/. In a URL their slug carries a `~` (/d/~goals, /d/~pr-12), which slugify never makes, so a page of the person's and a system page of one name are two pages; an unmarked slug no page of the person's has falls through to the system page, so old links and session refs keep working. The builder reads .wye/ after docs/, so where a node is defined twice the person's page wins. Their relative assets/ and drawings/ resolve in docs/. Existing products moved with scripts/system-to-wye.js, picked by node id, not by name.
+
+  - alternative:wf2.system-pages-in-wye Reserved file names in docs/ (`_goals.md`) — fewer moving parts, but docs/ stays shared; .wye/ inside docs/ — the same; one .wye/ per product — PRs and skills would leave their project. plan.md (the Backlog) stays in docs/: it is the person's page.
+
+  - consequence:wf2.system-pages-in-wye Node counts unchanged in every product. Edges moved where a PR page's list line started with an id and had been read as that node's definition (req:document-opened-in-the was defined at pr-28.md:498); now the real page defines it — wye lost 66 such edges.
+
+```yaml
+- id: decision:wf2.pages-share-a-title
+  title: Two pages may have one title — the second one's file is <slug>-2.md
+  date: 2026-10-02
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [decision:wf2.system-pages-in-wye]
+```
+
+  - choice:wf2.pages-share-a-title A page's slug from its title steps to the next free one (goals → goals-2) instead of refusing; an explicit slug (a workflow stage's document) still reports the conflict.
+
+  - context:wf2.pages-share-a-title The person: "we should allow notes with the same name" — alongside moving system pages out of docs/, not instead of it.

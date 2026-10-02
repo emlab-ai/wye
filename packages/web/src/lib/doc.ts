@@ -27,7 +27,19 @@ export function taskProgress(nodes: Pick<GraphNode, 'kind' | 'status' | 'file' |
   return out;
 }
 
-export function docSlug(file: string): string { return file.split('/').pop()!.replace(/\.md$/, ''); }
+// A project's system pages (the rail's Goals, Work, Hooks, PRs and Skills, the PR pages, the skills, workflows, runs
+// and comments the app writes) live in projects/<p>/.wye/, apart from the person's docs/ — so no page the person
+// makes can meet one. In a URL their slug carries SYSTEM_MARK (`/d/~goals`): slugify never makes a `~`.
+export const SYSTEM_DIR = '.wye';
+export const SYSTEM_MARK = '~';
+export const isSystemFile = (file: string) => /(^|\/)projects\/[^/]+\/\.wye\//.test(file);
+export const isSystemSlug = (slug: string) => slug.startsWith(SYSTEM_MARK);
+// the file name of a page's slug, without the mark (`~pr-12` → `pr-12`)
+export const bareSlug = (slug: string) => isSystemSlug(slug) ? slug.slice(SYSTEM_MARK.length) : slug;
+export const systemSlug = (name: string) => SYSTEM_MARK + bareSlug(name);
+// the folder a page's relative assets/ and drawings/ links resolve in: always the project's docs/, a system page's too
+export const assetDir = (file: string) => file.split('/').slice(0, -1).join('/').replace(/(^|\/)\.wye$/, '$1docs');
+export function docSlug(file: string): string { const base = file.split('/').pop()!.replace(/\.md$/, ''); return isSystemFile(file) ? SYSTEM_MARK + base : base; }
 
 export function headingSlug(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -182,7 +194,7 @@ export function nodeIndex(g: GraphData): Record<string, IndexEntry> {
 // Where a graph file lives in the product layout: projects/<project>/docs/<doc>.md → { project, doc }.
 // where a document's relative asset links (assets/x.png) resolve: the document's URL folder, /<product>/<project>/d/
 export function assetBase(file: string): string {
-  const m = file.match(/data\/products\/([^/]+)\/projects\/([^/]+)\/docs\//);
+  const m = file.match(/data\/products\/([^/]+)\/projects\/([^/]+)\/(?:docs|\.wye)\//);
   return m ? `/${m[1]}/${m[2]}/d/` : '';
 }
 // The document's node is whatever graph.modules says, of any kind (rule:page-node-line): these are the only questions
@@ -192,14 +204,22 @@ export function docIdOf(g: Pick<GraphData, 'modules'>, file: string): string | n
 // client side: the node of the document with this slug, from the index
 export function docNodeOf(index: Record<string, IndexEntry>, slug: string): string | null { for (const e of Object.values(index)) if (e.doc === slug) return e.id; return null; }
 export function docRoute(file: string): { project: string; doc: string } | null {
-  const m = file.match(/\/projects\/([^/]+)\/docs\/([^/]+)\.md$/);
-  return m ? { project: m[1], doc: m[2] } : null;
+  const m = file.match(/\/projects\/([^/]+)\/(docs|\.wye)\/([^/]+)\.md$/);
+  return m ? { project: m[1], doc: (m[2] === SYSTEM_DIR ? SYSTEM_MARK : '') + m[3] } : null;
+}
+// A project's page by its URL slug. An unmarked slug that is none of the person's pages falls through to the system
+// page of that name: a link or a ref written before system pages moved to .wye (`/d/goals`, a session's `…/pr-12`).
+export function pageBySlug(docs: Iterable<DocNode>, project: string, slug: string): DocNode | undefined {
+  const mine = [...docs].filter(d => docRoute(d.file)?.project === project);
+  return mine.find(d => d.slug === slug) ?? (isSystemSlug(slug) ? undefined : mine.find(d => d.slug === SYSTEM_MARK + slug));
 }
 // The document tree of one project: only modules whose file is under that project's docs folder.
 export function projectTree(g: GraphData, project: string) {
   const all = documentTree(g);
   const inProject = (d: DocNode) => docRoute(d.file)?.project === project;
   const roots = all.roots.filter(inProject);
-  const main = roots.length ? [...roots].sort((a, b) => b.children.length - a.children.length || a.title.localeCompare(b.title))[0] : null;
+  // the project's main document is one of the person's: a system page (PRs, Skills) is never it, however many children it has
+  const people = roots.filter(d => !isSystemFile(d.file));
+  const main = people.length ? [...people].sort((a, b) => b.children.length - a.children.length || a.title.localeCompare(b.title))[0] : null;
   return { roots, main, byFile: all.byFile };
 }

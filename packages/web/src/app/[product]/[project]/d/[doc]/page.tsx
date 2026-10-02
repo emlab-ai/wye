@@ -3,7 +3,7 @@ import { isRscRequest } from '@/lib/request';
 import { loadScope, treeFor } from '@/lib/scope';
 import { loadMarkdown } from '@/lib/load';
 import { REPO_ROOT } from '@/lib/products';
-import { docRoute, linkedDocuments, splitDocument } from '@/lib/doc';
+import { docRoute, linkedDocuments, pageBySlug, splitDocument } from '@/lib/doc';
 import { bodyOf, hashOf } from '@/lib/write';
 import { DocumentReader } from '@/components/DocumentReader';
 import { DocProps } from '@/components/DocProps';
@@ -27,7 +27,7 @@ export default async function DocPage({ params }: { params: Promise<{ product: s
   // a document that is not there — never was, or was deleted outside the app while open — is a notice in place of the
   // content, not a 404 boundary: the layout (top bar, rail, tabs) stays and the next live refresh brings the document
   // back when its file reappears (decision:wf2.deleted-outside-stays-put)
-  const d = [...tree.byFile.values()].find(x => x.slug === doc && docRoute(x.file)?.project === project);
+  const d = pageBySlug(tree.byFile.values(), project, decodeURIComponent(doc));
   if (!d) return <DocNotFound slug={doc} project={project} />;
   const md = await loadMarkdown(REPO_ROOT, d.file).catch(() => null); // gone between the graph and this render
   if (md === null) return <DocNotFound slug={doc} project={project} />;

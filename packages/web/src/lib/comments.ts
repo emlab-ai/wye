@@ -44,13 +44,13 @@ export async function addComment(scope: Scope, input: { on: string; text: string
   if (!node) return { ok: false, status: 404, message: `${input.on} is not in the graph` };
   const project = scope.projects.find(p => p.slug === (node.file && docRoute(node.file)?.project)) ?? scope.projects.find(p => p.slug === input.project) ?? scope.projects[0];
   if (!project) return { ok: false, status: 422, message: 'the product has no project to keep comments in' };
-  const file = path.posix.join(project.docsRel, `${COMMENTS_SLUG}.md`);
+  const file = path.relative(REPO_ROOT, path.join(project.wyeDir, `${COMMENTS_SLUG}.md`));
   const abs = path.join(REPO_ROOT, file);
   let created = false;
   try { await access(abs); } catch {
     const tpl = await readFile(path.join(REPO_ROOT, 'templates/docs/blank.md'), 'utf8');
     const md = instantiate(tpl, { title: 'Comments', slug: COMMENTS_SLUG, parent: '', date: new Date().toISOString().slice(0, 10) }).replace(/^part-of: \n/m, '').replace(/\npart-of: $/m, '');
-    await mkdir(project.docsDir, { recursive: true });
+    await mkdir(project.wyeDir, { recursive: true });
     await writeAtomic(abs, collectionDoc(md, 'comment').replace('every comment of the product, one row each — the home of type:comment', `every comment made on a node of the ${project.slug} project, one row each, with the node it is on`));
     created = true;
   }
@@ -64,7 +64,7 @@ export async function addComment(scope: Scope, input: { on: string; text: string
   });
   await rebuild(scope.product.dir);
   const title = scope.graph.modules.find(m => m.file === file)?.title || 'Comments';
-  return { ok: true, id, file, doc: { project: project.slug, doc: COMMENTS_SLUG, title }, created };
+  return { ok: true, id, file, doc: { project: project.slug, doc: `~${COMMENTS_SLUG}`, title }, created };
 }
 
 // Remove a comment: its row leaves the Comments document (the line that defines it; nothing else moves).

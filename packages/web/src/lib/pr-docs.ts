@@ -5,7 +5,7 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { REPO_ROOT, type Project } from './products';
 import { loadScope } from './scope';
-import { docRoute, projectTree } from './doc';
+import { bareSlug, docRoute, projectTree } from './doc';
 import { rebuild, writeAtomic, withFileLock } from './write';
 import { onSessionEnd, setPrDoc, addRefs } from './sessions';
 import { fromLine, getFrontmatter, prDocBody, nextPrNumber, prsPageId, prStatusOnEnd, prTitle, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, withDefinition, definitionIds, definitionState, readiness, taskLines, type PrEndStatus, type DefinitionState, type Readiness } from './pr-doc';
@@ -24,7 +24,7 @@ const TEMPLATE = path.join(REPO_ROOT, 'templates/docs/pr.md');
 // document when it has one. Every PR is a sub-page of it. Written when missing; returns its node id.
 export async function ensurePrsPage(project: Project, root: string | null): Promise<string> {
   const id = prsPageId(project.slug);
-  const file = path.join(project.docsDir, 'prs.md');
+  const file = path.join(project.wyeDir, 'prs.md');
   try { await stat(file); return id; } catch { /* write it */ }
   const md = `---
 node: ${id}
@@ -57,7 +57,7 @@ export const SYSTEM_VIEWS = [
 export const viewPageId = (projectSlug: string, slug: string) => `module:${projectSlug}-${slug}`;
 export async function ensureViewPages(project: Project): Promise<void> {
   for (const v of SYSTEM_VIEWS) {
-    const file = path.join(project.docsDir, `${v.slug}.md`);
+    const file = path.join(project.wyeDir, `${v.slug}.md`);
     try { await stat(file); continue; } catch { /* write it */ }
     const md = `---
 node: ${viewPageId(project.slug, v.slug)}
@@ -97,11 +97,11 @@ export async function createPrDoc(productDir: string, product: string, s: Sessio
   const home = () => { const counts = new Map<string, number>(); for (const n of scope.graph.nodes) if (n.kind === 'pr' && n.defined) { const r = docRoute(n.file); if (r) counts.set(r.project, (counts.get(r.project) ?? 0) + 1); } const best = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0]; return scope.projects.find(p => p.slug === best); };
   const project: Project = scope.projects.find(p => p.slug === at.project) ?? home() ?? scope.projects[0];
   const tree = projectTree(scope.graph, project.slug);
-  const prsPage = await ensurePrsPage(project, tree.main && tree.main.slug !== 'prs' ? tree.main.module.id : null);
+  const prsPage = await ensurePrsPage(project, tree.main && tree.main.slug !== '~prs' ? tree.main.module.id : null);
   const sourceDoc = scope.graph.modules.find(m => { const r = docRoute(m.file); return r?.project === project.slug && r.doc === at.doc; });
   // the number (decision:wf2.pr-numbers): one more than any PR of the product, in the graph or on disk
   const taken: string[] = scope.graph.nodes.filter(n => n.kind === 'pr').map(n => n.id);
-  for (const p of scope.projects) { try { taken.push(...(await readdir(p.docsDir)).filter(n => n.endsWith('.md')).map(n => n.slice(0, -3))); } catch { /* new project */ } }
+  for (const p of scope.projects) { try { taken.push(...(await readdir(p.wyeDir)).filter(n => n.endsWith('.md')).map(n => n.slice(0, -3))); } catch { /* new project */ } }
   const num = nextPrNumber(taken); const slug = `pr-${num}`;
   const tpl = await readFile(TEMPLATE, 'utf8');
   const now = new Date().toISOString();
@@ -111,7 +111,7 @@ export async function createPrDoc(productDir: string, product: string, s: Sessio
   // every request carries the analyse skill (the librarian writes ## Analysis first) plus what the person attached
   const skills = s.role === 'librarian' ? [...new Set(['skill:analyse-request', ...(s.skills ?? [])])] : (s.skills ?? []);
   const md = prDocBody(tpl, { num, slug, title: prTitle(s.instruction), date: now.slice(0, 10), session: s.id, agent: s.agent, started: now, parent: prsPage, request: s.instruction, from: fromLine(s, sourceDoc?.id), partOf, task: s.task, role: s.role, skills, hooks: s.hooks });
-  await writeAtomic(path.join(project.docsDir, `${slug}.md`), md);
+  await writeAtomic(path.join(project.wyeDir, `${slug}.md`), md);
   await rebuild(productDir);
   const ref = `${product}/${project.slug}/${slug}`;
   await setPrDoc(productDir, s.id, ref, `PR page ${ref}`);
@@ -134,7 +134,7 @@ export function requestTaskStatus(md: string, slug: string): string | undefined 
 async function prDocFile(product: string, ref: string): Promise<{ file: string; project: string; slug: string } | null> {
   const [prod, projectSlug, slug] = ref.split('/'); if (prod !== product || !projectSlug || !slug) return null;
   const scope = await loadScope(product, projectSlug); if (!scope?.project) return null;
-  return { file: path.join(scope.project.docsDir, `${slug}.md`), project: projectSlug, slug };
+  return { file: path.join(scope.project.wyeDir, `${bareSlug(slug)}.md`), project: projectSlug, slug: bareSlug(slug) };
 }
 
 // The build ended: the summary and the blocks credited to the session inside the PR's window go under "Result"

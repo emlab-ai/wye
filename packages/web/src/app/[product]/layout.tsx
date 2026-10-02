@@ -12,7 +12,7 @@ import { listProducts } from '@/lib/products';
 import { loadScope, treeFor } from '@/lib/scope';
 import { isBaseType, isImplicit, nestingMap } from '@/lib/types';
 import { loadMarkdown } from '@/lib/load';
-import { outline, splitDocument, docRoute, taskProgress, type DocNode } from '@/lib/doc';
+import { outline, splitDocument, docRoute, taskProgress, isSystemSlug, systemSlug, bareSlug, type DocNode } from '@/lib/doc';
 import { REPO_ROOT } from '@/lib/products';
 import type { TreeItem } from '@/components/DocTree';
 import type { PrItem } from '@/components/PrFolder';
@@ -46,11 +46,11 @@ export default async function ProductLayout({ children, params }: { children: Re
   const viewProject = scope.projects.find(p => scope.graph.modules.some(m => m.id === prsPageId(p.slug))) ?? scope.projects[0];
   // the Skills and Hooks pages (decision:wf2.hooks-and-skills) live there too: the base skills are written from the
   // prompts the first time, the skill documents go to the rail's Skills folder, Hooks is a menu link
-  const mainOf = (p: typeof viewProject) => { if (!p) return null; const t = treeFor(scope, p.slug); return t.main && !['prs', 'skills', 'hooks'].includes(t.main.slug) ? t.main.module.id : null; };
+  const mainOf = (p: typeof viewProject) => { if (!p) return null; const t = treeFor(scope, p.slug); return t.main && !isSystemSlug(t.main.slug) ? t.main.module.id : null; };
  
   if (viewProject) { try { await ensureViewPages(viewProject); const m = mainOf(viewProject); await ensureBaseSkills(viewProject, m); await ensureBaseWorkflows(viewProject, m); await ensureHooksPage(viewProject, m); } catch { /* read-only tree */ } }
  
-  const views = viewProject ? [...SYSTEM_VIEWS.map(v => ({ slug: v.slug, title: v.title, icon: v.icon, project: viewProject.slug })), { slug: 'hooks', title: 'Hooks', icon: '⚓', project: viewProject.slug }] : [];
+  const views = viewProject ? [...SYSTEM_VIEWS.map(v => ({ slug: systemSlug(v.slug), title: v.title, icon: v.icon, project: viewProject.slug })), { slug: systemSlug('hooks'), title: 'Hooks', icon: '⚓', project: viewProject.slug }] : [];
   const viewIds = new Set(viewProject ? [...SYSTEM_VIEWS.map(v => viewPageId(viewProject.slug, v.slug)), hooksPageId(viewProject.slug)] : []);
   const skills: SkillItem[] = []; let skillsPage: { project: string; slug: string } | null = null;
   const withoutPrs = (items: DocNode[], project: string): DocNode[] => items.filter(d => {
@@ -61,7 +61,7 @@ export default async function ProductLayout({ children, params }: { children: Re
       return false;
     }
     if (d.module.id !== prsPageId(project)) return true;
-    for (const c of d.children) { const f = fm.get(c.file) ?? {}; prs.push({ slug: c.slug, project, title: c.title, icon: icons.get(c.file) || defaultIcon(c.slug), status: f.status ?? '', started: f.started ?? '', tasks: progress.get(c.file), waiting: waitingReasons(scope.product.slug)[`${scope.product.slug}/${project}/${c.slug}`] }); }
+    for (const c of d.children) { const f = fm.get(c.file) ?? {}; prs.push({ slug: c.slug, project, title: c.title, icon: icons.get(c.file) || defaultIcon(c.slug), status: f.status ?? '', started: f.started ?? '', tasks: progress.get(c.file), waiting: waitingReasons(scope.product.slug)[`${scope.product.slug}/${project}/${bareSlug(c.slug)}`] }); }
     return false;
   }).map(d => ({ ...d, children: withoutPrs(d.children, project) }));
  
@@ -103,7 +103,7 @@ function defaultIcon(slug: string): string {
   if (/prd|requirement/.test(slug)) return '📋';
   if (/dev|design|arch/.test(slug)) return '🛠️';
   if (/test/.test(slug)) return '🧪';
-  if (/^pr-|plan/.test(slug)) return '🗺️';
+  if (/^~?pr-|plan/.test(slug)) return '🗺️';
   if (/project/.test(slug)) return '🏠';
   return '📄';
 }

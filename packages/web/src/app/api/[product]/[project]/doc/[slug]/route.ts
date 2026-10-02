@@ -4,7 +4,7 @@ import path from 'node:path';
 import { loadScope, treeFor } from '@/lib/scope';
 import { loadMarkdown } from '@/lib/load';
 import { REPO_ROOT } from '@/lib/products';
-import { docRoute, splitDocument } from '@/lib/doc';
+import { docRoute, pageBySlug, splitDocument } from '@/lib/doc';
 import { recordArtifact } from '@/lib/artifacts';
 import { retypeFrontmatter, rewriteId } from '@/lib/retype';
 import { readFile } from 'node:fs/promises';
@@ -21,7 +21,7 @@ type Op =
 
 async function locate(product: string, project: string, slug: string) {
   const scope = await loadScope(product, project); if (!scope) return null;
-  const d = [...treeFor(scope, project).byFile.values()].find(x => x.slug === slug && docRoute(x.file)?.project === project);
+  const d = pageBySlug(treeFor(scope, project).byFile.values(), project, decodeURIComponent(slug));
   return d ? { scope, d } : null;
 }
 

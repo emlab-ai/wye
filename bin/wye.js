@@ -201,7 +201,7 @@ const commands = {
     if (pos[1] !== 'add') die('wye type add <slug> [--extends parent] [--purpose "…"] [--doc product/project/doc]');
     const slug = pos[2] || die('wye type add <slug>'); const p = product();
     const body = { slug, extends: flags.extends || 'node', purpose: flags.purpose || '' };
-    if (flags.doc) { const d = docRef(flags.doc); body.doc = `data/products/${d.product}/projects/${d.project}/docs/${d.doc}.md`; body.project = d.project; } // the route wants the repo-relative file
+    if (flags.doc) { const d = docRef(flags.doc); body.doc = `data/products/${d.product}/projects/${d.project}/${d.doc.startsWith('~') ? `.wye/${d.doc.slice(1)}` : `docs/${d.doc}`}.md`; body.project = d.project; } // the route wants the repo-relative file
     const j = await api('POST', `/api/${p}/types`, body);
     return out(flags.json ? j : `type:${slug} added to ${j.file} (proposed — properties: wye node set or the type page ${WF_URL}/${p}/types/${slug})`);
   },

@@ -159,3 +159,22 @@ describe('taskProgress', () => {
   });
 });
 
+
+describe('system pages live in .wye, apart from the person\'s docs', () => {
+  const sys = 'data/products/p/projects/j/.wye/goals.md', mine = 'data/products/p/projects/j/docs/goals.md';
+  it('a system page\'s slug carries the mark; the person\'s does not', async () => {
+    const { docRoute, isSystemFile, assetDir } = await import('./doc');
+    expect(docSlug(sys)).toBe('~goals'); expect(docSlug(mine)).toBe('goals');
+    expect(docRoute(sys)).toEqual({ project: 'j', doc: '~goals' }); expect(docRoute(mine)).toEqual({ project: 'j', doc: 'goals' });
+    expect(isSystemFile(sys)).toBe(true); expect(isSystemFile(mine)).toBe(false);
+    expect(assetDir(sys)).toBe('data/products/p/projects/j/docs');
+  });
+  it('a page of the person\'s and a system page of one name are two pages; an unmarked slug falls through to the system one', async () => {
+    const { pageBySlug } = await import('./doc');
+    const d = (file: string) => ({ file, slug: docSlug(file) }) as unknown as import('./doc').DocNode;
+    expect(pageBySlug([d(sys), d(mine)], 'j', 'goals')?.file).toBe(mine);
+    expect(pageBySlug([d(sys), d(mine)], 'j', '~goals')?.file).toBe(sys);
+    expect(pageBySlug([d(sys)], 'j', 'goals')?.file).toBe(sys);   // an old /d/goals link
+    expect(pageBySlug([d(mine)], 'j', '~goals')).toBeUndefined();
+  });
+});

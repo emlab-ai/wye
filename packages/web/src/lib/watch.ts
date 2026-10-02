@@ -19,7 +19,7 @@ import { sweepRuns } from './runs-run';
 
 type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other'; file: string }) => void;
 // bump when the watcher callback changes: dev reloads keep globalThis, so an old watcher would keep running old code
-const VERSION = 14;
+const VERSION = 15;
 type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>> };
 const g = globalThis as unknown as { __wfWatch?: State };
 const st = (): State => (g.__wfWatch ??= { watchers: new Map(), subs: new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map() });
@@ -29,7 +29,7 @@ function classify(rel: string): 'doc' | 'inbox' | 'session' | 'graph' | 'change'
   if (rel.startsWith('inbox/')) return 'inbox';
   if (rel.startsWith('_sessions/')) return 'session';
   if (rel.startsWith('_changes/')) return 'change';
-  if (/^projects\/[^/]+\/docs\/.+\.md$/.test(rel) || /^projects\/[^/]+\/_project\.md$/.test(rel) || rel === '_product.md') return 'doc';
+  if (/^projects\/[^/]+\/(docs|\.wye)\/.+\.md$/.test(rel) || /^projects\/[^/]+\/_project\.md$/.test(rel) || rel === '_product.md') return 'doc';
   return 'other';
 }
 
@@ -45,7 +45,8 @@ export function ensureWatch(productDir: string) {
     const w = watch(productDir, { recursive: true }, (_ev, file) => {
       if (!file) return;
       const rel = String(file).replace(/\\/g, '/');
-      if (rel.includes('/.') || rel.endsWith('.tmp') || /\.tmp-\d+/.test(rel) || rel.includes('node_modules')) return;
+      if (/(^|\/)\.(?!wye\/)/.test(rel) || // dot-folders are noise — but a project's .wye/ holds its system pages
+           rel.endsWith('.tmp') || /\.tmp-\d+/.test(rel) || rel.includes('node_modules')) return;
       const kind = classify(rel);
       if (kind === 'other') return;
       if (kind === 'doc') {

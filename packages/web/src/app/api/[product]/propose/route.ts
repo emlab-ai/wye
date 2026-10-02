@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { loadScope } from '@/lib/scope';
 import { REPO_ROOT } from '@/lib/products';
-import { docRoute, documentTree } from '@/lib/doc';
+import { docRoute, documentTree, pageBySlug } from '@/lib/doc';
 import { writeAtomic, withFileLock, rebuild } from '@/lib/write';
 import { embedInDefinition, readPrDoc } from '@/lib/pr-docs';
 import { claimWrite } from '@/lib/changes';
@@ -33,7 +33,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   if (body.pr && !pr) return NextResponse.json({ error: 'not_found', message: `request ${body.pr} not found` }, { status: 404 });
   let file: string;
   if (body.doc) {
-    const d = body.doc.split('/'); const target = [...documentTree(scope.graph).byFile.values()].find(x => x.slug === d[2] && docRoute(x.file)?.project === d[1]);
+    const d = body.doc.split('/'); const target = pageBySlug(documentTree(scope.graph).byFile.values(), d[1], d[2]);
     if (!target) return NextResponse.json({ error: 'not_found', message: `document ${body.doc} not found` }, { status: 404 });
     file = path.join(REPO_ROOT, target.file);
     claimWrite(target.file, { session, by: body.by ?? (session ? undefined : 'agent:wye') });

@@ -44,7 +44,7 @@ async function exists(file: string): Promise<boolean> { try { await stat(file); 
 // The Skills / Hooks page of a project, under its main document when it has one. Written when missing; returns the id.
 async function ensurePage(project: Project, root: string | null, slug: 'skills' | 'hooks'): Promise<string> {
   const id = slug === 'skills' ? skillsPageId(project.slug) : hooksPageId(project.slug);
-  const file = path.join(project.docsDir, `${slug}.md`);
+  const file = path.join(project.wyeDir, `${slug}.md`);
   if (await exists(file)) return id;
   const tpl = await readFile(path.join(REPO_ROOT, `templates/docs/${slug}.md`), 'utf8');
   await writeAtomic(file, fill(tpl, { id, date: today(), root: root ? `part-of: ${root}\n` : '' }));
@@ -66,7 +66,7 @@ export async function ensureBaseSkills(project: Project, root: string | null): P
   const parent = await ensureSkillsPage(project, root);
   const written: string[] = [];
   for (const s of BASE_SKILLS) {
-    const file = path.join(project.docsDir, `skill-${s.slug}.md`);
+    const file = path.join(project.wyeDir, `skill-${s.slug}.md`);
     if (await exists(file)) continue;
     let prompt = ''; try { prompt = await readFile(path.join(REPO_ROOT, s.file), 'utf8'); } catch { continue; }
     await writeAtomic(file, skillDocFromPrompt(prompt, s, parent));
@@ -81,7 +81,7 @@ export async function ensureBaseWorkflows(project: Project, root: string | null)
   const parent = await ensureSkillsPage(project, root);
   const written: string[] = [];
   for (const slug of BASE_WORKFLOWS) {
-    const file = path.join(project.docsDir, `workflow-${slug}.md`);
+    const file = path.join(project.wyeDir, `workflow-${slug}.md`);
     if (await exists(file)) continue;
     let tpl = ''; try { tpl = await readFile(path.join(REPO_ROOT, `templates/docs/workflow-${slug}.md`), 'utf8'); } catch { continue; }
     await writeAtomic(file, fill(tpl, { slug, date: today(), parent }));
@@ -95,10 +95,10 @@ export async function createSkillDoc(project: Project, root: string | null, titl
   const parent = await ensureSkillsPage(project, root);
   const base = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'skill';
   let slug = base; let n = 2;
-  while (await exists(path.join(project.docsDir, `skill-${slug}.md`))) slug = `${base}-${n++}`;
+  while (await exists(path.join(project.wyeDir, `skill-${slug}.md`))) slug = `${base}-${n++}`;
   const tpl = await readFile(path.join(REPO_ROOT, 'templates/docs/skill.md'), 'utf8');
-  await writeAtomic(path.join(project.docsDir, `skill-${slug}.md`), fill(tpl, { slug, title, role, date: today(), parent }));
-  return `skill-${slug}`;
+  await writeAtomic(path.join(project.wyeDir, `skill-${slug}.md`), fill(tpl, { slug, title, role, date: today(), parent }));
+  return `~skill-${slug}`;  // a system page's slug (lib/doc SYSTEM_MARK)
 }
 
 // A skill's instruction: the document's body after its title when the product has the skill as a document, else the
@@ -145,12 +145,12 @@ export async function skillsSection(scope: Scope, ids: string[], heading = 'Skil
 export async function listSkills(scope: Scope): Promise<{ id: string; title: string; role: string; takes: string; status: string; slug: string; project: string }[]> {
   const out: { id: string; title: string; role: string; takes: string; status: string; slug: string; project: string }[] = [];
   for (const p of scope.projects) {
-    let files: string[] = []; try { files = (await readdir(p.docsDir)).filter(f => /^skill-.*\.md$/.test(f)); } catch { continue; }
+    let files: string[] = []; try { files = (await readdir(p.wyeDir)).filter(f => /^skill-.*\.md$/.test(f)); } catch { continue; }
     for (const f of files) {
-      let md = ''; try { md = await readFile(path.join(p.docsDir, f), 'utf8'); } catch { continue; }
+      let md = ''; try { md = await readFile(path.join(p.wyeDir, f), 'utf8'); } catch { continue; }
       const get = (k: string) => md.match(new RegExp(`^${k}:\\s*(.+)$`, 'm'))?.[1].trim() ?? '';
       if (!get('node').startsWith('skill:')) continue;
-      out.push({ id: get('node'), title: get('title'), role: get('role') || 'librarian', takes: get('takes'), status: get('status'), slug: f.slice(0, -3), project: p.slug });
+      out.push({ id: get('node'), title: get('title'), role: get('role') || 'librarian', takes: get('takes'), status: get('status'), slug: `~${f.slice(0, -3)}`, project: p.slug });
     }
   }
   return out.sort((a, b) => a.title.localeCompare(b.title));

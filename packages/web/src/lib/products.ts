@@ -15,7 +15,8 @@ export const REPO_ROOT = path.resolve(process.cwd(), '../..');
 // other frontmatter key as written (`impact: manual`, `auto-take: off`, `verdicts: on`), read by the features they switch
 export interface Meta { title: string; icon: string; description: string; kind: string; status: string; repo?: string; people?: string[]; settings: Record<string, string> }
 export interface Product { slug: string; dir: string; graphPath: string; meta: Meta }
-export interface Project { slug: string; product: string; dir: string; docsDir: string; meta: Meta; docsRel: string }
+// docsDir: the person's pages; wyeDir: the pages the app writes (lib/doc SYSTEM_DIR) — never the same folder
+export interface Project { slug: string; product: string; dir: string; docsDir: string; meta: Meta; docsRel: string; wyeDir: string }
 
 function parseMeta(md: string, fallbackTitle: string): Meta {
   const fm = md.match(/^---\n([\s\S]*?)\n---/);
@@ -55,8 +56,12 @@ export async function listProjects(product: Product): Promise<Project[]> {
   const base = path.join(product.dir, 'projects');
   return Promise.all((await dirs(base)).map(async slug => {
     const dir = path.join(base, slug);
-    return { slug, product: product.slug, dir, docsDir: path.join(dir, 'docs'), docsRel: path.relative(REPO_ROOT, path.join(dir, 'docs')), meta: await readMeta(path.join(dir, '_project.md'), slug) };
+    return { slug, product: product.slug, dir, docsDir: path.join(dir, 'docs'), docsRel: path.relative(REPO_ROOT, path.join(dir, 'docs')), wyeDir: path.join(dir, '.wye'), meta: await readMeta(path.join(dir, '_project.md'), slug) };
   }));
+}
+// The file of a page by its slug: a marked slug (`~goals`) is a system page in .wye/, any other is the person's
+export function pageFile(project: Pick<Project, 'docsDir' | 'wyeDir'>, slug: string): string {
+  return slug.startsWith('~') ? path.join(project.wyeDir, `${slug.slice(1)}.md`) : path.join(project.docsDir, `${slug}.md`);
 }
 export async function getProject(product: Product, slug: string): Promise<Project | undefined> {
   return (await listProjects(product)).find(p => p.slug === slug);

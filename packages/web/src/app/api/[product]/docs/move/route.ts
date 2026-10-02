@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { readFile, rename, access } from 'node:fs/promises';
 import path from 'node:path';
 import { loadScope } from '@/lib/scope';
-import { documentTree, docRoute, type DocNode } from '@/lib/doc';
+import { documentTree, docRoute, isSystemFile, type DocNode } from '@/lib/doc';
 import { REPO_ROOT } from '@/lib/products';
 import { patchFrontmatter, rebuild, writeAtomic } from '@/lib/write';
 
@@ -25,7 +25,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const ownProject = docRoute(doc.file)?.project;
   if (targetProject && ownProject && targetProject !== ownProject) {
     const pr = scope.projects.find(p => p.slug === targetProject); if (!pr) return NextResponse.json({ error: 'not_found', message: 'target project not found' }, { status: 404 });
-    const dest = path.join(pr.docsDir, path.basename(doc.file));
+    const dest = path.join(isSystemFile(doc.file) ? pr.wyeDir : pr.docsDir, path.basename(doc.file));
     try { await access(dest); return NextResponse.json({ error: 'conflict', message: `${path.basename(doc.file)} already exists in ${targetProject}` }, { status: 409 }); } catch { /* free */ }
     await rename(path.join(REPO_ROOT, doc.file), dest);
     file = path.relative(REPO_ROOT, dest);

@@ -12,7 +12,7 @@ export default async function Page({ params }: { params: Promise<{ product: stri
   const scope = await loadScope(product); if (!scope) notFound();
   // the Work page is a document holding the instances view (decision:wf2.views-are-pages); this route only redirects to it
   const home = scope.projects.find(p => scope.graph.modules.some(m => m.id === viewPageId(p.slug, 'work')));
-  if (home) redirect(`/${product}/${home.slug}/d/work`);
+  if (home) redirect(`/${product}/${home.slug}/d/~work`);
   const { items, people } = await loadWork(scope);
   return (
     <div className="page page-wide">

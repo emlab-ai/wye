@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { rename, writeFile } from 'node:fs/promises';
+import { mkdir, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { buildProduct, checkProduct } from './build';
 import { splitDocument } from './doc';
@@ -83,6 +83,7 @@ export function patchFrontmatter(md: string, patch: Record<string, string | null
 let writeSeq = 0;
 export async function writeAtomic(file: string, text: string): Promise<void> {
   const tmp = `${file}.tmp-${process.pid}-${++writeSeq}`;
+  await mkdir(path.dirname(file), { recursive: true }); // a project's .wye/ is made by its first system page
   await writeFile(tmp, text, 'utf8');
   await rename(tmp, file);
 }

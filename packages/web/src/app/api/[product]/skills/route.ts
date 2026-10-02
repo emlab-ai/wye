@@ -30,7 +30,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const project = (b.project && scope.projects.find(p => p.slug === b.project)) ?? scope.projects.find(p => scope.graph.modules.some(m => m.id === prsPageId(p.slug))) ?? scope.projects[0];
   if (!project) return NextResponse.json({ error: 'invalid', message: 'the product has no project' }, { status: 422 });
   const t = treeFor(scope, project.slug);
-  const root = t.main && !['prs', 'skills', 'hooks'].includes(t.main.slug) ? t.main.module.id : null;
+  const root = t.main && !t.main.slug.startsWith('~') ? t.main.module.id : null;
   const slug = await createSkillDoc(project, root, b.title.trim(), b.role === 'worker' ? 'worker' : 'librarian');
   await rebuild(scope.product.dir);
   return NextResponse.json({ slug, project: project.slug });

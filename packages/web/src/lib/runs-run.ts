@@ -44,11 +44,11 @@ const projectOf = (scope: Scope, file: string): Project | undefined => {
 
 async function ensureRunsPage(scope: Scope, project: Project): Promise<string> {
   const id = runsPageId(project.slug);
-  const file = path.join(project.docsDir, `${RUNS_SLUG}.md`);
+  const file = path.join(project.wyeDir, `${RUNS_SLUG}.md`);
   try { await stat(file); return id; } catch { /* write it */ }
   const tpl = await readFile(path.join(REPO_ROOT, `templates/docs/${RUNS_SLUG}.md`), 'utf8');
   const tree = treeFor(scope, project.slug);
-  const main = tree.main && !['prs', 'skills', 'hooks', RUNS_SLUG].includes(tree.main.slug) ? tree.main.module.id : null;
+  const main = tree.main && !tree.main.slug.startsWith('~') ? tree.main.module.id : null;
   await writeAtomic(file, tpl.replace(/\{\{id\}\}/g, id).replace(/\{\{date\}\}/g, today()).replace(/\{\{root\}\}/g, main ? `part-of: ${main}\n` : ''));
   return id;
 }
@@ -119,7 +119,7 @@ const isPage = (scope: Scope, r: RunState) => !!r.file && scope.graph.modules.so
 // The old shape: one card among many in the project's Workflow runs document.
 async function writeRunCard(scope: Scope, project: Project, next: RunState, o: { by: string }): Promise<RunState> {
   await ensureRunsPage(scope, project);
-  const file = path.join(project.docsDir, `${RUNS_SLUG}.md`);
+  const file = path.join(project.wyeDir, `${RUNS_SLUG}.md`);
   claimWrite(next.id, { by: o.by });
   await withFileLock(file, async () => {
     const cur = await readFile(file, 'utf8');
@@ -134,7 +134,7 @@ async function writeRunCard(scope: Scope, project: Project, next: RunState, o: {
 // The run's own page, from templates/docs/run.md, under the project's Workflow runs page so the tree nests it there.
 async function createRunDoc(scope: Scope, project: Project, r: RunState, o: { title: string; asked: string; parent: string; rebuild?: boolean; log?: string[] }): Promise<string> {
   const slug = `run-${r.id.replace(/^run:/, '')}`;
-  const abs = path.join(project.docsDir, `${slug}.md`);
+  const abs = path.join(project.wyeDir, `${slug}.md`);
   const tpl = await readFile(path.join(REPO_ROOT, 'templates/docs/run.md'), 'utf8');
   const vars: Record<string, string> = { node: r.id, title: o.title, status: r.status, workflow: r.workflow, on: r.on, stage: r.stage, date: r.started, parent: o.parent, asked: o.asked };
   let md = tpl.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars ? vars[k] : m));
@@ -383,7 +383,7 @@ async function migrateRunCard(scope: Scope, project: Project, r: RunState, log: 
   const title = runTitle(w?.title ?? r.workflow.replace(/^workflow:/, ''), node?.title || r.on);
   const asked = `Started on ${r.on} — the ${w?.title ?? r.workflow} workflow.`;
   const file = await createRunDoc(scope, project, r, { title, asked, parent, rebuild: false, log: r.log });
-  const runs = path.join(project.docsDir, `${RUNS_SLUG}.md`);
+  const runs = path.join(project.wyeDir, `${RUNS_SLUG}.md`);
   claimWrite(r.id, { by: 'wye', silent: true }); claimWrite(path.relative(REPO_ROOT, runs), { by: 'wye', silent: true });
   await withFileLock(runs, async () => {
     const cur = await readFile(runs, 'utf8');

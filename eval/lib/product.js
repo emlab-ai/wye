@@ -11,12 +11,14 @@ const { Graph } = require('../../lib/graph');
 const REPO = path.resolve(__dirname, '..', '..');
 const productDirOf = product => path.isAbsolute(product) ? product : path.join(REPO, 'data', 'products', product);
 
+// a project's .wye/ (the app's system pages) is read after its docs/: where a node is defined twice, the person's page wins
+const docOrder = (a, b) => { const k = f => f.replace(/\/\.wye\//, '/~wye/'); return k(a) < k(b) ? -1 : k(a) > k(b) ? 1 : 0; };
 function docFiles(productDir) {
     const files = [];
     const root = path.join(productDir, 'projects');
     if (!fs.existsSync(root)) return files;
     (function walk(d) { for (const e of fs.readdirSync(d, { withFileTypes: true })) { if (e.name.startsWith('_') || e.name === 'inbox') continue; const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else if (e.name.endsWith('.md')) files.push(p); } })(root);
-    return files.sort();
+    return files.sort(docOrder);
 }
 function graphSha(productDir) {
     const h = crypto.createHash('sha1');
