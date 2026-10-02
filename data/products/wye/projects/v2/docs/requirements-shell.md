@@ -265,3 +265,20 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - choice:wf2.instances-go-home A base kind (task, req, decision…) is treated like a product type's first instance: a row in the collection page named by its plural (pluralTitle: Tasks, Reqs) in the docs/ of the project the caller is on, created when missing. A product type still writes `home:` on its card; a base kind's card is read-only, so its page is found by name. A task's row is `- [ ]`, born open.
 
   - alternative:wf2.instances-go-home The page the caller is on (the old rule) — a view or a system page swallows the instance; the Backlog (plan.md) — tasks only, and no answer for reqs.
+
+
+```yaml
+- id: decision:wf2.pr-has-a-goal
+  title: A PR started with no goal attached gets its own goal first — then the PR, part of it, then the agent
+  date: 2026-10-02
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [rule:pr-doc, req:exec.request-is-a-task, decision:wf2.instances-go-home]
+```
+
+  - context:wf2.pr-has-a-goal The person: "make sure that when i create new PR without a goal attached, create first a goal node, then attach agent and start executions".
+
+  - choice:wf2.pr-has-a-goal When ⌘P starts a PR and none of its refs is a goal, the app writes a goal titled like the PR (its slug made unique) as a row of goals.md in the docs/ of the project the request was made in (decision:wf2.instances-go-home), adds it to the session's refs first, so the PR page's request task is part of it; then the page, the intake and the librarian start as before. Refining an existing PR (prRef) adds no goal.
+
+  - alternative:wf2.pr-has-a-goal Ask the person to pick or name a goal before the PR starts — a stop on every request; leave the PR goal-less — what the person asked to end.

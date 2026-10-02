@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { approvePr, cancelPr, reopenPr, readPrDoc, prReadiness, createPrDoc } from './pr-docs';
+import { approvePr, cancelPr, reopenPr, readPrDoc, prReadiness, createPrDoc, goalForRequest } from './pr-docs';
 import type { Session } from './session-types';
 import { rebuild } from './write'; import { DATA_ROOT } from './products'; import { loadScope } from './scope';
 
@@ -40,5 +40,15 @@ describe('pr approval', () => {
     const ref2 = await createPrDoc(dir, product, { ...base, id: 'w1', instruction: 'make the checkout round half-up' });
     expect(ref2).toBe(`${product}/p/pr-2`);
     expect(await readFile(path.join(dir, 'projects/p/.wye/pr-2.md'), 'utf8')).toMatch(/^status: building$/m);
+  });
+  it('a PR with no goal gets one first, and its request task is part of it (decision:wf2.pr-has-a-goal)', async () => {
+    const s = { id: 'g1', product, agent: 'claude-code', status: 'running', refs: [], source: { project: 'p' }, instruction: 'Let shoppers save a cart for later', log: [], createdAt: '', updatedAt: '', role: 'librarian' } as unknown as Session;
+    const goal = await goalForRequest(product, s);
+    expect(goal).toBe('goal:let-shoppers-save-a-cart-for-later');
+    expect(await readFile(path.join(dir, 'projects/p/docs/goals.md'), 'utf8')).toMatch(/^- goal:let-shoppers-save-a-cart-for-later Let shoppers save a cart for later$/m);
+    expect(await goalForRequest(product, s)).toBe('goal:let-shoppers-save-a-cart-for-later-2');   // never two goals of one id
+    const ref = await createPrDoc(dir, product, { ...s, refs: [goal!] });
+    const md = await readFile(path.join(dir, `projects/p/.wye/${ref!.split('/')[2]}.md`), 'utf8');
+    expect(md).toContain(`part-of: ${goal}`);
   });
 });

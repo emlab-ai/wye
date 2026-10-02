@@ -1,77 +1,20 @@
 import { NextResponse } from 'next/server';
 import path from 'node:path';
-import { access, mkdir, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { loadScope } from '@/lib/scope';
 import { typeBySlug, isBaseType } from '@/lib/types';
 import { REPO_ROOT } from '@/lib/products';
 import { writeAtomic, withFileLock, rebuild } from '@/lib/write';
-import { newInstanceCard, appendCard, pluralTitle, collectionDoc, appendRow, hasTable, newInstanceRow } from '@/lib/instances';
-import { instantiate, slugify } from '@/lib/templates';
-import { docRoute } from '@/lib/doc';
 import { setTypeProps, type OwnProp } from '@/lib/type-edit';
+import { addInstance, type InstanceInput } from '@/lib/instance-add';
 
-// POST { slug, title?, home? } → a new instance, and where it went. A product type's instance is a row of the type's
-// collection document (decision:ontology.collection-document, req:ontology.instance-home): the document `home:` on the
-// type card names, else one titled with the type's plural, created in the project that declares the type on the first
-// instance and written as `home:` so every later path lands there. A type with no `home:` — a base kind (task, req,
-// decision…) among them — gets the same: its plural's page in the person's docs/ (tasks.md, reqs.md), in the project
-// the caller is on (`home`: <project>/<page>), never the page itself — that may be a view, or a system page in .wye/
-// (decision:wf2.instances-go-home). A base kind's card is read-only, so its page is found by name each time. The graph rebuilds.
+// POST { slug, title?, home?, props? } → a new instance, and where it went (lib/instance-add).
 export async function POST(req: Request, { params }: { params: Promise<{ product: string; slug: string }> }) {
   const { product, slug: typeSlug } = await params;
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const t = typeBySlug(scope.graph, typeSlug); if (!t) return NextResponse.json({ error: 'not_found', message: 'unknown type' }, { status: 404 });
-  const body = (await req.json()) as { slug?: string; title?: string; home?: string; props?: Record<string, string> };
-  // extra keys the caller wants on the new instance — a list under a goal writes `part-of: goal:x` so the row lands
-  // where the list shows it (req:wf2.instances.list-new-line)
-  const extra = Object.fromEntries(Object.entries(body.props ?? {}).filter(([k, v]) => /^[a-z][a-z0-9-]*$/i.test(k) && typeof v === 'string' && v.trim()));
-  const slug = (body.slug ?? '').trim();
-  if (!/^[a-z0-9][a-z0-9_.-]*$/.test(slug)) return NextResponse.json({ error: 'invalid', message: 'slug must be lowercase letters, digits, dots or dashes' }, { status: 422 });
-  const id = `${typeSlug}:${slug}`;
-  if (scope.idx.byId.get(id)?.defined) return NextResponse.json({ error: 'conflict', message: `${id} already exists` }, { status: 409 });
-  const moduleFile = (ref: string) => scope.graph.modules.find(m => m.id === ref || m.file.endsWith('/' + ref.replace(/^[a-z-]+:/, '') + '.md'))?.file ?? '';
-  let file = t.home ? moduleFile(t.home) : '';
-  let created = false;
-  if (!file) {
-    // the first instance: the collection document in the declaring project — a base kind's in the caller's (an existing
-    // document of that slug is taken as it is), then `home:` on a product type's card
-    const base = isBaseType(t);
-    const at = base ? body.home?.split('/')[0] : docRoute(t.file)?.project;
-    const project = scope.projects.find(p => p.slug === at) ?? scope.projects[0];
-    if (!project) return NextResponse.json({ error: 'invalid', message: 'the product has no project to hold the collection document' }, { status: 422 });
-    const title = pluralTitle(t), docSlug = slugify(title);
-    file = path.posix.join(project.docsRel, `${docSlug}.md`);
-    const abs = path.join(REPO_ROOT, file);
-    try { await access(abs); } catch {
-      const tpl = await readFile(path.join(REPO_ROOT, 'templates/docs/blank.md'), 'utf8');
-      const md = instantiate(tpl, { title, slug: docSlug, parent: '', date: new Date().toISOString().slice(0, 10) }).replace(/^part-of: \n/m, '').replace(/\npart-of: $/m, '');
-      await mkdir(project.docsDir, { recursive: true });
-      await writeAtomic(abs, collectionDoc(md, typeSlug));
-      created = true;
-    }
-    if (!base) {
-      const homeId = scope.graph.modules.find(m => m.file === file)?.id ?? `module:${docSlug}`;
-      const typeAbs = path.join(REPO_ROOT, t.file);
-      await withFileLock(typeAbs, async () => {
-        const out = setTypeProps(await readFile(typeAbs, 'utf8'), t.id, null, { home: homeId });
-        if (!out.error) await writeAtomic(typeAbs, out.md);
-      });
-    }
-  }
-  const abs = path.join(REPO_ROOT, file);
-  let row = false;
-  await withFileLock(abs, async () => {
-    const md = await readFile(abs, 'utf8');
-    // a row of the type's table when the document has one (a product type's collection always does), else a card
-    row = created || hasTable(md, typeSlug);
-    // a task's row is a checkbox line, so it is born open on the Work view
-    const line = newInstanceRow(id, body.title ?? '', extra);
-    await writeAtomic(abs, row ? appendRow(md, typeSlug, typeSlug === 'task' ? line.replace(/^- /, '- [ ] ') : line) : appendCard(md, newInstanceCard(t, id, body.title ?? '', extra)));
-  });
-  await rebuild(scope.product.dir);
-  const route = docRoute(file);
-  const doc = route ? { ...route, title: scope.graph.modules.find(m => m.file === file)?.title || (created ? pluralTitle(t) : route.doc) } : null;
-  return NextResponse.json({ ok: true, id, file, doc, created, row });
+  const r = await addInstance(scope, typeSlug, (await req.json()) as InstanceInput);
+  if (!r.ok) return NextResponse.json({ error: r.error, message: r.message }, { status: r.status });
+  return NextResponse.json(r);
 }
 
 // PUT { props?: OwnProp[], scalars?: { purpose?, extends?, open? } } → rewrites the type card's props block and scalar

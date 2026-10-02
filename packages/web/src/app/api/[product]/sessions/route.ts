@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getProduct } from '@/lib/products';
-import { AGENTS, createSession, listSessions, listRunners, setPrDoc } from '@/lib/sessions';
+import { AGENTS, addRefs, createSession, listSessions, listRunners, setPrDoc } from '@/lib/sessions';
 import { startChat, liveState, reconcileStale } from '@/lib/agent-host';
 import { askingOf } from '@/lib/asking';
-import { createPrDoc, readPrDoc, setRefining } from '@/lib/pr-docs';
+import { createPrDoc, goalForRequest, readPrDoc, setRefining } from '@/lib/pr-docs';
 import { markReading, runIntake } from '@/lib/pr-intake';
 import { buildPrompt } from '@/lib/agent-host';
 import { prsOf } from '@/lib/pr-doc';
@@ -47,7 +47,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     // `prRef`: refine an existing PR (its page stays; the message row on the PR head) instead of making a page
     const existing = body.prRef && (await readPrDoc(product, body.prRef)) ? body.prRef : null;
     if (existing) { await setPrDoc(p.dir, s.id, existing, `refines ${existing}`); s.prDoc = existing; await setRefining(p.dir, product, existing); }
-    else s.prDoc = (await createPrDoc(p.dir, product, s)) ?? undefined;
+    else {
+      // no goal attached: the goal first, then the PR part of it, then the agent on it (decision:wf2.pr-has-a-goal)
+      if (!s.refs.some(r => r.startsWith('goal:'))) { const goal = await goalForRequest(product, s); if (goal) { await addRefs(p.dir, s.id, [goal]); s.refs = [goal, ...s.refs]; } }
+      s.prDoc = (await createPrDoc(p.dir, product, s)) ?? undefined;
+    }
     if (s.prDoc && existing) { const started = await startChat(p.dir, product, s.id, { wfUrl }); return NextResponse.json(started ?? s, { status: 201 }); }
     if (s.prDoc) {
       // intake first (decision:wf2.pr-intake): the page says it is being read, the person lands on it now, the

@@ -17,6 +17,8 @@ import { parseNodeLine } from './node-line';
 export { prsPageId };
 import type { Session } from './session-types';
 import { scopeFresh } from './pr-scope';
+import { addInstance } from './instance-add';
+import { slugify } from './templates';
 
 const TEMPLATE = path.join(REPO_ROOT, 'templates/docs/pr.md');
 
@@ -84,6 +86,20 @@ function placeOf(s: Session): { project?: string; doc?: string } {
   if (s.source?.project) return { project: s.source.project, doc: s.source.doc };
   const m = s.source?.link?.match(/\/[^/]+\/([^/]+)\/d\/([^/#?]+)/);
   return m ? { project: m[1], doc: m[2] } : {};
+}
+
+// A PR is always part of a goal (decision:wf2.pr-has-a-goal): a request sent with no goal attached gets one of its
+// own first — titled like the PR, a row of the Goals page in the project the request was made in (lib/instance-add) —
+// so the request task has something to be part of. Returns the goal's id, or null when it could not be written.
+export async function goalForRequest(product: string, s: Session): Promise<string | null> {
+  const scope = await loadScope(product); if (!scope) return null;
+  const title = prTitle(s.instruction);
+  const base = slugify(title).slice(0, 48).replace(/-+$/, '') || 'goal';
+  let slug = base; let n = 2;
+  while (scope.idx.byId.get(`goal:${slug}`)?.defined) slug = `${base}-${n++}`;
+  const at = placeOf(s).project;
+  const r = await addInstance(scope, 'goal', { slug, title, home: at ? `${at}/` : undefined });
+  return r.ok ? r.id : null;
 }
 
 // Create `pr-<n>` for the request: a sub-page of the project's PRs page, the type:pr card in the
