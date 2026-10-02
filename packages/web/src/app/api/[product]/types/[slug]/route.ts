@@ -7,7 +7,7 @@ import { REPO_ROOT } from '@/lib/products';
 import { writeAtomic, withFileLock, rebuild } from '@/lib/write';
 import { newInstanceCard, appendCard, pluralTitle, collectionDoc, appendRow, hasTable, newInstanceRow } from '@/lib/instances';
 import { instantiate, slugify } from '@/lib/templates';
-import { docRoute } from '@/lib/doc';
+import { docRoute, documentTree, pageBySlug } from '@/lib/doc';
 import { setTypeProps, type OwnProp } from '@/lib/type-edit';
 
 // POST { slug, title?, home? } → a new instance, and where it went. A product type's instance is a row of the type's
@@ -52,7 +52,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
       if (!out.error) await writeAtomic(typeAbs, out.md);
     });
   }
-  if (!file && body.home) file = scope.graph.modules.find(m => m.file.endsWith(`/projects/${body.home!.split('/')[0]}/docs/${body.home!.split('/').slice(1).join('/')}.md`))?.file ?? '';
+  // home: `<project>/<page slug>` — a system page's slug carries its mark (`cr/~work`), so it is looked up, not built
+  if (!file && body.home) { const [proj, ...rest] = body.home.split('/'); file = pageBySlug(documentTree(scope.graph).byFile.values(), proj, rest.join('/'))?.file ?? ''; }
   if (!file) return NextResponse.json({ error: 'invalid', message: 'the type has no home document — say where it goes' }, { status: 422 });
   const abs = path.join(REPO_ROOT, file);
   let row = false;
