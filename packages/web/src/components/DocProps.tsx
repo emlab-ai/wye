@@ -17,7 +17,8 @@ const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/
 // page and every link to it, op:doc.retype), the id, the status, the icon and the title, then the type's effective
 // properties as editable fields (the root type's folded unless filled); a field saves to the frontmatter when it
 // loses focus (op:doc.frontmatter). An unknown type shows the plain fields and a warning.
-export function DocProps({ product, project, slug, file, fm, node, types }: { product: string; project: string; slug: string; file: string; fm: Record<string, string>; node: string; types: TypeDef[] }) {
+// `titled`: the page's text opens with its own `# Title`, which is the title the reader sees — the head does not repeat it.
+export function DocProps({ product, project, slug, file, fm, node, types, titled = false }: { product: string; project: string; slug: string; file: string; fm: Record<string, string>; node: string; types: TypeDef[]; titled?: boolean }) {
   const router = useRouter();
   const { index, open } = usePeek();
   const [vals, setVals] = useState<Record<string, string>>(fm);
@@ -25,6 +26,10 @@ export function DocProps({ product, project, slug, file, fm, node, types }: { pr
   const [msg, setMsg] = useState('');
   const [more, setMore] = useState(false);
   const [iconPick, setIconPick] = useState(false);
+  // the properties are folded until asked: they matter less than the page (one choice for every page, kept per browser)
+  const [showProps, setShowProps] = useState(false);
+  useEffect(() => { try { setShowProps(localStorage.getItem('wf-doc-props') === '1'); } catch { /* no storage */ } }, []);
+  const toggleProps = () => setShowProps(v => { try { localStorage.setItem('wf-doc-props', v ? '0' : '1'); } catch { /* no storage */ } return !v; });
   useEffect(() => { setVals(fm); }, [fm]);
   const kind = node.split(':')[0];
   const type = types.find(t => t.slug === kind) ?? null;
@@ -112,14 +117,15 @@ export function DocProps({ product, project, slug, file, fm, node, types }: { pr
         {msg && <span className={`muted doc-msg ${state === 'error' ? 'bad' : ''}`}>{msg}</span>}
         {!type && <span className="doc-warn">unknown type — the page is not in the graph</span>}
       </div>
-      <div className="doc-title-row">{field('title', 'h1')}</div>
-      <dl className="ne-props doc-props">
+      {!titled && <div className="doc-title-row">{field('title', 'h1')}</div>}
+      <button type="button" className="linkish doc-props-toggle" onClick={toggleProps}>{showProps ? '⌃ hide properties' : '⌄ properties'}</button>
+      {showProps && <dl className="ne-props doc-props">
         <div><dt><i>◔</i>owner</dt><dd>{field('owner')}</dd></div>
         <div className={vals.tags ? '' : 'empty'}><dt title={tagsProp?.enum ? `values defined on ${tagsProp.from}` : 'free labels; a type may define them'}><i>⌗</i>tags</dt><dd><TagsRow product={product} type={type} prop={tagsProp} value={vals.tags ?? ''} onChange={v => setKey('tags', v)} /></dd></div>
         <div className="empty"><dt><i>▦</i>verified</dt><dd>{field('last-verified')}</dd></div>
         {more && <div className="empty"><dt><i>⋯</i>file</dt><dd><code className="muted">{file}</code></dd></div>}
-      </dl>
-      {(shown.length > 0 || folded > 0) && (
+      </dl>}
+      {showProps && (shown.length > 0 || folded > 0) && (
         <dl className="ne-props doc-props">
           {shown.map(p => (
             <div key={p.name} className={filled(p) ? '' : 'empty'}>

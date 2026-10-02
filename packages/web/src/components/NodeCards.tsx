@@ -164,7 +164,7 @@ export function QuestionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
   const get = (k: string) => rows.find(r => r.key === k)?.value ?? '';
   const q = get('q');
   const id = `${p.kind}:${p.slug}`;
-  const others = rows.filter(r => !['id', 'title', 'q', 'status', p.textKey].includes(r.key));
+  const others = rows.filter(r => !['id', 'title', 'q', 'status', 'answer', 'by', p.textKey].includes(r.key));
   const status = p.status || 'open';
   const a = host.answer;
   return (
@@ -186,9 +186,12 @@ export function QuestionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
       </div>}
       {/* the answer is the question's content (decision:wf2.answer-is-content): in the editor the blocks render under
           the card and this section only shows while there are none; elsewhere it opens the details */}
-      {a && (a.count === 0 || !a.start) && <div className={`qnode-section qnode-answer ${a.count ? '' : 'empty'}`} contentEditable={false} ref={host.stop}>
+      {a && (a.count === 0 || !a.start) && <div className={`qnode-section qnode-answer ${a.count || get('answer') ? '' : 'empty'}`} contentEditable={false} ref={host.stop}>
         <label>answer</label>
-        {a.count === 0
+        {a.count === 0 && get('answer')
+          // answered in the conversation or the PR's head: the card carries it as `answer` (lib/pr-questions withAnswer)
+          ? <><ProseArea value={get('answer')} placeholder="the answer" onChange={v => set({ body: setBodyField(p.body, 'answer', v) })} />{get('by') && <small className="muted qnode-by">— {get('by')}</small>}</>
+          : a.count === 0
           ? <button type="button" className="qnode-ta qnode-answer-start" onClick={a.start ?? a.open}>{status === 'open' ? 'not answered yet — write the answer here; a decision block resolves it, then set the status to resolved' : 'no answer recorded'}</button>
           : <button type="button" className="qnode-ta qnode-answer-open" onClick={a.open}>{a.count} block{a.count === 1 ? '' : 's'} — open</button>}
       </div>}

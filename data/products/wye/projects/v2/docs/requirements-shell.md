@@ -282,3 +282,32 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - choice:wf2.pr-has-a-goal When ⌘P starts a PR and none of its refs is a goal, the app writes a goal titled like the PR (its slug made unique) as a row of goals.md in the docs/ of the project the request was made in (decision:wf2.instances-go-home), adds it to the session's refs first, so the PR page's request task is part of it; then the page, the intake and the librarian start as before. Refining an existing PR (prRef) adds no goal.
 
   - alternative:wf2.pr-has-a-goal Ask the person to pick or name a goal before the PR starts — a stop on every request; leave the PR goal-less — what the person asked to end.
+
+
+```yaml
+- id: decision:wf2.page-head-folded
+  title: A page's head shows its type and status; the properties fold behind one toggle, and the title is the text's own heading
+  date: 2026-10-02
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [req:wf2.page.header-card, decision:wf2.card-is-name-and-properties]
+```
+
+  - context:wf2.page-head-folded On a PR page the head repeated the title (cut off at the edge, then again as the text's `# ` heading), the type picker stretched to its longest option, and owner, verified, session, agent, started, role and skills stood before the page. The person: "collapse properties by default (they not important enough)".
+
+  - choice:wf2.page-head-folded The properties sit behind "⌄ properties" on every page, folded until opened; the choice is kept per browser. The head's title field shows only when the text has no `# ` heading of its own. The type picker is as wide as its type.
+
+```yaml
+- id: decision:wf2.answers-reach-the-librarian
+  title: An answer on the PR's page is shown on its question card and reaches the PR's conversation, whichever way the question was asked
+  date: 2026-10-02
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [decision:wf2.pr-questions-on-the-page, decision:wf2.answer-is-content]
+```
+
+  - context:wf2.answers-reach-the-librarian The person answered the librarian's questions and saw "no answer recorded" on every card: the answers were on the cards as `answer:`, but the card only counted blocks under it. A question the librarian wrote into the Definition (no tool waiting on it) took an answer on the card and told nobody.
+
+  - choice:wf2.answers-reach-the-librarian A question card with no blocks under it shows its `answer` field, editable, with who gave it. Answering a Definition question on the page sends the answer to the PR's latest librarian conversation, resumed when it has stopped.

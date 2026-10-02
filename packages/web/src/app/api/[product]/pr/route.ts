@@ -3,7 +3,7 @@ import { loadScope } from '@/lib/scope';
 import { readPrDoc, prDefinition, prReadiness, approvePr, cancelPr, reopenPr, refreshStaleScopes } from '@/lib/pr-docs';
 import { stopRefining } from '@/lib/pr-sessions';
 import { questionsOf, answerOnPage } from '@/lib/pr-questions';
-import { answerPermission, isLive, liveState, sendMessage } from '@/lib/agent-host';
+import { answerPermission, isLive, liveState, sendMessage, startChat } from '@/lib/agent-host';
 import { getSession, listSessions } from '@/lib/sessions';
 import { notifyDispatch, waitingReasons } from '@/lib/dispatch';
 import { firePrApproved, rememberHooksUrl } from '@/lib/hooks-run';
@@ -70,7 +70,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ produc
       const ev = (s?.transcript ?? []).find(e => e.kind === 'permission' && e.requestId === r.settled!.requestId) as { input?: unknown } | undefined;
       if (isLive(r.settled.sessionId)) continued = answerPermission(r.settled.sessionId, r.settled.requestId, true, { ...(ev?.input as object ?? {}), answers: r.settled.answers });
     }
-    return NextResponse.json({ ok: true, settled: !!r.settled, continued });
+    // a question the librarian wrote into the Definition (no tool waiting on it): the answer is on the card, and the
+    // PR's conversation is told — resumed when it has stopped — so it goes on from the answer, not from the card alone
+    let told = false;
+    if (!r.settled) {
+      const same = (a?: string) => (a ?? '').replace('/~', '/') === body.ref!.replace('/~', '/');
+      const s = (await listSessions(scope.product.dir)).filter(x => x.role === 'librarian' && same(x.prDoc) && x.status !== 'cancelled').sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+      if (s) {
+        try {
+          await sendMessage(scope.product.dir, s.id, { text: `The person answered ${body.id} on the PR's page: "${body.answer.trim()}". The card is resolved with that answer — record what it decides as a decision: block on the page if it decides something, and go on refining from it.` });
+          if (!isLive(s.id)) await startChat(scope.product.dir, product, s.id, { wfUrl: new URL(req.url).origin, resume: !!s.agentSessionId });
+          told = true;
+        } catch { /* the answer is on the page either way */ }
+      }
+    }
+    return NextResponse.json({ ok: true, settled: !!r.settled, continued, told });
   }
   if (body.action === 'approve') {
     await approvePr(scope.product.dir, product, body.ref, by);
