@@ -24,17 +24,9 @@ export async function createDocFromTemplate(scope: Scope, project: Project, o: {
   const parentDoc = o.parent ? [...tree.byFile.values()].find(x => x.slug === o.parent) : undefined;
   // an explicit slug when the caller needs one that does not come from the title (a workflow stage's document: the
   // title may be long, and slugify's cut would give two stages of one run the same slug)
-  // A slug from the title steps to the next free one (`goals` → `goals-2`): the file it would take may be one the tree
-  // hides — a project's goals.md, work.md, prs.md are its rail pages — so the person sees no page by that name to blame
-  let slug = o.slug ? slugify(o.slug) : slugify(title);
-  const taken = async (s: string) => !!scope.idx.byId.get(`${kind}:${s}`)?.defined || await access(path.join(project.docsDir, `${s}.md`)).then(() => true, () => false);
-  if (await taken(slug)) {
-    if (o.slug) return { ok: false, error: 'conflict', message: `${slug}.md exists` };
-    const base = slug; let n = 2;
-    while (await taken(`${base}-${n}`)) n++;
-    slug = `${base}-${n}`;
-  }
+  const slug = o.slug ? slugify(o.slug) : slugify(title);
   const abs = path.join(project.docsDir, `${slug}.md`);
+  try { await access(abs); return { ok: false, error: 'conflict', message: `${slug}.md exists` }; } catch { /* new */ }
   let md = instantiate(tpl, { title, slug, parent: parentDoc ? parentDoc.module.id : '', date: new Date().toISOString().slice(0, 10), kind, props: type.props.filter(p => p.required && !['title', 'status'].includes(p.name)).map(p => p.name) });
   if (!parentDoc) md = md.replace(/^part-of: \n/m, '').replace(/\npart-of: $/m, '');
   // a typed page's card is its frontmatter (rule:page-node-line), so the template's own card — and the heading that
