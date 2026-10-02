@@ -32,7 +32,7 @@ describe('prDocBody', () => {
     const md = prDocBody(TPL, { ...vars, title: 'Fix (the) #thing', partOf: 'goal:g1' });
     expect(md).toContain('- [ ] task:pr-41 Fix the thing #in-progress (worker: claude-code, session: abc123, part-of: goal:g1)');
     expect(prDocBody(TPL, vars)).toContain('- [ ] task:pr-41 page link on the session #in-progress (worker: claude-code, session: abc123)\n');
-    expect(prDocBody(TPL, { ...vars, task: 'task:x.y' })).toContain('## Tasks\n\n_`- [ ] task:` lines, `part of pr:41`; their check state is what is in progress._\n\n![[task:x.y]]\n');
+    expect(prDocBody(TPL, { ...vars, task: 'task:x.y' })).toContain('## Tasks\n\n![[task:x.y]]\n');
     expect(prDocBody(TPL, { ...vars, task: 'task:x.y' })).toContain('started: 2026-09-18T12:00:00.000Z\ntask: task:x.y\npart-of:');
     expect(prDocBody(TPL, vars)).not.toMatch(/^task:/m);
     expect(requestTaskStatusOnEnd('in-progress', 'done')).toBe('review');

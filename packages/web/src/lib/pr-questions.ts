@@ -42,7 +42,7 @@ export function withQuestions(md: string, yaml: string): string {
   if (!yaml) return md;
   const m = md.match(/^## Questions[^\n]*\n/m);
   if (!m || m.index === undefined) {
-    const block = `## Questions\n\n_What the librarian needs from you before the request is clear — answer here._\n\n${yaml}\n\n`;
+    const block = `## Questions\n\n${yaml}\n\n`;
     const next = md.match(/^## Tasks[^\n]*\n/m);
     return next && next.index !== undefined ? `${md.slice(0, next.index)}${block}${md.slice(next.index)}` : `${md.replace(/\s+$/, '')}\n\n${block}`;
   }
