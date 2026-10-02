@@ -43,8 +43,11 @@ export function NodeEditor({ id, body, form, type, props, entry, relations = [],
   // the text key is the text field above (or the title), never a second row — type:question declares q itself
   const declared: Field[] = props.filter(p => (p.from !== 'type:node' || p.value) && p.name !== textKey && !HIDDEN.has(p.name) && p.name !== titleKey).map(p => ({ name: p.name, type: p.type, ref: p.ref, many: p.many, enum: p.enum, required: p.required, from: p.from, value: p.value }));
   const track: Field[] = (TRACK[kind] ?? []).filter(t => !declared.some(d => d.name === t.name)).map(t => ({ name: t.name, type: t.type.startsWith('ref ') ? 'ref' : t.type, ref: t.type.startsWith('ref ') ? t.type.slice(4) : null, many: false, enum: null, required: false, from: 'tracking', value: get(t.name) }));
-  const carried: Field[] = rows.filter(r => !HIDDEN.has(r.key) && r.key !== titleKey && r.key !== textKey && !declared.some(p => p.name === r.key) && !track.some(t => t.name === r.key)).map(r => ({ name: r.key, type: r.prose || r.value.includes('\n') ? 'text' : 'string', ref: null, many: false, enum: null, required: false, from: '', value: r.value }));
-  const textField: Field[] = titleKey !== textKey ? [{ name: textKey, type: 'text', ref: null, many: false, enum: null, required: false, from: 'type:node', value: get(textKey) }] : [];
+  // a key the type does not declare whose value is node ids (`links: [req:x, decision:y]`) is a relation: its tags, not text
+  const idsOnly = (v: string) => { const xs = v.replace(/^\[|\]$/g, '').split(/,\s*/).map(x => x.trim()).filter(Boolean); return xs.length > 0 && xs.every(x => /^[a-z][a-z0-9-]*:[A-Za-z0-9_.\-]+$/.test(x)); };
+  const carried: Field[] = rows.filter(r => !HIDDEN.has(r.key) && r.key !== titleKey && r.key !== textKey && !declared.some(p => p.name === r.key) && !track.some(t => t.name === r.key)).map(r => ({ name: r.key, type: r.prose || r.value.includes('\n') ? 'text' : 'string', ref: !r.prose && idsOnly(r.value) ? 'node' : null, many: !r.prose && idsOnly(r.value), enum: null, required: false, from: '', value: r.value }));
+  // a titled card's `text` is the first paragraph of its content below (decision:wf2.req-free-text), never a row
+  const textField: Field[] = titleKey !== textKey && textKey !== 'text' ? [{ name: textKey, type: 'text', ref: null, many: false, enum: null, required: false, from: 'type:node', value: get(textKey) }] : [];
   const fields = [...textField, ...track, ...declared, ...carried];
   const [vals, setVals] = useState<Record<string, string>>(() => Object.fromEntries(fields.map(f => [f.name, f.value])));
   const [more, setMore] = useState(false);

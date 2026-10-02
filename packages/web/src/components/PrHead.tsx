@@ -3,6 +3,7 @@ import { AttachPicker } from './AttachPicker';
 import { useCallback, useEffect, useState } from 'react';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
+import { Linkified } from './IdLink';
 import { StatusPill } from './Pills';
 import { useMe } from './WorkList';
 
@@ -120,9 +121,9 @@ function PageQuestion({ product, prRef, q, me, onDone }: { product: string; prRe
   return (
     <div className="ask-q">
       {q.header && <span className="ask-header">{q.header}</span>}
-      <p className="ask-text">{q.q}</p>
+      <p className="ask-text"><Linkified text={q.q} /></p>
       <ul className="ask-options" role={q.multi ? 'group' : 'radiogroup'}>
-        {q.options.map(o => { const on = picked.includes(o.label); return <li key={o.label}><button type="button" role={q.multi ? 'checkbox' : 'radio'} aria-checked={on} className={`ask-opt ${on ? 'on' : ''}`} onClick={() => toggle(o.label)}><i>{on ? '●' : '○'}</i><span><b>{o.label}</b>{o.description && <small>{o.description}</small>}</span></button></li>; })}
+        {q.options.map(o => { const on = picked.includes(o.label); return <li key={o.label}><button type="button" role={q.multi ? 'checkbox' : 'radio'} aria-checked={on} className={`ask-opt ${on ? 'on' : ''}`} onClick={() => toggle(o.label)}><i>{on ? '●' : '○'}</i><span><b>{o.label}</b>{o.description && <small><Linkified text={o.description} /></small>}</span></button></li>; })}
         <li><label className="ask-other"><i>{other.trim() ? '●' : '○'}</i><input value={other} placeholder="Other — type your own answer" onChange={e => setOther(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') send(); }} /></label></li>
       </ul>
       <p className="ask-actions"><button className="pri" disabled={!value || busy} onClick={send}>{busy ? 'Sending…' : 'Answer'}</button> <SmartTag id={q.id} /></p>

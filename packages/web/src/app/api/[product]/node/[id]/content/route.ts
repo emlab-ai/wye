@@ -12,6 +12,14 @@ import { nodeText, patchProseNode, patchYamlCard, textPatch } from '@/lib/node-e
 import { bodyOf, hashOf, lint, rebuild, withFileLock, writeAtomic } from '@/lib/write';
 import { recordArtifact } from '@/lib/artifacts';
 import { docIdOf, docRoute } from '@/lib/doc';
+import { parseBody } from '@/lib/graph';
+
+// The words of a titled yaml card's `text:` key — the old form of its content — or ''.
+function keyedText(node: { form?: string; body: string }): string {
+  if ((node.form ?? 'yaml') !== 'yaml') return '';
+  const rows = parseBody(node.body);
+  return rows.some(r => r.key === 'title') ? (rows.find(r => r.key === 'text')?.value ?? '').trim() : '';
+}
 
 async function locate(product: string, id: string) {
   const scope = await loadScope(product); if (!scope) return null;
@@ -23,7 +31,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ product
   const { product, id: raw } = await params; const id = decodeURIComponent(raw);
   const hit = await locate(product, id); if (!hit) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const md = await readFile(hit.abs, 'utf8');
-  const content = readContent(md, id, hit.node.line, hit.node.form ?? 'yaml');
+  const read = readContent(md, id, hit.node.line, hit.node.form ?? 'yaml');
+  // a titled card's `text:` key is the old form (decision:wf2.req-free-text): its words are the first paragraph of the
+  // content here, and the first save of the content writes them there and drops the key
+  const content = read !== null && keyedText(hit.node) ? `${keyedText(hit.node)}\n\n${read}`.replace(/\n+$/, '\n') : read;
   if (content === null) return NextResponse.json({ error: 'invalid', message: `${id} has no content in its document (${hit.node.form ?? 'yaml'} form)` }, { status: 422 });
   // the child ids in document order: the node's own `has` edges, block nodes included
   const children = (hit.scope.idx.out.get(id) ?? []).filter(e => e.verb === 'has' && !e.generated).map(e => e.to);
@@ -51,8 +62,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
       if (t.error) return NextResponse.json({ error: t.error, message: `could not write the text of ${id}` }, { status: 422 });
       cur = t.md;
     }
-    const next = typeof body.content === 'string' ? writeContent(cur, id, hit.node.line, hit.node.form ?? 'yaml', body.content) : cur;
+    let next = typeof body.content === 'string' ? writeContent(cur, id, hit.node.line, hit.node.form ?? 'yaml', body.content) : cur;
     if (next === null) return NextResponse.json({ error: 'invalid', message: `${id} has no content in its document` }, { status: 422 });
+    // the content carried the card's `text:` key as its first paragraph (GET): now it is written there, the key goes
+    if (typeof body.content === 'string' && keyedText(hit.node)) { const k = patchYamlCard(next, id, { props: { text: null } }); if (!k.error) next = k.md; }
     if (next !== md) await writeAtomic(hit.abs, next);
     const built = await rebuild(hit.scope.product.dir);
     const checked = await lint(hit.scope.product.dir);

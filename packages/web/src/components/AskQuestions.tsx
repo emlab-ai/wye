@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { Linkified } from './IdLink';
 
 // The agent's AskUserQuestion, rendered as a form instead of a permission dump. Answers go back inside the tool's
 // input as `answers: { "<question>": "<label>" }` (multi-select comma-separated), the shape Claude Code reads.
@@ -17,7 +18,7 @@ export function AskQuestions({ input, requestId, answer, done }: { input: AskInp
   const submit = () => answer(requestId, true, { ...input, answers: Object.fromEntries(qs.map(q => [q.question, valueOf(q)])) });
   if (done) return (
     <div className="ask">
-      {qs.map(q => <div key={q.question} className="ask-q answered">{q.header && <span className="ask-header">{q.header}</span>}<p className="ask-text">{q.question}</p><p className="ask-answer">{done === 'denied' ? <span className="muted">skipped — the agent went on without an answer</span> : done[q.question] ? <><span className="muted">you answered </span><b>{done[q.question]}</b></> : <span className="muted">allowed without an answer — the agent went on with its own assumption</span>}</p></div>)}
+      {qs.map(q => <div key={q.question} className="ask-q answered">{q.header && <span className="ask-header">{q.header}</span>}<p className="ask-text"><Linkified text={q.question} /></p><p className="ask-answer">{done === 'denied' ? <span className="muted">skipped — the agent went on without an answer</span> : done[q.question] ? <><span className="muted">you answered </span><b>{done[q.question]}</b></> : <span className="muted">allowed without an answer — the agent went on with its own assumption</span>}</p></div>)}
     </div>
   );
   return (
@@ -26,7 +27,7 @@ export function AskQuestions({ input, requestId, answer, done }: { input: AskInp
       {qs.map(q => (
         <div key={q.question} className="ask-q">
           {q.header && <span className="ask-header">{q.header}</span>}
-          <p className="ask-text">{q.question}</p>
+          <p className="ask-text"><Linkified text={q.question} /></p>
           {q.kind === 'text' && <textarea className="ask-free" rows={3} value={free[q.question] ?? ''} placeholder="your answer" onChange={e => setFree(f => ({ ...f, [q.question]: e.target.value }))} />}
           {q.kind === 'number' && <p className="ask-num"><input type="number" min={q.min} max={q.max} step={q.step} value={free[q.question] ?? ''} onChange={e => setFree(f => ({ ...f, [q.question]: e.target.value }))} />{q.unit && <span className="muted"> {q.unit}</span>}</p>}
           {!q.kind && (
