@@ -7,14 +7,16 @@ import { REPO_ROOT } from '@/lib/products';
 import { writeAtomic, withFileLock, rebuild } from '@/lib/write';
 import { newInstanceCard, appendCard, pluralTitle, collectionDoc, appendRow, hasTable, newInstanceRow } from '@/lib/instances';
 import { instantiate, slugify } from '@/lib/templates';
-import { docRoute, documentTree, pageBySlug } from '@/lib/doc';
+import { docRoute } from '@/lib/doc';
 import { setTypeProps, type OwnProp } from '@/lib/type-edit';
 
 // POST { slug, title?, home? } → a new instance, and where it went. A product type's instance is a row of the type's
 // collection document (decision:ontology.collection-document, req:ontology.instance-home): the document `home:` on the
 // type card names, else one titled with the type's plural, created in the project that declares the type on the first
-// instance and written as `home:` so every later path lands there. A base kind (goal, decision, task…) has no
-// collection: its card goes to `home` — the page the caller is on (req:wf2.editor.entity-from-text). The graph rebuilds.
+// instance and written as `home:` so every later path lands there. A type with no `home:` — a base kind (task, req,
+// decision…) among them — gets the same: its plural's page in the person's docs/ (tasks.md, reqs.md), in the project
+// the caller is on (`home`: <project>/<page>), never the page itself — that may be a view, or a system page in .wye/
+// (decision:wf2.instances-go-home). A base kind's card is read-only, so its page is found by name each time. The graph rebuilds.
 export async function POST(req: Request, { params }: { params: Promise<{ product: string; slug: string }> }) {
   const { product, slug: typeSlug } = await params;
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
@@ -30,10 +32,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const moduleFile = (ref: string) => scope.graph.modules.find(m => m.id === ref || m.file.endsWith('/' + ref.replace(/^[a-z-]+:/, '') + '.md'))?.file ?? '';
   let file = t.home ? moduleFile(t.home) : '';
   let created = false;
-  if (!file && !isBaseType(t)) {
-    // the first instance: the collection document in the declaring project (an existing document of that slug is
-    // taken as it is), then `home:` on the type card
-    const project = scope.projects.find(p => p.slug === docRoute(t.file)?.project) ?? scope.projects[0];
+  if (!file) {
+    // the first instance: the collection document in the declaring project — a base kind's in the caller's (an existing
+    // document of that slug is taken as it is), then `home:` on a product type's card
+    const base = isBaseType(t);
+    const at = base ? body.home?.split('/')[0] : docRoute(t.file)?.project;
+    const project = scope.projects.find(p => p.slug === at) ?? scope.projects[0];
     if (!project) return NextResponse.json({ error: 'invalid', message: 'the product has no project to hold the collection document' }, { status: 422 });
     const title = pluralTitle(t), docSlug = slugify(title);
     file = path.posix.join(project.docsRel, `${docSlug}.md`);
@@ -45,23 +49,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
       await writeAtomic(abs, collectionDoc(md, typeSlug));
       created = true;
     }
-    const homeId = scope.graph.modules.find(m => m.file === file)?.id ?? `module:${docSlug}`;
-    const typeAbs = path.join(REPO_ROOT, t.file);
-    await withFileLock(typeAbs, async () => {
-      const out = setTypeProps(await readFile(typeAbs, 'utf8'), t.id, null, { home: homeId });
-      if (!out.error) await writeAtomic(typeAbs, out.md);
-    });
+    if (!base) {
+      const homeId = scope.graph.modules.find(m => m.file === file)?.id ?? `module:${docSlug}`;
+      const typeAbs = path.join(REPO_ROOT, t.file);
+      await withFileLock(typeAbs, async () => {
+        const out = setTypeProps(await readFile(typeAbs, 'utf8'), t.id, null, { home: homeId });
+        if (!out.error) await writeAtomic(typeAbs, out.md);
+      });
+    }
   }
-  // home: `<project>/<page slug>` — a system page's slug carries its mark (`cr/~work`), so it is looked up, not built
-  if (!file && body.home) { const [proj, ...rest] = body.home.split('/'); file = pageBySlug(documentTree(scope.graph).byFile.values(), proj, rest.join('/'))?.file ?? ''; }
-  if (!file) return NextResponse.json({ error: 'invalid', message: 'the type has no home document — say where it goes' }, { status: 422 });
   const abs = path.join(REPO_ROOT, file);
   let row = false;
   await withFileLock(abs, async () => {
     const md = await readFile(abs, 'utf8');
     // a row of the type's table when the document has one (a product type's collection always does), else a card
     row = created || hasTable(md, typeSlug);
-    await writeAtomic(abs, row ? appendRow(md, typeSlug, newInstanceRow(id, body.title ?? '', extra)) : appendCard(md, newInstanceCard(t, id, body.title ?? '', extra)));
+    // a task's row is a checkbox line, so it is born open on the Work view
+    const line = newInstanceRow(id, body.title ?? '', extra);
+    await writeAtomic(abs, row ? appendRow(md, typeSlug, typeSlug === 'task' ? line.replace(/^- /, '- [ ] ') : line) : appendCard(md, newInstanceCard(t, id, body.title ?? '', extra)));
   });
   await rebuild(scope.product.dir);
   const route = docRoute(file);

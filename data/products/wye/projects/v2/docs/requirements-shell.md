@@ -248,3 +248,20 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - choice:wf2.pages-share-a-title A page's slug from its title steps to the next free one (goals → goals-2) instead of refusing; an explicit slug (a workflow stage's document) still reports the conflict.
 
   - context:wf2.pages-share-a-title The person: "we should allow notes with the same name" — alongside moving system pages out of docs/, not instead of it.
+
+
+```yaml
+- id: decision:wf2.instances-go-home
+  title: An instance of a type with no home goes to its plural's page in docs/ — tasks.md, reqs.md — never the page it was added on
+  date: 2026-10-02
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [req:wf2.editor.entity-from-text, req:wf2.instances.list-new-line, decision:wf2.system-pages-in-wye]
+```
+
+  - context:wf2.instances-go-home Tasks added on the last line of the Work view were written as cards into the Work page itself — a system page in .wye/ — and the person could not find them: "whenever we add a instance of a type which don't have home we must add it to predefined place, i.e. new tasks should be in tasks.md, new req should be to reqs.md etc".
+
+  - choice:wf2.instances-go-home A base kind (task, req, decision…) is treated like a product type's first instance: a row in the collection page named by its plural (pluralTitle: Tasks, Reqs) in the docs/ of the project the caller is on, created when missing. A product type still writes `home:` on its card; a base kind's card is read-only, so its page is found by name. A task's row is `- [ ]`, born open.
+
+  - alternative:wf2.instances-go-home The page the caller is on (the old rule) — a view or a system page swallows the instance; the Backlog (plan.md) — tasks only, and no answer for reqs.
