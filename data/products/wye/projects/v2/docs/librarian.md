@@ -402,3 +402,53 @@ Definition — the librarian
   - choice:run.the-page-is-its-map A run's page renders the map canvas under its strip: the stages in a row, left to right, each carrying its status — done, review, running, todo, blocked — and what it produced hanging under it as a reference. The run's own text is one toggle away, as on any map. The positions are written into the page's `## Layout` section when the run is written, so a run map can be rearranged and stays that way; a run whose page has none yet (one that ran before this) is read straight off the page, in the order its stages are written.
 
   - consequence:run.the-page-is-its-map Each stage card now carries `depends-on:` the stage before it. The sequence was only ever implied by the order of the cards; it is a fact of the graph now, so impact and the canvas both see it, and the arrangement reads the dependency backwards to put the earlier stage on the left.
+
+
+```yaml
+- id: decision:wf2.pr-summary-first
+  title: A request page opens with a Summary of what will be built, which the librarian writes first and keeps current
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [decision:wf2.pr-lifecycle, skill:refine, skill:analyse-request]
+  part-of: module:librarian
+```
+
+  - context:wf2.pr-summary-first "what would you improve in it to make it much easier to understand by human on what exactly we want to do" — on eval-mab pr-3 the scope (a template plus four changes to Wye) had to be pieced together from fifteen cards, and Context and Analysis still said what was true before the answers.
+
+  - choice:wf2.pr-summary-first a `## Summary` under the Request: a paragraph, What gets built (the content the product gains; the code changes it needs, each sized), How it works, What you will see (one concrete example), Plan, Out of scope, Still open. Rewritten whole after every round of answers, with the Analysis. The readiness list holds the request back until the Summary names what gets built.
+
+  - alternative:wf2.pr-summary-first regenerate Context with the intake model after each answer (one more model call, and Context is the agent's view, not the person's); leave it to the Definition (cards are the record, not the explanation).
+
+```yaml
+- id: decision:wf2.one-decision-per-choice
+  title: An answer refines the one decision for its choice, and everything it changes is edited in the same round
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [skill:refine, skill:define-tests]
+  part-of: module:librarian
+```
+
+  - context:wf2.one-decision-per-choice pr-3 carried one choice (the brief lists every open commitment) as two decisions and three resolved questions, a requirement that still said the opposite, a test with two titles, and a contradiction left open after its cause was gone.
+
+  - choice:wf2.one-decision-per-choice the librarian puts each answer into the existing decision for that choice (refined in place, the short answer restated as a sentence), edits every requirement and test the answer changes keeping their ids, and re-runs `wye verdicts`. Verdicts keep one line per pair: a pair judged again replaces its old line and closes an open contradiction that no longer holds. `wye propose` refuses a card with a key twice, a nested second card or uneven indentation, and a request page's cards go under its Definition, never under Result.
+
+```yaml
+- id: decision:wf2.shipped-copies-follow-source
+  title: A skill or workflow Wye shipped follows its prompt until a person edits it
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [decision:wf2.hooks-and-skills, decision:wf2.workflow-is-a-skill]
+  part-of: module:librarian
+```
+
+  - context:wf2.shipped-copies-follow-source every product's skill documents were frozen copies of old prompts — eval-mab's refine skill still told the librarian to write `text:` on requirements and decisions — so improving a prompt never reached a product.
+
+  - choice:wf2.shipped-copies-follow-source a copy records the hash of the text it was written with (`source-hash:`); while its text has that hash nobody changed it, and the current prompt or template replaces it, keeping its frontmatter. A copy from before the hash counts as unchanged when its text is one the prompt had in git. A person's edit is never overwritten.
+
+  - alternative:wf2.shipped-copies-follow-source overwrite every copy (loses the person's edits); a "reset to shipped" button only (the person has to know a prompt changed).
