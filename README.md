@@ -28,6 +28,10 @@ definition → request → impact → approval → agent → review → memory
 - **Memory** — approved knowledge is what the next request is checked against: bitemporal, contradiction-checked,
   in Git.
 
+And two ways in that need no request at all: **Ask** (⌘F) answers a question about the product with citations from its
+knowledge, documents, code and agent sessions; **Remember** (⌘M) takes what you paste — meeting notes, a message, an
+update — and files it as knowledge, linked to what Wye already knows.
+
 ```bash
 git clone https://github.com/emlab-ai/wye.git && cd wye && npm install && ./install.sh
 npm run dev            # http://localhost:3000 — or npm run desktop for the app in its own window
@@ -128,6 +132,28 @@ document, dependency or readiness.
 
 ![The Work board](data/products/wye/projects/v2/docs/assets/intro-work.png)
 
+**Ask — search that answers.** ⌘F from anywhere. Typing ranks passages from the product's blocks, documents, code and
+agent sessions (tabs narrow it; `req:` or `decision:` narrows to one kind; a typed id comes first). A question — or
+Enter — gets two answers at once: a fast one in a few seconds, written from the best passages with numbered
+citations, and a deeper one from an agent that searches, follows the graph and reads the code while you watch the
+sources it opens appear under the answer. A citation opens the exact block, passage, code lines or session.
+
+![Ask: a cited answer, the sources the deeper search found, and the passages behind it](data/products/wye/projects/v2/docs/assets/intro-ask.png)
+
+**Remember — memory you paste.** ⌘M (Ctrl+M in a browser) opens the box ready to paste. Wye's librarian splits what
+you pasted into single statements, finds what each is about, and writes it where it belongs: a detail added to the
+block that already holds it, a newer state as a block that *supersedes* the old one (history kept), a new fact,
+decision, commitment or question in its home document, linked to the people, projects and requirements it concerns.
+What it cannot place it asks about. Everything it writes is proposed and waits for you in the Inbox.
+
+![Remember: paste, and Wye files it](data/products/wye/projects/v2/docs/assets/intro-remember.png)
+
+**Agents in the rail.** Every agent running in the product is a row under **Agents** in the left rail — working,
+idle, waiting for your answer or queued for a slot, what it works on, what it is doing now, for how long — and a
+click opens its conversation. A block opened in the column has its tools in one row on top: open its document, show
+it in the graph, send it to an agent, capture a task, and delete it (one click arms, the second deletes; the removed
+text stays in a change record).
+
 ## The loop
 
 1. **Describe.** Write the product as documents — a PRD, a design, a test design, whatever — where the important
@@ -136,8 +162,10 @@ document, dependency or readiness.
    each module in the person's words.
 2. **Ask.** ⌘P in the app (or "Send to agent" on any block). The app creates a Prompt Request page with what you
    asked, computes what it touches and the constraints in force, and hands it to a *librarian* — an agent whose only
-   job is to refine the request with you: it asks questions (mirrored as cards on the page), proposes the blocks the
-   request needs, runs impact, and never writes code.
+   job is to refine the request with you: it writes a **Summary** first — what will be built (the content and the code
+   changes, each sized), how it works, an example of the result, the plan, what is out of scope — asks questions
+   (mirrored as cards on the page), proposes the blocks the request needs, keeps the Summary and the Analysis current
+   after every answer, runs impact, and never writes code.
 3. **Approve.** Approve is the person's click, never the librarian's. Readiness is computed: every proposed block
    agreed, impact known, no open contradiction.
 4. **Build.** A dispatcher hands approved PRs to *worker* sessions (Claude Code or Codex, running in the product's
@@ -265,6 +293,16 @@ Wye is memory for agents, and the memory is honest by construction rather than b
   node needs — unaffected, update, rework, contradicts, ask — before anything is written.
 - **Status is earned.** `shipped` needs a `verified-by`; a rule needs a `source`; a superseded node names its
   successor. `wye check` says so.
+- **One verdict per pair.** When a block's text changes, the pair is judged again and the new verdict replaces the
+  old one; a contradiction that no longer holds closes itself, one the person settled stays as they left it.
+- **Search that answers.** One local index per product (LanceDB in `_build/search.lance`: full-text and MiniLM vectors
+  fused by reciprocal rank, one hop along the graph, a local cross-encoder reranking a question's passages) over
+  blocks, document prose, the product's code (its `repo:`) and agent sessions. `wye ask "<question>"` and ⌘F answer
+  from it with citations; `wye ask-search` returns the passages; `wye eval ask` measures recall on a question set
+  (93 % recall@10 on Wye's own product). Nothing leaves the machine but the answering model call.
+- **Memory you paste.** Remember (⌘M) is the way in for what never went through a request: what was said in a
+  meeting, a decision taken in Slack, a date that moved. It is filed as typed, linked, proposed knowledge — updates
+  and supersessions rather than duplicates — so it is checked and found like everything else.
 
 The evaluation project (`data/products/wye/projects/evaluation`) measures this against public memory
 benchmarks and against Wye's own history — with and without the memory — so the claims above have numbers.
@@ -277,6 +315,7 @@ document of `type:pr` under the project's PRs page: `pr-<n>.md`, shown as `#n Ti
 
 ```
 ## Request      what was asked, in the person's words, with the refs attached
+## Summary      what will be built, how it works, an example, the plan, out of scope — kept current by the librarian
 ## Context      what it touches — modules, documents, nodes, code — and what was understood
 ## Definition   the blocks it proposes, defined in their home documents and embedded here
 ## Impact       what the change reaches, computed from the Definition; the PRs it overlaps
@@ -287,13 +326,18 @@ document of `type:pr` under the project's PRs page: `pr-<n>.md`, shown as `#n Ti
 
 Lifecycle: `draft → refining → approved → building → done | failed | cancelled`. The librarian refines; the person
 approves; the dispatcher builds. `wye pr <product/project/pr-x>` from the terminal, `wye pr approve|cancel|reopen`,
-`wye pr build --worker claude-code|codex`.
+`wye pr build --worker claude-code|codex`. A request is not ready until its Summary says what gets built. **Revisit**
+on a request page (`wye pr revisit <ref>`) brings a page written under older rules up to the current ones — the
+Summary, one decision per choice, requirements and tests that match the decisions, cards out of Result — without
+changing what was decided.
 
 ## Skills, hooks and workflows
 
 A **skill** is an instruction a session follows — a document under the project's Skills page, editable in the app
-like any other. Wye ships four: *Analyse a request*, *Build a request*, *Define how a requirement is tested*,
-*Describe a module from its code*. A **hook** is a card in the project's Hooks document — `when <kind>.<event>
+like any other. Wye ships *Refine a request*, *Analyse a request*, *Build a request*, *Define how a requirement is
+tested*, *Revisit a request*, *Remember what the person pasted*, *Describe a module from its code*, *Import a document*
+and *Import a module from its code*, plus one per workflow stage. A shipped skill follows Wye's own prompt until you
+edit it — then your version stays. A **hook** is a card in the project's Hooks document — `when <kind>.<event>
 [where …] do run <skill> | add <template> | assign | notify` — and the engine runs it on the watcher, on approve
 and at session end; what fired is on the Hooks page and in `wye hooks`.
 
@@ -347,6 +391,8 @@ The Claude Code skills in `skills/` (linked by `install.sh`) teach an agent the 
 | `wye doc <p/proj/doc>` · `wye doc write` · `wye doc create` · `wye doc retype` | a document's body; replace it (or one `## section`) checked against the current hash; a new page of a type; change its type |
 | `wye node <id>` · `wye node set` · `wye node content` · `wye node add <type>:<slug>` | a node with its relations; set status / text / properties; its content blocks; a new instance of a type |
 | `wye type add <slug> [--extends parent]` | a proposed type card |
+| `wye ask "<question>" [--fast\|--deep]` | a cited answer from the product's knowledge, documents, code and sessions: the fast answer, the sources the deeper search opens, its answer |
+| `wye ask-search "<words>" [--source …] [--expand] [--rerank]` | the ranked passages Ask answers from |
 | `wye context "<text>"` | the knowledge closest to a text (local semantic search; ended nodes hidden) |
 | `wye packet --for "<text>" [--ref id]` | the constraints in force for a text — complete, two hops |
 | `wye impact <id> --after "<new text>"` | what an edit would reach and what each reached node needs; nothing written |
@@ -354,7 +400,7 @@ The Claude Code skills in `skills/` (linked by `install.sh`) teach an agent the 
 | `wye explain <id \| "text">` | the current state of the product around a node or a text (the librarian, one turn) |
 | `wye inbox add\|list` | raw notes for later filing; what waits for review |
 | `wye propose --pr <p/proj/pr-x>` | one proposed block into the document where its kind lives, embedded on the PR's Definition |
-| `wye pr <p/proj/pr-x> [--status …]` · `wye pr approve\|cancel\|reopen` · `wye pr build [--worker …]` | a PR's status, definition and readiness; the person's moves; hand it to a worker |
+| `wye pr <p/proj/pr-x> [--status …]` · `wye pr approve\|cancel\|reopen` · `wye pr build [--worker …]` · `wye pr revisit` | a PR's status, definition and readiness; the person's moves; hand it to a worker; bring an old page up to the current rules |
 | `wye work list\|add\|next\|assign` | every task with its state; a backlog line; the oldest ready task; assign to a person or agent |
 | `wye session list\|show\|changes\|create\|log\|done\|fail\|handoff\|open\|take` | sessions and their logs; every block a session changed; the worker's lifecycle |
 | `wye skills` · `wye skill <id>` · `wye hooks [--node id]` | the product's skills; one skill's instruction; the hooks and what fired |
@@ -363,7 +409,7 @@ The Claude Code skills in `skills/` (linked by `install.sh`) teach an agent the 
 | `wye init --product <slug> --repo <dir>` | a product's definition from its code, first pass: the layered tree, every module / page / component / library / operation / test, a `#ready` describe task per module — no model, nothing overwritten |
 | `wye deepen <module> --product p` | assign the module's describe task to a worker: requirements from the code, each mapped to the file that delivers it |
 | `wye agent listen --product p --agent claude-code\|codex` | a runner: pick up queued sessions, run the agent with the prompt on stdin, stream the output to the session |
-| `wye eval own\|compare\|public\|judge\|report` | the benchmarks |
+| `wye eval own\|compare\|public\|judge\|report\|ask` | the benchmarks; `ask` is the retriever's recall@k |
 
 `wye --help` prints all of it with every flag.
 
