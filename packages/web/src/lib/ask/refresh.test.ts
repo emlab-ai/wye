@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mkdtemp, mkdir, writeFile, utimes, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, utimes, rm, rename } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { refresh, getStore } from './refresh';
@@ -43,6 +43,24 @@ describe('refresh', () => {
     await rm(path.join(dir, '_sessions/abc123.json'));
     await refresh(p, g, { embed: fakeEmbed, listCode });
     expect([...(await state(await getStore(p))).keys()].filter(id => id.startsWith('session:'))).toEqual([]);
+  });
+  it('never indexes the product\'s own knowledge files as code', async () => {
+    p.meta.repo = dir;
+    const st = await refresh(p, g, { embed: fakeEmbed, listCode: async () => ['projects/v2/docs/m.md', 'repo/lib/invite.ts'] });
+    expect(st.changed.code).toBe(1);
+  });
+  it('keeps a passage whose file moved (same id, new scope)', async () => {
+    await refresh(p, g, { embed: fakeEmbed, listCode });
+    await rename(path.join(dir, '_sessions/abc123.json'), path.join(dir, '_sessions/moved.json'));
+    await refresh(p, g, { embed: fakeEmbed, listCode });
+    expect([...(await state(await getStore(p))).keys()].filter(id => id.startsWith('session:')).sort()).toEqual(['session:abc123#0', 'session:abc123#1']);
+  });
+  it('keeps a doc and a code passage of the same file apart', async () => {
+    p.meta.repo = path.join(dir, 'projects/v2');   // a repo that holds a document: never as code, and the doc survives
+    await refresh(p, g, { embed: fakeEmbed, listCode: async () => ['docs/m.md'] });
+    p.meta.repo = repo;
+    await refresh(p, g, { embed: fakeEmbed, listCode });
+    expect([...(await state(await getStore(p))).keys()].filter(id => id.startsWith('doc:')).length).toBe(1);
   });
   it('skips code when the product has no repo folder', async () => {
     p.meta.repo = path.join(dir, 'nope');

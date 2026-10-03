@@ -8,7 +8,7 @@ import { promisify } from 'node:util';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { Product } from '../products';
-import { REPO_ROOT } from '../products';
+import { REPO_ROOT, DATA_ROOT } from '../products';
 import type { GraphData } from '../graph';
 import type { ChunkRow, Source } from './types';
 import { openStore, state, apply, getChunks, saveScopes, hashOf, type Store, type StoredRow } from './store';
@@ -28,31 +28,33 @@ export function getStore(p: Product): Promise<Store> {
 }
 const gitFiles = async (root: string) => (await promisify(execFile)('git', ['ls-files'], { cwd: root, maxBuffer: 64 * 1024 * 1024 })).stdout.split('\n').filter(Boolean);
 const mtimeOf = async (f: string) => { try { return (await stat(f)).mtimeMs; } catch { return null; } };
+const inside = (f: string, dir: string) => f === dir || f.startsWith(path.resolve(dir) + path.sep);
 const abs = (f: string) => path.isAbsolute(f) ? f : path.resolve(REPO_ROOT, f);
 
-// every file of every source with its mtime, and a reader for the ones that changed
+// every file of every source with its mtime (a scope is `<source>:<path>` — one file can feed two sources), and a reader for the ones that changed
 async function walk(p: Product, graph: GraphData, listCode: (root: string) => Promise<string[]>) {
   const files: { scope: string; source: Source; mtime: number; read: () => Promise<ChunkRow[]> }[] = [];
   const gm = (await mtimeOf(path.join(p.dir, '_build/graph.json'))) ?? graph.nodes.length;
   files.push({ scope: 'graph', source: 'node', mtime: gm, read: async () => nodeChunks(graph) });
   for (const f of graph.files) {
     const a = abs(f); const m = await mtimeOf(a); if (m === null) continue;
-    files.push({ scope: a, source: 'doc', mtime: m, read: async () => docChunks(path.relative(REPO_ROOT, a), await readFile(a, 'utf8')) });
+    files.push({ scope: 'doc:' + a, source: 'doc', mtime: m, read: async () => docChunks(path.relative(REPO_ROOT, a), await readFile(a, 'utf8')) });
   }
   const root = codeRoot(p);
   if (existsSync(root)) {
     let list: string[] = []; try { list = await listCode(root); } catch { /* not a git folder */ }
     for (const rel of list.filter(f => CODE_EXT.test(f))) {
-      const a = path.join(root, rel); let st; try { st = await stat(a); } catch { continue; }
+      const a = path.join(root, rel); if (inside(a, path.join(p.dir, 'projects')) || inside(a, path.join(p.dir, '_sessions')) || inside(a, DATA_ROOT)) continue;   // knowledge, not code
+      let st; try { st = await stat(a); } catch { continue; }
       if (!st.isFile() || st.size > MAX_CODE) continue;
-      files.push({ scope: a, source: 'code', mtime: st.mtimeMs, read: async () => { const t = await readFile(a, 'utf8'); return t.includes('\0') ? [] : codeChunks(rel, t); } });
+      files.push({ scope: 'code:' + a, source: 'code', mtime: st.mtimeMs, read: async () => { const t = await readFile(a, 'utf8'); return t.includes('\0') ? [] : codeChunks(rel, t); } });
     }
   }
   const sdir = path.join(p.dir, '_sessions');
   let names: string[] = []; try { names = (await readdir(sdir)).filter(n => n.endsWith('.json') && !n.startsWith('_')); } catch { /* none */ }
   for (const n of names) {
     const a = path.join(sdir, n); const m = await mtimeOf(a); if (m === null) continue;
-    files.push({ scope: a, source: 'session', mtime: m, read: async () => { try { return sessionChunks(JSON.parse(await readFile(a, 'utf8'))); } catch { return []; } } });
+    files.push({ scope: 'session:' + a, source: 'session', mtime: m, read: async () => { try { return sessionChunks(JSON.parse(await readFile(a, 'utf8'))); } catch { return []; } } });
   }
   return files;
 }
@@ -68,7 +70,7 @@ export async function refresh(p: Product, graph: GraphData, opts: { embed?: Embe
     scopes[f.scope] = { source: f.source, mtime: f.mtime };
     if (s.scopes[f.scope]?.mtime === f.mtime) continue;
     const rows = await f.read(); const ids = new Set<string>();
-    for (const c of rows) { if (ids.has(c.id)) continue; ids.add(c.id); const h = hashOf(c); if (have.get(c.id)?.hash === h) continue; add.push({ ...c, scope: f.scope, hash: h }); changed[f.source]++; }
+    for (const c of rows) { if (ids.has(c.id)) continue; ids.add(c.id); const h = hashOf(c); const was = have.get(c.id); if (was?.hash === h && was.scope === f.scope) continue; add.push({ ...c, scope: f.scope, hash: h }); changed[f.source]++; }
     for (const id of byScope.get(f.scope) ?? []) if (!ids.has(id)) remove.push(id);
   }
   for (const [sc, ids] of byScope) if (!present.has(sc)) remove.push(...ids);

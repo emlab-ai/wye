@@ -22,6 +22,10 @@
 //   wye impact <id> --after "<new text>" --product p [--no-judge] [--json]   what an edit would reach and what each reached node
 //        needs (unaffected | update | rework | contradicts | ask) — run it before editing an approved node; nothing is written
 //   wye context "<text>" --product p [--all | --as-of d]   knowledge closest to a text (local semantic search; ended nodes hidden)
+//   wye ask "<question>" --product p [--fast | --deep] [--json]   a cited answer from the product's knowledge, documents,
+//        code and sessions: a fast answer, the sources a deeper search opens as it works, then its answer
+//   wye ask-search "<words>" --product p [--source node|doc|code|session] [--limit n] [--expand] [--rerank] [--json]
+//        the passages Ask answers from, ranked (full-text + vectors; --expand adds one hop along the graph)
 //   wye packet --for "<text>" [--ref id ...] --product p [--budget N] [--all | --as-of d]   the constraints in force for a text:
 //        every rule, constraint, gate, approved decision, goal and open question within two hops of what it touches, complete
 //   wye type add <slug> --product p [--extends parent] [--purpose "…"] [--doc product/project/doc]   a proposed type card
@@ -232,6 +236,14 @@ const commands = {
     console.log(`# impact of an edit to ${id}: ${j.candidates.length} candidate(s)\n`);
     for (const c of [...j.candidates].sort((a, b) => order[a.verdict] - order[b.verdict])) console.log(`${(c.verdict || 'unjudged').padEnd(11)} ${c.id}  ${c.via === 'text' ? 'by text' : c.path}${c.reason ? ' — ' + c.reason : ''}${c.update && c.update.text ? '\n            proposed: ' + c.update.text : ''}${c.question ? '\n            question: ' + c.question : ''}`);
     if (j.candidates.some(c => c.verdict && c.verdict !== 'unaffected')) console.log('\nList the updates you make and the tasks you leave (wye work add) in your summary.');
+  },
+  async 'ask-search'() {
+    const q = pos.slice(1).join(' ') || (await readStdin()); if (!q.trim()) die('wye ask-search "<words>" [--source s] [--limit n] [--expand] [--rerank]');
+    const sp = new URLSearchParams({ q, limit: String(flags.limit || 12) }); if (flags.source) sp.set('source', list(flags.source).join(',')); if (flags.expand) sp.set('expand', '1'); if (flags.rerank) sp.set('rerank', '1');
+    const j = await api('GET', `/api/${product()}/search?${sp}`);
+    if (flags.json) return out(j);
+    for (const h of j.hits) console.log(`${h.id}${h.via ? `  (via ${h.via})` : ''}\n    ${h.title} — ${h.text.replace(/\s+/g, ' ').slice(0, 160)}`);
+    if (j.degraded) console.log(`(${j.degraded}: full-text search only)`);
   },
   async context() {
     const text = pos[1] || (await readStdin()); const j = await api('POST', `/api/${product()}/context`, { text, limit: Number(flags.limit || 10), all: !!flags.all, asOf: flags['as-of'] || undefined });
