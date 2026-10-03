@@ -549,3 +549,29 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - context:wf2.import-title-from-name "i did markdown import, and a lot of documents have name overview" — the title was the first `# heading`, and in an Obsidian vault most people's notes begin "# Overview" (others "# Updates", "# Log", "# Next 1:1"); quoted titles also showed their quotes ("Next 1:1", " Terminated").
 
   - choice:wf2.import-title-from-name the front matter's title, else the first heading unless it is a section word (Overview, Summary, Notes, Log, Updates, Next 1:1…) or a heading two or more files of the same import share — then the file name, which is the note's name in Obsidian. Folder pages drop stray underscores ("_terminated" → "Terminated"). The graph reads a quoted YAML title as its value.
+
+```yaml
+- id: decision:wf2.imports-in-agents
+  title: A background import is a row under Agents with Stop and Resume, and can be resumed from its page after a restart
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  affects: [page:web/sidebar, component:import-docs]
+  part-of: module:req-shell
+```
+
+  - context:wf2.imports-in-agents "one agent, no queue, if i cancel agent it starts next task, where it is scheduled, how to see in ui?" and "import obsidian showing like an agent but i can't stop it" — the import loop lived in the server's memory: nothing showed it, cancelling a session only moved it to the next file, and nothing stopped it.
+
+  - choice:wf2.imports-in-agents the Agents folder lists each import — "Import: <folder> · n of N · now <file>" — linking to its page, with Stop (no further file starts; the one running finishes or is cancelled) and Resume (from the first file not done). An import whose run is gone (server restart) shows as stopped; Resume rebuilds it from the page's unchecked file lines. An import made without analysis (`analyse: off`) is not listed.
+
+```yaml
+- id: decision:wf2.reveal-open-doc
+  title: ⌖ in the Documents head opens the folders above the open document and scrolls to it
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  affects: [page:web/sidebar]
+  part-of: module:req-shell
+```
+
+  - context:wf2.reveal-open-doc "add button to find, scroll to active document — target icon"; choice: the row flashes once when reached.

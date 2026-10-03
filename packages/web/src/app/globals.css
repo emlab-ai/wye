@@ -1230,3 +1230,6 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 /* Settings is a folder: Types, Hooks and Skills sit one step in under it */
 .rail-menu .rail-sub { padding-left: 14px; }
 .import-skipped summary { cursor: pointer; } .import-skipped ul { margin: 6px 0 0; padding-left: 18px; max-height: 220px; overflow: auto; } .import-started { font-size: 15px; margin: 4px 0 6px; }
+.af-import { display: flex; align-items: center; } .af-import .af-link { flex: 1; min-width: 0; } .af-ctl { flex: none; font: 11px var(--font-m); color: var(--muted); background: none; border: 1px solid var(--line-2); border-radius: 5px; padding: 1px 6px; margin-right: 6px; cursor: pointer; } .af-ctl:hover { color: var(--ink); border-color: var(--ink-2); }
+/* the ⌖ in the Documents head scrolls to the open document; its row flashes once */
+.rail-reveal { font-size: 15px; line-height: 1; } .pg-row.flash { animation: pg-flash .9s ease-out; } @keyframes pg-flash { 0%, 40% { background: color-mix(in srgb, var(--accent) 22%, transparent); } 100% { background: transparent; } }

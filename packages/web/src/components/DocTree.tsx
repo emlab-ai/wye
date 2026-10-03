@@ -34,6 +34,31 @@ export function DocTree({ product, roots, onAddChild, pinned = [] }: { product: 
   }, [menu]);
   useEffect(() => { try { setClosed(JSON.parse(localStorage.getItem('wf-tree-closed') ?? '{}')); } catch { /* ignore */ } }, []);
   const toggle = (slug: string) => setClosed(c => { const n = { ...c, [slug]: !c[slug] }; try { localStorage.setItem('wf-tree-closed', JSON.stringify(n)); } catch { /* ignore */ } return n; });
+  // the rail's ⌖ (event wf:reveal-doc): open every folder above the document on screen, then scroll its row into view
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const reveal = () => {
+      const chain = (items: TreeItem[], up: string[]): string[] | null => {
+        for (const d of items) {
+          if (path === `/${product}/${d.project}/d/${d.slug}`) return up;
+          const below = chain(d.children, [...up, d.slug]); if (below) return below;
+        }
+        return null;
+      };
+      const up = chain(roots, []);
+      if (up?.length) setClosed(c => { const n = { ...c }; for (const s of up) delete n[s]; try { localStorage.setItem('wf-tree-closed', JSON.stringify(n)); } catch { /* ignore */ } return n; });
+      // the opened folders render their rows a few frames later: look for the row until it is there
+      let tries = 30;
+      const find = () => {
+        const row = box.current?.querySelector('.pg-row.on');
+        if (!row) { if (tries-- > 0) setTimeout(find, 20); return; }
+        row.scrollIntoView({ block: 'center' });
+        row.classList.add('flash'); setTimeout(() => row.classList.remove('flash'), 900);
+      };
+      setTimeout(find, 0);
+    };
+    window.addEventListener('wf:reveal-doc', reveal); return () => window.removeEventListener('wf:reveal-doc', reveal);
+  }, [roots, path, product]);
   const move = async (id: string, parent: string | null, rel?: { before?: string; after?: string }) => {
     setMsg(null); const slug = find(roots, id)?.slug;
     const r = await fetch(`/api/${product}/docs/move`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, parent, ...rel }) });
@@ -62,7 +87,7 @@ export function DocTree({ product, roots, onAddChild, pinned = [] }: { product: 
   };
   const tree: Tree = { product, path, closed, toggle, drag, over, setDrag, setOver, move, onAddChild, openMenu: setMenu };
   return (
-    <div className="pg-wrap">
+    <div className="pg-wrap" ref={box}>
       {menu && <div ref={menuEl} className="pg-menu" role="menu" style={{ left: menu.x, top: menu.y }}>
         {pinned.includes(`${menu.d.project}/${menu.d.slug}`)
           ? <button role="menuitem" onClick={() => pin(menu.d, false)}>Unpin from top</button>

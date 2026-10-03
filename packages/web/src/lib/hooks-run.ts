@@ -44,7 +44,7 @@ export async function listFirings(productDir: string): Promise<Firing[]> {
   let files: string[] = []; try { files = (await readdir(dirOf(productDir))).filter(f => f.endsWith('.json')); } catch { return []; }
   const out: Firing[] = [];
   for (const f of files) { try { out.push(JSON.parse(await readFile(path.join(dirOf(productDir), f), 'utf8'))); } catch { /* half-written */ } }
-  return out.sort((a, b) => a.at.localeCompare(b.at));
+  return out.sort((a, b) => (a.at ?? '').localeCompare(b.at ?? ''));   // a record cut short (a killed server) has no `at`
 }
 export async function getFiring(productDir: string, id: string): Promise<Firing | null> {
   try { return JSON.parse(await readFile(path.join(dirOf(productDir), `${id}.json`), 'utf8')); } catch { return null; }
