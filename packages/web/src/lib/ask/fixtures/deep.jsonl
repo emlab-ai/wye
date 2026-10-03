@@ -1,0 +1,8 @@
+{"type":"system","subtype":"init"}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"wye ask-search \"invite email\" --json"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"{\"hits\":[{\"id\":\"node:decision:no-email\"},{\"id\":\"code:lib/invite.ts:1-9\"}]}"}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t2","name":"Read","input":{"file_path":"/REPO/lib/invite.ts","offset":10,"limit":20}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t2","content":"10  export function sendInvite() {"}]}}
+{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"It was dropped by [[decision:no-email]]; "}}}
+{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"the sender is in [[lib/invite.ts:10-29]]."}}}
+{"type":"result","subtype":"success","result":"It was dropped by [[decision:no-email]]; the sender is in [[lib/invite.ts:10-29]]."}

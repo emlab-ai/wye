@@ -26,6 +26,10 @@ describe('runFast', () => {
     await expect((async () => { for await (const _ of runFast('p', { signal: new AbortController().signal })) void _; })()).rejects.toThrow(/exited 3/);
     delete process.env.STUB_EXIT;
   });
+  it('fails, not hangs, when the process cannot start', async () => {
+    const run = (async () => { for await (const _ of spawnClaude([], '', { signal: new AbortController().signal, cwd: '/nonexistent-dir' })) void _; })();
+    await expect(run).rejects.toThrow();
+  });
   it('ends quietly and kills the child on abort', async () => {
     process.env.STUB_JSONL = path.join(FX, 'fast.jsonl'); process.env.STUB_DELAY = '200';
     const ac = new AbortController(); const got: unknown[] = [];

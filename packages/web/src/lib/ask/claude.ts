@@ -10,16 +10,19 @@ export async function* spawnClaude(args: string[], stdin: string, opts: { signal
   opts.signal.addEventListener('abort', kill, { once: true });
   const timer = opts.timeoutMs ? setTimeout(kill, opts.timeoutMs) : null;
   let err = ''; child.stderr.on('data', d => { err += d; });
-  const exit = new Promise<number | null>(res => child.on('close', c => res(c)));
+  let spawnErr: Error | null = null;
+  const exit = new Promise<number | null>(res => { child.on('close', c => res(c)); child.on('error', e => { spawnErr = e; res(null); }); });
   child.stdin.on('error', () => {}); child.stdin.end(stdin);
   let buf = '';
   try {
-    for await (const d of child.stdout) {
+    const out = child.stdout; out.on('error', () => {});
+    for await (const d of out) {
       buf += d; let i;
       while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1); if (!line) continue; try { yield JSON.parse(line); } catch { /* not json */ } if (opts.signal.aborted) return; }
     }
     const code = await exit;
     if (opts.signal.aborted) return;
+    if (spawnErr) throw new Error(`claude could not start: ${(spawnErr as Error).message}`);
     if (code !== 0) throw new Error(`claude exited ${code}: ${err.trim().slice(0, 300)}`);
   } finally { if (timer) clearTimeout(timer); opts.signal.removeEventListener('abort', kill); if (child.exitCode === null) kill(); }
 }
