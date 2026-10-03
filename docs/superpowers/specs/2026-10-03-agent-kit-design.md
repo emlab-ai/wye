@@ -88,7 +88,7 @@ It is a page component in the web app, so it works the same in the desktop windo
 `skills/wye-init/SKILL.md`, invoked as `/wye-init` (Claude Code, Cursor) or by name (Codex):
 
 1. If `.wye/config.json` exists, say which product the repo is linked to and stop (offer to re-link).
-2. Check Wye is reachable (`wye products`); if not, say how to start it and stop.
+2. Check Wye is reachable (`wye products` — a new command listing the products, over the existing `GET /api/products`); if not, say how to start it and stop.
 3. Ask (one question): **link to an existing product** — the list from `wye products` — or **create a new product
    from this repo's code** (`wye init --product <slug> --repo . --title "…"`, the layered tree and describe tasks).
 4. Write `.wye/config.json` — `{ "product": "<slug>", "url": "<WYE_URL>" }` — and add `.wye/session` to
@@ -151,8 +151,8 @@ paragraph under **Skills, hooks and workflows** that says the skills are "linked
 
 ## 9. Delivery
 
-1. **K1 — kit and installer**: `lib/agent-kit.js`, `wye agents`, `skills/wye-init`, `templates/agents-md.md`,
-   CLI config discovery, `install.sh` on top of it, the README section.
+1. **K1 — kit and installer**: `lib/agent-kit.js`, `wye agents`, `wye products`, `skills/wye-init`,
+   `templates/agents-md.md`, CLI config discovery, `install.sh` on top of it, the README section.
 2. **K2 — popup and Settings › Agents**: `/api/agents`, the dialog, the settings panel.
 3. **K3 — hooks and external sessions**: `wye hook`, external sessions in the API and the Agents view, the CLI's
    session from `.wye/session`.
