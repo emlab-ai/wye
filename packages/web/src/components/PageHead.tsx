@@ -34,6 +34,7 @@ export function IconPicker({ value, onPick, onClose }: { value: string; onPick: 
 export function Cover({ product, project, value, onChange }: { product: string; project: string; value: string; onChange: (v: string) => void }) {
   const file = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [url, setUrl] = useState<string | null>(null);   // the cover URL being typed (the desktop app has no window.prompt)
   async function upload(f: File | undefined) {
     if (!f) return; setBusy(true);
     const fd = new FormData(); fd.append('file', f, f.name);
@@ -46,7 +47,10 @@ export function Cover({ product, project, value, onChange }: { product: string; 
     <>
       <input ref={file} type="file" accept="image/*" hidden onChange={e => { upload(e.target.files?.[0]); e.target.value = ''; }} />
       <button type="button" className={value ? '' : 'doc-ghost'} onClick={() => file.current?.click()} disabled={busy}>{busy ? 'Uploading…' : value ? 'Change cover' : '🖼 Add cover'}</button>
-      <button type="button" className={value ? '' : 'doc-ghost'} onClick={() => { const u = prompt('Image URL or assets/<file>', value); if (u !== null) onChange(u.trim()); }}>URL…</button>
+      {url === null
+        ? <button type="button" className={value ? '' : 'doc-ghost'} onClick={() => setUrl(value)}>URL…</button>
+        : <input autoFocus className="doc-cover-url" value={url} placeholder="Image URL or assets/<file>, then Enter" onChange={e => setUrl(e.target.value)} onBlur={() => setUrl(null)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onChange(url.trim()); setUrl(null); } else if (e.key === 'Escape') setUrl(null); }} />}
       {value && <button type="button" onClick={() => onChange('')}>Remove</button>}
     </>);
   // without a cover the tools sit in the icon row as ghosts ("Add cover" beside "Add icon"); with one, on the band

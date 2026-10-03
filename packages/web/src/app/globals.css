@@ -1224,3 +1224,6 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .palette-go kbd, .palette-later kbd { font: 11px var(--font-m); padding: 1px 5px; border-radius: 4px; background: rgba(255,255,255,.18); color: inherit; }
 .palette-later kbd, .palette-go:disabled kbd { background: var(--sunk); }
 .palette .palette-hint { margin: 10px 4px 0; font-size: 11px; text-align: right; }
+/* inline inputs where a prompt() used to ask (the desktop app has none) */
+.pf-new { padding: 2px 8px 2px 30px; } .pf-new-in, .doc-cover-url { width: 100%; box-sizing: border-box; font: 13px var(--font-b); color: var(--ink); background: var(--surface); border: 1px solid var(--accent); border-radius: 7px; padding: 4px 8px; outline: none; }
+.doc-cover-url { width: 280px; }
