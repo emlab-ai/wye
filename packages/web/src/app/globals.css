@@ -1172,3 +1172,19 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .tool-danger.armed { color: #fff; background: var(--bad); }
 .tool-danger.armed:hover { color: #fff; background: var(--bad); }
 .tool-label { font-size: 12px; font-weight: 600; }
+
+/* the rail's Agents folder: what runs now, one row each (decision:wf2.rail-shows-running-agents) */
+.af-count { margin-left: 6px; font-size: 11px; font-weight: 600; color: var(--accent); }
+.rail-menu .af-row .af-link { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 4px 8px 4px 30px; border: 0; border-radius: 8px; background: none; color: var(--ink); text-align: left; font: 13px var(--font-b); cursor: pointer; }
+.rail-menu .af-row .af-link:hover { background: var(--sunk); }
+.af-state { flex: none; width: 12px; height: 12px; margin-top: 3px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; line-height: 1; }
+.af-working .af-state { border: 2px solid var(--warn); border-right-color: transparent; animation: af-spin 0.9s linear infinite; }
+.af-idle .af-state { background: var(--ok); transform: scale(.7); }
+.af-asking .af-state { background: var(--accent); color: var(--accent-ink); }
+.af-queued .af-state { color: var(--muted); }
+@keyframes af-spin { to { transform: rotate(360deg); } }
+.af-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.af-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.af-doing { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.af-asking .af-doing { color: var(--accent); }
+.af-since { flex: none; font-size: 11px; color: var(--muted); margin-top: 2px; }

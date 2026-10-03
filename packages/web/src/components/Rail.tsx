@@ -7,6 +7,7 @@ import { NewPage } from './NewPage';
 import { filesOfDrop, type Picked } from './ImportDocs';
 import { ThemeButton } from './ThemeSwitch';
 import { IconChevronsLeft, IconSettings } from './Icons';
+import { AgentFolder } from './AgentFolder';
 import { PrFolder, type PrItem } from './PrFolder';
 import { SkillFolder, type SkillItem } from './SkillFolder';
 
@@ -62,7 +63,7 @@ export function Rail({ products, product, projects, prs, views = [], skills = []
         {item(`${base}/types`, 'Types', '⬡')}
         {item(`${base}/constitution`, 'Constitution', '§')}
         {item(`${base}/inbox`, 'Inbox', '⇩')}
-        {item(`${base}/sessions`, 'Agents', '⚡')}
+        <AgentFolder product={product.slug} />
         <PrFolder product={product.slug} prs={prs} />
         {skillsPage && <SkillFolder product={product.slug} page={skillsPage} skills={skills} />}
         {item(`${base}/settings`, 'Settings', '⚙')}
