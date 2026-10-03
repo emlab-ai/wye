@@ -10,9 +10,10 @@ import { TranscriptMarkdown, keepBreaks } from './TranscriptMarkdown';
 import { shownStatus } from './SessionList';
 import { SessionChanges } from './SessionChanges';
 import { ContextCard } from './ContextCard';
+import { formatDay, formatTime } from '@/lib/when';
 
 export const agentLabel = (id: string) => AGENTS.find(a => a.id === id)?.label ?? id;
-export const when = (iso: string) => { const d = new Date(iso); const m = (Date.now() - d.getTime()) / 60000; return m < 1 ? 'just now' : m < 60 ? `${Math.round(m)} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : d.toLocaleDateString(); };
+export const when = (iso: string) => { const d = new Date(iso); const m = (Date.now() - d.getTime()) / 60000; return m < 1 ? 'just now' : m < 60 ? `${Math.round(m)} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : formatDay(d.toISOString()); };
 
 // One agent session in the right column: what was sent, its status, and the live log (polled while active).
 export function SessionView({ id }: { id: string }) {
@@ -78,7 +79,7 @@ export function SessionView({ id }: { id: string }) {
       {s.source?.doc && <p className="muted session-src">from {s.source.project ? `${s.source.project} / ` : ''}{s.source.doc}</p>}
       {s.mode === 'chat' && <Console session={s} onStatus={st => setS(x => x ? { ...x, status: st as Session['status'] } : x)} onKnowledge={onKnowledge} />}
       {s.mode !== 'chat' && <><h5>Log {active && <span className="live-dot" title="following" />}</h5>
-      <pre className="session-log">{s.log.map((l, i) => <span key={i}><time>{new Date(l.t).toLocaleTimeString()}</time> {l.line}{'\n'}</span>)}{s.status === 'queued' && <span className="muted">waiting for an agent runner to pick this up…{'\n'}</span>}</pre></>}
+      <pre className="session-log">{s.log.map((l, i) => <span key={i}><time>{formatTime(l.t)}</time> {l.line}{'\n'}</span>)}{s.status === 'queued' && <span className="muted">waiting for an agent runner to pick this up…{'\n'}</span>}</pre></>}
       {s.result && s.mode !== 'chat' && <><h5>Result</h5><div className="session-result"><TranscriptMarkdown>{s.result}</TranscriptMarkdown></div></>}
     </div>
   );

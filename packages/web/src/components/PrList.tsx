@@ -2,8 +2,9 @@
 import Link from 'next/link';
 import { prDocPath } from '@/lib/pr-doc';
 import type { Session, SessionPr } from '@/lib/session-types';
+import { formatDay } from '@/lib/when';
 
-const when = (iso?: string) => { if (!iso) return ''; const d = new Date(iso); const m = (Date.now() - d.getTime()) / 60000; return m < 1 ? 'just now' : m < 60 ? `${Math.round(m)} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : d.toLocaleDateString(); };
+const when = (iso?: string) => { if (!iso) return ''; const d = new Date(iso); const m = (Date.now() - d.getTime()) / 60000; return m < 1 ? 'just now' : m < 60 ? `${Math.round(m)} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : formatDay(d.toISOString()); };
 
 // A worker's work items (decision:wf2.plan-per-request): the requests of a session, oldest first — the status, the
 // title as a link to the request page, tasks done over all, when it started. The request the session is on now is

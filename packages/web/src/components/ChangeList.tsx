@@ -10,6 +10,7 @@ import type { ItemVerdict } from '@/lib/review';
 import type { ImpactSet } from '@/lib/impact-run';
 import { changeSegments, impactSummary, verdictSummary } from '@/lib/review-summary';
 import { ImpactCard } from './ImpactCard';
+import { formatWhen } from '@/lib/when';
 
 export type ChangeView = Omit<ChangeRecord, 'impact'> & { stale: boolean; exists: boolean; verdicts?: ItemVerdict[]; impact?: ImpactSet };
 const FRAME = ['part-of', 'refines', 'satisfied-by', 'governs', 'affects', 'scope', 'when', 'then', 'unless'];
@@ -18,7 +19,7 @@ export function DiffText({ a, b }: { a: string; b: string }) {
   return <span className="cdiff">{wordDiff(a, b).map((r, i) => r.kind === 'same' ? <span key={i}>{r.text}</span> : r.kind === 'del' ? <del key={i}>{r.text}</del> : <ins key={i}>{r.text}</ins>)}</span>;
 }
 
-const when = (iso: string) => new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const when = formatWhen;
 
 // Changes in the Inbox (component:change-card, req:exec.change-kept, req:exec.change-review), laid out for a
 // person's decision (rule:review-readable): the title, then what changed — status as pills, a property as old → new,
