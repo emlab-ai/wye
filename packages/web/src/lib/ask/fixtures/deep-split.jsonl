@@ -1,0 +1,5 @@
+{"type": "system", "subtype": "init"}
+{"type": "stream_event", "event": {"type": "content_block_delta", "delta": {"type": "text_delta", "text": "Dropped, see ["}}}
+{"type": "stream_event", "event": {"type": "content_block_delta", "delta": {"type": "text_delta", "text": "[node:decision:no-email]] and [["}}}
+{"type": "stream_event", "event": {"type": "content_block_delta", "delta": {"type": "text_delta", "text": "decision:no-email]]."}}}
+{"type": "result", "subtype": "success", "result": "x"}

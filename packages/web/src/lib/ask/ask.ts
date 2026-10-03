@@ -89,7 +89,7 @@ export async function* ask(env: AskEnvLike, req: AskRequest, o: { signal: AbortS
       const used: Citation[] = []; let pending = ''; let wrote = false;
       const flush = async (final: boolean) => {      // [[ref]] → [n]; hold back a trailing partial "[[…"
         let cutAt = pending.length;
-        if (!final) { const open = pending.lastIndexOf('[['); if (open >= 0 && pending.indexOf(']]', open) < 0) cutAt = open; }
+        if (!final) { const open = pending.lastIndexOf('[['); if (open >= 0 && pending.indexOf(']]', open) < 0) cutAt = open; else if (pending.endsWith('[')) cutAt = pending.length - 1; }
         let head = pending.slice(0, cutAt); pending = pending.slice(cutAt);
         for (const m of [...head.matchAll(/\[\[([^\]]+)\]\]/g)]) {
           const c = await resolveRef(m[1].trim(), env);

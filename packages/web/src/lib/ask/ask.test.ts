@@ -54,6 +54,14 @@ describe('ask', () => {
     expect(done.cut).toBe(true);
     expect(ev.filter(e => e.type === 'deep.delta').map(e => (e as { text: string }).text).join('')).toContain('invite email was dropped');
   });
+  it('turns [[ref]] into [n] even when the brackets arrive in different chunks', async () => {
+    process.env.STUB_DEEP = path.join(FX, 'deep-split.jsonl');
+    try {
+      const ev = await collect(ask(await env(), { q: 'why no invite email?', lanes: ['deep'] }, { signal: new AbortController().signal, wfUrl: 'http://x' }));
+      const text = ev.filter(e => e.type === 'deep.delta').map(e => (e as { text: string }).text).join('');
+      expect(text).not.toContain('[['); expect(text).toMatch(/^Dropped, see \[\d+\] and \[\d+\]\.$/);
+    } finally { process.env.STUB_DEEP = path.join(FX, 'deep.jsonl'); }
+  });
   it('runs only the lanes asked for', async () => {
     const ev = await collect(ask(await env(), { q: 'why no invite email?', lanes: ['fast'] }, { signal: new AbortController().signal, wfUrl: 'http://x' }));
     expect(ev.some(e => e.type.startsWith('deep') || e.type === 'step')).toBe(false);
