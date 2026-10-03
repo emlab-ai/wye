@@ -1,0 +1,17 @@
+[
+  { "q": "why is search a panel and not an entry in the rail?", "expect": ["decision:wf2.rail-fewer-entries"] },
+  { "q": "what does ⌘F do?", "expect": ["req:wf2.ui.search", "packages/web/src/components/SearchPanel.tsx"] },
+  { "q": "can an agent open a prompt request on its own?", "expect": ["constraint:wf2.pr-is-the-persons"] },
+  { "q": "where do the Goals and Work pages come from?", "expect": ["decision:wf2.views-are-pages"] },
+  { "q": "how does ask run the fast and the deep answer?", "expect": ["decision:wf2.ask-two-lanes", "packages/web/src/lib/ask/ask.ts"] },
+  { "q": "what happens to a product's files when I delete it?", "expect": ["decision:wf2.delete-to-trash"] },
+  { "q": "who decides whether a candidate link is right, and who finds the candidates?", "expect": ["decision:wf2.jev-judges-never-finds"] },
+  { "q": "what are the stages a prompt request goes through?", "expect": ["decision:wf2.pr-lifecycle"] },
+  { "q": "what is the unit of work for agents — a task, a plan or a session?", "expect": ["decision:exec.task-is-the-unit"] },
+  { "q": "when does an evaluation run fail compared to the previous one?", "expect": ["decision:memory.eval-tolerance"] },
+  { "q": "is a package installed for the whole product or one project?", "expect": ["decision:install.per-project"] },
+  { "q": "is the Related list open by default?", "expect": ["decision:wf2.related-collapsed-default"] },
+  { "q": "what is the command line tool for agents called?", "expect": ["decision:wf2.cli-is-wye"] },
+  { "q": "where is a question's answer stored?", "expect": ["decision:wf2.answer-is-content"] },
+  { "q": "which tools may the librarian agent use?", "expect": ["decision:exec.librarian-on-the-host"] }
+]
