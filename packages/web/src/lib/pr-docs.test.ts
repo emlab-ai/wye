@@ -44,9 +44,9 @@ describe('pr approval', () => {
   it('a PR with no goal gets one first, and its request task is part of it (decision:wf2.pr-has-a-goal)', async () => {
     const s = { id: 'g1', product, agent: 'claude-code', status: 'running', refs: [], source: { project: 'p' }, instruction: 'Let shoppers save a cart for later', log: [], createdAt: '', updatedAt: '', role: 'librarian' } as unknown as Session;
     const goal = await goalForRequest(product, s);
-    expect(goal).toBe('goal:let-shoppers-save-a-cart-for-later');
-    expect(await readFile(path.join(dir, 'projects/p/docs/goals.md'), 'utf8')).toMatch(/^- goal:let-shoppers-save-a-cart-for-later Let shoppers save a cart for later$/m);
-    expect(await goalForRequest(product, s)).toBe('goal:let-shoppers-save-a-cart-for-later-2');   // never two goals of one id
+    expect(goal).toBe('goal:let-shoppers-save-cart-later');
+    expect(await readFile(path.join(dir, 'projects/p/docs/goals.md'), 'utf8')).toMatch(/^- goal:let-shoppers-save-cart-later Let shoppers save a cart for later$/m);
+    expect(await goalForRequest(product, s)).toBe('goal:let-shoppers-save-cart-later-2');   // never two goals of one id
     const ref = await createPrDoc(dir, product, { ...s, refs: [goal!] });
     const md = await readFile(path.join(dir, `projects/p/.wye/${ref!.split('/')[2]}.md`), 'utf8');
     expect(md).toContain(`part-of: ${goal}`);

@@ -19,6 +19,16 @@ export function nextPrNumber(taken: Iterable<string>): number {
 }
 export const prLabel = (num: number, title: string) => `#${num} ${title}`;
 
+// A goal's slug from the request (decision:wf2.pr-has-a-goal): what is wanted — the first line's words without the
+// "I want to / please / can you" before them and the small words between them, six at most, never cut mid-word.
+const FILLER = /^(?:i(?:'d| would)? (?:like|want|need) to|we (?:need|want) to|please|can you|could you|let'?s|i want|we want)\s+/i;
+const SMALL = new Set('a an the my our your their its of to for in on at by with and or but is are be this that these those'.split(' '));
+export function goalSlug(request: string): string {
+  const words = prTitle(request).toLowerCase().replace(FILLER, '').split(/[^a-z0-9]+/).filter(w => w && !SMALL.has(w));
+  let slug = ''; for (const w of words.slice(0, 6)) { if ((slug ? slug.length + 1 : 0) + w.length > 60) break; slug = slug ? `${slug}-${w}` : w; }
+  return slug || 'goal';
+}
+
 // The title: the first non-empty line of the request, markdown stripped, cut at 90 characters.
 export function prTitle(request: string): string {
   const line = request.split('\n').map(l => l.trim()).find(Boolean) ?? 'request';

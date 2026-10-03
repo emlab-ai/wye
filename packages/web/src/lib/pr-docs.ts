@@ -8,7 +8,7 @@ import { loadScope } from './scope';
 import { bareSlug, docRoute, projectTree } from './doc';
 import { rebuild, writeAtomic, withFileLock } from './write';
 import { onSessionEnd, setPrDoc, addRefs } from './sessions';
-import { fromLine, getFrontmatter, prDocBody, nextPrNumber, prsPageId, prStatusOnEnd, prTitle, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, withDefinition, definitionIds, definitionState, readiness, taskLines, type PrEndStatus, type DefinitionState, type Readiness } from './pr-doc';
+import { fromLine, getFrontmatter, prDocBody, nextPrNumber, prsPageId, prStatusOnEnd, prTitle, goalSlug, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, withDefinition, definitionIds, definitionState, readiness, taskLines, type PrEndStatus, type DefinitionState, type Readiness } from './pr-doc';
 import type { Scope } from './scope';
 import { createRequire } from 'node:module';
 import { listChanges } from './changes';
@@ -94,7 +94,7 @@ function placeOf(s: Session): { project?: string; doc?: string } {
 export async function goalForRequest(product: string, s: Session): Promise<string | null> {
   const scope = await loadScope(product); if (!scope) return null;
   const title = prTitle(s.instruction);
-  const base = slugify(title).slice(0, 48).replace(/-+$/, '') || 'goal';
+  const base = goalSlug(s.instruction);
   let slug = base; let n = 2;
   while (scope.idx.byId.get(`goal:${slug}`)?.defined) slug = `${base}-${n++}`;
   const at = placeOf(s).project;

@@ -58,7 +58,7 @@ export function contextBody(it: Intake, touched: { id: string; doc: string }[], 
   const parts: string[] = [];
   if (it.want) parts.push(`**What you want** — ${it.want}`);
   parts.push(byDoc.size ? `**Touches** — ${[...byDoc].map(([doc, ids]) => `${doc}: ${ids.join(', ')}`).join(' · ')}` : '**Touches** — nothing in the product\'s knowledge is close to this yet; the librarian starts from the request alone.');
-  if (it.notes.length) parts.push(`**Already there / in the way** — ${it.notes.join(' ')}`);
+  if (it.notes.length) parts.push(`**Already there / in the way**\n${it.notes.map(n => `- ${n.trim()}`).join('\n')}`);
   // the packet's rule / constraint / decision lines — its open questions are not what governs the request
   // the id never first on the line: a line that starts with an id would define or embed it; "[status] id — text" reads as a tag
   const inForce = packetMd.split('\n').filter(l => /^- (rule|constraint|decision):/.test(l)).slice(0, 12).map(l => { const m = l.match(/^- ([a-z-]+:[A-Za-z0-9_.\-]+)\s*(\[[^\]]*\])?\s*(?:—\s*)?(.*)$/); return m ? `- ${m[2] ?? ''} ${m[1]} — ${m[3]}`.replace(/\s+/g, ' ').replace('- ', '- ') : l.trim(); }).join('\n');

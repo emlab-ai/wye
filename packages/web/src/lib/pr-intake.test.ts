@@ -4,6 +4,10 @@ import { intakePrompt, parseIntake, contextBody, impactBody, withSection, withTi
 // intake (decision:wf2.pr-intake): the prompt carries the request, the knowledge near it and the packet; the answer
 // is parsed leniently; the sections are written in place
 describe('pr intake', () => {
+  it('lists what is already there one note per line, not as one run-on paragraph', () => {
+    const ctx = contextBody({ title: 't', want: 'W.', touches: [], notes: ['goal:g restates the request', 'skill:plan exists but does not match'] }, [], '', '');
+    expect(ctx).toContain('**Already there / in the way**\n- goal:g restates the request\n- skill:plan exists but does not match');
+  });
   it('prompts with the request, the near knowledge and the packet, and parses the answer leniently', () => {
     const p = intakePrompt('make cities a document', [{ id: 'type:city', text: 'a city' }], '- rule:x — always');
     expect(p).toContain('## The request\nmake cities a document'); expect(p).toContain('- type:city: a city'); expect(p).toContain('- rule:x — always');
@@ -13,7 +17,7 @@ describe('pr intake', () => {
   });
   it('writes Context and Impact bodies', () => {
     const ctx = contextBody({ title: 't', want: 'W.', touches: [], notes: ['rule:x covers half'] }, [{ id: 'type:city', doc: 'ontology' }, { id: 'req:a', doc: 'prd' }, { id: 'req:b', doc: 'prd' }], '## Constraints\n- rule:x [approved] — always\n- decision:y — chose\n- question:q — open?', '_from: module:m_');
-    expect(ctx).toContain('**What you want** — W.'); expect(ctx).toContain('**Touches** — ontology: type:city · prd: req:a, req:b'); expect(ctx).toContain('**Already there / in the way** — rule:x covers half'); expect(ctx).toContain('**In force** — the constraints and decisions that govern it:\n- [approved] rule:x — always\n- decision:y — chose'); expect(ctx).not.toContain('question:q'); expect(ctx.endsWith('_from: module:m_')).toBe(true);
+    expect(ctx).toContain('**What you want** — W.'); expect(ctx).toContain('**Touches** — ontology: type:city · prd: req:a, req:b'); expect(ctx).toContain('**Already there / in the way**\n- rule:x covers half'); expect(ctx).toContain('**In force** — the constraints and decisions that govern it:\n- [approved] rule:x — always\n- decision:y — chose'); expect(ctx).not.toContain('question:q'); expect(ctx.endsWith('_from: module:m_')).toBe(true);
     expect(contextBody({ title: 't', want: '', touches: [], notes: [] }, [], '', '')).toContain('nothing in the product');
     expect(impactBody([{ id: 'req:z', from: 'type:city', weight: 0.6, path: 'refined-by' }, { id: 'req:z', from: 'req:a', weight: 0.9, path: '' }])).toBe('- req:z — 0.9 from req:a');
     expect(impactBody([])).toContain('Nothing reached yet');

@@ -1,10 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { nextPrNumber, prNumberOf, prLabel, prTitle, prDocBody, fromLine, resultSection, withResult, setFrontmatter, getFrontmatter, prsOf, prStatusOnEnd, requestTaskStatusOnEnd, definitionIds, withDefinition, definitionState, readiness, taskLines } from './pr-doc';
+import { nextPrNumber, prNumberOf, prLabel, prTitle, goalSlug, prDocBody, fromLine, resultSection, withResult, setFrontmatter, getFrontmatter, prsOf, prStatusOnEnd, requestTaskStatusOnEnd, definitionIds, withDefinition, definitionState, readiness, taskLines } from './pr-doc';
 
 const TPL = readFileSync(path.join(__dirname, '../../../../templates/docs/pr.md'), 'utf8');
 const vars = { num: 41, slug: 'pr-41', title: 'page link on the session', date: '2026-09-18', session: 'abc123', agent: 'claude-code', parent: 'module:app-agents', started: '2026-09-18T12:00:00.000Z', request: 'page link on the session, it looks good\n\n## but\nshould be a plan', from: '_from: module:app-agents · refs: req:x_' };
+
+describe('goalSlug', () => {
+  it('names a goal by what is wanted, not by the request cut mid-word', () => {
+    expect(goalSlug('i want to make my personal executive assistant skill and workflows, the goal is to follow all important information')).toBe('make-personal-executive-assistant-skill-workflows');
+    expect(goalSlug('Please add dark mode to the settings page')).toBe('add-dark-mode-settings-page');
+    expect(goalSlug('???')).toBe('goal');
+  });
+});
 
 describe('prNumber / prTitle', () => {
   it('numbers like pull requests: one more than the highest in use, from ids or slugs', () => {
