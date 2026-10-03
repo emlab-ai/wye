@@ -32,13 +32,18 @@ const fmSplit = (md: string): { fm: Record<string, string>; order: string[]; bod
 };
 const yamlStr = (s: string) => (/[:#'"\[\]{}|>&*!%@`]|^\s|\s$/.test(s) ? JSON.stringify(s) : s);
 
-// The title: the front matter's, else the first `# heading`, else the file name.
+// The title: the front matter's, else the first `# heading`, else the file name. A heading that is only a section
+// name ("# Overview", "# Notes") does not name the note — in an Obsidian vault 60 people's notes all began "# Overview"
+// — so then the file name is the title, and plan() does the same for a heading several files of one import share.
+const GENERIC_HEADING = /^(overview|summary|notes?|context|background|intro(duction)?|tl;?dr|about|details|description|todo|to ?dos?|tasks|log|agenda|status|updates?|next steps?|next 1:1( questions)?|1:1|questions|misc|general|index|readme|untitled)$/i;
+export const nameOf = (filePath: string) => path.basename(filePath).replace(MD, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+export const headingOf = (md: string): string | null => { const h = fmSplit(md).body.match(/^#\s+(.+?)\s*$/m); return h ? h[1].replace(/\s+#+$/, '').trim() : null; };
 export function titleOf(md: string, filePath: string): string {
-  const { fm, body } = fmSplit(md);
+  const { fm } = fmSplit(md);
   if (fm.title) return fm.title.replace(/^["']|["']$/g, '');
-  const h = body.match(/^#\s+(.+?)\s*$/m);
-  if (h) return h[1].replace(/\s+#+$/, '').trim();
-  return path.basename(filePath).replace(MD, '').replace(/[-_]+/g, ' ').trim() || 'Imported';
+  const h = headingOf(md);
+  if (h && !GENERIC_HEADING.test(h)) return h;
+  return nameOf(filePath) || h || 'Imported';
 }
 
 // A slug nobody has yet: the title's, else the file name's, `-2`, `-3`… on a clash (with the project or the plan).
@@ -82,6 +87,10 @@ export function plan(files: ImportFile[], o: ImportOptions): ImportPlan {
   const taken = new Set(o.existing);
   const docs: PlannedDoc[] = []; const skipped: ImportPlan['skipped'] = []; const assets: ImportPlan['assets'] = [];
   const folders = new Map<string, string>();                       // folder path → document slug (its parent page)
+  // a heading two or more files of this import share is a section name, not each note's name ("# Next 1:1")
+  const seen = new Map<string, number>();
+  for (const f of files) { const h = headingOf(f.text)?.toLowerCase(); if (h) seen.set(h, (seen.get(h) ?? 0) + 1); }
+  const shared = new Set([...seen].filter(([, n]) => n > 1).map(([h]) => h));
   const parentOf = (rel: string): string | null => {
     const dir = path.posix.dirname(rel.replace(/\\/g, '/'));
     if (dir === '.' || dir === '') return o.parent ? `module:${o.parent}` : null;
@@ -90,7 +99,7 @@ export function plan(files: ImportFile[], o: ImportOptions): ImportPlan {
       const name = path.posix.basename(dir);
       const slug = freeSlug(name, taken);
       folders.set(dir, slug);
-      const title = name.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const title = nameOf(name).replace(/\b\w/g, c => c.toUpperCase()) || name;   // "_terminated" → "Terminated", no stray space
       docs.push({ slug, file: `${slug}.md`, title, from: null, parent: up, folder: true,
         md: docFor({ path: dir, text: `# ${title}\n\nImported folder \`${dir}\`; its files are the pages under this one.\n` }, slug, title, up, { ...o, analyse: false }) });
     }
@@ -103,7 +112,8 @@ export function plan(files: ImportFile[], o: ImportOptions): ImportPlan {
     if (Buffer.byteLength(f.text, 'utf8') > MAX_BYTES) { skipped.push({ path: f.path, reason: 'larger than 1 MB' }); continue; }
     if (!f.text.trim()) { skipped.push({ path: f.path, reason: 'empty' }); continue; }
     const parent = parentOf(rel);
-    const title = titleOf(f.text, rel);
+    const h = headingOf(f.text);
+    const title = h && shared.has(h.toLowerCase()) && !fmSplit(f.text).fm.title ? (nameOf(rel) || h) : titleOf(f.text, rel);
     const slug = freeSlug(title, taken);
     let md = docFor({ ...f, path: rel }, slug, title, parent, o);
     // relative images → the project's assets folder, the body rewritten to assets/<name>

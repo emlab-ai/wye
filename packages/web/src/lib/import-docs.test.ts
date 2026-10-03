@@ -41,7 +41,7 @@ describe('plan', () => {
   });
   it('a slug the project has, or a repeated title, gets a numeric suffix; non-markdown, empty and huge files are skipped', () => {
     const p = plan([
-      { path: 'a.md', text: '# Plan\n' }, { path: 'b.md', text: '# Plan\n' }, { path: 'c.txt', text: 'x' }, { path: 'd.md', text: '  \n' },
+      { path: 'a.md', text: '# Plan\n' }, { path: 'b.md', text: '---\ntitle: Plan\n---\nbody\n' }, { path: 'c.txt', text: 'x' }, { path: 'd.md', text: '  \n' },
       { path: 'e.md', text: '# Big\n' + 'x'.repeat(1_000_001) },
     ], o({ existing: new Set(['plan']) }));
     expect(p.docs.map(d => d.slug)).toEqual(['plan-2', 'plan-3']);
@@ -52,5 +52,21 @@ describe('plan', () => {
     expect(p.assets).toEqual([{ from: 'spec/img/shot.png', to: 'assets/prd-shot.png' }]);
     expect(p.docs[1].md).toContain('![shot](assets/prd-shot.png) ![web](https://x/y.png)');
     expect(imageRefs('![a](assets/x.png) ![b](../c.png)')).toEqual(['../c.png']);
+  });
+});
+
+describe('titles of notes whose heading is a section', () => {
+  it('a generic heading gives way to the file name', () => {
+    expect(titleOf('# Overview\n\nrole: engineer', 'People/Jane Roe.md')).toBe('Jane Roe');
+    expect(titleOf('# Kitchen PRD\n\nx', 'prd.md')).toBe('Kitchen PRD');
+  });
+  it('a heading several files share is replaced by each file name; folders lose stray underscores', () => {
+    const p = plan([
+      { path: 'People/_terminated/Sam Doe.md', text: '# Check-ins\n\na' },
+      { path: 'People/Alex Poe.md', text: '# Check-ins\n\nb' },
+      { path: 'People/Kim.md', text: '# Kim Lee\n\nc' },
+    ], { project: 'p', analyse: false, existing: new Set() });
+    expect(p.docs.filter(d => !d.folder).map(d => d.title).sort()).toEqual(['Alex Poe', 'Kim Lee', 'Sam Doe']);
+    expect(p.docs.find(d => d.folder && d.from === null && d.slug.includes('terminated'))?.title).toBe('Terminated');
   });
 });

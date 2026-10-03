@@ -535,3 +535,17 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - context:wf2.import-is-a-task "after i clicked import markdown i see this page - looks ugly and wrong, it should create task (not event goal) and start async import" — an upload of 256 Obsidian files wrote them at once and listed every skipped file in one paragraph; all 256 were empty on disk (Dropbox online-only placeholders), so it imported nothing.
 
   - choice:wf2.import-is-a-task an upload of more than one file goes the way of the path import (lib:import-run): the pages are written as raw, an "Import: <folder>" page lists every file, one task "Import <folder> — N documents" lands in the Backlog and is checked when the last file is done, and the agent takes the files one at a time. The dialog says only that it started (skipped as a count, folded). A pick whose markdown files are all empty is refused: "make the folder available offline, then import again". One pasted page is still written and opened at once.
+
+```yaml
+- id: decision:wf2.import-title-from-name
+  title: An imported note whose first heading is only a section name ("Overview") takes its file name as its title
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  affects: [component:import-docs]
+  part-of: module:req-shell
+```
+
+  - context:wf2.import-title-from-name "i did markdown import, and a lot of documents have name overview" — the title was the first `# heading`, and in an Obsidian vault most people's notes begin "# Overview" (others "# Updates", "# Log", "# Next 1:1"); quoted titles also showed their quotes ("Next 1:1", " Terminated").
+
+  - choice:wf2.import-title-from-name the front matter's title, else the first heading unless it is a section word (Overview, Summary, Notes, Log, Updates, Next 1:1…) or a heading two or more files of the same import share — then the file name, which is the note's name in Obsidian. Folder pages drop stray underscores ("_terminated" → "Terminated"). The graph reads a quoted YAML title as its value.
