@@ -616,6 +616,32 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/[project]/map/[slug]/route.ts
   status: proposed
   part-of: module:api
+- id: op:api.ask
+  args: POST /api/<product>/ask
+  does: >
+    (no header comment)
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/ask/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.delete
+  args: POST /api/<product>/delete
+  does: >
+    Delete a product: POST → { trashed, relocated, kept, next, href }. The folder is moved to <data>/_trash, not
+    unlinked; a product relocated beside its code keeps that folder (lib/delete-product). `href` is where to land
+    now.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/delete/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.search
+  args: GET /api/<product>/search
+  does: >
+    (no header comment)
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/search/route.ts
+  status: proposed
+  part-of: module:api
 ```
 
 <!-- /list:op -->

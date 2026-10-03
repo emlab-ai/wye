@@ -876,6 +876,54 @@ The editor's blocks and the components the pages are made of, by area.
     the way a click on a block does (rule:block-select); the dates themselves are edited on its card there.
   status: proposed
   part-of: module:components
+- id: component:delete-product
+  file: packages/web/src/components/DeleteProduct.tsx
+  side: client
+  purpose: >
+    Delete a product. The folder is moved to the data folder's _trash rather than unlinked (lib/delete-product), and
+    a product whose documents live beside its code keeps that folder — so the confirmation says which of the two
+    this is. Typing the slug arms the button: this takes every project, document and session the product holds.
+  status: proposed
+  part-of: module:components
+- id: component:icons
+  file: packages/web/src/components/Icons.tsx
+  side: server
+  purpose: >
+    The rail's tool icons. Unicode glyphs (⚙ ☾ «) come from whichever font happens to carry them, so they never
+    match in weight or optical size; these are one set — the same 24 viewBox, the same stroke, sized by the caller.
+  status: proposed
+  part-of: module:components
+- id: component:type-statuses
+  file: packages/web/src/components/TypeStatuses.tsx
+  side: client
+  purpose: >
+    A type's statuses, editable (decision:wf2.statuses-per-type): the list every status picker of its instances
+    offers. A product type keeps it on its own card; a base kind's is the product's override (in _product.md), and
+    "default" puts the base list back.
+  status: proposed
+  part-of: module:components
+- id: component:answer-view
+  file: packages/web/src/components/search/AnswerView.tsx
+  side: client
+  purpose: >
+    An answer with its [n] citations as buttons: hover previews the source, click opens it.
+  status: proposed
+  part-of: module:components
+- id: component:source-chips
+  file: packages/web/src/components/search/SourceChips.tsx
+  side: client
+  purpose: >
+    (no header comment)
+  status: proposed
+  part-of: module:components
+- id: component:use-ask
+  file: packages/web/src/components/search/useAsk.ts
+  side: client
+  purpose: >
+    One question at a time per panel: asking again, or reset, aborts the one in flight (the server kills both
+    lanes).
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

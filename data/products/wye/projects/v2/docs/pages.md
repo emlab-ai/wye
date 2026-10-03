@@ -448,6 +448,15 @@ Every page of the app by area: its route, what it shows, its actions. The table 
     folder opens (page&#58;web/prs, req:wf2.ui.plans-folder). A row opens the request.
   status: proposed
   part-of: module:pages
+- id: page:web/settings-2
+  route: /settings
+  component: packages/web/src/app/settings/page.tsx
+  purpose: >
+    The app's settings: what is stored here is about this machine, not about one product — the theme, the key Jev
+    links with, how many agents build at once. All of it lives in <data>/_settings.json. A product's own settings —
+    where its folder is, deleting it — are at /<product>/settings.
+  status: proposed
+  part-of: module:pages
 ```
 
 <!-- /list:page -->

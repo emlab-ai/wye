@@ -467,6 +467,167 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     what the Y axis groups by, `from` and `to` the window.
   status: proposed
   part-of: module:app-storage
+- id: lib:ask
+  file: packages/web/src/lib/ask/ask.ts
+  side: server
+  purpose: >
+    Ask (decision:wf2.ask-two-lanes): retrieve once, then the fast and the deep lane run at the same time; their
+    output is merged into one stream of events with one citation numbering. The fast lane's sources are numbered
+    first, in the order its prompt lists them, so its [n] are already right; the deep lane's [[ref]] are renumbered
+    as they stream.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:chunk
+  file: packages/web/src/lib/ask/chunk.ts
+  side: server
+  purpose: >
+    The passages Ask indexes (decision:wf2.ask-sources): a node is one passage; a document's prose is cut by heading
+    and at ~1 200 chars on paragraph boundaries (its yaml cards are nodes already); code is cut at top-level
+    symbols, else 60-line windows; a session is one passage per turn. Pure: the walker (refresh.ts) reads the files.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:citations
+  file: packages/web/src/lib/ask/citations.ts
+  side: server
+  purpose: >
+    One numbering for both answers (decision:wf2.ask-two-lanes): [3] is the same source in the fast and the deep
+    answer.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:claude
+  file: packages/web/src/lib/ask/claude.ts
+  side: server
+  purpose: >
+    One `claude -p` run as a stream of its JSON lines (decision:memory.model-calls-via-cli). WYE_CLAUDE_BIN replaces
+    the binary (a shell command line — the tests point it at a stub). Abort kills the child and ends the stream
+    quietly.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:deep
+  file: packages/web/src/lib/ask/deep.ts
+  side: server
+  purpose: >
+    The deep lane (decision:wf2.ask-two-lanes): a read-only agent — wye search, graph and document reads, Read /
+    Grep / Glob in the product's code — that investigates until it can answer. It never writes or proposes
+    (constraint:wf2.pr-is-the-persons). Capped at 20 tool calls or 120 s; then it is stopped and its partial answer
+    stands.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:embed-2
+  file: packages/web/src/lib/ask/embed.ts
+  side: server
+  purpose: >
+    The local models (transformers.js, cached under .cache/models; nothing leaves the machine): the sentence
+    embedder shared by the semantic context search and the Ask index (MiniLM, normalised, so a dot product is the
+    cosine), and the cross-encoder Ask uses to rerank passages against a question (decision:wf2.ask-two-lanes).
+  status: proposed
+  part-of: module:app-storage
+- id: lib:env
+  file: packages/web/src/lib/ask/env.ts
+  side: server
+  purpose: >
+    What a query needs for one product: the scope (graph, index), the store brought up to date, the embedder and the
+    reranker when their models load — without the embedder search is full-text only and says so.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:fast
+  file: packages/web/src/lib/ask/fast.ts
+  side: server
+  purpose: >
+    The fast lane (decision:wf2.ask-two-lanes): the retrieved passages, numbered, and the question go to one
+    tool-less model call; its answer streams back token by token with [n] citations into that numbering.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:question
+  file: packages/web/src/lib/ask/question.ts
+  side: server
+  purpose: >
+    Typing a question in ⌘F asks it (decision:wf2.ask-in-search-panel): it ends with "?", or it starts with a
+    question word and has at least one more word. Client-safe.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:reducer
+  file: packages/web/src/lib/ask/reducer.ts
+  side: server
+  purpose: >
+    The panel's view of one question: the stream of AskEvents folded into what it shows. Client-safe.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:refresh
+  file: packages/web/src/lib/ask/refresh.ts
+  side: server
+  purpose: >
+    Keeps a product's Ask index current (decision:wf2.ask-sources): each source file whose mtime moved is re-chunked
+    and only passages whose text changed are rewritten; files that vanished lose their passages; passages written
+    without a vector (no model yet) get one once the model loads. The product's code is its `repo:` (else this
+    repo): the files git tracks, ≤200 KB, text only. One diff, one write (store.apply).
+  status: proposed
+  part-of: module:app-storage
+- id: lib:refs
+  file: packages/web/src/lib/ask/refs.ts
+  side: server
+  purpose: >
+    What the deep lane is doing and what it has looked at, read off its tool calls (decision:wf2.ask-two-lanes):
+    every file, node or passage it opens becomes a source the panel shows while it is still working. Pure.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:retrieve
+  file: packages/web/src/lib/ask/retrieve.ts
+  side: server
+  purpose: >
+    Ask's retriever (decision:wf2.ask-two-lanes): the store's hybrid search (BM25 + vectors, fused by reciprocal
+    rank), ended nodes left out (req:memory.current-by-construction), then one hop along the graph's structural
+    edges — a decision brings what it affects, a requirement what satisfies it, a node the passages that mention it
+    — at a share of the parent's score; for a question, a cross-encoder reranks the lot against it; finally trimmed
+    to a budget.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:store
+  file: packages/web/src/lib/ask/store.ts
+  side: server
+  purpose: >
+    The Ask index on disk (decision:wf2.ask-sources): one embedded LanceDB database per product, <product>/_build/
+    search.lance — one row per passage with its vector, a full-text index over title + text, and hybrid search (BM25
+    and vectors fused by reciprocal rank). Writes are batched (state → apply) so a refresh is one delete and one
+    add, not one per file. Which file each passage came from, and that file's mtime, is kept beside it in
+    scopes.json.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:types-2
+  file: packages/web/src/lib/ask/types.ts
+  side: server
+  purpose: >
+    Ask (decision:wf2.ask-sources, decision:wf2.ask-two-lanes): the shapes shared by the index, the retriever, the
+    two answer lanes, the API and the panel. Client-safe: no node imports.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:import-run
+  file: packages/web/src/lib/import-run.ts
+  side: server
+  purpose: >
+    A big folder (an Obsidian vault, a wiki export) imported from a path on disk (the desktop app has the file
+    system already — no browser upload needed, req&#58;wf2.import.markdown-path). Unlike the multipart route, which
+    writes every file at once and lets the watcher fire hook:import-analyse on all of them together — fine for a
+    handful of pages, but a vault of hundreds spawns that many concurrent agent sessions — this writes everything as
+    `raw` (no auto-fire), makes one request page listing every file as a task, then works the list one file at a
+    time: fire the analyse hook, wait for its session to end, check the task, move on. The request page is the
+    progress: reopen it any time to see how far the import got.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:instance-add
+  file: packages/web/src/lib/instance-add.ts
+  side: server
+  purpose: >
+    A new instance of a type, and where it went (decision:ontology.collection-document, req:ontology.instance-home):
+    a row of the type's collection document — the document `home:` on the type card names, else one titled with the
+    type's plural, created in the project that declares the type on the first instance and written as `home:` so
+    every later path lands there. A type with no `home:` — a base kind (task, req, decision…) among them — gets the
+    same: its plural's page in the person's docs/ (tasks.md, reqs.md, goals.md), in the project the caller is on
+    (`home`: <project>/<page>), never the page itself — that may be a view, or a system page in .wye/
+    (decision:wf2.instances-go-home). A base kind's card is read-only, so its page is found by name each time. The
+    graph rebuilds. The types route and a PR without a goal (decision:wf2.pr-has-a-goal) both come here.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->
