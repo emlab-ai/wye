@@ -642,6 +642,88 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/search/route.ts
   status: proposed
   part-of: module:api
+- id: op:api.packages.preview
+  args: GET /api/<product>/<project>/packages/<pkg>/preview
+  does: >
+    (no header comment)
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/[project]/packages/[pkg]/preview/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.packages
+  args: DELETE /api/<product>/<project>/packages/<pkg>
+  does: >
+    (no header comment)
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/[project]/packages/[pkg]/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.project.packages
+  args: POST /api/<product>/<project>/packages
+  does: >
+    (no header comment)
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/[project]/packages/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.hooks-tick
+  args: POST /api/<product>/hooks/tick
+  does: >
+    (decision&#58;ea.time-based-hooks) — POST { now?: iso } → one tick of the hooks clock for the product ("run the
+    clock now"; a test's chosen instant): the time hooks whose slot moved, fired or only recorded, and why.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/hooks/tick/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.packages-2
+  args: GET /api/<product>/packages
+  does: >
+    GET → what each project of the product has installed, read from the records; a missing link of a recorded
+    package is restored on the way (op:install.restore-links)
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/packages/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.system.packages
+  args: GET /api/system/packages
+  does: >
+    GET → every package of the system library with what it holds; ?product=P adds the projects of P it is installed
+    in (from the records)
+  gate: none (local app)
+  source: packages/web/src/app/api/system/packages/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.ea-brief
+  args: POST /api/<product>/ea/brief
+  does: >
+    (req&#58;ea.daily-brief, req&#58;ea.weekly-pace, req&#58;ea.one-on-one-prep) — POST { kind: daily | weekly |
+    1on1, date?, person?, write?, project? } → the brief's markdown; with write the page under Briefs (replaced when
+    it exists) and the day's snapshot. Reads every other product, writes none of them
+    (constraint&#58;ea.reads-other-products-only).
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/ea/brief/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.ea-commitment
+  args: POST /api/<product>/ea/commitment
+  does: >
+    (task&#58;ea.commitment-tracking) — POST { op: move | met | drop, id, to?, why?, on? } → the commitment moved (a
+    move line kept under it, due and state set), met (met-on) or dropped (reason kept); a move or a drop without a
+    reason is refused (422).
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/ea/commitment/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.ea-intake
+  args: POST /api/<product>/ea/intake
+  does: >
+    (decision&#58;ea.tools-push-through-cli, task&#58;ea.cli-intake) — POST { analysis, project? } (or the analysis
+    itself as the body) → the meeting and its items filed proposed; returns the summary: created ids, update and
+    question lines, inbox items, what was already there. 422 lists every problem with the analysis.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/ea/intake/route.ts
+  status: proposed
+  part-of: module:api
 ```
 
 <!-- /list:op -->

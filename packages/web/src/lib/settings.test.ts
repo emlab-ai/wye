@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mkdtemp, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { readSettings, writeSettings, jevKey, publicSettings, agentSettings } from './settings';
+import { readSettings, writeSettings, jevKey, publicSettings, agentSettings, timeZoneOf } from './settings';
 
 // the app's settings (Jev auto-linking design §0): one json file under the data root, never committed, the key never
 // returned to a browser
@@ -28,5 +28,12 @@ describe('settings', () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'wf-settings-'));
     await writeSettings({ agents: { parallel: 3 } }, root);
     expect(publicSettings(await readSettings(root)).agents).toEqual({ parallel: 3, agent: 'claude-code', hooks: true });
+  });
+  it('timezone: stored when Intl knows it, dropped when empty or unknown (decision:ea.time-based-hooks)', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wf-settings-'));
+    expect((await writeSettings({ timezone: 'Europe/London' }, root)).timezone).toBe('Europe/London');
+    expect((await writeSettings({ agents: { parallel: 2 } }, root)).timezone).toBe('Europe/London');
+    expect((await writeSettings({ timezone: 'Mars/Olympus' }, root)).timezone).toBeUndefined();
+    if (!process.env.WYE_TZ) expect(timeZoneOf(await readSettings(root))).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
   });
 });

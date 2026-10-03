@@ -115,7 +115,8 @@ export async function runAction(scope: Scope, actor: Actor, a: HookAction, ev: H
   if (a.kind === 'assign') return await assignExisting(scope, actor, a, f);
   if (a.kind === 'notify') { if (!node) throw new Error(`${ev.id} is not in the graph`); return { kind: 'notify', added: [await notify(scope, actor, a.text, node, ev)] }; }
   // a workflow: the run starts on the node the event names, and its first stage is entered at once (lib/runs-run)
-  if (a.kind === 'workflow') { if (!node) throw new Error(`${ev.id} is not in the graph`); const { startRun } = await import('./runs-run'); const r = await startRun(scope.product.slug, a.workflow, node.id, { by: actor.id }); return { kind: 'workflow', added: [r.run] }; }
+  // a time hook starts a run every slot, beside any still live on the node (decision:ea.time-based-hooks)
+  if (a.kind === 'workflow') { if (!node) throw new Error(`${ev.id} is not in the graph`); const { startRun } = await import('./runs-run'); const r = await startRun(scope.product.slug, a.workflow, node.id, { by: actor.id, ...(ev.event.startsWith('time.') ? { again: true } : {}) }); return { kind: 'workflow', added: [r.run] }; }
   if (a.kind === 'dispatch') { const { dispatchDoc } = await import('./runs-run'); return { kind: 'dispatch', added: await dispatchDoc(scope, a.doc, { workers: a.workers, by: actor.id }) }; }
   throw new Error(`unknown action ${JSON.stringify(a)}`);
 }
@@ -163,7 +164,7 @@ export async function runHook(product: string, hookId: string, nodeId: string): 
   const scope = await loadScope(product); if (!scope) return [];
   const h = hooksOf(scope.graph).find(x => x.id === hookId); if (!h) throw new Error(`${hookId} is not a hook`);
   const node = scope.idx.byId.get(nodeId); if (!node) throw new Error(`${nodeId} is not in the graph`);
-  return fire(product, [{ kind: node.kind, id: node.id, event: h.on.event, depth: 0 }], undefined, { only: hookId, force: true });
+  return fire(product, [{ kind: node.kind, id: node.id, event: h.on.kind === 'time' ? `time.${h.on.event}` : h.on.event, depth: 0 }], undefined, { only: hookId, force: true });
 }
 
 // `run skill:<id>`: a chat session on the node — the skill's role (librarian by default: reads and proposes, in the

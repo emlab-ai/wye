@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { access, mkdir } from 'node:fs/promises';
+import { access } from 'node:fs/promises';
 import path from 'node:path';
 import { DATA_ROOT, listProducts } from '@/lib/products';
 import { slugify } from '@/lib/templates';
-import { writeAtomic } from '@/lib/write';
+import { createProduct } from '@/lib/product-create';
 
 export async function GET() { return NextResponse.json({ products: (await listProducts()).map(p => ({ slug: p.slug, ...p.meta })) }); }
 
@@ -12,14 +12,7 @@ export async function POST(req: Request) {
   const body = (await req.json()) as { title?: string; description?: string; icon?: string };
   const title = (body.title ?? '').trim(); if (!title) return NextResponse.json({ error: 'invalid', message: 'title required' }, { status: 422 });
   const slug = slugify(title);
-  const dir = path.join(DATA_ROOT, 'products', slug);
-  try { await access(dir); return NextResponse.json({ error: 'conflict', message: `${slug} exists` }, { status: 409 }); } catch { /* new */ }
-  const projectDir = path.join(dir, 'projects', 'main');
-  await mkdir(path.join(projectDir, 'docs'), { recursive: true });
-  await mkdir(path.join(dir, 'inbox'), { recursive: true });
-  await writeAtomic(path.join(dir, '_product.md'), `---\ntitle: ${title}\nicon: ${body.icon ?? '📦'}\ndescription: ${body.description ?? ''}\n---\n`);
-  // every product needs at least one project to hold documents — without it, req:wf2.page.new-dialog's project
-  // fallback (projects[0]?.slug ?? '') is empty and "+ New page" silently fails
-  await writeAtomic(path.join(projectDir, '_project.md'), `---\ntitle: Main\nkind: project\nstatus: proposed\nicon: 📁\ndescription:\n---\n`);
+  try { await access(path.join(DATA_ROOT, 'products', slug)); return NextResponse.json({ error: 'conflict', message: `${slug} exists` }, { status: 409 }); } catch { /* new */ }
+  await createProduct({ slug, title, description: body.description, icon: body.icon });
   return NextResponse.json({ ok: true, slug });
 }

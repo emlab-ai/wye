@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, rename, writeFile } from 'node:fs/promises';
+import { mkdir, realpath, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { buildProduct, checkProduct } from './build';
 import { splitDocument } from './doc';
@@ -82,10 +82,14 @@ export function patchFrontmatter(md: string, patch: Record<string, string | null
 // one behind it) must never share a temp file — one would truncate the other's and the rename that lost would fail.
 let writeSeq = 0;
 export async function writeAtomic(file: string, text: string): Promise<void> {
-  const tmp = `${file}.tmp-${process.pid}-${++writeSeq}`;
   await mkdir(path.dirname(file), { recursive: true }); // a project's .wye/ is made by its first system page
+  // rule:install.write-through-link: under a package link (projects/<p>/.wye/packages/<pkg> → the system library) the
+  // temp file is made in the link's real folder and renamed onto the real file — the save lands in the system library
+  // and the link stays a link; anywhere else the real folder is the folder
+  const real = path.join(await realpath(path.dirname(file)), path.basename(file));
+  const tmp = `${real}.tmp-${process.pid}-${++writeSeq}`;
   await writeFile(tmp, text, 'utf8');
-  await rename(tmp, file);
+  await rename(tmp, real);
 }
 
 // Rebuild a product's graph.json — in this process, with the parse cache (lib/build, decision:wf2.parse-cache); the

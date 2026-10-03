@@ -56,8 +56,15 @@
 //   wye pr build <product/project/pr-x> [--worker claude-code|codex|runner] [--note "…"] [--force]   Build: hand the request's
 //        request task to a worker with the Definition (rule:build) — what the person's "build it" in a librarian conversation means
 //   wye skills --product p                 the product's skills (decision:wf2.hooks-and-skills): id, role, what it runs on
+//   wye packages [--product p] [--json]   the system library (WYE_SYSTEM, else system/): each package with its title and what it holds
+//        — skills, workflows, hooks, templates, types — and, with --product, the projects it is installed in
+//   wye install <package> --product p --project x [--dry-run] [--create-product "<title>"] [--by name]   link the package into the
+//        project (op:install.install): its documents follow the system library, its types are declared in the product, the
+//        record is projects/x/.wye/packages.yaml; --dry-run lists what it would put there; --create-product makes the product first
+//   wye uninstall <package> --product p --project x   the link, the record entry and the types the install declared are gone
 //   wye skill <id> --product p             print a skill's instruction (its document's body, else the prompt file)
 //   wye hooks --product p [--node <id>]    the product's hooks and what fired: hook, node, event, the task / blocks / session
+//   wye hooks tick --product p [--now <iso>]   one tick of the hooks clock (decision:ea.time-based-hooks): time hooks whose slot passed fire
 //   wye workflow list|show <id>            the product's workflows (decision:wf2.workflow-is-a-skill): stages, what each produces, its gate
 //   wye workflow run <id> --on <node>      start a run on a node or document (--again for a second one on the same node)
 //   wye run list|show <id>                 the runs: workflow, what it runs on, the stage, its readiness row by row
@@ -73,6 +80,13 @@
 //        module with an import task on it, handed to an agent at once (skill:import-code): it reads the code and writes the definition
 //   wye eval own | compare | public <adapter> | judge | report   the benchmarks (module:benchmarks): tier 1 on the product's own
 //        history with the CI gate, the with-and-without harness, the public adapters, the judge set's κ, the latest / previous / delta
+//   wye ea intake --product ea [--project assistant] --file <analysis.json>   (or the JSON on stdin) a meeting analysis an outside tool
+//        pushes (task:ea.cli-intake): the meeting and its decisions, commitments, risks and updates filed proposed under their
+//        projects and people; an item it cannot place waits in the Inbox with a question. Same meeting twice → nothing new
+//   wye ea commitment move <id> --to YYYY-MM-DD --why "…" [--on YYYY-MM-DD] | met <id> [--on YYYY-MM-DD] | drop <id> --why "…"
+//        follow a committed date (task:ea.commitment-tracking): a move keeps the old date, the new one, when and why
+//   wye ea brief daily|weekly|1on1 --product ea [--person person:ea.x] [--date YYYY-MM-DD] [--write] [--project p]   the morning
+//        brief, the weekly execution review, 1:1 prep — printed, or with --write kept as a page under Briefs (one per day)
 //   wye agent listen --product p --agent claude-code|codex [--cmd "<command>"] [--name n] [--once] [--take-ready [--goal <id>]]
 //        pick up queued sessions for that agent, run the command with the prompt on stdin, stream output to the log;
 //        --take-ready also claims the oldest #ready unblocked unassigned task when nothing is queued
@@ -399,6 +413,45 @@ const commands = {
   async plan() { console.error('wye plan is now wye pr'); return commands.pr(); },
   // `workflows` reads like `skills`: the list
   async workflows() { pos[1] = pos[1] || 'list'; return commands.workflow(); },
+  // the system library and installs (lib/install.ts): one function per op behind the routes, so the app and wye agree
+  async packages() {
+    const j = await api('GET', `/api/system/packages${flags.product || env('PRODUCT') ? `?product=${flags.product || env('PRODUCT')}` : ''}`);
+    if (flags.json) return out(j);
+    if (!j.packages.length) return console.log('the system library has no packages');
+    const names = xs => xs.map(x => x.id).join(', ') || '—';
+    for (const p of j.packages) {
+      console.log(`${p.slug} — ${p.title}${p.installedIn ? `  (installed in: ${p.installedIn.join(', ') || 'none'})` : ''}${p.description ? `
+  ${p.description}` : ''}`);
+      console.log(`  skills: ${names(p.skills)}
+  workflows: ${names(p.workflows)}
+  hooks: ${p.hooks.map(h => `${h.id} (on ${h.on}${h.agent ? ', starts an agent session' : ''})`).join(', ') || '—'}
+  templates: ${names(p.templates)}
+  types: ${names(p.types)}`);
+    }
+  },
+  async install() {
+    const pkg = pos[1] || die('wye install <package> --product p --project x [--dry-run] [--create-product "<title>"]');
+    const p = product(); const proj = flags.project || die('--project <slug> is required');
+    const by = flags.by || (env('SESSION') ? `agent:${env('SESSION')}` : os.userInfo().username);
+    const create = typeof flags['create-product'] === 'string' ? flags['create-product'] : undefined;
+    const j = await api('POST', `/api/${p}/${proj}/packages`, { package: pkg, dryRun: !!flags['dry-run'], by, createProduct: create });
+    if (flags.json) return out(j);
+    const head = j.dryRun ? `${pkg} (${j.title}) would put into ${p}/${proj}${j.createProduct ? ` — a new product "${j.createProduct}"` : ''}:` : `${pkg} installed in ${p}/${proj}${j.createProduct ? ` (new product "${j.createProduct}")` : ''}:`;
+    console.log(head);
+    for (const [k, xs] of [['skills', j.skills], ['workflows', j.workflows], ['templates', j.templates]]) console.log(`  ${k}: ${xs.map(x => `${x.id} — ${x.title}`).join('; ') || '—'}`);
+    console.log(`  hooks: ${j.hooks.map(h => `${h.id} on ${h.on}${h.agent ? ' (starts an agent session)' : ''}`).join('; ') || '—'}`);
+    console.log(`  types: ${j.types.map(t => `${t.id} ${t.there ? '(already there — kept)' : j.dryRun ? '(new)' : '(declared)'}`).join('; ') || '—'}`);
+    if (j.dryRun) console.log('nothing written — run it again without --dry-run to install');
+    else console.log(`record: ${p}/${proj}/.wye/packages.yaml${j.typesFile ? ` · types in ${path.relative(process.cwd(), j.typesFile)}` : ''} · ${WF_URL}/${p}/${proj}`);
+  },
+  async uninstall() {
+    const pkg = pos[1] || die('wye uninstall <package> --product p --project x');
+    const p = product(); const proj = flags.project || die('--project <slug> is required');
+    const j = await api('DELETE', `/api/${p}/${proj}/packages/${pkg}`);
+    if (flags.json) return out(j);
+    console.log(`${pkg} uninstalled from ${p}/${proj}${j.removedTypes.length ? ` — types removed: ${j.removedTypes.join(', ')}` : ''}`);
+    for (const w of j.warnings) console.log(`warn  ${w}`);
+  },
   async skills() {
     // the product's skills (op:api.skills): documents under the Skills page, the shipped prompts among them
     const j = await api('GET', `/api/${product()}/skills`);
@@ -413,6 +466,14 @@ const commands = {
     console.log(`# ${j.title} (${j.id}) — ${j.role}${j.takes ? `, on ${j.takes}` : ''}${j.doc ? `\n_${j.doc}_` : ''}\n\n${j.body}`);
   },
   async hooks() {
+    // one tick of the clock (op:api.hooks-tick): each time hook whose slot moved, fired or only recorded
+    if (pos[1] === 'tick') {
+      const j = await api('POST', `/api/${product()}/hooks/tick`, flags.now ? { now: flags.now } : {});
+      if (flags.json) return out(j);
+      if (!j.ticks.length) return console.log(`${j.now}: no time hook is due`);
+      for (const t of j.ticks) console.log(`${t.slot.slice(0, 16).replace('T', ' ')}Z ${t.hook} on ${t.node}: ${t.skipped ? `recorded, not fired (${t.skipped})` : t.firings.length ? t.firings.map(f => f.actions.map(a => a.error ? `${a.kind} failed — ${a.error}` : `${a.kind}${a.added?.length ? ' ' + a.added.join(', ') : ''}${a.session ? ` → session ${a.session}` : ''}`).join('; ')).join(' | ') : 'nothing fired'}`);
+      return;
+    }
     // the hooks and their firings (op:api.hooks)
     const j = await api('GET', `/api/${product()}/hooks${flags.node ? `?node=${encodeURIComponent(flags.node)}` : ''}`);
     if (flags.json) return out(j);
@@ -494,6 +555,47 @@ const commands = {
     console.log(`${docs.length} document(s) imported into ${p}/${proj}${j.docs.length > docs.length ? ` (${j.docs.length - docs.length} folder page(s))` : ''}${j.assets.length ? `, ${j.assets.length} image(s)` : ''}${j.analyse ? ' — an agent analyses each; its blocks arrive in the Inbox as proposed' : ' — not analysed (Analyse on each page)'}`);
     for (const d of docs) console.log(`  ${d.slug.padEnd(32)} ${d.title}${d.from ? `  ← ${d.from}` : ''}`);
     for (const x of j.skipped) console.log(`  skipped ${x.path}: ${x.reason}`);
+  },
+  async ea() {
+    // the executive assistant (task:ea.cli-intake, task:ea.commitment-tracking, req:ea.daily-brief) — op:api.ea-*
+    const sub = pos[1]; const p = product();
+    if (sub === 'intake') {
+      const text = flags.file ? fs.readFileSync(String(flags.file), 'utf8') : await readStdin();
+      if (!text.trim()) die('wye ea intake --product ea --file <analysis.json> (or the JSON on stdin)');
+      let analysis; try { analysis = JSON.parse(text); } catch (e) { die(`the analysis is not JSON: ${e.message}`); }
+      const j = await api('POST', `/api/${p}/ea/intake`, { analysis, ...(flags.project ? { project: flags.project } : {}) });
+      if (flags.json) return out(j);
+      console.log(`${j.meeting}${j.meetingCreated ? ' (new)' : ' (already filed)'}`);
+      for (const id of j.created) console.log(`  created  ${id}`);
+      for (const id of j.updates) console.log(`  update   ${id}`);
+      for (const id of j.questions) console.log(`  question ${id}`);
+      for (const n of j.inbox) console.log(`  inbox    ${n}`);
+      for (const id of j.skipped) console.log(`  already  ${id}`);
+      for (const n of j.notes) console.log(`  note     ${n}`);
+      if (!j.created.length && !j.updates.length && !j.questions.length) console.log('  nothing new');
+      return;
+    }
+    if (sub === 'commitment') {
+      const op = pos[2]; const id = pos[3];
+      if (!['move', 'met', 'drop'].includes(op) || !id) die('wye ea commitment move <id> --to YYYY-MM-DD --why "…" [--on d] | met <id> [--on d] | drop <id> --why "…"');
+      if (op === 'move' && (!flags.to || flags.to === true)) die('wye ea commitment move <id> --to YYYY-MM-DD --why "…"');
+      if ((op === 'move' || op === 'drop') && (!flags.why || flags.why === true)) die(`${op === 'move' ? 'a move' : 'dropping'} needs a reason: --why "…"`);
+      const j = await api('POST', `/api/${p}/ea/commitment`, { op, id, ...(flags.to ? { to: String(flags.to) } : {}), ...(flags.why ? { why: String(flags.why) } : {}), ...(flags.on ? { on: String(flags.on) } : {}) });
+      if (flags.json) return out(j);
+      return out(`${id} ${op === 'move' ? `moved ${j.move.from} → ${j.move.to}` : op === 'met' ? `met on ${j.props['met-on']}` : 'dropped'}`);
+    }
+    if (sub === 'brief') {
+      const kind = pos[2];
+      if (!['daily', 'weekly', '1on1'].includes(kind)) die('wye ea brief daily|weekly|1on1 --product ea [--person person:ea.x] [--date YYYY-MM-DD] [--write]');
+      if (kind === '1on1' && (!flags.person || flags.person === true)) die('wye ea brief 1on1 --person person:ea.<slug>');
+      const j = await api('POST', `/api/${p}/ea/brief`, { kind, write: !!flags.write, ...(flags.date ? { date: String(flags.date) } : {}), ...(flags.person ? { person: String(flags.person) } : {}), ...(flags.project ? { project: String(flags.project) } : {}) });
+      if (flags.json) return out(j);
+      console.log(`# ${j.title}\n\n${j.markdown}`);
+      if (j.doc) console.error(`written: ${j.doc} (${WF_URL}${j.link})`);
+      if (j.skipped && j.skipped.length) console.error(`not read (no graph built): ${j.skipped.join(', ')}`);
+      return;
+    }
+    die('wye ea intake | commitment move|met|drop | brief daily|weekly|1on1 — see wye help');
   },
   async explain() {
     // one librarian turn on a node or a text (req:exec.explain-anywhere, op:api.explain): the current state, nothing proposed

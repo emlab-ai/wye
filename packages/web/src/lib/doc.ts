@@ -39,7 +39,15 @@ export const bareSlug = (slug: string) => isSystemSlug(slug) ? slug.slice(SYSTEM
 export const systemSlug = (name: string) => SYSTEM_MARK + bareSlug(name);
 // the folder a page's relative assets/ and drawings/ links resolve in: always the project's docs/, a system page's too
 export const assetDir = (file: string) => file.split('/').slice(0, -1).join('/').replace(/(^|\/)\.wye$/, '$1docs');
-export function docSlug(file: string): string { const base = file.split('/').pop()!.replace(/\.md$/, ''); return isSystemFile(file) ? SYSTEM_MARK + base : base; }
+// An installed package's documents (decision:install.directory-link) sit under projects/<p>/.wye/packages/<pkg>/ — a
+// link into the system library — and open like system pages with the package in the slug, `~<pkg>.<doc>`
+// (`/d/~executive-assistant.skill-triage`): no system page and no person's page has a `.` in its slug, so a package's
+// skill-x never meets the app-written ~skill-x of an older product.
+const PACKAGE_DOC = /(?:^|\/)projects\/([^/]+)\/\.wye\/packages\/([^/]+)\/([^/]+)\.md$/;
+export const packageSlug = (pkg: string, doc: string) => `${SYSTEM_MARK}${pkg}.${doc}`;
+// `~<pkg>.<doc>` → its parts; null for any other slug
+export function packageOfSlug(slug: string): { pkg: string; doc: string } | null { const m = slug.match(/^~([a-z0-9][a-z0-9-]*)\.([^/.]+)$/); return m ? { pkg: m[1], doc: m[2] } : null; }
+export function docSlug(file: string): string { const pm = file.match(PACKAGE_DOC); if (pm) return packageSlug(pm[2], pm[3]); const base = file.split('/').pop()!.replace(/\.md$/, ''); return isSystemFile(file) ? SYSTEM_MARK + base : base; }
 
 export function headingSlug(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -204,6 +212,7 @@ export function docIdOf(g: Pick<GraphData, 'modules'>, file: string): string | n
 // client side: the node of the document with this slug, from the index
 export function docNodeOf(index: Record<string, IndexEntry>, slug: string): string | null { for (const e of Object.values(index)) if (e.doc === slug) return e.id; return null; }
 export function docRoute(file: string): { project: string; doc: string } | null {
+  const pm = file.match(PACKAGE_DOC); if (pm) return { project: pm[1], doc: packageSlug(pm[2], pm[3]) };
   const m = file.match(/\/projects\/([^/]+)\/(docs|\.wye)\/([^/]+)\.md$/);
   return m ? { project: m[1], doc: (m[2] === SYSTEM_DIR ? SYSTEM_MARK : '') + m[3] } : null;
 }

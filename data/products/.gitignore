@@ -10,3 +10,5 @@ _changes/
 eval-moosedev/
 eval-mab/
 zz-*/
+# ea is a personal executive assistant — notes about people stay local (decision:ea.own-product-as-package)
+ea/

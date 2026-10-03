@@ -409,3 +409,21 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - choice:wf2.statuses-per-type A picker offers the node's type's `statuses:`, else its nearest ancestor's (a city takes node's), plus the status it already has. The Statuses section of a type page edits the list: a product type keeps it on its card; a base kind's list is the product's override, `statuses-<type>: [..]` in its _product.md, applied when the graph is built; "default" puts the base list back. req and rule gain approved and rejected in the base list.
 
   - alternative:wf2.statuses-per-type One edited list in schema/base-ontology.md for every product — a change for one product would reach all; product types only — the base kinds, the ones most used, would stay fixed.
+
+
+```yaml
+- id: decision:wf2.rail-shows-running-agents
+  title: The rail's Agents entry is a folder listing the agents running in this product now
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [decision:wf2.rail-fewer-entries, page:web/sessions]
+  part-of: module:req-shell
+```
+
+  - context:wf2.rail-shows-running-agents "can you make sure our agents running are visible directly on the left panel" — shown with Orca's project list, where each running agent is a row under its project.
+
+  - choice:wf2.rail-shows-running-agents the Agents heading still opens the Agents page; under it, open by default, one row per session that is running, queued or live: a state mark (working, idle, waiting for your answer, queued for a slot), what it works on (a build by its request's title, anything else by its own first line), what it is doing (its last log line, or the question it waits on) and for how long. A click opens the conversation in the column. This product only.
+
+  - alternative:wf2.rail-shows-running-agents the agents of every product in the rail (the rail is per product; one line per other product was offered and left for later).

@@ -76,7 +76,7 @@ export function appendRow(md: string, slug: string, row: string): string {
 }
 export const hasTable = (md: string, slug: string) => new RegExp(`^<!--\\s*/table:${slug}\\s*-->\\s*$`, 'm').test(md);
 // A table row is a prose node line: the id, then the title as its text (rule:type-tables).
-export function newInstanceRow(id: string, title: string, extra: Record<string, string> = {}): string {
+export function newInstanceRow(id: string, title: string, extra: Record<string, string> = {}, status?: string): string {
   const props = Object.entries(extra).map(([k, v]) => `${k}: ${v}`).join(', ');
-  return `- ${id} ${title.trim() || id.split(':').slice(1).join(':')}${props ? ` (${props})` : ''}`;
+  return `- ${id} ${title.trim() || id.split(':').slice(1).join(':')}${status ? ` #${status}` : ''}${props ? ` (${props})` : ''}`;
 }

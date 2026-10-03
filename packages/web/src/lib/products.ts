@@ -65,8 +65,10 @@ export async function listProjects(product: Product): Promise<Project[]> {
     return { slug, product: product.slug, dir, docsDir: path.join(dir, 'docs'), docsRel: path.relative(REPO_ROOT, path.join(dir, 'docs')), wyeDir: path.join(dir, '.wye'), meta: await readMeta(path.join(dir, '_project.md'), slug) };
   }));
 }
-// The file of a page by its slug: a marked slug (`~goals`) is a system page in .wye/, any other is the person's
+// The file of a page by its slug: a marked slug (`~goals`) is a system page in .wye/, `~<pkg>.<doc>` a document of an
+// installed package, through its link (lib/doc.ts#packageOfSlug), any other is the person's
 export function pageFile(project: Pick<Project, 'docsDir' | 'wyeDir'>, slug: string): string {
+  const pm = slug.match(/^~([a-z0-9][a-z0-9-]*)\.([^/.]+)$/); if (pm) return path.join(project.wyeDir, 'packages', pm[1], `${pm[2]}.md`);
   return slug.startsWith('~') ? path.join(project.wyeDir, `${slug.slice(1)}.md`) : path.join(project.docsDir, `${slug}.md`);
 }
 export async function getProject(product: Product, slug: string): Promise<Project | undefined> {

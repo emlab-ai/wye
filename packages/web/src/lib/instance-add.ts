@@ -17,7 +17,9 @@ import { instantiate, slugify } from './templates';
 import { docRoute } from './doc';
 import { setTypeProps } from './type-edit';
 
-export type InstanceInput = { slug?: string; title?: string; home?: string; props?: Record<string, string> };
+// status: the new instance's status — a row's `#status` tag, a card's `status:` (the assistant's intake files everything
+// proposed, constraint:ea.pushed-is-proposed); rebuild: false leaves the graph for the caller to rebuild once
+export type InstanceInput = { slug?: string; title?: string; home?: string; props?: Record<string, string>; status?: string; rebuild?: boolean };
 export type AddedInstance = { ok: true; id: string; file: string; doc: { project: string; doc: string; title: string } | null; created: boolean; row: boolean } | { ok: false; status: number; error: string; message: string };
 
 export async function addInstance(scope: Scope, typeSlug: string, body: InstanceInput): Promise<AddedInstance> {
@@ -65,10 +67,10 @@ export async function addInstance(scope: Scope, typeSlug: string, body: Instance
     // a row of the type's table when the document has one (a product type's collection always does), else a card
     row = created || hasTable(md, typeSlug);
     // a task's row is a checkbox line, so it is born open on the Work view
-    const line = newInstanceRow(id, body.title ?? '', extra);
-    await writeAtomic(abs, row ? appendRow(md, typeSlug, typeSlug === 'task' ? line.replace(/^- /, '- [ ] ') : line) : appendCard(md, newInstanceCard(t, id, body.title ?? '', extra)));
+    const line = newInstanceRow(id, body.title ?? '', extra, body.status);
+    await writeAtomic(abs, row ? appendRow(md, typeSlug, typeSlug === 'task' ? line.replace(/^- /, '- [ ] ') : line) : appendCard(md, newInstanceCard(t, id, body.title ?? '', body.status ? { ...extra, status: body.status } : extra)));
   });
-  await rebuild(scope.product.dir);
+  if (body.rebuild !== false) await rebuild(scope.product.dir);
   const route = docRoute(file);
   const doc = route ? { ...route, title: scope.graph.modules.find(m => m.file === file)?.title || (created ? pluralTitle(t) : route.doc) } : null;
   return { ok: true, id, file, doc, created, row };

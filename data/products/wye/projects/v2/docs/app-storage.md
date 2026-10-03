@@ -649,6 +649,164 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     and stays.
   status: proposed
   part-of: module:app-storage
+- id: lib:instrumentation
+  file: packages/web/src/instrumentation.ts
+  side: client
+  purpose: >
+    Once per server process (Next's instrumentation hook): the hooks clock (decision&#58;ea.time-based-hooks) — a
+    tick every 60 s over every product, one at startup for the slots missed while the app was down. Node runtime
+    only.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:briefs
+  file: packages/web/src/lib/ea/briefs.ts
+  side: server
+  purpose: >
+    The briefs, the pure part (req&#58;ea.daily-brief, req&#58;ea.weekly-pace, req&#58;ea.one-on-one-prep): markdown
+    built from one plain input — the assistant's knowledge (ea/model), the follow scan of the other products
+    (ea/follow) and the snapshot of the last brief — so every rule here is tested with fixtures. ea/brief-run
+    gathers the input and writes the page. Only approved commitments count (constraint&#58;ea.pushed-is-proposed,
+    test&#58;ea.proposed-commitment-stays-in-inbox); met and dropped never show; every open one is listed from the
+    day it is made, late and due today first (decision&#58;ea.briefs-list-all-open-commitments,
+    decision&#58;ea.daily-brief-lists-all-open); every line links to the block it is about
+    (test&#58;ea.brief-lines-link-to-source).
+  status: proposed
+  part-of: module:app-storage
+- id: lib:commitments
+  file: packages/web/src/lib/ea/commitments.ts
+  side: server
+  purpose: >
+    Commitments (task&#58;ea.commitment-tracking, req&#58;ea.dates-followed): a date someone committed to is
+    followed until it is met, moved or dropped. A move keeps the old date, the new one, when and why as a `move:`
+    line under the commitment (test&#58;ea.move-keeps-history) and sets due and state; met keeps the day it was met
+    on (test&#58;ea.met-leaves-briefs); drop keeps its reason and is refused without one
+    (test&#58;ea.dropped-closed-with-reason). The checks are pure (commitmentOp); the writes are node-content +
+    node-edit under the file lock.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:follow-run
+  file: packages/web/src/lib/ea/follow-run.ts
+  side: server
+  purpose: >
+    The follow scan, the IO part: every other product's graph read as it stands — from the build coordinator's
+    memory or its graph.json (lib/build#graphFor), never built here, so a product without a graph is skipped rather
+    than written (constraint&#58;ea.reads-other-products-only). Nothing in this file writes.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:follow
+  file: packages/web/src/lib/ea/follow.ts
+  side: server
+  purpose: >
+    The follow scan (decision&#58;ea.follow-is-owner-or-tag, task&#58;ea.follow-scan): what the director follows in
+    every other product — each open task, commitment, question, proposed decision or risk whose owner (a task's
+    worker too) is one of the names the director goes by there, or whose text carries `@follow`. Pure over one
+    product's graph; the IO (ea/follow-run) reads the graphs and never writes into them
+    (constraint&#58;ea.reads-other-products-only).
+  status: proposed
+  part-of: module:app-storage
+- id: lib:intake-run
+  file: packages/web/src/lib/ea/intake-run.ts
+  side: server
+  purpose: >
+    Intake, the IO part (task&#58;ea.cli-intake): the plan ea/intake makes, written — people, the meeting and the
+    item cards as rows of their types' collection documents (lib/instance-add,
+    decision:ontology.collection-document), updates under their project and questions under the meeting as content
+    (node-content, under the file lock), an inbox item per question, one rebuild at the end. Writes go only into the
+    product named (constraint&#58;ea.reads-other-products-only).
+  status: proposed
+  part-of: module:app-storage
+- id: lib:intake
+  file: packages/web/src/lib/ea/intake.ts
+  side: server
+  purpose: >
+    Intake, the pure part (decision&#58;ea.tools-push-through-cli, task&#58;ea.cli-intake,
+    req&#58;ea.meeting-lands-in-place): a meeting analysis an outside tool pushes is validated, then planned against
+    what the product holds — the meeting card, a proposed card for every decision, commitment and risk (`by:
+    agent:<source>`, `from:` the meeting), an update line under its project, a proposed person for every name nobody
+    goes by, and for an item whose project is unknown or ambiguous, or whose owner is ambiguous, an open question
+    under the meeting and an inbox item instead of a guess. Everything lands proposed
+    (constraint&#58;ea.pushed-is-proposed). Same title + date → same meeting, and an item already filed from it is
+    not filed again, so a second push of one analysis plans nothing. ea/intake-run does the writes.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:model
+  file: packages/web/src/lib/ea/model.ts
+  side: server
+  purpose: >
+    The executive assistant's knowledge, the pure part (decision&#58;ea.kinds): person, project, commitment,
+    meeting, risk and Wye's own decision, read from graph nodes into plain records — card values off the node's body
+    (hooks#cardValue, a prose row's `(k: v)` group and a yaml card read the same), a commitment's moves and a
+    project's updates off the lines of its content (`- move:<c>-<n> from A to B on C because why`, `- update:<slug>
+    text (from:, date:)`). Name matching (a person by name or alias, a project by title, name or slug), commitment
+    history and slip counts live here too. The IO — which nodes, which files — is ea/read.ts.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:read
+  file: packages/web/src/lib/ea/read.ts
+  side: server
+  purpose: >
+    The assistant's knowledge, the IO part: the ea product's nodes read into an EaModel (ea/model), each
+    commitment's and project's content read from its document (the moves and updates written under it), and the
+    director from the product card (`director: person:<p>.<slug>`).
+  status: proposed
+  part-of: module:app-storage
+- id: lib:hooks-clock
+  file: packages/web/src/lib/hooks-clock.ts
+  side: server
+  purpose: >
+    The clock of the hooks engine (decision&#58;ea.time-based-hooks, task&#58;ea.cadence): a `time.<schedule>` hook
+    fires when its last scheduled slot (lib/hooks#lastSlot, in the person's zone) is past the one it last saw —
+    once, however many slots went by while the app was down (one catch-up run, not one per missed tick). First sight
+    of a hook — just written, just installed — records the current slot and fires nothing: a Friday review installed
+    on Wednesday does not run last Friday's. State per product in <product>/_hooks/clock.json { [hook]: { seen, last
+    } }, written before the actions run so a crash never runs a slot twice. The firing itself is the engine's
+    (hooks-run#fire, `only` the hook, forced): a record in _hooks/<id>.json like any. A ticker every 60 s over every
+    product, armed once per server (instrumentation).
+  status: proposed
+  part-of: module:app-storage
+- id: lib:install
+  file: packages/web/src/lib/install.ts
+  side: server
+  purpose: >
+    The system library and installs, the CLI/API subset of the install design
+    (module&#58;implement-a-feature-to-install- system-skills-and-dev-design): a package is
+    `<system>/projects/<pkg>/` — `package.md` (its card: title, description, entity:install.package), `docs/`
+    (skills, workflows, hook documents, templates) and, outside docs/ so no link ever exposes it, `types.md`: the `-
+    id: type:<slug>` cards the package brings (decision&#58;ea.packages-carry-types). Install (op:install.install)
+    declares those types in the product, writes the project's record and makes one directory link
+    (decision:install.directory-link); the record is the fact, the link derived from it
+    (decision:install.record-is-canonical). One function per op, called by the API routes and, through them, `wye`.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:product-create
+  file: packages/web/src/lib/product-create.ts
+  side: server
+  purpose: >
+    A new product folder, the way the app makes one (POST /api/products) and `wye install --create-product` does:
+    the registry entry with its _product.md, an inbox, and one project to hold documents — `main` unless named.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:brief-run
+  file: packages/web/src/lib/ea/brief-run.ts
+  side: server
+  purpose: >
+    The briefs, the IO part: one input gathered — the ea product's knowledge, the follow scan of every other product
+    (read-only), the snapshot of the last brief before the day — then built (ea/briefs) and, with `write`, kept as a
+    page under the project's Briefs page (module&#58;ea-briefs, the package's; else a `briefs` page, made when
+    neither exists): brief-<date>, weekly-<date>, 1on1-<person>-<date>, in the project's own docs/ — replaced when
+    it exists, one per day (test&#58;ea.brief-arrives-once-each-morning). Every written brief leaves a snapshot in
+    <product>/_ea/snapshots/<date>.json, what "changed since yesterday" compares with
+    (test&#58;ea.brief-lists-projects-changed-since-yesterday).
+  status: proposed
+  part-of: module:app-storage
+- id: lib:rail-agents
+  file: packages/web/src/lib/rail-agents.ts
+  side: server
+  purpose: >
+    The rail's Agents folder (decision&#58;wf2.rail-shows-running-agents): the sessions running in this product now,
+    each as one row — its state, what it works on, what it is doing, for how long. Pure, client-safe.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->
