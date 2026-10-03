@@ -54,6 +54,25 @@ describe('retrieve', () => {
     const hits = await retrieve({ product: 'p', store: await setup(), idx, embed: null, rerank }, 'invite', { rerank: true });
     expect(hits[0].id).toBe('node:req:invite');
   });
+  it('pins a node whose id is typed, exactly or as a prefix', async () => {
+    // titles are prose, as in real nodes; another passage repeats the id's words many times
+    const s = await openStore(await mkdtemp(path.join(tmpdir(), 'ask-pin-')), 2);
+    const row = (id: string, title: string, text: string) => { const x: ChunkRow = { id: 'node:' + id, source: 'node', ref: id, title, text, nodes: [id] }; return { ...x, scope: 's', hash: hashOf(x), model: 'm', vector: [0, 1] }; };
+    await apply(s, [], [row('req:invite', 'People bring colleagues', 'a person can add a teammate'), row('decision:no-email', 'Links not mail', 'no mail is sent'),
+      { ...c('doc', 'v2/m#b-9', 'req invite req invite req invite the invite req page', [1, 0]) }]);
+    const ctx = { product: 'p', store: s, idx, embed: async () => [[1, 0]] };
+    expect((await retrieve(ctx, 'req:invite'))[0].id).toBe('node:req:invite');
+    expect((await retrieve(ctx, 'what about decision:no-em'))[0].id).toBe('node:decision:no-email');
+  });
+  it('narrows to one kind on the server, and lists the kind when there is no text', async () => {
+    const ctx = { product: 'p', store: await setup(), idx, embed: async () => [[1, 0]] };
+    expect((await retrieve(ctx, 'invite', { kind: 'decision' })).map(h => h.id)).toEqual(['node:decision:no-email']);
+    expect((await retrieve(ctx, '', { kind: 'decision' })).map(h => h.id)).toEqual(['node:decision:no-email']);
+    expect((await retrieve(ctx, '', { kind: 'decision', all: true })).map(h => h.id).sort()).toEqual(['node:decision:no-email', 'node:decision:old']);
+  });
+  it('a query of stop words finds nothing, even with vectors', async () => {
+    expect(await retrieve({ product: 'p', store: await setup(), idx, embed: async () => [[1, 0]] }, 'the and of')).toEqual([]);
+  });
   it('returns nothing for a query with no words', async () => {
     expect(await retrieve({ product: 'p', store: await setup(), idx, embed: null }, ' ? ')).toEqual([]);
   });

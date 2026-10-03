@@ -27,13 +27,14 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => { if (open) setTimeout(() => input.current?.select(), 0); else { reset(); setQ(''); setHits([]); } }, [open, reset]);
   // typing → /search, debounced; a `kind:` prefix searches blocks of that kind
-  const kind = useMemo(() => q.match(/^([a-z][a-z-]*):\s+(.*)$/)?.[1] ?? '', [q]);   // `req: stop`, `page: login` — the space keeps `req:x.y` a plain search
+  const kind = useMemo(() => q.match(/^([a-z][a-z-]*):(?:\s+.*)?$/)?.[1] ?? '', [q]);   // `req:`, `req: stop`, `page: login` — `req:x.y` stays an id search
   useEffect(() => {
-    const text = kind ? q.slice(kind.length + 1).trim() : q.trim(); if (text.length < 2) { setHits([]); return; }
+    const text = kind ? q.slice(kind.length + 1).trim() : q.trim(); if (!kind && text.length < 2) { setHits([]); return; }
     const t = setTimeout(() => {
-      const sp = new URLSearchParams({ q: text, limit: '40' }); const src = kind === 'page' ? 'doc' : kind ? 'node' : tab === 'all' ? '' : tab; if (src) sp.set('source', src);
+      const sp = new URLSearchParams({ q: text, limit: '40' });
+      if (kind === 'page') sp.set('source', 'doc'); else if (kind) sp.set('kind', kind); else if (tab !== 'all') sp.set('source', tab);
       fetch(`/api/${product}/search?${sp}`).then(r => r.json()).then((j: { hits?: Hit[]; degraded?: string }) => {
-        const hs = (j.hits ?? []).filter(h => !kind || kind === 'page' || h.ref.startsWith(kind + ':'));
+        const hs = j.hits ?? [];
         setHits(hs); setDegraded(j.degraded ?? ''); setSel(0);
       }).catch(() => setHits([]));
     }, 120);

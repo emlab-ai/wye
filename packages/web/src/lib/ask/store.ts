@@ -69,10 +69,11 @@ export function ftsText(q: string): string | null {
 
 // Hybrid when both a query text and a vector are given (RRF, k = 60); full-text or vector alone otherwise.
 let rrf: Promise<lancedb.rerankers.RRFReranker> | null = null;
-export async function search(s: Store, q: string, qvec: number[] | null, opts: { limit: number; sources?: Source[] }): Promise<Scored[]> {
+export async function search(s: Store, q: string, qvec: number[] | null, opts: { limit: number; sources?: Source[]; kind?: string }): Promise<Scored[]> {
   const text = ftsText(q);
   if ((!text && !qvec) || !(await s.table.countRows())) return [];
-  const where = opts.sources?.length ? `source IN (${opts.sources.map(lit).join(',')})` : null;
+  const conds = [...(opts.sources?.length ? [`source IN (${opts.sources.map(lit).join(',')})`] : []), ...(opts.kind ? [`source = 'node' AND ref LIKE ${lit(opts.kind.replace(/[%_\\]/g, '') + ':%')}`] : [])];
+  const where = conds.length ? conds.join(' AND ') : null;
   let qy;
   if (text && qvec && s.hasFts) qy = s.table.query().fullTextSearch(text, { columns: 'body' }).nearestTo(qvec).distanceType('cosine').rerank(await (rrf ??= lancedb.rerankers.RRFReranker.create(60)));
   else if (text && s.hasFts) qy = s.table.query().fullTextSearch(text, { columns: 'body' });

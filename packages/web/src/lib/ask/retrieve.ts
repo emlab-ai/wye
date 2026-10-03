@@ -10,7 +10,7 @@ import { search, getChunks, chunksMentioning, ftsText, type Store } from './stor
 import type { Embed, Rerank } from './embed';
 
 export type RetrieveCtx = { product: string; store: Store; idx: GraphIndex; embed: Embed | null; rerank?: Rerank | null };
-export type RetrieveOpts = { limit?: number; sources?: Source[]; expand?: boolean; rerank?: boolean; all?: boolean; asOf?: string | null; budgetChars?: number };
+export type RetrieveOpts = { limit?: number; sources?: Source[]; kind?: string; expand?: boolean; rerank?: boolean; all?: boolean; asOf?: string | null; budgetChars?: number };
 export const EXPAND_VERBS = new Set(['affects', 'governs', 'governed-by', 'satisfied-by', 'implements', 'part-of', 'supersedes', 'refines', 'depends-on', 'verified-by', 'resolves']);
 
 export function hrefFor(product: string, c: ChunkRow, idx: GraphIndex): string | null {
@@ -21,13 +21,23 @@ export function hrefFor(product: string, c: ChunkRow, idx: GraphIndex): string |
 }
 
 export async function retrieve(ctx: RetrieveCtx, q: string, opts: RetrieveOpts = {}): Promise<Hit[]> {
-  if (!ftsText(q) && (q.trim().length < 3 || !ctx.embed)) return [];
   const limit = opts.limit ?? 25; const { store, idx } = ctx;
   const live = (c: ChunkRow) => c.source !== 'node' || !!opts.all || (() => { const n = idx.byId.get(c.ref); return !n || (isCurrent(n, opts.asOf) && !n.archived); })();
   const hit = (c: ChunkRow, score: number, via?: string): Hit => ({ ...c, score, ...(via ? { via } : {}), href: hrefFor(ctx.product, c, idx) });
+  // `kind:` with no text lists that kind
+  if (opts.kind && !q.trim()) return (await getChunks(store, [...idx.byId.values()].filter(n => n.kind === opts.kind).map(n => `node:${n.id}`))).filter(live).slice(0, limit).map(c => hit(c, 1));
+  // ids typed in the question, whole or as a prefix (`decision:no-em`), come first
+  const typed = [...q.matchAll(/(?<![\w:])([a-z][a-z-]*:[\w][\w.\/-]*)/g)].map(m => m[1].replace(/[.]+$/, ''));
+  const pinned: string[] = [];
+  for (const t of typed) {
+    if (idx.byId.has(t)) { pinned.push(t); continue; }
+    if (t.split(':')[1].length >= 2) pinned.push(...[...idx.byId.keys()].filter(id => id.startsWith(t)).sort().slice(0, 5));
+  }
+  if (!ftsText(q) && !pinned.length) return [];       // nothing to search for: stop words, punctuation
   const qvec = ctx.embed ? (await ctx.embed([q.slice(0, 1500)]))[0] : null;
   const hits = new Map<string, Hit>();
-  for (const c of await search(store, q, qvec, { limit: Math.max(50, limit * 2), sources: opts.sources })) { if (live(c)) hits.set(c.id, hit(c, c.score)); if (hits.size >= limit) break; }
+  for (const c of await getChunks(store, pinned.map(id => `node:${id}`))) if (live(c) && (!opts.kind || c.ref.startsWith(opts.kind + ':'))) hits.set(c.id, hit(c, Number.MAX_SAFE_INTEGER - hits.size));
+  for (const c of await search(store, q, qvec, { limit: Math.max(50, limit * 2), sources: opts.sources, kind: opts.kind })) { if (live(c) && !hits.has(c.id)) hits.set(c.id, hit(c, c.score)); if (hits.size >= limit) break; }
   if (opts.expand) {
     for (const h of [...hits.values()].slice(0, 10)) for (const nid of h.nodes) {
       const near: { id: string; via: string }[] = [];
@@ -38,9 +48,10 @@ export async function retrieve(ctx: RetrieveCtx, q: string, opts: RetrieveOpts =
   }
   let out = [...hits.values()].sort((a, b) => b.score - a.score);
   if (opts.rerank && ctx.rerank && out.length > 1) {
+    const pin = out.filter(h => h.score >= Number.MAX_SAFE_INTEGER - 100); out = out.slice(pin.length);
     const top = out.slice(0, 40);
     const scores = await ctx.rerank(q, top.map(h => `${h.title}\n${h.text}`));
-    out = [...top.map((h, i) => ({ ...h, score: scores[i] })).sort((a, b) => b.score - a.score), ...out.slice(40)];
+    out = [...pin, ...top.map((h, i) => ({ ...h, score: scores[i] })).sort((a, b) => b.score - a.score), ...out.slice(40)];
   }
   if (!opts.budgetChars) return out.slice(0, limit);
   const kept: Hit[] = []; let used = 0;
