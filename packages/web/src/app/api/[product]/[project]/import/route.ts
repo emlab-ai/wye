@@ -36,6 +36,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const parent = String(form.get('parent') ?? '').trim() || undefined;
   const analyse = String(form.get('analyse') ?? '1') !== '0';
   const brief = String(form.get('brief') ?? '').trim() || undefined;   // what the person wants done with these pages — `brief:` on each, read by skill:import
+  // more than one file is a folder or a pick of many: it runs as a background import (lib:import-run) — the pages are
+  // written now, one task in Work stands for the import, and the agent takes the files one at a time; the dialog
+  // only says it started. One file (a pasted page) is written here and opened at once.
+  if (files.length > 1) {
+    const tops = new Set(files.map(f => f.path.includes('/') ? f.path.split('/')[0] : ''));
+    const label = tops.size === 1 && !tops.has('') ? [...tops][0] : `${files.length} files`;
+    const r = await startBatchImport(product, project, { files, images, label, parent, brief, analyse });
+    if (!r.ok) return NextResponse.json({ error: r.error, message: r.message }, { status: r.error === 'not_found' ? 404 : 422 });
+    return NextResponse.json(r);
+  }
   const tree = treeFor(scope, project);
   const existing = new Set([...tree.byFile.values()].map(d => d.slug));
   if (parent && !existing.has(parent)) return NextResponse.json({ error: 'invalid', message: `no document ${parent}` }, { status: 422 });

@@ -1229,3 +1229,4 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .doc-cover-url { width: 280px; }
 /* Settings is a folder: Types, Hooks and Skills sit one step in under it */
 .rail-menu .rail-sub { padding-left: 14px; }
+.import-skipped summary { cursor: pointer; } .import-skipped ul { margin: 6px 0 0; padding-left: 18px; max-height: 220px; overflow: auto; } .import-started { font-size: 15px; margin: 4px 0 6px; }

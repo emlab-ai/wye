@@ -521,3 +521,17 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - context:wf2.table-columns-roomy "it feels too packed, text is wrapped, make sure that text field at least 2x wider, make sure table is scrollable, no need to pack all into small screen view" — the text column could shrink to 200px, so a goal wrapped to six lines.
 
   - choice:wf2.table-columns-roomy the text column's minimum is 440px and the other columns are wider (status 128, dates 104, progress 148, owner 120; a type's columns 112–200); a table wider than the editor scrolls sideways (rule:table-scroll) instead of squeezing.
+
+```yaml
+- id: decision:wf2.import-is-a-task
+  title: Importing many markdown files runs in the background as one task in Work, and an all-empty folder is refused with why
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  affects: [component:import-docs]
+  part-of: module:req-shell
+```
+
+  - context:wf2.import-is-a-task "after i clicked import markdown i see this page - looks ugly and wrong, it should create task (not event goal) and start async import" — an upload of 256 Obsidian files wrote them at once and listed every skipped file in one paragraph; all 256 were empty on disk (Dropbox online-only placeholders), so it imported nothing.
+
+  - choice:wf2.import-is-a-task an upload of more than one file goes the way of the path import (lib:import-run): the pages are written as raw, an "Import: <folder>" page lists every file, one task "Import <folder> — N documents" lands in the Backlog and is checked when the last file is done, and the agent takes the files one at a time. The dialog says only that it started (skipped as a count, folded). A pick whose markdown files are all empty is refused: "make the folder available offline, then import again". One pasted page is still written and opened at once.

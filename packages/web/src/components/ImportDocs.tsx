@@ -11,7 +11,7 @@ export type Picked = { path: string; file: File };
 type Doc = { slug: string; title: string; folder: boolean; parent: string | null; from: string | null };
 type MdResult = { docs: Doc[]; skipped: { path: string; reason: string }[]; assets: string[]; analyse: boolean };
 type CodeResult = { project: string; slug: string; node: string; task: string; session?: string; error?: string };
-type PathResult = { requestSlug: string; total: number };
+type PathResult = { requestSlug: string; total: number; task?: string; skipped?: number };
 
 // What lands as a document or an asset — everything else (an app's own config, an attachment of another kind) is
 // dropped before it ever reaches a request, not just skipped once it gets there.
@@ -93,7 +93,8 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
       const r = await fetch(`/api/${product}/${effectiveProject}/import`, { method: 'POST', body: fd });
       const j = await r.json().catch(() => null);
       if (!r.ok || !j) { setMsg(j?.message ?? j?.error ?? `import failed (${r.status})`); return; }
-      setResult(j); setPicked([]); setPasted(''); router.refresh();
+      if (j.requestSlug) setPathResult(j); else setResult(j);   // many files run as a background import
+      setPicked([]); setPasted(''); router.refresh();
     } catch (e) { setMsg(e instanceof Error ? e.message : 'could not reach the server'); }
     finally { setBusy(false); }
   }
@@ -153,12 +154,13 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
         <p><b>{result.docs.filter(d => !d.folder).length} document{result.docs.filter(d => !d.folder).length === 1 ? '' : 's'}</b> imported{result.docs.some(d => d.folder) ? ` in ${result.docs.filter(d => d.folder).length} folder page${result.docs.filter(d => d.folder).length === 1 ? '' : 's'}` : ''}{result.assets.length ? `, ${result.assets.length} image${result.assets.length === 1 ? '' : 's'}` : ''}.
           {result.analyse ? ' An agent is analysing each one; its blocks arrive in the Inbox as proposed.' : ' Not analysed — each page has an Analyse button.'}</p>
         <ul className="import-list">{result.docs.filter(d => !d.folder).slice(0, 12).map(d => <li key={d.slug}><a href={`/${product}/${effectiveProject}/d/${d.slug}`}>{d.title}</a> <span className="muted small">{d.from}</span></li>)}</ul>
-        {result.skipped.length > 0 && <p className="muted small">skipped: {result.skipped.map(s => `${s.path} (${s.reason})`).join(', ')}</p>}
+        {result.skipped.length > 0 && <details className="import-skipped muted small"><summary>{result.skipped.length} skipped</summary><ul>{result.skipped.slice(0, 50).map(s => <li key={s.path}>{s.path} — {s.reason}</li>)}</ul></details>}
         <div className="sec-actions">{first && <button className="pri" onClick={() => { onClose(); router.push(`/${product}/${effectiveProject}/d/${first.slug}`); }}>Open {first.title}</button>}<button onClick={onClose}>Close</button></div>
       </>}
       {mode === 'md' && pathResult && <>
-        <p><b>{pathResult.total} file{pathResult.total === 1 ? '' : 's'}</b> queued on the request page — each is written, then {analyse ? 'handed to an agent, one at a time' : 'left for its own Analyse button'}. Reopen the page any time to see how far it got.</p>
-        <div className="sec-actions"><button className="pri" onClick={() => { onClose(); router.push(`/${product}/${effectiveProject}/d/${pathResult.requestSlug}`); }}>Open the import request</button><button onClick={onClose}>Close</button></div>
+        <p className="import-started"><b>Importing {pathResult.total} document{pathResult.total === 1 ? '' : 's'}</b> in the background{pathResult.skipped ? <span className="muted"> · {pathResult.skipped} skipped</span> : null}.</p>
+        <p className="muted small">The pages are written; {analyse ? 'an agent goes through them one at a time, and its blocks arrive in the Inbox as proposed' : 'each keeps its own Analyse button'}. {pathResult.task ? <>The import is a task in <a href={`/${product}/work`}>Work</a>, checked when it finishes; </> : null}the import page shows every file and how far it got.</p>
+        <div className="sec-actions"><button className="pri" onClick={() => { onClose(); router.push(`/${product}/${effectiveProject}/d/${pathResult.requestSlug}`); }}>Open the import page</button><button onClick={onClose}>Close</button></div>
       </>}
       {mode === 'code' && !codeResult && <div className="import-split">
         <div className="import-main">
