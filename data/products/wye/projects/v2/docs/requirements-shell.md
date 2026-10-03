@@ -479,7 +479,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
 ```yaml
 - id: decision:wf2.no-projects
-  title: There are no projects in the app — each folder of documents is a top-level document holding its own
+  title: There are no projects in the app — each folder became a plain top-level page; the documents in it are its children
   date: 2026-10-03
   status: proposed
   by: alex
@@ -490,6 +490,6 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - context:wf2.no-projects "explain me the purpose of projects?? because we have nested docs, what the purpose of them at all" — a project was a folder with a status and its own system pages; knowledge, search and the graph were product-wide and nested documents already grouped.
 
-  - choice:wf2.no-projects "just delete them, and show existing folders as docs": the Documents tree shows each folder (projects/<slug>/ on disk) as a top-level document with its documents under it, opening the folder's page; + on it creates a document in it; it is not dragged or given the document menu. Overview lists the folders under Documents; nothing in the app says "project".
+  - choice:wf2.no-projects "just delete them, and show existing folders as docs" — first built as folder rows in the tree, which broke adding a root page; then "evalueation and wye v2 must become simple pages, not special objects": each folder got a real page (scripts/projects-to-pages.mjs writes docs/<title>.md and part-of on the folder's top-level documents), the tree has no folder rows, + at the top adds a top-level page with no folder to pick (stored in the largest folder). Overview lists the top-level pages under Documents; nothing in the app says "project".
 
   - consequence:wf2.no-projects the folders stay on disk and in URLs (/<product>/<folder>/d/<doc>), so no link breaks; the system pages (PRs, Skills, Hooks, Goals, Work) still live per folder — moving them to one set per product is what is left.
