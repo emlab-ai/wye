@@ -61,7 +61,7 @@ async function walk(p: Product, graph: GraphData, listCode: (root: string) => Pr
 }
 
 type RefreshOpts = { embed?: Embed | null; listCode?: (root: string) => Promise<string[]>; sources?: Source[]; reembed?: boolean; batch?: number };
-const G = globalThis as { __askLocks?: Map<string, Promise<unknown>>; __askRuns?: Map<string, { at: number; p: Promise<RefreshStats> }>; __askBg?: Map<string, Promise<void>> };
+const G = globalThis as { __askLocks?: Map<string, Promise<unknown>>; __askRuns?: Map<string, { at: number; p: Promise<RefreshStats> }>; __askBg?: Map<string, Promise<void>>; __askIndexed?: Set<string> };
 // one writer per product at a time; on globalThis so a dev reload does not start a second one
 function withLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
   const locks = (G.__askLocks ??= new Map());
@@ -124,14 +124,16 @@ export async function refresh(p: Product, graph: GraphData, opts: RefreshOpts = 
 // sessions and any re-embedding run in the background, and `indexing` says so while they do.
 export function ensureFresh(p: Product, graph: GraphData, opts: Pick<RefreshOpts, 'embed' | 'listCode'> = {}): Promise<RefreshStats> {
   const runs = (G.__askRuns ??= new Map<string, { at: number; p: Promise<RefreshStats> }>()); const bg = (G.__askBg ??= new Map<string, Promise<void>>());
+  // "indexing" until the first background pass completes; later passes only catch up with edits
+  const indexed = (G.__askIndexed ??= new Set<string>()); const indexing = () => bg.has(p.dir) && !indexed.has(p.dir);
   const cur = runs.get(p.dir);
-  if (cur && Date.now() - cur.at < 5000) return cur.p.then(st => ({ ...st, indexing: bg.has(p.dir) }));
+  if (cur && Date.now() - cur.at < 5000) return cur.p.then(st => ({ ...st, indexing: indexing() }));
   const job = { at: Date.now(), p: refresh(p, graph, { ...opts, sources: ['node', 'doc'], reembed: false }).then(st => {
     if (!bg.has(p.dir)) {
-      const b = refresh(p, graph, { ...opts, sources: ['code', 'session'], reembed: true, batch: 50 }).then(() => undefined, e => { console.warn(`[ask] ${p.slug}: background indexing failed — ${e instanceof Error ? e.message : e}`); }).finally(() => bg.delete(p.dir));
+      const b = refresh(p, graph, { ...opts, sources: ['code', 'session'], reembed: true, batch: 50 }).then(() => { indexed.add(p.dir); }, e => { console.warn(`[ask] ${p.slug}: background indexing failed — ${e instanceof Error ? e.message : e}`); }).finally(() => bg.delete(p.dir));
       bg.set(p.dir, b);
     }
-    return { ...st, indexing: bg.has(p.dir) };
+    return { ...st, indexing: indexing() };
   }) };
   job.p.catch(() => runs.delete(p.dir));                              // a failed refresh is not reused for 5 s
   runs.set(p.dir, job); return job.p;

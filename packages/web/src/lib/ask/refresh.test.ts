@@ -88,6 +88,11 @@ describe('refresh', () => {
     release(); await backgroundDone(p);
     expect(new Set(await sources())).toEqual(new Set(['node', 'doc', 'code', 'session']));
   });
+  it('stops saying "indexing" once the first background pass is done', async () => {
+    await ensureFresh(p, g, { embed: fakeEmbed, listCode }); await backgroundDone(p);
+    await new Promise(r => setTimeout(r, 5100));                 // past the 5 s throttle: a fresh pass starts
+    expect((await ensureFresh(p, g, { embed: fakeEmbed, listCode })).indexing).toBe(false);
+  }, 10000);
   it('skips code when the product has no repo folder', async () => {
     p.meta.repo = path.join(dir, 'nope');
     expect((await refresh(p, g, { embed: fakeEmbed, listCode })).changed.code).toBe(0);

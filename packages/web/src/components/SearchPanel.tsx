@@ -59,7 +59,11 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
       <div className="search-panel" role="dialog" aria-label="Search">
         <input ref={input} className="search-in" value={q} onChange={e => { setQ(e.target.value); setPreview(null); }} onKeyDown={onKey}
           placeholder={state ? 'Ask a follow-up…' : 'Search or ask — blocks, docs, code, sessions'} autoFocus />
-        {q && isQuestion(q) && !state && <div className="ask-hint muted">Enter to ask</div>}
+        {q.trim().length >= 3 && !kind && (
+          <button type="button" className={`ask-go${isQuestion(q) ? ' is-q' : ''}`} onClick={submit}>
+            <span className="ask-go-mark">✦</span><span className="ask-go-q">Ask Wye: <b>{q.trim()}</b></span>
+            <span className="ask-go-key">Press <kbd>↵ Enter</kbd> to start thinking</span>
+          </button>)}
         {state && (
           <section className="ask-box" aria-live="polite">
             <div className="ask-head"><b>{state.q}</b>
@@ -81,7 +85,7 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
               </li>))}
             {q.trim().length >= 2 && !hits.length && <li className="muted search-none">Nothing matches — Enter asks anyway.</li>}
           </ul>
-          <div className="search-preview">{cur ? (cur.source === 'node' ? <EmbeddedCard id={cur.ref} /> : cur.source === 'code' ? <CodeView file={cur.ref.replace(/-\d+$/, '')} /> : <PassagePreview hit={list.find(h => h.ref === cur.ref)} cite={state?.found.find(f => f.ref === cur.ref)} />) : <p className="muted">Type to search; <b>Enter</b> asks. <b>⌘Enter</b> opens the highlighted hit.</p>}</div>
+          <div className={`search-preview${cur?.source === 'code' ? ' is-code' : ''}`}>{cur ? (cur.source === 'node' ? <EmbeddedCard id={cur.ref} /> : cur.source === 'code' ? <CodeView file={cur.ref.replace(/-\d+$/, '')} /> : <PassagePreview hit={list.find(h => h.ref === cur.ref)} cite={state?.found.find(f => f.ref === cur.ref)} />) : <p className="muted">Type to search; <b>Enter</b> asks. <b>⌘Enter</b> opens the highlighted hit.</p>}</div>
         </div>
         <div className="search-foot muted">↑↓ move · Enter ask · ⌘Enter open · <button type="button" className="link" onClick={openAll}>Open as blocks</button> · Esc close</div>
       </div>
