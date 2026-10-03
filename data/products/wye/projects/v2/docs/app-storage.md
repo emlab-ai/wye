@@ -628,6 +628,27 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     graph rebuilds. The types route and a PR without a goal (decision:wf2.pr-has-a-goal) both come here.
   status: proposed
   part-of: module:app-storage
+- id: lib:propose-card
+  file: packages/web/src/lib/propose-card.ts
+  side: server
+  purpose: >
+    One proposed card for op:api.propose (req:exec.wye-proposes): checked and normalised before it is written, and
+    placed where it belongs. Wye cards are not strict yaml (a title may hold a colon), so the check is of shape: one
+    card, keys at one indentation, no key twice — the shapes an agent's edit-by-repropose produced (a second card
+    nested in the first, an old and a new title side by side) are refused with the reason, not written.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:verdict-reconcile
+  file: packages/web/src/lib/verdict-reconcile.ts
+  side: server
+  purpose: >
+    A node's verdict lines kept current (decision:memory.write-time-verdict): one verdict per pair — a new judgement
+    of a pair (its text changed, so the pair is judged again) replaces the old line instead of piling up beside it;
+    an open contradiction of a pair that no longer conflicts is closed (#resolved, saying what it is now); one that
+    still conflicts gives way to the new one. A contradiction the person settled (dismissed, resolved, …) is theirs
+    and stays.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->
