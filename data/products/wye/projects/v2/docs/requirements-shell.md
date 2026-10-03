@@ -48,7 +48,7 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - when:wf2.ui.search the person presses ⌘F / Ctrl+F on any page
 
-  - then:wf2.ui.search a search panel opens over the page; what they type searches every block's id, title and text, and a kind first (`page: login`, `req:`, `decision: stop`) narrows to that kind; the hits are listed with kind, title, status, where and a snippet, the highlighted hit's card is the preview beside them, ↑↓ move, a click opens the hit's document, and Enter opens a Search page with every hit as blocks — the instances view over every kind (or the named one) with the search in its URL, so a search is a link
+  - then:wf2.ui.search a search panel opens over the page; what they type ranks passages from the product's blocks, documents, code and sessions, grouped by tabs (All, Blocks, Docs, Code, Sessions), and a kind first (`page: login`, `req:`) narrows to blocks of that kind; the highlighted hit is previewed beside the list, ↑↓ move, ⌘Enter or a click opens it; Enter — or typing a question — asks: an answer streams above the results with numbered citations that open the exact block, passage, code lines or session, the sources a deeper search opens appear while it works, and its deeper answer follows; a follow-up keeps the thread; "Open as blocks" opens the Search page with every hit as blocks
 
   - unless:wf2.ui.search the screen is narrow, where the preview is left out
 

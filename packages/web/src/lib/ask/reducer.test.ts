@@ -15,6 +15,12 @@ describe('askReducer', () => {
     expect(s.found.map(f => f.n)).toEqual([2]);
     expect(Object.keys(s.cites)).toEqual(['1', '2']);
   });
+  it('numbers the retrieved passages from the results event, as the fast lane does, and keeps them for the list', () => {
+    const hit = (ref: string) => ({ id: 'node:' + ref, source: 'node' as const, ref, title: ref, text: 't', nodes: [], score: 1, href: '/x' });
+    const s = askReducer(initialAsk('q'), { type: 'results', hits: [hit('req:a'), hit('req:b')] });
+    expect(s.hits.map(h => h.ref)).toEqual(['req:a', 'req:b']);
+    expect(s.cites[2]).toMatchObject({ n: 2, ref: 'req:b', href: '/x' });
+  });
   it('marks a thin fast answer and strips the marker', () => {
     const s = [{ type: 'fast.delta', text: 'Not in the sources.\nTHIN' }, { type: 'fast.done', citations: [] }].reduce((a, e) => askReducer(a, e as AskEvent), initialAsk('q'));
     expect(s.thin).toBe(true); expect(s.fast).toBe('Not in the sources.');
