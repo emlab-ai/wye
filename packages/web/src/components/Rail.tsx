@@ -9,7 +9,6 @@ import { ThemeButton } from './ThemeSwitch';
 import { IconChevronsLeft, IconSettings } from './Icons';
 import { AgentFolder } from './AgentFolder';
 import type { Pin } from '@/lib/pins';
-import { folderItems } from '@/lib/doc-folders';
 import { PrFolder, type PrItem } from './PrFolder';
 import { SkillFolder, type SkillItem } from './SkillFolder';
 
@@ -19,16 +18,15 @@ export type RailProject = { slug: string; title: string; icon: string; kind: str
 
 // The left rail: product switcher, menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Constitution, Questions, Inbox, Agents,
 // then the PRs system folder — component:request-folder), then every project's documents as one tree.
-export function Rail({ pins = [], products, product, projects, prs, views = [], skills = [], skillsPage = null, headings }: { skills?: SkillItem[]; skillsPage?: { project: string; slug: string } | null; views?: { slug: string; title: string; icon: string; project: string }[]; products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; prs: PrItem[]; headings: { doc: string; slug: string; text: string }[]; pins?: Pin[] }) {
+export function Rail({ pins = [], mainProject, products, product, projects, prs, views = [], skills = [], skillsPage = null, headings }: { skills?: SkillItem[]; skillsPage?: { project: string; slug: string } | null; views?: { slug: string; title: string; icon: string; project: string }[]; products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; prs: PrItem[]; headings: { doc: string; slug: string; text: string }[]; pins?: Pin[]; mainProject?: string }) {
   const path = usePathname(); const router = useRouter();
-  const [newIn, setNewIn] = useState<string | null>(null); // '' = top level, slug = under that document
+  const [newIn, setNewIn] = useState<string | null>(null); // '' = top level, <project>/<slug> = under that document
   // Import… (component:import-docs): the dialog, opened by its button or by files dropped on the documents area
   const [importing, setImporting] = useState<Picked[] | null>(null);
   const [fileOver, setFileOver] = useState(false);
   const hasFiles = (e: React.DragEvent) => [...e.dataTransfer.types].includes('Files');
-  // no projects (decision:wf2.no-projects): each folder of documents is a top-level document holding its own
-  const roots = folderItems(projects, `/${product.slug}`);
-  const [newFolder, setNewFolder] = useState('');   // the folder a + on a folder row creates the document in
+  // every project's documents in one tree; a project is just the folder a document lives in
+  const roots = projects.flatMap(p => p.roots);
   const docs = projects.flatMap(p => p.docs.map(d => ({ ...d, project: p.slug })));
   const base = `/${product.slug}`;
   const item = (href: string, label: string, icon: string) => <li><Link href={href} className={path === href ? 'on' : ''}><i>{icon}</i>{label}</Link></li>;
@@ -75,13 +73,13 @@ export function Rail({ pins = [], products, product, projects, prs, views = [], 
       </div>
       <div className="rail-split" ref={split} role="separator" aria-orientation="horizontal" title="Drag to resize; double-click to reset" onMouseDown={onSplit} onDoubleClick={resetSplit} />
       <div className="rail-pages-head"><span>Documents</span><span className="rail-pages-tools"><button onClick={() => { setNewIn(null); setImporting(importing ? null : []); }} title="Import markdown files, a folder, or code" aria-label="Import">↥</button><button onClick={() => { setImporting(null); setNewIn(newIn === '' ? null : ''); }} title="New document">+</button></span></div>
-      {(importing !== null || newIn !== null) && <NewPage product={product.slug} project={newFolder || (docs.find(d => d.slug === newIn)?.project ?? projects[0]?.slug ?? '')} projects={projects.map(p => ({ slug: p.slug, title: p.title }))} docs={docs} defaultParent={newIn ?? ''} initial={importing ?? []} startImport={importing !== null} onClose={() => { setNewIn(null); setImporting(null); setNewFolder(''); }} />}
+      {(importing !== null || newIn !== null) && <NewPage product={product.slug} project={newIn ? newIn.split('/')[0] : mainProject ?? projects[0]?.slug ?? ''} projects={projects.map(p => ({ slug: p.slug, title: p.title }))} docs={docs} defaultParent={newIn ?? ''} initial={importing ?? []} startImport={importing !== null} onClose={() => { setNewIn(null); setImporting(null); }} />}
       <div className={`rail-body ${fileOver ? 'file-over' : ''}`}
         onDragOver={e => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; if (!fileOver) setFileOver(true); }}
         onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setFileOver(false); }}
         onDrop={async e => { if (!hasFiles(e)) return; e.preventDefault(); setFileOver(false); const got = await filesOfDrop(e.dataTransfer); if (got.length) { setNewIn(null); setImporting(got); } }}>
         {fileOver && <div className="rail-filedrop">drop to import as documents</div>}
-        <DocTree product={product.slug} roots={roots} onAddChild={d => { if (d.folder) { setNewFolder(d.project); setNewIn(''); } else { setNewFolder(''); setNewIn(d.slug); } }} pinned={pins.map(p => p.ref)} />
+        <DocTree product={product.slug} roots={roots} onAddChild={d => setNewIn(`${d.project}/${d.slug}`)} pinned={pins.map(p => p.ref)} />
         {!roots.length && <p className="muted" style={{ padding: '6px 16px', fontSize: 13 }}>No documents yet. Press + to create one.</p>}
       </div>
     </nav>

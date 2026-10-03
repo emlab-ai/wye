@@ -20,8 +20,10 @@ export function NewPage({ product, project: initialProject, projects, docs, defa
   const router = useRouter();
   const { ownTypes } = usePeek();
   const [title, setTitle] = useState('');
-  const [parent, setParent] = useState(defaultParent);
-  const [project, setProject] = useState(initialProject);
+  // the parent as <project>/<slug>: two folders can each have a page called plan
+  const refOf = (d: Doc) => `${d.project}/${d.slug}`;
+  const [parent, setParent] = useState(() => { const d = docs.find(d => refOf(d) === defaultParent) ?? docs.find(d => d.slug === defaultParent); return d ? refOf(d) : ''; });
+  const project = initialProject; // a root page goes to the product's main folder; folders are not chosen
   const [mode, setMode] = useState<'page' | 'import'>(startImport || initial.length ? 'import' : 'page');
   const [pick, setPick] = useState<'template' | 'type' | null>(null);
   const [busy, setBusy] = useState(false);
@@ -31,9 +33,9 @@ export function NewPage({ product, project: initialProject, projects, docs, defa
   const [page, setPage] = useState<{ slug: string; node: string; project: string; body: string; hash: string } | null>(null);
   const making = useRef<Promise<typeof page> | null>(null);
   const titleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const parentProject = docs.find(d => d.slug === parent)?.project;
+  const parentDoc = docs.find(d => refOf(d) === parent);
+  const parentProject = parentDoc?.project;
   const effectiveProject = parentProject ?? project;
-  const parentDoc = docs.find(d => d.slug === parent);
   useEffect(() => { const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; document.addEventListener('keydown', key); return () => document.removeEventListener('keydown', key); }, [onClose]);
 
   // make the page (once) and load its body for the editor; a template or a type shapes it when chosen before writing
@@ -43,7 +45,7 @@ export function NewPage({ product, project: initialProject, projects, docs, defa
     making.current = (async () => {
       const t = titleRefLatest.current.trim() || (opts.template && opts.template !== 'blank' ? opts.template.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase()) : opts.type ? `New ${opts.type}` : 'New page');
       setBusy(true); setMsg(null);
-      const r = await fetch(`/api/${product}/${effectiveProject}/doc`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: t, template: opts.template ?? 'blank', parent, type: opts.type }) });
+      const r = await fetch(`/api/${product}/${effectiveProject}/doc`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: t, template: opts.template ?? 'blank', parent: parentDoc?.slug ?? '', type: opts.type }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) { setBusy(false); setMsg(j.message ?? j.error ?? 'could not create the page'); making.current = null; return null; }
       const g = await fetch(`/api/${product}/${effectiveProject}/doc/${j.slug}`); const d = await g.json().catch(() => ({}));
@@ -77,10 +79,9 @@ export function NewPage({ product, project: initialProject, projects, docs, defa
         <div className="np-top">
           <span className="muted">Add to</span>
           <select className="np-parent" value={parent} onChange={e => setParent(e.target.value)} title="The page this one goes under">
-            <option value="">{projects.length > 1 ? `(top level of ${projects.find(p => p.slug === project)?.title ?? project})` : '(top level)'}</option>
-            {docs.map(d => <option key={d.slug} value={d.slug}>{d.icon ? `${d.icon} ` : ''}{d.title}</option>)}
+            <option value="">(top level)</option>
+            {docs.map(d => <option key={refOf(d)} value={refOf(d)}>{d.icon ? `${d.icon} ` : ''}{d.title}</option>)}
           </select>
-          {!parent && projects.length > 1 && <select className="np-parent" value={project} onChange={e => setProject(e.target.value)} title="Folder">{projects.map(p => <option key={p.slug} value={p.slug}>{p.title}</option>)}</select>}
           <span className="np-spacer" />
           <button type="button" className="np-x" onClick={onClose} aria-label="Close">×</button>
         </div>
@@ -111,7 +112,7 @@ export function NewPage({ product, project: initialProject, projects, docs, defa
         </>}
         {mode === 'import' && <div className="np-import">
           <button type="button" className="linkish" onClick={() => setMode('page')}>‹ New page</button>
-          <ImportDocs product={product} project={effectiveProject} projects={projects} docs={docs} defaultParent={parent} initial={initial} onClose={onClose} />
+          <ImportDocs product={product} project={effectiveProject} projects={projects} docs={docs} defaultParent={parentDoc?.slug ?? ''} initial={initial} onClose={onClose} />
         </div>}
       </div>
     </div>

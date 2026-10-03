@@ -12,6 +12,7 @@ sources:
   - prompts/librarian-system.md
 order: 1
 last-verified: 2026-09-20
+part-of: module:wye-v2
 ---
 
 # Wye

@@ -12,6 +12,7 @@ sources:
   - packages/desktop/main.js     # the Electron shell
 order: 40
 last-verified: 2026-09-20
+part-of: module:wye-v2
 ---
 
 # Systems — how it works

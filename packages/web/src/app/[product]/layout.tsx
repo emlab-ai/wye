@@ -1,3 +1,4 @@
+import { isSystemFile } from '@/lib/doc';
 import { parsePins, resolvePins } from '@/lib/pins';
 import { isRscRequest } from '@/lib/request';
 import type { ReactNode } from 'react';
@@ -48,6 +49,9 @@ export default async function ProductLayout({ children, params }: { children: Re
   const viewProject = scope.projects.find(p => scope.graph.modules.some(m => m.id === prsPageId(p.slug))) ?? scope.projects[0];
   // the Skills and Hooks pages (decision:wf2.hooks-and-skills) live there too: the base skills are written from the
   // prompts the first time, the skill documents go to the rail's Skills folder, Hooks is a menu link
+  // where a new top-level page is stored: the largest folder — folders are not shown, a page's place is its part-of
+  const docCount = (slug: string) => scope.graph.modules.filter(m => m.file?.includes(`/projects/${slug}/docs/`)).length;
+  const rootsHome = [...scope.projects].sort((a, b) => docCount(b.slug) - docCount(a.slug))[0]?.slug;
   const mainOf = (p: typeof viewProject) => { if (!p) return null; const t = treeFor(scope, p.slug); return t.main && !isSystemSlug(t.main.slug) ? t.main.module.id : null; };
  
   if (viewProject) { try { await ensureViewPages(viewProject); const m = mainOf(viewProject); await ensureBaseSkills(viewProject, m); await ensureBaseWorkflows(viewProject, m); await ensureHooksPage(viewProject, m); } catch { /* read-only tree */ } }
@@ -62,7 +66,8 @@ export default async function ProductLayout({ children, params }: { children: Re
       for (const c of d.children) { const f = fm.get(c.file) ?? {}; skills.push({ slug: c.slug, project, title: c.title, role: f.role ?? 'librarian', takes: f.takes ?? '', status: f.status ?? '' }); }
       return false;
     }
-    if (d.module.id !== prsPageId(project)) return true;
+    // an app-written page (.wye/ — comments, a run, a folder's own Goals and Work) is not one of the person's documents
+    if (d.module.id !== prsPageId(project)) return !isSystemFile(d.file);
     for (const c of d.children) { const f = fm.get(c.file) ?? {}; prs.push({ slug: c.slug, project, title: c.title, icon: icons.get(c.file) || defaultIcon(c.slug), status: f.status ?? '', started: f.started ?? '', tasks: progress.get(c.file), waiting: waitingReasons(scope.product.slug)[`${scope.product.slug}/${project}/${bareSlug(c.slug)}`] }); }
     return false;
   }).map(d => ({ ...d, children: withoutPrs(d.children, project) }));
@@ -84,7 +89,7 @@ export default async function ProductLayout({ children, params }: { children: Re
   return (
     <PeekProvider product={scope.product.slug} index={rsc ? null : scope.index} kinds={scope.graph.kinds} types={ownTypes} nests={nestingMap(scope.graph.types ?? [])} statuses={statusesByKind(scope.graph.types ?? [])}>
       <Shell>
-        <Rail pins={pins} products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} prs={prs} views={views} skills={skills} skillsPage={skillsPage} headings={headings} />
+        <Rail pins={pins} mainProject={rootsHome} products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} prs={prs} views={views} skills={skills} skillsPage={skillsPage} headings={headings} />
         <LiveRefresh product={scope.product.slug} />
         <main className="content"><TopBar product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} docs={docs} />{children}</main>
       </Shell>

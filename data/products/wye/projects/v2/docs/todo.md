@@ -6,6 +6,7 @@ status: proposed
 owner: unassigned
 last-verified: 2026-09-17
 order: 40
+part-of: module:wye-v2
 ---
 
 - [x] task:new-441 in session window if you can show size of context, and tokens spent already by agent - show it (session: 53f99bfd98 c8eadd53da, produced: pr:12 module:wf2-dev module:app-documents module:wf2-test pr:11 module:app-agents)

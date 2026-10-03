@@ -3,9 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type DragEvent, type MouseEvent } from 'react';
 
-// `folder`: a folder of documents shown as a document (decision:wf2.no-projects) — it opens `href`, holds its documents,
-// takes new ones with +, and is neither dragged, dropped into nor given the document menu
-export type TreeItem = { slug: string; node: string; title: string; icon: string; project: string; tasks?: { done: number; total: number }; children: TreeItem[]; href?: string; folder?: boolean };
+export type TreeItem = { slug: string; node: string; title: string; icon: string; project: string; tasks?: { done: number; total: number }; children: TreeItem[] };
 type Zone = 'before' | 'into' | 'after';
 type Drag = { slug: string; node: string }; // the dragged document: its slug and its node id (rule:page-node-line)
 type Over = { slug: string; zone: Zone };
@@ -72,7 +70,7 @@ export function DocTree({ product, roots, onAddChild, pinned = [] }: { product: 
         <button role="menuitem" onClick={() => duplicate(menu.d)}>Duplicate</button>
         <button role="menuitem" className="danger" onClick={() => remove(menu.d)}>Delete{menu.d.children.length ? ` (with ${descendants(menu.d).length} below)` : ''}</button>
       </div>}
-      <ul className="pg-tree">{roots.map(r => <Row key={r.slug} d={r} depth={0} parent={null} tree={tree} />)}</ul>
+      <ul className="pg-tree">{roots.map(r => <Row key={`${r.project}/${r.slug}`} d={r} depth={0} parent={null} tree={tree} />)}</ul>
       {drag && <div className={`pg-rootdrop ${rootOver ? 'over' : ''}`} onDragOver={e => { e.preventDefault(); setRootOver(true); }} onDragLeave={() => setRootOver(false)} onDrop={e => { e.preventDefault(); setRootOver(false); const src = e.dataTransfer.getData('text/plain') || drag.node; setDrag(null); move(src, null); }}>drop here for top level</div>}
       {msg && <p className="notice pg-msg">{msg}</p>}
     </div>
@@ -83,17 +81,17 @@ const zoneOf = (e: DragEvent<HTMLDivElement>): Zone => { const r = e.currentTarg
 
 function Row({ d, depth, parent, tree }: { d: TreeItem; depth: number; parent: TreeItem | null; tree: Tree }) {
   const { product, path, closed, toggle, drag, over, setDrag, setOver, move, onAddChild, openMenu } = tree;
-  const href = d.href ?? `/${product}/${d.project}/d/${d.slug}`; const on = path === href;
+  const href = `/${product}/${d.project}/d/${d.slug}`; const on = path === href;
   const open = !closed[d.slug];
   const id = d.node;
   const dropClass = over?.slug === d.slug ? `drop-${over.zone}` : '';
   const onMenu = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); const b = (e.currentTarget as HTMLElement).getBoundingClientRect(); openMenu(e.type === 'contextmenu' ? { d, x: e.clientX, y: e.clientY } : { d, x: b.left, y: b.bottom + 2 }); };
   return (
     <li>
-      <div className={`pg-row ${on ? 'on' : ''} ${drag?.slug === d.slug ? 'dragging' : ''} ${dropClass}`} style={{ paddingLeft: 18 + depth * 18 }} draggable={!d.folder} onContextMenu={d.folder ? undefined : onMenu}
+      <div className={`pg-row ${on ? 'on' : ''} ${drag?.slug === d.slug ? 'dragging' : ''} ${dropClass}`} style={{ paddingLeft: 18 + depth * 18 }} draggable onContextMenu={onMenu}
            onDragStart={e => { setDrag({ slug: d.slug, node: id }); e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed = 'move'; }}
            onDragEnd={() => { setDrag(null); setOver(null); }}
-           onDragOver={e => { if (!drag || drag.slug === d.slug || d.folder) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; const zone = zoneOf(e); if (over?.slug !== d.slug || over.zone !== zone) setOver({ slug: d.slug, zone }); }}
+           onDragOver={e => { if (!drag || drag.slug === d.slug) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; const zone = zoneOf(e); if (over?.slug !== d.slug || over.zone !== zone) setOver({ slug: d.slug, zone }); }}
            onDragLeave={() => { if (over?.slug === d.slug) setOver(null); }}
            onDrop={e => {
              e.preventDefault(); const src = e.dataTransfer.getData('text/plain') || (drag ? drag.node : ''); const zone = zoneOf(e); setOver(null); setDrag(null);
@@ -102,10 +100,10 @@ function Row({ d, depth, parent, tree }: { d: TreeItem; depth: number; parent: T
            }}>
         {d.children.length ? <button className="pg-caret" onClick={() => toggle(d.slug)} aria-label={open ? 'collapse' : 'expand'}>{open ? '▾' : '▸'}</button> : <span className="pg-dot">•</span>}
         <Link href={href} className="pg-link" draggable={false} title={d.tasks?.total ? `${d.tasks.done}/${d.tasks.total} tasks done` : undefined}><span className="pg-icon">{d.icon}</span><span className="pg-title">{d.title}</span>{!!d.tasks?.total && <span className="pg-prog">{d.tasks.done}/{d.tasks.total}</span>}</Link>
-        {!d.folder && <button className="pg-more" title="More…" aria-label="More" onClick={onMenu}>⋯</button>}
-        <button className="pg-add" title={d.folder ? `New document in ${d.title}` : 'Add a sub-document'} onClick={() => onAddChild(d)}>+</button>
+        <button className="pg-more" title="More…" aria-label="More" onClick={onMenu}>⋯</button>
+        <button className="pg-add" title="Add a sub-document" onClick={() => onAddChild(d)}>+</button>
       </div>
-      {d.children.length > 0 && open && <ul>{d.children.map(c => <Row key={c.slug} d={c} depth={depth + 1} parent={d} tree={tree} />)}</ul>}
+      {d.children.length > 0 && open && <ul>{d.children.map(c => <Row key={`${c.project}/${c.slug}`} d={c} depth={depth + 1} parent={d} tree={tree} />)}</ul>}
     </li>
   );
 }

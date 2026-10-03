@@ -6,6 +6,7 @@ status: proposed
 owner: alex
 last-verified: 2026-09-20
 order: 60
+part-of: module:wye-v2
 ---
 
 # Decisions

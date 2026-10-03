@@ -5,6 +5,7 @@ title: Map
 status: proposed
 owner: unassigned
 last-verified: 2026-09-24
+part-of: module:evaluation
 ---
 
 # Map

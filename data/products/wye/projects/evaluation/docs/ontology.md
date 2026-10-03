@@ -6,6 +6,7 @@ status: proposed
 owner: alex
 last-verified: 2026-09-20
 order: 5
+part-of: module:evaluation
 ---
 
 # Evaluation — types

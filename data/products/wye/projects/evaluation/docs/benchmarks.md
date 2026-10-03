@@ -10,6 +10,7 @@ sources:
   - lib/graph.js                       # packet, impact, check — the functions tier 1 scores
   - packages/web/src/lib/artifacts.ts  # block attribution — the session ground truth
   - test/smoke.js                      # the test runner the eval suite joins
+part-of: module:evaluation
 ---
 
 # Benchmarks — set up, run, compare

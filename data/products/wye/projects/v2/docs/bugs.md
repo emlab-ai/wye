@@ -6,6 +6,7 @@ status: proposed
 owner: unassigned
 last-verified: 2026-09-17
 order: 20
+part-of: module:wye-v2
 ---
 
 # Bugs
