@@ -22,6 +22,13 @@ import { loadRecent, rememberRecent } from '@/lib/recent';
 // stages produce their documents and each one waits for your Advance, and with nothing under the cursor the typed idea
 // becomes the document the run starts from. Images pasted or dropped into the box go along (req:wf2.ui.palette-images).
 export type CmdMode = 'pr' | 'adhoc' | 'workflow' | 'remember';
+// the box's modes, in the order ⌘1–4 picks them
+const MODES: { key: CmdMode; label: string; icon: string; title: string }[] = [
+  { key: 'pr', label: 'PR', icon: '◆', title: 'A Prompt Request: a page under PRs, refined with Wye until it is clear, approved by you, then built' },
+  { key: 'adhoc', label: 'Ad-hoc', icon: '⇢', title: 'A conversation with a coding agent on what you are looking at' },
+  { key: 'workflow', label: 'Workflow', icon: '⇉', title: 'Run a workflow: each stage writes its document and waits for you' },
+  { key: 'remember', label: 'Remember', icon: '✦', title: 'Paste information: Wye files it as knowledge, linked to what it knows' },
+];
 // `mode` opens the box in that mode whatever was used last (⌘M → remember)
 export type SendRequest = { text?: string; refs?: string[]; source?: { project?: string; doc?: string; blockId?: string; link?: string }; mode?: CmdMode };
 export function requestSend(detail: SendRequest) { window.dispatchEvent(new CustomEvent('wf:send', { detail })); }
@@ -79,6 +86,7 @@ export function CommandBox() {
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p') { e.preventDefault(); if (req) setReq(null); else show(here()); }
       // ⌘M (Ctrl+M in a browser, where ⌘M minimizes the window): the box in Remember mode — paste, and Wye files it
       else if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'm') { e.preventDefault(); if (req && mode === 'remember') setReq(null); else { show({ ...here(), mode: 'remember' }); setModeState('remember'); } }
+      else if (req && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && /^[1-4]$/.test(e.key)) { e.preventDefault(); setMode(MODES[Number(e.key) - 1].key); }
       // Escape leaves a recalled command behind first, and closes the box on the next press (task:palette-recent-commands)
       else if (e.key === 'Escape' && req) { if (at >= 0) { e.preventDefault(); e.stopPropagation(); setAt(-1); setText(''); } else setReq(null); }
     };
@@ -199,55 +207,55 @@ export function CommandBox() {
   };
   const label = (s: Live) => `${AGENTS.find(a => a.id === s.agent)?.label ?? s.agent} · ${s.instruction.split('\n').find(l => l.trim())?.slice(0, 50) ?? s.id}`;
   const refs = req.refs ?? [];
+  const M = MODES.find(m => m.key === mode) ?? MODES[0];
+  const placeholder = isRem ? 'Paste notes, a message, an update…' : isWf ? 'The idea, in a line or two' : isPr ? 'What do you want to change?' : isNew ? 'What should the agent do?' : 'Your next message to that conversation';
+  const about = isPr ? 'A Prompt Request — Wye\u2019s librarian on Claude Code reads what the product knows, asks what it must and proposes the blocks; you approve on the PR\u2019s page before anything is built.'
+    : isRem ? 'Filed as knowledge in the right documents, linked to what Wye already knows — by Wye\u2019s librarian on Claude Code. You review it in the Inbox.'
+    : isWf ? 'Runs a workflow on what you are looking at — each stage writes its document and waits for you to advance it.'
+    : !isNew ? (fresh ? 'Restarts that conversation\u2019s agent from nothing, then sends this as its first message.' : 'Goes into that conversation as your next message; the agent keeps its context and folder.')
+    : target === 'runner' ? 'Queued until a runner for that agent picks it up (wye agent listen).' : 'A conversation with a coding agent on what you are looking at — nothing is written unless you ask.';
+  const verb = busy ? 'Sending…' : isWf ? 'Run' : isRem ? 'Remember' : isPr ? 'Start the PR' : !isNew ? (fresh ? 'Restart & send' : 'Send') : target === 'runner' ? 'Queue' : 'Talk';
+  const canLater = isNew && !isWf && !isRem;
+  const empty = !text.trim() && !attach.images.length && !(isWf && refsOf(req).length);
   return createPortal(
     <div className="modal-back palette-back" onMouseDown={e => { if (e.target === e.currentTarget) setReq(null); }}>
-      <div className="modal palette" role="dialog" aria-label="Command" onDragOver={attach.onDragOver} onDrop={attach.onDrop}>
-        <textarea ref={box} className="palette-in" value={text} rows={text.split('\n').length > 3 ? 6 : 3} placeholder={isRem ? 'Paste what Wye should remember — meeting notes, a message, an update, facts about a person or a project (Enter to file it, Shift+Enter for a new line)' : isWf ? 'The idea, in a line or two — its first line names the document when there is nothing under the cursor (Enter runs the workflow)' : isPr ? 'What do you want? — improve …, allow …, change … (Enter starts the PR; Shift+Enter for a new line)' : isNew ? 'What should the agent do? — fix …, build …, change … (Enter to run, Shift+Enter for a new line; paste a screenshot too)' : 'Your next message to that conversation (Enter to send, Shift+Enter for a new line; paste a screenshot too)'} onChange={e => setText(e.target.value)} onPaste={attach.onPaste} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (e.altKey && !isRem) later(); else run(); } else history(e); }} disabled={busy} />
+      <div className={`modal palette mode-${mode}`} role="dialog" aria-label="Command" onDragOver={attach.onDragOver} onDrop={attach.onDrop}>
+        <div className="palette-modes" role="tablist" aria-label="Mode">
+          {MODES.map((m, i) => <button key={m.key} type="button" role="tab" aria-selected={mode === m.key} className={`pm ${mode === m.key ? 'on' : ''}`} onClick={() => setMode(m.key)} title={`${m.title} (⌘${i + 1})`}><i aria-hidden>{m.icon}</i>{m.label}</button>)}
+        </div>
+        <textarea ref={box} className="palette-in" value={text} rows={text.split('\n').length > 3 ? 6 : 3} placeholder={placeholder} onChange={e => setText(e.target.value)} onPaste={attach.onPaste} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (e.altKey && canLater) later(); else run(); } else history(e); }} disabled={busy} />
         <AttachStrip images={attach.images} remove={attach.remove} />
         {refs.length > 0 && <div className="palette-ctx"><span className="muted">with</span>{refs.map(id => <SmartTag key={id} id={id} />)}{req.source?.blockId && <span className="muted">· this block</span>}</div>}
-        <div className="palette-row palette-intent" role="radiogroup" aria-label="Mode">
-          <button type="button" className={`chip ${isPr ? 'on' : ''}`} onClick={() => setMode('pr')} title="A Prompt Request: a page under PRs, refined with Wye until it is clear, approved by you, then built">PR</button>
-          <button type="button" className={`chip ${mode === 'adhoc' ? 'on' : ''}`} onClick={() => setMode('adhoc')} title="A conversation with a coding agent on what you are looking at; nothing is written unless you ask">Ad-hoc</button>
-          <button type="button" className={`chip ${isWf ? 'on' : ''}`} onClick={() => setMode('workflow')} title="Run a workflow on what you are looking at: each stage produces its document and waits for you to advance it">Workflow</button>
-          <button type="button" className={`chip ${isRem ? 'on' : ''}`} onClick={() => setMode('remember')} title="Paste information: Wye files it as knowledge in the right documents, linked to what it already knows, and you review it in the Inbox (⌘M)">Remember</button>
-          <span className="muted palette-note">{isPr ? 'a request: refine → approve → build' : isRem ? 'filed as knowledge, linked to what Wye knows · you review it in the Inbox' : isWf ? 'stage by stage, you advance each one' : 'a conversation, no PR'}</span>
-        </div>
-        {isWf && <div className="palette-row">
-          <label className="palette-to"><span className="muted">run</span>
-            <select value={wf} onChange={e => setWf(e.target.value)} title="which workflow">
-              {workflows.length === 0 && <option value="">no workflow runs on this</option>}
-              {workflows.map(w => <option key={w.id} value={w.id}>{w.title} — {w.stages.length} stages</option>)}
-            </select>
-          </label>
-          <span className="muted palette-note">{(() => { const w = workflows.find(x => x.id === wf); const on = refsOf(req)[0]; return w ? `${on ? `on ${on}` : 'the first line becomes a new document'} · stage 1 of ${w.stages.length}: ${w.stages[0]?.title ?? ''}` : ''; })()}</span>
-        </div>}
-        {!isPr && !isWf && !isRem && <div className="palette-row">
-          <label className="palette-to"><span className="muted">to</span>
-            <select value={target} onChange={e => setTarget(e.target.value)} title="where the message goes">
-              {sessions.length > 0 && <optgroup label="active conversations">{sessions.map(s => <option key={s.id} value={s.id}>{label(s)}</option>)}</optgroup>}
-              <optgroup label="new"><option value="new">New conversation — a coding agent</option><option value="runner">Queue for a runner (wye agent listen)</option></optgroup>
-            </select>
-          </label>
-          {isNew && <select value={agent} onChange={e => setAgent(e.target.value)} title="agent">{AGENTS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}</select>}
-        </div>}
-        {isPr && <div className="palette-row"><AttachPicker product={product} value={attachTo} onChange={setAttachTo} compact /></div>}
-        {isPr && <div className="palette-row"><span className="muted palette-note">Wye reads what the product already knows, explains the current state, asks what it must, and proposes the requirements, decisions, questions and tasks as blocks on the PR's page — you approve there; nothing is built before that</span></div>}
-        {!isNew && !isWf && (
-          <div className="palette-row">
-            <label className="palette-plan" title="Stop that agent and start a fresh one in the same folder before this message: it forgets the conversation so far and reads what it needs from Wye">
-              <input type="checkbox" checked={fresh} onChange={e => setFresh(e.target.checked)} /> clear context first — a fresh agent, same folder, for an unrelated task
+        <div className="palette-opts">
+          <p className="palette-about"><i aria-hidden>{M.icon}</i><span>{about}</span></p>
+          {isWf && <div className="palette-fields">
+            <label className="palette-field"><span>Workflow</span>
+              <select value={wf} onChange={e => setWf(e.target.value)}>
+                {workflows.length === 0 && <option value="">no workflow runs on this</option>}
+                {workflows.map(w => <option key={w.id} value={w.id}>{w.title} — {w.stages.length} stages</option>)}
+              </select>
             </label>
-          </div>
-        )}
-        <div className="palette-row">
-          {!isPr && !isWf && !isRem && target === 'new' && <input className="palette-cwd" value={cwd} placeholder={defaults.cwd || 'working folder: the code repository the agent works in'} onChange={e => setCwd(e.target.value)} spellCheck={false} title="working folder" />}
-          {!isNew && !isWf && <span className="muted palette-note">{fresh ? 'restarts that conversation\u2019s agent from nothing — after its current turn when one is open — then sends this as its first message' : 'goes into that conversation as your next message; the agent keeps its context and folder'}</span>}
-          {target === 'runner' && <span className="muted palette-note">queued until a runner for that agent picks it up</span>}
-          {isNew && !isWf && !isRem && <button className="palette-later" onClick={later} disabled={!text.trim() || busy} title="Keep it as a task on the backlog — unassigned, on the Work view — without sending it to anyone (⌥↵)">Later</button>}
-          <button className="palette-go" onClick={run} disabled={(!text.trim() && !attach.images.length && !(isWf && refsOf(req).length)) || busy}>{busy ? 'Sending…' : isWf ? 'Run ↵' : isRem ? 'Remember ↵' : isPr ? 'Start the PR ↵' : !isNew ? (fresh ? 'Restart & send ↵' : 'Send ↵') : target === 'runner' ? 'Queue ↵' : 'Talk ↵'}</button>
+            <span className="muted palette-note">{(() => { const w = workflows.find(x => x.id === wf); const on = refsOf(req)[0]; return w ? `${on ? `on ${on}` : 'the first line becomes a new document'} · stage 1 of ${w.stages.length}: ${w.stages[0]?.title ?? ''}` : ''; })()}</span>
+          </div>}
+          {mode === 'adhoc' && <div className="palette-fields">
+            <label className="palette-field"><span>To</span>
+              <select value={target} onChange={e => setTarget(e.target.value)}>
+                {sessions.length > 0 && <optgroup label="active conversations">{sessions.map(s => <option key={s.id} value={s.id}>{label(s)}</option>)}</optgroup>}
+                <optgroup label="new"><option value="new">New conversation</option><option value="runner">Queue for a runner</option></optgroup>
+              </select>
+            </label>
+            {isNew && <label className="palette-field"><span>Agent</span><select value={agent} onChange={e => setAgent(e.target.value)}>{AGENTS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}</select></label>}
+            {target === 'new' && <label className="palette-field palette-field-wide"><span>Folder</span><input className="palette-cwd" value={cwd} placeholder={defaults.cwd || 'the code repository the agent works in'} onChange={e => setCwd(e.target.value)} spellCheck={false} /></label>}
+            {!isNew && <label className="palette-check" title="Stop that agent and start a fresh one in the same folder before this message: it forgets the conversation so far and reads what it needs from Wye"><input type="checkbox" checked={fresh} onChange={e => setFresh(e.target.checked)} /> clear context first</label>}
+          </div>}
+          {isPr && <div className="palette-fields"><AttachPicker product={product} value={attachTo} onChange={setAttachTo} compact /></div>}
         </div>
         {msg && <p className="bad palette-msg">{msg}</p>}
-        <p className="muted palette-hint">⌘P opens this anywhere · ⌘M opens it to remember · Send to agent on any block opens it with the block · the conversation opens in the right column · Later (⌥↵) keeps it as a task for anyone{recent.length > 0 ? ' · ↑ what you asked before' : ''}</p>
+        <div className="palette-actions">
+          {canLater && <button className="palette-later" onClick={later} disabled={!text.trim() || busy} title="Keep it as a task on the backlog — unassigned, on the Work view — without sending it to anyone">Later <kbd>⌥↵</kbd></button>}
+          <button className="palette-go" onClick={run} disabled={empty || busy}>{verb}{!busy && <kbd>↵</kbd>}</button>
+        </div>
+        <p className="muted palette-hint">↵ {verb.replace(/^./, c => c.toLowerCase())} · ⇧↵ new line{canLater ? ' · ⌥↵ later' : ''}{recent.length > 0 ? ' · ↑ what you asked before' : ''} · ⌘1–4 mode · {isRem ? '⌘M' : '⌘P'} opens this anywhere · Esc close</p>
       </div>
     </div>, document.body);
 }
