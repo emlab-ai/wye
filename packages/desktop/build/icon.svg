@@ -1,4 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <rect x="64" y="64" width="896" height="896" rx="200" fill="#141614"/>
-  <text x="512" y="720" text-anchor="middle" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-weight="700" font-size="600" fill="#ffffff">Y</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#232327"/>
+      <stop offset="1" stop-color="#050506"/>
+    </linearGradient>
+    <radialGradient id="light" cx="0.5" cy="0" r="0.75">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#d4d4d8"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+  <!-- the macOS icon grid: an 824 squircle with 100 around it -->
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)"/>
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#light)"/>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="184.5" fill="none" stroke="#ffffff" stroke-opacity="0.09" stroke-width="3"/>
+  <!-- a wye: two branches flowing into one stem -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="92">
+    <path d="M352 296 C352 430 512 446 512 560 M672 296 C672 430 512 446 512 560 M512 560 L512 752" stroke="#ffffff" stroke-opacity="0.22" filter="url(#glow)"/>
+    <path d="M352 296 C352 430 512 446 512 560 M672 296 C672 430 512 446 512 560 M512 560 L512 752" stroke="url(#ink)"/>
+  </g>
 </svg>

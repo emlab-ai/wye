@@ -171,6 +171,8 @@ async function chooseRoot() {
 }
 
 app.whenReady().then(async () => {
+  // a packaged app carries build/icon.icns; a dev run is plain Electron, so the Dock gets the Wye icon by hand
+  if (process.platform === 'darwin' && !app.isPackaged && app.dock) { try { app.dock.setIcon(path.join(__dirname, 'build/icon.png')); } catch { /* no icon file */ } }
   fixPath();
   ROOT = await resolveRoot();
   if (!ROOT) { app.quit(); return; }
