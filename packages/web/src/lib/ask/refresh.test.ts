@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mkdtemp, mkdir, writeFile, utimes, rm, rename } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, utimes, rm, rename, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { refresh, getStore } from './refresh';
@@ -61,6 +61,13 @@ describe('refresh', () => {
     p.meta.repo = repo;
     await refresh(p, g, { embed: fakeEmbed, listCode });
     expect([...(await state(await getStore(p))).keys()].filter(id => id.startsWith('doc:')).length).toBe(1);
+  });
+  it('leaves scopes.json alone when nothing changed', async () => {
+    await refresh(p, g, { embed: fakeEmbed, listCode });
+    const f = path.join(dir, '_build/search.lance/scopes.json'); const before = (await stat(f)).mtimeMs;
+    await new Promise(r => setTimeout(r, 20));
+    await refresh(p, g, { embed: fakeEmbed, listCode });
+    expect((await stat(f)).mtimeMs).toBe(before);
   });
   it('skips code when the product has no repo folder', async () => {
     p.meta.repo = path.join(dir, 'nope');

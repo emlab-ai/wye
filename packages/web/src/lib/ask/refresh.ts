@@ -91,7 +91,7 @@ export async function refresh(p: Product, graph: GraphData, opts: { embed?: Embe
     if (vecs) embedded += batch.length;
   }
   await apply(s, remove, rows);
-  s.scopes = scopes; await saveScopes(s);
+  if (JSON.stringify(scopes) !== JSON.stringify(s.scopes)) { s.scopes = scopes; await saveScopes(s); }
   return { changed, embedded, ...(embed ? {} : { degraded: 'no-vectors' as const }) };
 }
 

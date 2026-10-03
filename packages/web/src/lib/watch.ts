@@ -19,12 +19,13 @@ import { sweepRuns } from './runs-run';
 
 type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other'; file: string }) => void;
 // bump when the watcher callback changes: dev reloads keep globalThis, so an old watcher would keep running old code
-const VERSION = 15;
+const VERSION = 16;
 type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>> };
 const g = globalThis as unknown as { __wfWatch?: State };
 const st = (): State => (g.__wfWatch ??= { watchers: new Map(), subs: new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map() });
 
-function classify(rel: string): 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other' {
+export function classify(rel: string): 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other' {
+  if (rel.startsWith('_build/search.lance/')) return 'other';   // the Ask index: its own writes, nothing a page shows
   if (rel.startsWith('_build/')) return 'graph';
   if (rel.startsWith('inbox/')) return 'inbox';
   if (rel.startsWith('_sessions/')) return 'session';
