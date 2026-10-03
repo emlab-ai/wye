@@ -8,8 +8,7 @@ owner: unassigned
 
 # Executive assistant
 
-A director's assistant, built from documents you can edit: what you follow (people, projects, commitments, decisions,
-risks, meetings) is filed here from what your outside tools push, and comes back to you in four rhythms.
+A director's assistant, built from documents you can edit: what you follow (people, projects, commitments, decisions, risks, meetings) is filed here from what your outside tools push, and comes back to you in four rhythms.
 
 | rhythm | when | what you get |
 |---|---|---|
@@ -20,27 +19,21 @@ risks, meetings) is filed here from what your outside tools push, and comes back
 
 ## How it is fed
 
-Wye pulls nothing (decision:ea.tools-push-through-cli). Cowork, or any agent that reads your calendar, Slack, email and
-meeting recordings, is handed skill:ea.capture and pushes what it learns through one command:
+Wye pulls nothing (decision:ea.tools-push-through-cli). Cowork, or any agent that reads your calendar, Slack, email and meeting recordings, is handed skill:ea.capture and pushes what it learns through one command:
 
 ```
 wye ea intake --product ea --file analysis.json
 ```
 
-What it pushes is **proposed** until you approve it (constraint:ea.pushed-is-proposed): a pushed commitment waits in the
-Inbox and enters the briefs once approved (decision:ea.proposed-commitments-wait-in-inbox). Anything it cannot place for
-sure — a project it cannot tell, two people with the same name — waits in the Inbox with a question, not filed under a
-guess.
+What it pushes is **proposed** until you approve it (constraint:ea.pushed-is-proposed): a pushed commitment waits in the Inbox and enters the briefs once approved (decision:ea.proposed-commitments-wait-in-inbox). Anything it cannot place for sure — a project it cannot tell, two people with the same name — waits in the Inbox with a question, not filed under a guess.
 
 ## What you follow elsewhere
 
-The briefs also read your other products in Wye, never writing into them (constraint:ea.reads-other-products-only):
-every open task, question, risk or waiting decision you own there, or that you tagged `@follow`
-(decision:ea.follow-is-owner-or-tag), shows under "You owe a reply or a follow-up".
+The briefs also read your other products in Wye, never writing into them (constraint:ea.reads-other-products-only): every open task, question, risk or waiting decision you own there, or that you tagged `@follow` (decision:ea.follow-is-owner-or-tag), shows under "You owe a reply or a follow-up".
 
 ## Commitments
 
-```
+```shell
 wye ea commitment move commitment:ea.<slug> --to 2026-10-20 --why "vendor slipped"
 wye ea commitment met  commitment:ea.<slug>
 wye ea commitment drop commitment:ea.<slug> --why "no longer needed"
@@ -50,7 +43,7 @@ A move keeps the old date, the new one, when and why; the weekly review counts h
 
 ## By hand
 
-```
+```shell
 wye ea brief daily --product ea --write
 wye ea brief weekly --product ea --write
 wye ea brief 1on1 --person person:ea.<slug> --product ea --write

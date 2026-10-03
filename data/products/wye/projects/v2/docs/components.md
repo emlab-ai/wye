@@ -924,6 +924,13 @@ The editor's blocks and the components the pages are made of, by area.
     lanes).
   status: proposed
   part-of: module:components
+- id: component:agent-folder
+  file: packages/web/src/components/AgentFolder.tsx
+  side: client
+  purpose: >
+    (no header comment)
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->
