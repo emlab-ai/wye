@@ -21,7 +21,9 @@ import { loadRecent, rememberRecent } from '@/lib/recent';
 // a runner; Workflow — a run of a named pipeline on what you are looking at (decision:wf2.workflow-is-a-skill): the
 // stages produce their documents and each one waits for your Advance, and with nothing under the cursor the typed idea
 // becomes the document the run starts from. Images pasted or dropped into the box go along (req:wf2.ui.palette-images).
-export type SendRequest = { text?: string; refs?: string[]; source?: { project?: string; doc?: string; blockId?: string; link?: string } };
+export type CmdMode = 'pr' | 'adhoc' | 'workflow' | 'remember';
+// `mode` opens the box in that mode whatever was used last (⌘M → remember)
+export type SendRequest = { text?: string; refs?: string[]; source?: { project?: string; doc?: string; blockId?: string; link?: string }; mode?: CmdMode };
 export function requestSend(detail: SendRequest) { window.dispatchEvent(new CustomEvent('wf:send', { detail })); }
 type Live = Session & { live?: boolean };
 const refsOf = (r: SendRequest | null) => r?.refs ?? [];
@@ -36,11 +38,11 @@ export function CommandBox() {
   const [agent, setAgent] = useState(AGENTS[0].id);
   const [cwd, setCwd] = useState('');
   const [defaults, setDefaults] = useState<{ cwd: string; wye: string }>({ cwd: '', wye: '' });
-  const [mode, setModeState] = useState<'pr' | 'adhoc' | 'workflow'>('pr');
+  const [mode, setModeState] = useState<CmdMode>('pr');
   const [workflows, setWorkflows] = useState<{ id: string; title: string; stages: { id: string; title: string }[] }[]>([]);
   const [wf, setWf] = useState('');
   const [attachTo, setAttachTo] = useState<Attach>({ skills: [], hooks: [] }); // skills / hooks for the request (decision:wf2.hooks-and-skills)
-  const setMode = (m: 'pr' | 'adhoc' | 'workflow') => { setModeState(m); try { localStorage.setItem('wf-cmd-mode', m); } catch { /* ignore */ } };
+  const setMode = (m: CmdMode) => { setModeState(m); try { localStorage.setItem('wf-cmd-mode', m); } catch { /* ignore */ } };
   const [fresh, setFresh] = useState(false); // clear context first, when the target is a live conversation
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -75,6 +77,8 @@ export function CommandBox() {
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p') { e.preventDefault(); if (req) setReq(null); else show(here()); }
+      // ⌘M (Ctrl+M in a browser, where ⌘M minimizes the window): the box in Remember mode — paste, and Wye files it
+      else if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'm') { e.preventDefault(); if (req && mode === 'remember') setReq(null); else { show({ ...here(), mode: 'remember' }); setModeState('remember'); } }
       // Escape leaves a recalled command behind first, and closes the box on the next press (task:palette-recent-commands)
       else if (e.key === 'Escape' && req) { if (at >= 0) { e.preventDefault(); e.stopPropagation(); setAt(-1); setText(''); } else setReq(null); }
     };
@@ -92,11 +96,12 @@ export function CommandBox() {
         const active = (j.sessions as Live[]).filter(s => s.mode === 'chat' && s.live).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
         setSessions(active); setDefaults(j.defaults ?? { cwd: '', wye: '' });
         let remembered = '', lastAgent = '', lastMode = ''; try { remembered = localStorage.getItem(`wf-cwd-${product}`) ?? ''; lastAgent = localStorage.getItem(`wf-agent-${product}`) ?? ''; lastMode = localStorage.getItem('wf-cmd-mode') ?? ''; } catch { /* ignore */ }
-        if (lastMode === 'adhoc' || lastMode === 'pr' || lastMode === 'workflow') setModeState(lastMode);
+        if (req.mode) setModeState(req.mode);
+        else if (lastMode === 'adhoc' || lastMode === 'pr' || lastMode === 'workflow' || lastMode === 'remember') setModeState(lastMode);
         // on a PR page with a live conversation the box talks to that PR (decision:wf2.pr-talk); else a clean slate (rule:clean-slate)
         const here = m ? index[docNodeOf(index, m[2]) ?? ''] : undefined;
         const mine = here?.kind === 'pr' ? active.find(s => (here.sessions ?? []).includes(s.id)) : undefined;
-        if (mine) { setTarget(mine.id); setModeState('adhoc'); } else setTarget('new');
+        if (mine && !req.mode) { setTarget(mine.id); setModeState('adhoc'); } else setTarget('new');
         setCwd(c => c || remembered || j.defaults?.cwd || j.defaults?.wye || '');
         if (AGENTS.some(a => a.id === lastAgent)) setAgent(lastAgent);
       } catch { setSessions([]); setTarget('new'); }
@@ -115,7 +120,8 @@ export function CommandBox() {
   if (!req) return null;
   const isPr = mode === 'pr';
   const isWf = mode === 'workflow';
-  const isNew = isPr || target === 'new' || target === 'runner';
+  const isRem = mode === 'remember';
+  const isNew = isPr || isRem || target === 'new' || target === 'runner';
   const run = async () => {
     const instruction = text.trim(); if ((!instruction && !attach.images.length) || busy) return;
     // A workflow on what you are looking at (decision:wf2.workflow-is-a-skill). With no node under the cursor the idea
@@ -139,6 +145,15 @@ export function CommandBox() {
       if (!r.ok) { setMsg(j.message ?? 'the run could not be started'); return; }
       remember(instruction);
       setReq(null); open(on); return;
+    }
+    if (isRem) {
+      // Remember (skill:remember): a librarian files what was pasted as knowledge, linked to what exists — no PR
+      setBusy(true); setMsg(null);
+      const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ remember: true, instruction, refs: req.refs ?? [], source: { ...(req.source ?? {}) }, images: attach.images }) });
+      const j = await r.json().catch(() => ({})); setBusy(false);
+      if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not start'); return; }
+      remember(instruction);
+      setReq(null); open(`session:${j.id}`); return;
     }
     if (isPr) {
       // a Prompt Request (decision:wf2.cmd-modes): the page is created as draft, a librarian refines it (decision:exec.librarian-on-the-host)
@@ -187,14 +202,15 @@ export function CommandBox() {
   return createPortal(
     <div className="modal-back palette-back" onMouseDown={e => { if (e.target === e.currentTarget) setReq(null); }}>
       <div className="modal palette" role="dialog" aria-label="Command" onDragOver={attach.onDragOver} onDrop={attach.onDrop}>
-        <textarea ref={box} className="palette-in" value={text} rows={text.split('\n').length > 3 ? 6 : 3} placeholder={isWf ? 'The idea, in a line or two — its first line names the document when there is nothing under the cursor (Enter runs the workflow)' : isPr ? 'What do you want? — improve …, allow …, change … (Enter starts the PR; Shift+Enter for a new line)' : isNew ? 'What should the agent do? — fix …, build …, change … (Enter to run, Shift+Enter for a new line; paste a screenshot too)' : 'Your next message to that conversation (Enter to send, Shift+Enter for a new line; paste a screenshot too)'} onChange={e => setText(e.target.value)} onPaste={attach.onPaste} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (e.altKey) later(); else run(); } else history(e); }} disabled={busy} />
+        <textarea ref={box} className="palette-in" value={text} rows={text.split('\n').length > 3 ? 6 : 3} placeholder={isRem ? 'Paste what Wye should remember — meeting notes, a message, an update, facts about a person or a project (Enter to file it, Shift+Enter for a new line)' : isWf ? 'The idea, in a line or two — its first line names the document when there is nothing under the cursor (Enter runs the workflow)' : isPr ? 'What do you want? — improve …, allow …, change … (Enter starts the PR; Shift+Enter for a new line)' : isNew ? 'What should the agent do? — fix …, build …, change … (Enter to run, Shift+Enter for a new line; paste a screenshot too)' : 'Your next message to that conversation (Enter to send, Shift+Enter for a new line; paste a screenshot too)'} onChange={e => setText(e.target.value)} onPaste={attach.onPaste} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (e.altKey && !isRem) later(); else run(); } else history(e); }} disabled={busy} />
         <AttachStrip images={attach.images} remove={attach.remove} />
         {refs.length > 0 && <div className="palette-ctx"><span className="muted">with</span>{refs.map(id => <SmartTag key={id} id={id} />)}{req.source?.blockId && <span className="muted">· this block</span>}</div>}
         <div className="palette-row palette-intent" role="radiogroup" aria-label="Mode">
           <button type="button" className={`chip ${isPr ? 'on' : ''}`} onClick={() => setMode('pr')} title="A Prompt Request: a page under PRs, refined with Wye until it is clear, approved by you, then built">PR</button>
           <button type="button" className={`chip ${mode === 'adhoc' ? 'on' : ''}`} onClick={() => setMode('adhoc')} title="A conversation with a coding agent on what you are looking at; nothing is written unless you ask">Ad-hoc</button>
           <button type="button" className={`chip ${isWf ? 'on' : ''}`} onClick={() => setMode('workflow')} title="Run a workflow on what you are looking at: each stage produces its document and waits for you to advance it">Workflow</button>
-          <span className="muted palette-note">{isPr ? 'a request: refine → approve → build' : isWf ? 'stage by stage, you advance each one' : 'a conversation, no PR'}</span>
+          <button type="button" className={`chip ${isRem ? 'on' : ''}`} onClick={() => setMode('remember')} title="Paste information: Wye files it as knowledge in the right documents, linked to what it already knows, and you review it in the Inbox (⌘M)">Remember</button>
+          <span className="muted palette-note">{isPr ? 'a request: refine → approve → build' : isRem ? 'filed as knowledge, linked to what Wye knows · you review it in the Inbox' : isWf ? 'stage by stage, you advance each one' : 'a conversation, no PR'}</span>
         </div>
         {isWf && <div className="palette-row">
           <label className="palette-to"><span className="muted">run</span>
@@ -205,7 +221,7 @@ export function CommandBox() {
           </label>
           <span className="muted palette-note">{(() => { const w = workflows.find(x => x.id === wf); const on = refsOf(req)[0]; return w ? `${on ? `on ${on}` : 'the first line becomes a new document'} · stage 1 of ${w.stages.length}: ${w.stages[0]?.title ?? ''}` : ''; })()}</span>
         </div>}
-        {!isPr && !isWf && <div className="palette-row">
+        {!isPr && !isWf && !isRem && <div className="palette-row">
           <label className="palette-to"><span className="muted">to</span>
             <select value={target} onChange={e => setTarget(e.target.value)} title="where the message goes">
               {sessions.length > 0 && <optgroup label="active conversations">{sessions.map(s => <option key={s.id} value={s.id}>{label(s)}</option>)}</optgroup>}
@@ -224,14 +240,14 @@ export function CommandBox() {
           </div>
         )}
         <div className="palette-row">
-          {!isPr && !isWf && target === 'new' && <input className="palette-cwd" value={cwd} placeholder={defaults.cwd || 'working folder: the code repository the agent works in'} onChange={e => setCwd(e.target.value)} spellCheck={false} title="working folder" />}
+          {!isPr && !isWf && !isRem && target === 'new' && <input className="palette-cwd" value={cwd} placeholder={defaults.cwd || 'working folder: the code repository the agent works in'} onChange={e => setCwd(e.target.value)} spellCheck={false} title="working folder" />}
           {!isNew && !isWf && <span className="muted palette-note">{fresh ? 'restarts that conversation\u2019s agent from nothing — after its current turn when one is open — then sends this as its first message' : 'goes into that conversation as your next message; the agent keeps its context and folder'}</span>}
           {target === 'runner' && <span className="muted palette-note">queued until a runner for that agent picks it up</span>}
-          {isNew && !isWf && <button className="palette-later" onClick={later} disabled={!text.trim() || busy} title="Keep it as a task on the backlog — unassigned, on the Work view — without sending it to anyone (⌥↵)">Later</button>}
-          <button className="palette-go" onClick={run} disabled={(!text.trim() && !attach.images.length && !(isWf && refsOf(req).length)) || busy}>{busy ? 'Sending…' : isWf ? 'Run ↵' : isPr ? 'Start the PR ↵' : !isNew ? (fresh ? 'Restart & send ↵' : 'Send ↵') : target === 'runner' ? 'Queue ↵' : 'Talk ↵'}</button>
+          {isNew && !isWf && !isRem && <button className="palette-later" onClick={later} disabled={!text.trim() || busy} title="Keep it as a task on the backlog — unassigned, on the Work view — without sending it to anyone (⌥↵)">Later</button>}
+          <button className="palette-go" onClick={run} disabled={(!text.trim() && !attach.images.length && !(isWf && refsOf(req).length)) || busy}>{busy ? 'Sending…' : isWf ? 'Run ↵' : isRem ? 'Remember ↵' : isPr ? 'Start the PR ↵' : !isNew ? (fresh ? 'Restart & send ↵' : 'Send ↵') : target === 'runner' ? 'Queue ↵' : 'Talk ↵'}</button>
         </div>
         {msg && <p className="bad palette-msg">{msg}</p>}
-        <p className="muted palette-hint">⌘P opens this anywhere · Send to agent on any block opens it with the block · the conversation opens in the right column · Later (⌥↵) keeps it as a task for anyone{recent.length > 0 ? ' · ↑ what you asked before' : ''}</p>
+        <p className="muted palette-hint">⌘P opens this anywhere · ⌘M opens it to remember · Send to agent on any block opens it with the block · the conversation opens in the right column · Later (⌥↵) keeps it as a task for anyone{recent.length > 0 ? ' · ↑ what you asked before' : ''}</p>
       </div>
     </div>, document.body);
 }

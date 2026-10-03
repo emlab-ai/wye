@@ -39,6 +39,7 @@ describe('skills', () => {
   });
   it('every base skill has its prompt file, and the request skills include revisiting an old page', () => {
     for (const s of BASE_SKILLS) expect(existsSync(path.join(__dirname, '../../../..', s.file)), s.file).toBe(true);
+    expect(BASE_SKILLS.find(s => s.slug === 'remember')).toMatchObject({ role: 'librarian', file: 'prompts/remember.md' });
     expect(BASE_SKILLS.find(s => s.slug === 'revisit-request')).toMatchObject({ role: 'librarian', takes: 'pr', file: 'prompts/revisit-request.md' });
   });
   it('attached skills come from the PR frontmatter, the refs\' type cards and the extras, once each', () => {

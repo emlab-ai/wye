@@ -26,6 +26,7 @@ export const BASE_SKILLS: { slug: string; title: string; role: SkillRole; file: 
   { slug: 'define-tests', title: 'Define how a requirement is tested', role: 'librarian', file: 'prompts/define-tests.md', takes: 'req', writes: ['test', 'ui-test', 'question'] },
   { slug: 'analyse-request', title: 'Analyse a request — changes, code, risks, contradictions', role: 'librarian', file: 'prompts/analyse-request.md', takes: 'pr', writes: ['constraint', 'question'] },
   { slug: 'revisit-request', title: 'Revisit a request with the current approach', role: 'librarian', file: 'prompts/revisit-request.md', takes: 'pr', writes: ['req', 'decision', 'question', 'test'] },
+  { slug: 'remember', title: 'Remember what the person pasted', role: 'librarian', file: 'prompts/remember.md', takes: '*', writes: ['fact', 'decision', 'req', 'question', 'task', 'note'] },
   { slug: 'import', title: 'Import a document — extract its types, requirements, facts and decisions', role: 'worker', file: 'prompts/import.md', takes: 'module', writes: ['type', 'req', 'decision', 'constraint', 'entity', 'fact', 'task', 'question'] },
   { slug: 'import-code', title: 'Import a module from its code — requirements, rules, entities, operations, tests', role: 'worker', file: 'prompts/import-code.md', takes: 'module', writes: ['req', 'rule', 'entity', 'state', 'op', 'lib', 'test', 'question'] },
   // the stages of workflow:feature (decision:wf2.workflow-is-a-skill): each one an editable instruction

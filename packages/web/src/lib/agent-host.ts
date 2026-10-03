@@ -135,9 +135,11 @@ export async function buildPrompt(product: string, s: Session, wfUrl: string, pr
     return parts.join('\n');
   }
   if (s.role === 'librarian') {
-    // the librarian (decision:exec.wye-is-a-role): its request page, its protocol, its reads — no code, no folder
-    parts.push(refiningNote(s.prDoc), librarianProtocol());
-    parts.push(`\n## How to work\n- The Wye CLI is \`wye\` (WYE_URL=${wfUrl}, WYE_PRODUCT=${product}). Read: \`wye packet --for "<text>"\`, \`wye context "<text>"\`, \`wye resolve <link|id>\`, \`wye node <id>\`, \`wye doc <product/project/doc>\`, \`wye work list\`, \`wye impact <id> --after "<text>"\`. Propose: \`wye propose <product/project/doc> --pr ${s.prDoc ?? '<pr ref>'}\` with a yaml card on stdin (\`--file f\` works too). Report: \`wye session log ${s.id} "<line>"\`, \`wye verdicts <id …>\`, \`wye pr ${s.prDoc ?? '<pr ref>'}\`; end with \`wye session done ${s.id} "<summary>"\`.\n- The person replies here; their answers to your questions are decisions — each goes into the one \`decision:\` block for that choice (by: the person, evidence: session:${s.id}): refine it in place when it exists, \`wye propose\` it only when it does not.`);
+    // the librarian (decision:exec.wye-is-a-role): its request page, its protocol, its reads — no code, no folder;
+    // a Remember conversation has no request page: the remember skill under Skills is its whole brief
+    if (!s.prDoc && s.skills?.includes('skill:remember')) parts.push(`\n## This conversation\nThe person pasted the instruction above for Wye to remember. Follow the skill **Remember what the person pasted** under Skills: file it as knowledge — the right blocks in their home documents, linked to what exists, updates and supersessions instead of duplicates — everything proposed for the person to review. There is no request page; never approve, never build, never edit code.`);
+    else parts.push(refiningNote(s.prDoc), librarianProtocol());
+    parts.push(`\n## How to work\n- The Wye CLI is \`wye\` (WYE_URL=${wfUrl}, WYE_PRODUCT=${product}). Read: \`wye packet --for "<text>"\`, \`wye context "<text>"\`, \`wye resolve <link|id>\`, \`wye node <id>\`, \`wye doc <product/project/doc>\`, \`wye work list\`, \`wye impact <id> --after "<text>"\`. Propose: \`wye propose <product/project/doc>${s.prDoc ? ` --pr ${s.prDoc}` : ''}\` with a yaml card on stdin (\`--file f\` works too). Report: \`wye session log ${s.id} "<line>"\`, \`wye verdicts <id …>\`${s.prDoc ? `, \`wye pr ${s.prDoc}\`` : ''}; end with \`wye session done ${s.id} "<summary>"\`.\n- The person replies here; their answers to your questions are decisions — each goes into the one \`decision:\` block for that choice (by: the person, evidence: session:${s.id}): refine it in place when it exists, \`wye propose\` it only when it does not.`);
     return parts.join('\n');
   }
   parts.push(prDocNote(s.prDoc, s));

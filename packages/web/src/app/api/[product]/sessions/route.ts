@@ -25,9 +25,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ product
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const body = (await req.json()) as { agent?: string; instruction?: string; refs?: string[]; source?: Record<string, string>; mode?: 'run' | 'chat'; cwd?: string; pr?: boolean; prRef?: string; images?: { name?: string; dataUrl: string }[]; role?: 'worker' | 'librarian'; skills?: string[]; hooks?: string[] };
+  const body = (await req.json()) as { agent?: string; instruction?: string; refs?: string[]; source?: Record<string, string>; mode?: 'run' | 'chat'; cwd?: string; pr?: boolean; prRef?: string; remember?: boolean; images?: { name?: string; dataUrl: string }[]; role?: 'worker' | 'librarian'; skills?: string[]; hooks?: string[] };
   // Ask Wye (req:exec.ask-wye): a librarian session — claude on the host with the librarian prompt, in the Wye repo
-  const role = body.pr === true || body.role === 'librarian' ? 'librarian' : 'worker';
+  // Remember (skill:remember): what the person pasted, filed as knowledge by a librarian — a conversation, no request page
+  const remember = body.remember === true;
+  const role = body.pr === true || body.role === 'librarian' || remember ? 'librarian' : 'worker';
   const agent = role === 'librarian' ? 'claude-code' : AGENTS.find(a => a.id === body.agent)?.id;
   const instruction = (body.instruction ?? '').trim();
   if (!agent) return NextResponse.json({ error: 'invalid', message: 'unknown agent' }, { status: 422 });
@@ -40,9 +42,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     if (!cwd) return NextResponse.json({ error: 'invalid', message: 'a working folder is required' }, { status: 422 });
     try { if (!(await stat(cwd)).isDirectory()) throw new Error(); } catch { return NextResponse.json({ error: 'invalid', message: `folder not found: ${cwd}` }, { status: 422 }); }
   }
-  const s = await createSession(p.dir, product, { agent, instruction: instruction || '(image)', refs: (body.refs ?? []).filter(r => typeof r === 'string').slice(0, 50), source: body.source ?? {}, mode, cwd: cwd || undefined, images, role, skills: (body.skills ?? []).filter(x => /^skill:[A-Za-z0-9_.\-]+$/.test(x)), hooks: (body.hooks ?? []).filter(x => /^hook:[A-Za-z0-9_.\-]+$/.test(x)) });
+  const s = await createSession(p.dir, product, { agent, instruction: instruction || '(image)', refs: (body.refs ?? []).filter(r => typeof r === 'string').slice(0, 50), source: body.source ?? {}, mode, cwd: cwd || undefined, images, role, skills: [...(remember ? ['skill:remember'] : []), ...(body.skills ?? []).filter(x => /^skill:[A-Za-z0-9_.\-]+$/.test(x))], hooks: (body.hooks ?? []).filter(x => /^hook:[A-Za-z0-9_.\-]+$/.test(x)) });
   // a request has its page before the first message names it (rule:pr-doc); an ad-hoc conversation and a queued run have none
   const wfUrl = new URL(req.url).origin;
+  if (remember) { const started = await startChat(p.dir, product, s.id, { wfUrl }); return NextResponse.json(started ?? s, { status: 201 }); }
   if (role === 'librarian') {
     // `prRef`: refine an existing PR (its page stays; the message row on the PR head) instead of making a page
     const existing = body.prRef && (await readPrDoc(product, body.prRef)) ? body.prRef : null;

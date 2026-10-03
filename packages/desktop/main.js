@@ -133,7 +133,8 @@ function buildMenu() {
     { label: 'File', submenu: [{ label: 'New window', accelerator: 'CmdOrCtrl+N', click: createWindow }, { label: 'Open in browser', click: () => shell.openExternal(win ? win.webContents.getURL() : URL_) }, { label: 'Choose checkout…', click: chooseRoot }, { type: 'separator' }, isMac ? { role: 'close' } : { role: 'quit' }] },
     { label: 'Edit', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },
     { label: 'View', submenu: [{ role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' }, { type: 'separator' }, { label: 'Back', accelerator: 'CmdOrCtrl+[', click: () => win && win.webContents.navigationHistory.canGoBack() && win.webContents.navigationHistory.goBack() }, { label: 'Forward', accelerator: 'CmdOrCtrl+]', click: () => win && win.webContents.navigationHistory.canGoForward() && win.webContents.navigationHistory.goForward() }, { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'togglefullscreen' }] },
-    { label: 'Window', submenu: [{ role: 'minimize' }, { role: 'zoom' }, ...(isMac ? [{ type: 'separator' }, { role: 'front' }] : [])] },
+    // ⌘M belongs to Wye (the command box in Remember mode); Minimize moves to ⌥⌘M
+    { label: 'Window', submenu: [{ role: 'minimize', accelerator: 'CmdOrCtrl+Alt+M' }, { role: 'zoom' }, ...(isMac ? [{ type: 'separator' }, { role: 'front' }] : [])] },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
