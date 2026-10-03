@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { mkdtemp, mkdir, writeFile, utimes, rm, rename, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { refresh, getStore } from './refresh';
+import { refresh, getStore, ensureFresh, backgroundDone } from './refresh';
 import { search, state } from './store';
 import type { Product } from '../products';
 import type { GraphData } from '../graph';
@@ -72,6 +72,21 @@ describe('refresh', () => {
   it('indexes no code for a product that names no repo', async () => {
     delete p.meta.repo;   // bin/wye.js exists in the repo the app runs from: the old fallback would index it
     expect((await refresh(p, g, { embed: fakeEmbed, listCode: async () => ['bin/wye.js'] })).changed.code).toBe(0);
+  });
+  it('two refreshes at once never write a passage twice', async () => {
+    await Promise.all([refresh(p, g, { embed: fakeEmbed, listCode }), refresh(p, g, { embed: fakeEmbed, listCode })]);
+    const s = await getStore(p);
+    expect(await s.table.countRows()).toBe((await state(s)).size);
+  });
+  it('a query waits for blocks and documents only; code and sessions follow in the background', async () => {
+    let release!: () => void; const gate = new Promise<void>(r => { release = r; });
+    const slowCode = async () => { await gate; return ['lib/invite.ts']; };
+    const st = await ensureFresh(p, g, { embed: fakeEmbed, listCode: slowCode });
+    expect(st.indexing).toBe(true);
+    const sources = async () => [...(await state(await getStore(p))).keys()].map(id => id.split(':')[0]);
+    expect(new Set(await sources())).toEqual(new Set(['node', 'doc']));
+    release(); await backgroundDone(p);
+    expect(new Set(await sources())).toEqual(new Set(['node', 'doc', 'code', 'session']));
   });
   it('skips code when the product has no repo folder', async () => {
     p.meta.repo = path.join(dir, 'nope');

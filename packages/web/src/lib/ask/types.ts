@@ -7,7 +7,7 @@ export interface ChunkRow { id: string; source: Source; ref: string; title: stri
 export interface Hit extends ChunkRow { score: number; via?: string; href: string | null }
 export interface Citation { n: number; ref: string; source: Source; title: string; href: string | null; snippet: string }
 export type AskEvent =
-  | { type: 'results'; hits: Hit[]; degraded?: string }
+  | { type: 'results'; hits: Hit[]; degraded?: string; indexing?: boolean }
   | { type: 'fast.delta'; text: string }
   | { type: 'fast.done'; citations: Citation[] }
   | { type: 'step'; text: string }

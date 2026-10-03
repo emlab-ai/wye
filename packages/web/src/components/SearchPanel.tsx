@@ -21,7 +21,7 @@ type Pick = { source: Source; ref: string };
 export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { product } = usePeek(); const router = useRouter();
   const [q, setQ] = useState(''); const [tab, setTab] = useState<Source | 'all'>('all');
-  const [hits, setHits] = useState<Hit[]>([]); const [degraded, setDegraded] = useState(''); const [sel, setSel] = useState(0);
+  const [hits, setHits] = useState<Hit[]>([]); const [degraded, setDegraded] = useState(''); const [indexing, setIndexing] = useState(false); const [sel, setSel] = useState(0);
   const [preview, setPreview] = useState<Pick | null>(null); const [showDeep, setShowDeep] = useState(false);
   const { state, ask, reset } = useAsk(product);
   const input = useRef<HTMLInputElement>(null);
@@ -33,9 +33,9 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
     const t = setTimeout(() => {
       const sp = new URLSearchParams({ q: text, limit: '40' });
       if (kind === 'page') sp.set('source', 'doc'); else if (kind) sp.set('kind', kind); else if (tab !== 'all') sp.set('source', tab);
-      fetch(`/api/${product}/search?${sp}`).then(r => r.json()).then((j: { hits?: Hit[]; degraded?: string }) => {
+      fetch(`/api/${product}/search?${sp}`).then(r => r.json()).then((j: { hits?: Hit[]; degraded?: string; indexing?: boolean }) => {
         const hs = j.hits ?? [];
-        setHits(hs); setDegraded(j.degraded ?? ''); setSel(0);
+        setHits(hs); setDegraded(j.degraded ?? ''); setIndexing(!!j.indexing); setSel(0);
       }).catch(() => setHits([]));
     }, 120);
     return () => clearTimeout(t);
@@ -71,7 +71,7 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
               : <button type="button" className="ask-more" onClick={() => setShowDeep(true)}>▸ Deeper answer {state.deepDone ? '(ready)' : '(writing…)'}</button>)}
             {state.errors.length > 0 && !state.fast && !state.deep && state.done && <p className="muted">Couldn’t write an answer — the sources are below.</p>}
           </section>)}
-        <div className="search-tabs">{TABS.map(t => <button key={t.key} type="button" className={tab === t.key ? 'on' : ''} onClick={() => setTab(t.key)}>{t.label}</button>)}{degraded && <span className="muted"> · keyword search only</span>}</div>
+        <div className="search-tabs">{TABS.map(t => <button key={t.key} type="button" className={tab === t.key ? 'on' : ''} onClick={() => setTab(t.key)}>{t.label}</button>)}{degraded && <span className="muted"> · keyword search only</span>}{indexing && <span className="muted"> · still indexing code and sessions</span>}</div>
         <div className="search-body">
           <ul className="search-hits">
             {list.map((h, i) => (

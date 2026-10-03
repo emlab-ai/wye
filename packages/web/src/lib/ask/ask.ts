@@ -8,7 +8,7 @@ import { Citations, citationOf, citedNumbers } from './citations';
 import { fastPrompt, runFast } from './fast';
 import { runDeep } from './deep';
 
-export type AskEnvLike = { ctx: RetrieveCtx; productDir: string; codeRoot: string; degraded?: string };
+export type AskEnvLike = { ctx: RetrieveCtx; productDir: string; codeRoot: string; degraded?: string; indexing?: boolean };
 export const DEEP_MAX_PER_PRODUCT = 2;
 const deepRunning = new Map<string, number>();
 
@@ -47,7 +47,7 @@ export async function* ask(env: AskEnvLike, req: AskRequest, o: { signal: AbortS
   try { hits = await retrieve(env.ctx, req.q, { expand: true, rerank: true, limit: 25, budgetChars: 48000 }); }
   catch (e) { yield { type: 'error', lane: 'retrieve', message: String(e instanceof Error ? e.message : e) }; }
   if (o.signal.aborted) return;
-  yield { type: 'results', hits, ...(env.degraded ? { degraded: env.degraded } : {}) };
+  yield { type: 'results', hits, ...(env.degraded ? { degraded: env.degraded } : {}), ...(env.indexing ? { indexing: true } : {}) };
   if (o.signal.aborted) return;
   const cites = new Citations(); for (const h of hits) cites.add(citationOf(h));
   const ch = channel<AskEvent>();

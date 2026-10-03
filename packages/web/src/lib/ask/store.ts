@@ -46,7 +46,7 @@ export async function apply(s: Store, remove: string[], add: StoredRow[]): Promi
   if (add.length) await s.table.add(add.map(r => ({ id: r.id, source: r.source, scope: r.scope, ref: r.ref, title: r.title, text: r.text, body: `${r.title}\n${r.text}`, nodes: JSON.stringify(r.nodes), hash: r.hash, model: r.model, vector: r.vector })));
   if (!add.length && !gone.length) return;
   if (!s.hasFts && add.length) { await s.table.createIndex('body', { config: lancedb.Index.fts({ withPosition: false }) }); s.hasFts = true; }
-  else await s.table.optimize({ cleanupOlderThan: new Date() });    // folds new rows into the indexes, drops old versions
+  else await s.table.optimize({ cleanupOlderThan: new Date(Date.now() - 10 * 60_000) });   // folds new rows into the indexes; old versions stay 10 min for reads still on them
 }
 
 const toChunk = (r: Record<string, unknown>): ChunkRow => ({ id: String(r.id), source: r.source as Source, ref: String(r.ref), title: String(r.title), text: String(r.text), nodes: JSON.parse(String(r.nodes || '[]')) });

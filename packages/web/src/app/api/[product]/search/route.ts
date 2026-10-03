@@ -16,6 +16,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ product:
   const sources = (sp.get('source') ?? '').split(',').filter((s): s is Source => (SOURCES as string[]).includes(s));
   try {
     const hits = await retrieve(env.ctx, q, { limit: Math.min(60, Number(sp.get('limit')) || 30), sources: sources.length ? sources : undefined, kind: kind || undefined, expand: sp.get('expand') === '1', rerank, all: sp.get('all') === '1', asOf: sp.get('asOf') });
-    return NextResponse.json({ hits, ...(env.degraded ? { degraded: env.degraded } : {}) });
+    return NextResponse.json({ hits, ...(env.degraded ? { degraded: env.degraded } : {}), ...(env.indexing ? { indexing: true } : {}) });
   } catch (err) { return NextResponse.json({ error: 'search_failed', message: err instanceof Error ? err.message : String(err) }, { status: 500 }); }
 }
