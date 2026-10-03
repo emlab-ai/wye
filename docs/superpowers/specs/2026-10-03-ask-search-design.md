@@ -34,11 +34,9 @@ A chunk's `id` is `<source>:<ref>`; `ref` is what a citation links to.
 
 **Freshness.** `refresh(product)` walks the four sources, hashes each chunk's text, and rewrites only chunks whose
 hash changed (deletes vanished ones). It runs lazily before a query when the graph mtime, a doc mtime, the repo's
-`git ls-files` mtime set or the sessions dir mtime moved since the last refresh, and in the background after
-`wye build`. Embedding reuses `semantic.ts`'s embedder (moved to `lib/ask/embed.ts`, shared); the existing
-`embeddings.json` is migrated once into `vectors` and `semantic.ts`'s `search` is re-pointed at the new index, so
-`/context`, `explain` and `packet --for` all gain doc/code/session recall for free (they keep a `sources` filter,
-default `node`, so their behaviour is unchanged until we choose otherwise).
+`git ls-files` mtime set or the sessions dir mtime moved since the last refresh. Embedding reuses `semantic.ts`'s
+embedder, moved to `lib/ask/embed.ts` and shared by both. `semantic.ts` (`/context`, `explain`, `packet --for`)
+keeps its own node-only index for now; moving it onto `search.db` is a later, separate change.
 
 Vector search is a brute-force dot product over the blobs held in memory per product (a few tens of thousands of
 384-dim vectors is a few ms). When a product outgrows that, `sqlite-vec` is the swap — not now.
@@ -77,8 +75,9 @@ cite as `[[ref]]`. Tools:
 Its stream is parsed as it arrives: each `tool_use` becomes a `step` event (`Searching "invite flow" in code`), and
 each `tool_result` is scanned for refs (chunk ids from `ask-search` JSON, node ids, `Read` file paths with line
 ranges, doc paths, session ids) → `found` events, deduped. The final text becomes `answer.deep`, its `[[ref]]`
-citations renumbered into the same citation list as the fast lane. Turn cap 20, timeout 120 s; on timeout it is
-asked (one more turn) to answer with what it has.
+citations renumbered into the same citation list as the fast lane. Cap: 20 tool calls or 120 s — then the process
+is stopped and the lane ends with `deep.done` carrying whatever text it wrote and a note that it was cut short; the
+sources it found stay listed.
 
 **Events** (one SSE stream, `POST /api/<p>/ask`, body `{ q, history?, lanes? }`):
 
@@ -167,7 +166,7 @@ The current `SearchPanel` keeps its frame (veil, input, hits list, preview, keyb
 ## 8. Delivery
 
 1. **A1 — index + retriever**: `lib/ask/{index,embed,chunk,retrieve}.ts`, `/search`, `wye ask-search`,
-   `semantic.ts` re-pointed; unit tests + the eval suite's retrieval half.
+   `semantic.ts` on the shared embedder; unit tests + the eval suite's retrieval half.
 2. **A2 — answer engine**: `lib/ask/ask.ts`, both lanes, `/ask` SSE, `wye ask`, `prompts/ask-fast.md`,
    `prompts/ask-deep.md`; API tests with the stub.
 3. **A3 — the panel**: `SearchPanel` rebuilt around results + answer + sources found + follow-ups; UI test.
