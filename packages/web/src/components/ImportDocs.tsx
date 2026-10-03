@@ -54,7 +54,8 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
   const router = useRouter();
   const [mode, setMode] = useState<'md' | 'code'>('md');
   const project = initialProject;   // the sheet's Add to says the folder; no picker here
-  const [parent, setParent] = useState(defaultParent);
+  // the parent is the dialog's "Add to" — read live, never copied: a copy kept the choice from when Import was opened
+  const parent = defaultParent;
   const [analyse, setAnalyse] = useState(true);
   const [brief, setBrief] = useState('');
   const [pasted, setPasted] = useState('');   // a document typed or pasted in, imported as one page
@@ -69,8 +70,7 @@ export function ImportDocs({ product, project: initialProject, projects, docs, d
   const [pathResult, setPathResult] = useState<PathResult | null>(null);
   const fileIn = useRef<HTMLInputElement>(null); const dirIn = useRef<HTMLInputElement>(null);
   useEffect(() => { if (dirIn.current) dirIn.current.setAttribute('webkitdirectory', ''); }, []);
-  const parentProject = docs.find(d => d.slug === parent)?.project;
-  const effectiveProject = parentProject ?? project;
+  const effectiveProject = project;   // the dialog already resolved the parent's folder (slugs repeat across folders)
   const mdCount = picked.filter(p => /\.(md|markdown)$/i.test(p.path)).length;
   const count = mdCount + (pasted.trim() ? 1 : 0);
 
