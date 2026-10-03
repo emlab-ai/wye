@@ -14,11 +14,18 @@ export type DeepOpts = { signal: AbortSignal; product: string; productDir: strin
 export function deepArgs(o: { product: string; productDir: string; codeRoot: string; wfUrl: string }): string[] {
   const brief = readFileSync(path.join(REPO_ROOT, 'prompts/ask-deep.md'), 'utf8').replaceAll('{{product}}', o.product).replaceAll('{{code}}', o.codeRoot).replaceAll('{{docs}}', o.productDir);
   return ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--model', ASK_MODEL, '--append-system-prompt', brief,
+    '--tools', 'Bash,Read,Grep,Glob', '--permission-mode', 'default', '--strict-mcp-config',
     '--add-dir', o.codeRoot, '--add-dir', o.productDir,
     '--allowedTools', 'Bash(wye:*)', 'Read', 'Grep', 'Glob',
     '--disallowedTools', 'Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash(git:*)', 'Bash(rm:*)', 'Bash(npm:*)', 'Bash(node:*)', 'Agent', 'Task', 'WebFetch', 'WebSearch'];
 }
 
+// the agent's environment: wye pointed at this product, read-only, and never inside someone's session
+export function deepEnv(o: { product: string; wfUrl: string }, base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const e: NodeJS.ProcessEnv = { ...base, WYE_URL: o.wfUrl, WYE_PRODUCT: o.product, WYE_READONLY: '1' };
+  for (const k of ['WYE_SESSION', 'WF_SESSION']) delete e[k];
+  return e;
+}
 export async function* runDeep(q: string, history: { q: string; a: string }[], o: DeepOpts): AsyncGenerator<DeepEvent> {
   const max = o.maxTools ?? 20; let tools = 0; let cut = false; let streamed = false;
   const inner = new AbortController(); const stop = () => inner.abort(); o.signal.addEventListener('abort', stop, { once: true });
@@ -26,7 +33,7 @@ export async function* runDeep(q: string, history: { q: string; a: string }[], o
   const roots = { code: o.codeRoot, product: o.productDir };
   const prompt = `${history.length ? `Earlier in this conversation:\n${history.map(x => `Q: ${x.q}\nA: ${x.a}`).join('\n\n')}\n\n` : ''}Question: ${q}`;
   try {
-    for await (const l of spawnClaude(deepArgs(o), prompt, { signal: inner.signal, cwd: existsSync(o.codeRoot) ? o.codeRoot : undefined, env: { ...process.env, WYE_URL: o.wfUrl, WYE_PRODUCT: o.product } })) {
+    for await (const l of spawnClaude(deepArgs(o), prompt, { signal: inner.signal, cwd: existsSync(o.codeRoot) ? o.codeRoot : undefined, env: deepEnv(o) })) {
       const content = ((l.message as { content?: unknown[] } | undefined)?.content ?? []) as Record<string, unknown>[];
       if (l.type === 'assistant') for (const c of content) if (c.type === 'tool_use') {
         const input = (c.input ?? {}) as Record<string, unknown>;

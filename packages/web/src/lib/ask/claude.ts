@@ -5,7 +5,7 @@ import { spawn } from 'node:child_process';
 export async function* spawnClaude(args: string[], stdin: string, opts: { signal: AbortSignal; env?: NodeJS.ProcessEnv; cwd?: string; timeoutMs?: number }): AsyncGenerator<Record<string, unknown>> {
   const bin = process.env.WYE_CLAUDE_BIN || 'claude';
   const quote = (a: string) => `'${a.replace(/'/g, `'\\''`)}'`;
-  const child = spawn(`${bin} ${args.map(quote).join(' ')}`, { shell: true, cwd: opts.cwd, env: { ...process.env, ...opts.env }, stdio: ['pipe', 'pipe', 'pipe'] });
+  const child = spawn(`${bin} ${args.map(quote).join(' ')}`, { shell: true, cwd: opts.cwd, env: opts.env ?? process.env, stdio: ['pipe', 'pipe', 'pipe'] });
   const kill = () => { try { child.kill('SIGTERM'); } catch { /* gone */ } };
   opts.signal.addEventListener('abort', kill, { once: true });
   const timer = opts.timeoutMs ? setTimeout(kill, opts.timeoutMs) : null;

@@ -623,6 +623,19 @@ function runCommand(cmd, prompt, log, cwd, productEnv, sessionId) {
   });
 }
 
+// WYE_READONLY (the Ask deep lane, decision:wf2.ask-two-lanes): only commands that read — anything that writes knowledge,
+// starts work or reports on a session is refused here, whatever the agent's tool allow-list lets through
+// (constraint:wf2.pr-is-the-persons).
+if (env('READONLY')) {
+  const GRAPH_READ = new Set(['get', 'neighbors', 'search', 'constraints', 'stats', 'reqs']);
+  const c = pos[0] === 'graph' ? pos[1] : pos[0];
+  const ok = ['ask-search', 'resolve', 'context', 'packet'].includes(c) || GRAPH_READ.has(c)
+    || (c === 'node' && pos.length === 2 && !['add', 'set', 'content', 'retype'].includes(pos[1]))
+    || (c === 'doc' && pos.length === 2 && !['create', 'write'].includes(pos[1]))
+    || (c === 'session' && pos[1] === 'show');
+  if (!ok) die(`wye is read-only here (WYE_READONLY): \`${pos.slice(0, 2).join(' ')}\` is not a read`);
+}
+
 // the graph commands (bin/wye-graph.js) work on a product folder, no app needed: `wye build`, `wye check`… and
 // `wye graph <cmd>` for the ones whose name the app-side command already has (impact, packet, verdicts)
 const GRAPH_CMDS = new Set(['build', 'check', 'site', 'get', 'neighbors', 'search', 'constraints', 'stats', 'reqs']);
