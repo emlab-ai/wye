@@ -1,0 +1,4 @@
+{"type":"system","subtype":"init"}
+{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"The invite email was dropped "}}}
+{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"in favour of links [1][3]."}}}
+{"type":"result","subtype":"success","result":"The invite email was dropped in favour of links [1][3]."}
