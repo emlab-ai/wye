@@ -8,9 +8,8 @@ import { createHash } from 'node:crypto';
 import type { GraphData, GraphNode } from './graph';
 import { HIDDEN_KINDS, isCurrent } from './graph';
 import { parseBody } from './graph';
-import { REPO_ROOT } from './products';
+import { getEmbedder, EMBED_MODEL as MODEL } from './ask/embed';
 
-const MODEL = 'Xenova/all-MiniLM-L6-v2';
 const PROSE_KEYS = ['text', 'title', 'statement', 'description', 'when', 'then', 'unless', 'q', 'choice', 'context', 'purpose', 'intent', 'note'];
 
 type Entry = { id: string; hash: string; vec: number[] };
@@ -18,17 +17,6 @@ type Cache = { model: string; entries: Record<string, Entry> };
 export type Hit = { id: string; score: number; semantic: number; keyword: number; snippet: string };
 // hits plus how many ended nodes (superseded, rejected, retired, past `until`) the filter kept out
 export type Hits = Hit[] & { hidden?: number };
-
-let embedder: Promise<(texts: string[]) => Promise<number[][]>> | null = null;
-function getEmbedder() {
-  if (!embedder) embedder = (async () => {
-    const tf = await import('@huggingface/transformers');
-    tf.env.cacheDir = path.join(REPO_ROOT, '.cache/models');
-    const fe = await tf.pipeline('feature-extraction', MODEL, { dtype: 'q8' });
-    return async (texts: string[]) => { const out = await fe(texts, { pooling: 'mean', normalize: true }); return out.tolist() as number[][]; };
-  })();
-  return embedder;
-}
 
 // The text that represents a node: its title, then its prose fields, markdown links reduced to labels.
 export function nodeText(n: GraphNode): string {
