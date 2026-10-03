@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { loadScope } from '@/lib/scope';
-import { readPrDoc, prDefinition, prReadiness, approvePr, cancelPr, reopenPr, refreshStaleScopes } from '@/lib/pr-docs';
+import { readPrDoc, prDefinition, prReadiness, approvePr, cancelPr, reopenPr, refreshStaleScopes, setRefining } from '@/lib/pr-docs';
 import { stopRefining } from '@/lib/pr-sessions';
 import { questionsOf, answerOnPage } from '@/lib/pr-questions';
 import { answerPermission, isLive, liveState, sendMessage, startChat } from '@/lib/agent-host';
-import { getSession, listSessions } from '@/lib/sessions';
+import { getSession, listSessions, createSession, setPrDoc } from '@/lib/sessions';
 import { notifyDispatch, waitingReasons } from '@/lib/dispatch';
 import { firePrApproved, rememberHooksUrl } from '@/lib/hooks-run';
 import { REPO_ROOT } from '@/lib/products';
@@ -40,7 +40,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ product:
 }
 export async function PATCH(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
-  const body = (await req.json()) as { ref?: string; status?: string; action?: 'approve' | 'cancel' | 'reopen' | 'answer' | 'attach'; by?: string; id?: string; answer?: string; skills?: string[]; hooks?: string[] };
+  const body = (await req.json()) as { ref?: string; status?: string; action?: 'approve' | 'cancel' | 'reopen' | 'answer' | 'attach' | 'revisit'; by?: string; id?: string; answer?: string; skills?: string[]; hooks?: string[] };
   if (!body.ref) return NextResponse.json({ error: 'invalid', message: 'ref required' }, { status: 422 });
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const pr = await readPrDoc(product, body.ref); if (!pr) return NextResponse.json({ error: 'not_found' }, { status: 404 });
@@ -59,6 +59,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ produc
     let told = 0;
     if (fresh.length) { const section = await skillsSection(scope, fresh, 'Skills attached to the request'); for (const s of await listSessions(scope.product.dir)) { if (s.role === 'librarian' && s.prDoc === body.ref && isLive(s.id)) { try { await sendMessage(scope.product.dir, s.id, { text: `The person attached ${fresh.join(', ')} to this request — follow ${fresh.length === 1 ? 'it' : 'them'} from here.${section}` }); told++; } catch { /* the page has them anyway */ } } } }
     return NextResponse.json({ ok: true, skills, hooks, told });
+  }
+  // revisit (skill:revisit-request): bring a page written under older rules up to the current approach — told to the
+  // request's live librarian, else a librarian started on the page with the skill attached. Form, never substance.
+  if (body.action === 'revisit') {
+    const SKILL = 'skill:revisit-request'; const wfUrl = new URL(req.url).origin;
+    const live = (await listSessions(scope.product.dir)).find(s => s.role === 'librarian' && s.prDoc === body.ref && isLive(s.id));
+    if (live) {
+      await sendMessage(scope.product.dir, live.id, { text: `Revisit this request with the current approach: follow ${SKILL} below.\n${await skillsSection(scope, [SKILL], 'Skill for this message')}` });
+      return NextResponse.json({ ok: true, session: live.id, mode: 'told' });
+    }
+    const [, project, doc] = body.ref.split('/'); const node = getFrontmatter(pr.md, 'node') ?? '';
+    const s = await createSession(scope.product.dir, product, { agent: 'claude-code', instruction: `Revisit this request with the current approach (${SKILL}).`, refs: node ? [node] : [], source: { project, doc }, mode: 'chat', role: 'librarian', skills: [SKILL] });
+    await setPrDoc(scope.product.dir, s.id, body.ref, `revisits ${body.ref}`);
+    await setRefining(scope.product.dir, product, body.ref);   // a draft goes to refining; any other status stays
+    await startChat(scope.product.dir, product, s.id, { wfUrl });
+    return NextResponse.json({ ok: true, session: s.id, mode: 'started' });
   }
   if (body.action === 'answer') {
     if (!body.id || !body.answer?.trim()) return NextResponse.json({ error: 'invalid', message: 'id and answer required' }, { status: 422 });

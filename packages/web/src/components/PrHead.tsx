@@ -37,12 +37,13 @@ export function PrHead({ product, prRef }: { product: string; prRef: string }) {
   useEffect(() => { if (!pr || !['refining', 'building', 'approved'].includes(pr.status)) return; const t = setInterval(load, 5000); return () => clearInterval(t); }, [pr, load]);
   useEffect(() => { const h = () => load(); window.addEventListener('wf:change', h); return () => window.removeEventListener('wf:change', h); }, [load]);
   if (!pr) return null;
-  const act = async (action: 'approve' | 'cancel' | 'reopen') => {
+  const act = async (action: 'approve' | 'cancel' | 'reopen' | 'revisit') => {
     setBusy(true); setMsg(''); setConfirm(false);
     const r = await fetch(`/api/${product}/pr`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ref: prRef, action, by: me || undefined }) });
     const j = await r.json(); setBusy(false);
     if (!r.ok) { setMsg(j.message ?? j.error); return; }
     if (action === 'approve') setMsg(j.stopped?.length ? 'approved — the refining conversation was told and stopped' : 'approved');
+    if (action === 'revisit') { setMsg(j.mode === 'told' ? 'Wye was asked to revisit the page' : 'Wye is revisiting the page'); if (j.session) open(`session:${j.session}`); }
     await load();
   };
   const approve = () => { if (pr.readiness.ok || confirm) act('approve'); else setConfirm(true); };
@@ -72,6 +73,7 @@ export function PrHead({ product, prRef }: { product: string; prRef: string }) {
           {CHECKS.map(c => <li key={c.key} className={rd[c.key] ? 'ok' : 'no'} title={c.why}>{rd[c.key] ? '✓' : '✗'} {c.label}</li>)}
         </ul>
         <span className="pr-acts">
+          {['draft', 'refining', 'approved'].includes(pr.status) && <button disabled={busy} onClick={() => act('revisit')} title="Bring this page up to the current approach — a Summary of what gets built, one decision per choice, requirements and tests that match the decisions — without changing what was decided (skill:revisit-request)">Revisit</button>}
           {(pr.status === 'draft' || pr.status === 'refining') && <>
             <button className="pri" disabled={busy} onClick={approve} title={rd.ok ? 'Approve: the PR is queued for a build' : 'Not everything holds yet — a second click approves anyway'}>{confirm ? `Approve anyway? ${rd.unagreed.length} unagreed, ${rd.contradicted.length} contradicted` : 'Approve'}</button>
             <button disabled={busy} onClick={() => act('cancel')}>Cancel</button>

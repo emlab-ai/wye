@@ -51,6 +51,8 @@
 //        each mapped to the file that delivers it (prompts/describe-module.md)
 //   wye pr <product/project/pr-x> [--status draft|refining|approved|building|done|failed|cancelled]   the PR's status, Definition and readiness
 //   wye pr approve|cancel|reopen <product/project/pr-x> [--by name]   the person's move (never the librarian's)
+//   wye pr revisit <product/project/pr-x>   bring a page written under older rules up to the current approach (skill:revisit-request):
+//        its live librarian is told, else one starts on the page — form changes, what was decided stays
 //   wye pr build <product/project/pr-x> [--worker claude-code|codex|runner] [--note "…"] [--force]   Build: hand the request's
 //        request task to a worker with the Definition (rule:build) — what the person's "build it" in a librarian conversation means
 //   wye skills --product p                 the product's skills (decision:wf2.hooks-and-skills): id, role, what it runs on
@@ -374,6 +376,11 @@ const commands = {
       const df = pr.definition || {};
       const j = await api('POST', `/api/${p}/work/assign`, { id: pr.task, worker: flags.worker || 'claude-code', note: flags.note || '', build: r, force: !!flags.force, by: flags.by || (env('SESSION') ? `agent:${env('SESSION')}` : undefined) });
       return out(flags.json ? j : `${r} → building: ${pr.task} → ${j.worker}${j.session ? ` (session ${j.session}, ${j.mode})` : ''}; definition ${df.total ?? '?'} block(s), ${df.agreed ?? '?'} agreed${df.defined ? '' : ` — ${df.open ?? '?'} still open, built anyway`}`);
+    }
+    if (pos[1] === 'revisit') {
+      const ref = pos[2] || die('wye pr revisit <product/project/pr-x>'); const d = docRef(ref); const r = `${d.product}/${d.project}/${d.doc}`;
+      const j = await api('PATCH', `/api/${d.product}/pr`, { ref: r, action: 'revisit' });
+      return out(flags.json ? j : `${r}: ${j.mode === 'told' ? 'its librarian was asked to revisit it' : 'a librarian is revisiting it'} (session ${j.session}) — ${WF_URL}/${d.product}/${d.project}/d/${d.doc}`);
     }
     // approve / cancel from the CLI — the person's move (a librarian never runs these)
     if (pos[1] === 'approve' || pos[1] === 'cancel' || pos[1] === 'reopen') {

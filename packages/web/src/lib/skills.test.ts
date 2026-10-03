@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import { skillDocFromPrompt, attachedSkills, skillBody, BASE_SKILLS, followSource } from './skills';
 import type { GraphData, GraphNode } from './graph';
 import type { Scope } from './scope';
@@ -34,6 +36,10 @@ describe('skills', () => {
     const v2 = skillDocFromPrompt('# P\n\nNew rules.\n', BASE_SKILLS[3], 'module:x-skills');
     expect(followSource(legacy, v2, t => t === 'Old rules.')).toContain('New rules.');
     expect(followSource(legacy, v2, () => false)).toBeNull();
+  });
+  it('every base skill has its prompt file, and the request skills include revisiting an old page', () => {
+    for (const s of BASE_SKILLS) expect(existsSync(path.join(__dirname, '../../../..', s.file)), s.file).toBe(true);
+    expect(BASE_SKILLS.find(s => s.slug === 'revisit-request')).toMatchObject({ role: 'librarian', takes: 'pr', file: 'prompts/revisit-request.md' });
   });
   it('attached skills come from the PR frontmatter, the refs\' type cards and the extras, once each', () => {
     const scope = scopeOf([node('type:req', 'id: type:req\nskills: [skill:define-tests, skill:a]'), node('type:task', 'id: type:task')]);
