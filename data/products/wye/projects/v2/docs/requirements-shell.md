@@ -53,6 +53,55 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - unless:wf2.ui.search the screen is narrow, where the preview is left out
 
 ```yaml
+- id: decision:wf2.ask-sources
+  title: Ask searches the graph, document prose, the product's code and agent sessions — not external tools
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [req:wf2.ui.search, component:search-panel]
+  part-of: module:req-shell
+```
+
+  - context:wf2.ask-sources "improve now how search works, it should work like in Glean, so user should be able to ask questions and our agents should be able to answer them, based on rag, search, graph traversal etc"; search indexed only graph nodes.
+
+  - choice:wf2.ask-sources one local index per product (`_build/search.db`, SQLite FTS5 + MiniLM vectors) over four sources: nodes, document sections with their block ids, the product repo's files split by symbol, and session turns.
+
+  - alternative:wf2.ask-sources graph only (answers miss prose and code); adding Slack / Drive / Gmail connectors (full Glean scope, deferred).
+
+```yaml
+- id: decision:wf2.ask-in-search-panel
+  title: The ⌘F panel is where a person asks — results while typing, a cited answer above them, follow-ups in place
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [req:wf2.ui.search, component:search-panel]
+  part-of: module:req-shell
+```
+
+  - choice:wf2.ask-in-search-panel one box: typing ranks results grouped by source with no model call; Enter or a question streams an answer with numbered citations that open the exact block, code lines or session turn. Agents get the same engine through `wye ask`.
+
+  - alternative:wf2.ask-in-search-panel a separate Ask chat page beside ⌘F; or CLI and API first with no UI.
+
+```yaml
+- id: decision:wf2.ask-two-lanes
+  title: Every question runs a fast answer and a deep agent in parallel; the deep agent's sources appear while it works
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [decision:wf2.ask-in-search-panel]
+  part-of: module:req-shell
+```
+
+  - context:wf2.ask-two-lanes "both, in parallel, while agent working, show what docs you found so far"
+
+  - choice:wf2.ask-two-lanes the fast lane retrieves (BM25 + vectors fused, one hop along graph edges) and makes one tool-less model call; the deep lane is a read-only agent with `wye` search, graph and Read/Grep tools whose every opened source streams to the panel as "Sources found", then its own answer. Both share one citation numbering.
+
+  - alternative:wf2.ask-two-lanes pipeline only (fails multi-hop and code questions); agent only (20–90 s for every search); fast first with "dig deeper" on demand (the person chose both at once).
+
+```yaml
 - id: decision:wf2.views-are-pages
   title: Goals and Work are documents holding one instances view each; a view says where its blocks come from
   date: 2026-09-20
