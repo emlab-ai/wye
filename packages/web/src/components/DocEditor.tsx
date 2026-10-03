@@ -309,7 +309,7 @@ function TypeRow({ p, set, contentRef, block, type, editor }: { p: { kind: strin
 }
 // name (never under 200px — a narrow editor scrolls the table, rule:table-scroll), status, then one column per property
 // (comma-separated values such as ids get room)
-const typeGrid = (t: OwnType) => `minmax(200px, 1fr) 100px${t.cols.map(c => c.type === 'bool' ? ' 40px' : c.ref ? ' minmax(90px, 150px)' : ' minmax(72px, 120px)').join('')}`;
+const typeGrid = (t: OwnType) => `minmax(440px, 1fr) 128px${t.cols.map(c => c.type === 'bool' ? ' 56px' : c.ref ? ' minmax(140px, 200px)' : ' minmax(112px, 180px)').join('')}`;
 
 // Selecting a row or block by clicking anything in it but its text (a status select, a property cell, the grid
 // background) puts the editor cursor in that block without taking focus from the control, so the context column

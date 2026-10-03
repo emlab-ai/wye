@@ -11,6 +11,8 @@ import { AgentFolder } from './AgentFolder';
 import type { Pin } from '@/lib/pins';
 import { PrFolder, type PrItem } from './PrFolder';
 import { SkillFolder, type SkillItem } from './SkillFolder';
+import { RailSettings } from './RailSettings';
+import { systemSlug } from '@/lib/doc';
 
 const MIN_PANE = 96; // the least a pane keeps when the splitter is dragged: a few rows
 
@@ -29,6 +31,8 @@ export function Rail({ pins = [], mainProject, products, product, projects, prs,
   const roots = projects.flatMap(p => p.roots);
   const docs = projects.flatMap(p => p.docs.map(d => ({ ...d, project: p.slug })));
   const base = `/${product.slug}`;
+  // Hooks is a system view page but configures the product: it goes under Settings, not with Goals and Work
+  const hooksSlug = systemSlug('hooks'); const hooks = views.find(v => v.slug === hooksSlug);
   const item = (href: string, label: string, icon: string) => <li><Link href={href} className={path === href ? 'on' : ''}><i>{icon}</i>{label}</Link></li>;
   // the menu pane and the Documents pane share the rail's height: the menu pane takes what it needs (up to ~60%)
   // until the person drags the splitter between them, from then on the height they set, remembered per browser
@@ -60,15 +64,17 @@ export function Rail({ pins = [], mainProject, products, product, projects, prs,
       <ul className="rail-menu">
         {item(base, 'Overview', '⌂')}
         {pins.map(p => { const h = `${base}/${p.project}/d/${p.slug}`; return <li key={p.ref} className="rail-pin"><Link href={h} className={path === h ? 'on' : ''} title={`${p.title} — pinned (unpin from the document's ⋯ menu)`}><i>{p.icon}</i><span className="rail-pin-title">{p.title}</span><span className="rail-pin-star" aria-label="pinned">★</span></Link></li>; })}
-        {views.length ? views.map(v => <li key={v.slug}><Link href={`${base}/${v.project}/d/${v.slug}`} className={path === `${base}/${v.project}/d/${v.slug}` ? 'on' : ''}><i>{v.icon}</i>{v.title}</Link></li>) : <>{item(`${base}/goals`, 'Goals', '◎')}{item(`${base}/work`, 'Work', '☑')}</>}
+        {views.length ? views.filter(v => v.slug !== hooksSlug).map(v => <li key={v.slug}><Link href={`${base}/${v.project}/d/${v.slug}`} className={path === `${base}/${v.project}/d/${v.slug}` ? 'on' : ''}><i>{v.icon}</i>{v.title}</Link></li>) : <>{item(`${base}/goals`, 'Goals', '◎')}{item(`${base}/work`, 'Work', '☑')}</>}
         {item(`${base}/knowledge`, 'Knowledge', '◈')}
-        {item(`${base}/types`, 'Types', '⬡')}
         {item(`${base}/constitution`, 'Constitution', '§')}
         {item(`${base}/inbox`, 'Inbox', '⇩')}
         <AgentFolder product={product.slug} />
         <PrFolder product={product.slug} prs={prs} />
-        {skillsPage && <SkillFolder product={product.slug} page={skillsPage} skills={skills} />}
-        {item(`${base}/settings`, 'Settings', '⚙')}
+        <RailSettings href={`${base}/settings`}>
+          {item(`${base}/types`, 'Types', '⬡')}
+          {hooks && item(`${base}/${hooks.project}/d/${hooks.slug}`, hooks.title, hooks.icon)}
+          {skillsPage && <SkillFolder product={product.slug} page={skillsPage} skills={skills} />}
+        </RailSettings>
       </ul>
       </div>
       <div className="rail-split" ref={split} role="separator" aria-orientation="horizontal" title="Drag to resize; double-click to reset" onMouseDown={onSplit} onDoubleClick={resetSplit} />

@@ -493,3 +493,31 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - choice:wf2.no-projects "just delete them, and show existing folders as docs" — first built as folder rows in the tree, which broke adding a root page; then "evalueation and wye v2 must become simple pages, not special objects": each folder got a real page (scripts/projects-to-pages.mjs writes docs/<title>.md and part-of on the folder's top-level documents), the tree has no folder rows, + at the top adds a top-level page with no folder to pick (stored in the largest folder). Overview lists the top-level pages under Documents; nothing in the app says "project".
 
   - consequence:wf2.no-projects the folders stay on disk and in URLs (/<product>/<folder>/d/<doc>), so no link breaks; the system pages (PRs, Skills, Hooks, Goals, Work) still live per folder — moving them to one set per product is what is left.
+
+```yaml
+- id: decision:wf2.settings-holds-config
+  title: Types, Hooks and Skills sit under Settings in the rail — what configures the product is one folder
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  affects: [page:web/sidebar]
+  part-of: module:req-shell
+```
+
+  - context:wf2.settings-holds-config "hooks, skills and types, move as nested elment under settings" — they were top-level rail items between the working pages (Goals, Work, Knowledge, Inbox, PRs).
+
+  - choice:wf2.settings-holds-config Settings is a folder (caret folds it, remembered per browser); under it Types, Hooks and the Skills folder with its skills, one step in.
+
+```yaml
+- id: decision:wf2.table-columns-roomy
+  title: A table view keeps roomy columns and scrolls sideways — the text column never goes under 440px
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  affects: [page:web/editor]
+  part-of: module:req-shell
+```
+
+  - context:wf2.table-columns-roomy "it feels too packed, text is wrapped, make sure that text field at least 2x wider, make sure table is scrollable, no need to pack all into small screen view" — the text column could shrink to 200px, so a goal wrapped to six lines.
+
+  - choice:wf2.table-columns-roomy the text column's minimum is 440px and the other columns are wider (status 128, dates 104, progress 148, owner 120; a type's columns 112–200); a table wider than the editor scrolls sideways (rule:table-scroll) instead of squeezing.
