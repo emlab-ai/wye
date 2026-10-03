@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { GoneNotice } from '@/components/GoneNotice';
 import { loadScope, treeFor } from '@/lib/scope';
 
-// Project overview: its pages. Opens the main page directly when there is one.
+// A folder of documents (decision:wf2.no-projects): its pages. Opens the main page directly when there is one.
 export default async function ProjectPage({ params }: { params: Promise<{ product: string; project: string }> }) {
   const { product, project } = await params;
   const scope = await loadScope(product, project);
@@ -14,14 +14,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ produc
     <div className="page">
       <header className="doc-head">
         <div className="doc-title-row"><span className="prop-in icon" style={{ opacity: 1 }}>{p.meta.icon || (p.meta.kind === 'goal' ? '🎯' : '📁')}</span><h1 className="prop-in h1">{p.meta.title}</h1></div>
-        <p className="sub">{p.meta.kind}{p.meta.status ? ` · ${p.meta.status}` : ''} · {docs.length} pages</p>
+        <p className="sub">{docs.length} pages</p>
         {p.meta.description && <p className="lede">{p.meta.description}</p>}
       </header>
       <section>
         <h2>Pages</h2>
         <ul className="klist">
           {docs.map(d => <li key={d.slug}><Link className="klist-page" href={`/${product}/${project}/d/${d.slug}`}>{d.title}</Link></li>)}
-          {!docs.length && <li className="muted">No pages yet. Press + next to the project in the rail.</li>}
+          {!docs.length && <li className="muted">No pages yet. Press + next to it in the rail.</li>}
         </ul>
       </section>
     </div>

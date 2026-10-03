@@ -3,7 +3,7 @@ import { loadScope, treeFor } from '@/lib/scope';
 import { HIDDEN_KINDS } from '@/lib/graph';
 import { KIND_LABELS } from '@/lib/knowledge';
 
-// Product overview: description, projects, and the knowledge counts.
+// Product overview: description, its documents (the folders of documents, decision:wf2.no-projects), and the knowledge counts.
 export default async function ProductPage({ params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const scope = await loadScope(product); if (!scope) return null; // the layout shows the notice
@@ -16,16 +16,16 @@ export default async function ProductPage({ params }: { params: Promise<{ produc
         {scope.product.meta.description && <p className="lede">{scope.product.meta.description}</p>}
       </header>
       <section>
-        <h2>Projects</h2>
+        <h2>Documents</h2>
         <div className="cards-grid">
           {scope.projects.map(p => { const t = treeFor(scope, p.slug); return (
             <Link key={p.slug} href={`/${product}/${p.slug}`} className="tile">
-              <div className="tile-head"><span className="pg-icon">{p.meta.icon || (p.meta.kind === 'goal' ? '🎯' : '📁')}</span><b>{p.meta.title}</b>{p.meta.kind === 'goal' && <span className="rail-kind">goal</span>}</div>
+              <div className="tile-head"><span className="pg-icon">{p.meta.icon || (p.meta.kind === 'goal' ? '🎯' : '📁')}</span><b>{p.meta.title}</b></div>
               {p.meta.description && <p>{p.meta.description}</p>}
-              <small>{[...t.byFile.values()].filter(d => d.file.includes(`/projects/${p.slug}/docs/`)).length} pages{p.meta.status ? ` · ${p.meta.status}` : ''}</small>
+              <small>{[...t.byFile.values()].filter(d => d.file.includes(`/projects/${p.slug}/docs/`)).length} pages</small>
             </Link>
           ); })}
-          {!scope.projects.length && <p className="muted">No projects yet. Use + in the rail.</p>}
+          {!scope.projects.length && <p className="muted">No documents yet. Use + in the rail.</p>}
         </div>
       </section>
       <section>

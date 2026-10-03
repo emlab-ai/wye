@@ -7,7 +7,7 @@ export function InboxProjects({ product, projects, current }: { product: string;
   return (
     <div className="chips inbox-projects">
       <span className="chips-label">in</span>
-      <Link href={`/${product}/inbox`} className={`chip ${!current ? 'on' : ''}`}>all projects</Link>
+      <Link href={`/${product}/inbox`} className={`chip ${!current ? 'on' : ''}`}>everywhere</Link>
       {projects.map(p => <Link key={p.slug} href={`/${product}/inbox?project=${encodeURIComponent(p.slug)}`} className={`chip ${current === p.slug ? 'on' : ''}`} title={p.slug}>{p.title}</Link>)}
     </div>
   );
