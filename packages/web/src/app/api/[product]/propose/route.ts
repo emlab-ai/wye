@@ -8,27 +8,23 @@ import { writeAtomic, withFileLock, rebuild } from '@/lib/write';
 import { embedInDefinition, readPrDoc } from '@/lib/pr-docs';
 import { claimWrite } from '@/lib/changes';
 import { recordArtifact } from '@/lib/artifacts';
+import { parseCard, placeCard } from '@/lib/propose-card';
 
 // op:api.propose (req:exec.wye-proposes, decision:exec.definition-home-fallback) — POST { card, pr, doc? } → one
-// proposed block (a yaml card with `- id: kind:slug`) appended to the document where that kind lives, embedded on the
-// request's Definition; without `doc` the card is written on the request itself under Definition, marked as needing a home.
+// proposed block (a yaml card with `- id: kind:slug`, checked by parseCard) added to the document where that kind lives,
+// embedded on the request's Definition; without `doc` the card is written on the request itself under Definition — a
+// block defined there has no home yet, which the page shows by where it sits. A request page's own cards always go
+// under its Definition, never after Result (placeCard).
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const raw = (await req.json()) as { card?: string; pr?: string; plan?: string; doc?: string; by?: string };
   const body = { ...raw, pr: raw.pr ?? raw.plan }; // `plan` is the old name of the request ref
-  const card = (body.card ?? '').replace(/^```ya?ml\s*\n|\n```\s*$/g, '').trim();
-  const idm = card.match(/^-?\s*id:\s*([a-z-]+:[A-Za-z0-9_.\-]+)\s*$/m);
-  if (!idm) return NextResponse.json({ error: 'invalid', message: 'the card must carry `- id: kind:slug`' }, { status: 422 });
-  const id = idm[1];
+  const parsed = parseCard(body.card ?? '');
+  if ('error' in parsed) return NextResponse.json({ error: 'invalid', message: parsed.error }, { status: 422 });
+  const { id, block } = parsed;
   if (scope.idx.byId.get(id)?.defined) return NextResponse.json({ error: 'conflict', message: `${id} already exists — refine it with wf node set, do not add a second one` }, { status: 409 });
-  if (!/^\s*status:/m.test(card)) return NextResponse.json({ error: 'invalid', message: 'the card needs a status (proposed, or open for a question)' }, { status: 422 });
   const session = req.headers.get('x-wf-session') ?? undefined;
-  // the card as a list item: keys two deep, a folded value's lines deeper — relative indentation kept
-  const lines = card.split('\n'); if (!/^-\s/.test(lines[0])) lines[0] = `- ${lines[0].trim()}`;
-  const rest = lines.slice(1).filter(l => l.trim());
-  const base = Math.min(...rest.map(l => l.match(/^\s*/)![0].length), 99);
-  const block = [lines[0].replace(/^-\s+/, '- '), ...rest.map(l => `  ${l.slice(Math.min(base, l.match(/^\s*/)![0].length))}`)].join('\n');
   const pr = body.pr ? await readPrDoc(product, body.pr) : null;
   if (body.pr && !pr) return NextResponse.json({ error: 'not_found', message: `request ${body.pr} not found` }, { status: 404 });
   let file: string;
@@ -37,21 +33,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     if (!target) return NextResponse.json({ error: 'not_found', message: `document ${body.doc} not found` }, { status: 404 });
     file = path.join(REPO_ROOT, target.file);
     claimWrite(target.file, { session, by: body.by ?? (session ? undefined : 'agent:wye') });
-    await withFileLock(file, async () => { const md = await readFile(file, 'utf8'); await writeAtomic(file, `${md.replace(/\s+$/, '')}\n\n\`\`\`yaml\n${block}\n\`\`\`\n`); });
+    await withFileLock(file, async () => { const md = await readFile(file, 'utf8'); await writeAtomic(file, placeCard(md, `\`\`\`yaml\n${block}\n\`\`\``)); });
     await rebuild(scope.product.dir);
     if (pr) await embedInDefinition(scope.product.dir, product, body.pr!, [id]);
   } else if (pr) {
     // no home yet: defined on the request under Definition, the person moves it later (the id stays)
     file = pr.file;
     claimWrite(path.relative(REPO_ROOT, file), { session });
-    await withFileLock(file, async () => {
-      const md = await readFile(file, 'utf8');
-      const m = md.match(/^## Definition[^\n]*\n/m); const fence = `\`\`\`yaml\n${block}\n  home: none yet — move this block to the document where its kind lives\n\`\`\``;
-      let next: string;
-      if (m && m.index !== undefined) { const start = m.index + m[0].length; const rest = md.slice(start); const n = rest.search(/^## /m); const end = n === -1 ? md.length : start + n; next = `${md.slice(0, start)}${md.slice(start, end).replace(/\s+$/, '')}\n\n${fence}\n${n === -1 ? '' : '\n'}${md.slice(end)}`; }
-      else next = `${md.replace(/\s+$/, '')}\n\n## Definition\n\n${fence}\n`;
-      await writeAtomic(file, next);
-    });
+    await withFileLock(file, async () => { const md = await readFile(file, 'utf8'); await writeAtomic(file, placeCard(md.match(/^## Definition/m) ? md : `${md.replace(/\s+$/, '')}\n\n## Definition\n`, `\`\`\`yaml\n${block}\n\`\`\``)); });
     await rebuild(scope.product.dir);
   } else return NextResponse.json({ error: 'invalid', message: 'doc or pr required' }, { status: 422 });
   if (session) recordArtifact(scope.product.dir, session, { node: id }).catch(() => {});

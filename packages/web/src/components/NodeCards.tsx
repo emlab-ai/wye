@@ -123,7 +123,8 @@ export function ProseCard({ p, set, host }: { p: CardP; set: (patch: Partial<Car
   const [showYaml, setShowYaml] = useState(false);
   // a yaml card's `text` beside its title is its description (decision:wf2.card-is-name-and-properties): read and
   // edited in the column, not on the card — the card is the name and the properties
-  const rows = p.form === 'yaml' ? parseBody(p.body).filter(r => r.key !== p.textKey && r.key !== 'status' && r.key !== 'text') : [];
+  // `home: none yet` was written by propose before 2026-10-03 — where the block sits already says it has no home
+  const rows = p.form === 'yaml' ? parseBody(p.body).filter(r => r.key !== p.textKey && r.key !== 'status' && r.key !== 'text' && r.key !== 'home') : [];
   // a part (when / then / unless, context / choice / alternative / consequence): the pill and the text, nothing else
   if (PART_KINDS.has(p.kind)) return (
     <div className={`nblock nblock-part k-${p.kind} ${host.extraClass ?? ''}`} data-id={`${p.kind}:${p.slug}`} ref={host.hostRef} onClick={selectOn(host)}>
