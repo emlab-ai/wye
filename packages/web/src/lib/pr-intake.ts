@@ -75,14 +75,9 @@ export function impactBody(cands: { id: string; from: string; weight: number; pa
   return [...seen].sort((a, b) => b[1].weight - a[1].weight).slice(0, 30).map(([id, c]) => `- ${id} — ${c.weight} from ${c.from}${c.path ? ` via ${c.path}` : ''}`).join('\n');
 }
 
-// Replace a section's body (the heading stays); the section is appended when missing.
-export function withSection(md: string, heading: string, body: string): string {
-  const m = md.match(new RegExp(`^## ${heading}[^\\n]*\\n`, 'm'));
-  if (!m || m.index === undefined) return `${md.replace(/\s+$/, '')}\n\n## ${heading}\n\n${body}\n`;
-  const start = m.index + m[0].length; const rest = md.slice(start); const next = rest.search(/^## /m);
-  const end = next === -1 ? md.length : start + next;
-  return `${md.slice(0, start)}\n${body}\n${next === -1 ? '' : '\n'}${md.slice(end)}`;
-}
+// Replace a section's body (the heading stays); a missing section goes where it belongs (lib/sections.js, shared with the CLI).
+const sections = () => createRequire(path.join(REPO_ROOT, 'package.json'))('./lib/sections.js') as { withSection: (md: string, heading: string, body: string) => string };
+export function withSection(md: string, heading: string, body: string): string { return sections().withSection(md, heading, body); }
 export function withTitle(md: string, title: string): string {
   return setFrontmatter(md, 'title', title).replace(/^# [^\n]*$/m, `# ${title}`);
 }

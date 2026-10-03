@@ -158,12 +158,9 @@ const commands = {
     if (pos[1] === 'write') {
       const d = docRef(pos[2]); let body = flags.file ? fs.readFileSync(flags.file, 'utf8') : await readStdin();
       const cur = await api('GET', `/api/${d.product}/${d.project}/doc/${d.doc}`);
-      // --section "Analysis": only that ## section is replaced (appended when the page has none); the rest stays as it is
+      // --section "Analysis": only that ## section is replaced (a missing one goes in its place on a request page); the rest stays
       if (flags.section) {
-        const md = cur.body, h = String(flags.section).trim(); const m = md.match(new RegExp(`^## ${h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^\n]*\n`, 'm'));
-        const text = body.replace(/^\s*## [^\n]*\n/, '').trim();
-        if (!m) body = `${md.replace(/\s+$/, '')}\n\n## ${h}\n\n${text}\n`;
-        else { const start = m.index + m[0].length; const rest = md.slice(start); const next = rest.search(/^## /m); body = md.slice(0, start) + `\n${text}\n\n` + (next < 0 ? '' : rest.slice(next)); }
+        body = require('../lib/sections').withSection(cur.body, flags.section, body);   // a missing section goes where it belongs
       }
       const j = await api('PUT', `/api/${d.product}/${d.project}/doc/${d.doc}`, { op: 'replace-body', ifMatch: cur.bodyHash, body });
       out(flags.json ? j : `written ${d.product}/${d.project}/${d.doc}${j.lintOk === false ? '\nlint: ' + (j.lintErrors || []).join('; ') : ''}`);
