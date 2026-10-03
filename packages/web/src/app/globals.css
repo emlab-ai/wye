@@ -1176,7 +1176,9 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 /* the rail's Agents folder: what runs now, one row each (decision:wf2.rail-shows-running-agents) */
 .af-count { margin-left: 6px; font-size: 11px; font-weight: 600; color: var(--accent); }
 .rail-menu .af-row .af-link { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 4px 8px 4px 30px; border: 0; border-radius: 8px; background: none; color: var(--ink); text-align: left; font: 13px var(--font-b); cursor: pointer; }
-.rail-menu .af-row .af-link:hover { background: var(--sunk); }
+.rail-menu .af-row .af-link { text-decoration: none; }
+.rail-menu .af-row .af-link:hover, .rail-menu .af-row.on .af-link { background: var(--sunk); }
+.rail-menu .af-row.on .af-title { font-weight: 600; }
 .af-state { flex: none; width: 12px; height: 12px; margin-top: 3px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; line-height: 1; }
 .af-working .af-state { border: 2px solid var(--warn); border-right-color: transparent; animation: af-spin 0.9s linear infinite; }
 .af-idle .af-state { background: var(--ok); transform: scale(.7); }

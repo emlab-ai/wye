@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { usePeek } from './PeekProvider';
 import { railAgents, type RailAgent, type RailSession } from '@/lib/rail-agents';
 
 const AGENT: Record<string, string> = { 'claude-code': 'Claude Code', codex: 'Codex', clerk: 'Wye' };
@@ -10,9 +9,9 @@ const STATE: Record<RailAgent['state'], string> = { working: 'working', idle: 'i
 
 // The rail's Agents folder (decision:wf2.rail-shows-running-agents): the heading opens the Agents page; under it the
 // agents running in this product now — state, what each works on, what it is doing, for how long — a click opens the
-// conversation in the column. Refreshed on every change event, and every 5 s while one runs.
+// conversation as the page (/sessions/<id>/chat), in the main window. Refreshed on every change event, and every 5 s while one runs.
 export function AgentFolder({ product }: { product: string }) {
-  const path = usePathname(); const { open: openPeek } = usePeek();
+  const path = usePathname();
   const [open, setOpen] = useState(true);
   const [rows, setRows] = useState<RailAgent[]>([]);
   useEffect(() => { try { setOpen(localStorage.getItem('wf-agents-open') !== '0'); } catch { /* ignore */ } }, []);
@@ -31,15 +30,15 @@ export function AgentFolder({ product }: { product: string }) {
       </div>
       {open && <ul className="pf-list">
         {rows.map(a => (
-          <li key={a.id} className={`af-row af-${a.state}`}>
-            <button className="af-link" onClick={() => openPeek(`session:${a.id}`)} title={`${AGENT[a.agent] ?? a.agent} · ${STATE[a.state]} · ${a.since}`}>
+          <li key={a.id} className={`af-row af-${a.state} ${path === `/${product}/sessions/${a.id}/chat` ? 'on' : ''}`}>
+            <Link className="af-link" href={`/${product}/sessions/${a.id}/chat`} title={`${AGENT[a.agent] ?? a.agent} · ${STATE[a.state]} · ${a.since}`}>
               <span className="af-state" aria-label={STATE[a.state]}>{a.state === 'asking' ? '?' : a.state === 'queued' ? '◷' : ''}</span>
               <span className="af-body">
                 <span className="af-title">{a.title}</span>
                 {a.doing && <span className="af-doing">{a.doing}</span>}
               </span>
               <span className="af-since">{a.since}</span>
-            </button>
+            </Link>
           </li>))}
         {!rows.length && <li className="pf-empty muted">no agents running</li>}
       </ul>}
