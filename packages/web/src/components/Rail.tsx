@@ -8,6 +8,7 @@ import { filesOfDrop, type Picked } from './ImportDocs';
 import { ThemeButton } from './ThemeSwitch';
 import { IconChevronsLeft, IconSettings } from './Icons';
 import { AgentFolder } from './AgentFolder';
+import type { Pin } from '@/lib/pins';
 import { PrFolder, type PrItem } from './PrFolder';
 import { SkillFolder, type SkillItem } from './SkillFolder';
 
@@ -17,7 +18,7 @@ export type RailProject = { slug: string; title: string; icon: string; kind: str
 
 // The left rail: product switcher, menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Constitution, Questions, Inbox, Agents,
 // then the PRs system folder — component:request-folder), then every project's documents as one tree.
-export function Rail({ products, product, projects, prs, views = [], skills = [], skillsPage = null, headings }: { skills?: SkillItem[]; skillsPage?: { project: string; slug: string } | null; views?: { slug: string; title: string; icon: string; project: string }[]; products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; prs: PrItem[]; headings: { doc: string; slug: string; text: string }[] }) {
+export function Rail({ pins = [], products, product, projects, prs, views = [], skills = [], skillsPage = null, headings }: { skills?: SkillItem[]; skillsPage?: { project: string; slug: string } | null; views?: { slug: string; title: string; icon: string; project: string }[]; products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; prs: PrItem[]; headings: { doc: string; slug: string; text: string }[]; pins?: Pin[] }) {
   const path = usePathname(); const router = useRouter();
   const [newIn, setNewIn] = useState<string | null>(null); // '' = top level, slug = under that document
   // Import… (component:import-docs): the dialog, opened by its button or by files dropped on the documents area
@@ -58,6 +59,7 @@ export function Rail({ products, product, projects, prs, views = [], skills = []
       <div className="rail-top" ref={top} style={topH ? { flex: `0 0 ${topH}px`, maxHeight: 'none' } : undefined}>
       <ul className="rail-menu">
         {item(base, 'Overview', '⌂')}
+        {pins.map(p => { const h = `${base}/${p.project}/d/${p.slug}`; return <li key={p.ref} className="rail-pin"><Link href={h} className={path === h ? 'on' : ''} title={`${p.title} — pinned (unpin from the document's ⋯ menu)`}><i>{p.icon}</i><span className="rail-pin-title">{p.title}</span><span className="rail-pin-star" aria-label="pinned">★</span></Link></li>; })}
         {views.length ? views.map(v => <li key={v.slug}><Link href={`${base}/${v.project}/d/${v.slug}`} className={path === `${base}/${v.project}/d/${v.slug}` ? 'on' : ''}><i>{v.icon}</i>{v.title}</Link></li>) : <>{item(`${base}/goals`, 'Goals', '◎')}{item(`${base}/work`, 'Work', '☑')}</>}
         {item(`${base}/knowledge`, 'Knowledge', '◈')}
         {item(`${base}/types`, 'Types', '⬡')}
@@ -77,7 +79,7 @@ export function Rail({ products, product, projects, prs, views = [], skills = []
         onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setFileOver(false); }}
         onDrop={async e => { if (!hasFiles(e)) return; e.preventDefault(); setFileOver(false); const got = await filesOfDrop(e.dataTransfer); if (got.length) { setNewIn(null); setImporting(got); } }}>
         {fileOver && <div className="rail-filedrop">drop to import as documents</div>}
-        <DocTree product={product.slug} roots={roots} onAddChild={d => setNewIn(d.slug)} />
+        <DocTree product={product.slug} roots={roots} onAddChild={d => setNewIn(d.slug)} pinned={pins.map(p => p.ref)} />
         {!roots.length && <p className="muted" style={{ padding: '6px 16px', fontSize: 13 }}>No documents yet. Press + to create one.</p>}
       </div>
     </nav>

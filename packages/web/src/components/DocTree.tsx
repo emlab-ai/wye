@@ -17,7 +17,7 @@ type Tree = { product: string; path: string; closed: Record<string, boolean>; to
 // Docmost-style document tree: chevron for documents with children, a dot for leaves, an emoji icon, the title.
 // Rows can be dragged: onto a row nests the document under it, between rows reorders; a hover "+" adds a child;
 // right-click (or the hover "⋯") opens a menu: duplicate the document, delete it with everything under it.
-export function DocTree({ product, roots, onAddChild }: { product: string; roots: TreeItem[]; onAddChild: (parent: TreeItem) => void }) {
+export function DocTree({ product, roots, onAddChild, pinned = [] }: { product: string; roots: TreeItem[]; onAddChild: (parent: TreeItem) => void; pinned?: string[] }) {
   const path = usePathname(); const router = useRouter();
   const [closed, setClosed] = useState<Record<string, boolean>>({});
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -42,6 +42,8 @@ export function DocTree({ product, roots, onAddChild }: { product: string; roots
     if (j.href && slug && path.endsWith(`/d/${slug}`) && j.href !== path) router.push(j.href);
     router.refresh();
   };
+  // pin to the top of the rail (decision:wf2.pinned-documents): the product file's list, the rail re-renders from it
+  const pin = async (d: TreeItem, on: boolean) => { setMenu(null); await fetch(`/api/${product}/pins`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ doc: `${d.project}/${d.slug}`, pinned: on }) }); router.refresh(); };
   const duplicate = async (d: TreeItem) => {
     setMsg(null); setMenu(null);
     const r = await fetch(`/api/${product}/docs/duplicate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: d.node }) });
@@ -62,6 +64,9 @@ export function DocTree({ product, roots, onAddChild }: { product: string; roots
   return (
     <div className="pg-wrap">
       {menu && <div ref={menuEl} className="pg-menu" role="menu" style={{ left: menu.x, top: menu.y }}>
+        {pinned.includes(`${menu.d.project}/${menu.d.slug}`)
+          ? <button role="menuitem" onClick={() => pin(menu.d, false)}>Unpin from top</button>
+          : <button role="menuitem" onClick={() => pin(menu.d, true)}>Pin to top</button>}
         <button role="menuitem" onClick={() => duplicate(menu.d)}>Duplicate</button>
         <button role="menuitem" className="danger" onClick={() => remove(menu.d)}>Delete{menu.d.children.length ? ` (with ${descendants(menu.d).length} below)` : ''}</button>
       </div>}

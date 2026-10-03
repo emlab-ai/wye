@@ -1190,3 +1190,8 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .af-doing { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .af-asking .af-doing { color: var(--accent); }
 .af-since { flex: none; font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* pinned documents at the top of the rail (decision:wf2.pinned-documents) */
+.rail-menu .rail-pin a { display: flex; align-items: center; }
+.rail-pin-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rail-pin-star { flex: none; margin-left: 6px; font-size: 11px; color: var(--warn); }

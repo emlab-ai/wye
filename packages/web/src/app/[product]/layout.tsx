@@ -1,3 +1,4 @@
+import { parsePins, resolvePins } from '@/lib/pins';
 import { isRscRequest } from '@/lib/request';
 import type { ReactNode } from 'react';
 import { Rail } from '@/components/Rail';
@@ -66,6 +67,8 @@ export default async function ProductLayout({ children, params }: { children: Re
     return false;
   }).map(d => ({ ...d, children: withoutPrs(d.children, project) }));
  
+  // pinned documents (decision:wf2.pinned-documents): the product file's list, those that still exist, in pin order
+  const pins = resolvePins(parsePins(scope.product.meta.settings.pinned), scope.projects.flatMap(p => [...treeFor(scope, p.slug).byFile.values()].map(d => ({ project: p.slug, slug: d.slug, title: d.title, icon: icons.get(d.file) || defaultIcon(d.slug) }))));
   const projects = scope.projects.map(p => { const t = treeFor(scope, p.slug); return { slug: p.slug, title: p.meta.title, icon: p.meta.icon || (p.meta.kind === 'goal' ? '🎯' : '📁'), kind: p.meta.kind, status: p.meta.status, main: t.main?.slug ?? '', roots: withoutPrs(t.roots, p.slug).map(toItem), docs: [...t.byFile.values()].filter(d => d.file.includes(`/projects/${p.slug}/docs/`)).map(d => ({ slug: d.slug, title: d.title })) }; });
  
   prs.sort((a, b) => b.started.localeCompare(a.started) || a.title.localeCompare(b.title));
@@ -81,7 +84,7 @@ export default async function ProductLayout({ children, params }: { children: Re
   return (
     <PeekProvider product={scope.product.slug} index={rsc ? null : scope.index} kinds={scope.graph.kinds} types={ownTypes} nests={nestingMap(scope.graph.types ?? [])} statuses={statusesByKind(scope.graph.types ?? [])}>
       <Shell>
-        <Rail products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} prs={prs} views={views} skills={skills} skillsPage={skillsPage} headings={headings} />
+        <Rail pins={pins} products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} prs={prs} views={views} skills={skills} skillsPage={skillsPage} headings={headings} />
         <LiveRefresh product={scope.product.slug} />
         <main className="content"><TopBar product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} docs={docs} />{children}</main>
       </Shell>
