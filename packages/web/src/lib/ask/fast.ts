@@ -7,12 +7,12 @@ import type { Hit } from './types';
 import { spawnClaude } from './claude';
 
 export const ASK_MODEL = process.env.WYE_ASK_MODEL || 'claude-sonnet-5-5';
-const brief = () => readFileSync(path.join(REPO_ROOT, 'prompts/ask-fast.md'), 'utf8');
+export const fastBrief = () => readFileSync(path.join(REPO_ROOT, 'prompts/ask-fast.md'), 'utf8');
 
 export function fastPrompt(q: string, hits: Hit[], history: { q: string; a: string }[] = []): string {
   const src = hits.map((h, i) => `[${i + 1}] ${h.source} ${h.ref}${h.via ? ` (via ${h.via})` : ''} — ${h.title}\n${h.text}`).join('\n\n');
   const hist = history.length ? `\n## Earlier in this conversation\n${history.map(x => `Q: ${x.q}\nA: ${x.a}`).join('\n\n')}\n` : '';
-  return `${brief()}\n${hist}\n## Sources\n${src || '(none found)'}\n\n## Question\n${q}\n`;
+  return `${fastBrief()}\n${hist}\n## Sources\n${src || '(none found)'}\n\n## Question\n${q}\n`;
 }
 
 export async function* runFast(prompt: string, opts: { signal: AbortSignal }): AsyncGenerator<string> {

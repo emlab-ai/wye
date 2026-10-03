@@ -5,7 +5,9 @@ import type { AskEvent, AskRequest, Citation, Hit } from './types';
 import { retrieve, hrefFor, type RetrieveCtx } from './retrieve';
 import { getChunks } from './store';
 import { Citations, citationOf, citedNumbers } from './citations';
-import { fastPrompt, runFast } from './fast';
+import { fastPrompt, fastBrief, runFast } from './fast';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { runDeep } from './deep';
 
 export type AskEnvLike = { ctx: RetrieveCtx; productDir: string; codeRoot: string; degraded?: string; indexing?: boolean };
@@ -21,6 +23,22 @@ export async function resolveRef(raw: string, env: AskEnvLike): Promise<Omit<Cit
   if (doc) return { ref: raw, source: 'doc', title: `${doc[1]} / ${doc[2]}`, href: `/${product}/${doc[1]}/d/${doc[2]}`, snippet: '' };
   if (/^[\w./-]+\.\w+(:\d+(-\d+)?)?$/.test(raw)) return { ref: raw, source: 'code', title: raw.replace(/:.*/, ''), href: null, snippet: '' };
   return null;
+}
+
+// The deep lane's sources in their own numbers, with their text: a passage from the index, or the lines it read.
+async function answerNowPrompt(q: string, used: Citation[], env: AskEnvLike): Promise<string> {
+  const parts: string[] = [];
+  for (const c of used.slice(0, 25)) {
+    let text = c.snippet;
+    const [chunk] = await getChunks(env.ctx.store, [`${c.source}:${c.ref}`]);
+    if (chunk) text = chunk.text;
+    else if (c.source === 'code' && env.codeRoot) {
+      const m = c.ref.match(/^(.*?):(\d+)-(\d+)$/);
+      try { const lines = (await readFile(path.join(env.codeRoot, m ? m[1] : c.ref), 'utf8')).split('\n'); text = (m ? lines.slice(Number(m[2]) - 1, Math.min(Number(m[3]), Number(m[2]) + 79)) : lines.slice(0, 80)).join('\n'); } catch { /* gone */ }
+    }
+    parts.push(`[${c.n}] ${c.source} ${c.ref} — ${c.title}\n${text}`);
+  }
+  return `${fastBrief()}\nThese are the sources a search opened before it ran out of steps; cite them by their numbers.\n\n## Sources\n${parts.join('\n\n')}\n\n## Question\n${q}\n`;
 }
 
 // a tiny channel: two producers, one consumer
@@ -40,7 +58,7 @@ function channel<T>() {
   };
 }
 
-export async function* ask(env: AskEnvLike, req: AskRequest, o: { signal: AbortSignal; wfUrl: string }): AsyncGenerator<AskEvent> {
+export async function* ask(env: AskEnvLike, req: AskRequest, o: { signal: AbortSignal; wfUrl: string; maxTools?: number }): AsyncGenerator<AskEvent> {
   const lanes = req.lanes?.length ? req.lanes : ['fast', 'deep'];
   const history = (req.history ?? []).slice(-3).map(h => ({ q: h.q.slice(0, 500), a: h.a.slice(0, 1500) }));
   let hits: Hit[] = [];
@@ -68,7 +86,7 @@ export async function* ask(env: AskEnvLike, req: AskRequest, o: { signal: AbortS
     (async () => {
       while ((deepRunning.get(product) ?? 0) >= DEEP_MAX_PER_PRODUCT) { ch.push({ type: 'step', text: 'Waiting for another deep search to finish' }); await new Promise(r => setTimeout(r, 1000)); if (o.signal.aborted) { end(); return; } }
       deepRunning.set(product, (deepRunning.get(product) ?? 0) + 1);
-      const used: Citation[] = []; let pending = '';
+      const used: Citation[] = []; let pending = ''; let wrote = false;
       const flush = async (final: boolean) => {      // [[ref]] → [n]; hold back a trailing partial "[[…"
         let cutAt = pending.length;
         if (!final) { const open = pending.lastIndexOf('[['); if (open >= 0 && pending.indexOf(']]', open) < 0) cutAt = open; }
@@ -79,14 +97,20 @@ export async function* ask(env: AskEnvLike, req: AskRequest, o: { signal: AbortS
           if (c) { const x = cites.add(c); if (!used.includes(x)) used.push(x); rep = `[${x.n}]`; }
           head = head.replace(m[0], rep);
         }
+        if (head.trim()) wrote = true;
         if (head) ch.push({ type: 'deep.delta', text: head });
       };
       try {
-        for await (const e of runDeep(req.q, history, { signal: o.signal, product, productDir: env.productDir, codeRoot: env.codeRoot, wfUrl: o.wfUrl, known: id => env.ctx.idx.byId.has(id) })) {
+        for await (const e of runDeep(req.q, history, { signal: o.signal, maxTools: o.maxTools, product, productDir: env.productDir, codeRoot: env.codeRoot, wfUrl: o.wfUrl, known: id => env.ctx.idx.byId.has(id) })) {
           if (e.type === 'step') ch.push({ type: 'step', text: e.text });
           else if (e.type === 'refs') for (const r of e.refs) { const c = await resolveRef(r, env); if (!c) continue; const x = cites.add(c); if (!used.includes(x)) { used.push(x); ch.push({ type: 'found', citation: x }); } }
           else if (e.type === 'delta') { pending += e.text; await flush(false); }
-          else if (e.type === 'done') { await flush(true); ch.push({ type: 'deep.done', citations: used, ...(e.cut ? { cut: true } : {}) }); }
+          else if (e.type === 'done') {
+            await flush(true);
+            // stopped at its cap before it wrote: answer now, without tools, from what it found (else from what was retrieved)
+            if (e.cut && !wrote && !o.signal.aborted) { const from = used.length ? used : cites.all().slice(0, 15); if (from.length) for await (const t of runFast(await answerNowPrompt(req.q, from, env), { signal: o.signal })) { wrote = true; ch.push({ type: 'deep.delta', text: t }); } }
+            ch.push({ type: 'deep.done', citations: used, ...(e.cut ? { cut: true } : {}) });
+          }
         }
       } catch (e) { if (!o.signal.aborted) ch.push({ type: 'error', lane: 'deep', message: String(e instanceof Error ? e.message : e) }); }
       finally { deepRunning.set(product, (deepRunning.get(product) ?? 1) - 1); end(); }

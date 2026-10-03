@@ -48,6 +48,12 @@ describe('ask', () => {
     for await (const e of ask(await env(), { q: 'why no invite email?' }, { signal: ac.signal, wfUrl: 'http://x' })) { ev.push(e); if (e.type === 'results') ac.abort(); }
     expect(ev.map(e => e.type)).toEqual(['results']);
   });
+  it('at its tool cap the deep lane still answers, from what it found', async () => {
+    const ev = await collect(ask(await env(), { q: 'why no invite email?', lanes: ['deep'] }, { signal: new AbortController().signal, wfUrl: 'http://x', maxTools: 1 }));
+    const done = ev.find(e => e.type === 'deep.done') as Extract<AskEvent, { type: 'deep.done' }>;
+    expect(done.cut).toBe(true);
+    expect(ev.filter(e => e.type === 'deep.delta').map(e => (e as { text: string }).text).join('')).toContain('invite email was dropped');
+  });
   it('runs only the lanes asked for', async () => {
     const ev = await collect(ask(await env(), { q: 'why no invite email?', lanes: ['fast'] }, { signal: new AbortController().signal, wfUrl: 'http://x' }));
     expect(ev.some(e => e.type.startsWith('deep') || e.type === 'step')).toBe(false);
