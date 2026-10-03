@@ -34,7 +34,7 @@ export function reviewQueue(product: string, g: GraphData, idx: GraphIndex): Rev
     const text = get('q') || get('text') || get('statement') || get('reason') || get('choice') || get('description') || get('scenario') || get('purpose') || get('then') || '';
     const fields: Record<string, string> = {};
     for (const k of ['context', 'choice', 'alternatives', 'consequences', 'when', 'then', 'unless', 'source', 'date', 'supersedes', 'evidence', 'by', 'conflict', 'between']) if (get(k)) fields[k] = get(k);
-    return { id: n.id, kind: n.kind, title: get('title') || n.title, text, status: n.kind === 'question' && !n.status ? 'open' : n.status, file: n.file, project: r?.project ?? '', doc: r?.doc ?? '', href: r ? `/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(n.id)}` : '', line: n.line, refs: (idx.out.get(n.id) ?? []).filter(e => e.verb !== 'mentions').map(e => e.to).slice(0, 8), session: get('session') || undefined, form: n.form, fields };
+    return { id: n.id, kind: n.kind, title: get('title') || n.title, text, status: n.kind === 'question' && !n.status ? 'open' : n.status, file: n.file, project: r?.project ?? '', doc: r?.doc ?? '', href: r ? `/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(n.id)}` : '', line: n.line, refs: [...new Set((idx.out.get(n.id) ?? []).filter(e => e.verb !== 'mentions').map(e => e.to))].slice(0, 8), session: get('session') || undefined, form: n.form, fields };
   }).sort((a, b) => a.kind.localeCompare(b.kind) || a.file.localeCompare(b.file) || a.line - b.line);
 }
 
