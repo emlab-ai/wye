@@ -427,3 +427,51 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - choice:wf2.rail-shows-running-agents the Agents heading still opens the Agents page; under it, open by default, one row per session that is running, queued or live: a state mark (working, idle, waiting for your answer, queued for a slot), what it works on (a build by its request's title, anything else by its own first line), what it is doing (its last log line, or the question it waits on) and for how long. A click opens the conversation in the column. This product only.
 
   - alternative:wf2.rail-shows-running-agents the agents of every product in the rail (the rail is per product; one line per other product was offered and left for later).
+
+
+```yaml
+- id: decision:wf2.pinned-documents
+  title: Any document can be pinned to the top of the rail; the pins live in the product file
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [page:web/sidebar]
+  part-of: module:req-shell
+```
+
+  - context:wf2.pinned-documents "add ability to pin any document so it is visible in the top section, or just link shown on top of all docs as starred doc"
+
+  - choice:wf2.pinned-documents "Pin to top" / "Unpin from top" in a document's ⋯ menu; the pinned documents are rows under Overview with a ★, in pin order; the list is `pinned: [project/doc, …]` in _product.md, so the desktop app and a browser show the same pins and a tracked product keeps them in git. A pin whose document is gone is not shown.
+
+  - alternative:wf2.pinned-documents pins in browser storage (per person, but different in the desktop app and each browser).
+
+```yaml
+- id: decision:wf2.command-box-modes-on-top
+  title: The command box puts its mode on top, says what the mode does and who does it, and keeps the action on the right
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [component:command-box, decision:wf2.cmd-modes]
+  part-of: module:req-shell
+```
+
+  - context:wf2.command-box-modes-on-top "make this UI nicer (think about better UX, and better buttons), also afaik Remember tasks also require codex or claude to use? where the selector"
+
+  - choice:wf2.command-box-modes-on-top PR · Ad-hoc · Workflow · Remember as a segmented control above the text (⌘1–4), a short placeholder per mode, one line saying what the mode does — PR and Remember name "Wye's librarian on Claude Code", since the librarian runs on Claude Code only — the mode's own fields labelled, the primary action right-aligned with its key, Later beside it where it applies, and only this mode's keys in the footer.
+
+  - consequence:wf2.command-box-modes-on-top Remember and PR have no agent selector: a Codex librarian is a separate change.
+
+```yaml
+- id: decision:wf2.rail-agent-opens-as-page
+  title: An agent clicked in the rail opens as the page in the main window
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [decision:wf2.rail-shows-running-agents]
+  part-of: module:req-shell
+```
+
+  - choice:wf2.rail-agent-opens-as-page a row of the rail's Agents folder links to /<product>/sessions/<id>/chat — the conversation in its own tab — and is marked while it is open; not the context column.
