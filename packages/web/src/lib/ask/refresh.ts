@@ -8,7 +8,7 @@ import { promisify } from 'node:util';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { Product } from '../products';
-import { REPO_ROOT, DATA_ROOT } from '../products';
+import { REPO_ROOT, DATA_ROOT, productRepo } from '../products';
 import type { GraphData } from '../graph';
 import type { ChunkRow, Source } from './types';
 import { openStore, state, apply, getChunks, saveScopes, hashOf, type Store, type StoredRow } from './store';
@@ -19,7 +19,8 @@ export type RefreshStats = { changed: Record<Source, number>; embedded: number; 
 const MAX_CODE = 200 * 1024;
 const CODE_EXT = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|kt|swift|rb|php|sh|sql|css|scss|html|md|yml|yaml|toml|c|h|cpp|hpp|cs|graphql)$/i;
 
-export const codeRoot = (p: Product) => p.meta.repo ? path.resolve(p.meta.repo) : REPO_ROOT;
+// Ask indexes code only where the product names it (spec §6)
+export const codeRoot = (p: Product): string | null => productRepo(p);
 const stores = ((globalThis as { __askStores?: Map<string, Promise<Store>> }).__askStores ??= new Map());
 export function getStore(p: Product): Promise<Store> {
   let s = stores.get(p.dir);
@@ -41,7 +42,7 @@ async function walk(p: Product, graph: GraphData, listCode: (root: string) => Pr
     files.push({ scope: 'doc:' + a, source: 'doc', mtime: m, read: async () => docChunks(path.relative(REPO_ROOT, a), await readFile(a, 'utf8')) });
   }
   const root = codeRoot(p);
-  if (existsSync(root)) {
+  if (root && existsSync(root)) {
     let list: string[] = []; try { list = await listCode(root); } catch { /* not a git folder */ }
     for (const rel of list.filter(f => CODE_EXT.test(f))) {
       const a = path.join(root, rel); if (inside(a, path.join(p.dir, 'projects')) || inside(a, path.join(p.dir, '_sessions')) || inside(a, DATA_ROOT)) continue;   // knowledge, not code

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { access, mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { getProduct, REPO_ROOT } from '@/lib/products';
+import { getProduct, REPO_ROOT, productRepo } from '@/lib/products';
 import { loadScope, mainProject, treeFor } from '@/lib/scope';
 import { rebuild, writeAtomic } from '@/lib/write';
 import { assignTask } from '@/lib/work-io';
@@ -19,7 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const body = (await req.json()) as { name?: string; path?: string; project?: string; parent?: string; brief?: string; analyse?: boolean };
   const name = (body.name ?? '').trim(); const given = (body.path ?? '').trim();
   if (!name || !given) return NextResponse.json({ error: 'invalid', message: 'name and path required' }, { status: 422 });
-  const repo = p.meta.repo ? path.resolve(p.meta.repo) : REPO_ROOT;
+  const repo = productRepo(p) ?? REPO_ROOT;
   const abs = path.isAbsolute(given) ? given : path.join(repo, given);
   try { if (!(await stat(abs)).isDirectory()) throw new Error(); } catch { return NextResponse.json({ error: 'invalid', message: `${abs} is not a folder` }, { status: 422 }); }
   // no project named: the product's main project, the one the rail opens (lib/scope#mainProject)

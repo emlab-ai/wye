@@ -13,7 +13,7 @@ import { createSession, getSession, onSessionEnd, updateSession } from './sessio
 import { startChat, buildPrompt } from './agent-host';
 import { skillsSection, listSkills } from './skills';
 import { readSettings, agentSettings } from './settings';
-import { REPO_ROOT } from './products';
+import { REPO_ROOT, productRepo } from './products';
 import { docRoute, documentTree } from './doc';
 import { readContent, writeContent } from './node-content';
 import { rebuild, withFileLock, writeAtomic } from './write';
@@ -177,7 +177,7 @@ async function startSkillSession(scope: Scope, actor: Actor, skill: string, ev: 
   const skillNode = scope.idx.byId.get(skill);
   const role = (meta?.role ?? (skillNode ? cardValue(skillNode.body, 'role') : '')) === 'worker' ? 'worker' : 'librarian';
   const settings = agentSettings(await readSettings());
-  const cwd = role === 'librarian' ? REPO_ROOT : scope.product.meta.repo || REPO_ROOT;
+  const cwd = role === 'librarian' ? REPO_ROOT : productRepo(scope.product) ?? REPO_ROOT;
   const partOf = node ? (scope.idx.out.get(node.id) ?? []).filter(e => e.verb === 'part-of').map(e => e.to) : [];
   const route = node ? docRoute(node.file) : null;
   const title = node?.title || ev.id;

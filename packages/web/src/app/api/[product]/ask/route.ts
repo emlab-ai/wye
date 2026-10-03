@@ -18,7 +18,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const stream = new ReadableStream({
     async start(ctrl) {
       const send = (name: string, data: unknown) => { try { ctrl.enqueue(enc.encode(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`)); } catch { ac.abort(); } };
-      try { for await (const e of ask({ ctx: env.ctx, productDir: env.scope.product.dir, codeRoot: codeRoot(env.scope.product), degraded: env.degraded }, { q, history: body.history, lanes: body.lanes }, { signal: ac.signal, wfUrl })) send(e.type, e); }
+      try { for await (const e of ask({ ctx: env.ctx, productDir: env.scope.product.dir, codeRoot: codeRoot(env.scope.product) ?? '', degraded: env.degraded }, { q, history: body.history, lanes: body.lanes }, { signal: ac.signal, wfUrl })) send(e.type, e); }
       catch (e) { send('error', { type: 'error', lane: 'retrieve', message: String(e) }); }
       try { ctrl.close(); } catch { /* closed */ }
     },

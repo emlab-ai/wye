@@ -25,7 +25,7 @@ export function refsFromToolUse(name: string, input: Record<string, unknown>, ro
     const f = String(input.file_path ?? '');
     const doc = f.match(/\/projects\/([^/]+)\/(docs|\.wye)\/([^/]+)\.md$/);
     if (f.startsWith(roots.product + '/') && doc) return [`doc-file:${doc[1]}/${doc[2] === '.wye' ? '~' : ''}${doc[3]}`];
-    if (!f.startsWith(roots.code + '/')) return [];
+    if (!roots.code || !f.startsWith(roots.code + '/')) return [];
     const a = Number(input.offset ?? 1) || 1; const n = Number(input.limit ?? 60) || 60;
     return [`${f.slice(roots.code.length + 1)}:${a}-${a + n - 1}`];
   }

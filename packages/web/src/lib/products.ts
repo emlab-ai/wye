@@ -36,6 +36,12 @@ async function dirs(p: string): Promise<string[]> {
 // A product's folder (decision:wf2.product-folder): by default the registry entry itself, <data>/products/<slug>; with
 // `root: <path>` in _product.md, that folder holds everything but _product.md — the projects and their documents, the
 // graph, sessions, changes, hooks, inbox — so a product's knowledge can live beside its code (~ is the home folder).
+// The product's code folder, from `repo:` in _product.md: an absolute path as it is, a relative one against the repo the
+// app runs from (`repo: .` is this repo), null when the product names none.
+export function productRepo(p: Pick<Product, 'meta'>): string | null {
+  const r = p.meta.repo?.trim(); if (!r) return null;
+  return path.isAbsolute(r) ? r : path.resolve(REPO_ROOT, r);
+}
 export function resolveRoot(root: string): string { return path.resolve(root.replace(/^~(?=$|\/)/, os.homedir())); }
 export const registryDir = (slug: string, dataRoot: string = DATA_ROOT) => path.join(dataRoot, 'products', slug);
 const dirSlugs = new Map<string, string>(); // product folder → slug, for the callers that only hold the folder

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readFile, stat, readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { getProduct, REPO_ROOT } from '@/lib/products';
+import { getProduct, REPO_ROOT, productRepo } from '@/lib/products';
 
 // op:api.code (req:wf2.code-preview) — GET ?path=<file>[#<symbol>|:<line>] → the file's text from the product's code
 // (its `repo:` in _product.md, else this repo), the language for the viewer, and the line a symbol is defined on
@@ -12,7 +12,7 @@ const LANG: Record<string, string> = { ts: 'typescript', tsx: 'typescript', js: 
 export async function GET(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const root = p.meta.repo ? path.resolve(p.meta.repo) : REPO_ROOT;
+  const root = productRepo(p) ?? REPO_ROOT;
   const sp = new URL(req.url).searchParams;
   const raw = (sp.get('path') ?? sp.get('dir') ?? '').trim();
   const m = raw.match(/^(.*?)(?:#([A-Za-z0-9_$.]+)|:(\d+))?$/); const rel = (m?.[1] ?? raw).replace(/^\.\//, '');

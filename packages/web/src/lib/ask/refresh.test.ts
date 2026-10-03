@@ -69,6 +69,10 @@ describe('refresh', () => {
     await refresh(p, g, { embed: fakeEmbed, listCode });
     expect((await stat(f)).mtimeMs).toBe(before);
   });
+  it('indexes no code for a product that names no repo', async () => {
+    delete p.meta.repo;   // bin/wye.js exists in the repo the app runs from: the old fallback would index it
+    expect((await refresh(p, g, { embed: fakeEmbed, listCode: async () => ['bin/wye.js'] })).changed.code).toBe(0);
+  });
   it('skips code when the product has no repo folder', async () => {
     p.meta.repo = path.join(dir, 'nope');
     expect((await refresh(p, g, { embed: fakeEmbed, listCode })).changed.code).toBe(0);

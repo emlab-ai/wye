@@ -11,7 +11,7 @@ import { adoptPrDoc, readPrDoc, definitionContext, prDefinition } from './pr-doc
 import { setFrontmatter, definitionIds } from './pr-doc';
 import { editNode } from './node-edit';
 import { docIdOf, docRoute } from './doc';
-import { REPO_ROOT } from './products';
+import { REPO_ROOT, productRepo } from './products';
 import { writeAtomic, withFileLock, rebuild } from './write';
 import { readContent, writeContent } from './node-content';
 import { workItems, assignRefusal, nextReady, type WorkItem, type WorkSession } from './work';
@@ -81,7 +81,7 @@ export async function assignTask(scope: Scope, id: string, input: AssignInput): 
   const source = r ? { project: r.project, doc: r.doc, link: `${input.wfUrl}/${scope.product.slug}/${r.project}/d/${r.doc}#n-${encodeURIComponent(id)}` } : {};
   const mode: 'chat' | 'run' = worker === RUNNER_POOL ? 'run' : 'chat';
   const agent = worker === RUNNER_POOL ? (input.agent && AGENT_IDS.has(input.agent) ? input.agent : 'claude-code') : worker;
-  let cwd = input.cwd?.trim() || scope.product.meta.repo || REPO_ROOT;
+  let cwd = input.cwd?.trim() || (productRepo(scope.product) ?? REPO_ROOT);
   if (mode === 'chat') { try { if (!(await stat(cwd)).isDirectory()) throw new Error(); } catch { cwd = REPO_ROOT; } }
   let instruction = taskInstruction(scope, item, input.note);
   const def = input.build ? await definitionContext(scope, input.build) : null;

@@ -12,10 +12,10 @@ export type DeepEvent = { type: 'step'; text: string } | { type: 'refs'; refs: s
 export type DeepOpts = { signal: AbortSignal; product: string; productDir: string; codeRoot: string; wfUrl: string; known: (id: string) => boolean; maxTools?: number; timeoutMs?: number };
 
 export function deepArgs(o: { product: string; productDir: string; codeRoot: string; wfUrl: string }): string[] {
-  const brief = readFileSync(path.join(REPO_ROOT, 'prompts/ask-deep.md'), 'utf8').replaceAll('{{product}}', o.product).replaceAll('{{code}}', o.codeRoot).replaceAll('{{docs}}', o.productDir);
+  const brief = readFileSync(path.join(REPO_ROOT, 'prompts/ask-deep.md'), 'utf8').replaceAll('{{product}}', o.product).replaceAll('{{code}}', o.codeRoot || '(this product names no code folder)').replaceAll('{{docs}}', o.productDir);
   return ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--model', ASK_MODEL, '--append-system-prompt', brief,
     '--tools', 'Bash,Read,Grep,Glob', '--permission-mode', 'default', '--strict-mcp-config',
-    '--add-dir', o.codeRoot, '--add-dir', o.productDir,
+    ...(o.codeRoot ? ['--add-dir', o.codeRoot] : []), '--add-dir', o.productDir,
     '--allowedTools', 'Bash(wye:*)', 'Read', 'Grep', 'Glob',
     '--disallowedTools', 'Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash(git:*)', 'Bash(rm:*)', 'Bash(npm:*)', 'Bash(node:*)', 'Agent', 'Task', 'WebFetch', 'WebSearch'];
 }
@@ -33,7 +33,7 @@ export async function* runDeep(q: string, history: { q: string; a: string }[], o
   const roots = { code: o.codeRoot, product: o.productDir };
   const prompt = `${history.length ? `Earlier in this conversation:\n${history.map(x => `Q: ${x.q}\nA: ${x.a}`).join('\n\n')}\n\n` : ''}Question: ${q}`;
   try {
-    for await (const l of spawnClaude(deepArgs(o), prompt, { signal: inner.signal, cwd: existsSync(o.codeRoot) ? o.codeRoot : undefined, env: deepEnv(o) })) {
+    for await (const l of spawnClaude(deepArgs(o), prompt, { signal: inner.signal, cwd: o.codeRoot && existsSync(o.codeRoot) ? o.codeRoot : existsSync(o.productDir) ? o.productDir : undefined, env: deepEnv(o) })) {
       const content = ((l.message as { content?: unknown[] } | undefined)?.content ?? []) as Record<string, unknown>[];
       if (l.type === 'assistant') for (const c of content) if (c.type === 'tool_use') {
         const input = (c.input ?? {}) as Record<string, unknown>;
