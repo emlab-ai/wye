@@ -9,6 +9,7 @@ role: librarian
 takes: module
 writes: [decision, entity, op, rule, state, page]
 source: prompts/tech-design.md
+source-hash: 2b886899405d
 part-of: module:evaluation-skills
 ---
 

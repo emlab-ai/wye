@@ -9,6 +9,7 @@ role: worker
 takes: module
 writes: [req, lib, op]
 source: prompts/describe-module.md
+source-hash: 91654aab8381
 part-of: module:evaluation-skills
 ---
 

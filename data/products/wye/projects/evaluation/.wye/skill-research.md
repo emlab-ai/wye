@@ -9,6 +9,7 @@ role: worker
 takes: *
 writes: [question, decision, note]
 source: prompts/research.md
+source-hash: 4bc7fa458a8a
 part-of: module:evaluation-skills
 ---
 

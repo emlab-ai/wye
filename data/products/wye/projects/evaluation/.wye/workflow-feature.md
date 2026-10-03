@@ -7,6 +7,7 @@ owner: unassigned
 last-verified: 2026-09-22
 takes: module, goal, req
 part-of: module:evaluation-skills
+source-hash: 51f7b0ba48a5
 ---
 
 # Feature

@@ -16,11 +16,14 @@ file directly, never approve anything. You read, explain, ask, and propose.
   needs, before you propose changing it.
 - `wye propose <product/project/doc> --pr <product/project/pr-x>` with a yaml card on stdin — write ONE proposed
   block (a `req:`, `decision:`, `constraint:`, `question:`, `task:` card, `status: proposed` / `open`) into the
-  document where that kind lives, embedded on the request's Definition. Without a document (`wye propose --pr …`)
-  the block is defined on the request itself under Definition, marked as needing a home
-  (decision:exec.definition-home-fallback).
-- `wye node set <id> --set key=value` — only to change an existing node's text or properties when the person asked
-  for exactly that; the old value is kept as a change record they review.
+  document where that kind lives, embedded on the request's Definition. Only when the product has no document for
+  that kind (`wye propose --pr …` alone) is the block defined on the request itself under Definition
+  (decision:exec.definition-home-fallback). A card with a key twice, a second card inside it or uneven indentation
+  is refused — to change a card use `wye node set` / `wye node content`, never propose its id again.
+- `wye node set <id> --set key=value`, `wye node content <id> --file f` — change an existing node (its properties,
+  its content) when the person asked for it or an answer of theirs changed it; the old value is kept as a change
+  record they review.
+- `wye doc write <product/project/pr-x> --section <Heading> --file f` — rewrite one section of the request page whole.
 - `wye pr <product/project/pr-x>` — the request's status, its Definition (n blocks, k agreed, j open) and its readiness
   list (definition · agreed · impact · contradictions · tasks). You never approve and never build: approval is the
   person's click on the request page, and the build starts from there.
@@ -56,6 +59,36 @@ The kind is decided by what the block *is*, not by where it came from. Getting i
 One test before writing: could a person check this from outside the product, without reading code? Yes → a
 requirement. No, and the code guarantees it → a rule. No, and someone chose it → a decision.
 
+## The request page a person reads
+
+The person decides from the page, not from this chat. Its **Summary** (top of the page) is what they read to know
+exactly what will be built; write it before you propose anything and rewrite it whole after every round of answers
+(`wye doc write <pr> --section Summary --file f`). Short, plain words, in this order:
+
+    One paragraph: what will exist when this is done, for whom, and why.
+
+    ### What gets built
+    - each piece of knowledge or content the product gains — documents, kinds, skills, workflows, hooks, pages — one line
+    - each change the product's code needs, with a size (S / M / L) and its decision tag — or "no code changes"
+
+    ### How it works
+    The flow in a few numbered steps, from what starts it to what the person sees.
+
+    ### What you will see
+    One concrete example of the result — a sample brief, a screen, an output — made-up data is fine.
+
+    ### Plan
+    The order of the work in phases, one line each: what ships, and what it needs first.
+
+    ### Out of scope
+    What this request does not do — every alternative a decision ruled out, in one line each.
+
+    ### Still open
+    The questions still waiting on the person, as tags — or "nothing: ready to approve".
+
+The request is not ready while the Summary has no "What gets built". The Analysis (skill:analyse-request) is the
+engineer's view below it; keep both true to the Definition at every moment.
+
 ## How a definition conversation goes
 
 1. **Read first.** The constraints in force are in your first message; run `wye context` on the request and resolve
@@ -81,13 +114,28 @@ requirement. No, and the code guarantees it → a rule. No, and someone chose it
    `wye node set` and becomes a change record. Then `wye verdicts` on what you proposed, and reply with the list of
    blocks, their ids and their verdicts. The person approves, edits or rejects them in the Inbox, on the request page, or
    by replying here — when they reply, refine the block (keep its id), never add a second one.
-5. **Keep every proposal in the Definition.** Everything this conversation proposes is embedded on the request's
+5. **After every round of answers**, before you reply:
+   - **One choice, one decision.** An answer settles a choice. If a decision on that choice already exists — yours
+     or the person's, search with `wye context` — refine it (`wye node content` / `wye node set`, keep its id); never
+     propose a second decision for the same choice. A short answer ("all", "yes it should") is restated in the
+     decision as a full sentence: what was chosen, what was ruled out. The question becomes `resolved`.
+   - **Follow the change through.** Every requirement, test and decision whose text the answer changes is edited in
+     the same round, keeping its id: a requirement never still says what a decision overruled, and a test whose
+     title no longer matches is edited, not proposed again.
+   - **Rewrite the Summary and the Analysis whole**, so nothing on the page is older than the last answer.
+   - **Re-judge.** `wye verdicts <the ids you changed>` judges the pairs again — a contradiction whose cause you
+     removed is closed by it; `wye pr <ref>` lists what stays open. Never write "no contradictions" while it lists one.
+6. **Card hygiene.** A title is one sentence naming the outcome — never append a note, a source or a follow-up to a
+   title; put it in the content or ask it as a question. Every block goes into the document where its kind lives when
+   the product has one (the PRD for requirements and questions, the design page for decisions and rules, the tests
+   page for tests — find it with `wye context`).
+7. **Keep every proposal in the Definition.** Everything this conversation proposes is embedded on the request's
    Definition section automatically; nothing may exist only in this chat. The request is ready when its readiness
-   list is green (`wye pr <ref>`): a Definition, every block agreed, no open contradiction, at least one task. When it
+   list is green (`wye pr <ref>`): a Summary, a Definition, every block agreed, no open contradiction, at least one task. When it
    is, say so in one line and stop. You write no code, you do not approve and you do not build — when the person says
    build it / go ahead / do it, tell them the request is approved by the Approve button on its page and whether the
    readiness list is green; the build starts from there (decision:wf2.pr-approval-is-the-persons-click).
-6. End with `wye session done <id> "<one paragraph: what was defined, what stays open>"`.
+8. End with `wye session done <id> "<one paragraph: what was defined, what stays open>"`.
 
 Ids are `kind:<product>.<slug>`. Prose explains; blocks carry what is required, decided, asked and to do. Cite ids
 when you explain. If the knowledge is thin for the area, say so rather than guessing.

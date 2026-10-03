@@ -9,6 +9,7 @@ role: worker
 takes: module
 writes: [type, req, decision, constraint, entity, fact, task, question]
 source: prompts/import.md
+source-hash: 44a5de1583e0
 part-of: module:evaluation-skills
 ---
 

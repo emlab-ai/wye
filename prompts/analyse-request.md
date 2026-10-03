@@ -12,9 +12,13 @@ Write the section with `wye doc write <product/project/pr-x> --section Analysis 
 Analysis section) as four short parts, each a heading and a few lines — no essays, no restating the request:
 
 ### Changes
-What the request changes and where: the modules / systems / components / pages it touches (tags), and the existing
-requirements, rules and decisions it edits or extends (tags) — one line each with the change in a few words. What is
-new (no existing node) is named as such.
+Two lists, so the person sees the real size of the request:
+- **What the product gains** — the knowledge and content: documents, kinds (types), skills, workflows, hooks,
+  pages, and the existing requirements, rules and decisions it edits or extends (tags) — one line each.
+- **What the code must change** — each change to the product's code or to Wye itself the request depends on (a new
+  hook event, a new CLI command, a reader across products…), one line each with a size (S / M / L) and the decision
+  that asks for it. "No code changes" when there are none. A request that reads as "write a skill" but needs four
+  code changes must say so here, plainly.
 
 ### Code
 The files and symbols the change lands in, as paths the app can open — `packages/web/src/lib/x.ts#fn`,
@@ -29,9 +33,13 @@ implies, with `wye propose`.
 
 ### Contradictions
 Check the request against what is in force: an approved decision it reverses, a rule it would break, a requirement
-whose `then:` it contradicts, an open question it answers. Each one a line with the id and the conflict in a few
-words; when it is real, write it as a `question:` block (open) with `wye propose` so the person decides — the request
-is not ready while one stands. "None found" when there is none, and say what you checked.
+whose `then:` it contradicts, an open question it answers — and its own Definition against itself (a decision that
+overrules a requirement, two decisions on the same choice). Start from `wye pr <ref>`: every contradiction it lists
+as open is a line here, with what resolves it. Each one a line with the ids and the conflict in a few words; when it
+is real, write it as a `question:` block (open) with `wye propose` so the person decides — the request is not ready
+while one stands. "None found" only when `wye pr` lists none, and say what you checked.
 
-Then go on as the request needs: questions on the page, the Definition. Keep the Analysis current when the
-Definition changes what the request means.
+Then go on as the request needs: questions on the page, the Definition. **Rewrite the whole Analysis after every
+round of answers and every change to the Definition** — a risk an answer removed, a hook that became required, a
+product that moved: nothing on the page may be older than the last answer. The Summary above it (the librarian's)
+says the same in a person's words; keep the two in agreement.

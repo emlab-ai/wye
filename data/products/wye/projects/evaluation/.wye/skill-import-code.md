@@ -9,6 +9,7 @@ role: worker
 takes: module
 writes: [req, rule, entity, state, op, lib, test, question]
 source: prompts/import-code.md
+source-hash: f6747f830455
 part-of: module:evaluation-skills
 ---
 

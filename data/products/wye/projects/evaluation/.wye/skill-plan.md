@@ -9,6 +9,7 @@ role: librarian
 takes: module
 writes: [task]
 source: prompts/plan.md
+source-hash: c4ceb35e406a
 part-of: module:evaluation-skills
 ---
 

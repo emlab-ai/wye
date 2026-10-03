@@ -9,6 +9,7 @@ role: librarian
 takes: module
 writes: [req, goal, question, entity]
 source: prompts/prd.md
+source-hash: 4a4aadd58a42
 part-of: module:evaluation-skills
 ---
 

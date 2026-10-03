@@ -5,6 +5,9 @@
 // The Hooks page (hooks.md) lives beside it: one document of hook and template cards per project.
 import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { REPO_ROOT, type Project } from './products';
 import { writeAtomic } from './write';
 import { bodyOf } from './write';
@@ -57,34 +60,89 @@ export const ensureHooksPage = (project: Project, root: string | null) => ensure
 // first heading dropped — the document's title replaces it). Returns the markdown.
 export function skillDocFromPrompt(prompt: string, s: { slug: string; title: string; role: SkillRole; file: string; takes?: string; writes?: string[]; skills?: string[] }, parent: string): string {
   const body = prompt.replace(/^# .*\n+/, '').trim();
-  const fm = [`node: skill:${s.slug}`, 'type: skill', `title: ${s.title}`, 'status: active', 'owner: unassigned', `last-verified: ${today()}`, `role: ${s.role}`, ...(s.takes ? [`takes: ${s.takes}`] : []), ...(s.writes ? [`writes: [${s.writes.join(', ')}]`] : []), ...(s.skills ? [`skills: [${s.skills.join(', ')}]`] : []), `source: ${s.file}`, `part-of: ${parent}`];
+  const fm = [`node: skill:${s.slug}`, 'type: skill', `title: ${s.title}`, 'status: active', 'owner: unassigned', `last-verified: ${today()}`, `role: ${s.role}`, ...(s.takes ? [`takes: ${s.takes}`] : []), ...(s.writes ? [`writes: [${s.writes.join(', ')}]`] : []), ...(s.skills ? [`skills: [${s.skills.join(', ')}]`] : []), `source: ${s.file}`, `source-hash: ${textHash(body)}`, `part-of: ${parent}`];
   return `---\n${fm.join('\n')}\n---\n\n# ${s.title}\n\n${body}\n`;
 }
 
-// Write the base skills under the Skills page when they are missing. Returns the slugs written.
+// A shipped copy follows its source until a person edits it (decision:wf2.shipped-copies-follow-source): a skill or
+// workflow document written from Wye's own prompt or template records the hash of the text it was written with
+// (`source-hash:`); while its text still has that hash nobody changed it, so a newer prompt replaces it — keeping the
+// document's frontmatter, which is the person's (its status, title, part-of). A copy from before the hash counts as
+// unchanged when its text is one Wye shipped earlier (`shippedBefore`, from the prompt's git history). Returns the new
+// document, or null when it stays as it is.
+const splitDoc = (md: string) => { const m = md.match(/^---\n([\s\S]*?)\n---\n?/); return { fm: m ? m[1] : '', body: m ? md.slice(m[0].length) : md }; };
+const textOf = (body: string) => body.replace(/^\s*# .*\n+/, '').trim();
+export const textHash = (text: string) => createHash('sha1').update(text.trim()).digest('hex').slice(0, 12);
+export function followSource(current: string, fresh: string, shippedBefore: (text: string) => boolean): string | null {
+  const cur = splitDoc(current); const nxt = splitDoc(fresh);
+  const curText = textOf(cur.body); const nxtText = textOf(nxt.body);
+  const recorded = cur.fm.match(/^source-hash:\s*(\S+)/m)?.[1];
+  const untouched = recorded ? textHash(curText) === recorded : shippedBefore(curText);
+  if (!untouched) return null;
+  const hash = textHash(nxtText);
+  if (curText === nxtText && recorded === hash) return null;
+  let fm = cur.fm;
+  if (recorded) fm = fm.replace(/^source-hash:.*$/m, `source-hash: ${hash}`);
+  else if (/^source:/m.test(fm)) fm = fm.replace(/^(source:.*)$/m, `$1\nsource-hash: ${hash}`);
+  else fm = `${fm}\nsource-hash: ${hash}`;
+  const title = cur.body.match(/^\s*# .*$/m)?.[0].trim() ?? '';
+  return `---\n${fm}\n---\n\n${title ? `${title}\n\n` : ''}${nxtText}\n`;
+}
+// every text a prompt file has had in git, as the copy would hold it — to recognise a copy nobody edited
+const history = new Map<string, Promise<Set<string>>>();
+export function shippedTexts(file: string, toText: (content: string) => string): Promise<Set<string>> {
+  if (!history.has(file)) history.set(file, (async () => {
+    const run = promisify(execFile); const out = new Set<string>();
+    try {
+      const shas = (await run('git', ['log', '--format=%H', '--', file], { cwd: REPO_ROOT })).stdout.split('\n').filter(Boolean);
+      for (const sha of shas) { try { out.add(toText((await run('git', ['show', `${sha}:${file}`], { cwd: REPO_ROOT, maxBuffer: 8 << 20 })).stdout)); } catch { /* not there at that commit */ } }
+    } catch { /* no git */ }
+    return out;
+  })());
+  return history.get(file)!;
+}
+
+// Write the base skills under the Skills page when they are missing, and bring the ones nobody edited up to date with
+// their prompt. Returns the slugs written.
 export async function ensureBaseSkills(project: Project, root: string | null): Promise<string[]> {
   const parent = await ensureSkillsPage(project, root);
   const written: string[] = [];
   for (const s of BASE_SKILLS) {
     const file = path.join(project.wyeDir, `skill-${s.slug}.md`);
-    if (await exists(file)) continue;
     let prompt = ''; try { prompt = await readFile(path.join(REPO_ROOT, s.file), 'utf8'); } catch { continue; }
-    await writeAtomic(file, skillDocFromPrompt(prompt, s, parent));
+    const fresh = skillDocFromPrompt(prompt, s, parent);
+    if (await exists(file)) {
+      const cur = await readFile(file, 'utf8');
+      const legacy = !/^source-hash:/m.test(splitDoc(cur).fm) ? await shippedTexts(s.file, p => p.replace(/^# .*\n+/, '').trim()) : new Set<string>();
+      const next = followSource(cur, fresh, t => legacy.has(t));
+      if (next) { await writeAtomic(file, next); written.push(s.slug); }
+      continue;
+    }
+    await writeAtomic(file, fresh);
     written.push(s.slug);
   }
   return written;
 }
 
-// The shipped workflows under the Skills page, written when missing (decision:wf2.workflow-is-a-skill). Returns the
-// slugs written. `{{title}}` and the produced-document names in the stage cards are left for the engine to fill.
+// The shipped workflows under the Skills page, written when missing and kept up to date while nobody edited them
+// (decision:wf2.workflow-is-a-skill, decision:wf2.shipped-copies-follow-source). Returns the slugs written. `{{title}}` and the produced-document names in the stage cards are left for the engine to fill.
 export async function ensureBaseWorkflows(project: Project, root: string | null): Promise<string[]> {
   const parent = await ensureSkillsPage(project, root);
   const written: string[] = [];
   for (const slug of BASE_WORKFLOWS) {
-    const file = path.join(project.wyeDir, `workflow-${slug}.md`);
-    if (await exists(file)) continue;
-    let tpl = ''; try { tpl = await readFile(path.join(REPO_ROOT, `templates/docs/workflow-${slug}.md`), 'utf8'); } catch { continue; }
-    await writeAtomic(file, fill(tpl, { slug, date: today(), parent }));
+    const file = path.join(project.wyeDir, `workflow-${slug}.md`); const src = `templates/docs/workflow-${slug}.md`;
+    let tpl = ''; try { tpl = await readFile(path.join(REPO_ROOT, src), 'utf8'); } catch { continue; }
+    const filled = fill(tpl, { slug, date: today(), parent });
+    const { fm, body } = splitDoc(filled);
+    const fresh = `---\n${fm}\nsource: ${src}\nsource-hash: ${textHash(textOf(body))}\n---\n${body}`;
+    if (await exists(file)) {
+      const cur = await readFile(file, 'utf8');
+      const legacy = !/^source-hash:/m.test(splitDoc(cur).fm) ? await shippedTexts(src, t => textOf(splitDoc(fill(t, { slug, date: '', parent: '' })).body)) : new Set<string>();
+      const next = followSource(cur, fresh, t => legacy.has(t));
+      if (next) { await writeAtomic(file, next); written.push(slug); }
+      continue;
+    }
+    await writeAtomic(file, fresh);
     written.push(slug);
   }
   return written;

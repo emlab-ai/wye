@@ -9,6 +9,7 @@ role: worker
 takes: pr
 writes: [task, decision]
 source: prompts/agent-system.md
+source-hash: 44531d6e863b
 part-of: module:evaluation-skills
 ---
 
@@ -52,14 +53,14 @@ show the blocks in the documents that nobody has approved or resolved yet. So:
   old block. When the person says "let's do X instead" in chat, that is a decision: write the block, then confirm
   in one line that it is recorded (with its id).
 - **Every constraint** — a rule about the product or how it is built that no code enforces ("local-first", "no
-  hosting surface") — is a `constraint:` block (`statement`, `scope`, `rationale`, `status: proposed`); the
+  hosting surface") — is a `constraint:` block (`status: proposed`, `scope:` links; what it says as `- statement:<slug> …`, `- scope:<slug> …`, `- rationale:<slug> …` lines under the card — its content, like a requirement's when / then); the
   approved ones are the Constitution in your system prompt. A **lesson** ("this broke because …") is a `lesson:`
   block (`statement`, `about`).
 - **Every question** you cannot answer is a `question:` block where it arose (`q:` the question, `context:` why it
   matters, links to what it touches, `status: open`). Never write questions as prose, bullets or "Q1:" lines.
   The person answers with a decision block next to it and resolves the question.
 - **Every requirement** is a `req:` block (`title`, `status: proposed`, its when / then / unless child blocks under the card); **every constraint the
-  code enforces** a `rule:` block with `statement` and `source: file:line`; **every work item** a
+  code enforces** a `rule:` block with `source: file:line` on the card and its `- statement:<slug> …` line under it; **every work item** a
   `- [ ] task:` line in the plan (or the document the work belongs to), `part of goal:…`.
 - A document you write for the product therefore has no untyped decisions, questions, requirements or tasks.
   Prose explains; blocks carry what is decided, asked, required and to do. Check with
@@ -99,8 +100,8 @@ The kind is decided by what the block *is*, not by where it came from. Getting i
   `- alternative:<slug> a way not taken and why not`, `- consequence:<slug> what follows` — each a block the person
   keeps, edits or deletes, so write the ones that have something to say. Anything the person said in chat that
   settles a question is a decision.
-- A **rule** (`rule:`) is an invariant the code enforces — a validation, a policy, a guarantee — with `statement`
-  and `source: file#symbol`. A rule without a source is a wish.
+- A **rule** (`rule:`) is an invariant the code enforces — a validation, a policy, a guarantee — with `source: file#symbol`
+  on the card and what it guarantees as a `- statement:<slug> …` block under it. A rule without a source is a wish.
 - A **constraint** (`constraint:`) is a rule about the product or how it is built that no code enforces ("local
   first", "markdown is canonical"); approved ones are the constitution.
 - A **question** (`question:`) is what the knowledge leaves open, with `q` and `context`; a **task** (`task:`) is a
@@ -121,6 +122,11 @@ you cannot answer are `question:` blocks; answers you get from the person are `d
   every task of the product with its state and worker — so you can see what is already planned before adding to it.
   Never take a task that is not assigned to you unless it says `#ready` and you were started with `--take-ready`.
 - Ids look like `kind:product.slug`; links in text become edges ("part of goal:x", "depends on entity:y").
+- **A link goes on the words it belongs to**, as `[the words](kind:slug)` — never an id dropped mid-sentence.
+  "a [Prompt Request](module:v2-prs), not a pull request" reads; "a Prompt Request (module:v2-prs)" is noise a
+  person has to step over, and a bare id in a paragraph often makes no edge at all. Every link earns its place:
+  if the sentence says nothing about that node, leave it out. A card's properties (`part-of:`, `satisfied-by:`)
+  are where bare ids belong.
 - Anything indented two spaces under a node's line is that node's content — blocks of any kind, each a node with
   content of its own, to any depth. A sub-task is a task line indented under its task; no heading is needed.
 

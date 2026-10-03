@@ -10,6 +10,7 @@ takes: module
 writes: [test, ui-test, question]
 skills: [skill:define-tests]
 source: prompts/test-design.md
+source-hash: 20986cfb5260
 part-of: module:evaluation-skills
 ---
 
