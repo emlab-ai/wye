@@ -475,3 +475,21 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 ```
 
   - choice:wf2.rail-agent-opens-as-page a row of the rail's Agents folder links to /<product>/sessions/<id>/chat — the conversation in its own tab — and is marked while it is open; not the context column.
+
+
+```yaml
+- id: decision:wf2.no-projects
+  title: There are no projects in the app — each folder of documents is a top-level document holding its own
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [page:web/sidebar, page:web/overview]
+  part-of: module:req-shell
+```
+
+  - context:wf2.no-projects "explain me the purpose of projects?? because we have nested docs, what the purpose of them at all" — a project was a folder with a status and its own system pages; knowledge, search and the graph were product-wide and nested documents already grouped.
+
+  - choice:wf2.no-projects "just delete them, and show existing folders as docs": the Documents tree shows each folder (projects/<slug>/ on disk) as a top-level document with its documents under it, opening the folder's page; + on it creates a document in it; it is not dragged or given the document menu. Overview lists the folders under Documents; nothing in the app says "project".
+
+  - consequence:wf2.no-projects the folders stay on disk and in URLs (/<product>/<folder>/d/<doc>), so no link breaks; the system pages (PRs, Skills, Hooks, Goals, Work) still live per folder — moving them to one set per product is what is left.
