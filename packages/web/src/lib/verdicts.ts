@@ -5,6 +5,7 @@
 // contradiction: line — so it reaches the Inbox with the block. Consistent verdicts stay in the judge log
 // (_build/verdicts.json) and show as "checked against n". Off unless the product's _product.md says `verdicts: on`
 // or WF_VERDICTS=1; budgeted per run; one run at a time per product, ids arriving meanwhile wait for the next.
+import { reconcileVerdicts } from './verdict-reconcile';
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -67,21 +68,22 @@ export async function runVerdicts(productDir: string, product: string, ids: stri
   const verdicts = (await judge.judgePairs(pairs, { cacheFile: path.join(productDir, '_build/verdicts.json'), budget: opts.budget ?? { pairs: 30, calls: 4 }, log: opts.log ?? (() => {}) })).filter(Boolean) as Verdict[];
   let written = 0;
   const byNode = new Map<string, Verdict[]>();
-  for (const v of verdicts) { if (v.kind === 'consistent') continue; if (!byNode.has(v.b)) byNode.set(v.b, []); byNode.get(v.b)!.push(v); }
+  // consistent ones too: they write no line, but they replace the pair's older verdict and close its open contradiction
+  for (const v of verdicts) { if (!byNode.has(v.b)) byNode.set(v.b, []); byNode.get(v.b)!.push(v); }
   for (const [id, vs] of byNode) {
     const n = graph.byId.get(id); if (!n || !n.file || n.form === 'block') continue;
     const file = path.join(REPO_ROOT, n.file);
     written += await withFileLock(file, async () => {
       const md = await readFile(file, 'utf8');
       const content = readContent(md, id, n.line, n.form ?? 'yaml'); if (content === null) return 0;
-      const fresh = vs.flatMap(v => judge.verdictLines(v, { product })).filter(l => !content.includes(l.split(' ')[0]));
-      if (!fresh.length) return 0;
-      const next = writeContent(md, id, n.line, n.form ?? 'yaml', [content.trim(), ...fresh].filter(Boolean).join('\n\n'));
+      const r = reconcileVerdicts(content, vs, v => judge.verdictLines(v as Verdict, { product }));
+      if (!r.changed) return 0;
+      const next = writeContent(md, id, n.line, n.form ?? 'yaml', r.content);
       if (!next || next === md) return 0;
       // the pass claims its own write, so the node is not credited to whatever session happened to be running
       claimWrite(id, { by: 'wye', silent: true });
       await writeAtomic(file, next);
-      return fresh.length;
+      return r.added;
     });
   }
   return { judged: verdicts.length, written, verdicts };
