@@ -8,7 +8,7 @@ import { loadScope } from './scope';
 import { bareSlug, docRoute, projectTree } from './doc';
 import { rebuild, writeAtomic, withFileLock } from './write';
 import { onSessionEnd, setPrDoc, addRefs } from './sessions';
-import { fromLine, getFrontmatter, prDocBody, nextPrNumber, prsPageId, prStatusOnEnd, prTitle, goalSlug, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, withDefinition, definitionIds, definitionState, readiness, taskLines, type PrEndStatus, type DefinitionState, type Readiness } from './pr-doc';
+import { fromLine, getFrontmatter, prDocBody, nextPrNumber, prsPageId, prStatusOnEnd, prTitle, goalSlug, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, withDefinition, definitionIds, definitionState, readiness, summaryWritten, taskLines, type PrEndStatus, type DefinitionState, type Readiness } from './pr-doc';
 import type { Scope } from './scope';
 import { createRequire } from 'node:module';
 import { listChanges } from './changes';
@@ -254,7 +254,7 @@ export async function setRefining(productDir: string, product: string, ref: stri
 }
 
 // Readiness (decision:wf2.pr-lifecycle): the Definition's state plus the task count, as the PR head shows it.
-export function prReadiness(scope: Scope, md: string): Readiness { return readiness(prDefinition(scope, md), taskLines(md).length, scopeFresh(md)); }
+export function prReadiness(scope: Scope, md: string): Readiness { return readiness(prDefinition(scope, md), taskLines(md).length, scopeFresh(md), summaryWritten(md)); }
 
 // Approval (decision:wf2.pr-approval-is-the-persons-click): the person's click. Sets the status and who / when; the
 // route then tells and stops a live refining session (lib/pr-sessions) — the build is the dispatcher's or Build's,

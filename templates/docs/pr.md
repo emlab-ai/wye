@@ -23,6 +23,8 @@ part-of: {{parent}}
 
 {{from}}
 
+## Summary
+
 ## Context
 
 ## Analysis

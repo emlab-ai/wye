@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { nextPrNumber, prNumberOf, prLabel, prTitle, goalSlug, prDocBody, fromLine, resultSection, withResult, setFrontmatter, getFrontmatter, prsOf, prStatusOnEnd, requestTaskStatusOnEnd, definitionIds, withDefinition, definitionState, readiness, taskLines } from './pr-doc';
+import { nextPrNumber, prNumberOf, prLabel, prTitle, goalSlug, prDocBody, fromLine, resultSection, withResult, setFrontmatter, getFrontmatter, prsOf, prStatusOnEnd, requestTaskStatusOnEnd, definitionIds, withDefinition, definitionState, readiness, summaryWritten, taskLines } from './pr-doc';
 
 const TPL = readFileSync(path.join(__dirname, '../../../../templates/docs/pr.md'), 'utf8');
 const vars = { num: 41, slug: 'pr-41', title: 'page link on the session', date: '2026-09-18', session: 'abc123', agent: 'claude-code', parent: 'module:app-agents', started: '2026-09-18T12:00:00.000Z', request: 'page link on the session, it looks good\n\n## but\nshould be a plan', from: '_from: module:app-agents · refs: req:x_' };
@@ -32,7 +32,7 @@ describe('prDocBody', () => {
     const md = prDocBody(TPL, vars);
     expect(md).toMatch(/^---\nnode: pr:41\ntype: pr\ntitle: page link on the session\n/);
     expect(md).toContain('session: abc123\nagent: claude-code\nstarted: 2026-09-18T12:00:00.000Z\npart-of: module:app-agents\n---');
-    expect(md).toContain('## Request\n\n> page link on the session, it looks good\n> \n> ## but\n> should be a plan\n\n_from: module:app-agents · refs: req:x_\n\n## Context');
+    expect(md).toContain('## Request\n\n> page link on the session, it looks good\n> \n> ## but\n> should be a plan\n\n_from: module:app-agents · refs: req:x_\n\n## Summary\n\n## Context');
     for (const h of ['## Context', '## Definition', '## Impact', '## Tasks', '## Result']) expect(md).toContain(h);
     expect(md).not.toContain('their check state'); // no instruction lines for the agent on the person's page
   });
@@ -50,7 +50,7 @@ describe('prDocBody', () => {
   it('drops part-of and the from line when there is nothing to say', () => {
     const md = prDocBody(TPL, { ...vars, parent: '', from: '' });
     expect(md).not.toMatch(/^part-of:/m);
-    expect(md).toContain('> should be a plan\n\n## Context');
+    expect(md).toContain('> should be a plan\n\n## Summary\n\n## Context');
   });
 });
 
@@ -156,11 +156,22 @@ describe('readiness', () => {
   const d = (items: { id: string; status: string; agreed: boolean }[], contradicted: string[] = []) => definitionState(items.map(i => i.id), id => { const it = items.find(i => i.id === id)!; return { status: it.status, openContradictions: contradicted.includes(id) ? ['contradiction:x'] : [] }; });
   it('is green only when everything holds', () => {
     const r = readiness(d([{ id: 'req:a', status: 'approved', agreed: true }]), 1);
-    expect(r).toEqual({ definition: true, agreed: true, impact: true, contradictions: true, tasks: true, ok: true, unagreed: [], contradicted: [] });
+    expect(r).toEqual({ summary: true, definition: true, agreed: true, impact: true, contradictions: true, tasks: true, ok: true, unagreed: [], contradicted: [] });
   });
   it('names what is unagreed and contradicted, and misses tasks', () => {
     const r = readiness(d([{ id: 'req:a', status: 'proposed', agreed: false }, { id: 'rule:b', status: 'approved', agreed: true }], ['rule:b']), 0);
     expect(r.ok).toBe(false); expect(r.agreed).toBe(false); expect(r.unagreed).toEqual(['req:a']); expect(r.contradictions).toBe(false); expect(r.contradicted).toEqual(['rule:b']); expect(r.tasks).toBe(false);
+  });
+  it('a request is not ready until its Summary says what will be built', () => {
+    const ok = d([{ id: 'req:a', status: 'approved', agreed: true }]);
+    expect(readiness(ok, 1, true, false)).toMatchObject({ summary: false, ok: false });
+    expect(readiness(ok, 1, true, true)).toMatchObject({ summary: true, ok: true });
+  });
+  it('a Summary counts once it has the part saying what gets built', () => {
+    expect(summaryWritten('# R\n\n## Summary\n\n## Context\n\nx')).toBe(false);
+    expect(summaryWritten('# R\n\n## Summary\n\nWe build a thing.\n\n## Context\n')).toBe(false);
+    expect(summaryWritten('# R\n\n## Summary\n\nWe build a thing.\n\n### What gets built\n- a skill\n\n## Context\n')).toBe(true);
+    expect(summaryWritten('# R\n\n## Request\n\nold page without the section')).toBe(true);   // pages from before the section
   });
   it('an empty Definition is not ready', () => { expect(readiness(d([]), 2).definition).toBe(false); });
   it('taskLines reads the Tasks section', () => {

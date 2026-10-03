@@ -61,7 +61,7 @@ export function prDocBody(template: string, v: PrDocVars): string {
   // the page is born with someone on it (decision:wf2.pr-lifecycle): refining under a librarian, building under a worker
   if (v.role !== 'librarian') { out = out.replace(/^role: \n/m, ''); out = out.replace(/^status: draft$/m, 'status: building'); }
   else out = out.replace(/^status: draft$/m, 'status: refining');
-  if (!v.from) out = out.replace(/\n{3,}## Context/, '\n\n## Context');
+  if (!v.from) out = out.replace(/\n{3,}(?=## )/, '\n\n');   // the blank where the from line was, before the next section
   return out;
 }
 
@@ -214,9 +214,17 @@ export function taskLines(md: string): string[] {
 
 // Readiness (decision:wf2.pr-lifecycle): computed, never a status — what must hold before the person approves.
 // `impactFresh` is the scheduler's "the scope was computed after the last Definition change"; until then always true.
-export type Readiness = { definition: boolean; agreed: boolean; impact: boolean; contradictions: boolean; tasks: boolean; ok: boolean; unagreed: string[]; contradicted: string[] };
-export function readiness(d: DefinitionState, taskCount: number, impactFresh = true): Readiness {
+export type Readiness = { summary: boolean; definition: boolean; agreed: boolean; impact: boolean; contradictions: boolean; tasks: boolean; ok: boolean; unagreed: string[]; contradicted: string[] };
+// The Summary (decision:wf2.pr-summary-first): what will be built, in a person's words, kept current by the librarian.
+// It counts once it names what gets built; a page made before the section existed is not held back by it.
+export function summaryWritten(md: string): boolean {
+  const m = md.match(/^## Summary[^\n]*\n([\s\S]*?)(?=^## |(?![\s\S]))/m);
+  if (!m) return true;
+  return /^###\s+What gets built/im.test(m[1]) && /^\s*[-*]\s+\S/m.test(m[1]);
+}
+
+export function readiness(d: DefinitionState, taskCount: number, impactFresh = true, summary = true): Readiness {
   const unagreed = d.items.filter(i => !i.agreed).map(i => i.id);
-  const r = { definition: d.total > 0, agreed: d.total > 0 && unagreed.length === 0, impact: impactFresh, contradictions: d.contradicted.length === 0, tasks: taskCount > 0, unagreed, contradicted: d.contradicted };
-  return { ...r, ok: r.definition && r.agreed && r.impact && r.contradictions && r.tasks };
+  const r = { summary, definition: d.total > 0, agreed: d.total > 0 && unagreed.length === 0, impact: impactFresh, contradictions: d.contradicted.length === 0, tasks: taskCount > 0, unagreed, contradicted: d.contradicted };
+  return { ...r, ok: r.summary && r.definition && r.agreed && r.impact && r.contradictions && r.tasks };
 }

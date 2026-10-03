@@ -7,12 +7,13 @@ import { Linkified } from './IdLink';
 import { StatusPill } from './Pills';
 import { useMe } from './WorkList';
 
-type Readiness = { definition: boolean; agreed: boolean; impact: boolean; contradictions: boolean; tasks: boolean; ok: boolean; unagreed: string[]; contradicted: string[] };
+type Readiness = { summary: boolean; definition: boolean; agreed: boolean; impact: boolean; contradictions: boolean; tasks: boolean; ok: boolean; unagreed: string[]; contradicted: string[] };
 type Q = { id: string; q: string; header?: string; options: { label: string; description?: string }[]; multi: boolean; status: string; answer?: string; by?: string; askedBy?: string };
 type Conversation = { id: string; status: string; live: boolean; busy: boolean; role: string; last: string };
 type Pr = { ref: string; node: string; num: number | null; title: string; label: string; status: string; task: string | null; session: string; approvedBy: string | null; approvedAt: string | null; conversation: Conversation | null; waiting: string | null; readiness: Readiness; definition: { total: number; agreed: number }; questions: Q[]; skills?: string[]; hooks?: string[] };
 
 const CHECKS: { key: keyof Readiness; label: string; why: string }[] = [
+  { key: 'summary', label: 'summary', why: 'the Summary says what gets built' },
   { key: 'definition', label: 'definition', why: 'at least one block in Definition' },
   { key: 'agreed', label: 'agreed', why: 'every Definition block approved or resolved' },
   { key: 'impact', label: 'impact', why: 'the impact was computed after the last Definition change' },
