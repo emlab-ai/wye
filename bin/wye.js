@@ -237,6 +237,34 @@ const commands = {
     for (const c of [...j.candidates].sort((a, b) => order[a.verdict] - order[b.verdict])) console.log(`${(c.verdict || 'unjudged').padEnd(11)} ${c.id}  ${c.via === 'text' ? 'by text' : c.path}${c.reason ? ' — ' + c.reason : ''}${c.update && c.update.text ? '\n            proposed: ' + c.update.text : ''}${c.question ? '\n            question: ' + c.question : ''}`);
     if (j.candidates.some(c => c.verdict && c.verdict !== 'unaffected')) console.log('\nList the updates you make and the tasks you leave (wye work add) in your summary.');
   },
+  async ask() {
+    const q = pos.slice(1).join(' ') || (await readStdin()); if (!q.trim()) die('wye ask "<question>" [--fast | --deep] [--json]');
+    const lanes = flags.fast ? ['fast'] : flags.deep ? ['deep'] : ['fast', 'deep'];
+    const r = await fetch(`${WF_URL}/api/${product()}/ask`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q, lanes }) });
+    if (!r.ok) die(`ask → ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    const res = { fast: '', deep: '', citations: new Map(), cut: false, errors: [] };
+    const show = !flags.json; let section = '';
+    const head = s => { if (show && section !== s) { section = s; process.stdout.write(`\n\n## ${s}\n`); } };
+    let buf = '';
+    for await (const d of r.body) {
+      buf += Buffer.from(d).toString('utf8'); let i;
+      while ((i = buf.indexOf('\n\n')) >= 0) {
+        const block = buf.slice(0, i); buf = buf.slice(i + 2);
+        const data = block.split('\n').find(l => l.startsWith('data: ')); if (!data) continue;
+        const e = JSON.parse(data.slice(6));
+        if (e.type === 'fast.delta') { head('Answer'); res.fast += e.text; if (show) process.stdout.write(e.text); }
+        else if (e.type === 'found') { res.citations.set(e.citation.n, e.citation); if (show) process.stderr.write(`  · found [${e.citation.n}] ${e.citation.ref}\n`); }
+        else if (e.type === 'step') { if (show) process.stderr.write(`  … ${e.text}\n`); }
+        else if (e.type === 'deep.delta') { head('Deeper answer'); res.deep += e.text; if (show) process.stdout.write(e.text); }
+        else if (e.type === 'fast.done' || e.type === 'deep.done') { for (const c of e.citations) res.citations.set(c.n, c); if (e.cut) res.cut = true; }
+        else if (e.type === 'error') { res.errors.push(e); if (show) process.stderr.write(`  ! ${e.lane}: ${e.message}\n`); }
+      }
+    }
+    const cites = [...res.citations.values()].sort((a, b) => a.n - b.n);
+    if (flags.json) return out({ fast: res.fast, deep: res.deep, citations: cites, cut: res.cut, errors: res.errors });
+    if (res.cut) console.log('\n\n(the deep search was cut short at its limit)');
+    console.log(`\n\n## Sources\n${cites.map(c => `[${c.n}] ${c.ref}${c.href ? `  ${WF_URL}${c.href}` : ''}`).join('\n')}`);
+  },
   async 'ask-search'() {
     const q = pos.slice(1).join(' ') || (await readStdin()); if (!q.trim()) die('wye ask-search "<words>" [--source s] [--limit n] [--expand] [--rerank]');
     const sp = new URLSearchParams({ q, limit: String(flags.limit || 12) }); if (flags.source) sp.set('source', list(flags.source).join(',')); if (flags.expand) sp.set('expand', '1'); if (flags.rerank) sp.set('rerank', '1');

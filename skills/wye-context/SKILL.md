@@ -18,6 +18,7 @@ wye get <id>                                # one node, all edges
 ctx neighbors <id> -d 2 --structural        # what it is made of / what it hangs off
 wye graph impact <id>                             # everything that depends on it — read BEFORE changing an entity, field, rule or op
 wye search <terms>                          # find ids from words
+wye ask "<question>" --product <p>          # a cited answer over knowledge, documents, code and sessions (needs the app)
 wye reqs [--status proposed|question|unverified]   # the requirement tree
 ```
 

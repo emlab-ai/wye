@@ -25,6 +25,9 @@ wye verdicts <id ...>            # how a block you wrote relates to its neighbou
 wye resolve <link|id>            # a link to a block, node, heading or document → its text and relations
 wye doc <product/project/doc>    # a whole document (markdown)
 wye node <id>                    # one node with its body and edges (kind:slug, e.g. req:offline.g4)
+wye ask "<question>"             # a cited answer from the product's knowledge, documents, code and sessions — ask this first for
+                                #   "what do we know about X" / "why is Y like this" (fast answer, then a deeper one; --fast for the quick one)
+wye ask-search "<words>" --json  # the ranked passages Ask answers from (--source node|doc|code|session, --expand, --rerank)
 wye context "<text>"             # the knowledge closest to a piece of text (local semantic search; superseded / retired / archived hidden, --all shows them)
 wye work list [--unassigned | --mine <name> | --goal <id>]   # the Work view: every task with its state and worker — what is planned or in progress
 wye impact <id> --after "<new text>"   # before editing an approved node: what the edit reaches and what each reached node needs
