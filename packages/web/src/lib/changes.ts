@@ -22,6 +22,7 @@ export type ChangeRecord = {
   also?: string[];                                                 // later writers whose edits folded into this record
   tracking?: boolean;                                              // only status / tracking keys changed: accepted at once, not listed
   own?: boolean;                                                   // a person's edit of a proposed block: accepted at once
+  removed?: { text: string };                                     // the node was taken out of its document: its text as it was
   acceptedBy?: string; acceptedAt?: string; revertedBy?: string; revertedAt?: string; revertOf?: string;
   impact?: unknown;                                                // the impact run (E.3, lib/impact-run)
 };
@@ -88,6 +89,13 @@ export function recordsFromDiff(before: GraphData, after: GraphData, changes: Bl
     out.push({ product, node: c.id, kind: n.kind, doc: docIdOf(after, n.file) ?? '', file: n.file, line: n.line, before: a, after: b, changed, by: w.by, session: w.session, at, state: tracking || own ? 'accepted' : 'pending', ...(tracking ? { tracking: true } : {}), ...(own ? { own: true } : {}) });
   }
   return out;
+}
+
+// A node a person deleted (the column's Delete): the rebuild diff records only changed nodes, so the delete writes its
+// own record — the node as it was and the text that was taken out — accepted, since it is the person's own act.
+export function removalRecord(n: Pick<GraphNode, 'id' | 'kind' | 'body' | 'status' | 'title' | 'file' | 'line'>, text: string, by: string, product: string, at: string, doc: string): ChangeRecord {
+  const empty: NodeValue = { text: '', textKey: '', status: '', props: {}, body: '', title: '' };
+  return { id: randomBytes(5).toString('hex'), product, node: n.id, kind: n.kind, doc, file: n.file, line: n.line, before: nodeValue(n), after: empty, changed: ['removed'], by, at, updatedAt: at, state: 'accepted', acceptedBy: by, acceptedAt: at, removed: { text } };
 }
 
 // ---- the store

@@ -92,7 +92,7 @@ code, pre { font-family: var(--font-m); }
 .node-id { font: 12px var(--font-m); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: copy; } .node-id:hover { color: var(--ink-2); }
 .node-type { font: 12px var(--font-m); color: var(--muted); text-decoration: none; } .node-type::before { content: '·'; margin-right: 8px; } .node-type:hover { color: var(--accent); } .node-stub { font-size: 11px; }
 .node-tools { display: flex; gap: 2px; flex: none; }
-.tool { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; border: 0; background: none; color: var(--ink-2); font-size: 14px; line-height: 1; text-decoration: none; cursor: pointer; transition: background .15s, color .15s; } .tool:hover { background: var(--sunk); color: var(--ink); } .tool.on { color: var(--accent); background: var(--sunk); } .tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tool { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 34px; height: 34px; padding: 0 6px; border-radius: 8px; border: 0; background: none; color: var(--ink-2); font-size: 16px; line-height: 1; text-decoration: none; cursor: pointer; transition: background .15s, color .15s; } .tool:hover { background: var(--sunk); color: var(--ink); } .tool.on { color: var(--accent); background: var(--sunk); } .tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .peek-bar { display: flex; gap: 12px; align-items: center; font-size: 13px; margin-bottom: 8px; } .peek-bar button { margin-left: auto; background: none; border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 10px; color: var(--ink); cursor: pointer; font: inherit; }
 .peek-views { display: flex; align-items: center; gap: 8px; margin: 22px 0 4px; } .peek-views h4 { margin: 0; flex: 1; }
 /* one section-title style for the whole column: sentence case, quiet, the count beside it */
@@ -1166,3 +1166,9 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 /* code fills the preview: the editor sizes to its parent, as in the peek panel (.peek-code) */
 .search-preview.is-code { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
 .search-foot .link { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); cursor: pointer; }
+
+/* the column's Delete: quiet until armed, red when one more click deletes */
+.tool-danger:hover { color: var(--bad); }
+.tool-danger.armed { color: #fff; background: var(--bad); }
+.tool-danger.armed:hover { color: #fff; background: var(--bad); }
+.tool-label { font-size: 12px; font-weight: 600; }

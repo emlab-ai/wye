@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { nodeValue, changedKeys, isTrackingOnly, recordsFromDiff, revertPatch, changedSince, recordChanges, listChanges, type ChangeRecord } from './changes';
+import { nodeValue, changedKeys, isTrackingOnly, recordsFromDiff, revertPatch, changedSince, recordChanges, listChanges, type ChangeRecord, removalRecord } from './changes';
 import { mkdtemp } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -68,5 +68,14 @@ describe('change records (decision:exec.change-record, decision:exec.changes-fro
   it('word diff marks removed and added words', () => {
     expect(wordDiff('it opens', 'it opens at once')).toEqual([{ kind: 'same', text: 'it opens' }, { kind: 'add', text: ' at once' }]);
     expect(wordDiff('the old title', 'the new title').map(r => r.kind)).toEqual(['same', 'del', 'add', 'same']);
+  });
+});
+
+describe('removalRecord', () => {
+  it('keeps the removed text and the node as it was, accepted (the person\'s own act), so it can be read back', () => {
+    const n = { id: 'req:a', kind: 'req', title: 'A', status: 'proposed', body: 'id: req:a\ntitle: A\nstatus: proposed', file: 'p/docs/m.md', line: 4 } as never;
+    const r = removalRecord(n, '- id: req:a\n  title: A', 'person', 'p', '2026-10-03T00:00:00Z', 'module:m');
+    expect(r).toMatchObject({ node: 'req:a', kind: 'req', doc: 'module:m', changed: ['removed'], state: 'accepted', by: 'person', removed: { text: '- id: req:a\n  title: A' } });
+    expect(r.before.title).toBe('A'); expect(r.after.body).toBe('');
   });
 });

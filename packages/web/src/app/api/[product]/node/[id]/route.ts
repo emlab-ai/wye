@@ -8,8 +8,9 @@ import { docIdOf } from '@/lib/doc';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { REPO_ROOT } from '@/lib/products';
-import { readContent } from '@/lib/node-content';
-import { claimWrite } from '@/lib/changes';
+import { readContent, removeNode } from '@/lib/node-content';
+import { writeAtomic, withFileLock, rebuild } from '@/lib/write';
+import { claimWrite, removalRecord, saveChange } from '@/lib/changes';
 
 export async function GET(req: Request, { params }: { params: Promise<{ product: string; id: string }> }) {
   const { product, id: raw } = await params; const id = decodeURIComponent(raw);
@@ -48,3 +49,32 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
   return NextResponse.json({ ok: true, line: r.line, file: r.file });
 }
 const addToken = (cur: string, t: string) => [...new Set([...cur.split(/\s+/).filter(Boolean), t])].join(' ');
+
+// DELETE → the node out of its document, with its content (the column's Delete, the person's act). A change record
+// (removalRecord) keeps the node as it was and the exact text taken out, so nothing deleted is lost.
+export async function DELETE(req: Request, { params }: { params: Promise<{ product: string; id: string }> }) {
+  const { product, id: raw } = await params; const id = decodeURIComponent(raw);
+  const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  const node = scope.idx.byId.get(id);
+  if (!node?.defined || !node.file) return NextResponse.json({ error: 'not_found', message: `${id} is not defined in a document` }, { status: 404 });
+  if (scope.graph.modules.some(m => m.id === id)) return NextResponse.json({ error: 'invalid', message: `${id} is a page — delete the page instead` }, { status: 422 });
+  const file = path.join(REPO_ROOT, node.file);
+  claimWrite(id, { session: req.headers.get('x-wf-session') ?? undefined, by: req.headers.get('x-wf-by') ?? 'person' });
+  const removed = await withFileLock(file, async () => {
+    const md = await readFile(file, 'utf8'); const next = removeNode(md, id, node.line, node.form ?? 'yaml');
+    if (next === null || next === md) return null;
+    await writeAtomic(file, next); return takenOut(md, next);
+  });
+  if (removed === null) return NextResponse.json({ error: 'invalid', message: `${id} could not be taken out of ${node.file}` }, { status: 422 });
+  const at = new Date().toISOString();
+  await saveChange(scope.product.dir, removalRecord(node, removed, req.headers.get('x-wf-by') ?? 'person', product, at, docIdOf(scope.graph, node.file) ?? ''));
+  await rebuild(scope.product.dir);
+  return NextResponse.json({ ok: true, id, file: node.file });
+}
+// the lines that were taken out: what lies between the lines both versions start with and the lines they end with
+function takenOut(before: string, after: string): string {
+  const x = before.split('\n'), y = after.split('\n');
+  let a = 0; while (a < y.length && x[a] === y[a]) a++;
+  let b = 0; while (b < y.length - a && x[x.length - 1 - b] === y[y.length - 1 - b]) b++;
+  return x.slice(a, x.length - b).join('\n').trim();
+}

@@ -32,3 +32,20 @@ export const IconChevronsLeft = ({ size = 17 }: IconProps) => (
     <path d="m11 17.5-5.5-5.5L11 6.5M18.5 17.5 13 12l5.5-5.5" />
   </svg>
 );
+
+// The node column's tools (PeekPanel): open, graph, send, capture, delete — one set with the rail's.
+export const IconOpen = ({ size = 20 }: IconProps) => (
+  <svg {...svg(size)}><path d="M14 4h6v6" /><path d="M20 4 11 13" /><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" /></svg>
+);
+export const IconGraph = ({ size = 20 }: IconProps) => (
+  <svg {...svg(size)}><circle cx="6" cy="6" r="2.4" /><circle cx="18" cy="8" r="2.4" /><circle cx="9" cy="18" r="2.4" /><path d="m8.2 7.2 7.6.6M7 8.3l1.4 7.4M16.4 10l-5.6 6.4" /></svg>
+);
+export const IconSend = ({ size = 20 }: IconProps) => (
+  <svg {...svg(size)}><path d="M4 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+);
+export const IconPlus = ({ size = 20 }: IconProps) => (
+  <svg {...svg(size)}><path d="M12 5v14M5 12h14" /></svg>
+);
+export const IconTrash = ({ size = 20 }: IconProps) => (
+  <svg {...svg(size)}><path d="M4 7h16" /><path d="M9.5 7V5a1.5 1.5 0 0 1 1.5-1.5h2A1.5 1.5 0 0 1 14.5 5v2" /><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" /><path d="M10 11v6M14 11v6" /></svg>
+);

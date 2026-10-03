@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { IconOpen, IconGraph, IconSend, IconPlus, IconTrash } from './Icons';
 import { PeekGraph, type LiteNode } from './PeekGraph';
 import { ContextPanel } from './ContextPanel';
 import { SessionView } from './SessionView';
@@ -91,6 +92,27 @@ export function PeekPanel() {
   return <aside className="peek" role="dialog" aria-label={openId}>{chips}<div className="peek-body"><NodeView id={openId} /></div></aside>;
 }
 
+// Delete from the column's header: the first click arms it (the button says so in red), the second takes the block
+// and its content out of the document; leaving the button disarms it. The change record keeps the old text.
+function DeleteNode({ id }: { id: string }) {
+  const { product, close } = usePeek();
+  const [armed, setArmed] = useState(false); const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+  const del = async () => {
+    if (!armed) { setArmed(true); setErr(''); return; }
+    setBusy(true);
+    const r = await fetch(`/api/${product}/node/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const j = await r.json().catch(() => ({})); setBusy(false); setArmed(false);
+    if (!r.ok) { setErr(j.message ?? 'could not delete'); return; }
+    close();
+  };
+  return (
+    <button className={`tool tool-danger${armed ? ' armed' : ''}`} disabled={busy} onClick={del} onMouseLeave={() => setArmed(false)} onBlur={() => setArmed(false)}
+      title={err || (armed ? `Click again to delete ${id} and the blocks under it` : `Delete ${id} from its document`)} aria-label={armed ? 'Confirm delete' : 'Delete'}>
+      <IconTrash />{armed && <span className="tool-label">Delete?</span>}
+    </button>
+  );
+}
+
 // One node in the column: card or editor, what it produced, and what it is connected to (list or graph).
 function NodeView({ id }: { id: string }) {
   const { product, index, open, go, hrefFor } = usePeek();
@@ -132,12 +154,13 @@ function NodeView({ id }: { id: string }) {
         {entry?.defined && <ChangedBadge key={`chg-${id}`} id={id} />}
       </div>
       <div className="node-tools" role="toolbar" aria-label="Node actions">
-        {entry?.doc && def && <Link href={def.replace(/#.*$/, '')} className="tool" title="Open the document">↗</Link>}
-        {!entry?.doc && def && <Link href={def} className="tool" title="Go to the definition in its document" onClick={() => go(-1)}>↗</Link>}
-        {id.startsWith('type:') && <Link href={`/${product}/types/${id.slice(5)}`} className="tool" title="Open the type page">↗</Link>}
-        <Link href={`/${product}/graph?focus=${encodeURIComponent(id)}&preset=Mechanics`} className="tool" title="Show in the graph">⌬</Link>
-        <button className="tool" title="Send to an agent" onClick={() => requestSend({ refs: [id], text: d ? nodeText(d.node.body) || entry?.title : entry?.title })}>⇢</button>
-        <button className="tool" title="Capture a task about this for later (unassigned, on the Work view)" onClick={() => requestSend({ refs: [id], text: '' })}>＋</button>
+        {entry?.doc && def && <Link href={def.replace(/#.*$/, '')} className="tool" title="Open the document" aria-label="Open the document"><IconOpen /></Link>}
+        {!entry?.doc && def && <Link href={def} className="tool" title="Go to the definition in its document" aria-label="Go to the definition" onClick={() => go(-1)}><IconOpen /></Link>}
+        {id.startsWith('type:') && <Link href={`/${product}/types/${id.slice(5)}`} className="tool" title="Open the type page" aria-label="Open the type page"><IconOpen /></Link>}
+        <Link href={`/${product}/graph?focus=${encodeURIComponent(id)}&preset=Mechanics`} className="tool" title="Show in the graph" aria-label="Show in the graph"><IconGraph /></Link>
+        <button className="tool" title="Send to an agent" aria-label="Send to an agent" onClick={() => requestSend({ refs: [id], text: d ? nodeText(d.node.body) || entry?.title : entry?.title })}><IconSend /></button>
+        <button className="tool" title="Capture a task about this for later (unassigned, on the Work view)" aria-label="Capture a task" onClick={() => requestSend({ refs: [id], text: '' })}><IconPlus /></button>
+        {entry?.defined && !entry.doc && <DeleteNode id={id} />}
       </div>
     </header>
   );

@@ -85,3 +85,29 @@ export function writeContent(md: string, id: string, line: number, form: string,
 }
 
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// The node taken out of its document (the column's Delete): a yaml card with its content after the fence (and the
+// fence when it held only this card), or a prose line with its continuation and the blocks under it. The old text
+// stays in the change record the rebuild writes. null when the node is not there.
+export function removeNode(md: string, id: string, line: number, form: string): string | null {
+  const lines = md.split('\n');
+  const tidy = (ls: string[]) => ls.join('\n').replace(/\n{3,}/g, '\n\n').replace(/^\n+/, '');
+  if (form === 'prose') {
+    const ext = contentExtent(lines, id, line, form); if (!ext) return null;
+    const defines = (l: string) => new RegExp('^(\\s*(?:[-*+]|\\d+[.)])\\s+(?:\\[[ xX]\\]\\s+)?|\\s*)' + esc(id) + '(?=\\s)').test(l);
+    let i = line - 1; if (!lines[i] || !defines(lines[i])) i = lines.findIndex(defines);
+    if (i < 0) return null;
+    return tidy([...lines.slice(0, i), ...lines.slice(Math.max(ext.end, i + 1))]);
+  }
+  if (form === 'block') return null;
+  const c = lines.findIndex(l => new RegExp('^\\s*-\\s*id:\\s*' + esc(id) + '\\s*$').test(l)); if (c < 0) return null;
+  let f = c; while (f >= 0 && !/^\s*```ya?ml/.test(lines[f])) f--; if (f < 0) return null;
+  let close = f + 1; while (close < lines.length && !/^\s*```\s*$/.test(lines[close])) close++;
+  let next = c + 1; while (next < close && !/^\s*-\s*id:/.test(lines[next])) next++;
+  const cardsBefore = lines.slice(f + 1, c).some(l => /^\s*-\s*id:/.test(l));
+  if (next < close) return tidy([...lines.slice(0, c), ...lines.slice(next)]);         // a card with others after it
+  const ext = contentExtent(lines, id, line, form);
+  const contentEnd = ext && !ext.split ? ext.end : close + 1;
+  if (!cardsBefore) return tidy([...lines.slice(0, f), ...lines.slice(contentEnd)]);  // the fence held only this card
+  return tidy([...lines.slice(0, c), ...lines.slice(close, close + 1), ...lines.slice(contentEnd)]);
+}
