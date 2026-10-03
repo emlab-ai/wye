@@ -102,6 +102,38 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - alternative:wf2.ask-two-lanes pipeline only (fails multi-hop and code questions); agent only (20–90 s for every search); fast first with "dig deeper" on demand (the person chose both at once).
 
 ```yaml
+- id: decision:wf2.ask-store-lancedb
+  title: The Ask index is an embedded LanceDB per product, with a local cross-encoder reranking a question's passages
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [decision:wf2.ask-sources, decision:wf2.ask-two-lanes]
+  part-of: module:req-shell
+```
+
+  - context:wf2.ask-store-lancedb "are you sure sql lite is the best approach, what about some cool modern oss libs for this?"
+
+  - choice:wf2.ask-store-lancedb `_build/search.lance`: passages with MiniLM vectors, a full-text index and LanceDB's hybrid search (reciprocal rank fusion); a question's top 40 are reranked by jina-reranker-v1-turbo-en, local, 7–15 ms a batch. Measured on the wye product: recall@10 87 % fused, 93 % reranked (`wye eval ask`).
+
+  - alternative:wf2.ask-store-lancedb node:sqlite with FTS5 and brute-force vectors (no new dependency, hybrid fusion by hand); Orama (pure TypeScript, whole index in memory); a search server (Meilisearch, Typesense, Qdrant) — a process to run beside a local-first app.
+
+```yaml
+- id: decision:wf2.ask-deep-lane-reads-only
+  title: The deep lane reads only — wye refuses every non-read command under WYE_READONLY
+  date: 2026-10-03
+  status: proposed
+  by: alex
+  evidence: [session:01Nqr8HQFCZEoYeixnzVokg4]
+  affects: [decision:wf2.ask-two-lanes, constraint:wf2.pr-is-the-persons]
+  part-of: module:req-shell
+```
+
+  - choice:wf2.ask-deep-lane-reads-only the agent gets Bash, Read, Grep and Glob only, no MCP servers, the default permission mode and no session; its `wye` runs with WYE_READONLY, which lets through ask-search, node, doc, resolve, context, packet, session show and the graph reads and refuses the rest. A product's code is searched only where its `repo:` names it.
+
+  - consequence:wf2.ask-deep-lane-reads-only a tool allow-list of `Bash(wye:*)` alone let an agent run `wye node set` or `wye propose`; the review of 2026-10-03 found it before release.
+
+```yaml
 - id: decision:wf2.views-are-pages
   title: Goals and Work are documents holding one instances view each; a view says where its blocks come from
   date: 2026-09-20
