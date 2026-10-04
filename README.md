@@ -1,514 +1,593 @@
-# Wye — product definition and long-term memory for coding agents
+# Wye
 
-Define requirements, decisions, constraints and architecture as Markdown in Git. Wye turns them into a graph that
-Claude Code and Codex query before changing your software — and writes what they decided back into it, for you to
-approve.
+**Product definition and long-term memory for coding agents.**
 
-![A tour of Wye: a document, a requirement opened in the column, a Prompt Request, the Inbox, Knowledge](docs/tour.gif)
+Wye keeps what a product is *supposed to do* in Markdown in Git: its requirements, rules, decisions, constraints,
+architecture and context. Coding agents read that definition before they build. What they learn and decide while
+building comes back as proposed knowledge for a person to review.
 
-Instead of
+So instead of every agent session starting by reconstructing intent from code, tickets and chat history, the product
+develops a memory.
 
-```
-prompt → agent guesses the context → code
-```
-
-Wye is
-
-```
-definition → request → impact → approval → agent → review → memory
-```
-
-- **Definition** — the product as documents: goals, users, requirements (when / then / unless), rules, decisions,
-  entities, pages, tests. Every block is a typed node; every link is an edge; the vocabulary is open.
-- **Request** — a *Prompt Request*: what you ask, refined with a librarian agent until it is a set of agreed blocks.
-- **Impact** — what the change reaches, computed from the graph, before anything is built.
-- **Approval** — yours, on the page. Agents propose; a person approves.
-- **Agent** — Claude Code or Codex builds it in your repo, with the constraints in force in its first message.
-- **Review** — what it produced waits in the Inbox as proposed blocks and diffs.
-- **Memory** — approved knowledge is what the next request is checked against: bitemporal, contradiction-checked,
-  in Git.
-
-And two ways in that need no request at all: **Ask** (⌘F) answers a question about the product with citations from its
-knowledge, documents, code and agent sessions; **Remember** (⌘M) takes what you paste — meeting notes, a message, an
-update — and files it as knowledge, linked to what Wye already knows.
+![A tour of Wye: a document, a Prompt Request, Remember, the Inbox, Ask, the mind map and a table's SQL](docs/tour.gif)
 
 ```bash
 git clone https://github.com/emlab-ai/wye.git && cd wye && npm install && ./install.sh
-npm run dev            # http://localhost:3000 — or npm run desktop for the app in its own window
+npm run dev            # http://localhost:3000, or npm run desktop for the app in its own window
 ```
 
-Local-first, no accounts: Wye runs on your machine over the files of your repo. Licensed Apache-2.0.
+Local-first, no accounts, Apache-2.0. [Getting started](#getting-started) has the details.
 
-## The name
+---
 
-A *wye* is the written name of the letter Y, and a Y-shaped junction: in plumbing a wye fitting joins two flows into
-one at a shallow angle, so neither is throttled. That is the picture — the person's flow (what the product is for,
-what was decided) and the agent's flow (what the code does, what it found) joining in one definition, so that
-together they move more than either would alone. Hence the icon.
+## Why Wye?
 
-## Why I built it
+Coding is becoming easier to delegate to agents. Describing **what should be built, why, and under which
+constraints** is not.
 
-Wye is an editor for a product's **definition** — what it must do, what a person sees, what it knows, how it works,
-what was decided and why — kept as markdown documents that are also a graph, shared by the people who define the
-product and the coding agents that build it. Markdown in git is the only source of truth; the app, the `wye` CLI and
-the graph are views and doors onto it.
+The knowledge needed to make a product change is usually scattered across the code, Jira or Linear, Notion or
+Confluence, Slack, architecture documents, previous agent conversations, and people's heads. A coding agent sees only
+part of it.
 
-For me this started as a thought experiment, not a product: **what is the best future way for a human to interact
-with agents?**
+Give an agent a request like:
 
-Agents already write most of the code. What they cannot do is know what the product is for, what a person really
-asked, which decision is still in force and which was overturned last week. Today that knowledge lives in chat
-histories, ticket comments and people's heads, and each new session starts from zero — the agent reads the code and
-guesses the intent behind it.
+> Change the refund window from 30 days to 14 days.
 
-My bet is that it makes sense to **stop thinking in terms of code** and instead be able to *describe and understand
-the domain* — the users and their jobs, the behaviours, the rules, the entities, the decisions — and to **drive changes
-to the domain, not to the code**. The code is an implementation detail an agent derives from the definition. What a
-person owns is the definition.
+and several questions appear at once:
 
-That is why a PR in Wye is a **Prompt Request**, not a pull request. You do not review a diff of code; you review a
-request: what was asked, what it touches, the requirements, decisions and constraints it proposes, what it would
-break, the questions it raises. When the request is agreed, an agent builds it — and what it produces comes back as
-blocks in the same documents, waiting for your approval in the Inbox.
+- Where is the current 30-day rule defined?
+- Which customer promises depend on it?
+- Does another requirement contradict the change?
+- Which services, tests and UI flows are affected?
+- Was the old rule a deliberate product decision, or an implementation detail?
+- If the agent discovers something important while building, where does that knowledge go?
+- Will the next agent know what happened?
 
-The graph model is what makes this flexible. Every paragraph that starts with an id is a node; every link in its
-text is an edge; every kind of node is a type a product can declare in a document. Requirements, rules, decisions,
-entities, pages, components, tests, tasks — and whatever your product needs (`type:city`, `type:eval-run`) — live in
-the same documents with the same mechanics, so a question like *what does this change reach?* or *what governs this
-request?* is a graph traversal, not a search.
+The usual workflow is roughly:
 
-## What it looks like
+```text
+prompt → agent reads some code → agent reconstructs context → agent makes assumptions → code
+```
 
-**Everything is a graph.** A document is a list of blocks; every block is a node with a **type** — a requirement, a
-decision, a fact, a city, or just `block` for a plain paragraph — with properties, links and content. A link in a
-sentence is an edge; a property whose value is another node is an edge with a named inverse the parser fills in;
-the words before an id are the verb. The types themselves are cards in the documents, so a product's vocabulary is
-open: declare `type:city` on the Ontology page and `city:london` is a node the moment the graph rebuilds. The full
-story — declaring types, value types, inverses, shapes, where instances live — is in
-[docs/type-system.md](docs/type-system.md).
+Wye explores a different one:
+
+```text
+product definition → Prompt Request → impact + contradictions → human decision
+    → agent → review → approved memory → next change
+```
+
+The central idea:
+
+> **Humans own the product definition. Agents derive changes from it.**
+
+## What is Wye?
+
+Wye is an editor and runtime for a product's **definition**: its goals, users, requirements, rules, constraints,
+decisions, entities, architecture, tests, questions, commitments and tasks, and the relationships between them.
+
+They are stored as ordinary Markdown files in Git. Wye reads the important blocks in those files as nodes in a graph,
+which gives the same knowledge two forms:
+
+```text
+Markdown   for people to read and edit
+   ⇅
+Graph      for software and agents to reason over
+```
+
+The Markdown is canonical and the graph is derived from it. There is no separate knowledge database you have to trust
+as the source of truth.
+
+## The idea in one example
+
+*An illustration.* Say the product definition contains:
+
+```markdown
+req:refund.window Customers may request a refund within 30 days of purchase.
+
+decision:refund.window Refunds use a 30-day window because enterprise contracts promise 30 days.
+
+test:refund.window Refund requests on days 1–30 are accepted; requests after day 30 are rejected.
+```
+
+Now someone asks: *reduce the refund window to 14 days.*
+
+In a normal coding-agent workflow, the agent searches the repository, finds the constant and changes it. But the
+code is only part of the story.
+
+Wye treats the request as a change to the **product definition** first. The proposed 14-day rule contradicts
+`decision:refund.window`, because enterprise contracts still promise 30 days, and the graph shows the test and the
+other parts of the product linked to it. Before any code is written, a person has a decision to make:
+
+```text
+A  Keep enterprise customers at 30 days and move everyone else to 14.
+B  Change the contracts and move everyone to 14.
+C  Don't make the change.
+```
+
+Once the intended behaviour is approved, the coding agent gets the requirements, constraints and decisions in force,
+and builds the change. If it finds during the build that enterprise refunds go through a separate service, that does
+not have to disappear into the transcript. The agent proposes it:
+
+```markdown
+fact:refund.enterprise-service Enterprise refunds are processed by component:enterprise-refunds.
+```
+
+A person reviews it. Once approved, it is part of the product's memory, and the next change starts with more
+knowledge than this one did. That accumulation is the point.
+
+## The Wye loop
+
+### 1. Define
+
+Describe the product in documents. Most of it can be ordinary prose, but the important pieces get stable ids:
+
+```markdown
+goal:checkout.fast Checkout should feel instantaneous.
+
+req:sale.close When the final kitchen item is completed, the order becomes Closed.
+
+rule:payments.capture Payment must be captured before an order can be completed.
+
+decision:payments.provider Use Stripe for online card processing.
+```
+
+These are still readable Markdown. Because they have ids, Wye can connect them. You can also start from code:
+`wye init` reads a repository into a first, shallow definition, and `wye deepen` sends an agent to describe each module
+in a person's words.
+
+### 2. Request
+
+A change starts as a **Prompt Request**. In Wye, PR does not mean pull request.
+
+A Prompt Request describes what you want to change before an agent changes the code: what is asked and why, what
+behaviour changes, what stays the same, which questions are open, and what the change may reach. A *librarian* agent
+refines it with you. It writes a summary of what will be built, asks questions, and proposes the blocks the request
+needs. The librarian never writes code: its job is to understand the change.
+
+### 3. Understand the impact
+
+Wye knows how requirements, decisions, components, tests and pages relate, so it can compute what a change may reach:
+
+```text
+req:refund.window
+  ├─ verified-by   test:refund.window
+  ├─ governed-by   decision:refund.window
+  ├─ satisfied-by  component:refund-api
+  └─ satisfied-by  page:account.refunds
+```
+
+This happens **before** implementation. The goal is not to predict every changed line of code. It is to put the
+product knowledge around a change in front of people and agents, so nobody works from an isolated prompt.
+
+### 4. Resolve contradictions
+
+Products change, and so does what they know. A new requirement may agree with an existing one, refine it, duplicate
+it, supersede it, or contradict it.
+
+Wye makes contradictions visible rather than letting an agent settle them quietly:
+
+```text
+Existing:  Refunds are available for 30 days.
+Proposed:  Refunds are available for 14 days.
+```
+
+That is not necessarily an error; it may be a legitimate product change. But someone, ideally a person, should decide
+which statement is now in force and what happens to the old one.
+
+When something is written, Wye's judge compares it with its neighbours in the graph and classifies each pair as
+`duplicate`, `refines`, `consistent` or `contradicts`. For a contradiction it also names the kind: a fact against a
+fact, a later state of the same thing, or a conflict only under some condition. Each verdict records the model and
+prompt that produced it, so it can be replayed and evaluated. A contradiction is itself a node in the graph, and
+approving a block with an open one means choosing: supersede the other side, refine this one, or dismiss it with a
+reason.
+
+### 5. Approve
+
+Agents can propose changes to the definition. They cannot make those proposals true.
+
+> **Agents propose. Humans approve.**
+
+Approval matters because product knowledge is not generated text. Once something is part of the definition, future
+agents will make decisions based on it. Changing a product's memory is a meaningful act.
+
+### 6. Build
+
+Once a request is defined and approved, Wye hands it to a coding agent, Claude Code or Codex. The agent's first
+message carries the constraints in force: a bounded description of the world around the change, so it doesn't have
+to infer the whole product from the repository. Requests whose scopes don't overlap can be built in parallel.
+
+The code stays in your normal repository. Wye is not trying to replace Git, your language or your coding agent. It
+tries to improve what flows into the agent and what comes back out.
+
+### 7. Review
+
+A build produces more than code. On the way, an agent may find an undocumented architectural constraint, a dependency
+nobody recorded, a new domain rule, the reason an old implementation exists, an open question, or a decision it had
+to make to finish the work.
+
+Those come back to Wye as proposed knowledge and wait in the **Inbox**, where a person approves, edits or rejects
+them.
+
+### 8. Remember
+
+Approved knowledge becomes the context for future work:
+
+```text
+          ┌────────────────────┐
+          │ product definition │◄─────────────────┐
+          └─────────┬──────────┘                  │
+                    ▼                             │
+               new request                        │
+                    ▼                             │
+            impact / decisions                    │
+                    ▼                             │
+              human approval                      │
+                    ▼                             │
+                  agent                           │
+                    ▼                             │
+             discoveries + code                   │
+                    ▼                             │
+               human review                       │
+                    ▼                             │
+              approved memory ────────────────────┘
+```
+
+The definition grows richer as the product evolves.
+
+## Product memory, not chat memory
+
+Many coding-agent products now have some notion of "memory". Wye means something more specific by it. Memory is not
+*here are some old conversations*. It is structured knowledge whose relationship to the current product can be
+inspected:
+
+```yaml
+- id: decision:orders.close-v2
+  status: approved
+  supersedes: decision:orders.close-v1
+```
+
+The old decision doesn't disappear; it stays in the history, marked as superseded. What matters is knowing which
+statement is in force now. Every node can say since when and until when it holds, so a product keeps both *what we
+believed then* and *what is true now*, without flattening them into one timeless context dump.
+
+The context an agent gets is computed, not recalled. A request's first message carries every rule, constraint,
+approved decision and goal within two hops of what it touches, plus the open questions on them. That is a walk over
+the graph, complete by construction. Search only finds where to start the walk; it is never the authority on what
+governs.
+
+## Everything important can have an id
+
+The smallest useful unit in Wye is a block with an id:
+
+```markdown
+req:sale.close When the final kitchen item is completed, the order is marked Closed.
+
+decision:memory.bitemporal Product knowledge keeps its history rather than overwriting old states.
+
+entity:order One customer's active purchase.
+```
+
+An id lets other knowledge refer to it, and those references become edges in the graph:
+
+```markdown
+test:sale.close verifies req:sale.close.
+component:order-service satisfies req:sale.close.
+rule:close-on-complete governs req:sale.close.
+```
+
+The words before an id name the verb (*verifies*, *satisfies*, *governs*, *depends on*, *part of*); the parser fills
+in the inverse on the other side.
+
+## Markdown is the database
+
+Wye keeps the canonical form deliberately boring: **text files in Git.**
 
 ```markdown
 req:sale.close When a sale is completed and all [kitchen items](entity:kitchen-item) are done, et:order is marked Closed. #proposed
-  - when:sale.close the last kitchen item of the sale is completed
-  - then:sale.close the order is marked Closed and the table freed
+  - when:sale.close the final kitchen item is completed
+  - then:sale.close the order is marked Closed
 ```
 
-Three lines, three nodes: the requirement and its `when` and `then` content blocks; two edges out of the sentence,
-to `entity:kitchen-item` and to `et:order` (an alias); a status. `wye check` will ask for a `satisfied-by` and, once
-shipped, a `verified-by`.
+Wye parses the documents into nodes and relationships. The graph can then answer questions like:
 
-**Requirements as cards.** A requirement is a block with `when` / `then` / `unless` children and typed links —
-what refines it, what satisfies it (a component, an operation, a library), what verifies it (a test), who wrote it
-and where the evidence is. Click `open ›` and the node opens in the column with its relations editable in place.
+- What implements this requirement? Which tests verify it?
+- Which decisions govern it, and what superseded them?
+- What would this change affect? Which constraints apply?
+- Which open questions concern this area?
 
-![Requirements cards with a node opened in the column](data/products/wye/projects/v2/docs/assets/intro-requirements.png)
+The files stay usable without Wye: read them on GitHub, edit them in any editor, diff them, branch them, review their
+history.
 
-**The constitution.** Constraints are product rules no code enforces. The approved ones go verbatim into every
-agent's system prompt and into the constraint packet of every request.
+## The type system is open
 
-![The Constitution page](data/products/wye/projects/v2/docs/assets/intro-constitution.png)
+Wye has base types such as `req:`, `rule:`, `decision:`, `constraint:`, `goal:`, `entity:`, `question:`, `task:`,
+`page:` and `test:`. It doesn't prescribe one universal ontology, though: a product declares its own vocabulary.
 
-**A Prompt Request.** One page per request: the head shows readiness (definition, agreed, impact, no contradiction,
-tasks) and the person's Approve. The scope — every node the build may touch — is computed from the definition and
-the structural impact, and overlapping PRs are not built in parallel.
+| a product for | might add |
+|---|---|
+| software it builds | `component:`, `fact:`, `lib:` |
+| logistics | `vehicle:`, `route:`, `depot:`, `driver:` |
+| evaluation | `eval:`, `dataset:`, `benchmark:`, `run:` |
+| hospitality | `restaurant:`, `menu:`, `dish:`, `table:` |
 
-![The head of a Prompt Request](data/products/wye/projects/v2/docs/assets/intro-pr.png)
+Declare the type as a card in any document and its instances join the same graph. See
+[docs/type-system.md](docs/type-system.md) for the full model.
 
-**The Inbox.** Everything an agent (or you) wrote that nobody approved yet: proposed decisions, requirements, rules,
-edits of existing blocks shown as diffs, open questions. Approving changes the block's status in its document — the
-Inbox is a view, not a store.
+## The Constitution
 
-![The Inbox with pending edits](data/products/wye/projects/v2/docs/assets/intro-inbox.png)
+Some constraints matter to every change, even when no code can enforce them:
 
-**Knowledge and Types.** Everything the product knows, by kind; and every kind as a type with its properties,
-instances and where it was declared.
+```text
+Never expose one tenant's data to another tenant.
+Text files in Git are canonical.
+All externally visible behaviour must have a requirement.
+Agents may propose knowledge but may not approve it.
+```
 
-![The Knowledge page](data/products/wye/projects/v2/docs/assets/intro-knowledge.png)
+Wye calls these product-level constraints the **Constitution**. The approved ones go verbatim into every agent's
+system prompt, so they are hard to lose between sessions.
 
-![The Types page](data/products/wye/projects/v2/docs/assets/intro-types.png)
+## Ask
 
-**Tables are queries.** Every Data table and list runs SQL over the graph: a new one shows this page's items of its
-kind, each filter adds a line, and you can edit the query — join items to the items they link, look across the
-product, follow edges with graph patterns. In-memory DuckDB over the graph Wye already builds; storage does not
-change. More in [docs/query.md](docs/query.md).
+**Ask** (⌘F) answers questions about the product, searching across its knowledge, documents, code, graph and agent
+sessions:
 
-![A table's SQL: a filter adds a line, then a join shows each commitment's project](docs/table-sql.gif)
+```text
+Why do we use a 30-day refund window?
+What happens when the final kitchen item is completed?
+Which requirements depend on component:order-service?
+```
 
-**Work.** Every task wherever it was written — a plan, a PR, a definition page — as one board, grouped by status,
-document, dependency or readiness.
+A question gets two answers at once: a fast one in a few seconds, and a deeper one from an agent that searches,
+follows the graph and reads the code while you watch the sources it opens. Answers cite their sources, so you can
+check them rather than trust unsupported model output. The index is local; nothing leaves the machine except the
+answering model call.
 
-![The Work board](data/products/wye/projects/v2/docs/assets/intro-work.png)
+## Remember
 
-**Ask — search that answers.** ⌘F from anywhere. Typing ranks passages from the product's blocks, documents, code and
-agent sessions (tabs narrow it; `req:` or `decision:` narrows to one kind; a typed id comes first). A question — or
-Enter — gets two answers at once: a fast one in a few seconds, written from the best passages with numbered
-citations, and a deeper one from an agent that searches, follows the graph and reads the code while you watch the
-sources it opens appear under the answer. A citation opens the exact block, passage, code lines or session.
+Not all useful knowledge starts as a formal requirement. Sometimes someone pastes:
 
-![Ask: a cited answer, the sources the deeper search found, and the passages behind it](data/products/wye/projects/v2/docs/assets/intro-ask.png)
+```text
+Talked to Acme today. Their finance team needs invoices to keep the original PO number
+even when the invoice is regenerated. They won't roll out to Germany until this works.
+```
 
-**Remember — memory you paste.** ⌘M (Ctrl+M in a browser) opens the box ready to paste. Wye's librarian splits what
-you pasted into single statements, finds what each is about, and writes it where it belongs: a detail added to the
-block that already holds it, a newer state as a block that *supersedes* the old one (history kept), a new fact,
-decision, commitment or question in its home document, linked to the people, projects and requirements it concerns.
-What it cannot place it asks about. Everything it writes is proposed and waits for you in the Inbox.
+**Remember** (⌘M) turns that into proposed knowledge. A librarian agent splits it into single statements, finds what
+each one is about, and proposes where it belongs:
 
-![Remember: paste, and Wye files it](data/products/wye/projects/v2/docs/assets/intro-remember.png)
+```text
+requirement    regenerated invoices keep the original PO number
+customer fact  Acme needs this for its finance workflow
+commitment     the German rollout depends on the requirement
+```
 
-**Agents in the rail.** Every agent running in the product is a row under **Agents** in the left rail — working,
-idle, waiting for your answer or queued for a slot, what it works on, what it is doing now, for how long — and a
-click opens its conversation. A block opened in the column has its tools in one row on top: open its document, show
-it in the graph, send it to an agent, capture a task, and delete it (one click arms, the second deletes; the removed
-text stays in a change record).
+A detail goes onto the block that already holds it, and a newer state supersedes the old one. What the librarian can't
+place, it asks you about. Everything stays proposed until reviewed. The goal is not to store every conversation
+forever; it is to pull durable knowledge out of passing communication.
 
-## The loop
+## The Inbox
 
-1. **Describe.** Write the product as documents — a PRD, a design, a test design, whatever — where the important
-   things are typed blocks: `req:`, `rule:`, `decision:`, `constraint:`, `entity:`, `goal:`, `question:`, `task:`.
-   Or start from code: `wye init` reads a repo into a shallow definition and `wye deepen` sends an agent to describe
-   each module in the person's words.
-2. **Ask.** ⌘P in the app (or "Send to agent" on any block). The app creates a Prompt Request page with what you
-   asked, computes what it touches and the constraints in force, and hands it to a *librarian* — an agent whose only
-   job is to refine the request with you: it writes a **Summary** first — what will be built (the content and the code
-   changes, each sized), how it works, an example of the result, the plan, what is out of scope — asks questions
-   (mirrored as cards on the page), proposes the blocks the request needs, keeps the Summary and the Analysis current
-   after every answer, runs impact, and never writes code.
-3. **Approve.** Approve is the person's click, never the librarian's. Readiness is computed: every proposed block
-   agreed, impact known, no open contradiction.
-4. **Build.** A dispatcher hands approved PRs to *worker* sessions (Claude Code or Codex, running in the product's
-   repo) up to N in parallel when their scopes do not overlap. The worker's first message carries the constraint
-   packet; it reads the graph with `wye`, writes what it decided as blocks, logs to its session and reports a result.
-5. **Review.** What the build produced waits in the Inbox. Approve it and it is memory: the next request is checked
-   against it.
+Everything newly proposed waits in one place: new requirements and decisions, changed facts, edits to existing blocks
+(shown as diffs), agent discoveries, open questions.
 
-## Install and run
+The Inbox is a review surface, not another source of truth: approving a block changes its status in the Markdown
+document it lives in.
+
+## Tables and queries
+
+Because the definition is a graph, it can be queried. Every table in Wye runs SQL over an in-memory DuckDB copy of
+the graph, so views like these are queries over the same definition rather than lists someone keeps by hand:
+
+```text
+every requirement without a test
+every open question that affects checkout
+every decision made this month
+every commitment, grouped by project
+```
+
+Filters write the SQL for you; you can edit it, or describe the table in words and let an agent write the query. See
+[docs/query.md](docs/query.md).
+
+## Mind maps
+
+A **map** page is the same knowledge as a canvas: its nodes are blocks and its links are the graph's edges. Add a
+node, grow a child, draw a link and name it. Everything you draw is written back to the documents.
+
+## Work
+
+Tasks live wherever they make sense: under a requirement, in a design, in a Prompt Request, next to a decision. The
+**Work** view collects them into one board, grouped by status, document, dependency or readiness. Each task belongs to
+the knowledge that created it; the board is just another view over the graph.
+
+## Coding agents
+
+Wye works with **Claude Code** and **Codex**. Two roles, deliberately kept apart:
+
+```text
+Librarian   understands and structures the change; never writes code
+Worker      implements the approved change; never quietly redefines the product
+```
+
+Every running agent shows in the app's left rail with what it is doing. A click opens its conversation, where you
+answer its questions.
+
+## Parallel work
+
+Agents can work faster than people can keep overlapping changes in their heads, and two reasonable changes can each
+modify the same product assumption.
+
+Wye computes each request's scope and doesn't build overlapping Prompt Requests at the same time. It coordinates work
+at the level of **product intent**, not only Git merge conflicts: a clean merge doesn't mean two product changes are
+compatible.
+
+## Wye uses Wye to build Wye
+
+Wye's own product definition lives in [`data/products/wye/`](data/products/wye): its requirements, decisions, rules,
+components and tests, in the same model the app offers every other product. A change to Wye starts by changing that
+definition, and then
 
 ```bash
-git clone https://github.com/emlab-ai/wye.git && cd wye
+wye check --root data/products/wye
+npm test
+```
+
+must pass. That's intentional dogfooding: the project should prove whether the model works by using it to evolve
+itself.
+
+## Getting started
+
+Wye needs Node.js 18+ and git.
+
+```bash
+git clone https://github.com/emlab-ai/wye.git
+cd wye
 npm install
-./install.sh              # links `wye` into ~/.local/bin and the Claude Code skills into ~/.claude/skills
-wye build --root data/products/wye && wye check --root data/products/wye
-npm run dev               # the app at http://localhost:3000 (npx --workspace=packages/web next dev -p 3456 for the port the CLI and desktop expect)
+./install.sh                              # the wye CLI into ~/.local/bin, the Claude Code skills into ~/.claude/skills
+
+wye build --root data/products/wye        # build Wye's own definition into a graph
+wye check --root data/products/wye        # and validate it
+
+npm run dev                               # the web app at http://localhost:3000
+npm run desktop                           # or the app in its own window
 ```
 
-`npm run desktop` opens the app in its own window (Electron); it starts the server on 3456 if none is running and
-quits it on exit — see [Desktop app](#desktop-app) for the installable `Wye.app` / AppImage. Wye's own definition
-lives in `data/products/wye` — the app is described in itself, and every change to it goes through the loop above.
+The agent features need `claude` or `codex` on your `PATH`. The core (Markdown, the graph, the product definition)
+needs neither. The `wye` command, the desktop app's install, and everything else in detail are in
+[docs/reference.md](docs/reference.md).
 
-### Data layout
+## Repository structure
 
+| path | what |
+|---|---|
+| `lib/` | the core: Markdown → nodes and edges, graph queries, impact, validation, the contradiction judge, `wye init` |
+| `bin/` | the `wye` CLI |
+| `packages/web/` | the app (Next.js) |
+| `packages/desktop/` | the Electron shell |
+| `schema/` | the base ontology |
+| `prompts/` | the instructions Wye's agents follow |
+| `skills/` | Claude Code skills that teach an agent to work with Wye |
+| `templates/` | document templates |
+| `data/products/wye/` | Wye's own product definition |
+| `test/`, `eval/` | tests and benchmarks: parsing, ontology, memory, impact, verdicts |
+
+## Data layout
+
+```text
+data/products/<product>/
+├── _product.md                  title, icon, description
+├── projects/<project>/
+│   ├── _project.md
+│   └── docs/*.md, docs/assets/  the documents
+├── inbox/                       raw notes dropped for later filing
+├── _sessions/                   agent sessions: instruction, log, result
+├── _hooks/                      what hooks fired
+└── _build/graph.json            generated: the graph, rebuilt after every save
 ```
-data/products/<product>/_product.md                       title, icon, description
-data/products/<product>/projects/<project>/_project.md    title, kind (project | goal), status
-data/products/<product>/projects/<project>/docs/*.md      the documents — each a page in the app and a node in the graph
-data/products/<product>/projects/<project>/docs/assets/   images pasted into documents
-data/products/<product>/inbox/                            raw notes dropped for later filing
-data/products/<product>/_sessions/                        agent sessions: instruction, log, result
-data/products/<product>/_hooks/                           what hooks fired
-data/products/<product>/_build/graph.json                 generated: the product's graph, rebuilt after every save
-```
 
-## The basics: documents, nodes, links
+`_build` is generated; the Markdown files are canonical.
 
-(The reference for all of this is [docs/type-system.md](docs/type-system.md); the `docs/` folder is the place for
-the deeper pages.)
-
-**A document is a node.** Its front matter says which: `node: module:wf2`, `type: module`, `part-of: module:wf2-prd`,
-`order: 13`. The document tree in the sidebar is the `part-of` relation. A document can be any type — a page of
-`type:pr` is a Prompt Request, a page of `type:skill` is an instruction an agent follows.
-
-**A paragraph that starts with an id is a node.** Its text is the node's text; links and bare ids in the text are
-edges; the words before an id name the verb.
+## A node can be almost anything
 
 ```markdown
-req:sale.close When a sale is completed and all [kitchen items](entity:kitchen-item) are done, et:order is marked Closed. #proposed
-rule:close-on-complete Closed only when every kitchen item is done; satisfied by op:close-sale and verified by test:sales#close.
-- [ ] task:kitchen-screen Build the kitchen screen, part of req:sale.close (owner: alex, due: 2026-10)
-goal:pos.fast Every tap is instant #on-track
+goal:pos.fast Every common interaction should feel immediate.
+
+req:sale.close When the last kitchen item is completed, the order is closed.
+
+- [ ] task:kitchen-screen Build the kitchen display.
 ```
-
-`#status` sets the status, a trailing `(key: value, …)` group carries other properties, a checkbox line is a task
-(`[x]` is done). The verb is read from the words before the id — *satisfied by*, *verified by*, *refines*, *part
-of*, *governs*, *depends on* — otherwise the edge is `related-to`.
-
-**A yaml card is a node with properties.** Both forms live in one file and the parser treats them alike.
 
 ```yaml
 - id: decision:memory.bitemporal
-  title: Every node can say since when and until when it holds
-  date: 2026-09-19
+  title: Keep historical product states
   status: approved
   supersedes: decision:memory.snapshot
   affects: [type:node, req:wf2.decisions]
 ```
 
-**Blocks under a node are its content.** Indented under a requirement, `when:` / `then:` / `unless:` blocks are its
-trigger, outcome and exception; under a decision, `context:` / `alternative:` / `choice:` / `consequence:`. Each is
-a node of its own the person keeps, edits or deletes.
+The representation is deliberately light. Wye is not meant to turn product thinking into a heavyweight modelling
+exercise: add structure where it gives leverage, and leave the rest as prose.
 
-**Every kind is a type, and the set is open.** `schema/base-ontology.md` declares the base kinds as `type:` cards —
-`type:req`, `type:rule`, `type:entity`, `type:decision`, `type:constraint`, `type:goal`, `type:task`, `type:pr`,
-`type:skill`, `type:hook` and the rest — each with its properties (`name: value type`), its inverses
-(`satisfied-by … -(inverse)-> satisfies`) and its *shapes*, the checks `wye check` enforces in the type's own words
-(`shipped requires verified-by`). A product adds its own types in any document with the same card form; an instance
-of `type:city` is `city:london`, and its first instance creates the type's collection document.
+## What Wye is not
 
-```yaml
-- id: type:eval-run
-  extends: type:node
-  purpose: one run of one suite — what was measured, on which graph, with which model and judge
-  props:
-    suite: string
-    model: string
-    scores: list of eval-score -(inverse)-> run
-  shapes:
-    done requires scores
+- **A replacement for Git.** Git stays the history and the storage.
+- **Another issue tracker.** Tasks exist, but the central object is product knowledge, not tickets.
+- **A new programming language.** The output is ordinary software.
+- **A giant prompt file.** Wye selects the knowledge relevant to a change instead of stuffing the whole product into
+  an agent's context.
+- **An autonomous product manager.** Agents analyse, connect and propose; important decisions stay visible to people.
+- **A claim that all product knowledge can be formalised.** Products are messy. Some knowledge belongs in structured
+  relationships, some in plain prose, and Wye lets both coexist.
+
+## Why a graph?
+
+Search answers *where is "refund window" mentioned?*. A graph answers different questions: *What does this
+requirement affect? What implements it? Which decision governs it, and which newer decision superseded that one?
+Which tests verify it? Which request is trying to change it?*
+
+Those are relationships, not similar text. Semantic search is still useful, and Wye uses it, but similarity and
+product structure solve different problems.
+
+## Why Git?
+
+A product definition changes for the same reason code does: someone made a decision. Keeping it in Git gives it
+history, diffs, attribution, branches, review, rollback, portability, text tooling and local ownership almost for
+free, and keeps it next to the implementation the agents are changing.
+
+## Why not infer everything from code?
+
+Code tells you a great deal about what a system **does**. It doesn't reliably tell you what the system **should do**.
+A strange piece of behaviour might be a bug, or an important contractual requirement; the implementation alone often
+can't tell an agent which. The definition keeps the intent that shouldn't have to be reverse-engineered on every
+change.
+
+## The experiment
+
+Wye is early. It explores one question:
+
+> **What should the interface between people and increasingly capable coding agents look like?**
+
+One answer is to keep today's workflow and give agents bigger contexts. Wye explores another: as agents get better at
+producing implementations, engineers may spend more of their time defining and evolving the system they want (its
+users, goals, behaviours, rules, constraints, decisions and relationships) and less time translating it into code
+by hand.
+
+In that world the important artifact may not be the codebase alone, but the product definition, the implementation,
+and the history of why they became what they are, together. Wye is an experiment in tooling for that world.
+
+## Why the name?
+
+A **wye** is the written name of the letter **Y**, and a Y-shaped junction where two flows meet:
+
+```text
+human flow  ─ what the product is for, what was asked, what was decided ─┐
+                                                                          Y── shared product definition
+agent flow  ─ what the code does, what the agent found, what it needs ────┘
 ```
 
-**Links are typed edges with inverses.** `req:x satisfied-by op:y` puts `satisfies req:x` on `op:y` at build time;
-`decision:new supersedes decision:old` fills `until` and `superseded-by` on the old one. Field names found in another
-node's text become `mentions` edges, so *where is `receivedQuantity` used?* is one query. Structural edges
-(`refines`, `satisfied-by`, `verified-by`, `governs`, `part-of`, `depends-on`, …) are what impact and the constraint
-packet walk; `mentions` and `related-to` are weak.
+It also sounds like **why**, which is a good place for any product change to begin.
 
-**Views are blocks over the graph.** `<!-- view:goal -->`, `<!-- view:constraint status=approved -->`,
-`<!-- view:pr -->` render every node of a kind wherever it is defined — filterable, groupable, editable. Overview
-pages are views, never lists kept by hand; a block has one home and everywhere else it is an embed
-(`![[goal:exec.define-first]]`) or a row of a view.
+## Status
 
-**In the app:** `@` inserts a tag for any node or document, select a phrase and press *⌁ node* to link it or make a
-new node of any type from it, `/` inserts a typed block, right-click a block for comment / copy / cut / paste / clone
-/ send to agent. Every save rebuilds the graph and diffs it against the last build, so each block knows who changed
-it and when — the person or an agent session.
-
-## Memory
-
-Wye is memory for agents, and the memory is honest by construction rather than by recall:
-
-- **Constraints are computed, not found.** A request's first message carries the constraints in force: every
-  `rule:`, `constraint:`, `gate:`, approved `decision:` and `goal:` within two hops of what the request touches, plus
-  every open `question:` on them — a graph traversal from the seeds, complete by construction. Vector search only
-  finds the seeds; it is never the authority on what governs. `wye packet --for "<text>"` gives the same mid-session.
-- **Time is on every node.** `since`, `until`, `superseded-by`, `by`, `evidence`. Current means not ended; superseded,
-  rejected and retired knowledge is excluded from context unless you ask (`--all`, `--as-of <date>`). A decision that
-  supersedes another retires the old one in one act.
-- **Contradictions are found at write time.** A new decision, requirement, rule or constraint is classified against
-  its neighbours (duplicate / refines / consistent / contradicts) when it is written, and the verdicts sit on the
-  node; approving a block with an open contradiction requires choosing — supersede the other side, refine this one,
-  or dismiss with a reason. `wye check --strict` fails CI on an open contradiction touching shipped work.
-- **Impact before edit.** `wye impact <id> --after "<new text>"` lists what an edit reaches and what each reached
-  node needs — unaffected, update, rework, contradicts, ask — before anything is written.
-- **Status is earned.** `shipped` needs a `verified-by`; a rule needs a `source`; a superseded node names its
-  successor. `wye check` says so.
-- **One verdict per pair.** When a block's text changes, the pair is judged again and the new verdict replaces the
-  old one; a contradiction that no longer holds closes itself, one the person settled stays as they left it.
-- **Search that answers.** One local index per product (LanceDB in `_build/search.lance`: full-text and MiniLM vectors
-  fused by reciprocal rank, one hop along the graph, a local cross-encoder reranking a question's passages) over
-  blocks, document prose, the product's code (its `repo:`) and agent sessions. `wye ask "<question>"` and ⌘F answer
-  from it with citations; `wye ask-search` returns the passages; `wye eval ask` measures recall on a question set
-  (93 % recall@10 on Wye's own product). Nothing leaves the machine but the answering model call.
-- **Memory you paste.** Remember (⌘M) is the way in for what never went through a request: what was said in a
-  meeting, a decision taken in Slack, a date that moved. It is filed as typed, linked, proposed knowledge — updates
-  and supersessions rather than duplicates — so it is checked and found like everything else.
-
-The evaluation project (`data/products/wye/projects/evaluation`) measures this against public memory
-benchmarks and against Wye's own history — with and without the memory — so the claims above have numbers.
-
-## Prompt Requests
-
-A Prompt Request is how a person suggests a change to the knowledge — and only a person: agents, tasks, hooks and
-imports never open one; their sessions work on a task's own page and leave proposed blocks. Every request is a
-document of `type:pr` under the project's PRs page: `pr-<n>.md`, shown as `#n Title`.
-
-```
-## Request      what was asked, in the person's words, with the refs attached
-## Summary      what will be built, how it works, an example, the plan, out of scope — kept current by the librarian
-## Context      what it touches — modules, documents, nodes, code — and what was understood
-## Definition   the blocks it proposes, defined in their home documents and embedded here
-## Impact       what the change reaches, computed from the Definition; the PRs it overlaps
-## Questions    the librarian's questions, answered on the page
-## Tasks        `- [ ] task:` lines, part of the PR
-## Result       written by the app when the build ends: summary and the blocks produced
-```
-
-Lifecycle: `draft → refining → approved → building → done | failed | cancelled`. The librarian refines; the person
-approves; the dispatcher builds. `wye pr <product/project/pr-x>` from the terminal, `wye pr approve|cancel|reopen`,
-`wye pr build --worker claude-code|codex`. A request is not ready until its Summary says what gets built. **Revisit**
-on a request page (`wye pr revisit <ref>`) brings a page written under older rules up to the current ones — the
-Summary, one decision per choice, requirements and tests that match the decisions, cards out of Result — without
-changing what was decided.
-
-## Skills, hooks and workflows
-
-A **skill** is an instruction a session follows — a document under the project's Skills page, editable in the app
-like any other. Wye ships *Refine a request*, *Analyse a request*, *Build a request*, *Define how a requirement is
-tested*, *Revisit a request*, *Remember what the person pasted*, *Describe a module from its code*, *Import a document*
-and *Import a module from its code*, plus one per workflow stage. A shipped skill follows Wye's own prompt until you
-edit it — then your version stays. A **hook** is a card in the project's Hooks document — `when <kind>.<event>
-[where …] do run <skill> | add <template> | assign | notify` — and the engine runs it on the watcher, on approve
-and at session end; what fired is on the Hooks page and in `wye hooks`.
-
-A **workflow** is a skill that declares stages — an ordered, gated pipeline you run on any document or node. Wye
-ships *Feature*: an idea becomes research, then a PRD, then a tech design and a test design written together, then a
-plan, then dispatched work. Each stage creates the document it produces (never overwriting one you edited), hands the
-work to an agent with its own editable skill, computes its exit criterion from the graph — *every requirement agreed,
-no open question; every requirement with something satisfying it and something verifying it; every requirement with a
-task* — and then **waits for you**: the readiness rows say what is missing and Advance is yours (`gate: auto` on a
-stage opts out). Reopen goes back and keeps both passes, Skip is recorded as an override, and a failed session blocks
-the run rather than quietly moving on. ⌘P › Workflow starts one on what you are looking at — with nothing under the
-cursor, what you type becomes the document the run starts from — as does the Workflows section of any node's column,
-`wye workflow run`, or a hook's `run workflow:<id>`. Because the stage's skill writes `satisfies` and `verifies` and
-the parser generates the inverse, a requirement's links to its decisions and its tests come for free; the stage's
-criterion is what notices when one is missing, and the coverage view is what you read before you advance.
-
-Every run is a page of its own — `run-<workflow>-<n>.md` under the project's Workflow runs — and that page is the
-state: its frontmatter says which workflow, what it runs on, the stage and the status; **Stages** says what is done
-and where it has got to; **Blocking** says, row by row, what the next stage is waiting for and which nodes hold it
-back; **Log** says what happened and by whom. It is a node like any other, so the graph shows the run beside the idea
-it came from and everything it produced.
-
-The Claude Code skills in `skills/` (linked by `install.sh`) teach an agent the contract from the other side:
-`wye-agent` (resolve a Wye link or id, read and write documents and nodes, report on a session),
-`wye-context` (query the graph before code, describe the change before building, `wye check` before done),
-`wye-describe-module` (the inventory process behind `wye deepen`), `wye-restore` (continue a session by id).
-
-## The command line
-
-`wye` is the one command: the agent's and the person's door into the running app (`WYE_URL`, default
-`http://localhost:3456`; `WYE_PRODUCT`, `WYE_SESSION`), and the graph itself without the app.
-
-**The graph, no app needed** (`bin/wye-graph.js`):
-
-| command | what |
-|---|---|
-| `wye build [--root dir]` | parse the documents → `_build/graph.json` |
-| `wye check [--root dir] [--strict]` | lint: shapes per type, dangling references, missing sources, open contradictions; exit 1 on errors |
-| `wye get <id>` | one node with every edge (`wye get oversell` resolves suffixes) |
-| `wye search <terms>` | ranked search over ids, titles, bodies |
-| `wye reqs [--status s]` | the requirement tree with status glyphs (● tested ◐ untested ○ proposed ? question) |
-| `wye stats` | counts by kind, verb, status |
-| `wye site [--out dir]` | the phone-first viewer (index.html + data.js, no server) |
-| `wye graph neighbors <id> [-d N]`, `wye graph impact <id>`, `wye graph packet --task "…" [--budget N]`, `wye graph constraints`, `wye graph verdicts` | neighbourhood by hops; reverse structural closure; a token-budgeted slice for a task; the constraints; the verdict log |
-
-**Reading and writing through the app:**
-
-| command | what |
-|---|---|
-| `wye resolve <link\|id>` | what a Wye link or id points at — document, node, block or section — text included |
-| `wye doc <p/proj/doc>` · `wye doc write` · `wye doc create` · `wye doc retype` | a document's body; replace it (or one `## section`) checked against the current hash; a new page of a type; change its type |
-| `wye node <id>` · `wye node set` · `wye node content` · `wye node add <type>:<slug>` | a node with its relations; set status / text / properties; its content blocks; a new instance of a type |
-| `wye type add <slug> [--extends parent]` | a proposed type card |
-| `wye ask "<question>" [--fast\|--deep]` | a cited answer from the product's knowledge, documents, code and sessions: the fast answer, the sources the deeper search opens, its answer |
-| `wye ask-search "<words>" [--source …] [--expand] [--rerank]` | the ranked passages Ask answers from |
-| `wye context "<text>"` | the knowledge closest to a text (local semantic search; ended nodes hidden) |
-| `wye query "<SQL>" [--json]` | SQL and graph patterns over the built graph — tables `nodes` and `edges` ([docs/query.md](docs/query.md)) |
-| `wye packet --for "<text>" [--ref id]` | the constraints in force for a text — complete, two hops |
-| `wye impact <id> --after "<new text>"` | what an edit would reach and what each reached node needs; nothing written |
-| `wye verdicts <id …>` | classify nodes against their neighbours now |
-| `wye explain <id \| "text">` | the current state of the product around a node or a text (the librarian, one turn) |
-| `wye inbox add\|list` | raw notes for later filing; what waits for review |
-| `wye propose --pr <p/proj/pr-x>` | one proposed block into the document where its kind lives, embedded on the PR's Definition |
-| `wye pr <p/proj/pr-x> [--status …]` · `wye pr approve\|cancel\|reopen` · `wye pr build [--worker …]` · `wye pr revisit` | a PR's status, definition and readiness; the person's moves; hand it to a worker; bring an old page up to the current rules |
-| `wye work list\|add\|next\|assign` | every task with its state; a backlog line; the oldest ready task; assign to a person or agent |
-| `wye session list\|show\|changes\|create\|log\|done\|fail\|handoff\|open\|take` | sessions and their logs; every block a session changed; the worker's lifecycle |
-| `wye skills` · `wye skill <id>` · `wye hooks [--node id]` | the product's skills; one skill's instruction; the hooks and what fired |
-| `wye workflow list\|show <id>` · `wye workflow run <id> --on <node>` | the workflows and their stages; start a run on a node or document |
-| `wye run list\|show <id>` · `wye run advance\|skip\|reopen\|retry\|cancel <id>` | the runs with the readiness of the stage they are at; the person's moves |
-| `wye init --product <slug> --repo <dir>` | a product's definition from its code, first pass: the layered tree, every module / page / component / library / operation / test, a `#ready` describe task per module — no model, nothing overwritten |
-| `wye deepen <module> --product p` | assign the module's describe task to a worker: requirements from the code, each mapped to the file that delivers it |
-| `wye agent listen --product p --agent claude-code\|codex` | a runner: pick up queued sessions, run the agent with the prompt on stdin, stream the output to the session |
-| `wye eval own\|compare\|public\|judge\|report\|ask` | the benchmarks; `ask` is the retriever's recall@k |
-
-`wye --help` prints all of it with every flag.
-
-## Layout
-
-```
-bin/wye.js               the wye command (bin/wye-graph.js: build, check, get, search, reqs, site, stats)
-lib/parse.js             markdown → graph: nodes, typed edges, generated inverses, field nodes, mentions
-lib/graph.js             queries, packet, impact, lint
-lib/judge.js             the model calls (verdicts, impact) — budgeted, cached by pair hash
-lib/init.js              a definition from a repo
-packages/web             the app (Next.js, BlockNote): documents, cards, views, PRs, inbox, agents, sessions
-packages/desktop         the Electron shell that owns the server
-prompts/                 the worker contract (agent-system.md), the librarian, describe-module, analyse-request, define-tests, and the stages of the Feature workflow (research, prd, tech-design, test-design, plan)
-skills/                  Claude Code skills (symlinked by install.sh)
-schema/base-ontology.md  the base types as type: cards (parser pass 1)
-schema/kinds.yaml        the same in prose (generated: npm run kinds): kinds, verbs, statuses, conventions
-templates/docs/          skeletons: prd, research, dev-design, test-design, plan, pr, skill, hooks, workflow-feature, workflow-runs, blank
-viewer/index.html        the phone-first viewer (reqs tree · force graph · text)
-test/                    node tests over the parser, ontology, memory, impact, evals; packages/web has vitest
-eval/                    the benchmark harness and public adapters
-data/products/wye  Wye's own definition — the app described in itself
-```
-
-`npm test` runs everything.
-
-## Design notes
-
-- Markdown is canonical, not a graph DB. It lives in git, is reviewed like code, and `graph.json` is derived.
-- Nothing in the app is a page of its own: every screen is a document made of the existing blocks, and a new kind
-  of data is a new type whose instances the data table and the instances view show.
-- One defining place per id; everything else is a reference. Ids are stable slugs; `req:` ids are dotted paths so
-  hierarchy is in the id. Prefer `file#Symbol` over line numbers in `source:`.
-- Agents write as *proposed*; a person approves. Permissions and questions from an agent are never auto-answered.
-- Local-first: Wye runs on your machine over the files of your repo. No hosting surface, no auth, no sync — for now.
-- Model calls go through the agent CLI you already have (`claude`, `codex`), never a separate API key.
-
-## Desktop app
-
-`Wye.app` on macOS and an AppImage on Linux: the web app in its own window, with the server and the agent processes
-(Claude Code, Codex) as children the app owns — closing the last window quits them all. The app is a shell over a
-checkout of this repo: your documents stay in git, the server runs from the checkout, and the `wye` CLI on your PATH
-is what the agents use.
-
-### Install
-
-1. **Prerequisites:** Node.js 18+ and npm; git; the agent CLIs you want (`claude`, `codex`) on your login shell's
-   PATH. The app reads the PATH from your login shell, so whatever works in a terminal works in the app.
-2. **Clone and install** — the app needs the checkout even when installed from a DMG or AppImage:
-   ```bash
-   git clone https://github.com/emlab-ai/wye.git && cd wye
-   npm install
-   ./install.sh                     # `wye` into ~/.local/bin, the Claude Code skills into ~/.claude/skills
-   ```
-3. **Get the app.** Download `Wye-<version>-mac-arm64.dmg` (Apple silicon) or `-mac-x64.dmg` (Intel), or
-   `Wye-<version>-linux-x86_64.AppImage` / `-linux-arm64.AppImage` from the repo's Releases — or build them yourself
-   from the checkout:
-   ```bash
-   npm run desktop:dist             # both platforms → packages/desktop/dist/
-   npm run desktop:dist:mac         # dmg + zip, arm64 and x64
-   npm run desktop:dist:linux       # AppImage, x64 and arm64
-   ```
-   Building Linux artifacts on a Mac works; building macOS artifacts needs a Mac.
-4. **macOS:** open the DMG and drag Wye to Applications. The build is not code-signed, so the first launch is
-   *right-click › Open* (or `xattr -dr com.apple.quarantine /Applications/Wye.app` once).
-   **Linux:** `chmod +x Wye-*.AppImage && ./Wye-*.AppImage` (AppImage needs FUSE 2 on most distributions:
-   `sudo apt install libfuse2`).
-5. **First launch** asks for the checkout folder (the one with `package.json` and `data/products`) and remembers
-   it; *File › Choose checkout…* changes it later, and `WYE_ROOT=/path/to/wye` overrides it. On a fresh clone the
-   app installs dependencies and builds the web app before the first window opens — a few minutes, once; after
-   that it starts in seconds. A log of what it did is in the app's user-data folder (`~/Library/Application
-   Support/Wye/desktop.log` on macOS, `~/.config/Wye/desktop.log` on Linux); the server's own output is
-   `.cache/desktop-web.log` in the checkout.
-
-If a server is already running on port 3456 (`npm run dev`, another window), the app attaches to it instead of
-starting its own. `WYE_PORT` changes the port.
-
-### From the source tree
-
-`npm run desktop` opens the app on the dev server (hot reload, `WYE_DEV=1`); `npm run desktop:prod` builds the web
-app first and serves the production build. Agents started from the app run as child processes of that server:
-Claude Code over its streaming JSON protocol, Codex through `codex exec --json`; the column shows the conversation
-live and you reply from there.
-
-If Electron's binary is missing after `npm install` (npm's allow-scripts skips its postinstall), run
-`cd node_modules/electron && node install.js`, or unpack the cached zip with `ditto -x -k <zip> dist` and write
-`Electron.app/Contents/MacOS/Electron` into `node_modules/electron/path.txt`.
+Wye is early, local-first, open source, under active development, and used to build itself. The core workflow needs
+no accounts and no hosted service. Expect the model, the interface and the APIs to change. The current version is
+`0.2.0`.
 
 ## Contributing
 
-Ideas and questions go to [Discussions](https://github.com/emlab-ai/wye/discussions); bugs and the
+If the idea interests you, contributions and criticism are welcome. Ideas and questions go to
+[Discussions](https://github.com/emlab-ai/wye/discussions); bugs and the
 [`good first issue`](https://github.com/emlab-ai/wye/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-list to Issues. [CONTRIBUTING.md](CONTRIBUTING.md) says how the repo works — Wye describes itself, so a change
-starts as a block in `data/products/wye`. Apache-2.0.
+list to Issues. [CONTRIBUTING.md](CONTRIBUTING.md) explains how the repo works: since Wye describes itself, a change
+starts as a block in `data/products/wye`.
+
+The most useful feedback right now is not only *does this feature work?* but *is this actually a better way for people
+and coding agents to work together?* Ideas, counterexamples and other models are all welcome.
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE).
+
+---
+
+**In one sentence:** Wye gives people and coding agents a shared, version-controlled memory of what the product is,
+why it works that way, and what is allowed to change.
