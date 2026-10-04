@@ -149,9 +149,10 @@ export function sortRows(rows: InstanceRow[], sort: string): InstanceRow[] {
 // key=value pairs; a value with spaces is quoted. Same keys as the URL form.
 export function parseViewQuery(query: string, columns: string[]): Filters {
   const m: Record<string, string> = {};
-  for (const [, k, quoted, bare] of query.matchAll(/([A-Za-z][\w-]*)=(?:"([^"]*)"|(\S+))/g)) m[k] = quoted ?? bare ?? '';
+  // a quoted value keeps \" and \\ escaped (a table's SQL quotes identifiers with ")
+  for (const [, k, quoted, bare] of query.matchAll(/([A-Za-z][\w-]*)=(?:"((?:[^"\\]|\\.)*)"|(\S+))/g)) m[k] = quoted !== undefined ? quoted.replace(/\\(.)/g, '$1') : bare ?? '';
   return parseFilters(m, columns);
 }
 export function viewQuery(f: Filters): string {
-  return Object.entries({ q: f.q, status: f.status, group: f.group, sort: f.sort, done: f.done ?? '', open: f.open ?? '', due: f.due ?? '', sql: f.sql ?? '', ...f.props }).filter(([, v]) => v).map(([k, v]) => `${k}=${/\s/.test(v) ? `"${v}"` : v}`).join(' ');
+  return Object.entries({ q: f.q, status: f.status, group: f.group, sort: f.sort, done: f.done ?? '', open: f.open ?? '', due: f.due ?? '', sql: f.sql ?? '', ...f.props }).filter(([, v]) => v).map(([k, v]) => `${k}=${/[\s"\\]/.test(v) ? `"${v.replace(/[\\"]/g, '\\$&')}"` : v}`).join(' ');
 }

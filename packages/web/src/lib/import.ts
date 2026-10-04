@@ -19,7 +19,8 @@ export type ParseMd = (md: string) => AnyBlock[];
 // A table region: ordinary node lines between <!-- goals --> and <!-- /goals --> (or tasks), or for any type
 // <!-- table:<slug> --> … <!-- /table:<slug> -->. The marker carries the kind of its rows and, after it, the table's
 // filters as key=value pairs in the view block's grammar (rule:table-filter): <!-- table:bug status=open q="login" -->
-export const COLLECTION_OPEN = /^<!--\s*(goals|tasks|(?:table|list):[a-z][a-z0-9-]*)((?:\s+[^\s>][^>]*?)?)\s*-->\s*$/;
+// the query after the kind may hold any text but the comment's end — a table's SQL has > and -> in it
+export const COLLECTION_OPEN = /^<!--\s*(goals|tasks|(?:table|list):[a-z][a-z0-9-]*)((?:\s+(?:(?!-->).)*?)?)\s*-->\s*$/;
 export const COLLECTION_CLOSE = /^<!--\s*\/(goals|tasks|(?:table|list):[a-z][a-z0-9-]*)\s*-->\s*$/;
 
 export const DRAWING_LINE = /^!\[([^\]]*)\]\((\S+\.excalidraw)\)\s*$/;

@@ -2,206 +2,259 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePeek, type OwnType } from './PeekProvider';
 import { EmbeddedCard } from './EmbeddedCard';
-import { filterRows, parseViewQuery, viewQuery, sortRows, isOpen, type Filters, type InstanceRow, type InstanceTable } from '@/lib/instance-table';
+import { parseViewQuery, viewQuery, isOpen, type Filters, type InstanceRow, type InstanceTable } from '@/lib/instance-table';
+import { tableSql, oneLine } from '@/lib/table-sql';
 import { statusOptions } from '@/lib/props';
 import { DateField } from './DateField';
 
-// A Data table or Data list from the whole product (decision:wf2.live-collections): `scope=product` on the table's
-// marker. Its rows are not written in this page — they are the product's items of the kind, wherever each is defined,
-// that the filter on the marker keeps (open=1, due=7d, owner=me, a status, a column value). Each row looks and edits
-// like a row of any table — the status, the date, the owner, a type's columns — and an edit is written where the item
-// lives (the node API), so the table is always current and an edit here is an edit there.
+// Every Data table and Data list is a query (decision:wf2.table-is-sql). Its rows are what its SQL returns, over the
+// graph of the whole product: a table on a page starts as this page's items of its kind (`page = 'module:…'`), "⊕ whole
+// product" drops that line, and each switch of the filter bar adds its line (lib/table-sql). The SQL shows under the
+// bar; edited by hand it is the table's own (`sql=` on the marker) and the switches step aside until "Back to filters".
+// A result with an `id` column is the items: each row looks and edits like any row — status, date, owner, a type's
+// columns — and an edit is written where the item lives: in this page's editor when the item is defined here (`own`),
+// else through the node API. A result's other columns show beside, read only; a result with no `id` is a plain table.
 
-type Props = { product: string; kind: string; query: string; view: string; type?: OwnType; head: React.ReactNode; onQuery: (q: string) => void };
+// the rows a table on a page keeps in the page (the blocks under its marker): new rows go there, and an item the page
+// defines is edited in the editor that holds it — a write to the file under an open editor would conflict
+export type OwnRows = {
+  has: (id: string) => 'table' | 'page' | null;   // the item is a row of this table, defined elsewhere on the page, or not here
+  add: (title: string) => string | null;   // the new item's id
+  edit: (id: string, patch: RowPatch) => boolean;   // false: the item is not in this page
+  remove: (id: string) => boolean;
+};
+export type RowPatch = { status?: string; props?: Record<string, string>; title?: string };
+type Props = { product: string; kind: string; query: string; view: string; type?: OwnType; head: React.ReactNode; onQuery: (q: string) => void; page?: string; own?: OwnRows };
+type QResult = { columns: string[]; rows: Record<string, unknown>[]; truncated: boolean; ms: number };
 const TASKISH = new Set(['goal', 'task', 'commitment']);
 const DUE_WINDOWS = ['', 'late', 'today', '7d', '14d', '30d'];
+const SHOWN = new Set(['id', 'title', 'status', 'kind', 'open']);   // shown by every row of items already
 
-export function LiveTable({ product, kind, query, view, type, head, onQuery }: Props) {
-  const { statuses: byKind, open: openNode } = usePeek();
+export function LiveTable({ product, kind, query, view, type, head, onQuery, page, own }: Props) {
+  const { statuses: byKind, open: openNode, index } = usePeek();
   // inside a page's editor a row selects its item (the column follows the editor); elsewhere — a Knowledge page — it opens it
   const rootRef = useRef<HTMLDivElement>(null); const [inEditor, setInEditor] = useState(true);
   useEffect(() => { setInEditor(!!rootRef.current?.closest('.doc-editor')); }, []);
   const [table, setTable] = useState<InstanceTable | null>(null);
+  const [res, setRes] = useState<QResult | null>(null);
   const [err, setErr] = useState('');
   const [open, setOpen] = useState(false);
   const [local, setLocal] = useState<Record<string, Partial<InstanceRow>>>({});   // edits not yet back from the graph
+  const [pending, setPending] = useState<{ id: string; title: string }[]>([]);   // rows added here, not yet in the graph
   // a row edited here stays until the page is opened again — completing it does not make it vanish (rule:table-hides-done)
-  const touched = useRef(new Set<string>());
+  const touched = useRef(new Set<string>()); const lastIds = useRef<string[]>([]);
+
+  const cols = useMemo(() => (table?.columns ?? []).map(c => c.name), [table]);
+  const f: Filters = useMemo(() => parseViewQuery(query, cols), [query, cols]);
+  const set = (patch: Partial<Filters>) => onQuery(viewQuery({ ...f, ...patch, props: { ...(patch.props ?? f.props) } }));
+  const generated = useMemo(() => tableSql({ kind, page, f, me: table?.me }), [kind, page, f, table?.me]);
+  const sql = f.sql || generated;
+  // another query is another set of rows: what was kept for having been edited goes
+  useEffect(() => { touched.current.clear(); lastIds.current = []; }, [sql]);
+
   const load = useCallback(() => {
     fetch(`/api/${product}/view/${kind}`).then(async r => { if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message ?? r.statusText); return r.json() as Promise<InstanceTable>; })
-      .then(t => { setTable(t); setErr(''); setLocal({}); }).catch(e => setErr(String(e.message ?? e)));
+      .then(t => { setTable(t); setLocal({}); }).catch(e => setErr(String(e.message ?? e)));
   }, [product, kind]);
+  const run = useCallback(() => {
+    if (!table) return;   // the generated SQL needs who `me` is
+    fetch(`/api/${product}/query`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sql }) })
+      .then(async r => { const j = await r.json(); if (!r.ok) throw new Error(j.message ?? r.statusText); setRes(j); setErr(''); })
+      .catch(e => setErr(String(e.message ?? e)));
+  }, [product, sql, table]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { run(); }, [run]);
   useEffect(() => {   // the graph changed on disk (an edit here, an agent, an import): fetch again
     const h = (e: Event) => { if ((e as CustomEvent<{ kinds: string[] }>).detail?.kinds?.includes('graph')) load(); };
     window.addEventListener('wf:change', h); return () => window.removeEventListener('wf:change', h);
   }, [load]);
 
-  const cols = useMemo(() => (table?.columns ?? []).map(c => c.name), [table]);
-  const f: Filters = useMemo(() => parseViewQuery(query, cols), [query, cols]);
-  const set = (patch: Partial<Filters>) => onQuery(viewQuery({ ...f, ...patch, props: { ...(patch.props ?? f.props) } }));
-  const rows = useMemo(() => {
-    if (!table) return [];
-    const merged = table.rows.map(r => (local[r.id] ? { ...r, ...local[r.id], props: { ...r.props, ...(local[r.id].props ?? {}) } } : r));
-    // like any table, what is done is hidden unless asked for — a filter that says open, a done status or done=show
-    const shown = merged.filter(r => touched.current.has(r.id) || filterRows([r], f, { me: table.me }).length).filter(r => touched.current.has(r.id) || f.done === 'show' || f.status || isOpen(r));
-    return f.sort ? sortRows(shown, f.sort) : [...shown].sort((a, b) => (a.props.due || a.props.target || '9999').localeCompare(b.props.due || b.props.target || '9999') || a.title.localeCompare(b.title));
-  }, [table, f, local]);
+  const hasId = !!res?.columns.includes('id');
+  const byId = useMemo(() => new Map((table?.rows ?? []).map(r => [r.id, r])), [table]);
+  const rowOf = useCallback((id: string, row?: Record<string, unknown>): InstanceRow => {
+    const r = byId.get(id); const e = index[id];
+    const base: InstanceRow = r ?? { id, kind: e?.kind ?? id.split(':')[0], title: String(row?.title ?? e?.title ?? id), status: String(row?.status ?? e?.status ?? ''), file: e?.file ?? '', doc: e?.doc ?? '', props: {} };
+    const l = local[id]; return l ? { ...base, ...l, props: { ...base.props, ...(l.props ?? {}) } } : base;
+  }, [byId, index, local]);
+  const ids = useMemo(() => {
+    if (!res || !hasId) return [];
+    const got = res.rows.map(r => String(r.id ?? '')).filter(Boolean);
+    // a row edited here keeps its place until the page is opened again, though the query no longer returns it
+    const kept = lastIds.current.filter(id => touched.current.has(id) && !got.includes(id));
+    const out = [...got]; for (const id of kept) out.splice(Math.min(lastIds.current.indexOf(id), out.length), 0, id);
+    return out;
+  }, [res, hasId]);
+  useEffect(() => { lastIds.current = ids; }, [ids]);
+  useEffect(() => { if (pending.length) setPending(p => p.filter(x => !ids.includes(x.id))); }, [ids]); // eslint-disable-line react-hooks/exhaustive-deps
+  const valuesByRow = useMemo(() => new Map((res?.rows ?? []).map(r => [String(r.id ?? ''), r])), [res]);
+  // a query that selects columns shows those (an item's own property stays editable); `SELECT id` shows the kind's own
+  const selected = (res?.columns ?? []).filter(c => hasId ? !SHOWN.has(c) : true);
 
-  const edit = async (r: InstanceRow, patch: { status?: string; props?: Record<string, string> }) => {
+  const edit = async (r: InstanceRow, patch: RowPatch) => {
     touched.current.add(r.id);
-    setLocal(l => ({ ...l, [r.id]: { ...l[r.id], ...(patch.status !== undefined ? { status: patch.status } : {}), ...(patch.props ? { props: { ...(l[r.id]?.props ?? {}), ...patch.props } } : {}) } }));
+    setLocal(l => ({ ...l, [r.id]: { ...l[r.id], ...(patch.status !== undefined ? { status: patch.status } : {}), ...(patch.title !== undefined ? { title: patch.title } : {}), ...(patch.props ? { props: { ...(l[r.id]?.props ?? {}), ...patch.props } } : {}) } }));
+    if (own?.edit(r.id, patch)) return;
+    if (patch.title !== undefined) return;   // a title is edited where the item is
     const res = await fetch(`/api/${product}/node/${encodeURIComponent(r.id)}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...(patch.status !== undefined ? { status: patch.status } : {}), ...(patch.props ? { props: Object.fromEntries(Object.entries(patch.props).map(([k, v]) => [k, v || null])) } : {}) }) }).catch(() => null);
     if (!res?.ok) setErr(`could not save ${r.id}`);
   };
+  const add = (title: string) => { const id = own?.add(title); if (id) { touched.current.add(id); setPending(p => [...p, { id, title }]); } };
 
   const dateKey = kind === 'goal' ? 'target' : 'due';
-  const grid = type ? `minmax(360px, 520px) 128px${type.cols.map(c => (c.type === 'bool' ? ' 56px' : c.ref ? ' minmax(140px, 200px)' : ' minmax(112px, 180px)')).join('')}` : 'minmax(360px, 520px) 128px 112px 140px';
-  const filterOn = !!(f.q || f.status || f.open || f.due || f.sql || Object.values(f.props).some(Boolean));
-  const [sqlOpen, setSqlOpen] = useState(!!f.sql);
+  const grid = selected.length ? `minmax(240px, 1fr) 112px${selected.map(() => ' minmax(96px, 220px)').join('')}`
+    : type ? `minmax(360px, 520px) 128px${type.cols.map(c => (c.type === 'bool' ? ' 56px' : c.ref ? ' minmax(140px, 200px)' : ' minmax(112px, 180px)')).join('')}` : 'minmax(360px, 520px) 128px 112px 140px';
+  const custom = !!f.sql;
+  const filterOn = !!(f.q || f.status || f.open || f.due || custom || Object.values(f.props).some(Boolean));
   const mine = Object.values(f.props).includes('me');
   const ownerKey = cols.includes('owner') || !type ? 'owner' : cols.find(c => c === 'to' || c === 'from') ?? 'owner';
   const bar = (
-    <div className="live-filter" onMouseDown={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
-      <input type="search" placeholder="Search…" value={f.q} onChange={e => set({ q: e.target.value })} />
-      <label><input type="checkbox" checked={f.open === '1'} onChange={e => set({ open: e.target.checked ? '1' : '' })} /> open only</label>
-      <label>due <select value={f.due ?? ''} onChange={e => set({ due: e.target.value })}>{DUE_WINDOWS.map(w => <option key={w} value={w}>{w === '' ? 'any time' : w === 'late' ? 'late' : w === 'today' ? 'today or late' : `within ${w.replace('d', ' days')}`}</option>)}</select></label>
-      <label><input type="checkbox" checked={mine} onChange={e => set({ props: { ...f.props, [ownerKey]: e.target.checked ? 'me' : '' } })} /> mine</label>
-      {(table?.statuses ?? []).length > 1 && <label>status <select value={f.status} onChange={e => set({ status: e.target.value })}><option value="">any</option>{table!.statuses.map(([s, n]) => <option key={s} value={s}>{s} ({n})</option>)}</select></label>}
-      <label><input type="checkbox" checked={f.done === 'show'} onChange={e => set({ done: e.target.checked ? 'show' : '' })} /> show done</label>
-      <button type="button" className={`collection-view-toggle ${sqlOpen ? 'on' : ''}`} onClick={() => setSqlOpen(o => !o)} title="Query the graph with SQL — joins, lookups, graph patterns">SQL</button>
+    <div className="live-filter-wrap" onMouseDown={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+      <fieldset className="live-filter" disabled={custom} title={custom ? 'this table runs its own SQL — "Back to filters" to use these again' : undefined}>
+        <input type="search" placeholder="Search…" value={f.q} onChange={e => set({ q: e.target.value })} />
+        <label><input type="checkbox" checked={f.open === '1'} onChange={e => set({ open: e.target.checked ? '1' : '' })} /> open only</label>
+        <label>due <select value={f.due ?? ''} onChange={e => set({ due: e.target.value })}>{DUE_WINDOWS.map(w => <option key={w} value={w}>{w === '' ? 'any time' : w === 'late' ? 'late' : w === 'today' ? 'today or late' : `within ${w.replace('d', ' days')}`}</option>)}</select></label>
+        <label><input type="checkbox" checked={mine} onChange={e => set({ props: { ...f.props, [ownerKey]: e.target.checked ? 'me' : '' } })} /> mine</label>
+        {(table?.statuses ?? []).length > 1 && <label>status <select value={f.status} onChange={e => set({ status: e.target.value })}><option value="">any</option>{table!.statuses.map(([s, n]) => <option key={s} value={s}>{s} ({n})</option>)}</select></label>}
+        <label><input type="checkbox" checked={f.done === 'show'} onChange={e => set({ done: e.target.checked ? 'show' : '' })} /> show done</label>
+      </fieldset>
+      <SqlBox sql={sql} custom={custom} onRun={q => set({ sql: q && oneLine(q) !== oneLine(generated) ? oneLine(q) : '' })} />
     </div>
   );
-  const sqlBox = (open || f.sql) && sqlOpen ? <SqlBox sql={f.sql ?? ''} onRun={q => set({ sql: q })} /> : null;
+  const count = res ? `${ids.length}${res.truncated ? '+' : ''}` : '…';
   const summary = (
-    <span className="live-scope muted small" title="rows from the whole product: edit one here and it changes where it is defined">
-      {table ? `${rows.length}${table.rows.length !== rows.length ? ` of ${table.rows.length}` : ''}` : '…'}
-      <button type="button" className={`collection-filter-toggle ${filterOn ? 'on' : ''}`} onMouseDown={e => e.stopPropagation()} onClick={() => setOpen(o => !o)}>⏷ filter</button>
+    <span className="live-scope muted small" title={page ? "this page's items — the query is under ⏷" : 'items from the whole product: edit one here and it changes where it is defined'}>
+      {count}
+      <button type="button" className={`collection-filter-toggle ${filterOn ? 'on' : ''}`} onMouseDown={e => e.stopPropagation()} onClick={() => setOpen(o => !o)}>{custom ? '⏷ SQL' : '⏷ filter'}</button>
     </span>
   );
+  const newRow = own && page && !custom ? <NewRow kind={kind} onAdd={add} /> : null;   // a page's own table takes new rows; one of the whole product only shows
 
-  if (f.sql) return (
+  if (res && !hasId) return (   // not items: a plain result
     <div ref={rootRef} className={`collection c-live c-query c-${kind}`} contentEditable={false}>
-      <QueryRows product={product} sql={f.sql} inEditor={inEditor} onOpen={openNode}
-        head={head} summaryExtra={<button type="button" className="collection-filter-toggle on" onMouseDown={e => e.stopPropagation()} onClick={() => { setOpen(o => !o); setSqlOpen(true); }}>⏷ query</button>} />
-      {open && <SqlBox sql={f.sql} onRun={q => set({ sql: q })} />}
+      <div className="nrow nrow-head" style={{ gridTemplateColumns: selected.map(() => 'minmax(110px, 280px)').join(' ') || '1fr' }}>
+        {selected.map((c, i) => <div key={c} className={`nrow-cell ${i ? '' : 'nrow-name'}`}>{i ? '' : <>{head}{summary}</>}{c}</div>)}
+      </div>
+      {open && bar}
+      {err && <p className="notice live-empty">{err}</p>}
+      {res.rows.map((row, i) => <div key={i} className="nrow live-row" style={{ gridTemplateColumns: selected.map(() => 'minmax(110px, 280px)').join(' ') }}>{selected.map(c => <div key={c} className="nrow-cell live-cell" title={cell(row[c])}>{cell(row[c])}</div>)}</div>)}
+      {!res.rows.length && <p className="muted small live-empty">The query returned nothing.</p>}
     </div>
   );
   if (view === 'list') return (
     <div ref={rootRef} className={`collection c-list c-live c-${kind}`} contentEditable={false}>
       <div className="collection-list-head">{head}{summary}</div>
-      {open && bar}{sqlBox}
+      {open && bar}
       {err && <p className="notice">{err}</p>}
-      <div className="ilist">{rows.map(r => <div key={r.id} onClickCapture={e => { if (!inEditor && !(e.target as Element).closest('a, button, select, input, .embed-editor')) openNode(r.id); }}><EmbeddedCard id={r.id} className="ilist-item" inEditor={inEditor} /></div>)}</div>
-      {table && !rows.length && <p className="muted small live-empty">Nothing here right now.</p>}
+      <div className="ilist">{ids.map(id => <div key={id} onClickCapture={e => { if (!inEditor && !(e.target as Element).closest('a, button, select, input, .embed-editor')) openNode(id); }}><EmbeddedCard id={id} className="ilist-item" inEditor={inEditor} /></div>)}
+        {pending.map(p => <div key={p.id} className="ilist-item muted">{p.title}</div>)}</div>
+      {newRow}
+      {res && !ids.length && !pending.length && !own && <p className="muted small live-empty">Nothing here right now.</p>}
     </div>
   );
   return (
     <div ref={rootRef} className={`collection c-live c-${kind}`} contentEditable={false}>
       <div className="nrow nrow-head" style={{ gridTemplateColumns: grid }}>
         <div className="nrow-cell nrow-name">{head}{summary}</div><div className="nrow-cell">Status</div>
-        {type ? type.cols.map(c => <div key={c.name} className="nrow-cell">{c.name}</div>) : <><div className="nrow-cell">{dateKey === 'target' ? 'Target' : 'Due'}</div><div className="nrow-cell">Owner</div></>}
+        {selected.length ? selected.map(c => <div key={c} className="nrow-cell">{c}</div>)
+          : type ? type.cols.map(c => <div key={c.name} className="nrow-cell">{c.name}</div>) : <><div className="nrow-cell">{dateKey === 'target' ? 'Target' : 'Due'}</div><div className="nrow-cell">Owner</div></>}
       </div>
-      {open && bar}{sqlBox}
+      {open && bar}
       {err && <p className="notice">{err}</p>}
-      {rows.map(r => <LiveRow key={r.id} r={r} grid={grid} type={type} dateKey={TASKISH.has(kind) ? dateKey : ''} statuses={[...new Set([...statusOptions(byKind, r.kind, r.status), 'done'])]} onEdit={p => edit(r, p)} onOpen={inEditor ? undefined : () => openNode(r.id)} />)}
-      {table && !rows.length && <p className="muted small live-empty">Nothing here right now.</p>}
+      {ids.map(id => { const r = rowOf(id, valuesByRow.get(id));
+        return <LiveRow key={id} r={r} grid={grid} type={type} dateKey={TASKISH.has(r.kind) ? (r.kind === 'goal' ? 'target' : 'due') : ''} statuses={[...new Set([...statusOptions(byKind, r.kind, r.status), 'done'])]}
+          selected={selected.length ? { cols: selected, values: valuesByRow.get(id) ?? {} } : undefined} onEdit={p => edit(r, p)} onOpen={inEditor ? undefined : () => openNode(id)}
+          onTitle={own?.has(id) ? t => edit(r, { title: t }) : undefined} onRemove={own?.has(id) === 'table' ? () => { if (own.remove(id)) { touched.current.delete(id); setRes(x => x && { ...x, rows: x.rows.filter(y => y.id !== id) }); } } : undefined} />; })}
+      {pending.map(p => <div key={p.id} className="nrow live-row pending" style={{ gridTemplateColumns: grid }}><div className="nrow-cell nrow-name"><span className="nrow-open"><i /></span><span className="nrow-text muted">{p.title}</span></div></div>)}
+      {newRow}
+      {res && !ids.length && !pending.length && !own && <p className="muted small live-empty">Nothing here right now.</p>}
     </div>
   );
 }
 
-function LiveRow({ r, grid, type, dateKey, statuses, onEdit, onOpen }: { r: InstanceRow; grid: string; type?: OwnType; dateKey: string; statuses: string[]; onEdit: (p: { status?: string; props?: Record<string, string> }) => void; onOpen?: () => void }) {
+// keys heard on the element itself: inside a page's editor the table's wrapper stops keydown before React's root listener
+function useKeys(handler: (e: KeyboardEvent) => void) {
+  const h = useRef(handler); h.current = handler;
+  return useCallback((el: HTMLElement | null) => { if (el && !(el as unknown as { __keys?: boolean }).__keys) { (el as unknown as { __keys?: boolean }).__keys = true; el.addEventListener('keydown', e => h.current(e)); } }, []);
+}
+const colKey = (k: string) => k.replace(/-/g, '_');
+const cell = (v: unknown) => v === null || v === undefined ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+
+// the last row of a table on a page: typing a title and Enter adds the item to this page, under the table's marker
+function NewRow({ kind, onAdd }: { kind: string; onAdd: (title: string) => void }) {
+  const [v, setV] = useState('');
+  const keys = useKeys(e => { if (e.key === 'Enter' && v.trim()) { e.preventDefault(); onAdd(v.trim()); setV(''); } if (e.key === 'Escape') setV(''); });
+  return (
+    <div className="nrow live-row live-new">
+      <div className="nrow-cell nrow-name">
+        <span className="nrow-open"><i style={{ background: `var(--k-${kind}, var(--k-other))` }} /></span>
+        <input className="nrow-in live-title" value={v} placeholder={`New ${kind}…`} onMouseDown={e => e.stopPropagation()} ref={keys} onChange={e => setV(e.target.value)} />
+      </div>
+    </div>
+  );
+}
+
+function LiveRow({ r, grid, type, dateKey, statuses, selected, onEdit, onOpen, onTitle, onRemove }: { r: InstanceRow; grid: string; type?: OwnType; dateKey: string; statuses: string[]; selected?: { cols: string[]; values: Record<string, unknown> }; onEdit: (p: RowPatch) => void; onOpen?: () => void; onTitle?: (t: string) => void; onRemove?: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const peek = () => onOpen ? onOpen() : ref.current?.dispatchEvent(new CustomEvent('wf:select', { detail: r.id, bubbles: true }));
-  const cell = (key: string, placeholder: string, kind = '') => kind === 'date' || kind === 'month'
+  const cellOf = (key: string, placeholder: string, kind = '') => kind === 'date' || kind === 'month'
     ? <DateField className="nrow-in" value={r.props[key] ?? ''} month={kind === 'month'} placeholder={placeholder} onCommit={v => onEdit({ props: { [key]: v } })} />
     : <LiveInput value={r.props[key] ?? ''} placeholder={placeholder} onCommit={v => onEdit({ props: { [key]: v } })} />;
   return (
     <div ref={ref} className={`nrow live-row k-${r.kind} ${isOpen(r) ? '' : 'done'}`} style={{ gridTemplateColumns: grid }} data-id={r.id}>
       <div className="nrow-cell nrow-name">
         <button type="button" className="nrow-open" title={r.id} onMouseDown={e => e.stopPropagation()} onClick={peek}><i style={{ background: `var(--k-${r.kind}, var(--k-other))` }} /></button>
-        <span className="nrow-text live-text" onClick={peek} title={`${plainTitle(r.title)} — ${r.doc}`}>{plainTitle(r.title)}</span>
+        {onTitle ? <LiveInput className="nrow-in live-title" value={plainTitle(r.title)} placeholder="title" onCommit={t => t && onTitle(t)} />
+          : <span className="nrow-text live-text" onClick={peek} title={`${plainTitle(r.title)} — ${r.doc}`}>{plainTitle(r.title)}</span>}
+        {onRemove && <button type="button" className="nrow-send nrow-del" title="Delete this row" onMouseDown={e => e.stopPropagation()} onClick={onRemove}>×</button>}
       </div>
       <div className="nrow-cell">
         <select className={`status-sel s-${r.status}`} value={r.status} onMouseDown={e => e.stopPropagation()} onChange={e => onEdit({ status: e.target.value })}>
           {statuses.map(st => <option key={st} value={st}>{st || '— status'}</option>)}
         </select>
       </div>
-      {type ? type.cols.map(c => <div key={c.name} className="nrow-cell">{c.enum
+      {selected ? selected.cols.map(c => {
+        // the item's own property — named as it is and holding its value — is edited in place; a joined value only shows
+        const key = [c, c.replace(/_/g, '-')].find(k => k in r.props || k === 'due' || k === 'owner' || k === 'target' || type?.cols.some(t => t.name === k));
+        const v = selected.values[c]; const own = key && (v ?? '') === (r.props[key] ?? '') ? key : null;
+        const col = own ? type?.cols.find(t => t.name === own) : undefined;
+        return <div key={c} className="nrow-cell">{own ? (col?.enum
+          ? <select className="nrow-in" value={r.props[own] ?? ''} onMouseDown={e => e.stopPropagation()} onChange={e => onEdit({ props: { [own]: e.target.value } })}>{['', ...col.enum].map(x => <option key={x} value={x}>{x || `— ${own}`}</option>)}</select>
+          : cellOf(own, own, own === 'due' ? 'date' : own === 'target' ? 'month' : col?.type ?? '')) : <span className="live-cell" title={cell(v)}>{cell(v)}</span>}</div>;
+      })
+      : type ? type.cols.map(c => <div key={c.name} className="nrow-cell">{c.enum
         ? <select className="nrow-in" value={r.props[c.name] ?? ''} onMouseDown={e => e.stopPropagation()} onChange={e => onEdit({ props: { [c.name]: e.target.value } })}>{(r.props[c.name] && !c.enum.includes(r.props[c.name]) ? [r.props[c.name]] : []).concat(['', ...c.enum]).map(v => <option key={v} value={v}>{v || `— ${c.name}`}</option>)}</select>
-        : cell(c.name, c.ref ? `${c.ref}:…` : c.name, c.type)}</div>)
-        : <>{dateKey ? <div className="nrow-cell">{cell(dateKey, dateKey, dateKey === 'target' ? 'month' : 'date')}</div> : <div className="nrow-cell" />}<div className="nrow-cell">{cell('owner', 'owner')}</div></>}
+        : cellOf(c.name, c.ref ? `${c.ref}:…` : c.name, c.type)}</div>)
+        : <>{dateKey ? <div className="nrow-cell">{cellOf(dateKey, dateKey, dateKey === 'target' ? 'month' : 'date')}</div> : <div className="nrow-cell" />}<div className="nrow-cell">{cellOf('owner', 'owner')}</div></>}
     </div>
   );
 }
 
 // a cell edited in place, written when it loses focus or on Enter — not on every keystroke (each write is a file edit)
-function LiveInput({ value, placeholder, onCommit }: { value: string; placeholder: string; onCommit: (v: string) => void }) {
+function LiveInput({ value, placeholder, onCommit, className = 'nrow-in' }: { value: string; placeholder: string; onCommit: (v: string) => void; className?: string }) {
   const [v, setV] = useState(value);
   useEffect(() => setV(value), [value]);
   const commit = () => { if (v !== value) onCommit(v.trim()); };
-  return <input className="nrow-in" value={v} placeholder={placeholder} onMouseDown={e => e.stopPropagation()} onChange={e => setV(e.target.value)} onBlur={commit} onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') { setV(value); (e.target as HTMLInputElement).blur(); } }} />;
+  const keys = useKeys(e => { const t = e.target as HTMLInputElement; if (e.key === 'Enter') t.blur(); if (e.key === 'Escape') { setV(value); setTimeout(() => t.blur()); } });
+  return <input ref={keys} className={className} value={v} placeholder={placeholder} onMouseDown={e => e.stopPropagation()} onChange={e => setV(e.target.value)} onBlur={commit} />;
 }
 
 // a title as it reads: markdown emphasis, links ([text](id) → text) and inline code taken off
 const plainTitle = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\*\*|__|`/g, '').replace(/(^|\s)[*_](\S)/g, '$1$2').replace(/\s+/g, ' ').trim();
 
-// Query mode (decision:wf2.graph-query): the table's `sql` runs over the graph; a row per result row. With an `id`
-// column each row is the item — its title opens it, its status is edited in place — and the other columns show beside;
-// without one the result is a read-only table.
-type QResult = { columns: string[]; rows: Record<string, unknown>[]; truncated: boolean; ms: number };
-export function QueryRows({ product, sql, head, summaryExtra, inEditor, onOpen }: { product: string; sql: string; head: React.ReactNode; summaryExtra: React.ReactNode; inEditor: boolean; onOpen: (id: string) => void }) {
-  const { index, statuses: byKind } = usePeek();
-  const [res, setRes] = useState<QResult | null>(null); const [err, setErr] = useState('');
-  const run = useCallback(() => {
-    fetch(`/api/${product}/query`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sql }) })
-      .then(async r => { const j = await r.json(); if (!r.ok) throw new Error(j.message ?? r.statusText); setRes(j); setErr(''); }).catch(e => { setErr(String(e.message ?? e)); setRes(null); });
-  }, [product, sql]);
-  useEffect(() => { run(); }, [run]);
-  useEffect(() => { const h = (e: Event) => { if ((e as CustomEvent<{ kinds: string[] }>).detail?.kinds?.includes('graph')) run(); }; window.addEventListener('wf:change', h); return () => window.removeEventListener('wf:change', h); }, [run]);
-  const hasId = !!res?.columns.includes('id');
-  const extra = (res?.columns ?? []).filter(c => !(hasId && (c === 'id' || c === 'title' || c === 'status')));
-  const grid = hasId ? `minmax(320px, 480px) 128px${extra.map(() => ' minmax(110px, 240px)').join('')}` : extra.map(() => 'minmax(110px, 280px)').join(' ');
-  const cell = (v: unknown) => v === null || v === undefined ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v);
-  const setStatus = async (id: string, status: string) => { await fetch(`/api/${product}/node/${encodeURIComponent(id)}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status }) }).catch(() => undefined); };
-  return (
-    <>
-      <div className="nrow nrow-head" style={{ gridTemplateColumns: grid || '1fr' }}>
-        <div className="nrow-cell nrow-name">{head}<span className="live-scope muted small">query · {res ? `${res.rows.length}${res.truncated ? '+' : ''}` : '…'}{summaryExtra}</span></div>
-        {hasId && <div className="nrow-cell">Status</div>}
-        {extra.map(c => <div key={c} className="nrow-cell">{c}</div>)}
-      </div>
-      {err && <p className="notice live-empty">{err}</p>}
-      {res?.rows.map((row, i) => {
-        const id = hasId ? String(row.id ?? '') : ''; const e = id ? index[id] : undefined;
-        const title = String(row.title ?? e?.title ?? id);
-        return (
-          <div key={id || i} className="nrow live-row" style={{ gridTemplateColumns: grid || '1fr' }} data-id={id || undefined}>
-            {hasId && <div className="nrow-cell nrow-name">
-              <button type="button" className="nrow-open" title={id} onMouseDown={ev => ev.stopPropagation()} onClick={ev => inEditor ? ev.currentTarget.dispatchEvent(new CustomEvent('wf:select', { detail: id, bubbles: true })) : onOpen(id)}><i style={{ background: `var(--k-${e?.kind ?? 'other'}, var(--k-other))` }} /></button>
-              <span className="nrow-text live-text" onClick={ev => inEditor ? ev.currentTarget.dispatchEvent(new CustomEvent('wf:select', { detail: id, bubbles: true })) : onOpen(id)} title={id}>{plainTitle(title)}</span>
-            </div>}
-            {hasId && <div className="nrow-cell">{e ? <select className={`status-sel s-${e.status}`} defaultValue={e.status} onMouseDown={ev => ev.stopPropagation()} onChange={ev => void setStatus(id, ev.target.value)}>{[...new Set([...statusOptions(byKind, e.kind, e.status), 'done'])].map(st => <option key={st} value={st}>{st || '— status'}</option>)}</select> : <span className="muted small">{cell(row.status)}</span>}</div>}
-            {extra.map(c => <div key={c} className="nrow-cell live-cell" title={cell(row[c])}>{cell(row[c])}</div>)}
-          </div>);
-      })}
-      {res && !res.rows.length && <p className="muted small live-empty">The query returned nothing.</p>}
-    </>
-  );
-}
-
-// the SQL editor of a table's filter bar: run writes it onto the table (quotes in SQL are single; the marker holds it)
-export function SqlBox({ sql, onRun }: { sql: string; onRun: (q: string) => void }) {
+// the SQL under a table's filter bar: what the switches made, or the table's own once edited — Run (⌘↵) keeps it on
+// the table's marker; "Back to filters" drops it
+export function SqlBox({ sql, custom, onRun }: { sql: string; custom: boolean; onRun: (q: string) => void }) {
   const [v, setV] = useState(sql); const [msg, setMsg] = useState('');
   useEffect(() => setV(sql), [sql]);
-  const go = () => { const q = v.trim(); if (/"/.test(q)) { setMsg('use single quotes in the query — double quotes cannot be saved on the table'); return; } if (q.includes('-->')) { setMsg('the query cannot contain -->'); return; } setMsg(''); onRun(q); };
+  const go = () => { const q = v.trim(); if (q.includes('-->')) { setMsg('the query cannot contain -->'); return; } setMsg(''); onRun(q); };
+  const keys = useKeys(e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); go(); } });
   return (
-    <div className="sql-box" onMouseDown={e => e.stopPropagation()} onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); go(); } }}>
-      <textarea value={v} rows={Math.min(8, Math.max(3, v.split('\n').length))} spellCheck={false} placeholder={"SELECT c.id, c.due, p.title AS project FROM nodes c JOIN nodes p ON p.id = c.project WHERE c.kind = 'commitment' AND c.state = 'open'"} onChange={e => setV(e.target.value)} />
+    <div className="sql-box" onMouseDown={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+      <textarea ref={keys} data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" data-lt-active="false" autoComplete="off" autoCorrect="off" value={v} rows={Math.min(10, Math.max(3, v.split('\n').length + 1))} spellCheck={false} onChange={e => setV(e.target.value)} />
       <div className="sql-actions">
-        <button type="button" className="pri" onClick={go}>Run ⌘↵</button>
-        {sql && <button type="button" onClick={() => onRun('')}>Back to filters</button>}
-        <span className="muted small">tables <code>nodes</code> (id, kind, title, status, due, owner, project, state …, props) and <code>edges</code> (src, dst, verb); graph patterns: <code>FROM GRAPH_TABLE (wye MATCH (a:nodes)-[e:edges]-&gt;(b:nodes) COLUMNS (…))</code>. An <code>id</code> column makes each row the item.</span>
+        <button type="button" className="pri" onClick={go} disabled={v === sql}>Run ⌘↵</button>
+        {custom && <button type="button" onClick={() => onRun('')}>Back to filters</button>}
+        <span className="muted small">{custom ? 'this table runs its own SQL' : 'the filters above write this SQL — edit it to make the table your own'}: <code>nodes</code> (id, kind, title, status, open, page, due, owner, project, state …, props), <code>edges</code> (src, dst, verb), <code>has(cell, v)</code>, graph patterns <code>FROM GRAPH_TABLE (wye MATCH (a:nodes)-[e:edges]-&gt;(b:nodes) COLUMNS (…))</code>. An <code>id</code> column makes each row the item.</span>
         {msg && <span className="notice">{msg}</span>}
       </div>
     </div>

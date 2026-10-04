@@ -127,6 +127,13 @@ instances and where it was declared.
 
 ![The Types page](data/products/wye/projects/v2/docs/assets/intro-types.png)
 
+**Tables are queries.** Every Data table and list runs SQL over the graph: a new one shows this page's items of its
+kind, each filter adds a line, and you can edit the query — join items to the items they link, look across the
+product, follow edges with graph patterns. In-memory DuckDB over the graph Wye already builds; storage does not
+change. More in [docs/query.md](docs/query.md).
+
+![A table's SQL: a filter adds a line, then a join shows each commitment's project](docs/table-sql.gif)
+
 **Work.** Every task wherever it was written — a plan, a PR, a definition page — as one board, grouped by status,
 document, dependency or readiness.
 
@@ -394,6 +401,7 @@ The Claude Code skills in `skills/` (linked by `install.sh`) teach an agent the 
 | `wye ask "<question>" [--fast\|--deep]` | a cited answer from the product's knowledge, documents, code and sessions: the fast answer, the sources the deeper search opens, its answer |
 | `wye ask-search "<words>" [--source …] [--expand] [--rerank]` | the ranked passages Ask answers from |
 | `wye context "<text>"` | the knowledge closest to a text (local semantic search; ended nodes hidden) |
+| `wye query "<SQL>" [--json]` | SQL and graph patterns over the built graph — tables `nodes` and `edges` ([docs/query.md](docs/query.md)) |
 | `wye packet --for "<text>" [--ref id]` | the constraints in force for a text — complete, two hops |
 | `wye impact <id> --after "<new text>"` | what an edit would reach and what each reached node needs; nothing written |
 | `wye verdicts <id …>` | classify nodes against their neighbours now |

@@ -4,17 +4,22 @@
 // and network access are switched off and the settings locked before any query runs, so a query can only read the
 // graph; one read statement at a time (SELECT / WITH / FROM).
 //
-//   nodes(id, kind, title, status, folder, page, file, text, props JSON, <a column per property in use>) — state, due,
+//   nodes(id, kind, title, status, open, folder, page (folder/slug: the page it is on), file, text, props JSON, <a column per property in use>) — state, due,
 //         owner, project (the item it links), date … each `-` as `_` (part_of); props->>'key' for any other
 //   edges(src, dst, verb)                                                    — every link: part-of, project, to, mentions …
+//   has(cell, v)  — the cell is v or a list [a, b] that holds v (owner, to, tags …)
 //   graph `wye` (when DuckPGQ loads): FROM GRAPH_TABLE (wye MATCH (a:nodes)-[e:edges]->(b:nodes) WHERE … COLUMNS (…))
 import { DuckDBInstance, type DuckDBConnection } from '@duckdb/node-api';
 import { loadScope } from './scope';
 import { docRoute } from './doc';
+import { CLOSED } from './instance-table';   // what no longer asks anything of anyone: `open` is false for it
 
 type Engine = { at: string; conn: DuckDBConnection; graph: boolean };
 // the tables' shape: a change here rebuilds every cached engine (they live on globalThis across dev reloads)
-const SHAPE = 3;
+const SHAPE = 5;
+// the columns a table's generated SQL names (lib/table-sql), there even in a product where no card has one yet
+const ALWAYS = ['due', 'owner', 'state', 'target', 'project', 'part-of'];
+
 const g = globalThis as unknown as { __wfQuery?: Map<string, Promise<Engine>> };
 const engines = () => (g.__wfQuery ??= new Map());
 
@@ -50,23 +55,23 @@ async function build(product: string): Promise<Engine | null> {
   const nodes = scope.graph.nodes.filter(n => n.defined && !['block', 'prop', 'field'].includes(n.kind));
   const parsed = nodes.map(n => ({ n, props: propsOf(n.body ?? '') }));
   // a column for every property in use (and every one a type declares), so `c.state = 'open'` reads as it says
-  const FIXED = new Set(['id', 'kind', 'title', 'status', 'folder', 'page', 'file', 'text', 'props']);
+  const FIXED = new Set(['id', 'kind', 'title', 'status', 'open', 'folder', 'page', 'file', 'text', 'props']);
   const seen = new Map<string, number>();
   for (const p of parsed) for (const k of Object.keys(p.props)) seen.set(k, (seen.get(k) ?? 0) + 1);
   for (const t of scope.graph.types ?? []) for (const pr of t.props ?? []) if (!seen.has(pr.name)) seen.set(pr.name, 0);
+  for (const k of ALWAYS) if (!seen.has(k)) seen.set(k, 0);
   // the declared ones and the most used first (a few hundred one-off keys from imports stay in props)
-  const declared = new Set((scope.graph.types ?? []).flatMap(t => (t.props ?? []).map(p => p.name)));
+  const declared = new Set([...ALWAYS, ...(scope.graph.types ?? []).flatMap(t => (t.props ?? []).map(p => p.name))]);
   const propCols = [...seen].filter(([k]) => !FIXED.has(k.replace(/-/g, '_')) && /^[a-z][\w-]*$/.test(k))
     .sort((a, b) => (declared.has(b[0]) ? 1e9 : b[1]) - (declared.has(a[0]) ? 1e9 : a[1])).slice(0, 200).map(([k]) => k).sort();
   const colName = (k: string) => k.replace(/-/g, '_');
-  await conn.run(`CREATE TABLE nodes (id VARCHAR, kind VARCHAR, title VARCHAR, status VARCHAR, folder VARCHAR, page VARCHAR, file VARCHAR, text VARCHAR, props JSON${propCols.map(k => `, "${colName(k)}" VARCHAR`).join('')})`);
+  await conn.run(`CREATE TABLE nodes (id VARCHAR, kind VARCHAR, title VARCHAR, status VARCHAR, open BOOLEAN, folder VARCHAR, page VARCHAR, file VARCHAR, text VARCHAR, props JSON${propCols.map(k => `, "${colName(k)}" VARCHAR`).join('')})`);
   await conn.run('CREATE TABLE edges (src VARCHAR, dst VARCHAR, verb VARCHAR)');
-  const pageOf = new Map(scope.graph.modules.map(m => [m.file, m.id]));
   const ids = new Set(nodes.map(n => n.id));
   const a = await conn.createAppender('nodes');
   for (const { n, props } of parsed) {
-    a.appendVarchar(n.id); a.appendVarchar(n.kind); a.appendVarchar(n.title ?? ''); a.appendVarchar(n.status ?? '');
-    a.appendVarchar(n.file ? docRoute(n.file)?.project ?? '' : ''); a.appendVarchar(n.file ? pageOf.get(n.file) ?? '' : ''); a.appendVarchar(n.file ?? '');
+    a.appendVarchar(n.id); a.appendVarchar(n.kind); a.appendVarchar(n.title ?? ''); a.appendVarchar(n.status ?? ''); a.appendBoolean(!CLOSED.has(n.status ?? '') && !CLOSED.has(props.state ?? ''));
+    const r = n.file ? docRoute(n.file) : null; a.appendVarchar(r?.project ?? ''); a.appendVarchar(r ? `${r.project}/${r.doc}` : ''); a.appendVarchar(n.file ?? '');
     a.appendVarchar((props.text ?? n.title ?? '').slice(0, 2000)); a.appendVarchar(JSON.stringify(props));
     for (const k of propCols) { const v = props[k]; if (v === undefined || v === '') a.appendNull(); else a.appendVarchar(v); }
     a.endRow();
@@ -75,6 +80,8 @@ async function build(product: string): Promise<Engine | null> {
   const e = await conn.createAppender('edges');
   for (const x of scope.graph.edges) { if (!ids.has(x.from) || !ids.has(x.to)) continue; e.appendVarchar(x.from); e.appendVarchar(x.to); e.appendVarchar(x.verb); e.endRow(); }
   e.closeSync();
+  // has(cell, v): a cell holds one value or a list [a, b] — true when it is v or lists v
+  await conn.run("CREATE MACRO has(cell, v) AS cell = v OR list_contains(list_transform(string_split(trim(cell, '[]'), ','), x -> trim(x)), v)");
   if (graph) {
     try { await conn.run('CREATE PROPERTY GRAPH wye VERTEX TABLES (nodes) EDGE TABLES (edges SOURCE KEY (src) REFERENCES nodes (id) DESTINATION KEY (dst) REFERENCES nodes (id))'); }
     catch { graph = false; }

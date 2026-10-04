@@ -1309,3 +1309,10 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .sql-box textarea { width: 100%; min-width: 360px; font: 12.5px/1.5 var(--font-m); color: var(--ink); background: var(--ground); border: 1px solid var(--line-2); border-radius: 8px; padding: 8px 10px; resize: vertical; }
 .sql-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; } .sql-actions button { font: 12px var(--font-b); border: 1px solid var(--line-2); background: none; color: var(--ink-2); border-radius: 6px; padding: 3px 10px; cursor: pointer; } .sql-actions .pri { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .sql-actions .muted { max-width: 720px; } .live-cell { font: 12px var(--font-m); color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* every table is a query (decision:wf2.table-is-sql): the bar's switches step aside for a table's own SQL; a page's table ends in a new row */
+.live-filter-wrap { border-bottom: 1px solid var(--line); } .live-filter-wrap .live-filter { border: 0; margin: 0; min-width: 0; } .live-filter[disabled] { opacity: .45; }
+.live-new .live-title, .live-row .live-title { width: 100%; font: inherit; color: var(--ink); } .live-new .nrow-open i { opacity: .35; }
+.live-row.pending { opacity: .6; } .c-live .live-row .nrow-del { opacity: 0; } .c-live .live-row:hover .nrow-del { opacity: 1; }
+.live-filter-wrap { position: sticky; left: 0; } .sql-box textarea { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* the bar and the SQL stay the width of what is visible while a wide table scrolls under them */
+.bn-block:has(> .react-renderer.node-collection) { container-type: inline-size; } .live-filter-wrap { width: min(100%, 100cqw); box-sizing: border-box; }

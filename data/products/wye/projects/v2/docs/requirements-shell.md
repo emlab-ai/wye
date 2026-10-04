@@ -821,3 +821,18 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - context:wf2.graph-query "have a SQL like language support to query elements, do graph joins and lookups (graph query language) find if any oss libs" — then "i don't want to change storage if possible"; DuckDB + DuckPGQ approved over LadybugDB (Kùzu's successor, Cypher, schema per kind), LeanGraph (Cypher on SQLite, young), Oxigraph (SPARQL) and AlaSQL (pure JS, no graph patterns).
 
   - choice:wf2.graph-query lib/query: an in-memory DuckDB (pinned 1.5.4, the latest with a DuckPGQ build) loaded from the built graph — `nodes` (id, kind, title, status, folder, page, file, text, props JSON, a column per property in use or declared) and `edges` (src, dst, verb), and graph `wye` for SQL/PGQ MATCH — rebuilt when the graph changes, never written. File and network access off and the configuration locked before any query; one read statement (SELECT / WITH / FROM). `wye query "<SQL>"`, POST /api/<product>/query, and a Data table's SQL (⏷ filter → SQL, saved as `sql=` on the table; single quotes): an `id` column makes each row the item, opened and status-edited in place, other columns shown beside.
+
+```yaml
+- id: decision:wf2.table-is-sql
+  title: Every Data table is a query — a page's table runs SQL for this page's items; filters write its lines; the SQL can be edited
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [component:instance-table]
+  supersedes: [decision:wf2.live-collections]
+  part-of: module:req-shell
+```
+
+  - context:wf2.table-is-sql "we need to make it super simple, the default table must be added with SQL statement too, just point to current page, so any filter should just modify underlying SQL, and user can just change query" — approved with its two consequences: a page's table shows every item of its kind on the page (not only the rows typed into it), and a row's title is edited as plain text.
+
+  - choice:wf2.table-is-sql lib/table-sql writes a table's SQL: `SELECT id FROM nodes WHERE kind = … AND page = '<folder>/<slug>' AND open ORDER BY coalesce(due, target), title`, one line per filter (status, search, due window, a column = value with has(), mine, sort); ⊕ whole product drops the page line. Edited and run, the SQL is the table's own (`sql="…"` on the marker, \" escaped; the marker takes any text but -->) and the switches step aside. The rows typed into a table stay its children in the file, hidden; the table shows the result: an `id` column makes rows items — a selected column that is the item's own property stays editable, a joined one shows — and an item this page defines is edited in the editor that holds the page, others through the node API. A page's table ends with a New row written under its marker. The engine gains `open`, `page` as folder/slug, has(cell, v), and the columns the SQL names even where unused (due, owner, state, target, project, part-of).

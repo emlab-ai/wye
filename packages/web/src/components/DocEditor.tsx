@@ -2,7 +2,7 @@
 import { SelectionMenu } from './SelectionMenu';
 import { useDark } from '@/lib/theme';
 import { CodeBlock } from './CodeBlock';
-import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent as ReactFocusEvent, type ReactNode } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, type FocusEvent as ReactFocusEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, filterSuggestionItems, insertOrUpdateBlockForSlashMenu, getNodeById } from '@blocknote/core';
@@ -11,7 +11,7 @@ import { SideMenuExtension } from '@blocknote/core/extensions';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
 import { expand, importMarkdown } from '@/lib/import';
-import { EditorScope } from './EditorScope';
+import { EditorScope, EditorDoc } from './EditorScope';
 import { pluralTitle } from '@/lib/instances';
 import { blocksToMarkdown, inlineToMarkdown, type AnyBlock } from '@/lib/serialize';
 import type { Inline } from '@/lib/mdflow';
@@ -26,13 +26,12 @@ import { usePeek, type OwnType } from './PeekProvider';
 import { ID_RE, KINDS } from '@/lib/ids';
 import { parseExtra, withExtra, statusOptions } from '@/lib/props';
 import { setBodyField } from '@/lib/yaml-form';
-import { filterRows, parseViewQuery, viewQuery, EMPTY_FILTERS, type Filters, type InstanceRow } from '@/lib/instance-table';
 import { slugify } from '@/lib/templates';
 import { blockHash } from '@/lib/anchors';
 import { applyLinks, blockText, blockLinked, type LinkBlock } from '@/lib/apply-links';
 import { headingSlug, docNodeOf, DONE_STATUSES } from '@/lib/doc';
 import { ProgressBar } from './Progress';
-import { LiveTable } from './LiveTable';
+import { LiveTable, type OwnRows } from './LiveTable';
 import { DateField } from './DateField';
 import { requestSend } from './CommandBox';
 import { AskAgentBox, type AskRequest } from './AskAgent';
@@ -408,98 +407,104 @@ function TypeRowFor({ p, set, contentRef, block, editor }: { p: { kind: string; 
 }
 
 // A table: one block for goals, tasks and every type the product declares; the header's type picker sets the kind
-// of its rows (decision:wf2.one-table-block). The rows are the block's children (nodes in row mode). The type can
-// change while no row has text — after that the rows have ids of that kind. `view: list` shows the same children as
-// ordinary blocks under the same filter bar (rule:list-view); the header toggles between the two.
+// of its rows (decision:wf2.one-table-block). Every table is a query (decision:wf2.table-is-sql) that LiveTable runs:
+// this page's items of the kind, or the whole product's (`scope=product`), with the filters' lines or its own SQL on
+// the marker. The rows typed into the table are still the block's children — node lines under the marker, written
+// to the file as before — but they are not shown as blocks: the table shows what the query returns, and a new row,
+// an edit or a delete of an item this page defines is made here, in the editor that holds the page.
 const CollectionBlock = createReactBlockSpec(
   { type: 'collection', propSchema: { kind: { default: 'goal' }, query: { default: '' }, view: { default: 'table' } }, content: 'none' },
   {
     render: props => {
       const { kind, query, view } = props.block.props as { kind: string; query: string; view: string };
-      const { ownTypes, product } = usePeek();
+      const { ownTypes, product, index } = usePeek();
+      const doc = useContext(EditorDoc);
+      const editor = props.editor as unknown as EditorLike;
       const type = kind === 'goal' || kind === 'task' ? undefined : ownTypes.find(t => t.slug === kind);
       // the header re-renders on every editor change: whether the type can still change depends on the rows' text
       const [, tick] = useState(0); useEditorChange(() => tick(t => t + 1), props.editor);
-      useEditorSelectionChange(() => tick(t => t + 1), props.editor); // the row under the cursor is never hidden by a filter
       const kids = ((props.editor.getBlock(props.block.id) as unknown as AnyBlock | undefined)?.children ?? []) as AnyBlock[];
       const locked = kids.some(k => k.type === 'node' && rowText(k));
       const options = ['goal', 'task', ...ownTypes.map(t => t.slug)]; if (!options.includes(kind)) options.push(kind);
+      const live = isLive(query);
+      const filters = query.replace(/(^|\s)scope=product(?=\s|$)/, '').trim();
+      const write = (k: string, v: string, q: string) => props.editor.updateBlock(props.block, { props: { kind: k, view: v, query: q } } as never);
       const setKind = (k: string) => {
         if (k === kind || locked) return;
         for (const c of kids) if (c.type === 'node') props.editor.updateBlock(c as never, { props: { ...emptyRow(k, view).props, slug: '' } } as never);
-        props.editor.updateBlock(props.block, { props: { kind: k, query: '', view } } as never);
+        write(k, view, live ? 'scope=product' : '');
       };
-      // table ⇄ list: the same children, rendered as rows or as blocks (their `row` prop says which)
-      const setView = (v: string) => {
-        if (v === view) return;
-        for (const c of kids) if (c.type === 'node') props.editor.updateBlock(c as never, { props: { ...(c.props as object), row: v === 'list' ? '' : kind } } as never);
-        props.editor.updateBlock(props.block, { props: { kind, query, view: v } } as never);
-      };
+      const setView = (v: string) => { if (v !== view) write(kind, v, query); };
+      const setLive = (on: boolean) => { if (on !== live) write(kind, view, [filters, on ? 'scope=product' : ''].filter(Boolean).join(' ')); };
       const viewToggle = (
-        <button type="button" className="collection-view-toggle" title={view === 'list' ? 'show as a table' : 'show as blocks'} onMouseDown={e => e.stopPropagation()} onClick={() => setView(view === 'list' ? 'table' : 'list')}>{view === 'list' ? '▤ table' : '☰ list'}</button>
+        <button type="button" className="collection-view-toggle" title={view === 'list' ? 'show as a table' : 'show as cards'} onMouseDown={e => e.stopPropagation()} onClick={() => setView(view === 'list' ? 'table' : 'list')}>{view === 'list' ? '▤ table' : '☰ list'}</button>
       );
-      const filter = useTableFilter(props.editor as unknown as EditorLike, props.block as unknown as AnyBlock, kids, type ?? (kind === 'goal' || kind === 'task' ? undefined : { slug: kind, cols: [] }), query);
-      // this page's rows ⇄ the whole product's (decision:wf2.live-collections): a table with rows of its own stays this page's
-      const live = isLive(query);
-      const hasRows = kids.some(k => k.type === 'node' && (rowText(k) || (k.props as unknown as { slug: string }).slug));
-      const setLive = (on: boolean) => {
-        if (on === live || (on && hasRows)) return;
-        const q = query.replace(/(^|\s)scope=product(?=\s|$)/, '').trim();
-        props.editor.updateBlock(props.block, { props: { kind, view, query: on ? [q, 'scope=product'].filter(Boolean).join(' ') : q }, ...(on ? { children: [] } : { children: [emptyRow(kind, view)] }) } as never);
-      };
       const scopeToggle = (
-        <button type="button" className={`collection-view-toggle ${live ? 'on' : ''}`} disabled={!live && hasRows} onMouseDown={e => e.stopPropagation()} onClick={() => setLive(!live)}
-          title={live ? 'rows from the whole product, live — click to use this page\'s own rows instead' : hasRows ? 'this table has rows of its own — start another table for the whole product' : 'show the matching items from the whole product, live'}>{live ? '⊕ whole product' : '⊕'}</button>
+        <button type="button" className={`collection-view-toggle ${live ? 'on' : ''}`} onMouseDown={e => e.stopPropagation()} onClick={() => setLive(!live)}
+          title={live ? "items from the whole product — click for this page's only" : "this page's items — click for the whole product's"}>{live ? '⊕ whole product' : '⊕'}</button>
       );
       const picker = (
         <select className="collection-kind" value={kind} disabled={locked} title={locked ? 'rows already have ids of this type; start another table for another type' : 'the type of this table'} onChange={e => setKind(e.target.value)} onMouseDown={e => e.stopPropagation()}>
           {options.map(o => <option key={o} value={o}>{pluralTitle({ slug: o, plural: ownTypes.find(t => t.slug === o)?.plural })}</option>)}
         </select>
       );
-      if (live) return (
-        <div ref={stopEditorEvents}>
-          <LiveTable product={product} kind={kind} view={view} type={type} query={query.replace(/(^|\s)scope=product(?=\s|$)/, '').trim()}
-            head={<>{picker}{viewToggle}{scopeToggle}</>}
-            onQuery={q => props.editor.updateBlock(props.block, { props: { kind, view, query: [q, 'scope=product'].filter(Boolean).join(' ') } } as never)} />
-        </div>
-      );
-      if (view === 'list') return (
-        <div className={`collection c-list c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
-          {filter.hide}
-          <div className="collection-list-head">{picker}{filter.toggle}{viewToggle}{scopeToggle}<span className="muted small">{kids.filter(k => k.type === 'node' && rowText(k)).length}</span></div>
-          {filter.bar}
-        </div>
-      );
-      if (kind !== 'goal' && kind !== 'task') return (
-        <div className={`collection c-type c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
-          {filter.hide}{filter.bar}
-          <div className="nrow nrow-head nrow-type" style={{ gridTemplateColumns: typeGrid(type ?? { slug: kind, cols: [] }) }}>
-            <div className="nrow-cell nrow-name">{picker}{!type && <span className="muted" title="the product declares no such type; rows are still written">?</span>}{filter.toggle}{viewToggle}{scopeToggle}</div><div className="nrow-cell">Status</div>
-            {(type?.cols ?? []).map(c => <div key={c.name} className="nrow-cell" title={c.ref ? `${c.type}` : c.type}>{c.name}</div>)}
-          </div>
-        </div>
-      );
+      const own: OwnRows = {
+        has: id => { const b = findNodeBlock(editor.document as AnyBlock[], id); return !b ? null : kids.some(k => (k as { id?: string }).id === (b as { id?: string }).id) ? 'table' : 'page'; },
+        add: title => {
+          const taken = new Set(Object.keys(index)); walkNodes(editor.document as AnyBlock[], b => { const p = b.props as unknown as { kind: string; slug: string }; if (p.slug) taken.add(`${p.kind}:${p.slug}`); });
+          const base = slugify(title.split(/\s+/).slice(0, 4).join(' ')) || kind; let slug = base; let n = 2;
+          while (taken.has(`${kind}:${slug}`)) slug = `${base}-${n++}`;
+          const row = { ...emptyRow(kind, view), props: { ...emptyRow(kind, view).props, slug }, content: [{ type: 'text', text: title, styles: {} }] };
+          const cur = (props.editor.getBlock(props.block.id) as unknown as AnyBlock | undefined)?.children ?? [];
+          const last = cur[cur.length - 1] as AnyBlock | undefined;
+          if (!last) props.editor.updateBlock(props.block, { children: [row] } as never);
+          else editor.insertBlocks([row], String((last as { id?: string }).id), last.type === 'node' && !rowText(last) && !(last.props as unknown as { slug: string }).slug ? 'before' : 'after');
+          return `${kind}:${slug}`;
+        },
+        edit: (id, patch) => {
+          const b = findNodeBlock(editor.document as AnyBlock[], id); if (!b) return false;
+          const p = b.props as unknown as { kind: string; form: string; body: string; extra: string; textKey: string; status: string };
+          const next: Record<string, string> = {};
+          if (patch.status !== undefined) { next.status = patch.status; if (p.kind === 'task') next.check = patch.status === 'done' ? 'done' : 'todo'; }
+          if (p.form === 'yaml') {
+            let body = p.body;
+            if (patch.status !== undefined && /^status:/m.test(body)) body = setBodyKey(body, 'status', patch.status);
+            for (const [k, v] of Object.entries(patch.props ?? {})) body = setBodyKey(body, k, v);
+            if (patch.title !== undefined) body = setBodyKey(body, p.textKey || 'title', patch.title);
+            next.body = body;
+          } else if (patch.props) { let ex = p.extra; for (const [k, v] of Object.entries(patch.props)) ex = withExtra(ex, k, v); next.extra = ex; }
+          editor.updateBlock(b, { props: { ...(b.props as object), ...next }, ...(patch.title !== undefined && p.form !== 'yaml' ? { content: [{ type: 'text', text: patch.title, styles: {} }] } : {}) });
+          return true;
+        },
+        remove: id => { const b = findNodeBlock(editor.document as AnyBlock[], id); if (!b || !kids.some(k => (k as { id?: string }).id === (b as { id?: string }).id)) return false; editor.removeBlocks([String((b as { id?: string }).id)]); return true; },
+      };
       return (
-        <div className={`collection c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
-          {filter.hide}{filter.bar}
-          <div className="nrow nrow-head">
-            <div className="nrow-cell nrow-name">{picker}{filter.toggle}{viewToggle}{scopeToggle}</div><div className="nrow-cell">Status</div><div className="nrow-cell">{kind === 'goal' ? 'Target' : 'Due'}</div><div className="nrow-cell nrow-progress">Progress</div><div className="nrow-cell">Owner</div>
-          </div>
+        <div ref={stopEditorEvents}>
+          {/* the rows typed into the table stay its children in the file; the table shows what its query returns */}
+          <style>{`.bn-block-outer[data-id="${props.block.id}"] > .bn-block > .bn-block-group { display: none; }`}</style>
+          <LiveTable product={product} kind={kind} view={view} type={type ?? (kind === 'goal' || kind === 'task' ? undefined : { slug: kind, cols: [] })} query={filters} page={live || !doc ? undefined : `${doc.project}/${doc.slug}`} own={own}
+            head={<>{picker}{!type && kind !== 'goal' && kind !== 'task' && <span className="muted" title="the product declares no such type; rows are still written">?</span>}{viewToggle}{scopeToggle}</>}
+            onQuery={q => setBlockAttr(editor, props.block.id, 'query', [q, live ? 'scope=product' : ''].filter(Boolean).join(' '))} />
         </div>
       );
     },
   },
 );
 
-// The table's filters (req:wf2.editor.table-filter, rule:table-filter): a toolbar in the header — search, status
-// chips with counts, a chip row per enum / bool column, a select per ref column (owner for goals and tasks) — the
-// same filter as the type page (lib/instance-table#filterRows) over the row blocks. A row that does not match is
-// hidden, not removed: the header renders a style element that hides the rows' `.bn-block-outer` by block id, so
-// the row stays a child block and is written to the file. A row without a slug (the trailing empty row) and the row
-// the cursor is in (one being typed, one reached with the arrow keys) are never hidden. The state lives on the block's `query` prop (the marker line,
-// decision:wf2.table-filter-on-marker) in the view block's key=value grammar; search typing is written back after
-// a pause, chips at once.
-type RowP = { kind: string; slug: string; status: string; extra: string };
+// every node block of the page, nested ones too
+function walkNodes(blocks: AnyBlock[], f: (b: AnyBlock) => void) { for (const b of blocks) { if (b.type === 'node') f(b); if (b.children?.length) walkNodes(b.children as AnyBlock[], f); } }
+function findNodeBlock(blocks: AnyBlock[], id: string): AnyBlock | null {
+  let hit: AnyBlock | null = null;
+  walkNodes(blocks, b => { const p = b.props as unknown as { kind: string; slug: string }; if (!hit && p.slug && `${p.kind}:${p.slug}` === id) hit = b; });
+  return hit;
+}
+// a card's `key: value` line set (an empty value drops it)
+function setBodyKey(body: string, key: string, value: string): string {
+  const re = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:.*$`, 'm');
+  if (!value) return body.replace(new RegExp(re.source + '\\n?', 'm'), '');
+  return re.test(body) ? body.replace(re, `${key}: ${value}`) : `${body.replace(/\s*$/, '')}\n${key}: ${value}`;
+}
+
 // One attribute of a block's content node, set in place: editor.updateBlock would replace the whole block with its
 // children, rebuilding every row's node view for a filter change; a setNodeMarkup touches the header's node only.
 function setBlockAttr(editor: EditorLike, blockId: string, key: string, value: string) {
@@ -512,73 +517,6 @@ function setBlockAttr(editor: EditorLike, blockId: string, key: string, value: s
     tr.setNodeMarkup(found.posBeforeNode + 1, undefined, { ...content.attrs, [key]: value });
   });
 }
-function useTableFilter(editor: EditorLike, block: AnyBlock, kids: AnyBlock[], type: OwnType | undefined, query: string) {
-  const cols = type ? type.cols.map(c => c.name) : ['owner'];
-  const [f, setF] = useState<Filters>(() => parseViewQuery(query, cols));
-  const [open, setOpen] = useState(false);
-  const colsKey = cols.join(',');
-  // the prop changed under us (a reload, another editor): take it
-  useEffect(() => { if (viewQuery(parseViewQuery(query, cols)) !== viewQuery(f)) setF(parseViewQuery(query, cols)); }, [query, colsKey]); // eslint-disable-line react-hooks/exhaustive-deps
-  // write the state to the block — after a pause, so a search keystroke is not a document change each
-  useEffect(() => {
-    const q = viewQuery(f); if (q === viewQuery(parseViewQuery(query, cols))) return;
-    const t = setTimeout(() => setBlockAttr(editor, String((block as { id?: string }).id), 'query', q), 250);
-    return () => clearTimeout(t);
-  }, [f]); // eslint-disable-line react-hooks/exhaustive-deps
-  const rows = kids.filter(k => k.type === 'node' && (k.props as unknown as RowP).slug);
-  const asRow = (k: AnyBlock): InstanceRow => { const rp = k.props as unknown as RowP; return { id: `${rp.kind}:${rp.slug}`, kind: rp.kind, title: rowText(k), status: rp.status, file: '', doc: '', props: parseExtra(rp.extra) }; };
-  const irows = rows.map(asRow);
-  const active = !!(f.q || f.status || Object.values(f.props).some(Boolean));
-  const kept = active ? new Set(filterRows(irows, { ...f, group: '', sort: '' }).map(r => r.id)) : null;
-  // a row gets its slug at the first keystroke, so "no slug yet" is not enough: the row the cursor is in stays visible
-  // only while the editor has focus: with no selection BlockNote still names a block, and that row was never hidden
-  let cursor = ''; try { if ((editor as { isFocused?: () => boolean }).isFocused?.()) cursor = editor.getTextCursorPosition?.().block.id ?? ''; } catch { /* no selection */ }
-  // completed rows are hidden by default (rule:table-hides-done) — but not the instant they are completed: a row seen
-  // open since this page was opened stays until the page is opened again, so ticking it off does not make it vanish
-  const wasOpen = useRef(new Set<string>());
-  for (const k of rows) if (!DONE_STATUSES.has((k.props as unknown as RowP).status)) wasOpen.current.add(String((k as { id?: string }).id));
-  const showDone = f.done === 'show' || DONE_STATUSES.has(f.status);
-  const doneAway = showDone ? [] : rows.filter(k => DONE_STATUSES.has((k.props as unknown as RowP).status) && !wasOpen.current.has(String((k as { id?: string }).id)));
-  const hidden = new Set([...(kept ? rows.filter(k => !kept.has(asRow(k).id)) : []), ...doneAway].map(k => String((k as { id?: string }).id)).filter(id => id !== cursor));
-  // the hidden rows are a stylesheet the header owns: BlockNote may rebuild a row's wrapper at any time, a style
-  // element React renders survives that where an attribute set on the wrapper would not
-  // zero height + clipped rather than display: none: a row taken out of layout entirely made ProseMirror map a click
-  // on the row after it to the wrong block (the caret landed in the next paragraph until the first keystroke)
-  const hide = hidden.size ? <style>{[...hidden].map(id => `.bn-block-outer[data-id="${id}"]`).join(', ') + ' { height: 0; min-height: 0; overflow: hidden; visibility: hidden; }'}</style> : null;
-  const count = new Map<string, number>(); for (const r of irows) if (r.status) count.set(r.status, (count.get(r.status) ?? 0) + 1);
-  const statuses = [...count].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
-  const seen = (name: string) => [...new Set(irows.flatMap(r => (r.props[name] ?? '').replace(/^\[|\]$/g, '').split(',').map(v => v.trim()).filter(Boolean)))].sort();
-  const setProp = (name: string, v: string) => setF({ ...f, props: { ...f.props, [name]: f.props[name] === v ? '' : v } });
-  const chipCols = type ? type.cols.filter(c => c.enum || c.type === 'bool') : [];
-  const selectCols = type ? type.cols.filter(c => c.ref && !c.enum) : [{ name: 'owner', type: 'string', enum: null, ref: null, required: false }];
-  const doneCount = rows.filter(k => DONE_STATUSES.has((k.props as unknown as RowP).status)).length;
-  const toggle = (<>
-    <button type="button" className={`collection-filter-toggle ${active ? 'on' : ''}`} title={active ? 'filters set — click to show them' : 'filter the rows'} onMouseDown={e => e.stopPropagation()} onClick={() => setOpen(o => !o)}>⏷ filter{active ? ` ${kept!.size}/${rows.length}` : ''}</button>
-    {doneCount > 0 && !DONE_STATUSES.has(f.status) && <button type="button" className={`collection-filter-toggle ${f.done === 'show' ? 'on' : ''}`} title={f.done === 'show' ? 'hide the completed rows' : 'show the completed rows'} onMouseDown={e => e.stopPropagation()} onClick={() => setF({ ...f, done: f.done === 'show' ? '' : 'show' })}>{f.done === 'show' ? `✓ hide ${doneCount} done` : `✓ ${doneCount} done`}</button>}
-  </>);
-  const bar = (open || active) ? (
-    <div className="track-tools collection-filter" ref={stopEditorEvents} onMouseDown={e => e.stopPropagation()}>
-      <div className="chips">
-        <input type="search" placeholder="Search rows…" value={f.q} onChange={e => setF({ ...f, q: e.target.value })} />
-        <button type="button" className={`chip ${!f.status ? 'on' : ''}`} onClick={() => setF({ ...f, status: '' })}>All <small>{rows.length}</small></button>
-        {statuses.map(([st, n]) => <button type="button" key={st} className={`chip s-${st} ${f.status === st ? 'on' : ''}`} onClick={() => setF({ ...f, status: f.status === st ? '' : st })}>{st} <small>{n}</small></button>)}
-      </div>
-      {chipCols.map(c => (
-        <div key={c.name} className="chips"><span className="chips-label">{c.name}</span>
-          {(c.type === 'bool' ? ['true', 'false'] : c.enum ?? []).map(v => <button type="button" key={v} className={`chip ${f.props[c.name] === v ? 'on' : ''}`} onClick={() => setProp(c.name, v)}>{v}</button>)}
-        </div>))}
-      {selectCols.map(c => { const vals = seen(c.name); return vals.length ? (
-        <div key={c.name} className="chips"><span className="chips-label">{c.name}</span>
-          <select className="itable-select" value={f.props[c.name] ?? ''} onChange={e => setF({ ...f, props: { ...f.props, [c.name]: e.target.value } })}>
-            <option value="">any</option>{vals.map(v => <option key={v} value={v}>{v}</option>)}
-          </select>
-        </div>) : null; })}
-      {active && <div className="chips"><span className="muted small">{kept!.size} of {rows.length}</span><button type="button" className="linkish" onClick={() => setF({ ...EMPTY_FILTERS })}>clear filters</button></div>}
-    </div>
-  ) : null;
-  return { toggle, bar, hide };
-}
-
 // A typed block (requirement, entity, rule, …): header with kind, id and status; the text is normal inline content.
 const NodeBlock = createReactBlockSpec(
   { type: 'node', propSchema: { kind: { default: 'req' }, slug: { default: '' }, status: { default: '' }, form: { default: 'prose' }, textKey: { default: 'text' }, body: { default: '' }, extra: { default: '' }, check: { default: '' }, list: { default: '' }, row: { default: '' } }, content: 'inline' },
@@ -1418,9 +1356,10 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     { title: 'Code block → drawing', group: 'Wye', subtext: 'turn this ASCII diagram into an editable drawing', onItemClick: () => codeToDrawing(editor.getTextCursorPosition().block as unknown as AnyBlock) },
   ];
 
+  const docCtx = useMemo(() => ({ project, slug }), [project, slug]);
   if (loadError) return <div className="doc-editor"><p className="notice">Editing is off for this document: {loadError}. The text below is read-only.</p>{fallback}</div>;
   return (
-    <EditorScope.Provider value={scope}>
+    <EditorScope.Provider value={scope}><EditorDoc.Provider value={docCtx}>
     <div className={`doc-editor ${scoped ? 'scoped' : ''}`} ref={rootRef} data-product={product} data-project={project} data-doc={slug} data-scope={scope ?? undefined} onBlur={retag} onFocus={() => { touched.current = true; }} onContextMenu={onContextMenu}
       onClick={e => { // a link whose target is a node id opens the peek panel instead of navigating
         const a = (e.target as HTMLElement).closest('a[href]') as HTMLAnchorElement | null;
@@ -1476,7 +1415,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       {linkReq && <LinkNodePicker req={linkReq} onClose={() => setLinkReq(null)} apply={applyLink} createDoc={createDoc} createNode={createNode} linkEverywhere={linkEverywhere} />}
       {askReq && <AskAgentBox req={askReq} onClose={() => setAskReq(null)} />}
     </div>
-    </EditorScope.Provider>
+    </EditorDoc.Provider></EditorScope.Provider>
   );
 }
 const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
