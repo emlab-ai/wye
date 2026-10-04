@@ -24,6 +24,8 @@ const CHECKS: { key: keyof Readiness; label: string; why: string }[] = [
 // The PR's head (decision:wf2.pr-lifecycle): its status, the readiness list (what must hold before the person
 // approves) and the person's moves — Approve (with what is unagreed named, once, when the list is not green), Cancel,
 // Reopen; Build once approved (the task's panel); the building session as a link. Refreshes while someone is on it.
+// the unagreed ids shown before "+N more" — a long request lists dozens
+const UNAGREED_SHOWN = 6;
 export function PrHead({ product, prRef }: { product: string; prRef: string }) {
   const { open } = usePeek();
   const [me] = useMe();
@@ -31,6 +33,7 @@ export function PrHead({ product, prRef }: { product: string; prRef: string }) {
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  const [allUnagreed, setAllUnagreed] = useState(false);
   const [say, setSay] = useState(''); const [saying, setSaying] = useState(false);
   const load = useCallback(async () => { try { const r = await fetch(`/api/${product}/pr?ref=${encodeURIComponent(prRef)}`); if (r.ok) setPr(await r.json()); } catch { /* keep what we have */ } }, [product, prRef]);
   useEffect(() => { load(); }, [load]);
@@ -89,7 +92,7 @@ export function PrHead({ product, prRef }: { product: string; prRef: string }) {
         </span>
       </div>
       {(rd.unagreed.length > 0 || rd.contradicted.length > 0) && !ended && <p className="pr-head-why muted">
-        {rd.unagreed.length > 0 && <>not agreed: {rd.unagreed.map(id => <span key={id}><SmartTag id={id} /> </span>)}</>}
+        {rd.unagreed.length > 0 && <>not agreed: {(allUnagreed ? rd.unagreed : rd.unagreed.slice(0, UNAGREED_SHOWN)).map(id => <span key={id}><SmartTag id={id} /> </span>)}{rd.unagreed.length > UNAGREED_SHOWN && <button type="button" className="linkish" onClick={() => setAllUnagreed(a => !a)}>{allUnagreed ? 'fewer' : `+${rd.unagreed.length - UNAGREED_SHOWN} more`}</button>} </>}
         {rd.contradicted.length > 0 && <>· contradicted: {rd.contradicted.map(id => <span key={id}><SmartTag id={id} /> </span>)}</>}
       </p>}
       {msg && <p className="muted small">{msg}</p>}
