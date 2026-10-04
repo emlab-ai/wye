@@ -85,6 +85,8 @@
 //        projects and people; an item it cannot place waits in the Inbox with a question. Same meeting twice → nothing new
 //   wye ea commitment move <id> --to YYYY-MM-DD --why "…" [--on YYYY-MM-DD] | met <id> [--on YYYY-MM-DD] | drop <id> --why "…"
 //        follow a committed date (task:ea.commitment-tracking): a move keeps the old date, the new one, when and why
+//   wye ea suggest list [--all] | add "<action>" --why "…" [--about id] [--source s] | close <id> [--done] [--why "…"]   suggested
+//        actions at the top of the Digest — a second add of the same action about the same item renews the open one
 //   wye ea digest context [--date d] | summary --file <entry.md> [--date d]   the Digest's daily summary: what arrived, changed or
 //        closed since the last one and what waits now; then the entry written at the top of the Digest's Daily summary
 //   wye ea brief daily|weekly|1on1 --product ea [--person person:ea.x] [--date YYYY-MM-DD] [--write] [--project p]   the morning
@@ -582,6 +584,28 @@ const commands = {
       for (const n of j.notes) console.log(`  note     ${n}`);
       if (!j.created.length && !j.updates.length && !j.questions.length) console.log('  nothing new');
       return;
+    }
+    if (sub === 'suggest') {   // suggested actions (decision:ea.suggested-actions) — op:api.ea-suggest
+      const what = pos[2];
+      if (what === 'list' || !what) {
+        const j = await api('GET', `/api/${p}/ea/suggest${flags.all ? '?all=1' : ''}`);
+        if (flags.json) return out(j);
+        if (!j.suggestions.length) return console.log('no open suggestions');
+        for (const x of j.suggestions) console.log(`${x.id}  ${x.title}${x.about ? `  — about ${x.about}` : ''}  (${x.suggested}${x.status !== 'open' ? `, ${x.status}` : ''})\n    why: ${x.why}`);
+        return;
+      }
+      if (what === 'add') {
+        const title = pos.slice(3).join(' ').trim();
+        if (!title || !flags.why) die('wye ea suggest add "<the action>" --why "<what makes it worth doing now>" [--about <id>] [--source daily|new-information]');
+        const j = await api('POST', `/api/${p}/ea/suggest`, { action: 'add', title, why: String(flags.why), ...(flags.about ? { about: String(flags.about) } : {}), ...(flags.source ? { source: String(flags.source) } : {}) });
+        return flags.json ? out(j) : console.log(`${j.renewed ? 'renewed' : 'suggested'}  ${j.id}`);
+      }
+      if (what === 'close') {
+        const id = pos[3]; if (!id) die('wye ea suggest close <suggestion id> [--done] [--why "…"]   (dismissed unless --done)');
+        const j = await api('POST', `/api/${p}/ea/suggest`, { action: 'close', id, how: flags.done ? 'done' : 'dismissed', ...(flags.why ? { reason: String(flags.why) } : {}) });
+        return flags.json ? out(j) : console.log(`closed ${id}`);
+      }
+      die('wye ea suggest list [--all] | add "<action>" --why "…" [--about id] | close <id> [--done] [--why "…"]');
     }
     if (sub === 'digest') {   // the Digest's daily summary (decision:ea.digest-is-a-page) — op:api.ea-digest
       const what = pos[2];

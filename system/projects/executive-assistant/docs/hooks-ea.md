@@ -22,6 +22,18 @@ time by editing its `on:` line — `time.weekdays 08:00`, `time.fri 16:00`, `tim
   for: module:ea-digest
   do: run workflow:ea.daily-summary
   status: active
+- id: hook:ea.suggest-actions
+  title: The suggested actions are renewed every weekday morning
+  on: time.weekdays 07:50
+  for: module:ea-digest
+  do: run workflow:ea.suggest-actions
+  status: active
+- id: hook:ea.suggest-on-new-information
+  title: New information pushed in renews the suggested actions
+  on: intake.done
+  do: run workflow:ea.suggest-actions
+  once: false
+  status: active
 - id: hook:ea.weekly-review
   title: The weekly execution review is written on Friday afternoon
   on: time.fri 16:00

@@ -31,7 +31,8 @@ function aboutOf(n: DigestNode): string[] {
   return who.length ? [...new Set(who)] : ['(nothing named)'];
 }
 
-export type DigestContext = { since: string | null; added: DigestNode[]; changed: DigestNode[]; closedNow: DigestNode[]; waiting: DigestNode[]; late: DigestNode[]; dueSoon: DigestNode[] };
+export type QuietProject = { id: string; title: string; last: string | null; days: number | null };
+export type DigestContext = { quiet?: QuietProject[]; suggestions?: { id: string; title: string; about: string; suggested: string }[]; since: string | null; added: DigestNode[]; changed: DigestNode[]; closedNow: DigestNode[]; waiting: DigestNode[]; late: DigestNode[]; dueSoon: DigestNode[] };
 
 export function digestContext(prev: DigestSnapshot | null, nodes: DigestNode[], today: string): DigestContext {
   const mine = nodes.filter(n => n.defined !== false && DIGEST_KINDS.has(n.kind));
@@ -67,6 +68,9 @@ export function contextMarkdown(c: DigestContext, titleOf: (id: string) => strin
     c.since ? `Since the last summary (${c.since}).` : 'No summary was written before: everything is new, so the "since" parts are left out — summarise what waits now.',
     part('Arrived', c.added), part('Changed', c.changed), part('Closed', c.closedNow),
     part('Late', c.late, false), part('Due within a week', c.dueSoon, false), part('Waiting for a reply (Slack, email)', c.waiting, false),
+    c.quiet?.length ? (() => { const dated = c.quiet!.filter(q => q.last), none = c.quiet!.filter(q => !q.last);
+      return `### Quiet projects (${c.quiet!.length})\n\nOpen projects with no activity — no meeting, no dated item, no change, nothing met — for ${QUIET_DAYS}+ days:\n\n${dated.map(q => `- ${q.id} — ${q.title}: last activity ${q.last} (${q.days} days ago)`).join('\n')}${none.length ? `${dated.length ? '\n' : ''}- no dated activity on record (${none.length}): ${none.map(q => q.id).join(', ')}` : ''}\n`; })() : '',
+    c.suggestions ? `### Open suggestions (${c.suggestions.length})\n\n${c.suggestions.length ? c.suggestions.map(s => `- ${s.id} — ${s.title}${s.about ? ` (about ${s.about})` : ''}, suggested ${s.suggested}`).join('\n') : 'none'}\n` : '',
   ].filter(Boolean).join('\n\n');
 }
 
@@ -84,4 +88,25 @@ export function prependSummary(md: string, date: string, entry: string, keep = 3
   const entries = firstEntry === -1 ? [] : section.slice(firstEntry).split(/^(?=### )/m).map(e => e.replace(/\s*$/, '')).filter(e => e && !e.startsWith(`### ${date}\n`) && e !== `### ${date}`);
   const kept = [body.replace(/\s*$/, ''), ...entries].slice(0, keep);
   return `${md.slice(0, start)}${intro ? `${intro}\n\n` : '\n'}${kept.join('\n\n')}\n${after ? `\n${after}` : ''}`;
+}
+
+export const QUIET_DAYS = 14;
+// A project's last activity: the latest of the meetings that discussed it, the changes recorded to it or to an item
+// about it, and the commitments on it that were met. Open projects quiet for QUIET_DAYS or more, quietest first.
+export function quietProjects(nodes: DigestNode[], changes: { node: string; at: string }[], today: string, days = QUIET_DAYS): QuietProject[] {
+  const projects = nodes.filter(n => n.kind === 'project' && n.defined !== false && !closed(n));
+  const last = new Map<string, string>(projects.map(p => [p.id, '']));
+  const bump = (p: string, d: string) => { if (last.has(p) && d && d > (last.get(p) ?? '')) last.set(p, d.slice(0, 10)); };
+  const about = new Map<string, string[]>();
+  for (const n of nodes) {
+    const ps = [...refsIn(n.body, 'project'), ...refsIn(n.body, 'projects'), ...refsIn(n.body, 'part-of')].filter(x => x.startsWith('project:'));
+    if (ps.length) about.set(n.id, ps);
+    // a dated item about it — a meeting, a decision, a fact, an update — is activity on that day (not a date to come)
+    { const d = n.body.match(/^(?:date|since):\s*(\d{4}-\d{2}-\d{2})/m)?.[1]; if (d && d <= today) for (const p of ps) bump(p, d); }
+    const met = n.body.match(/^met-on:\s*(\d{4}-\d{2}-\d{2})/m)?.[1]; if (met) for (const p of ps) bump(p, met);
+  }
+  for (const c of changes) { bump(c.node, c.at); for (const p of about.get(c.node) ?? []) bump(p, c.at); }
+  const dayMs = 86400000; const t = Date.parse(`${today}T12:00:00`);
+  return projects.map(p => { const l = last.get(p.id) || null; return { id: p.id, title: p.title, last: l, days: l ? Math.round((t - Date.parse(`${l}T12:00:00`)) / dayMs) : null }; })
+    .filter(q => q.days === null || q.days >= days).sort((a, b) => (b.days ?? 1e9) - (a.days ?? 1e9));
 }

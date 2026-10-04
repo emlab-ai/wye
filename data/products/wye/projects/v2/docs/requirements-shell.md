@@ -751,3 +751,17 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 ```
 
   - context:wf2.list-props-as-tags "evidence prop, must show tags, not text".
+
+```yaml
+- id: decision:wf2.suggested-actions
+  title: The Digest opens with Suggested actions — written by an editable skill each weekday morning and whenever new information arrives
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [component:executive-assistant]
+  part-of: module:req-shell
+```
+
+  - context:wf2.suggested-actions "to the digest add 'suggest actions', this list should be on top, generated with daily run or with hooks, i.e. when new information appears or with time, the guidance must be in skill (customisable), i.e. it must suggest to follow up on project if now changes recently made".
+
+  - choice:wf2.suggested-actions a suggestion: type (the package's): the action as its title, `about` one item, `why`, `suggested`, `source`; open until done or dismissed. The Digest's first section is a live table of the open ones. skill:ea.suggest-actions (editable rules: a project quiet 14+ days with open items, a reply owed 2+ days, a commitment about to slip, a person with a pile-up, a risk without a plan, a decision waiting, new information that changes something; at most seven) reads `wye ea digest context` — now with quiet projects (last activity from meetings, dated items, changes, met commitments) and the open suggestions — and writes with `wye ea suggest add | close` (the same action about the same item renews the open one). It runs from hook:ea.suggest-actions (weekdays 07:50) and hook:ea.suggest-on-new-information (`intake.done`, one event per push that changed something).

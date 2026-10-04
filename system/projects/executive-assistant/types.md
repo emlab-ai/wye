@@ -98,3 +98,15 @@ a kind the product already has is kept as it is.
     project: ref project?
     source-id: string
 ```
+
+```yaml
+- id: type:suggestion
+  extends: type:node
+  purpose: an action the assistant suggests to the director — follow up, reply, check in — with why, about one item; open until done or dismissed
+  open: true
+  props:
+    about: ref node?                          # the project, person, commitment, thread … it is about
+    why: string                               # what made it worth doing now
+    suggested: date                           # when it was suggested (last renewed)
+    source: string?                           # daily | new-information | person
+```

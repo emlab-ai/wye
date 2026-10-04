@@ -15,6 +15,14 @@ are now, and an edit in a row is written where the item lives. Edit this page li
 (/ Data table, then ⊕ whole product), change a filter with ⏷ filter. The **Daily summary** at the bottom is written each weekday morning by skill:ea.daily-summary;
 edit that skill to change what it looks for.
 
+## Suggested actions
+
+What to do now — renewed each weekday morning and when new information arrives, by skill:ea.suggest-actions (edit it
+to change what it suggests). Tick one done, or dismiss it, right here.
+
+<!-- table:suggestion scope=product open=1 -->
+<!-- /table:suggestion -->
+
 ## Needs you now
 
 Commitments late or due within a week:

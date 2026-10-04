@@ -9,7 +9,9 @@ import { rebuild, withFileLock, writeAtomic } from '../write';
 import { claimWrite } from '../changes';
 import { syncPackageTypes } from '../install';
 import { today, isDate } from './model';
-import { digestSnapshot, digestContext, contextMarkdown, prependSummary, type DigestSnapshot, type DigestNode } from './digest';
+import { digestSnapshot, digestContext, contextMarkdown, prependSummary, quietProjects, type DigestSnapshot, type DigestNode } from './digest';
+import { listChanges } from '../changes';
+import { listSuggestions } from './suggest';
 
 const DIGEST = 'module:ea-digest';
 const snapDir = (productDir: string) => path.join(productDir, '_ea', 'digest');
@@ -33,6 +35,10 @@ export async function digestContextRun(product: string, date = today()): Promise
   const scope = await loadScope(product); if (!scope) return { ok: false, status: 404, message: `no product ${product}` };
   const prev = await lastSnapshot(scope.product.dir, date);
   const c = digestContext(prev, scope.graph.nodes as DigestNode[], date);
+  // what the suggestions read too: the projects gone quiet, and what is suggested already (renewed or closed, not repeated)
+  const changes = (await listChanges(scope.product.dir).catch(() => [])).map(r => ({ node: r.node, at: r.at }));
+  c.quiet = quietProjects(scope.graph.nodes as DigestNode[], changes, date);
+  c.suggestions = (await listSuggestions(product)).map(s => ({ id: s.id, title: s.title, about: s.about, suggested: s.suggested }));
   return { ok: true, since: c.since, markdown: contextMarkdown(c, id => scope.idx.byId.get(id)?.title || id, date) };
 }
 

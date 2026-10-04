@@ -44,3 +44,16 @@ describe('writing the summary into the page', () => {
     expect(prependSummary('# Digest\n', '2026-10-05', 'x')).toBe('# Digest\n\n## Daily summary\n\n### 2026-10-05\n\nx\n');
   });
 });
+
+describe('quiet projects', () => {
+  it('last activity: meetings and dated items about the project, changes to it or its items, commitments met; open ones quiet 14+ days', async () => {
+    const { quietProjects } = await import('./digest');
+    const nodes = [
+      n('project:ea.a', 'active', ''), n('project:ea.b', 'active', ''), n('project:ea.c', 'done', ''), n('project:ea.d', 'active', ''),
+      n('meeting:ea.m', '', 'date: 2026-09-01\nprojects: [project:ea.a]'), n('decision:x.d', 'proposed', 'date: 2026-10-01\nproject: project:ea.b'),
+      n('commitment:ea.k', 'proposed', 'project: project:ea.d\nmet-on: 2026-09-10'), n('fact:x.f', '', 'date: 2026-12-01\nproject: project:ea.d'),
+    ];
+    const q = quietProjects(nodes, [{ node: 'commitment:ea.k', at: '2026-09-12T10:00:00Z' }], '2026-10-05');
+    expect(q.map(x => [x.id, x.last, x.days])).toEqual([['project:ea.a', '2026-09-01', 34], ['project:ea.d', '2026-09-12', 23]]);   // b moved 4 days ago; c is done; a future date is not activity
+  });
+});
