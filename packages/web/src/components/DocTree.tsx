@@ -102,6 +102,8 @@ export function DocTree({ product, roots, onAddChild, pinned = [] }: { product: 
           ? <button role="menuitem" onClick={() => pin(menu.d, false)}>Unpin from top</button>
           : <button role="menuitem" onClick={() => pin(menu.d, true)}>Pin to top</button>}
         <button role="menuitem" onClick={() => { const d = menu.d; setMenu(null); requestSend({ refs: [d.node], source: { project: d.project, doc: d.slug, link: `${location.origin}/${product}/${d.project}/d/${d.slug}` } }); }}>Ask an agent…</button>
+        <button role="menuitem" onClick={() => { const d = menu.d; setMenu(null); requestSend({ refs: [d.node], source: { project: d.project, doc: d.slug }, mode: 'skill' }); }}>Run a skill…</button>
+        <button role="menuitem" onClick={() => { const d = menu.d; setMenu(null); requestSend({ refs: [d.node], source: { project: d.project, doc: d.slug }, mode: 'skill', skill: 'skill:complete' }); }}>Complete…</button>
         <button role="menuitem" onClick={() => duplicate(menu.d)}>Duplicate</button>
         <button role="menuitem" className="danger" onClick={() => remove(menu.d)}>Delete{menu.d.children.length ? ` (with ${descendants(menu.d).length} below)` : ''}</button>
       </div>}

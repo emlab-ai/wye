@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { loadScope } from '@/lib/scope';
-import { createSkillDoc, listSkills, skillBody } from '@/lib/skills';
+import { createSkillDoc, listSkills, skillBody, skillTakes } from '@/lib/skills';
 import { rebuild } from '@/lib/write';
 import { prsPageId } from '@/lib/pr-doc';
 import { treeFor } from '@/lib/scope';
@@ -19,7 +19,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ product:
     const meta = (await listSkills(scope)).find(s => s.id === sid);
     return NextResponse.json({ id: sid, title: meta?.title ?? scope.graph.nodes.find(n => n.id === sid)?.title ?? sid, role: meta?.role ?? 'librarian', takes: meta?.takes ?? '', body, doc: meta ? `${product}/${meta.project}/${meta.slug}` : null });
   }
-  return NextResponse.json({ skills: await listSkills(scope) });
+  // ?node=<id>: only the skills that run on that kind of thing, active ones (the command box's Skill mode)
+  const node = new URL(req.url).searchParams.get('node');
+  const all = await listSkills(scope);
+  if (node) { const kind = scope.idx.byId.get(node)?.kind ?? node.split(':')[0]; return NextResponse.json({ skills: all.filter(s => s.status !== 'paused' && skillTakes(s.takes, kind)) }); }
+  return NextResponse.json({ skills: all });
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {

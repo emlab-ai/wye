@@ -27,6 +27,7 @@ export const BASE_SKILLS: { slug: string; title: string; role: SkillRole; file: 
   { slug: 'analyse-request', title: 'Analyse a request — changes, code, risks, contradictions', role: 'librarian', file: 'prompts/analyse-request.md', takes: 'pr', writes: ['constraint', 'question'] },
   { slug: 'revisit-request', title: 'Revisit a request with the current approach', role: 'librarian', file: 'prompts/revisit-request.md', takes: 'pr', writes: ['req', 'decision', 'question', 'test'] },
   { slug: 'remember', title: 'Remember what the person pasted', role: 'librarian', file: 'prompts/remember.md', takes: '*', writes: ['fact', 'decision', 'req', 'question', 'task', 'note'] },
+  { slug: 'complete', title: 'Complete this — and what belongs to it', role: 'librarian', file: 'prompts/complete.md', takes: '*', writes: ['task', 'commitment', 'risk', 'question', 'goal', 'project'] },
   { slug: 'import', title: 'Import a document — extract its types, requirements, facts and decisions', role: 'worker', file: 'prompts/import.md', takes: 'module', writes: ['type', 'req', 'decision', 'constraint', 'entity', 'fact', 'task', 'question'] },
   { slug: 'import-code', title: 'Import a module from its code — requirements, rules, entities, operations, tests', role: 'worker', file: 'prompts/import-code.md', takes: 'module', writes: ['req', 'rule', 'entity', 'state', 'op', 'lib', 'test', 'question'] },
   // the stages of workflow:feature (decision:wf2.workflow-is-a-skill): each one an editable instruction
@@ -205,13 +206,25 @@ export async function skillsSection(scope: Scope, ids: string[], heading = 'Skil
 export async function listSkills(scope: Scope): Promise<{ id: string; title: string; role: string; takes: string; status: string; slug: string; project: string }[]> {
   const out: { id: string; title: string; role: string; takes: string; status: string; slug: string; project: string }[] = [];
   for (const p of scope.projects) {
-    let files: string[] = []; try { files = (await readdir(p.wyeDir)).filter(f => /^skill-.*\.md$/.test(f)); } catch { continue; }
-    for (const f of files) {
-      let md = ''; try { md = await readFile(path.join(p.wyeDir, f), 'utf8'); } catch { continue; }
-      const get = (k: string) => md.match(new RegExp(`^${k}:\\s*(.+)$`, 'm'))?.[1].trim() ?? '';
-      if (!get('node').startsWith('skill:')) continue;
-      out.push({ id: get('node'), title: get('title'), role: get('role') || 'librarian', takes: get('takes'), status: get('status'), slug: `~${f.slice(0, -3)}`, project: p.slug });
+    // the project's own skill pages, then those of the packages it installed (.wye/packages/<pkg>/skill-*.md)
+    const dirs: [string, string][] = [[p.wyeDir, '']];
+    try { for (const pkg of await readdir(path.join(p.wyeDir, 'packages'))) dirs.push([path.join(p.wyeDir, 'packages', pkg), `${pkg}.`]); } catch { /* no packages */ }
+    for (const [dir, prefix] of dirs) {
+      let files: string[] = []; try { files = (await readdir(dir)).filter(f => /^skill-.*\.md$/.test(f)); } catch { continue; }
+      for (const f of files) {
+        let md = ''; try { md = await readFile(path.join(dir, f), 'utf8'); } catch { continue; }
+        const get = (k: string) => md.match(new RegExp(`^${k}:\\s*(.+)$`, 'm'))?.[1].trim() ?? '';
+        if (!get('node').startsWith('skill:') || out.some(o => o.id === get('node'))) continue;
+        out.push({ id: get('node'), title: get('title'), role: get('role') || 'librarian', takes: get('takes'), status: get('status'), slug: `~${prefix}${f.slice(0, -3)}`, project: p.slug });
+      }
     }
   }
   return out.sort((a, b) => a.title.localeCompare(b.title));
+}
+
+// What a skill can be run on (decision:wf2.run-skill-on-a-node): `takes: *` anything; `takes: module` a page; else the
+// kinds it names (`takes: project, goal`). A paused skill is not offered.
+export function skillTakes(takes: string, kind: string): boolean {
+  const t = takes.split(/[,\s]+/).map(x => x.trim()).filter(Boolean);
+  return t.includes('*') || t.includes(kind) || (kind === 'module' && t.includes('page'));
 }

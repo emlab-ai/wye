@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { IconOpen, IconGraph, IconSend, IconPlus, IconTrash } from './Icons';
+import { IconOpen, IconGraph, IconSend, IconPlus, IconTrash, IconSkill } from './Icons';
 import { PeekGraph, type LiteNode } from './PeekGraph';
 import { ContextPanel } from './ContextPanel';
 import { SessionView } from './SessionView';
@@ -159,6 +159,7 @@ function NodeView({ id }: { id: string }) {
         {id.startsWith('type:') && <Link href={`/${product}/types/${id.slice(5)}`} className="tool" title="Open the type page" aria-label="Open the type page"><IconOpen /></Link>}
         <Link href={`/${product}/graph?focus=${encodeURIComponent(id)}&preset=Mechanics`} className="tool" title="Show in the graph" aria-label="Show in the graph"><IconGraph /></Link>
         <button className="tool" title="Send to an agent" aria-label="Send to an agent" onClick={() => requestSend({ refs: [id], text: d ? nodeText(d.node.body) || entry?.title : entry?.title })}><IconSend /></button>
+        <button className="tool" title="Run a skill on this — e.g. Complete it and what belongs to it" aria-label="Run a skill" onClick={() => requestSend({ refs: [id], mode: 'skill' })}><IconSkill /></button>
         <button className="tool" title="Capture a task about this for later (unassigned, on the Work view)" aria-label="Capture a task" onClick={() => requestSend({ refs: [id], text: '' })}><IconPlus /></button>
         {entry?.defined && !entry.doc && <DeleteNode id={id} />}
       </div>

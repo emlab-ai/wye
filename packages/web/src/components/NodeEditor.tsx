@@ -32,6 +32,8 @@ const glyph = (f: Field) => f.name === 'status' ? '◔' : f.type === 'progress' 
 export function NodeEditor({ id, body, form, type, props, entry, relations = [], onSaved }: { id: string; body: string; form: string; type: TypeDef | null; props: NodeProp[]; entry?: IndexEntry; relations?: [string, string[]][]; onSaved: () => void }) {
   const { product, index, open: openNode, statuses: byKind } = usePeek(); const router = useRouter();
   const [addingFor, setAddingFor] = useState<string | null>(null); const [addText, setAddText] = useState('');
+  // a list (or id) value that is not a declared link — `evidence: [session:x, "import/…"]` — shows as tags; ✎ edits the text
+  const [rawEdit, setRawEdit] = useState<string | null>(null);
   const [addProp, setAddProp] = useState<{ name: string; value: string } | null>(null);
   const kind = id.split(':')[0]; const prose = form === 'prose';
   const rows = parseBody(body);
@@ -141,10 +143,19 @@ export function NodeEditor({ id, body, form, type, props, entry, relations = [],
           <datalist id={`wf-ref-${f.ref}`}>{(f.ref === 'node' ? Object.values(index).filter(e => e.defined && e.id !== id && !['block', 'field', 'prop'].includes(e.kind)).slice(0, 2000) : suggest(f)).map(o => <option key={o.id} value={o.id}>{o.title}</option>)}</datalist>
         </span>);
     }
+    const ID = /^[a-z][a-z0-9-]*:[\w.~@/-]+$/;
+    const listItems = v.trim().replace(/^\[|\]$/g, '').split(/,\s*/).map(x => x.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+    if (rawEdit !== f.name && !files.length && listItems.some(x => ID.test(x)) && (/^\[.*\]$/.test(v.trim()) || ID.test(v.trim()))) return (
+      <span className="ne-ref has-tags ne-many">
+        <span className="list">
+          {listItems.map(x => <span key={x} className="item">{ID.test(x) ? <SmartTag id={x} /> : <span className="ne-chip" title={x}>{x}</span>}</span>)}
+          <button type="button" className="ne-add-btn" title="edit as text" onClick={() => setRawEdit(f.name)}>✎</button>
+        </span>
+      </span>);
     return (
       <span className={`ne-ref ${files.length ? 'has-files' : ''}`}>
         {files.length > 0 && <span className="list">{files.map(x => <span key={x} className="item"><button type="button" className="code-link" title={`open ${x} in the column`} onClick={() => openNode(`code:${x}`)}>{'</>'} {x.split('/').pop()}</button></span>)}</span>}
-        <input className="ne-in" value={v} placeholder="Empty" onChange={e => setVal(f.name, e.target.value)} onKeyDown={enterBlurs} onBlur={() => commit(f)} aria-label={f.name} />
+        <input className="ne-in" value={v} placeholder="Empty" onChange={e => setVal(f.name, e.target.value)} onKeyDown={enterBlurs} onBlur={() => { commit(f); setRawEdit(null); }} autoFocus={rawEdit === f.name} aria-label={f.name} />
       </span>);
   };
   return (

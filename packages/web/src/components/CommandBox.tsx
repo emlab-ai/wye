@@ -21,16 +21,17 @@ import { loadRecent, rememberRecent } from '@/lib/recent';
 // a runner; Workflow — a run of a named pipeline on what you are looking at (decision:wf2.workflow-is-a-skill): the
 // stages produce their documents and each one waits for your Advance, and with nothing under the cursor the typed idea
 // becomes the document the run starts from. Images pasted or dropped into the box go along (req:wf2.ui.palette-images).
-export type CmdMode = 'pr' | 'adhoc' | 'workflow' | 'remember';
-// the box's modes, in the order ⌘1–4 picks them
+export type CmdMode = 'pr' | 'adhoc' | 'workflow' | 'skill' | 'remember';
+// the box's modes, in the order ⌘1–5 picks them
 const MODES: { key: CmdMode; label: string; icon: string; title: string }[] = [
   { key: 'pr', label: 'PR', icon: '◆', title: 'A Prompt Request: a page under PRs, refined with Wye until it is clear, approved by you, then built' },
   { key: 'adhoc', label: 'Ad-hoc', icon: '⇢', title: 'A conversation with a coding agent on what you are looking at' },
   { key: 'workflow', label: 'Workflow', icon: '⇉', title: 'Run a workflow: each stage writes its document and waits for you' },
+  { key: 'skill', label: 'Skill', icon: '✧', title: 'Run one skill on what you are looking at — e.g. Complete this project and everything under it' },
   { key: 'remember', label: 'Remember', icon: '✦', title: 'Paste information: Wye files it as knowledge, linked to what it knows' },
 ];
 // `mode` opens the box in that mode whatever was used last (⌘M → remember)
-export type SendRequest = { text?: string; refs?: string[]; source?: { project?: string; doc?: string; blockId?: string; link?: string }; mode?: CmdMode };
+export type SendRequest = { text?: string; refs?: string[]; source?: { project?: string; doc?: string; blockId?: string; link?: string }; mode?: CmdMode; /** Skill mode: the skill picked first */ skill?: string };
 export function requestSend(detail: SendRequest) { window.dispatchEvent(new CustomEvent('wf:send', { detail })); }
 type Live = Session & { live?: boolean };
 const refsOf = (r: SendRequest | null) => r?.refs ?? [];
@@ -47,6 +48,9 @@ export function CommandBox() {
   const [defaults, setDefaults] = useState<{ cwd: string; wye: string }>({ cwd: '', wye: '' });
   const [mode, setModeState] = useState<CmdMode>('pr');
   const [workflows, setWorkflows] = useState<{ id: string; title: string; stages: { id: string; title: string }[] }[]>([]);
+  // Skill mode (decision:wf2.run-skill-on-a-node): the skills that run on what the box was opened on, and the one picked
+  const [skillList, setSkillList] = useState<{ id: string; title: string; role: string; takes: string }[]>([]);
+  const [sk, setSk] = useState('');
   const [wf, setWf] = useState('');
   const [attachTo, setAttachTo] = useState<Attach>({ skills: [], hooks: [] }); // skills / hooks for the request (decision:wf2.hooks-and-skills)
   const setMode = (m: CmdMode) => { setModeState(m); try { localStorage.setItem('wf-cmd-mode', m); } catch { /* ignore */ } };
@@ -86,7 +90,7 @@ export function CommandBox() {
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p') { e.preventDefault(); if (req) setReq(null); else show(here()); }
       // ⌘M (Ctrl+M in a browser, where ⌘M minimizes the window): the box in Remember mode — paste, and Wye files it
       else if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'm') { e.preventDefault(); if (req && mode === 'remember') setReq(null); else { show({ ...here(), mode: 'remember' }); setModeState('remember'); } }
-      else if (req && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && /^[1-4]$/.test(e.key)) { e.preventDefault(); setMode(MODES[Number(e.key) - 1].key); }
+      else if (req && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && /^[1-5]$/.test(e.key)) { e.preventDefault(); setMode(MODES[Number(e.key) - 1].key); }
       // Escape leaves a recalled command behind first, and closes the box on the next press (task:palette-recent-commands)
       else if (e.key === 'Escape' && req) { if (at >= 0) { e.preventDefault(); e.stopPropagation(); setAt(-1); setText(''); } else setReq(null); }
     };
@@ -105,7 +109,7 @@ export function CommandBox() {
         setSessions(active); setDefaults(j.defaults ?? { cwd: '', wye: '' });
         let remembered = '', lastAgent = '', lastMode = ''; try { remembered = localStorage.getItem(`wf-cwd-${product}`) ?? ''; lastAgent = localStorage.getItem(`wf-agent-${product}`) ?? ''; lastMode = localStorage.getItem('wf-cmd-mode') ?? ''; } catch { /* ignore */ }
         if (req.mode) setModeState(req.mode);
-        else if (lastMode === 'adhoc' || lastMode === 'pr' || lastMode === 'workflow' || lastMode === 'remember') setModeState(lastMode);
+        else if (lastMode === 'adhoc' || lastMode === 'pr' || lastMode === 'workflow' || lastMode === 'skill' || lastMode === 'remember') setModeState(lastMode);
         // on a PR page with a live conversation the box talks to that PR (decision:wf2.pr-talk); else a clean slate (rule:clean-slate)
         const here = m ? index[docNodeOf(index, m[2]) ?? ''] : undefined;
         const mine = here?.kind === 'pr' ? active.find(s => (here.sessions ?? []).includes(s.id)) : undefined;
@@ -125,13 +129,23 @@ export function CommandBox() {
       .catch(() => { if (live) setWorkflows([]); });
     return () => { live = false; };
   }, [req, product, mode]);
+  useEffect(() => {
+    if (!req || mode !== 'skill') return;
+    const on = req.refs?.[0]; let live = true;
+    fetch(`/api/${product}/skills${on ? `?node=${encodeURIComponent(on)}` : ''}`).then(r => r.ok ? r.json() : { skills: [] })
+      .then(j => { if (!live) return; const list = ((j.skills ?? []) as { id: string; title: string; role: string; takes: string; status?: string }[]).filter(x => x.status !== 'paused' && (on || x.takes.includes('*')));
+        setSkillList(list); setSk(cur => (req.skill && list.some(x => x.id === req.skill) ? req.skill : list.some(x => x.id === cur) ? cur : list[0]?.id ?? '')); })
+      .catch(() => { if (live) setSkillList([]); });
+    return () => { live = false; };
+  }, [req, product, mode]);
   if (!req) return null;
+  const isSk = mode === 'skill';
   const isPr = mode === 'pr';
   const isWf = mode === 'workflow';
   const isRem = mode === 'remember';
   const isNew = isPr || isRem || target === 'new' || target === 'runner';
   const run = async () => {
-    const instruction = text.trim(); if ((!instruction && !attach.images.length) || busy) return;
+    const instruction = text.trim(); if ((!instruction && !attach.images.length && !(mode === 'skill' && sk)) || busy) return;
     // A workflow on what you are looking at (decision:wf2.workflow-is-a-skill). With no node under the cursor the idea
     // has nothing to hang on, so the box makes the document first and runs on that — "I had an idea" and "start from
     // this document" are then the same mechanism.
@@ -153,6 +167,15 @@ export function CommandBox() {
       if (!r.ok) { setMsg(j.message ?? 'the run could not be started'); return; }
       remember(instruction);
       setReq(null); open(on); return;
+    }
+    if (isSk) {
+      if (!sk) { setMsg('no skill runs on this'); return; }
+      setBusy(true); setMsg(null);
+      const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ skill: sk, instruction, refs: req.refs ?? [], source: { ...(req.source ?? {}) }, images: attach.images }) });
+      const j = await r.json().catch(() => ({})); setBusy(false);
+      if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not start'); return; }
+      if (instruction) remember(instruction);
+      setReq(null); open(`session:${j.id}`); return;
     }
     if (isRem) {
       // Remember (skill:remember): a librarian files what was pasted as knowledge, linked to what exists — no PR
@@ -208,15 +231,16 @@ export function CommandBox() {
   const label = (s: Live) => `${AGENTS.find(a => a.id === s.agent)?.label ?? s.agent} · ${s.instruction.split('\n').find(l => l.trim())?.slice(0, 50) ?? s.id}`;
   const refs = req.refs ?? [];
   const M = MODES.find(m => m.key === mode) ?? MODES[0];
-  const placeholder = isRem ? 'Paste notes, a message, an update…' : isWf ? 'The idea, in a line or two' : isPr ? 'What do you want to change?' : isNew ? 'What should the agent do?' : 'Your next message to that conversation';
+  const placeholder = isSk ? 'Anything the skill should know — optional (e.g. "the Atlas rollout finished on 3 Oct")' : isRem ? 'Paste notes, a message, an update…' : isWf ? 'The idea, in a line or two' : isPr ? 'What do you want to change?' : isNew ? 'What should the agent do?' : 'Your next message to that conversation';
   const about = isPr ? 'A Prompt Request — Wye\u2019s librarian on Claude Code reads what the product knows, asks what it must and proposes the blocks; you approve on the PR\u2019s page before anything is built.'
     : isRem ? 'Filed as knowledge in the right documents, linked to what Wye already knows — by Wye\u2019s librarian on Claude Code. You review it in the Inbox.'
     : isWf ? 'Runs a workflow on what you are looking at — each stage writes its document and waits for you to advance it.'
+    : isSk ? 'Runs one skill on what you are looking at — an agent with that skill\u2019s instructions; it asks when it is unsure. Edit a skill on its page under Settings › Skills.'
     : !isNew ? (fresh ? 'Restarts that conversation\u2019s agent from nothing, then sends this as its first message.' : 'Goes into that conversation as your next message; the agent keeps its context and folder.')
     : target === 'runner' ? 'Queued until a runner for that agent picks it up (wye agent listen).' : 'A conversation with a coding agent on what you are looking at — nothing is written unless you ask.';
-  const verb = busy ? 'Sending…' : isWf ? 'Run' : isRem ? 'Remember' : isPr ? 'Start the PR' : !isNew ? (fresh ? 'Restart & send' : 'Send') : target === 'runner' ? 'Queue' : 'Talk';
-  const canLater = isNew && !isWf && !isRem;
-  const empty = !text.trim() && !attach.images.length && !(isWf && refsOf(req).length);
+  const verb = busy ? 'Sending…' : isWf || isSk ? 'Run' : isRem ? 'Remember' : isPr ? 'Start the PR' : !isNew ? (fresh ? 'Restart & send' : 'Send') : target === 'runner' ? 'Queue' : 'Talk';
+  const canLater = isNew && !isWf && !isRem && !isSk;
+  const empty = !text.trim() && !attach.images.length && !(isWf && refsOf(req).length) && !(isSk && sk);
   return createPortal(
     <div className="modal-back palette-back" onMouseDown={e => { if (e.target === e.currentTarget) setReq(null); }}>
       <div className={`modal palette mode-${mode}`} role="dialog" aria-label="Command" onDragOver={attach.onDragOver} onDrop={attach.onDrop}>
@@ -237,6 +261,15 @@ export function CommandBox() {
             </label>
             <span className="muted palette-note">{(() => { const w = workflows.find(x => x.id === wf); const on = refsOf(req)[0]; return w ? `${on ? `on ${on}` : 'the first line becomes a new document'} · stage 1 of ${w.stages.length}: ${w.stages[0]?.title ?? ''}` : ''; })()}</span>
           </div>}
+          {isSk && <div className="palette-fields">
+            <label className="palette-field"><span>Skill</span>
+              <select value={sk} onChange={e => setSk(e.target.value)}>
+                {skillList.length === 0 && <option value="">no skill runs on this</option>}
+                {skillList.map(x => <option key={x.id} value={x.id}>{x.title}</option>)}
+              </select>
+            </label>
+            <span className="muted palette-note">{refsOf(req)[0] ? `on ${refsOf(req)[0]}` : 'on the whole product'}</span>
+          </div>}
           {mode === 'adhoc' && <div className="palette-fields">
             <label className="palette-field"><span>To</span>
               <select value={target} onChange={e => setTarget(e.target.value)}>
@@ -255,7 +288,7 @@ export function CommandBox() {
           {canLater && <button className="palette-later" onClick={later} disabled={!text.trim() || busy} title="Keep it as a task on the backlog — unassigned, on the Work view — without sending it to anyone">Later <kbd>⌥↵</kbd></button>}
           <button className="palette-go" onClick={run} disabled={empty || busy}>{verb}{!busy && <kbd>↵</kbd>}</button>
         </div>
-        <p className="muted palette-hint">↵ {verb.replace(/^./, c => c.toLowerCase())} · ⇧↵ new line{canLater ? ' · ⌥↵ later' : ''}{recent.length > 0 ? ' · ↑ what you asked before' : ''} · ⌘1–4 mode · {isRem ? '⌘M' : '⌘P'} opens this anywhere · Esc close</p>
+        <p className="muted palette-hint">↵ {verb.replace(/^./, c => c.toLowerCase())} · ⇧↵ new line{canLater ? ' · ⌥↵ later' : ''}{recent.length > 0 ? ' · ↑ what you asked before' : ''} · ⌘1–5 mode · {isRem ? '⌘M' : '⌘P'} opens this anywhere · Esc close</p>
       </div>
     </div>, document.body);
 }

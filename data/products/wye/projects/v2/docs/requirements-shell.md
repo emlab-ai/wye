@@ -725,3 +725,29 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 ```
 
   - context:wf2.tables-own-width "current tables looks shit, do not force them to be 100% width, make them scrollable" — the instances table squeezed its columns to the page and chips overlapped.
+
+```yaml
+- id: decision:wf2.run-skill-on-a-node
+  title: Any skill can be run on a project, person, page or any item — and a built-in Complete skill closes an item and what belongs to it
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [component:command-box, component:skills]
+  part-of: module:req-shell
+```
+
+  - context:wf2.run-skill-on-a-node "add ability to run skills on projects or other elements, i.e. i would like to complete a project, that needs to go and mark relevant items as completed too".
+
+  - choice:wf2.run-skill-on-a-node the command box has a Skill mode (⌘4): the skills whose `takes:` fits the item (`*`, its kind, `page`), package skills included; a note is optional; the skill's agent starts at once on the item (a librarian unless the skill says worker). Reached from a page's ⋯ / the tree's menu (Run a skill…, Complete…) and the ✧ in an item's column header. skill:complete (prompts/complete.md, a base skill every product gets, editable) reads what points at the item, closes what is done (commitments met), dismisses what the finish made moot with a reason, leaves follow-ups open, asks when unsure, closes the item last, never deletes or touches another product.
+
+```yaml
+- id: decision:wf2.list-props-as-tags
+  title: A list property whose items are ids shows them as tags (evidence, sessions …), other items as chips; ✎ edits the text
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [component:node-editor]
+  part-of: module:req-shell
+```
+
+  - context:wf2.list-props-as-tags "evidence prop, must show tags, not text".

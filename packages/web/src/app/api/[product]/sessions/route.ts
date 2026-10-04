@@ -8,6 +8,7 @@ import { markReading, runIntake } from '@/lib/pr-intake';
 import { buildPrompt } from '@/lib/agent-host';
 import { prsOf } from '@/lib/pr-doc';
 import { loadScope } from '@/lib/scope';
+import { listSkills } from '@/lib/skills';
 import { stat } from 'node:fs/promises';
 import { REPO_ROOT } from '@/lib/products';
 
@@ -25,11 +26,18 @@ export async function GET(_req: Request, { params }: { params: Promise<{ product
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const body = (await req.json()) as { agent?: string; instruction?: string; refs?: string[]; source?: Record<string, string>; mode?: 'run' | 'chat'; cwd?: string; pr?: boolean; prRef?: string; remember?: boolean; images?: { name?: string; dataUrl: string }[]; role?: 'worker' | 'librarian'; skills?: string[]; hooks?: string[] };
+  const body = (await req.json()) as { agent?: string; instruction?: string; refs?: string[]; source?: Record<string, string>; mode?: 'run' | 'chat'; cwd?: string; pr?: boolean; prRef?: string; remember?: boolean; images?: { name?: string; dataUrl: string }[]; role?: 'worker' | 'librarian'; skills?: string[]; hooks?: string[]; skill?: string };
   // Ask Wye (req:exec.ask-wye): a librarian session — claude on the host with the librarian prompt, in the Wye repo
   // Remember (skill:remember): what the person pasted, filed as knowledge by a librarian — a conversation, no request page
   const remember = body.remember === true;
-  const role = body.pr === true || body.role === 'librarian' || remember ? 'librarian' : 'worker';
+  // Run a skill on something (decision:wf2.run-skill-on-a-node): the skill's agent on the item the box was opened on —
+  // a conversation that starts at once, no request page; the skill's own role (a librarian unless it says worker)
+  const skillId = typeof body.skill === 'string' && /^skill:[\w.-]+$/.test(body.skill) ? body.skill : '';
+  const skillMeta = skillId ? await (async () => { const sc = await loadScope(product); return sc ? (await listSkills(sc)).find(x => x.id === skillId) ?? null : null; })() : null;
+  if (skillId && !skillMeta) return NextResponse.json({ error: 'invalid', message: `${skillId} is not a skill of ${product}` }, { status: 422 });
+  if (skillId && !(body.instruction ?? '').trim()) body.instruction = `Run "${skillMeta!.title}" on ${(body.refs ?? [])[0] ?? 'the product'}.`;
+  const role = body.pr === true || body.role === 'librarian' || remember || (skillMeta && skillMeta.role !== 'worker') ? 'librarian' : 'worker';
+  if (skillMeta?.role === 'worker') { body.agent = body.agent ?? 'claude-code'; body.mode = 'chat'; body.cwd = body.cwd?.trim() || REPO_ROOT; }
   const agent = role === 'librarian' ? 'claude-code' : AGENTS.find(a => a.id === body.agent)?.id;
   const instruction = (body.instruction ?? '').trim();
   if (!agent) return NextResponse.json({ error: 'invalid', message: 'unknown agent' }, { status: 422 });
@@ -42,10 +50,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     if (!cwd) return NextResponse.json({ error: 'invalid', message: 'a working folder is required' }, { status: 422 });
     try { if (!(await stat(cwd)).isDirectory()) throw new Error(); } catch { return NextResponse.json({ error: 'invalid', message: `folder not found: ${cwd}` }, { status: 422 }); }
   }
-  const s = await createSession(p.dir, product, { agent, instruction: instruction || '(image)', refs: (body.refs ?? []).filter(r => typeof r === 'string').slice(0, 50), source: body.source ?? {}, mode, cwd: cwd || undefined, images, role, skills: [...(remember ? ['skill:remember'] : []), ...(body.skills ?? []).filter(x => /^skill:[A-Za-z0-9_.\-]+$/.test(x))], hooks: (body.hooks ?? []).filter(x => /^hook:[A-Za-z0-9_.\-]+$/.test(x)) });
+  const s = await createSession(p.dir, product, { agent, instruction: instruction || '(image)', refs: (body.refs ?? []).filter(r => typeof r === 'string').slice(0, 50), source: body.source ?? {}, mode, cwd: cwd || undefined, images, role, skills: [...(remember ? ['skill:remember'] : []), ...(skillId ? [skillId] : []), ...(body.skills ?? []).filter(x => /^skill:[A-Za-z0-9_.\-]+$/.test(x))], hooks: (body.hooks ?? []).filter(x => /^hook:[A-Za-z0-9_.\-]+$/.test(x)) });
   // a request has its page before the first message names it (rule:pr-doc); an ad-hoc conversation and a queued run have none
   const wfUrl = new URL(req.url).origin;
-  if (remember) { const started = await startChat(p.dir, product, s.id, { wfUrl }); return NextResponse.json(started ?? s, { status: 201 }); }
+  if (remember || skillId) { const started = await startChat(p.dir, product, s.id, { wfUrl }); return NextResponse.json(started ?? s, { status: 201 }); }
   if (role === 'librarian') {
     // `prRef`: refine an existing PR (its page stays; the message row on the PR head) instead of making a page
     const existing = body.prRef && (await readPrDoc(product, body.prRef)) ? body.prRef : null;

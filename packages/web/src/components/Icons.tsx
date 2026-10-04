@@ -60,3 +60,6 @@ export const IconImport = ({ size = 18 }: IconProps) => (
 export const IconMore = ({ size = 16 }: IconProps) => (
   <svg {...svg(size)}><circle cx="5.5" cy="12" r="1.1" fill="currentColor" /><circle cx="12" cy="12" r="1.1" fill="currentColor" /><circle cx="18.5" cy="12" r="1.1" fill="currentColor" /></svg>
 );
+export const IconSkill = ({ size = 20 }: IconProps) => (
+  <svg {...svg(size)}><path d="M12 3.5l1.9 4.6 4.6 1.9-4.6 1.9L12 16.5l-1.9-4.6L5.5 10l4.6-1.9z" /><path d="M18.5 15.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z" /></svg>
+);
