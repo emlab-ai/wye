@@ -4,17 +4,20 @@
 // Needs playwright-core (PLAYWRIGHT_CORE=<path to its package dir> if it is not installed here), Chrome, ffmpeg,
 // and the `claude` CLI signed in. `node scripts/record-tour.mjs` → .cache/tour/tour.webm → docs/tour.gif.
 // Remember and the table's query write to the product's documents; revert them after (git checkout the files).
-// TOUR_SHOTS=1 also saves a screenshot per scene to .cache/tour/.
+// TOUR_SHOTS=1 also saves a screenshot per scene to .cache/tour/; TOUR_ENCODE=1 only re-encodes .cache/tour/tour.webm.
 import { createRequire } from 'node:module';
 import { mkdirSync, readdirSync, renameSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
 const require = createRequire(import.meta.url);
-const { chromium } = require(process.env.PLAYWRIGHT_CORE ?? 'playwright-core');
+const { chromium } = process.env.TOUR_ENCODE ? {} : require(process.env.PLAYWRIGHT_CORE ?? 'playwright-core');
 const URL = process.env.WYE_URL ?? 'http://localhost:3456';
-const OUT = path.resolve('.cache/tour'); rmSync(OUT, { recursive: true, force: true }); mkdirSync(OUT, { recursive: true });
-const SIZE = { width: 1440, height: 900 };
+const OUT = path.resolve('.cache/tour'); const ENCODE_ONLY = !!process.env.TOUR_ENCODE;
+if (!ENCODE_ONLY) { rmSync(OUT, { recursive: true, force: true }); mkdirSync(OUT, { recursive: true }); }
+// Chrome's screencast leaves the bottom 88 px of the page out of the video (grey in its place), so the page is laid
+// out that much taller and the video is cropped back to SIZE
+const SIZE = { width: 1440, height: 900 }, LOST = 88, PAGE = { width: SIZE.width, height: SIZE.height + LOST };
 const P = process.env.TOUR_PRODUCT ?? 'wye', PROJECT = process.env.TOUR_PROJECT ?? 'v2';
 const DOC = process.env.TOUR_DOC ?? 'requirements-shell', NODE = process.env.TOUR_NODE ?? 'req:wf2.ui.sidebar';
 const PR = process.env.TOUR_PR ?? `/${P}/${PROJECT}/d/~pr-28`;
@@ -26,25 +29,26 @@ const TABLE_ASK = process.env.TOUR_TABLE_ASK ?? 'approved decisions across the w
 const SHOTS = !!process.env.TOUR_SHOTS;
 const scenes = [`/${P}/${PROJECT}/d/${DOC}`, PR, `/${P}/inbox`, MAP, TABLE_DOC];
 
+if (!ENCODE_ONLY) {
 const browser = await chromium.launch({ channel: 'chrome' });
-const init = () => {
+const init = LOST => {
   localStorage.setItem('wf-rail', '1'); localStorage.setItem('wf-cmd-mode', 'remember');
   document.addEventListener('DOMContentLoaded', () => {
     // the dev server's own badge is not part of the app
     const st = document.createElement('style');
-    st.textContent = 'nextjs-portal { display: none !important; } #tour-cap { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 2147483647; background: rgba(17,17,17,.92); color: #fff; font: 600 22px/1.3 -apple-system, system-ui, sans-serif; padding: 12px 22px; border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,.25); pointer-events: none; white-space: nowrap; } #tour-cap small { display: block; font-weight: 400; font-size: 16px; opacity: .8; margin-top: 2px; }';
+    st.textContent = `nextjs-portal { display: none !important; } #tour-cap { position: fixed; left: 50%; bottom: ${28 + LOST}px; transform: translateX(-50%); z-index: 2147483647; background: rgba(17,17,17,.92); color: #fff; font: 600 22px/1.3 -apple-system, system-ui, sans-serif; padding: 12px 22px; border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,.25); pointer-events: none; white-space: nowrap; } #tour-cap small { display: block; font-weight: 400; font-size: 16px; opacity: .8; margin-top: 2px; }`;
     document.head.appendChild(st);
     // the scene's caption, put back whenever the page drops it
     setInterval(() => { const cap = sessionStorage.getItem('tour-cap'); if (!cap) return; let d = document.getElementById('tour-cap'); if (!d) { d = document.createElement('div'); d.id = 'tour-cap'; document.body.appendChild(d); } if (d.innerHTML !== cap) d.innerHTML = cap; }, 200);
   });
 };
 // warm every page first, so the dev server does not compile on camera
-{ const ctx = await browser.newContext({ viewport: SIZE }); await ctx.addInitScript(init); const p = await ctx.newPage();
+{ const ctx = await browser.newContext({ viewport: PAGE }); await ctx.addInitScript(init, LOST); const p = await ctx.newPage();
   for (const u of scenes) { await p.goto(URL + u, { waitUntil: 'domcontentloaded', timeout: 180000 }); await p.waitForTimeout(3000); }
   await ctx.close(); }
 
-const ctx = await browser.newContext({ viewport: SIZE, recordVideo: { dir: OUT, size: SIZE } });
-await ctx.addInitScript(init);
+const ctx = await browser.newContext({ viewport: PAGE, recordVideo: { dir: OUT, size: PAGE } });
+await ctx.addInitScript(init, LOST);
 const p = await ctx.newPage();
 const errors = new Set(); p.on('console', m => { if (m.type() === 'error') errors.add(`${p.url().replace(URL, '')}: ${m.text().slice(0, 200)}`); }); p.on('pageerror', e => errors.add(`${p.url().replace(URL, '')}: ${String(e).slice(0, 200)}`));
 // waits for the model are cut from the video: the page is painted magenta while one runs, and the encoder drops
@@ -73,9 +77,12 @@ await snap();
 
 // 2. a Prompt Request: what was asked, the blocks it proposes, what it reaches, the librarian's questions
 await go(scenes[1], '2 · Ask for a change: a Prompt Request', 'a librarian agent refines it with you — definition, impact, questions — before any code'); await hold(2500); await snap();
+// embedded cards load as they come into view — wait for them off camera
+const loaded = () => waitCut(() => p.waitForFunction(() => ![...document.querySelectorAll('span, div')].some(e => !e.childElementCount && /^loading/i.test(e.textContent.trim()) && e.getBoundingClientRect().bottom > 0 && e.getBoundingClientRect().top < innerHeight), null, { timeout: 20000 }).catch(() => {}), 0.3);
+await loaded();
 for (const h of ['Definition', 'Impact', 'Questions']) {
   const el = p.locator('h2', { hasText: new RegExp(`^${h}$`) }).first();
-  if (await el.count()) { await el.evaluate(e => e.scrollIntoView({ behavior: 'smooth', block: 'start' })); await hold(2600); }
+  if (await el.count()) { await el.evaluate(e => e.scrollIntoView({ behavior: 'smooth', block: 'start' })); await hold(900); await loaded(); await hold(2200); }
 }
 await snap();
 
@@ -150,8 +157,9 @@ await ctx.close(); await browser.close();
 console.log(`remember session: ${sid}`);
 if (errors.size) console.log(`console errors during the tour:\n${[...errors].join('\n')}`);
 const webm = readdirSync(OUT).find(f => f.endsWith('.webm')); renameSync(path.join(OUT, webm), path.join(OUT, 'tour.webm'));
+}
 // the magenta frames, at a steady 25 fps: one pixel per frame is enough to tell
-const px = spawnSync('ffmpeg', ['-v', 'error', '-i', path.join(OUT, 'tour.webm'), '-vf', 'fps=25,scale=1:1:flags=area', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { maxBuffer: 1 << 28 }).stdout;
+const px = spawnSync('ffmpeg', ['-v', 'error', '-i', path.join(OUT, 'tour.webm'), '-vf', `crop=${SIZE.width}:${SIZE.height}:0:0,fps=25,scale=1:1:flags=area`, '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { maxBuffer: 1 << 28 }).stdout;
 const runs = []; for (let n = 0; n < px.length / 3; n++) {
   const magenta = px[n * 3] > 200 && px[n * 3 + 1] < 80 && px[n * 3 + 2] > 200;
   if (magenta) { const last = runs.at(-1); if (last && last[1] === n - 1) last[1] = n; else runs.push([n, n]); }
@@ -159,7 +167,7 @@ const runs = []; for (let n = 0; n < px.length / 3; n++) {
 // a frame either side too, so no blend of the paint is left
 const keep = runs.length ? `select='not(${runs.map(([a, b]) => `between(n,${Math.max(0, a - 1)},${b + 1})`).join('+')})',setpts=N/25/TB,` : '';
 console.log('cut:', runs.map(([a, b]) => `${(a / 25).toFixed(1)}–${(b / 25).toFixed(1)} s`).join(', ') || 'nothing');
-// a gif at 5 fps, 900 px wide, one palette for the whole tour — under GitHub's 10 MB for an image
-const vf = 'fps=5,scale=900:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=80:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle';
-const r = spawnSync('ffmpeg', ['-y', '-i', path.join(OUT, 'tour.webm'), '-vf', 'fps=25,' + keep + vf, '-loop', '0', 'docs/tour.gif'], { stdio: 'inherit' });
+// a gif at 5 fps, 860 px wide, one palette for the whole tour — under GitHub's 10 MB for an image
+const vf = 'fps=5,scale=860:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=72:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle';
+const r = spawnSync('ffmpeg', ['-y', '-i', path.join(OUT, 'tour.webm'), '-vf', `crop=${SIZE.width}:${SIZE.height}:0:0,fps=25,` + keep + vf, '-loop', '0', 'docs/tour.gif'], { stdio: 'inherit' });
 process.exit(r.status ?? 1);

@@ -77,6 +77,9 @@ Graph      for software and agents to reason over
 The Markdown is canonical and the graph is derived from it. There is no separate knowledge database you have to trust
 as the source of truth.
 
+![A requirements document, with one requirement opened in the column](docs/screenshots/document.png)
+*A document of requirements. Every block is a node; opened in the column, its links are editable.*
+
 ## The idea in one example
 
 *An illustration.* Say the product definition contains:
@@ -143,6 +146,9 @@ A Prompt Request describes what you want to change before an agent changes the c
 behaviour changes, what stays the same, which questions are open, and what the change may reach. A *librarian* agent
 refines it with you. It writes a summary of what will be built, asks questions, and proposes the blocks the request
 needs. The librarian never writes code: its job is to understand the change.
+
+![A Prompt Request: readiness, approve, and the blocks it proposes](docs/screenshots/pr.png)
+*A Prompt Request: its readiness checks, Approve, and every node the change may touch.*
 
 ### 3. Understand the impact
 
@@ -298,6 +304,9 @@ Wye parses the documents into nodes and relationships. The graph can then answer
 The files stay usable without Wye: read them on GitHub, edit them in any editor, diff them, branch them, review their
 history.
 
+![The Knowledge page: everything the product knows, by kind](docs/screenshots/knowledge.png)
+*Knowledge: everything the product knows, by kind.*
+
 ## The type system is open
 
 Wye has base types such as `req:`, `rule:`, `decision:`, `constraint:`, `goal:`, `entity:`, `question:`, `task:`,
@@ -313,6 +322,9 @@ Wye has base types such as `req:`, `rule:`, `decision:`, `constraint:`, `goal:`,
 Declare the type as a card in any document and its instances join the same graph. See
 [docs/type-system.md](docs/type-system.md) for the full model.
 
+![The Types page: each type with its parent, properties and instances](docs/screenshots/types.png)
+*Types: each kind with what it extends, its properties and how many instances it has.*
+
 ## The Constitution
 
 Some constraints matter to every change, even when no code can enforce them:
@@ -326,6 +338,8 @@ Agents may propose knowledge but may not approve it.
 
 Wye calls these product-level constraints the **Constitution**. The approved ones go verbatim into every agent's
 system prompt, so they are hard to lose between sessions.
+
+![The Constitution page](docs/screenshots/constitution.png)
 
 ## Ask
 
@@ -342,6 +356,9 @@ A question gets two answers at once: a fast one in a few seconds, and a deeper o
 follows the graph and reads the code while you watch the sources it opens. Answers cite their sources, so you can
 check them rather than trust unsupported model output. The index is local; nothing leaves the machine except the
 answering model call.
+
+![Ask: a cited answer and the sources the deeper search found](docs/screenshots/ask.png)
+*Ask: a cited answer, the sources the deeper search found, and the passages behind it.*
 
 ## Remember
 
@@ -365,6 +382,8 @@ A detail goes onto the block that already holds it, and a newer state supersedes
 place, it asks you about. Everything stays proposed until reviewed. The goal is not to store every conversation
 forever; it is to pull durable knowledge out of passing communication.
 
+![Remember: a pasted note, about to be filed](docs/screenshots/remember.png)
+
 ## The Inbox
 
 Everything newly proposed waits in one place: new requirements and decisions, changed facts, edits to existing blocks
@@ -372,6 +391,8 @@ Everything newly proposed waits in one place: new requirements and decisions, ch
 
 The Inbox is a review surface, not another source of truth: approving a block changes its status in the Markdown
 document it lives in.
+
+![The Inbox: proposed blocks and contradictions waiting for review](docs/screenshots/inbox.png)
 
 ## Tables and queries
 
@@ -388,16 +409,22 @@ every commitment, grouped by project
 Filters write the SQL for you; you can edit it, or describe the table in words and let an agent write the query. See
 [docs/query.md](docs/query.md).
 
+![A table's filter opened: the SQL it runs, and an agent ready to write one](docs/screenshots/table.png)
+
 ## Mind maps
 
 A **map** page is the same knowledge as a canvas: its nodes are blocks and its links are the graph's edges. Add a
 node, grow a child, draw a link and name it. Everything you draw is written back to the documents.
+
+![A mind map of the decisions behind Wye's memory](docs/screenshots/map.png)
 
 ## Work
 
 Tasks live wherever they make sense: under a requirement, in a design, in a Prompt Request, next to a decision. The
 **Work** view collects them into one board, grouped by status, document, dependency or readiness. Each task belongs to
 the knowledge that created it; the board is just another view over the graph.
+
+![The Work board](docs/screenshots/work.png)
 
 ## Coding agents
 
