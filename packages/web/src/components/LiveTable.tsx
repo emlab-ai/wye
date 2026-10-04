@@ -117,7 +117,7 @@ export function LiveTable({ product, kind, query, view, type, head, onQuery, pag
         {(table?.statuses ?? []).length > 1 && <label>status <select value={f.status} onChange={e => set({ status: e.target.value })}><option value="">any</option>{table!.statuses.map(([s, n]) => <option key={s} value={s}>{s} ({n})</option>)}</select></label>}
         <label><input type="checkbox" checked={f.done === 'show'} onChange={e => set({ done: e.target.checked ? 'show' : '' })} /> show done</label>
       </fieldset>
-      <SqlBox sql={sql} custom={custom} onRun={q => set({ sql: q && oneLine(q) !== oneLine(generated) ? oneLine(q) : '' })} />
+      <SqlBox sql={sql} custom={custom} ctx={{ product, kind, page, me: table?.me }} onRun={q => set({ sql: q && oneLine(q) !== oneLine(generated) ? oneLine(q) : '' })} />
     </div>
   );
   const count = res ? `${ids.length}${res.truncated ? '+' : ''}` : '…';
@@ -243,13 +243,29 @@ const plainTitle = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').repl
 
 // the SQL under a table's filter bar: what the switches made, or the table's own once edited — Run (⌘↵) keeps it on
 // the table's marker; "Back to filters" drops it
-export function SqlBox({ sql, custom, onRun }: { sql: string; custom: boolean; onRun: (q: string) => void }) {
+export function SqlBox({ sql, custom, ctx, onRun }: { sql: string; custom: boolean; ctx: { product: string; kind: string; page?: string; me?: string[] }; onRun: (q: string) => void }) {
   const [v, setV] = useState(sql); const [msg, setMsg] = useState('');
+  // ask an agent (decision:wf2.query-from-words): the words → a query the server has run once → into the box, and run
+  const [ask, setAsk] = useState(''); const [busy, setBusy] = useState(false);
+  const write = async () => {
+    if (!ask.trim() || busy) return; setBusy(true); setMsg('');
+    try {
+      const r = await fetch(`/api/${ctx.product}/query/write`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ask, sql: v, kind: ctx.kind, page: ctx.page, me: ctx.me }) });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.sql) { setV(j.sql); setAsk(''); onRun(j.sql); } else { if (j.sql) setV(j.sql); setMsg(j.message ?? 'the agent could not write a query'); }
+    } catch (e) { setMsg(String(e)); } finally { setBusy(false); }
+  };
+  const askKeys = useKeys(e => { if (e.key === 'Enter') { e.preventDefault(); void write(); } });
   useEffect(() => setV(sql), [sql]);
   const go = () => { const q = v.trim(); if (q.includes('-->')) { setMsg('the query cannot contain -->'); return; } setMsg(''); onRun(q); };
   const keys = useKeys(e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); go(); } });
   return (
     <div className="sql-box" onMouseDown={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+      <div className="sql-ask">
+        <span className="sql-ask-mark" aria-hidden>✦</span>
+        <input ref={askKeys} value={ask} disabled={busy} spellCheck={false} data-gramm="false" placeholder="Ask an agent: what should this table show? e.g. open commitments with their project, soonest first" onChange={e => setAsk(e.target.value)} />
+        <button type="button" onClick={() => void write()} disabled={busy || !ask.trim()}>{busy ? 'writing…' : 'Write query'}</button>
+      </div>
       <textarea ref={keys} data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" data-lt-active="false" autoComplete="off" autoCorrect="off" value={v} rows={Math.min(10, Math.max(3, v.split('\n').length + 1))} spellCheck={false} onChange={e => setV(e.target.value)} />
       <div className="sql-actions">
         <button type="button" className="pri" onClick={go} disabled={v === sql}>Run ⌘↵</button>

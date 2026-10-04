@@ -836,3 +836,15 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - context:wf2.table-is-sql "we need to make it super simple, the default table must be added with SQL statement too, just point to current page, so any filter should just modify underlying SQL, and user can just change query" — approved with its two consequences: a page's table shows every item of its kind on the page (not only the rows typed into it), and a row's title is edited as plain text.
 
   - choice:wf2.table-is-sql lib/table-sql writes a table's SQL: `SELECT id FROM nodes WHERE kind = … AND page = '<folder>/<slug>' AND open ORDER BY coalesce(due, target), title`, one line per filter (status, search, due window, a column = value with has(), mine, sort); ⊕ whole product drops the page line. Edited and run, the SQL is the table's own (`sql="…"` on the marker, \" escaped; the marker takes any text but -->) and the switches step aside. The rows typed into a table stay its children in the file, hidden; the table shows the result: an `id` column makes rows items — a selected column that is the item's own property stays editable, a joined one shows — and an item this page defines is edited in the editor that holds the page, others through the node API. A page's table ends with a New row written under its marker. The engine gains `open`, `page` as folder/slug, has(cell, v), and the columns the SQL names even where unused (due, owner, state, target, project, part-of).
+
+```yaml
+- id: decision:wf2.query-from-words
+  title: A table's SQL can be asked for in words — an agent writes it from the graph's shape and the server runs it before the table does
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [component:instance-table]
+  part-of: module:req-shell
+```
+
+  - choice:wf2.query-from-words ✦ Ask an agent above a table's SQL: POST /api/<product>/query/write { ask, sql, kind, page, me } — one `claude -p` call without tools (ASK_MODEL) given the columns of nodes, the kinds and edge verbs with counts, and the table's kind, page and current SQL; the server runs the query (one retry with the engine's message) and returns it; the table puts it in the box and runs it like a query typed by hand.

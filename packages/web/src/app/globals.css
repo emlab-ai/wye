@@ -1316,3 +1316,8 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .live-filter-wrap { position: sticky; left: 0; } .sql-box textarea { white-space: pre-wrap; overflow-wrap: anywhere; }
 /* the bar and the SQL stay the width of what is visible while a wide table scrolls under them */
 .bn-block:has(> .react-renderer.node-collection) { container-type: inline-size; } .live-filter-wrap { width: min(100%, 100cqw); box-sizing: border-box; }
+/* ask an agent for a table's query (decision:wf2.query-from-words) */
+.sql-ask { display: flex; align-items: center; gap: 8px; } .sql-ask-mark { color: var(--accent); }
+.sql-ask input { flex: 1; min-width: 0; font: 13px var(--font-b); color: var(--ink); background: var(--ground); border: 1px solid var(--line-2); border-radius: 8px; padding: 6px 10px; }
+.sql-ask input:focus { border-color: var(--accent); outline: none; }
+.sql-ask button { font: 12px var(--font-b); border: 1px solid var(--accent); color: var(--accent); background: none; border-radius: 6px; padding: 4px 10px; cursor: pointer; white-space: nowrap; } .sql-ask button:disabled { opacity: .5; cursor: default; }

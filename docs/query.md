@@ -29,6 +29,15 @@ ORDER BY coalesce(due, target), title
 - **Edit the SQL and Run (⌘↵).** The query is now the table's own: it is saved on the table's marker in the page,
   the switches step aside, and **Back to filters** returns to them.
 
+### Ask an agent for the query
+
+Above the SQL is **✦ Ask an agent**: say what the table should show, in words ("open commitments with their project,
+soonest first", "Lee's and Dana's, by owner") and press Enter or **Write query**. A quick Claude call (no tools) writes
+the query from this product's real columns, kinds and link verbs, and from the table's kind, page and current SQL, so
+it can refine what is there. The server runs it before handing it back; a query that fails goes back to the agent once
+with the error. The query lands in the box and the table runs it; edit it or go **Back to filters** as with any query.
+It needs the `claude` command line signed in (as the rest of Wye's agents do); `WYE_ASK_MODEL` picks the model.
+
 ### What the rows are
 
 - **A result with an `id` column is items.** Each row opens the item, and its status changes in place. When the
