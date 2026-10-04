@@ -10,7 +10,7 @@ export type ColumnKind = 'enum' | 'bool' | 'ref' | 'string';
 export interface Column { name: string; kind: ColumnKind; options?: string[]; ref?: string; many?: boolean }
 export interface InstanceRow { id: string; kind: string; title: string; status: string; file: string; doc: string; props: Record<string, string>; rels?: { verb: string; to: string }[]; text?: string }
 export interface InstanceTable { slug: string; typed: boolean; columns: Column[]; rows: InstanceRow[]; statuses: [string, number][] }
-export interface Filters { q: string; status: string; group: string; sort: string; props: Record<string, string> }
+export interface Filters { q: string; status: string; group: string; sort: string; props: Record<string, string>; /** 'show': completed rows are listed (a table hides them by default) */ done?: string }
 
 export const EMPTY_FILTERS: Filters = { q: '', status: '', group: '', sort: '', props: {} };
 const NONE = '—';
@@ -69,11 +69,11 @@ export function parseFilters(params: URLSearchParams | Record<string, string | u
   const get = (k: string) => (params instanceof URLSearchParams ? params.get(k) : params[k]) ?? '';
   const props: Record<string, string> = {};
   for (const c of [...columns, 'part-of']) if (get(c)) props[c] = get(c);
-  return { q: get('q'), status: get('status'), group: get('group'), sort: get('sort'), props };
+  return { q: get('q'), status: get('status'), group: get('group'), sort: get('sort'), props, ...(get('done') ? { done: get('done') } : {}) };
 }
 export function filtersToQuery(f: Filters): string {
   const p = new URLSearchParams();
-  for (const [k, v] of Object.entries({ q: f.q, status: f.status, group: f.group, sort: f.sort, ...f.props })) if (v) p.set(k, v);
+  for (const [k, v] of Object.entries({ q: f.q, status: f.status, group: f.group, sort: f.sort, done: f.done ?? '', ...f.props })) if (v) p.set(k, v);
   return p.toString().replace(/%3A/g, ':').replace(/%2F/g, '/');
 }
 
@@ -130,5 +130,5 @@ export function parseViewQuery(query: string, columns: string[]): Filters {
   return parseFilters(m, columns);
 }
 export function viewQuery(f: Filters): string {
-  return Object.entries({ q: f.q, status: f.status, group: f.group, sort: f.sort, ...f.props }).filter(([, v]) => v).map(([k, v]) => `${k}=${/\s/.test(v) ? `"${v}"` : v}`).join(' ');
+  return Object.entries({ q: f.q, status: f.status, group: f.group, sort: f.sort, done: f.done ?? '', ...f.props }).filter(([, v]) => v).map(([k, v]) => `${k}=${/\s/.test(v) ? `"${v}"` : v}`).join(' ');
 }

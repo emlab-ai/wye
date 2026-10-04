@@ -506,8 +506,15 @@ function useTableFilter(editor: EditorLike, block: AnyBlock, kids: AnyBlock[], t
   const active = !!(f.q || f.status || Object.values(f.props).some(Boolean));
   const kept = active ? new Set(filterRows(irows, { ...f, group: '', sort: '' }).map(r => r.id)) : null;
   // a row gets its slug at the first keystroke, so "no slug yet" is not enough: the row the cursor is in stays visible
-  let cursor = ''; try { cursor = editor.getTextCursorPosition?.().block.id ?? ''; } catch { /* no selection */ }
-  const hidden = new Set(kept ? rows.filter(k => !kept.has(asRow(k).id) && String((k as { id?: string }).id) !== cursor).map(k => String((k as { id?: string }).id)) : []);
+  // only while the editor has focus: with no selection BlockNote still names a block, and that row was never hidden
+  let cursor = ''; try { if ((editor as { isFocused?: () => boolean }).isFocused?.()) cursor = editor.getTextCursorPosition?.().block.id ?? ''; } catch { /* no selection */ }
+  // completed rows are hidden by default (rule:table-hides-done) — but not the instant they are completed: a row seen
+  // open since this page was opened stays until the page is opened again, so ticking it off does not make it vanish
+  const wasOpen = useRef(new Set<string>());
+  for (const k of rows) if (!DONE_STATUSES.has((k.props as unknown as RowP).status)) wasOpen.current.add(String((k as { id?: string }).id));
+  const showDone = f.done === 'show' || DONE_STATUSES.has(f.status);
+  const doneAway = showDone ? [] : rows.filter(k => DONE_STATUSES.has((k.props as unknown as RowP).status) && !wasOpen.current.has(String((k as { id?: string }).id)));
+  const hidden = new Set([...(kept ? rows.filter(k => !kept.has(asRow(k).id)) : []), ...doneAway].map(k => String((k as { id?: string }).id)).filter(id => id !== cursor));
   // the hidden rows are a stylesheet the header owns: BlockNote may rebuild a row's wrapper at any time, a style
   // element React renders survives that where an attribute set on the wrapper would not
   // zero height + clipped rather than display: none: a row taken out of layout entirely made ProseMirror map a click
@@ -519,9 +526,11 @@ function useTableFilter(editor: EditorLike, block: AnyBlock, kids: AnyBlock[], t
   const setProp = (name: string, v: string) => setF({ ...f, props: { ...f.props, [name]: f.props[name] === v ? '' : v } });
   const chipCols = type ? type.cols.filter(c => c.enum || c.type === 'bool') : [];
   const selectCols = type ? type.cols.filter(c => c.ref && !c.enum) : [{ name: 'owner', type: 'string', enum: null, ref: null, required: false }];
-  const toggle = (
+  const doneCount = rows.filter(k => DONE_STATUSES.has((k.props as unknown as RowP).status)).length;
+  const toggle = (<>
     <button type="button" className={`collection-filter-toggle ${active ? 'on' : ''}`} title={active ? 'filters set — click to show them' : 'filter the rows'} onMouseDown={e => e.stopPropagation()} onClick={() => setOpen(o => !o)}>⏷ filter{active ? ` ${kept!.size}/${rows.length}` : ''}</button>
-  );
+    {doneCount > 0 && !DONE_STATUSES.has(f.status) && <button type="button" className={`collection-filter-toggle ${f.done === 'show' ? 'on' : ''}`} title={f.done === 'show' ? 'hide the completed rows' : 'show the completed rows'} onMouseDown={e => e.stopPropagation()} onClick={() => setF({ ...f, done: f.done === 'show' ? '' : 'show' })}>{f.done === 'show' ? `✓ hide ${doneCount} done` : `✓ ${doneCount} done`}</button>}
+  </>);
   const bar = (open || active) ? (
     <div className="track-tools collection-filter" ref={stopEditorEvents} onMouseDown={e => e.stopPropagation()}>
       <div className="chips">

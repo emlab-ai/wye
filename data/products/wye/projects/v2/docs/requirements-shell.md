@@ -633,3 +633,17 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - context:wf2.import-drawings "there several excalidraw files in the imported folder, we have drawing component, so make sure they are imported too" — they came in as markdown pages showing the plugin's compressed data.
 
   - choice:wf2.import-drawings a `.excalidraw.md` note (or one with `excalidraw-plugin:` front matter) has its ```compressed-json (LZ-string) or ```json scene read; the scene goes to docs/drawings/<slug>.excalidraw and the page, named after the file, is `![Title](drawings/<slug>.excalidraw)` plus "Text in the drawing" with its words; it is `raw`, no agent. An empty drawing is skipped. `![[Drawing …]]` in another note of the import shows the drawing. A drawing with a scene but no preview gets its SVG, PNG and description the first time a page shows it.
+
+```yaml
+- id: decision:wf2.table-hides-done
+  title: A table of tasks or goals hides completed rows by default — but a row completed while the page is open stays until it is opened again
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [page:web/editor]
+  part-of: module:req-shell
+```
+
+  - context:wf2.table-hides-done "tasks/goals by default should hide completed items (but not immediately) if i complete item it must not dissapear immediately".
+
+  - choice:wf2.table-hides-done done, shipped and complete rows are hidden unless the table's filter says `done=show` (the "✓ n done" toggle in its header) or a done status is picked; a row seen open since the page was opened stays visible when it is completed, and goes on the next visit. The row the cursor is in is spared only while the editor has focus.
