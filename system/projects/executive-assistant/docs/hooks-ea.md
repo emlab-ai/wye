@@ -29,9 +29,9 @@ time by editing its `on:` line — `time.weekdays 08:00`, `time.fri 16:00`, `tim
   do: run workflow:ea.weekly-review
   status: active
 - id: hook:ea.one-on-one-prep
-  title: A pushed 1:1 is prepared
+  title: A pushed 1:1 is prepared — only one still to come (not a past 1:1 from an import of old notes)
   on: meeting.created
-  where: prop=format:1on1
+  where: prop=format:1on1 upcoming=date
   do: run workflow:ea.one-on-one
   once: true
   status: active

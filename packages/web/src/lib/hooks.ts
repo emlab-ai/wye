@@ -98,14 +98,16 @@ export function eventsFromDiff(before: GraphData, after: GraphData, changes: Blo
 }
 
 // Does a `where` filter hold for the node? document=<slug glob> (the document it lives in), type=<slug> (its kind),
-// status=<x>, prop=<key>:<value> (a key on its card), role=<r> (a session event's role). Unknown keys never match.
-export function whereMatches(where: Record<string, string>, node: GraphNode | undefined, ev: HookEvent): boolean {
+// status=<x>, prop=<key>:<value> (a key on its card), role=<r> (a session event's role), upcoming=<key> (the card's
+// date under that key is today or later — a meeting from an import of old notes is not prepared). Unknown keys never match.
+export function whereMatches(where: Record<string, string>, node: GraphNode | undefined, ev: HookEvent, today = new Date().toISOString().slice(0, 10)): boolean {
   for (const [k, v] of Object.entries(where)) {
     if (k === 'document') { if (!node) return false; const re = new RegExp('^' + v.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$'); if (!re.test(docSlug(node))) return false; }
     else if (k === 'type') { if ((node?.kind ?? ev.kind) !== v) return false; }
     else if (k === 'status') { if ((node?.status ?? '') !== v) return false; }
     else if (k === 'prop') { const c = v.indexOf(':'); const key = c > 0 ? v.slice(0, c) : v, want = c > 0 ? v.slice(c + 1) : ''; const got = node ? cardValue(node.body, key) : ''; if (!got || (want && got !== want)) return false; }
     else if (k === 'role') { if ((ev.role ?? '') !== v) return false; }
+    else if (k === 'upcoming') { const d = node ? cardValue(node.body, v).slice(0, 10) : ''; if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || d < today) return false; }
     else return false;
   }
   return true;

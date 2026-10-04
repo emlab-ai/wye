@@ -605,3 +605,17 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - context:wf2.wikilinks-to-links "obsidian allows to link items like [[item]], we need to convert it to our model, or we need to support this syntax too" — the agent converted some links and left others; 92 imported pages still had `[[…]]`.
 
   - choice:wf2.wikilinks-to-links converted, not supported as a second syntax: on import `[[Name]]`, `[[Name|shown]]`, `[[Name#Heading]]`, `[[Folder/Name]]` become `[shown](id)` — the product's things (people, projects, themes…) by title, name or alias first, then the files of the same import, then the product's pages by title or source file; Obsidian's matching (case, `_`/`-`, a leading `_`). `![[picture.png]]` becomes an image the import copies (found by name anywhere in the upload). An unmatched name stays `[[Name]]`; code is left alone. The import lane converts a page as it loads it, and its agent maps a leftover `[[Name]]` when the brief says who it is. scripts/convert-wikilinks.ts converts pages imported before. Typing `[[` in the editor is not part of this.
+
+```yaml
+- id: decision:wf2.hook-upcoming
+  title: A hook can fire only for what is still to come — `where: upcoming=<date key>`; the 1:1 prep hook uses it
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [component:hooks]
+  part-of: module:req-shell
+```
+
+  - context:wf2.hook-upcoming an Obsidian import created months-old 1:1 meetings and hook:ea.one-on-one-prep started a prep workflow for each — 26 runs queued; alex chose "cancel them, and skip past ones".
+
+  - choice:wf2.hook-upcoming `upcoming=<key>` in a hook's `where` holds when the card's date under that key is today or later; hook:ea.one-on-one-prep is `where: prop=format:1on1 upcoming=date` in the executive-assistant package.

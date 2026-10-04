@@ -84,6 +84,12 @@ describe('matching', () => {
   it('a session event filters by role without a node', () => {
     expect(whereMatches({ role: 'worker' }, undefined, { kind: 'session', id: 'session:1', event: 'done', role: 'worker' })).toBe(true);
     expect(whereMatches({ role: 'librarian' }, undefined, { kind: 'session', id: 'session:1', event: 'done', role: 'worker' })).toBe(false);
+    // upcoming=<key>: the card's date is today or later; an old meeting (an import of past notes) or none does not match
+    const meeting = (date: string) => ({ id: 'meeting:m', kind: 'meeting', title: 'm', status: '', section: '', subsection: '', body: `id: meeting:m\nformat: 1on1${date ? `\ndate: ${date}` : ''}`, defined: true, file: 'x.md', line: 1 }) as never;
+    const ev = { kind: 'meeting', id: 'meeting:m', event: 'created' } as never;
+    expect(whereMatches({ prop: 'format:1on1', upcoming: 'date' }, meeting('2026-10-04'), ev, '2026-10-04')).toBe(true);
+    expect(whereMatches({ prop: 'format:1on1', upcoming: 'date' }, meeting('2026-07-07'), ev, '2026-10-04')).toBe(false);
+    expect(whereMatches({ upcoming: 'date' }, meeting(''), ev, '2026-10-04')).toBe(false);
   });
 });
 
