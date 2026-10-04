@@ -765,3 +765,17 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - context:wf2.suggested-actions "to the digest add 'suggest actions', this list should be on top, generated with daily run or with hooks, i.e. when new information appears or with time, the guidance must be in skill (customisable), i.e. it must suggest to follow up on project if now changes recently made".
 
   - choice:wf2.suggested-actions a suggestion: type (the package's): the action as its title, `about` one item, `why`, `suggested`, `source`; open until done or dismissed. The Digest's first section is a live table of the open ones. skill:ea.suggest-actions (editable rules: a project quiet 14+ days with open items, a reply owed 2+ days, a commitment about to slip, a person with a pile-up, a risk without a plan, a decision waiting, new information that changes something; at most seven) reads `wye ea digest context` — now with quiet projects (last activity from meetings, dated items, changes, met commitments) and the open suggestions — and writes with `wye ea suggest add | close` (the same action about the same item renews the open one). It runs from hook:ea.suggest-actions (weekdays 07:50) and hook:ea.suggest-on-new-information (`intake.done`, one event per push that changed something).
+
+```yaml
+- id: decision:wf2.digest-template
+  title: Digest is a system template — the assistant's Digest where the executive assistant is installed, a general one elsewhere
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [component:templates]
+  part-of: module:req-shell
+```
+
+  - context:wf2.digest-template "also make sure digest is part of a template (system one)".
+
+  - choice:wf2.digest-template templates/docs/digest.md, first in the New page's Template list: live tables of open tasks due within a week, your open tasks, goals, decisions waiting, open questions, and a Notes section. In a product that declares commitments and suggestions the same template makes the assistant's Digest (its seed page) as a page of its own; the daily summary and the suggestions still write to the seeded Digest (module:ea-digest).

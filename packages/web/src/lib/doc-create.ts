@@ -15,6 +15,12 @@ export async function createDocFromTemplate(scope: Scope, project: Project, o: {
   let tpl = '';
   try { tpl = await readFile(path.join(REPO_ROOT, 'templates/docs', `${o.template}.md`), 'utf8'); }
   catch { return { ok: false, error: 'invalid', message: `unknown template ${o.template}` }; }
+  // the Digest in a product with the executive assistant (it declares commitments and suggestions) is the assistant's:
+  // its seed page, as a page of its own (decision:wf2.digest-template)
+  if (o.template === 'digest' && ['commitment', 'suggestion'].every(t => (scope.graph.types ?? []).some(x => x.slug === t))) {
+    const seed = await readFile(path.join(path.resolve(process.env.WYE_SYSTEM || path.join(REPO_ROOT, 'system')), 'projects', 'executive-assistant', 'seed', 'digest.md'), 'utf8').catch(() => '');
+    if (seed) tpl = seed.replace(/^node:.*$/m, 'node: {{kind}}:{{slug}}').replace(/^title:.*$/m, 'title: {{title}}').replace(/^seed-pin:.*\n/m, '').replace(/^# .*$/m, '# {{title}}').replace(/^(owner:.*)$/m, '$1\nlast-verified: {{date}}\npart-of: {{parent}}');
+  }
   // a template whose node line names a kind (`node: map:{{slug}}`) is a template for pages of that kind: picking it is
   // picking the type, so the caller need not say both. A caller that does say wins.
   const kind = (o.kind ?? tpl.match(/^node:\s*([a-z][a-z0-9-]*):\{\{slug\}\}/m)?.[1] ?? 'module').trim();

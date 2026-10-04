@@ -1,4 +1,4 @@
-export const TEMPLATES = ['blank', 'prd', 'dev-design', 'test-design', 'plan', 'research', 'map', 'timeline'] as const;
+export const TEMPLATES = ['blank', 'digest', 'prd', 'dev-design', 'test-design', 'plan', 'research', 'map', 'timeline'] as const;
 export type TemplateName = typeof TEMPLATES[number];
 
 export function slugify(title: string): string {
@@ -17,6 +17,7 @@ export function instantiate(template: string, vars: { title: string; slug: strin
 // What the New page sheet says about each template (its picker: a list, the hovered one described on the right).
 // `sections`: the headings the page starts with.
 export const TEMPLATE_INFO: Record<Exclude<TemplateName, 'blank'>, { title: string; icon: string; description: string; sections: string[] }> = {
+  digest: { title: 'Digest', icon: '🧭', description: 'Everything that asks something of you, live: tables of the matching items from the whole product, edited in place. With the executive assistant installed it is the assistant\u2019s Digest — suggested actions, commitments, Slack threads and emails waiting, projects, risks and the daily summary; elsewhere your open tasks, what is due, goals, decisions waiting and open questions.', sections: ['Needs you now', 'Goals', 'Waiting on a decision', 'Open questions', 'Notes'] },
   prd: { title: 'Product requirements', icon: '📋', description: 'What a feature must do and why: the problem, the goals and what is out of scope, then requirements a person can check from outside (when / then / unless), with their coverage and the questions still open.', sections: ['Problem statement', 'Goals and non-goals', 'Requirements', 'Coverage', 'Open questions'] },
   'dev-design': { title: 'Technical design', icon: '🛠', description: 'How it is built: the entities and their fields, value objects and enums, state machines, the operations, the pages and their actions, and the rules the code enforces.', sections: ['Overview', 'Entities', 'Value objects and enums', 'State machines', 'Operations', 'Pages and actions', 'Rules'] },
   'test-design': { title: 'Test design', icon: '🧪', description: 'How it is verified: the tests, each tied to the requirement or rule it checks, collected in a verification index.', sections: ['Verification index'] },
