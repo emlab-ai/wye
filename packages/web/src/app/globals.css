@@ -551,7 +551,7 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .np-top { display: flex; align-items: center; gap: 8px; font: 14px var(--font-b); }
 .np-parent { appearance: none; -webkit-appearance: none; border: 0; background: none; color: var(--ink); font: 600 14px var(--font-b); cursor: pointer; padding: 4px 6px; border-radius: 6px; max-width: 320px; } .np-parent:hover { background: var(--sunk); }
 .np-spacer { flex: 1; } .np-x { border: 0; background: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 0 6px; border-radius: 6px; } .np-x:hover { background: var(--sunk); color: var(--ink); }
-.np-title { margin: 60px 0 0 96px; border: 0; background: none; color: var(--ink); font: 700 40px/1.15 var(--font-b); letter-spacing: -.02em; outline: none; width: calc(100% - 96px); } .np-title::placeholder { color: var(--line-2); }
+.np-title { margin: 32px 0 0 96px; border: 0; background: none; color: var(--ink); font: 700 40px/1.15 var(--font-b); letter-spacing: -.02em; outline: none; width: calc(100% - 96px); } .np-title::placeholder { color: var(--line-2); }
 .np-body { flex: 1; min-height: 160px; cursor: text; margin-left: 96px; }
 .np-hint { margin: 10px 0 0 4px; font: 15px var(--font-b); }
 .np-editor { margin: 4px 0 0 -14px; } .np-editor .doc-editor { margin: 0; } .np-editor .doc-editor-bar { display: none; } .np-editor .bn-container, .np-editor .bn-editor { background: transparent !important; --bn-colors-editor-background: transparent; }
@@ -1253,15 +1253,22 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .pg-row .pg-more:hover, .pg-row .pg-add:hover { color: var(--ink); background: var(--line); }
 .pg-row .pg-more:focus, .pg-row .pg-add:focus { outline: none; } .pg-row .pg-more:focus-visible, .pg-row .pg-add:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
-/* New page › Template: a vertical list of templates, the one under the pointer described on the right */
-.np-templates { display: grid; grid-template-columns: minmax(200px, 240px) 1fr; gap: 0; margin-top: 12px; max-width: 760px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); overflow: hidden; }
-.npt-list { list-style: none; margin: 0; padding: 6px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
-.npt-list button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 7px; background: none; color: var(--ink); font: 14px var(--font-b); text-align: left; cursor: pointer; }
-.npt-list button i { font-style: normal; width: 20px; text-align: center; } .npt-list button.on { background: var(--sunk); }
-.npt-about { padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.npt-about h4 { margin: 0; font: 600 16px var(--font-b); display: flex; align-items: center; gap: 8px; } .npt-about h4 i { font-style: normal; }
-.npt-about p { margin: 0; color: var(--ink-2); font: 14px/1.5 var(--font-b); }
-.npt-about ol { margin: 0; padding-left: 20px; color: var(--ink-2); font: 13px/1.6 var(--font-b); }
-.npt-about .pri { align-self: flex-start; margin-top: 6px; background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); border-radius: 7px; padding: 6px 14px; font: 500 13px var(--font-b); cursor: pointer; }
-@media (max-width: 640px) { .np-templates { grid-template-columns: 1fr; } .npt-list { border-right: 0; border-bottom: 1px solid var(--line); } }
+/* New page: the start options are the sheet's tabs, on top; a picker (templates, types) fills the sheet under them */
+.np-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 0 12px; margin: 0 0 8px; border-bottom: 1px solid var(--line); }
+.np-tab { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; border: 0; border-radius: 8px; background: none; color: var(--ink-2); font: 500 14px var(--font-b); cursor: pointer; }
+.np-tab i { font-style: normal; } .np-tab:hover { background: var(--sunk); color: var(--ink); } .np-tab.on { background: var(--sunk); color: var(--ink); box-shadow: inset 0 -2px 0 var(--accent); }
+.np-tabs-sep { flex: 1; } .np-tabs .np-chip { padding: 6px 12px; font-size: 13px; }
+.np-open { display: flex; align-items: center; gap: 12px; }
+.np-picker { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.np-picker-title { border: 0; background: none; font: 600 26px var(--font-b); color: var(--ink); padding: 4px 2px; outline: none; } .np-picker-title::placeholder { color: var(--muted); font-weight: 500; }
+.np-picker-body { flex: 1; min-height: 340px; display: grid; grid-template-columns: minmax(220px, 280px) 1fr; border: 1px solid var(--line-2); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.npt-list { list-style: none; margin: 0; padding: 8px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.npt-list button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border: 0; border-radius: 8px; background: none; color: var(--ink); font: 15px var(--font-b); text-align: left; cursor: pointer; }
+.npt-list button i { font-style: normal; width: 22px; text-align: center; font-size: 16px; } .npt-list button.on { background: var(--sunk); font-weight: 500; }
+.npt-about { padding: 24px 28px; display: flex; flex-direction: column; gap: 14px; min-width: 0; overflow-y: auto; }
+.npt-about h3 { margin: 0; font: 600 22px var(--font-b); display: flex; align-items: center; gap: 10px; } .npt-about h3 i { font-style: normal; }
+.npt-about p { margin: 0; color: var(--ink-2); font: 15px/1.6 var(--font-b); max-width: 640px; }
+.npt-sections ol { margin: 6px 0 0; padding-left: 22px; color: var(--ink-2); font: 14px/1.8 var(--font-b); }
+.npt-about .pri { align-self: flex-start; margin-top: auto; background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 18px; font: 500 14px var(--font-b); cursor: pointer; }
+@media (max-width: 720px) { .np-picker-body { grid-template-columns: 1fr; } .npt-list { border-right: 0; border-bottom: 1px solid var(--line); max-height: 220px; } }
 .modal.np-sheet { overflow-y: auto; }   /* the template list can be taller than a short window: the sheet scrolls */

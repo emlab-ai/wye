@@ -72,6 +72,8 @@ export function NewPage({ product, project: initialProject, projects, docs, defa
   }
   const openPage = () => { if (page) { onClose(); router.push(`/${product}/${page.project}/d/${page.slug}`); } };
   const chip = (label: string, icon: string, onClick: () => void, extra?: string) => <button type="button" className={`np-chip ${extra ?? ''}`} onClick={onClick} disabled={busy}><i>{icon}</i>{label}</button>;
+  const tab = (label: string, icon: string, on: boolean, onClick: () => void) => <button type="button" role="tab" aria-selected={on} className={`np-tab ${on ? 'on' : ''}`} onClick={onClick} disabled={busy}><i>{icon}</i>{label}</button>;
+  const view: 'page' | 'template' | 'type' | 'import' = mode === 'import' ? 'import' : pick ?? 'page';
 
   return (
     <div className="modal-back np-back" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -85,33 +87,33 @@ export function NewPage({ product, project: initialProject, projects, docs, defa
           <span className="np-spacer" />
           <button type="button" className="np-x" onClick={onClose} aria-label="Close">×</button>
         </div>
-        {mode === 'page' && <>
-          <input ref={titleRef} autoFocus className="np-title" value={title} placeholder="New page" onChange={e => onTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' || e.key === 'ArrowDown') { e.preventDefault(); void ensurePage().then(() => setTimeout(() => (document.querySelector('.np-editor .bn-editor') as HTMLElement | null)?.focus(), 200)); } }} />
+        {/* what to start with — the sheet's tabs: Page (write), Template, Typed page and Import switch what fills the
+            sheet below; Ask an agent, Mind map, Timeline make the page at once */}
+        {!page && <div className="np-tabs" role="tablist">
+          {tab('Page', '✎', view === 'page', () => { setMode('page'); setPick(null); })}
+          {tab('Template', '▤', view === 'template', () => { setMode('page'); setPick('template'); })}
+          {ownTypes.length > 0 && tab('Typed page', '◇', view === 'type', () => { setMode('page'); setPick('type'); })}
+          {tab('Import…', '↥', view === 'import', () => { setMode('import'); setPick(null); })}
+          <span className="np-tabs-sep" />
+          {chip('Ask an agent', '⇢', () => create({ ask: true }))}
+          {chip('Mind map', '◈', () => create({ template: 'map' }))}
+          {chip('Timeline', '▤', () => create({ template: 'timeline' }))}
+        </div>}
+        {msg && <p className="notice">{msg}</p>}
+        {view === 'page' && <>
+          <input ref={titleRef} autoFocus className="np-title" value={title} placeholder="New page" onChange={e => onTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' || e.key === 'ArrowDown') { e.preventDefault(); void ensurePage().then(() => setTimeout(() => (document.querySelector('.np-editor .bn-editor') as HTMLElement | null)?.focus(), 300)); } }} />
           <div className="np-body" onClick={() => { if (!page) void ensurePage(); }}>
             {page
               ? <div className="np-editor"><PageEditor product={product} project={page.project} slug={page.slug} body={page.body} ifMatch={page.hash} autoFocus /></div>
               : <p className="np-hint muted">{busy ? 'Making the page…' : 'Type a title, or start writing here.'}</p>}
           </div>
-          {page && <div className="np-open"><button type="button" className="linkish" onClick={openPage}>Open as a page ↗</button></div>}
-          <div className="np-start">
-            <span className="muted">Get started with</span>
-            <div className="np-chips">
-              {chip('Ask an agent', '⇢', () => create({ ask: true }))}
-              {!page && chip('Import…', '↥', () => setMode('import'))}
-              {!page && chip('Template', '▤', () => setPick(p => (p === 'template' ? null : 'template')), pick === 'template' ? 'on' : '')}
-              {!page && ownTypes.length > 0 && chip('Typed page', '◇', () => setPick(p => (p === 'type' ? null : 'type')), pick === 'type' ? 'on' : '')}
-              {!page && chip('Mind map', '◈', () => create({ template: 'map' }))}
-              {!page && chip('Timeline', '▤', () => create({ template: 'timeline' }))}
-              {!page && chip('Blank', '＋', () => ensurePage())}
-            </div>
-            {pick === 'template' && <TemplatePicker busy={busy} onPick={t => create({ template: t })} />}
-            {pick === 'type' && <div className="np-picks">{ownTypes.map(t => <button key={t.slug} type="button" onClick={() => create({ type: t.slug })} disabled={busy} title={t.slug}>{t.slug}</button>)}</div>}
-            {msg && <p className="notice">{msg}</p>}
-            {parentDoc && <p className="muted small">under {parentDoc.icon ? `${parentDoc.icon} ` : ''}{parentDoc.title}</p>}
-          </div>
+          {page && <div className="np-open">{chip('Ask an agent', '⇢', () => create({ ask: true }))}<button type="button" className="linkish" onClick={openPage}>Open as a page ↗</button></div>}
         </>}
-        {mode === 'import' && <div className="np-import">
-          <button type="button" className="linkish" onClick={() => setMode('page')}>‹ New page</button>
+        {view === 'template' && <Picker busy={busy} title={title} onTitle={onTitle} label="Templates" onPick={k => create({ template: k })}
+          items={TEMPLATES.filter((t): t is TemplateKey => t !== 'blank').map(k => ({ key: k, ...TEMPLATE_INFO[k], use: `Use ${TEMPLATE_INFO[k].title.toLowerCase()}` }))} />}
+        {view === 'type' && <Picker busy={busy} title={title} onTitle={onTitle} label="Types" onPick={k => create({ type: k })}
+          items={ownTypes.map(t => ({ key: t.slug, icon: '◇', title: t.slug.replace(/-/g, ' ').replace(/^./, c => c.toUpperCase()), description: `A ${t.slug} page: its own card with the type's fields, filled in as you write.`, sections: t.cols.map(c => `${c.name}${c.required ? '' : ' (optional)'} — ${c.ref ? `link to ${c.ref}` : c.enum ? c.enum.join(' / ') : c.type}`), sectionsLabel: 'Fields', use: `New ${t.slug}` }))} />}
+        {view === 'import' && <div className="np-import">
           <ImportDocs product={product} project={effectiveProject} projects={projects} docs={docs} defaultParent={parentDoc?.slug ?? ''} initial={initial} onClose={onClose} />
         </div>}
       </div>
@@ -119,29 +121,32 @@ export function NewPage({ product, project: initialProject, projects, docs, defa
   );
 }
 
-// The template picker: every template in a list on the left; the one under the pointer (or the keyboard) is described
-// on the right — what the page is for and the sections it starts with. A click, or Enter, makes the page from it.
+// A picker that fills the sheet under its tabs (templates, the product's types): the list on the left; the item under
+// the pointer (or the keyboard) described on the right — what it is for and what it starts with — and the new page's
+// title above, so a template page can be named before it is made. A click, Enter or the button makes the page.
 type TemplateKey = keyof typeof TEMPLATE_INFO;
-function TemplatePicker({ busy, onPick }: { busy: boolean; onPick: (t: TemplateKey) => void }) {
-  const keys = TEMPLATES.filter((t): t is TemplateKey => t !== 'blank');
-  const [hot, setHot] = useState<TemplateKey>(keys[0]);
-  const info = TEMPLATE_INFO[hot];
-  const move = (d: number) => setHot(k => keys[(keys.indexOf(k) + d + keys.length) % keys.length]);
-  const box = useRef<HTMLDivElement>(null);
-  useEffect(() => { box.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, []);   // opened below the fold of a short window: bring it up
+type PickItem = { key: string; icon: string; title: string; description: string; sections: string[]; sectionsLabel?: string; use: string };
+function Picker({ items, busy, title, onTitle, label, onPick }: { items: PickItem[]; busy: boolean; title: string; onTitle: (t: string) => void; label: string; onPick: (key: string) => void }) {
+  const [hot, setHot] = useState(items[0]?.key ?? '');
+  const info = items.find(i => i.key === hot) ?? items[0];
+  const move = (d: number) => setHot(k => { const n = items.findIndex(i => i.key === k); return items[(n + d + items.length) % items.length].key; });
+  if (!info) return <p className="muted np-empty">Nothing to pick from.</p>;
   return (
-    <div ref={box} className="np-templates" onKeyDown={e => { if (e.key === 'ArrowDown') { e.preventDefault(); move(1); } else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); } }}>
-      <ul className="npt-list" role="listbox" aria-label="Templates">
-        {keys.map(k => (
-          <li key={k}><button type="button" role="option" aria-selected={k === hot} className={k === hot ? 'on' : ''} disabled={busy}
-            onMouseEnter={() => setHot(k)} onFocus={() => setHot(k)} onClick={() => onPick(k)}>
-            <i>{TEMPLATE_INFO[k].icon}</i>{TEMPLATE_INFO[k].title}</button></li>))}
-      </ul>
-      <div className="npt-about">
-        <h4><i>{info.icon}</i>{info.title}</h4>
-        <p>{info.description}</p>
-        {info.sections.length > 0 && <><span className="muted small">Starts with</span><ol>{info.sections.map(x => <li key={x}>{x}</li>)}</ol></>}
-        <button type="button" className="pri" disabled={busy} onClick={() => onPick(hot)}>Use {info.title.toLowerCase()}</button>
+    <div className="np-picker" onKeyDown={e => { if (e.key === 'ArrowDown') { e.preventDefault(); move(1); } else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); } else if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'BUTTON') { e.preventDefault(); onPick(hot); } }}>
+      <input className="np-picker-title" value={title} placeholder="Title of the new page (optional)" onChange={e => onTitle(e.target.value)} />
+      <div className="np-picker-body">
+        <ul className="npt-list" role="listbox" aria-label={label}>
+          {items.map(it => (
+            <li key={it.key}><button type="button" role="option" aria-selected={it.key === hot} className={it.key === hot ? 'on' : ''} disabled={busy}
+              onMouseEnter={() => setHot(it.key)} onFocus={() => setHot(it.key)} onClick={() => onPick(it.key)}>
+              <i>{it.icon}</i><span>{it.title}</span></button></li>))}
+        </ul>
+        <div className="npt-about">
+          <h3><i>{info.icon}</i>{info.title}</h3>
+          <p>{info.description}</p>
+          {info.sections.length > 0 && <div className="npt-sections"><span className="muted small">{info.sectionsLabel ?? 'Starts with'}</span><ol>{info.sections.map(x => <li key={x}>{x}</li>)}</ol></div>}
+          <button type="button" className="pri" disabled={busy} onClick={() => onPick(info.key)}>{busy ? 'Making the page…' : info.use}</button>
+        </div>
       </div>
     </div>
   );
