@@ -27,7 +27,7 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
     if (urlState && typeof window !== 'undefined') { const q = filtersToQuery(next); history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash); }
   };
   const setProp = (k: string, v: string) => set({ props: { ...f.props, [k]: f.props[k] === v ? '' : v } });
-  const rows = useMemo(() => sortRows(filterRows(table.rows, f), f.sort), [table.rows, f]);
+  const rows = useMemo(() => sortRows(filterRows(table.rows, f, { me: table.me }), f.sort), [table.rows, f, table.me]);
   const groups = useMemo(() => groupRows(rows, f.group), [rows, f.group]);
   // values a ref or free column actually holds, for its filter select
   const seen = (name: string) => { const s = new Set<string>(); for (const r of table.rows) for (const v of items(r.props[name] ?? '')) s.add(v); return [...s].sort(); };

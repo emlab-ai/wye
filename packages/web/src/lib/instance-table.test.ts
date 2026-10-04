@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { instanceTable, parseFilters, filterRows, groupRows, sortRows, filtersToQuery, parseViewQuery, viewQuery, type InstanceRow, coverageOf } from './instance-table';
+import { instanceTable, EMPTY_FILTERS, type Filters, parseFilters, filterRows, groupRows, sortRows, filtersToQuery, parseViewQuery, viewQuery, type InstanceRow, coverageOf } from './instance-table';
 import type { GraphData, GraphNode, TypeDef } from './graph';
 
 const P = (name: string, from: string, type: string, extra: Partial<TypeDef['props'][number]> = {}) => ({ name, from, type, ref: null, many: false, required: false, inverse: null, enum: null, ...extra });
@@ -91,5 +91,33 @@ describe('coverage', () => {
       .toEqual({ satisfiedBy: ['decision:d', 'op:o'], verifiedBy: ['test:t'], tasks: ['task:a'], gap: [] });
     expect(coverageOf(row({})).gap).toEqual(['no decision satisfies it', 'no test verifies it']);
     expect(coverageOf(row({ 'satisfied-by': 'decision:d' })).gap).toEqual(['no test verifies it']);
+  });
+});
+
+describe('open, due windows and owner=me', () => {
+  const row = (id: string, status: string, props: Record<string, string>) => ({ id, kind: 'commitment', title: id, status, file: '', doc: '', props });
+  const rows = [
+    row('late', 'proposed', { due: '2026-10-01', state: 'open', owner: 'person:ea.alex' }),
+    row('soon', 'proposed', { due: '2026-10-09', state: 'open', owner: 'Alex' }),
+    row('far', 'proposed', { due: '2026-11-30', state: 'open', owner: 'person:ea.kim' }),
+    row('met', 'proposed', { due: '2026-10-02', state: 'met' }),
+    row('done', 'done', { due: '2026-10-03' }),
+    row('nodate', 'proposed', {}),
+  ];
+  const ids = (f: Partial<Filters>, ctx = {}) => filterRows(rows, { ...EMPTY_FILTERS, ...f }, { today: '2026-10-05', ...ctx }).map(r => r.id);
+  it('open=1 drops done, met, dropped, answered', () => expect(ids({ open: '1' })).toEqual(['late', 'soon', 'far', 'nodate']));
+  it('due windows count from today, late included in a window; no date never matches', () => {
+    expect(ids({ due: 'late', open: '1' })).toEqual(['late']);
+    expect(ids({ due: '7d', open: '1' })).toEqual(['late', 'soon']);
+    expect(ids({ due: 'today' })).toEqual(['late', 'met', 'done']);
+  });
+  it('owner=me matches the director by id or by any name', () => {
+    expect(ids({ props: { owner: 'me' } }, { me: ['person:ea.alex', 'Alex'] })).toEqual(['late', 'soon']);
+    expect(ids({ props: { owner: 'me' } })).toEqual([]);
+  });
+  it('the new keys go to and come back from the view line', () => {
+    const f = parseViewQuery('open=1 due=7d owner=me', ['owner']);
+    expect(f.open).toBe('1'); expect(f.due).toBe('7d'); expect(f.props.owner).toBe('me');
+    expect(viewQuery(f)).toBe('open=1 due=7d owner=me');
   });
 });

@@ -9,8 +9,8 @@ import { docRoute } from './doc';
 export type ColumnKind = 'enum' | 'bool' | 'ref' | 'string';
 export interface Column { name: string; kind: ColumnKind; options?: string[]; ref?: string; many?: boolean }
 export interface InstanceRow { id: string; kind: string; title: string; status: string; file: string; doc: string; props: Record<string, string>; rels?: { verb: string; to: string }[]; text?: string }
-export interface InstanceTable { slug: string; typed: boolean; columns: Column[]; rows: InstanceRow[]; statuses: [string, number][] }
-export interface Filters { q: string; status: string; group: string; sort: string; props: Record<string, string>; /** 'show': completed rows are listed (a table hides them by default) */ done?: string }
+export interface InstanceTable { slug: string; typed: boolean; columns: Column[]; rows: InstanceRow[]; statuses: [string, number][]; /** who `owner=me` means: the product's director and the names they go by */ me?: string[] }
+export interface Filters { q: string; status: string; group: string; sort: string; props: Record<string, string>; /** 'show': completed rows are listed (a table hides them by default) */ done?: string; /** '1': only what is still open — not done, met, dropped or answered */ open?: string; /** a window on the `due` date: 'late', 'today', '<n>d' (due within n days, late included) */ due?: string }
 
 export const EMPTY_FILTERS: Filters = { q: '', status: '', group: '', sort: '', props: {} };
 const NONE = '—';
@@ -69,11 +69,11 @@ export function parseFilters(params: URLSearchParams | Record<string, string | u
   const get = (k: string) => (params instanceof URLSearchParams ? params.get(k) : params[k]) ?? '';
   const props: Record<string, string> = {};
   for (const c of [...columns, 'part-of']) if (get(c)) props[c] = get(c);
-  return { q: get('q'), status: get('status'), group: get('group'), sort: get('sort'), props, ...(get('done') ? { done: get('done') } : {}) };
+  return { q: get('q'), status: get('status'), group: get('group'), sort: get('sort'), props, ...(get('done') ? { done: get('done') } : {}), ...(get('open') ? { open: get('open') } : {}), ...(get('due') ? { due: get('due') } : {}) };
 }
 export function filtersToQuery(f: Filters): string {
   const p = new URLSearchParams();
-  for (const [k, v] of Object.entries({ q: f.q, status: f.status, group: f.group, sort: f.sort, done: f.done ?? '', ...f.props })) if (v) p.set(k, v);
+  for (const [k, v] of Object.entries({ q: f.q, status: f.status, group: f.group, sort: f.sort, done: f.done ?? '', open: f.open ?? '', due: f.due ?? '', ...f.props })) if (v) p.set(k, v);
   return p.toString().replace(/%3A/g, ':').replace(/%2F/g, '/');
 }
 
@@ -87,12 +87,31 @@ const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/
 // a cell holds one value or a list `[a, b]`; a filter value matches the whole value or one item of the list
 const hasValue = (cell: string | undefined, want: string) => !!cell && (cell === want || items(cell).includes(want));
 
-export function filterRows(rows: InstanceRow[], f: Filters): InstanceRow[] {
+// what no longer asks anything of anyone: a done status, or a commitment met or dropped, a message answered
+export const CLOSED = new Set(['done', 'shipped', 'complete', 'met', 'dropped', 'answered', 'cancelled', 'rejected', 'retired', 'superseded', 'dismissed']);
+export const isOpen = (r: Pick<InstanceRow, 'status' | 'props'>) => !CLOSED.has(r.status) && !CLOSED.has(r.props.state ?? '');
+const addDays = (day: string, n: number) => { const d = new Date(`${day}T12:00:00`); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+// `due=late` (before today), `due=today` (today or late), `due=7d` (within a week, late included); no date: never in a window
+export function dueIn(due: string | undefined, window: string, today: string): boolean {
+  const d = (due ?? '').slice(0, 10); if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
+  if (window === 'late') return d < today;
+  if (window === 'today') return d <= today;
+  const n = window.match(/^(\d+)d$/)?.[1]; return n ? d <= addDays(today, Number(n)) : true;
+}
+// `ctx.me`: who `owner=me` (or any column `=me`) means; `ctx.today`: the local day the windows count from
+export function filterRows(rows: InstanceRow[], f: Filters, ctx: { me?: string[]; today?: string } = {}): InstanceRow[] {
   const q = f.q.trim().toLowerCase();
+  const today = ctx.today ?? new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   return rows.filter(r => {
     if (q && !(r.id.toLowerCase().includes(q) || plain(r.title).toLowerCase().includes(q) || (r.text ?? '').toLowerCase().includes(q) || Object.values(r.props).some(v => v.toLowerCase().includes(q)))) return false;
     if (f.status && r.status !== f.status) return false;
-    for (const [k, v] of Object.entries(f.props)) if (v && !hasValue(r.props[k], v)) return false;
+    if (f.open === '1' && !isOpen(r)) return false;
+    if (f.due && !dueIn(r.props.due, f.due, today)) return false;
+    for (const [k, v] of Object.entries(f.props)) {
+      if (!v) continue;
+      if (v === 'me') { if (!(ctx.me ?? []).some(m => hasValue(r.props[k], m))) return false; continue; }
+      if (!hasValue(r.props[k], v)) return false;
+    }
     return true;
   });
 }
@@ -130,5 +149,5 @@ export function parseViewQuery(query: string, columns: string[]): Filters {
   return parseFilters(m, columns);
 }
 export function viewQuery(f: Filters): string {
-  return Object.entries({ q: f.q, status: f.status, group: f.group, sort: f.sort, done: f.done ?? '', ...f.props }).filter(([, v]) => v).map(([k, v]) => `${k}=${/\s/.test(v) ? `"${v}"` : v}`).join(' ');
+  return Object.entries({ q: f.q, status: f.status, group: f.group, sort: f.sort, done: f.done ?? '', open: f.open ?? '', due: f.due ?? '', ...f.props }).filter(([, v]) => v).map(([k, v]) => `${k}=${/\s/.test(v) ? `"${v}"` : v}`).join(' ');
 }
