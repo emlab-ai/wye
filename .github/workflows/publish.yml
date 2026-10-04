@@ -2,6 +2,9 @@
 # (v0.3.0 → 0.3.0), the tests run, `prepack` builds the app (packages/web/.next and the externals list,
 # scripts/externals-manifest.js), and npm publishes it with provenance. Run it by hand (Actions › Publish to npm ›
 # Run workflow) for a dry run: everything but the upload.
+#
+# No token: npm's Trusted Publishing trusts this workflow by its GitHub OIDC identity (npmjs.com › @emlab/wye ›
+# Settings › Trusted publishing: emlab-ai/wye, publish.yml). It needs npm 11.5.1 or later.
 name: Publish to npm
 
 on:
@@ -16,7 +19,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write   # npm provenance: the package says which workflow run built it
+  id-token: write   # Trusted Publishing and provenance: npm checks which workflow run is publishing
 
 concurrency:
   group: publish
@@ -36,6 +39,9 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: npm
 
+      - name: npm with Trusted Publishing (11.5.1+)
+        run: npm install -g npm@latest
+
       - run: npm ci --no-audit --no-fund
 
       - name: Version from the release tag
@@ -47,8 +53,6 @@ jobs:
       - name: Publish
         if: github.event_name == 'release' || inputs.dry-run == false
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Dry run
         if: github.event_name == 'workflow_dispatch' && inputs.dry-run
