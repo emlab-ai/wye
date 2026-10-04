@@ -108,7 +108,7 @@ export async function listPackages(system = systemRoot()): Promise<Package[]> {
 
 // `projects/<p>/.wye/packages.yaml`, one entry per package: package, installed, by, and the types this install declared
 // in the product (only those — a type the product already had is not the install's to remove)
-export type RecordEntry = { package: string; installed: string; by: string; types: string[] };
+export type RecordEntry = { package: string; installed: string; by: string; types: string[]; /** the seed pages this install copied into the project (once: a page deleted later is not copied again) */ seeded?: string[] };
 const recordFile = (projectDir: string) => path.join(projectDir, '.wye', 'packages.yaml');
 export const linkPath = (projectDir: string, pkg: string) => path.join(projectDir, '.wye', 'packages', pkg);
 
@@ -120,13 +120,14 @@ export function parseRecord(text: string): RecordEntry[] {
     if (!cur) continue;
     const v = m[3].trim();
     if (m[2] === 'types') cur.types = v.replace(/^\[|\]$/g, '').split(',').map(s => s.trim()).filter(Boolean);
+    else if (m[2] === 'seeded') cur.seeded = v.replace(/^\[|\]$/g, '').split(',').map(s => s.trim()).filter(Boolean);
     else if (m[2] === 'package' || m[2] === 'installed' || m[2] === 'by') cur[m[2]] = v;
   }
   return out.filter(e => e.package);
 }
 export function formatRecord(entries: RecordEntry[]): string {
   return '# What this project has installed from the system library (entity:install.record) — wye install / uninstall write it\n' +
-    entries.map(e => `- package: ${e.package}\n  installed: ${e.installed}\n  by: ${e.by}\n  types: [${e.types.join(', ')}]\n`).join('');
+    entries.map(e => `- package: ${e.package}\n  installed: ${e.installed}\n  by: ${e.by}\n  types: [${e.types.join(', ')}]\n${e.seeded?.length ? `  seeded: [${e.seeded.join(', ')}]\n` : ''}`).join('');
 }
 export async function readRecord(projectDir: string): Promise<RecordEntry[]> { return parseRecord(await readFile(recordFile(projectDir), 'utf8').catch(() => '')); }
 
@@ -157,6 +158,38 @@ export async function restoreLinks(productDir: string, system = systemRoot()): P
   return fixed;
 }
 
+// Seed pages (decision:ea.digest-is-a-page): `system/projects/<pkg>/seed/*.md` are pages the package gives the project
+// once — copied into its docs as the person's own (not linked: they are meant to be edited), never over a page that is
+// there, never again after the install recorded them (a seed deleted later stays deleted). `seed-pin: true` in a seed's
+// front matter pins the page to the top of the rail. Returns the seeds copied.
+export async function seedPages(productDir: string, projectDir: string, entry: RecordEntry, system = systemRoot()): Promise<string[]> {
+  const dir = path.join(system, 'projects', entry.package, 'seed');
+  let files: string[] = []; try { files = (await readdir(dir)).filter(f => f.endsWith('.md')); } catch { return []; }
+  const copied: string[] = [];
+  for (const f of files) {
+    const name = f.replace(/\.md$/, ''); if (entry.seeded?.includes(name)) continue;
+    const to = path.join(projectDir, 'docs', f);
+    if (!(await exists(to))) {
+      const md = await readFile(path.join(dir, f), 'utf8');
+      await writeAtomic(to, md.replace(/^seed-pin:.*\n/m, '').replace(/^last-verified:.*$/m, `last-verified: ${today()}`));
+      if (/^seed-pin:\s*true/m.test(md)) await pinDoc(productDir, `${path.basename(projectDir)}/${name}`);
+      copied.push(name);
+    }
+    entry.seeded = [...new Set([...(entry.seeded ?? []), name])];
+  }
+  return copied;
+}
+async function pinDoc(productDir: string, ref: string): Promise<void> {
+  const file = path.join(productDir, '_product.md');
+  await withFileLock(file, async () => {
+    const md = await readFile(file, 'utf8');
+    const m = md.match(/^pinned:\s*\[(.*)\]\s*$/m); const list = m ? m[1].split(',').map(s => s.trim()).filter(Boolean) : [];
+    if (list.includes(ref)) return;
+    const line = `pinned: [${[ref, ...list].join(', ')}]`;   // a package's page goes first
+    await writeAtomic(file, m ? md.replace(m[0], line) : md.replace(/^---\n/, `---\n${line}\n`));
+  });
+}
+
 // A package that grew a type after it was installed (the assistant's thread and email): each recorded install gets the
 // package's types the product does not declare yet — declared the way an install declares them, and recorded so an
 // uninstall takes them away again. Returns the ids declared. Nothing changes when there is nothing new.
@@ -179,7 +212,10 @@ export async function syncPackageTypes(productDir: string, system = systemRoot()
       e.types = [...new Set([...e.types, ...fresh.map(t => t.id)])];
       added.push(...fresh.map(t => t.id));
     }
-    if (added.length) await writeAtomic(recordFile(dir), formatRecord(record));
+    // seed pages the package gained since (the assistant's Digest): copied once, recorded
+    let seeded = false;
+    for (const e of record) { const before = (e.seeded ?? []).join(','); const copied = await seedPages(productDir, dir, e, system); if (copied.length) added.push(...copied.map(c => `page:${c}`)); if ((e.seeded ?? []).join(',') !== before) seeded = true; }
+    if (added.length || seeded) await writeAtomic(recordFile(dir), formatRecord(record));
   }
   if (added.length) await rebuild(productDir);
   return added;
@@ -246,6 +282,7 @@ export async function installPackage(product: string, project: string, pkg: stri
     await withFileLock(abs, async () => { let md = await readFile(abs, 'utf8'); for (const t of added) md = appendTypeCard(md, t.card); await writeAtomic(abs, md); });
   }
   const record: RecordEntry = { package: pkg, installed: today(), by: o.by || 'person', types: added.map(t => t.id) };
+  await seedPages(productDir!, pdir, record, system);
   await writeAtomic(recordFile(pdir), formatRecord([...(await readRecord(pdir)), record]));
   await linkPackage(pdir, pkg, system);
   await rebuild(productDir!);
