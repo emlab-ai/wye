@@ -9,7 +9,7 @@ role: worker
 takes: pr
 writes: [task, decision]
 source: prompts/agent-system.md
-source-hash: 44531d6e863b
+source-hash: edee37a1a44b
 part-of: module:evaluation-skills
 ---
 
@@ -26,6 +26,8 @@ replace it.
   question that governs the request, computed from the graph (not a search). Read it first; cite its ids; when the
   request cannot respect one of them, say so with a `question:` block next to it instead of breaking it. The same
   for any text, mid-session: `wye packet --for "<what you are about to do>" [--ref id]`.
+- For exact questions — every open commitment of a project, who owns what, what links to a node — `wye query "<SQL>"`
+  (tables `nodes`, `edges`; graph patterns with `GRAPH_TABLE (wye MATCH …)`; read-only).
 - Then read what Wye knows about the area: `wye context "<what you are about to do>"` (semantic search; superseded and
   retired knowledge is hidden unless `--all`), `wye resolve <link|id>` for anything referenced, `wye doc
   <product/project/doc>` for the full document, `wye packet --root data/products/<product> --task "<sentence>"` for a
