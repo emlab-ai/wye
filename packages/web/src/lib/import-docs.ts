@@ -7,7 +7,8 @@ import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { slugify } from './templates';
 import { writeAtomic } from './write';
-import { convertWikilinks, resolver, type Resolve, type Named } from './wikilinks';
+import { convertWikilinks, resolver, nameKey, type Resolve, type Named } from './wikilinks';
+import { isObsidianDrawing, parseObsidianDrawing, drawingName, drawingBody, visibleElements } from './obsidian-drawing';
 
 export interface ImportFile { path: string; text: string }          // path as given (a folder keeps its tree: "notes/2026/plan.md")
 export interface ImportOptions {
@@ -20,7 +21,7 @@ export interface ImportOptions {
   date?: string;
 }
 export interface PlannedDoc { slug: string; file: string; title: string; md: string; from: string | null; parent: string | null; folder: boolean }
-export interface ImportPlan { docs: PlannedDoc[]; skipped: { path: string; reason: string }[]; assets: { from: string; to: string }[] }
+export interface ImportPlan { docs: PlannedDoc[]; skipped: { path: string; reason: string }[]; assets: { from: string; to: string }[]; drawings?: { to: string; json: string }[] }   // drawings: scenes to write under docs/ (drawings/<slug>.excalidraw)
 
 export const MAX_BYTES = 1_000_000;
 const MD = /\.(md|markdown)$/i;
@@ -117,14 +118,28 @@ export function plan(files: ImportFile[], o: ImportOptions): ImportPlan {
     if (!f.text.trim()) { skipped.push({ path: f.path, reason: 'empty' }); continue; }
     const parent = parentOf(rel);
     const h = headingOf(f.text);
-    const title = h && shared.has(h.toLowerCase()) && !fmSplit(f.text).fm.title ? (nameOf(rel) || h) : titleOf(f.text, rel);
+    // an Obsidian drawing is named by its file ("Drawing 2025-09-24 16.54.22"), not its "# Excalidraw Data" heading
+    const title = isObsidianDrawing(rel, f.text) ? drawingName(rel) : h && shared.has(h.toLowerCase()) && !fmSplit(f.text).fm.title ? (nameOf(rel) || h) : titleOf(f.text, rel);
     pages.push({ f, rel, parent, title, slug: freeSlug(title, taken) });
   }
   const own: Named[] = pages.map(p => ({ id: `module:${p.slug}`, names: [path.posix.basename(p.rel), p.rel, p.title] }));
   const ownResolve = resolver(own);
+  // `![[Drawing …]]` in a note shows the drawing itself when the drawing came in with the same import
+  const drawingSrc = new Map<string, string>();
+  for (const p of pages) if (isObsidianDrawing(p.rel, p.f.text)) for (const n of [drawingName(p.rel), `${drawingName(p.rel)}.excalidraw`]) drawingSrc.set(nameKey(n), `drawings/${p.slug}.excalidraw`);
+  const drawings: { to: string; json: string }[] = [];
   const link: Resolve = name => o.links?.entities?.(name) ?? ownResolve(name) ?? o.links?.pages?.(name) ?? null;
   for (const { f, rel, parent, title, slug } of pages) {
-    let md = docFor({ ...f, path: rel, text: convertWikilinks(f.text, link).text }, slug, title, parent, o);
+    if (isObsidianDrawing(rel, f.text)) {
+      const scene = parseObsidianDrawing(f.text);
+      if (!scene) { skipped.push({ path: f.path, reason: 'a drawing that could not be read' }); continue; }
+      if (!visibleElements(scene).length) { skipped.push({ path: f.path, reason: 'an empty drawing' }); continue; }
+      const src = `drawings/${slug}.excalidraw`;
+      drawings.push({ to: src, json: JSON.stringify(scene) });
+      docs.push({ slug, file: `${slug}.md`, title, md: docFor({ path: rel, text: drawingBody(title, src, scene) }, slug, title, parent, { ...o, analyse: false }), from: rel, parent, folder: false });
+      continue;
+    }
+    let md = docFor({ ...f, path: rel, text: convertWikilinks(f.text, link, n => drawingSrc.get(nameKey(n)) ?? null).text }, slug, title, parent, o);
     // relative images → the project's assets folder, the body rewritten to assets/<name>
     for (const u of imageRefs(md)) {
       const src = path.posix.join(path.posix.dirname(rel), decodeURI(u));
@@ -134,7 +149,7 @@ export function plan(files: ImportFile[], o: ImportOptions): ImportPlan {
     }
     docs.push({ slug, file: `${slug}.md`, title, md, from: rel, parent, folder: false });
   }
-  return { docs, skipped, assets };
+  return { docs, skipped, assets, drawings };
 }
 
 // Write a plan into a project's docs folder. `readAsset` fetches an image the plan refers to (by its import path);
@@ -143,6 +158,7 @@ export async function write(docsDir: string, p: ImportPlan, readAsset?: (from: s
   await mkdir(docsDir, { recursive: true });
   const written: string[] = [];
   for (const d of p.docs) { await writeAtomic(path.join(docsDir, d.file), d.md); written.push(d.file); }
+  if (p.drawings?.length) { await mkdir(path.join(docsDir, 'drawings'), { recursive: true }); for (const dr of p.drawings) await writeAtomic(path.join(docsDir, dr.to), dr.json); }
   const assets: string[] = [];
   if (p.assets.length && readAsset) {
     await mkdir(path.join(docsDir, 'assets'), { recursive: true });

@@ -57,3 +57,6 @@ export const IconTarget = ({ size = 18 }: IconProps) => (
 export const IconImport = ({ size = 18 }: IconProps) => (
   <svg {...svg(size)}><path d="M12 4v11" /><path d="m7.5 10.5 4.5 4.5 4.5-4.5" /><path d="M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16" /></svg>
 );
+export const IconMore = ({ size = 16 }: IconProps) => (
+  <svg {...svg(size)}><circle cx="5.5" cy="12" r="1.1" fill="currentColor" /><circle cx="12" cy="12" r="1.1" fill="currentColor" /><circle cx="18.5" cy="12" r="1.1" fill="currentColor" /></svg>
+);

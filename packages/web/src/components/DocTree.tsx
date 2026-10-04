@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type DragEvent, type MouseEvent } from 'react';
 import { requestSend } from './CommandBox';
+import { IconMore, IconPlus } from './Icons';
 
 export type TreeItem = { slug: string; node: string; title: string; icon: string; project: string; tasks?: { done: number; total: number }; children: TreeItem[] };
 type Zone = 'before' | 'into' | 'after';
@@ -132,8 +133,8 @@ function Row({ d, depth, parent, tree }: { d: TreeItem; depth: number; parent: T
            }}>
         {d.children.length ? <button className="pg-caret" onClick={() => toggle(d.slug)} aria-label={open ? 'collapse' : 'expand'}>{open ? '▾' : '▸'}</button> : <span className="pg-dot">•</span>}
         <Link href={href} className="pg-link" draggable={false} title={d.tasks?.total ? `${d.tasks.done}/${d.tasks.total} tasks done` : undefined}><span className="pg-icon">{d.icon}</span><span className="pg-title">{d.title}</span>{!!d.tasks?.total && <span className="pg-prog">{d.tasks.done}/{d.tasks.total}</span>}</Link>
-        <button className="pg-more" title="More…" aria-label="More" onClick={onMenu}>⋯</button>
-        <button className="pg-add" title="Add a sub-document" onClick={() => onAddChild(d)}>+</button>
+        <button className="pg-more" title="More…" aria-label="More" onClick={onMenu}><IconMore /></button>
+        <button className="pg-add" title="Add a sub-document" aria-label="Add a sub-document" onClick={() => onAddChild(d)}><IconPlus size={16} /></button>
       </div>
       {d.children.length > 0 && open && <ul>{d.children.map(c => <Row key={`${c.project}/${c.slug}`} d={c} depth={depth + 1} parent={d} tree={tree} />)}</ul>}
     </li>

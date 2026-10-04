@@ -619,3 +619,17 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - context:wf2.hook-upcoming an Obsidian import created months-old 1:1 meetings and hook:ea.one-on-one-prep started a prep workflow for each — 26 runs queued; alex chose "cancel them, and skip past ones".
 
   - choice:wf2.hook-upcoming `upcoming=<key>` in a hook's `where` holds when the card's date under that key is today or later; hook:ea.one-on-one-prep is `where: prop=format:1on1 upcoming=date` in the executive-assistant package.
+
+```yaml
+- id: decision:wf2.import-drawings
+  title: An Obsidian Excalidraw note is imported as a Wye drawing — the scene on the page, its words listed under it
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [component:import-docs]
+  part-of: module:req-shell
+```
+
+  - context:wf2.import-drawings "there several excalidraw files in the imported folder, we have drawing component, so make sure they are imported too" — they came in as markdown pages showing the plugin's compressed data.
+
+  - choice:wf2.import-drawings a `.excalidraw.md` note (or one with `excalidraw-plugin:` front matter) has its ```compressed-json (LZ-string) or ```json scene read; the scene goes to docs/drawings/<slug>.excalidraw and the page, named after the file, is `![Title](drawings/<slug>.excalidraw)` plus "Text in the drawing" with its words; it is `raw`, no agent. An empty drawing is skipped. `![[Drawing …]]` in another note of the import shows the drawing. A drawing with a scene but no preview gets its SVG, PNG and description the first time a page shows it.

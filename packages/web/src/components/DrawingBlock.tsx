@@ -92,7 +92,15 @@ export const DrawingBlock = createReactBlockSpec(
       useEffect(() => { setDoc(docOf(ref.current)); }, []);
       // a block converted from an image asks to open the editor straight away (window event from the editor)
       useEffect(() => { const h = (e: Event) => { if ((e as CustomEvent<string>).detail === p.src) setEditing(true); }; window.addEventListener('wf:drawing-edit', h); return () => window.removeEventListener('wf:drawing-edit', h); }, [p.src]);
-      useEffect(() => { if (!doc) return; let live = true; fetch(api(doc, p.src) + '?fmt=svg', { method: 'HEAD' }).then(r => { if (live) setExists(r.ok); }); return () => { live = false; }; }, [doc, p.src, version]);
+      // a scene with no preview yet (an imported drawing — an Obsidian Excalidraw file) gets one the first time it shows:
+      // the SVG, the PNG and the text description an agent reads, made here the way a save makes them
+      useEffect(() => { if (!doc) return; let live = true; fetch(api(doc, p.src) + '?fmt=svg', { method: 'HEAD' }).then(async r => {
+        if (r.ok || !live) { if (live) setExists(r.ok); return; }
+        const j = await fetch(api(doc, p.src)).then(x => x.ok ? x.json() : null).catch(() => null) as { elements?: unknown[]; appState?: Record<string, unknown>; files?: Record<string, unknown> } | null;
+        if (!j?.elements?.length) { if (live) setExists(false); return; }
+        const ok = await store(await import('@excalidraw/excalidraw'), doc, p.src, j.elements, { viewBackgroundColor: '#ffffff', ...(j.appState ?? {}) }, j.files ?? {}).catch(() => false);
+        if (live) { setExists(ok); if (ok) setVersion(v => v + 1); }
+      }); return () => { live = false; }; }, [doc, p.src, version]);
       const set = (patch: Partial<typeof p>) => props.editor.updateBlock(props.block, { props: { ...p, ...patch } } as never);
       return (
         <div className="drawing" ref={ref} contentEditable={false} data-src={p.src}>

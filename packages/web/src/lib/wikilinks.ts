@@ -13,11 +13,13 @@ export const nameKey = (s: string) => s.trim().replace(/\.md$/i, '').replace(/^_
 const IMAGE = /\.(png|jpe?g|gif|webp|svg)$/i;
 const LINK = /(!?)\[\[([^\]|#\n]+)(#[^\]|\n]*)?(?:\|([^\]\n]+))?\]\]/g;
 
-export function convertWikilinks(text: string, resolve: Resolve): { text: string; resolved: number; unresolved: string[] } {
+export function convertWikilinks(text: string, resolve: Resolve, drawing?: (name: string) => string | null): { text: string; resolved: number; unresolved: string[] } {
   let resolved = 0; const unresolved: string[] = [];
   const conv = (chunk: string) => chunk.replace(LINK, (whole, bang: string, name: string, _heading: string | undefined, alias: string | undefined) => {
     const target = name.trim(); const shown = (alias ?? target.split('/').pop() ?? target).trim();
     if (bang && IMAGE.test(target)) { resolved++; return `![${alias?.trim() ?? ''}](${encodeURI(target)})`; }
+    const pic = bang && drawing ? drawing(target) ?? drawing(target.split('/').pop()!) : null;   // an embedded drawing shows as the drawing
+    if (pic) { resolved++; return `![${shown.replace(/\.excalidraw$/i, '')}](${pic})`; }
     const id = resolve(target) ?? (target.includes('/') ? resolve(target.split('/').pop()!) : null);
     if (!id) { unresolved.push(target); return whole; }
     resolved++;
