@@ -12,7 +12,7 @@ develops a memory.
 ![A tour of Wye: a document, a Prompt Request, Remember, the Inbox, Ask, the mind map and a table's SQL](docs/tour.gif)
 
 ```bash
-npm install -g @emlab-ai/wye
+npm install -g @emlab/wye
 wye setup              # your products go in ~/.wye/data; the Claude Code skills into ~/.claude/skills
 wye app                # the app at http://localhost:3456
 ```
@@ -467,7 +467,7 @@ itself.
 Wye needs Node.js 20.9+.
 
 ```bash
-npm install -g @emlab-ai/wye
+npm install -g @emlab/wye
 wye setup                                 # the home (~/.wye) and the Claude Code skills (~/.claude/skills)
 wye init --product shop --repo ~/code/shop   # a first definition read from your code
 wye app                                   # the app at http://localhost:3456

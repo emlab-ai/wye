@@ -1,5 +1,5 @@
 {
-    "name": "@emlab-ai/wye",
+    "name": "@emlab/wye",
     "version": "0.2.0",
     "description": "Product definition and long-term memory for coding agents: requirements, rules, decisions and constraints as Markdown in Git, a graph Claude Code and Codex query before they build, and an app to review what they decide.",
     "keywords": [

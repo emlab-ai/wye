@@ -1,4 +1,4 @@
-# Publishes @emlab-ai/wye to npm when a GitHub release is published: the version comes from the release tag
+# Publishes @emlab/wye to npm when a GitHub release is published: the version comes from the release tag
 # (v0.3.0 → 0.3.0), the tests run, `prepack` builds the app (packages/web/.next and the externals list,
 # scripts/externals-manifest.js), and npm publishes it with provenance. Run it by hand (Actions › Publish to npm ›
 # Run workflow) for a dry run: everything but the upload.

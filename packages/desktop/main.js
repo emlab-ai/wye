@@ -25,7 +25,7 @@ function dlog(...a) { const line = `${new Date().toISOString()} ${a.join(' ')}`;
 function readConfig() { try { return JSON.parse(fs.readFileSync(configFile(), 'utf8')); } catch { return {}; } }
 function writeConfig(c) { fs.mkdirSync(path.dirname(configFile()), { recursive: true }); fs.writeFileSync(configFile(), JSON.stringify(c, null, 2)); }
 function isWyeRoot(dir) {
-  try { const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')); return ['wye', '@emlab-ai/wye'].includes(pkg.name) && fs.existsSync(path.join(dir, 'packages/web/package.json')); } catch { return false; }
+  try { const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')); return ['wye', '@emlab/wye'].includes(pkg.name) && fs.existsSync(path.join(dir, 'packages/web/package.json')); } catch { return false; }
 }
 async function resolveRoot() {
   const tried = [process.env.WYE_ROOT, readConfig().root, app.isPackaged ? null : path.resolve(__dirname, '../..')].filter(Boolean);
