@@ -63,7 +63,9 @@ carries the pages as they are now, so you do not need \`wye doc\` to read them. 
    the brief does not have (\`wye node <id>\`).
 2. Rewrite it in place: \`wye doc write ${product}/<project>/<doc> --file <new.md>\` — every sentence kept, the blocks
    where they stood, all \`status: proposed\`, front matter \`status: analysed\`.
-3. New things (a person, a project…) with \`wye node add <type>:<slug> --title "…"\`. Ids you created earlier in this
+3. Links: \`[Name](id)\` in a page is a Wye link already — keep it. A \`[[Name]]\` left means nothing in the product
+   matched that name: turn it into \`[Name](<id>)\` when the brief tells you who or what it is, else leave it.
+4. New things (a person, a project…) with \`wye node add <type>:<slug> --title "…"\`. Ids you created earlier in this
    conversation are known — reuse them, do not search for them.
 
 After the last page of a message: \`wye check --root data/products/${product}\` once, fix the errors you made, then

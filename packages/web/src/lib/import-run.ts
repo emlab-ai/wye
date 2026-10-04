@@ -14,6 +14,7 @@ import { createSession, getSession, updateSession } from './sessions';
 import { startChat, sendMessage, watchSession, stopChat } from './agent-host';
 import { skillBody } from './skills';
 import { laneSystem, laneMessage, triage, groupFiles, type LaneFile, type BriefNode } from './import-brief';
+import { graphLinks, convertWikilinks } from './wikilinks';
 import { onSessionEnd } from './sessions';
 import { slugify } from './templates';
 import { REPO_ROOT } from './products';
@@ -94,9 +95,9 @@ export async function startBatchImport(product: string, project: string, opts: {
   const tree = treeFor(scope, project);
   const existing = new Set([...tree.byFile.values()].map(d => d.slug));
   if (opts.parent && !existing.has(opts.parent)) return { ok: false, error: 'invalid', message: `no document ${opts.parent}` };
-  const full = plan(files, { project, parent: opts.parent, analyse: false, brief: opts.brief, existing });
+  const full = plan(files, { project, parent: opts.parent, analyse: false, brief: opts.brief, existing, links: graphLinks(scope.graph) });
   const real = full.docs.filter(d => !d.folder);
-  const readAsset = opts.rootPath ? await copyAssetFrom(opts.rootPath) : async (from: string) => opts.images?.get(from) ?? null;
+  const readAsset = opts.rootPath ? await copyAssetFrom(opts.rootPath) : async (from: string) => opts.images?.get(from) ?? [...(opts.images ?? new Map<string, Buffer>())].find(([k]) => path.posix.basename(k) === path.posix.basename(from))?.[1] ?? null;   // an Obsidian embed names the picture only
   await write(scope.project.docsDir, full, readAsset);   // every doc lands `raw` — no hook fires yet
 
   const base = opts.label ?? (path.basename((opts.rootPath ?? '').replace(/\/+$/, '')) || 'import');
@@ -134,9 +135,12 @@ async function runBatch(product: string, productDir: string, docsDir: string, re
   try {
     const project = status.project ?? path.basename(path.dirname(docsDir));
     const left: LaneFile[] = [];
+    // `[[links]]` still in a page (an import from before lib:wikilinks) become Wye links before the agent reads it
+    const scope = await loadScope(product); const links = scope ? graphLinks(scope.graph) : null;
     for (let i = 0; i < real.length; i++) {
       const d = real[i]; if (!d || d.skip || !d.file) continue;
       let text = ''; try { text = await readFile(path.join(docsDir, d.file), 'utf8'); } catch { continue; }
+      if (links && text.includes('[[')) { const c = convertWikilinks(text, n => links.entities(n) ?? links.pages(n)); if (c.resolved) { text = c.text; await writeAtomic(path.join(docsDir, d.file), text); } }
       left.push({ index: i, slug: d.slug, ref: `${product}/${project}/${d.slug}`, title: d.title, from: d.from ?? d.slug, text });
     }
     const kinds = new Map(left.map(f => [f.index, triage(f.from, f.text)]));

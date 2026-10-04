@@ -7,9 +7,11 @@ import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { slugify } from './templates';
 import { writeAtomic } from './write';
+import { convertWikilinks, resolver, type Resolve, type Named } from './wikilinks';
 
 export interface ImportFile { path: string; text: string }          // path as given (a folder keeps its tree: "notes/2026/plan.md")
 export interface ImportOptions {
+  links?: { entities?: Resolve; pages?: Resolve };                 // what the product has by name (lib:wikilinks): its things first, then this import's files, then its pages
   project: string;                                                 // the project's slug — front matter `node:` ids need nothing else
   parent?: string;                                                 // a document slug the import lands under (top level when empty)
   analyse?: boolean;                                               // true (default): status imported — the hook fires; false: raw
@@ -106,6 +108,8 @@ export function plan(files: ImportFile[], o: ImportOptions): ImportPlan {
     return `module:${folders.get(dir)}`;
   };
   const sorted = [...files].sort((a, b) => a.path.localeCompare(b.path));
+  // first every page's slug and title, so a `[[link]]` to any file of this import resolves; then the bodies
+  const pages: { f: ImportFile; rel: string; parent: string | null; title: string; slug: string }[] = [];
   for (const f of sorted) {
     const rel = f.path.replace(/\\/g, '/').replace(/^\.?\//, '');
     if (!MD.test(rel)) { skipped.push({ path: f.path, reason: 'not markdown' }); continue; }
@@ -114,12 +118,17 @@ export function plan(files: ImportFile[], o: ImportOptions): ImportPlan {
     const parent = parentOf(rel);
     const h = headingOf(f.text);
     const title = h && shared.has(h.toLowerCase()) && !fmSplit(f.text).fm.title ? (nameOf(rel) || h) : titleOf(f.text, rel);
-    const slug = freeSlug(title, taken);
-    let md = docFor({ ...f, path: rel }, slug, title, parent, o);
+    pages.push({ f, rel, parent, title, slug: freeSlug(title, taken) });
+  }
+  const own: Named[] = pages.map(p => ({ id: `module:${p.slug}`, names: [path.posix.basename(p.rel), p.rel, p.title] }));
+  const ownResolve = resolver(own);
+  const link: Resolve = name => o.links?.entities?.(name) ?? ownResolve(name) ?? o.links?.pages?.(name) ?? null;
+  for (const { f, rel, parent, title, slug } of pages) {
+    let md = docFor({ ...f, path: rel, text: convertWikilinks(f.text, link).text }, slug, title, parent, o);
     // relative images → the project's assets folder, the body rewritten to assets/<name>
     for (const u of imageRefs(md)) {
-      const src = path.posix.join(path.posix.dirname(rel), u);
-      const to = `assets/${slug}-${path.posix.basename(u)}`;
+      const src = path.posix.join(path.posix.dirname(rel), decodeURI(u));
+      const to = `assets/${slug}-${path.posix.basename(decodeURI(u)).replace(/\s+/g, '-')}`;
       assets.push({ from: src, to });
       md = md.split(`](${u})`).join(`](${to})`);
     }

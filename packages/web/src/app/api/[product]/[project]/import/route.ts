@@ -3,6 +3,7 @@ import { loadScope, treeFor } from '@/lib/scope';
 import { plan, write, type ImportFile } from '@/lib/import-docs';
 import { startBatchImport } from '@/lib/import-run';
 import { rebuild } from '@/lib/write';
+import { graphLinks } from '@/lib/wikilinks';
 
 // op:api.import — two shapes. Multipart: every "file" part is a markdown file, its name the path inside the import (a
 // folder drop keeps "notes/2026/plan.md"); fields `parent` (a document slug), `analyse` ("0" declines the agent).
@@ -49,8 +50,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const tree = treeFor(scope, project);
   const existing = new Set([...tree.byFile.values()].map(d => d.slug));
   if (parent && !existing.has(parent)) return NextResponse.json({ error: 'invalid', message: `no document ${parent}` }, { status: 422 });
-  const p = plan(files, { project, parent, analyse, brief, existing });
-  const r = await write(scope.project.docsDir, p, async from => images.get(from) ?? null);
+  const p = plan(files, { project, parent, analyse, brief, existing, links: graphLinks(scope.graph) });
+  const r = await write(scope.project.docsDir, p, async from => images.get(from) ?? [...images].find(([k]) => k.split('/').pop() === from.split('/').pop())?.[1] ?? null);
   const built = await rebuild(scope.product.dir);
   return NextResponse.json({ ok: true, docs: p.docs.map(d => ({ slug: d.slug, title: d.title, folder: d.folder, parent: d.parent, from: d.from })), skipped: p.skipped, assets: r.assets, analyse, rebuilt: built.code === 0 });
 }
