@@ -575,3 +575,19 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 ```
 
   - context:wf2.reveal-open-doc "add button to find, scroll to active document — target icon"; choice: the row flashes once when reached.
+
+```yaml
+- id: decision:wf2.import-lane
+  title: An import runs as one agent lane — pages sorted, short ones batched on the faster model, a cached brief instead of each file looking things up
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [component:import-docs]
+  part-of: module:req-shell
+```
+
+  - context:wf2.import-lane "current line by line import is super slow, how can we make it faster, and reuse some tockens i.e. with system context" — one agent process per file, a median 1.2 minutes each; a third of each file's time went to reading the ontology and grepping people and projects again.
+
+  - choice:wf2.import-lane one chat session takes the whole import, a message per page or per few short pages, the pages inline. Its system text — the import skill, the lane protocol, the product's types with fields and homes, the ids of people, projects, customers and the like with their aliases, one finished page — is a stable prefix the model caches. Templates, prompt snippets, drawings and near-empty notes are kept as written with no agent; notes under 2 500 characters go up to four to a message on Sonnet; dense ones one at a time on the default model. Every 12 turns the agent restarts with a brief rebuilt from the graph. A turn's end checks its files off on the import page (a page not set `analysed` is marked failed); Stop or Cancel on the lane session pauses the import. No per-file tasks are made.
+
+  - consequence:wf2.import-lane four short notes in one message took 29 s and $0.21 with three shell calls; a dense note about 25 s.

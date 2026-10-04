@@ -10,7 +10,10 @@ import { readFile, readdir } from 'node:fs/promises';
 import { plan, write, readTree, copyAssetFrom, type PlannedDoc } from './import-docs';
 import { loadScope, treeFor } from './scope';
 import { rebuild, writeAtomic, patchFrontmatter } from './write';
-import { runHook } from './hooks-run';
+import { createSession, getSession, updateSession } from './sessions';
+import { startChat, sendMessage, watchSession, stopChat } from './agent-host';
+import { skillBody } from './skills';
+import { laneSystem, laneMessage, triage, groupFiles, type LaneFile, type BriefNode } from './import-brief';
 import { onSessionEnd } from './sessions';
 import { slugify } from './templates';
 import { REPO_ROOT } from './products';
@@ -18,7 +21,7 @@ import { captureTask } from './work-io';
 import { editNode } from './node-edit';
 import type { ImportFile } from './import-docs';
 
-export type BatchStatus = { next?: string[]; legacy?: boolean; product?: string; project?: string; title?: string; stopped?: boolean; task?: string; requestSlug: string; total: number; done: number; current: string | null; startedAt: string; finishedAt?: string; failed: string[] };
+export type BatchStatus = { lane?: string; next?: string[]; legacy?: boolean; product?: string; project?: string; title?: string; stopped?: boolean; task?: string; requestSlug: string; total: number; done: number; current: string | null; startedAt: string; finishedAt?: string; failed: string[] };
 const g = globalThis as unknown as { __wfImportBatches?: Map<string, BatchStatus>; __wfImportWaiters?: Map<string, () => void> };
 const batches = () => (g.__wfImportBatches ??= new Map());
 const waiters = () => (g.__wfImportWaiters ??= new Map());
@@ -38,7 +41,7 @@ export function batchStatus(requestSlug: string): BatchStatus | undefined { retu
 
 // what the batch needs to go on after a stop (kept beside the status, which is what the UI reads)
 type Item = PlannedDoc & { skip?: boolean };   // skip: already done (checked on the page, or processed in this run)
-type BatchWork = { productDir: string; docsDir: string; reqFile: string; real: Item[]; running: boolean };
+type BatchWork = { productDir: string; docsDir: string; reqFile: string; real: Item[]; running: boolean; order?: number[] };   // order: the lane's file order (short notes first)
 const g2 = globalThis as unknown as { __wfImportWork?: Map<string, BatchWork> };
 const work = () => (g2.__wfImportWork ??= new Map());
 
@@ -46,7 +49,9 @@ const work = () => (g2.__wfImportWork ??= new Map());
 // server restart ends them; the import page still lists which files are left (each keeps its Analyse button).
 export function productBatches(product: string): BatchStatus[] {
   return [...batches().values()].filter(b => b.product === product && !b.finishedAt)
-    .map(b => ({ ...b, next: ((work().get(b.requestSlug)?.real ?? []) as Item[]).filter(d => !d.skip && d.slug !== b.current).slice(0, 5).map(d => d.title) }));
+    .map(b => { const w: BatchWork | undefined = work().get(b.requestSlug); const real: Item[] = w?.real ?? []; const order: number[] = w?.order ?? real.map((_, i) => i);
+      const now = new Set((b.current ?? '').split(', '));
+      return { ...b, next: order.map((i: number) => real[i]).filter((d: Item | undefined): d is Item => !!d && !d.skip && !now.has(d.slug)).slice(0, 5).map((d: Item) => d.title) }; });
 }
 // Stop: no file after the one running now is started (that one finishes, or is cancelled from its own session).
 // Resume: the loop goes on from the first file not done.
@@ -71,6 +76,7 @@ const nodeOf = (d: PlannedDoc) => d.md.match(/^node:\s*(\S+)/m)?.[1] ?? `module:
 const taskLine = (i: number, d: PlannedDoc) => `- [ ] task:import-${i + 1} \`${d.from}\` → will become **${d.title}**`;
 const doneLine = (i: number, d: PlannedDoc) => `- [x] task:import-${i + 1} \`${d.from}\` → ${nodeOf(d)} ${d.title}`;
 const failedLine = (i: number, d: PlannedDoc) => `- [x] task:import-${i + 1} \`${d.from}\` → ${nodeOf(d)} ${d.title} — written, but the agent could not finish; open the page and press Analyse`;
+const keptLine = (i: number, d: PlannedDoc) => `- [x] task:import-${i + 1} \`${d.from}\` → ${nodeOf(d)} ${d.title} — kept as written (a template, a snippet or nearly empty: nothing to analyse)`;
 
 // Plans and writes every file as `raw` (so nothing auto-fires), makes the request page, and starts the sequential
 // analysis in the background — the caller does not wait on it. Returns at once with the page the person watches.
@@ -113,32 +119,97 @@ export async function startBatchImport(product: string, project: string, opts: {
   return { ok: true, requestSlug: reqSlug, total: real.length, task, skipped: full.skipped.length };
 }
 
+// The import lane (decision:wf2.import-lane): one agent session for the whole import instead of one per file. The
+// pages are sorted first — templates, snippets and near-empty notes are kept as written with no agent; short notes go
+// several to a message on the faster model; dense ones one at a time on the default model. Each message carries the
+// pages inline, and the session's system text carries the brief (types, existing ids, commands, a finished page), a
+// prefix the model caches across turns. Every LANE_RESET turns the agent starts fresh with a brief rebuilt from the
+// graph (the ids made so far included), so its context never bloats. A turn's end checks its files off on the page.
+const LANE_RESET = 12;
+const SMALL_MODEL = process.env.WYE_IMPORT_SMALL_MODEL || 'claude-sonnet-5-5';
+const wfUrl = () => process.env.WYE_URL || process.env.WF_URL || 'http://localhost:3456';
+
 async function runBatch(product: string, productDir: string, docsDir: string, reqFile: string, real: Item[], status: BatchStatus): Promise<void> {
   const w = work().get(status.requestSlug); if (w) { if (w.running) return; w.running = true; }
-  for (let i = 0; i < real.length; i++) {
-    const d: Item = real[i]; if (d.skip) continue;
-    if (status.stopped) { status.current = null; if (w) w.running = false; return; }   // stopped: resume picks up at this file
-    status.current = d.slug;
-    let ok = false;
-    try {
-      // a page imported "as is" is raw: it becomes imported first, so the hook's `where: status=imported` holds
-      // (the same two-step ImportedNotice.tsx's own "Analyse with agent" button does by hand, one page at a time)
-      const docFile = path.join(docsDir, d.file);
-      const cur = await readFile(docFile, 'utf8');
-      const patched = patchFrontmatter(cur, { status: 'imported' });
-      if (patched.error) throw new Error(`could not mark ${d.slug} imported`);
-      await writeAtomic(docFile, patched.md);
-      await rebuild(productDir);   // the graph must see `imported` before the hook's `where` clause is checked
-      const firings = await runHook(product, 'hook:import-analyse', nodeOf(d));
-      const sessionId = firings.flatMap(f => f.actions).find(a => a.session)?.session;
-      if (sessionId) await waitForSession(sessionId);
-      ok = true;
-    } catch (e) { console.log(`[wf] import batch ${status.requestSlug}: ${d.slug} — ${e instanceof Error ? e.message : String(e)}`); }
-    if (!ok) status.failed.push(d.slug);
-    try { await patchLine(reqFile, i, d, ok); await rebuild(productDir); } catch { /* the record in `status` still tracks progress even if the page patch races */ }
-    d.skip = true; status.done++;
+  try {
+    const project = status.project ?? path.basename(path.dirname(docsDir));
+    const left: LaneFile[] = [];
+    for (let i = 0; i < real.length; i++) {
+      const d = real[i]; if (!d || d.skip || !d.file) continue;
+      let text = ''; try { text = await readFile(path.join(docsDir, d.file), 'utf8'); } catch { continue; }
+      left.push({ index: i, slug: d.slug, ref: `${product}/${project}/${d.slug}`, title: d.title, from: d.from ?? d.slug, text });
+    }
+    const kinds = new Map(left.map(f => [f.index, triage(f.from, f.text)]));
+    for (const f of left.filter(f => kinds.get(f.index) === 'skip')) { await patchLine(reqFile, f.index, real[f.index], 'kept'); real[f.index].skip = true; status.done++; }
+    const groups = groupFiles(left, f => kinds.get(f.index)!);
+    if (w) w.order = groups.flatMap(g => g.files.map(f => f.index));
+    await rebuild(productDir);
+    for (const phase of ['small', 'dense'] as const) {
+      const gs = groups.filter(g => g.kind === phase).map(g => g.files);
+      if (gs.length && !(await runPhase(product, productDir, docsDir, reqFile, real, status, gs, phase === 'small' ? SMALL_MODEL : undefined))) return;   // paused
+    }
+    await finish(product, status);
+  } catch (e) { console.log(`[wf] import lane ${status.requestSlug}: ${e instanceof Error ? e.message : String(e)}`); status.stopped = true; }
+  finally { status.current = null; if (w) w.running = false; }
+}
+
+async function laneBrief(product: string, docsDir: string, real: Item[]): Promise<string> {
+  const scope = await loadScope(product);
+  const skill = (scope && await skillBody(scope, 'skill:import')) || await readFile(path.join(REPO_ROOT, 'prompts/import.md'), 'utf8').catch(() => '# Import a document');
+  // one page this import already finished, as the shape to follow
+  let example: { ref: string; text: string } | undefined;
+  for (const d of real) {
+    if (!d?.skip || !d.file) continue;
+    const text = await readFile(path.join(docsDir, d.file), 'utf8').catch(() => '');
+    if (/^status:\s*analysed\b/m.test(text.slice(0, 800)) && text.length > 600) { example = { ref: d.slug, text }; break; }
   }
-  status.current = null; if (w) w.running = false; await finish(product, status);
+  return laneSystem({ product, skill, nodes: (scope?.graph.nodes ?? []) as BriefNode[], example });
+}
+
+// One session works `groups` in order, a message each. Resolves true when all are done, false when paused or cancelled.
+async function runPhase(product: string, productDir: string, docsDir: string, reqFile: string, real: Item[], status: BatchStatus, groups: LaneFile[][], model?: string): Promise<boolean> {
+  if (!groups.length) return true;
+  const title = status.title ?? 'Import';
+  const s = await createSession(productDir, product, { agent: 'claude-code', mode: 'chat', instruction: laneMessage(title, groups[0]), refs: [`module:${status.requestSlug}`], source: { link: `/${product}/${status.project}/d/${status.requestSlug}` } as never, system: await laneBrief(product, docsDir, real), model });
+  status.lane = s.id;
+  let gi = 0; let turns = 0; let settled = false; let ending = false;
+  return new Promise<boolean>(resolve => {
+    const settle = (v: boolean) => { if (settled) return; settled = true; unsub(); resolve(v); };
+    const checkOff = async (files: LaneFile[], crashed: boolean) => {
+      for (const f of files) {
+        const text = await readFile(path.join(docsDir, real[f.index].file), 'utf8').catch(() => '');
+        const ok = !crashed && /^status:\s*analysed\b/m.test(text.split('\n---')[0] ?? '');
+        await patchLine(reqFile, f.index, real[f.index], ok ? 'done' : 'failed');
+        real[f.index].skip = true; status.done++; if (!ok) status.failed.push(f.slug);
+      }
+      await rebuild(productDir).catch(() => undefined);
+    };
+    const close = async (line: string) => { ending = true; await updateSession(productDir, s.id, { status: 'done', result: line, line }); stopChat(s.id, line, true); };
+    const next = async () => {
+      gi++; turns++;
+      if (gi >= groups.length) { await close(`import lane done: ${groups.flat().length} pages`); settle(true); return; }
+      if (status.stopped) { await close('paused — the import stops here; Resume goes on with a fresh lane'); settle(false); return; }
+      status.current = groups[gi].map(f => f.slug).join(', ');
+      const fresh = turns % LANE_RESET === 0;
+      if (fresh) await updateSession(productDir, s.id, { system: await laneBrief(product, docsDir, real) });   // a fresh agent reads a brief with today's ids
+      await sendMessage(productDir, s.id, { text: laneMessage(title, groups[gi]), ...(fresh ? { fresh: true } : {}) } as never);
+    };
+    let byPerson = false;   // Stop or Cancel on the session announces itself with a note before the process ends
+    const unsub = watchSession(s.id, ev => {
+      if (settled || ending) return;
+      if (ev.kind === 'note' && /stopped by the user|— process ended/.test(ev.text ?? '')) byPerson = true;
+      if (ev.kind === 'result') void checkOff(groups[gi], false).then(next).catch(e => { console.log(`[wf] import lane: ${e}`); settle(false); });
+      else if (ev.kind === 'exit') void (async () => {
+        // the process ended mid-turn: cancelled by the person (= pause), or it crashed (the files fail, a new lane goes on)
+        const cur = await getSession(productDir, s.id);
+        if (byPerson || cur?.status === 'cancelled') { status.stopped = true; if (cur?.status === 'running') await updateSession(productDir, s.id, { status: 'done', line: 'the import is paused' }); settle(false); return; }
+        await checkOff(groups[gi], true); ending = true;
+        settle(await runPhase(product, productDir, docsDir, reqFile, real, status, groups.slice(gi + 1), model));
+      })();
+    });
+    status.current = groups[0].map(f => f.slug).join(', ');
+    void startChat(productDir, product, s.id, { wfUrl: wfUrl() });
+  });
 }
 
 async function finish(product: string, status: BatchStatus): Promise<void> {
@@ -148,11 +219,12 @@ async function finish(product: string, status: BatchStatus): Promise<void> {
   if (scope) await editNode(scope, status.task, { status: 'done' }).catch(e => console.log(`[wf] import batch ${status.requestSlug}: could not check ${status.task} — ${e instanceof Error ? e.message : String(e)}`));
 }
 
-async function patchLine(reqFile: string, i: number, d: PlannedDoc, ok: boolean): Promise<void> {
+async function patchLine(reqFile: string, i: number, d: PlannedDoc, how: boolean | 'done' | 'failed' | 'kept'): Promise<void> {
   const md = await readFile(reqFile, 'utf8');
-  const from = taskLine(i, d);
-  const to = ok ? doneLine(i, d) : failedLine(i, d);
-  if (md.includes(from)) await writeAtomic(reqFile, md.replace(from, to));
+  const to = how === 'kept' ? keptLine(i, d) : how === true || how === 'done' ? doneLine(i, d) : failedLine(i, d);
+  // the file's line by its number, whatever title it was written with
+  const re = new RegExp(`^- \\[ \\] task:import-${i + 1} .*$`, 'm');
+  if (re.test(md)) await writeAtomic(reqFile, md.replace(re, to));
 }
 
 // An import whose run is gone (the server restarted) or was started by an older build: rebuilt from its page — the

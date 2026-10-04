@@ -33,9 +33,18 @@ export function isLive(id: string): boolean { const l = live().get(id); return !
 export function liveState(id: string): { live: boolean; busy: boolean } { const l = live().get(id); return { live: isLive(id), busy: !!l && (l.turnBusy || !!(l.agent === 'codex' && l.proc)) }; }
 export function liveIds(): string[] { return [...live().keys()]; }
 
+// Watchers of a session by id, kept apart from its live process: they hear its events from before it starts (a
+// session waiting for a slot has no process yet) and across restarts — the import lane drives its turns this way.
+const watchers = (): Map<string, Set<(e: ChatEvent) => void>> => ((globalThis as unknown as { __wfSessionWatchers?: Map<string, Set<(e: ChatEvent) => void>> }).__wfSessionWatchers ??= new Map());
+export function watchSession(id: string, fn: (e: ChatEvent) => void): () => void {
+  if (!watchers().has(id)) watchers().set(id, new Set());
+  watchers().get(id)!.add(fn);
+  return () => { const set = watchers().get(id); set?.delete(fn); if (set && !set.size) watchers().delete(id); };
+}
 function emit(l: Live, e: Omit<ChatEvent, 't'> & { t?: string }) {
   const ev = { t: new Date().toISOString(), ...e } as ChatEvent;
   for (const fn of l.subs) { try { fn(ev); } catch { /* subscriber gone */ } }
+  for (const fn of watchers().get(l.id) ?? []) { try { fn(ev); } catch { /* watcher failed */ } }
   l.pending.push(ev);
   if (!l.flush) l.flush = setTimeout(() => { const batch = l.pending; l.pending = []; l.flush = null; appendTranscript(l.productDir, l.id, batch).catch(() => {}); }, 400);
 }
@@ -201,7 +210,8 @@ async function startProcess(l: Live, s: Session, product: string, opts: { wfUrl:
   // the request's images go with the first message the way pump sends a queued message's ones
   const imgs = first && !opts.resume ? await loadImages(productDir, id, opts.images ?? s.images ?? []) : [];
   const shown = imgs.map(i => `/api/${product}/sessions/${id}/file/${i.name}`);
-  const system = await agentSystemPrompt(product, productDir, opts.wfUrl, s.role ?? 'worker');
+  // a session's own system text (an import lane's brief) follows the contract: one stable prefix, cached across turns
+  const system = (await agentSystemPrompt(product, productDir, opts.wfUrl, s.role ?? 'worker')) + (s.system ? `\n\n${s.system.trim()}\n` : '');
   await updateSession(productDir, id, { status: 'running', runner: `app@${process.pid}`, line: opts.resume ? 'resumed' : 'started in the app', cwd });
   if (s.agent === 'codex') {
     // codex exec has no system-prompt flag: the contract opens the first turn
@@ -212,6 +222,7 @@ async function startProcess(l: Live, s: Session, product: string, opts: { wfUrl:
   const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--permission-prompt-tool', 'stdio', '--forward-subagent-text', '--append-system-prompt', system, '--add-dir', REPO_ROOT];
   // the librarian's closed tool set (decision:exec.librarian-on-the-host): wye reads and proposals, reading files, questions — no edits, no shell, no git
   if (s.role === 'librarian') args.push('--allowedTools', 'Bash(wye:*)', 'Read', 'Grep', 'Glob', '--disallowedTools', 'Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash(git:*)', 'Bash(rm:*)', 'Bash(npm:*)', 'Bash(node:*)', 'Agent', 'Task');
+  if (s.model) args.push('--model', s.model);
   if (opts.resume && s.agentSessionId) args.push('--resume', s.agentSessionId);
   const proc = spawn('claude', args, { cwd, env: { ...process.env, WYE_URL: opts.wfUrl, WYE_PRODUCT: product, WYE_SESSION: id, WF_URL: opts.wfUrl, WF_PRODUCT: product, WF_SESSION: id } });
   l.proc = proc;
