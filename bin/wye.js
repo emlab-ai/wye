@@ -85,6 +85,8 @@
 //        projects and people; an item it cannot place waits in the Inbox with a question. Same meeting twice → nothing new
 //   wye ea commitment move <id> --to YYYY-MM-DD --why "…" [--on YYYY-MM-DD] | met <id> [--on YYYY-MM-DD] | drop <id> --why "…"
 //        follow a committed date (task:ea.commitment-tracking): a move keeps the old date, the new one, when and why
+//   wye ea digest context [--date d] | summary --file <entry.md> [--date d]   the Digest's daily summary: what arrived, changed or
+//        closed since the last one and what waits now; then the entry written at the top of the Digest's Daily summary
 //   wye ea brief daily|weekly|1on1 --product ea [--person person:ea.x] [--date YYYY-MM-DD] [--write] [--project p]   the morning
 //        brief, the weekly execution review, 1:1 prep — printed, or with --write kept as a page under Briefs (one per day)
 //   wye agent listen --product p --agent claude-code|codex [--cmd "<command>"] [--name n] [--once] [--take-ready [--goal <id>]]
@@ -580,6 +582,17 @@ const commands = {
       for (const n of j.notes) console.log(`  note     ${n}`);
       if (!j.created.length && !j.updates.length && !j.questions.length) console.log('  nothing new');
       return;
+    }
+    if (sub === 'digest') {   // the Digest's daily summary (decision:ea.digest-is-a-page) — op:api.ea-digest
+      const what = pos[2];
+      if (what === 'context') { const j = await api('GET', `/api/${p}/ea/digest${flags.date ? `?date=${flags.date}` : ''}`); return flags.json ? out(j) : console.log(j.markdown); }
+      if (what === 'summary') {
+        const text = flags.file ? fs.readFileSync(String(flags.file), 'utf8') : await readStdin();
+        if (!text.trim()) die('wye ea digest summary --product ea --file <entry.md> (or the text on stdin) [--date YYYY-MM-DD]');
+        const j = await api('POST', `/api/${p}/ea/digest`, { summary: text, ...(flags.date ? { date: flags.date } : {}) });
+        return flags.json ? out(j) : console.log(`written: today's entry at the top of the Daily summary on ${j.doc}`);
+      }
+      die('wye ea digest context | summary --file <entry.md>  [--product ea] [--date YYYY-MM-DD]');
     }
     if (sub === 'commitment') {
       const op = pos[2]; const id = pos[3];
