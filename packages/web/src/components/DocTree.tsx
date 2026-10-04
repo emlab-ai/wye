@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, type DragEvent, type MouseEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type DragEvent, type MouseEvent } from 'react';
+import { fitMenu } from '@/lib/menu-fit';
 import { requestSend } from './CommandBox';
 import { IconMore, IconPlus } from './Icons';
 
@@ -9,7 +10,7 @@ export type TreeItem = { slug: string; node: string; title: string; icon: string
 type Zone = 'before' | 'into' | 'after';
 type Drag = { slug: string; node: string }; // the dragged document: its slug and its node id (rule:page-node-line)
 type Over = { slug: string; zone: Zone };
-type Menu = { d: TreeItem; x: number; y: number }; // the row's context menu (rule:tree-menu), anchored where it was asked for
+type Menu = { d: TreeItem; x: number; y: number; above?: number }; // the row's context menu (rule:tree-menu), anchored where it was asked for
 // What every row shares with the tree. Rows are a module-level component (Row) on purpose: a component defined
 // inside DocTree's render would take a new identity on every state change, so setDrag on dragstart would remount
 // every row — and Chrome ends a native drag the moment its source node leaves the document (bug:dnd-remount).
@@ -92,6 +93,7 @@ export function DocTree({ product, roots, onAddChild, pinned = [] }: { product: 
     const open = (e: Event) => { const { node, x, y } = (e as CustomEvent<{ node: string; x: number; y: number }>).detail; const d = find(roots, node); if (d) setTimeout(() => setMenu({ d, x: Math.max(8, x), y }), 0); };
     window.addEventListener('wf:doc-menu', open); return () => window.removeEventListener('wf:doc-menu', open);
   }, [roots]);
+  useLayoutEffect(() => { if (menu) fitMenu(menuEl.current, menu.x, menu.y, menu.above); }, [menu]);   // near the window's bottom it opens upward
   const tree: Tree = { product, path, closed, toggle, drag, over, setDrag, setOver, move, onAddChild, openMenu: setMenu };
   return (
     <div className="pg-wrap" ref={box}>
@@ -118,7 +120,7 @@ function Row({ d, depth, parent, tree }: { d: TreeItem; depth: number; parent: T
   const open = !closed[d.slug];
   const id = d.node;
   const dropClass = over?.slug === d.slug ? `drop-${over.zone}` : '';
-  const onMenu = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); const b = (e.currentTarget as HTMLElement).getBoundingClientRect(); openMenu(e.type === 'contextmenu' ? { d, x: e.clientX, y: e.clientY } : { d, x: b.left, y: b.bottom + 2 }); };
+  const onMenu = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); const b = (e.currentTarget as HTMLElement).getBoundingClientRect(); openMenu(e.type === 'contextmenu' ? { d, x: e.clientX, y: e.clientY } : { d, x: b.left, y: b.bottom + 2, above: b.top }); };
   return (
     <li>
       <div className={`pg-row ${on ? 'on' : ''} ${drag?.slug === d.slug ? 'dragging' : ''} ${dropClass}`} style={{ paddingLeft: 18 + depth * 18 }} draggable onContextMenu={onMenu}

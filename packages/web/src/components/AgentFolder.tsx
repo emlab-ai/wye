@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
+import { fitMenu } from '@/lib/menu-fit';
 import { useRouter } from 'next/navigation';
 import { railAgents, type RailAgent, type RailSession } from '@/lib/rail-agents';
 
@@ -15,7 +16,7 @@ const STATE: Record<RailAgent['state'], string> = { working: 'working', idle: 'i
 export function AgentFolder({ product }: { product: string }) {
   const path = usePathname(); const router = useRouter();
   // the row's menu (right-click, or the hover ⋯): open, and cancel an agent / pause or resume an import
-  type Menu = { x: number; y: number } & ({ kind: 'agent'; id: string } | { kind: 'import'; b: ImportRow });
+  type Menu = { x: number; y: number; above?: number } & ({ kind: 'agent'; id: string } | { kind: 'import'; b: ImportRow });
   const [menu, setMenu] = useState<Menu | null>(null); const menuEl = useRef<HTMLDivElement>(null);
   useEffect(() => {   // a press outside, Escape or a scroll closes it (React listens on document too: check the target)
     if (!menu) return;
@@ -23,7 +24,8 @@ export function AgentFolder({ product }: { product: string }) {
     document.addEventListener('mousedown', close); document.addEventListener('keydown', key); window.addEventListener('scroll', close, true);
     return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', key); window.removeEventListener('scroll', close, true); };
   }, [menu]);
-  const at = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); if (e.type === 'contextmenu') return { x: e.clientX, y: e.clientY }; const b = (e.currentTarget as HTMLElement).getBoundingClientRect(); return { x: b.left, y: b.bottom + 2 }; };
+  useLayoutEffect(() => { if (menu) fitMenu(menuEl.current, menu.x, menu.y, menu.above); }, [menu]);
+  const at = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); if (e.type === 'contextmenu') return { x: e.clientX, y: e.clientY }; const b = (e.currentTarget as HTMLElement).getBoundingClientRect(); return { x: b.left, y: b.bottom + 2, above: b.top }; };
   const [open, setOpen] = useState(true);
   const [rows, setRows] = useState<RailAgent[]>([]);
   // background imports (lib:import-run) are a queue of their own, not agent slots: one row each; pause/resume is on its page
