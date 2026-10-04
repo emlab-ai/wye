@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { DateField } from './DateField';
 import { useRouter } from 'next/navigation';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
@@ -87,6 +88,7 @@ export function NodeEditor({ id, body, form, type, props, entry, relations = [],
         {(v && !f.enum.includes(v) ? [v] : []).concat(['', ...f.enum]).map(o => <option key={o} value={o}>{o || 'Empty'}</option>)}
       </select>);
     if (f.type === 'bool') return <input type="checkbox" checked={/^(true|yes)$/i.test(v)} onChange={e => { setVal(f.name, e.target.checked ? 'true' : ''); save({ props: { [f.name]: e.target.checked ? 'true' : null } }); }} />;
+    if (f.type === 'date' || f.type === 'month') return <DateField value={v} month={f.type === 'month'} onCommit={x => { setVal(f.name, x); save({ props: { [f.name]: x || null } }); }} />;
     if (f.type === 'progress') return (
       <span className="ne-progress"><ProgressBar value={v ? Number(v) : computed} width={110} /><input className="ne-in ne-pct" value={v} placeholder={computed !== undefined ? `${computed}%` : '—'} onChange={e => setVal(f.name, e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={enterBlurs} onBlur={() => commit(f)} />{entry?.parts && <em className="muted">{entry.parts.done} of {entry.parts.total} parts done</em>}</span>);
     if (f.type === 'text') return <textarea className="ne-in ne-text" rows={Math.min(10, Math.max(1, Math.ceil(v.length / 55) + v.split('\n').length - 1))} value={v} placeholder="Empty" onChange={e => setVal(f.name, e.target.value)} onBlur={() => commit(f)} disabled={prose && f.from !== 'type:node'} title={prose && f.from !== 'type:node' ? 'a prose line holds single-line values; open the document for a long text' : ''} />;

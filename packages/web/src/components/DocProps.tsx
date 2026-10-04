@@ -1,5 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { DateField } from './DateField';
 import { useEffect, useState } from 'react';
 import { statusOptions, statusesByKind } from '@/lib/props';
 import type { PropDef, TypeDef } from '@/lib/graph';
@@ -69,6 +70,7 @@ export function DocProps({ product, project, slug, file, fm, node, types, titled
       return <span className="ne-multi">{[...new Set([...p.enum, ...on])].map(o => <button key={o} type="button" className={`ne-toggle ${on.includes(o) ? 'on' : ''}`} aria-pressed={on.includes(o)} onClick={() => write(on.includes(o) ? on.filter(x => x !== o) : [...on, o])}>{o}</button>)}</span>; }
     if (p.enum) return <select className="ne-select" value={v} onChange={e => { set(e.target.value); }} onBlur={() => commit(p.name)}>{(v && !p.enum.includes(v) ? [v] : []).concat(['', ...p.enum]).map(o => <option key={o} value={o}>{o || 'Empty'}</option>)}</select>;
     if (p.type === 'bool') return <input type="checkbox" checked={/^(true|yes)$/i.test(v)} onChange={e => { set(e.target.checked ? 'true' : ''); }} onBlur={() => commit(p.name)} />;
+    if (p.type === 'date' || p.type === 'month') return <DateField value={v} month={p.type === 'month'} onCommit={x => { set(x); void commit(p.name, x); }} />;
     // a plan's `session` (type:plan): the conversation(s) that did the work, each opening in the context column
     if (p.name === 'session' && v.trim()) return (
       <span className="ne-ref">

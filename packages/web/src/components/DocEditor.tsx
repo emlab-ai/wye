@@ -33,6 +33,7 @@ import { applyLinks, blockText, blockLinked, type LinkBlock } from '@/lib/apply-
 import { headingSlug, docNodeOf, DONE_STATUSES } from '@/lib/doc';
 import { ProgressBar } from './Progress';
 import { LiveTable } from './LiveTable';
+import { DateField } from './DateField';
 import { requestSend } from './CommandBox';
 import { AskAgentBox, type AskRequest } from './AskAgent';
 
@@ -253,7 +254,7 @@ function RowNode({ p, set, contentRef, block, editor }: { p: { kind: string; slu
         </select>
       </div>
       <div className="nrow-cell" contentEditable={false} ref={stopEditorEvents}>
-        <input className="nrow-in" value={ex.target ?? ex.due ?? ''} placeholder={p.kind === 'goal' ? 'target' : 'due'} title="target date or month" onChange={ev => set({ extra: withExtra(p.extra, p.kind === 'goal' ? 'target' : 'due', ev.target.value) })} />
+        <DateField className="nrow-in" value={ex.target ?? ex.due ?? ''} month={p.kind === 'goal' && /^\d{4}-\d{2}$/.test(ex.target ?? '')} placeholder={p.kind === 'goal' ? 'target' : 'due'} onCommit={x => set({ extra: withExtra(p.extra, p.kind === 'goal' ? 'target' : 'due', x) })} />
       </div>
       <div className="nrow-cell nrow-progress" contentEditable={false} ref={stopEditorEvents} title={explicit !== undefined ? 'explicit progress — clear to compute from parts' : e?.parts ? `${e.parts.done} of ${e.parts.total} parts done` : 'no parts yet — type a percentage'}>
         <ProgressBar value={progress} width={52} />
@@ -299,6 +300,8 @@ function TypeRow({ p, set, contentRef, block, type, editor }: { p: { kind: strin
             <select className="nrow-in" value={ex[c.name] ?? ''} onChange={ev => set({ extra: withExtra(p.extra, c.name, ev.target.value) })}>
               {(ex[c.name] && !c.enum.includes(ex[c.name]) ? [ex[c.name]] : []).concat(['', ...c.enum]).map(v => <option key={v} value={v}>{v || `— ${c.name}`}</option>)}
             </select>
+          ) : c.type === 'date' || c.type === 'month' ? (
+            <DateField className="nrow-in" value={ex[c.name] ?? ''} month={c.type === 'month'} placeholder={c.name} onCommit={x => set({ extra: withExtra(p.extra, c.name, x) })} />
           ) : c.type === 'bool' ? (
             <input type="checkbox" checked={ex[c.name] === 'true' || ex[c.name] === 'yes'} title={c.name} onChange={ev => set({ extra: withExtra(p.extra, c.name, ev.target.checked ? 'true' : '') })} />
           ) : (

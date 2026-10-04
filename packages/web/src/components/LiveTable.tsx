@@ -4,6 +4,7 @@ import { usePeek, type OwnType } from './PeekProvider';
 import { EmbeddedCard } from './EmbeddedCard';
 import { filterRows, parseViewQuery, viewQuery, sortRows, isOpen, type Filters, type InstanceRow, type InstanceTable } from '@/lib/instance-table';
 import { statusOptions } from '@/lib/props';
+import { DateField } from './DateField';
 
 // A Data table or Data list from the whole product (decision:wf2.live-collections): `scope=product` on the table's
 // marker. Its rows are not written in this page — they are the product's items of the kind, wherever each is defined,
@@ -99,7 +100,9 @@ export function LiveTable({ product, kind, query, view, type, head, onQuery }: P
 function LiveRow({ r, grid, type, dateKey, statuses, onEdit }: { r: InstanceRow; grid: string; type?: OwnType; dateKey: string; statuses: string[]; onEdit: (p: { status?: string; props?: Record<string, string> }) => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const peek = () => ref.current?.dispatchEvent(new CustomEvent('wf:select', { detail: r.id, bubbles: true }));
-  const cell = (key: string, placeholder: string) => <LiveInput value={r.props[key] ?? ''} placeholder={placeholder} onCommit={v => onEdit({ props: { [key]: v } })} />;
+  const cell = (key: string, placeholder: string, kind = '') => kind === 'date' || kind === 'month'
+    ? <DateField className="nrow-in" value={r.props[key] ?? ''} month={kind === 'month'} placeholder={placeholder} onCommit={v => onEdit({ props: { [key]: v } })} />
+    : <LiveInput value={r.props[key] ?? ''} placeholder={placeholder} onCommit={v => onEdit({ props: { [key]: v } })} />;
   return (
     <div ref={ref} className={`nrow live-row k-${r.kind} ${isOpen(r) ? '' : 'done'}`} style={{ gridTemplateColumns: grid }} data-id={r.id}>
       <div className="nrow-cell nrow-name">
@@ -113,8 +116,8 @@ function LiveRow({ r, grid, type, dateKey, statuses, onEdit }: { r: InstanceRow;
       </div>
       {type ? type.cols.map(c => <div key={c.name} className="nrow-cell">{c.enum
         ? <select className="nrow-in" value={r.props[c.name] ?? ''} onMouseDown={e => e.stopPropagation()} onChange={e => onEdit({ props: { [c.name]: e.target.value } })}>{(r.props[c.name] && !c.enum.includes(r.props[c.name]) ? [r.props[c.name]] : []).concat(['', ...c.enum]).map(v => <option key={v} value={v}>{v || `— ${c.name}`}</option>)}</select>
-        : cell(c.name, c.ref ? `${c.ref}:…` : c.name)}</div>)
-        : <>{dateKey ? <div className="nrow-cell">{cell(dateKey, dateKey)}</div> : <div className="nrow-cell" />}<div className="nrow-cell">{cell('owner', 'owner')}</div></>}
+        : cell(c.name, c.ref ? `${c.ref}:…` : c.name, c.type)}</div>)
+        : <>{dateKey ? <div className="nrow-cell">{cell(dateKey, dateKey, dateKey === 'target' ? 'month' : 'date')}</div> : <div className="nrow-cell" />}<div className="nrow-cell">{cell('owner', 'owner')}</div></>}
     </div>
   );
 }

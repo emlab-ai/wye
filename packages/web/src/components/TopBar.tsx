@@ -117,7 +117,7 @@ export function TopBar({ product, docs }: { product: { slug: string; title: stri
         {crumbs.map((c, i) => <span key={c.href + i} className="crumb">{i > 0 && <span className="crumb-sep">/</span>}<Link href={c.href} className={i === crumbs.length - 1 ? 'on' : ''}>{c.icon && <span className="crumb-icon">{c.icon}</span>}{c.label}</Link></span>)}
       </nav>
       <span className="topbar-right">
-        {edited && <span className="muted topbar-edited">Edited {edited}</span>}
+        {edited && <span className="muted topbar-edited" suppressHydrationWarning>Edited {edited}</span>}
         {doc && <button className="topbar-btn" onClick={() => requestSend({ refs: [doc!.node], source: { project: doc!.project, doc: doc!.slug, link } })} title="Send this document to an agent">⇢ agent</button>}
         <button className="topbar-btn" onClick={copy} title="Copy link">⧉</button>
         {doc && <button className="topbar-btn topbar-more" title="Pin, duplicate or delete this page" aria-label="Page menu"
