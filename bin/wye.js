@@ -80,7 +80,7 @@
 //        module with an import task on it, handed to an agent at once (skill:import-code): it reads the code and writes the definition
 //   wye eval own | compare | public <adapter> | judge | report   the benchmarks (module:benchmarks): tier 1 on the product's own
 //        history with the CI gate, the with-and-without harness, the public adapters, the judge set's κ, the latest / previous / delta
-//   wye ea intake --product ea [--project assistant] --file <analysis.json>   (or the JSON on stdin) a meeting analysis an outside tool
+//   wye ea intake --product ea [--project assistant] --file <analysis.json>   (or the JSON on stdin) a meeting analysis — and/or `messages`: Slack threads and emails waiting on the director — an outside tool
 //        pushes (task:ea.cli-intake): the meeting and its decisions, commitments, risks and updates filed proposed under their
 //        projects and people; an item it cannot place waits in the Inbox with a question. Same meeting twice → nothing new
 //   wye ea commitment move <id> --to YYYY-MM-DD --why "…" [--on YYYY-MM-DD] | met <id> [--on YYYY-MM-DD] | drop <id> --why "…"
@@ -565,7 +565,13 @@ const commands = {
       let analysis; try { analysis = JSON.parse(text); } catch (e) { die(`the analysis is not JSON: ${e.message}`); }
       const j = await api('POST', `/api/${p}/ea/intake`, { analysis, ...(flags.project ? { project: flags.project } : {}) });
       if (flags.json) return out(j);
-      console.log(`${j.meeting}${j.meetingCreated ? ' (new)' : ' (already filed)'}`);
+      if (j.meeting) console.log(`${j.meeting}${j.meetingCreated ? ' (new)' : ' (already filed)'}`);
+      if (j.messages) {   // Slack threads and emails waiting on the director (decision:ea.messages-pushed)
+        for (const id of j.messages.created) console.log(`  waiting  ${id}${j.messages.answered.includes(id) ? ' (answered)' : ''}`);
+        for (const id of j.messages.updated) console.log(`  updated  ${id}${j.messages.answered.includes(id) ? ' (answered)' : ''}`);
+        for (const n of j.messages.notes) console.log(`  note     ${n}`);
+        if (!j.meeting) return;
+      }
       for (const id of j.created) console.log(`  created  ${id}`);
       for (const id of j.updates) console.log(`  update   ${id}`);
       for (const id of j.questions) console.log(`  question ${id}`);

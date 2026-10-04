@@ -129,4 +129,4 @@ export function planIntake(model: Pick<EaModel, 'people' | 'projects'>, input: I
 }
 
 // The summary a push returns: what was made, what waits for the director, what was already there.
-export type IntakeSummary = { meeting: string; meetingCreated: boolean; created: string[]; updates: string[]; questions: string[]; inbox: string[]; skipped: string[]; notes: string[] };
+export type IntakeSummary = { messages?: { created: string[]; updated: string[]; answered: string[]; notes: string[] }; meeting: string; meetingCreated: boolean; created: string[]; updates: string[]; questions: string[]; inbox: string[]; skipped: string[]; notes: string[] };

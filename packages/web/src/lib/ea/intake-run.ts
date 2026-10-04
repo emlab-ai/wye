@@ -15,11 +15,57 @@ import { addInboxItem, listInboxItems } from '../inbox';
 import { cardValue } from '../hooks';
 import { readModel, idPrefix } from './read';
 import { planIntake, validateIntake, type IntakeSummary, type PlannedCard, type PlannedLine } from './intake';
+import { validateMessages, planMessages } from './messages';
+import { editNode } from '../node-edit';
 
 export type IntakeResult = { ok: true; summary: IntakeSummary } | { ok: false; status: number; error: string; message: string; errors?: string[] };
 export const EA_TYPES = ['person', 'project', 'commitment', 'meeting', 'risk'];
 
+// A push carries a meeting analysis, Slack threads and emails waiting on the director (`messages`), or both.
 export async function runIntake(product: string, raw: unknown, opts: { project?: string } = {}): Promise<IntakeResult> {
+  const o = (raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>;
+  const hasMeeting = o.meeting !== undefined || o.items !== undefined;
+  if (o.messages === undefined || hasMeeting) {
+    const r = await runMeeting(product, raw, opts);
+    if (!r.ok || o.messages === undefined) return r;
+    const m = await runMessages(product, o.messages, opts); if (!m.ok) return m;
+    return { ok: true, summary: { ...r.summary, messages: m.messages } };
+  }
+  const m = await runMessages(product, o.messages, opts); if (!m.ok) return m;
+  return { ok: true, summary: { meeting: '', meetingCreated: false, created: [], updates: [], questions: [], inbox: [], skipped: [], notes: [], messages: m.messages } };
+}
+
+// Threads and emails: a new one is a card in its collection page (threads, emails), one pushed before — the same
+// tool id — has its card updated: when it last moved, what it waits for, answered or not.
+export async function runMessages(product: string, raw: unknown, opts: { project?: string } = {}): Promise<{ ok: true; messages: NonNullable<IntakeSummary['messages']> } | Extract<IntakeResult, { ok: false }>> {
+  const v = validateMessages(raw);
+  if (!v.ok) return { ok: false, status: 422, error: 'invalid', message: v.errors.join('\n'), errors: v.errors };
+  let scope = await loadScope(product); if (!scope) return { ok: false, status: 404, error: 'not_found', message: `no product ${product}` };
+  const missing = ['thread', 'email'].filter(t => !typeBySlug(scope!.graph, t));
+  if (missing.length) return { ok: false, status: 422, error: 'invalid', message: `${product} does not declare ${missing.map(t => `type:${t}`).join(', ')} — open Settings › Packages (or GET /api/${product}/packages) so the executive-assistant package declares its new types` };
+  const project = (opts.project ? scope.projects.find(p => p.slug === opts.project) : mainProject(scope));
+  if (!project) return { ok: false, status: 404, error: 'not_found', message: `no project ${opts.project ?? ''} in ${product}` };
+  const model = await readModel(scope);
+  const defined = scope.graph.nodes.filter(n => n.defined);
+  const bySource = new Map(defined.filter(n => n.kind === 'thread' || n.kind === 'email').map(n => [`${n.kind}|${cardValue(n.body, 'source-id').trim()}`, n.id]));
+  const plan = planMessages(model, v.messages, idPrefix(scope), bySource, new Set(defined.map(n => n.id)));
+  const out = { created: [] as string[], updated: [] as string[], answered: [] as string[], notes: plan.flatMap(p => p.notes.map(n => `${p.id}: ${n}`)) };
+  for (const p of plan.filter(x => !x.exists)) {
+    const r = await addInstance(scope, p.kind, { slug: p.id.slice(p.id.indexOf(':') + 1), title: p.title, props: p.props, status: p.status, home: `${project.slug}/${p.kind}s`, rebuild: false });
+    if (!r.ok) return { ok: false, status: 422, error: 'invalid', message: `${p.id}: ${r.message}` };
+    claimWrite(p.id, { by: 'agent:intake' }); out.created.push(p.id); if (p.status === 'done') out.answered.push(p.id);
+  }
+  if (out.created.length) { await rebuild(scope.product.dir); scope = (await loadScope(product))!; }
+  for (const p of plan.filter(x => x.exists)) {
+    claimWrite(p.id, { by: 'agent:intake' });
+    const r = await editNode(scope, p.id, { status: p.status, props: p.props });
+    if (!r.ok) return { ok: false, status: 422, error: 'invalid', message: `${p.id}: ${r.message}` };
+    out.updated.push(p.id); if (p.status === 'done') out.answered.push(p.id);
+  }
+  return { ok: true, messages: out };
+}
+
+async function runMeeting(product: string, raw: unknown, opts: { project?: string } = {}): Promise<IntakeResult> {
   const v = validateIntake(raw);
   if (!v.ok) return { ok: false, status: 422, error: 'invalid', message: v.errors.join('\n'), errors: v.errors };
   let scope = await loadScope(product); if (!scope) return { ok: false, status: 404, error: 'not_found', message: `no product ${product}` };
