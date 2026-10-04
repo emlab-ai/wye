@@ -1300,3 +1300,6 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .cal-months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; } .cal-months button { height: 34px; }
 .cal-quick { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); } .cal-quick button { border: 1px solid var(--line-2); background: none; color: var(--ink-2); border-radius: 999px; padding: 2px 9px; font: 12px var(--font-b); cursor: pointer; } .cal-quick button:hover { color: var(--ink); border-color: var(--ink-2); } .cal-quick .cal-clear { margin-left: auto; color: var(--muted); }
 .ne-chip { display: inline-block; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; padding: 1px 8px; border: 1px solid var(--line-2); border-radius: 999px; font: 12px var(--font-m); color: var(--ink-2); }
+
+.q-job { flex: 1; min-width: 0; display: flex; flex-direction: column; } .q-job b { font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .q-job span { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.q-sched li.q-off .q-job b { color: var(--muted); } .q-sched .q-list button:hover { color: var(--ink); border-color: var(--ink-2); }

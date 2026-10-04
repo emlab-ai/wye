@@ -22,6 +22,13 @@ time by editing its `on:` line — `time.weekdays 08:00`, `time.fri 16:00`, `tim
   for: module:ea-digest
   do: run workflow:ea.daily-summary
   status: active
+- id: hook:ea.collect
+  title: Calendar, Slack and email are collected into Wye three times a weekday
+  on: time.cron 30 7,12,17 * * 1-5
+  for: module:ea-digest
+  do: run skill:ea.collect
+  agent: claude-code
+  status: active
 - id: hook:ea.suggest-actions
   title: The suggested actions are renewed every weekday morning
   on: time.weekdays 07:50

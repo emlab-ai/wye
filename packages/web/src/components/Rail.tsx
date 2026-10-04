@@ -66,7 +66,6 @@ export function Rail({ pins = [], mainProject, products, product, projects, prs,
         {pins.map(p => { const h = `${base}/${p.project}/d/${p.slug}`; return <li key={p.ref} className="rail-pin"><Link href={h} className={path === h ? 'on' : ''} title={`${p.title} — pinned (unpin from the document's ⋯ menu)`}><i>{p.icon}</i><span className="rail-pin-title">{p.title}</span><span className="rail-pin-star" aria-label="pinned">★</span></Link></li>; })}
         {views.length ? views.filter(v => v.slug !== hooksSlug).map(v => <li key={v.slug}><Link href={`${base}/${v.project}/d/${v.slug}`} className={path === `${base}/${v.project}/d/${v.slug}` ? 'on' : ''}><i>{v.icon}</i>{v.title}</Link></li>) : <>{item(`${base}/goals`, 'Goals', '◎')}{item(`${base}/work`, 'Work', '☑')}</>}
         {item(`${base}/knowledge`, 'Knowledge', '◈')}
-        {item(`${base}/constitution`, 'Constitution', '§')}
         {item(`${base}/inbox`, 'Inbox', '⇩')}
         <AgentFolder product={product.slug} />
         <PrFolder product={product.slug} prs={prs} />

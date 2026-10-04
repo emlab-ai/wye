@@ -23,7 +23,7 @@ import './hooks-run';     // registers the session-end events of the hooks engin
 // `turn`: the queue items handed to the open turn — stamped done / failed when it ends (decision:wf2.queue-item-state);
 // `product` / `wfUrl` let the pump build a first message when a fresh item comes up (rule:clean-slate); `stopped`: the
 // person ended the process, so its exit must not rewrite the recorded status.
-type Live = { id: string; productDir: string; product: string; wfUrl: string; agent: string; role?: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string; known: Set<string>; model?: string; codexError?: string; codexUsage?: TurnUsage; idle?: ReturnType<typeof setTimeout>; turn: string[]; stopped?: boolean };
+type Live = { ownConfig?: boolean; id: string; productDir: string; product: string; wfUrl: string; agent: string; role?: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string; known: Set<string>; model?: string; codexError?: string; codexUsage?: TurnUsage; idle?: ReturnType<typeof setTimeout>; turn: string[]; stopped?: boolean };
 const g = globalThis as unknown as { __wfAgentHost?: Map<string, Live> };
 const live = () => (g.__wfAgentHost ??= new Map<string, Live>());
 
@@ -198,7 +198,7 @@ export async function startChat(productDir: string, product: string, id: string,
   }
   const cwd = s.cwd || REPO_ROOT;
   const l: Live = live().get(id) ?? { id, productDir, product, wfUrl: opts.wfUrl, agent: s.agent, cwd, proc: null, subs: new Set(), pending: [], flush: null, turnBusy: false, pumping: false, known: new Set(), turn: [] };
-  Object.assign(l, { product, wfUrl: opts.wfUrl, agent: s.agent, role: s.role, cwd, proc: null, stopped: false, agentSessionId: s.agentSessionId, turnBusy: false, pumping: false, codexThread: s.agent === 'codex' ? s.agentSessionId : undefined, model: undefined, known: new Set([...(s.artifacts?.docs ?? []), ...(s.artifacts?.nodes ?? []), ...(s.artifacts?.blocks ?? []).flatMap(b => [b.id, `${b.id}@${b.at}`])]) });
+  Object.assign(l, { ownConfig: !!s.ownConfig, product, wfUrl: opts.wfUrl, agent: s.agent, role: s.role, cwd, proc: null, stopped: false, agentSessionId: s.agentSessionId, turnBusy: false, pumping: false, codexThread: s.agent === 'codex' ? s.agentSessionId : undefined, model: undefined, known: new Set([...(s.artifacts?.docs ?? []), ...(s.artifacts?.nodes ?? []), ...(s.artifacts?.blocks ?? []).flatMap(b => [b.id, `${b.id}@${b.at}`])]) });
   live().set(id, l);
   return startProcess(l, s, product, opts);
 }
@@ -426,7 +426,11 @@ export function idleIds(): string[] { return [...live().values()].filter(l => is
 function codexTurn(l: Live, cwd: string, text: string, fromQueue = false, imagePaths: string[] = []) {
   if (!fromQueue) emit(l, { kind: 'user', text });
   const imgArgs = imagePaths.flatMap(p => ['--image', p]);
-  const args = l.codexThread ? ['exec', 'resume', l.codexThread, '--json', ...imgArgs, text] : ['exec', '--json', '--sandbox', 'workspace-write', ...imgArgs, text];
+  // a scheduled job's Codex runs as its config says (its sandbox, its network); any other turn is kept to the workspace
+  // the sandbox may write the workspace and reach the network: the `wye` CLI talks to this app on localhost (a sandbox
+  // without network made every wye call fail with `fetch failed`)
+  const net = ['-c', 'sandbox_workspace_write.network_access=true'];
+  const args = l.codexThread ? [...net, 'exec', 'resume', l.codexThread, '--json', ...imgArgs, text] : [...net, 'exec', '--json', ...(l.ownConfig ? [] : ['--sandbox', 'workspace-write']), ...imgArgs, text];
   // stdin must not be an open pipe: `codex exec` appends piped stdin to the prompt and waits for EOF, so a pipe
   // nobody closes hangs the turn with no output (found 2026-09-20; the prompt is the argument, images are files)
   const proc = spawn('codex', args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, WF_SESSION: l.id, WF_PRODUCT: l.productDir.split('/').pop() } });

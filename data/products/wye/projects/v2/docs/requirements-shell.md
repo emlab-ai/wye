@@ -779,3 +779,31 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - context:wf2.digest-template "also make sure digest is part of a template (system one)".
 
   - choice:wf2.digest-template templates/docs/digest.md, first in the New page's Template list: live tables of open tasks due within a week, your open tasks, goals, decisions waiting, open questions, and a Notes section. In a product that declares commitments and suggestions the same template makes the assistant's Digest (its seed page) as a page of its own; the daily summary and the suggestions still write to the seeded Digest (module:ea-digest).
+
+```yaml
+- id: decision:wf2.scheduler-runs-agents
+  title: Wye's own scheduler runs scheduled jobs by starting Claude Code or Codex as they are set up on this machine
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [component:hooks, component:executive-assistant]
+  part-of: module:req-shell
+```
+
+  - context:wf2.scheduler-runs-agents "we need to have scheduller running inside the wye, and it will just call claude or codex" — "it jsut must assume that claude and codex already setup correctly" (instead of creating scheduled tasks inside Cowork or Codex).
+
+  - choice:wf2.scheduler-runs-agents a time hook (`on: time.<schedule>`) may name `agent: claude-code | codex`: its skill then runs on that agent with the agent's own setup — no librarian tool limits, no Wye sandbox for Codex (the person's config) — only Codex's workspace sandbox gets network so `wye` reaches the app. The executive assistant gains skill:ea.collect (read calendar, Slack, email with the agent's connectors; push with `wye ea intake`; never send or change anything) and hook:ea.collect (`time.cron 30 7,12,17 * * 1-5`, agent claude-code). The Agents page lists the scheduled jobs — what each runs, on which agent, next and last run — with Run now and Pause (paused per product in _hooks/paused.json; a package's hook card is shared).
+
+```yaml
+- id: decision:wf2.knowledge-pages-are-data-tables
+  title: Each Knowledge page of a kind is a live Data table or Data list (switchable), not the instances table; Constitution leaves the rail
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [page:web/knowledge, page:web/sidebar]
+  part-of: module:req-shell
+```
+
+  - context:wf2.knowledge-pages-are-data-tables "it must be datatable or datalist component, and i should be able to switch views (this is for all pages inside knowledge)"; "remove constitution tab, it jsut part of knowledge already"; "if i click on goal item i don't see context opened".
+
+  - choice:wf2.knowledge-pages-are-data-tables /<product>/knowledge/<kind> shows the whole product's items of the kind with the live table from wf2.live-collections — rows edited in place, done hidden unless asked, ▤ table ⇄ ☰ list, filter and view in the URL; a row or card outside a page's editor opens its item in the column. Titles read without markdown. The rail no longer lists Constitution (its page stays reachable from Knowledge).

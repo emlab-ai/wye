@@ -5,6 +5,8 @@ import { railAgents, type RailAgent, type RailSession } from '@/lib/rail-agents'
 
 type Batch = { requestSlug: string; project: string; title: string; total: number; done: number; current: string | null; stopped: boolean; legacy: boolean; next: string[] };
 type Slots = { parallel: number; running: number; waiting: string[] };
+type Job = { hook: string; title: string; schedule: string; does: string; agent: string; status: 'active' | 'paused' | 'off'; next: string | null; last: string | null };
+const when = (iso: string | null) => iso ? new Date(iso).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : '—';
 
 // The top of the Agents page: everything queued, in one place — what runs now (and how many agent slots it takes),
 // what waits for a slot and in which order, and each background import with the file it is on and the files after it.
@@ -12,13 +14,15 @@ export function QueueOverview({ product }: { product: string }) {
   const [agents, setAgents] = useState<RailAgent[]>([]);
   const [slots, setSlots] = useState<Slots | null>(null);
   const [imports, setImports] = useState<Batch[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const load = useCallback(async () => {
     const get = async <T,>(u: string): Promise<T | null> => { try { const r = await fetch(u, { cache: 'no-store' }); return r.ok ? await r.json() as T : null; } catch { return null; } };
-    const [s, q, i] = await Promise.all([get<{ sessions: RailSession[] }>(`/api/${product}/sessions`), get<Slots>(`/api/${product}/queue`), get<{ batches: Batch[] }>(`/api/${product}/imports`)]);
-    if (s) setAgents(railAgents(s.sessions)); if (q) setSlots(q); if (i) setImports(i.batches);
+    const [s, q, i, sc] = await Promise.all([get<{ sessions: RailSession[] }>(`/api/${product}/sessions`), get<Slots>(`/api/${product}/queue`), get<{ batches: Batch[] }>(`/api/${product}/imports`), get<{ jobs: Job[] }>(`/api/${product}/schedule`)]);
+    if (s) setAgents(railAgents(s.sessions)); if (q) setSlots(q); if (i) setImports(i.batches); if (sc) setJobs(sc.jobs);
   }, [product]);
   useEffect(() => { void load(); const t = setInterval(() => void load(), 4000); const h = () => void load(); window.addEventListener('wf:change', h); return () => { clearInterval(t); window.removeEventListener('wf:change', h); }; }, [load]);
   const cancel = async (id: string) => { await fetch(`/api/${product}/sessions/${id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status: 'cancelled' }) }).catch(() => undefined); void load(); };
+  const jobAct = async (hook: string, action: 'run' | 'pause' | 'resume') => { await fetch(`/api/${product}/schedule`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ hook, action }) }).catch(() => undefined); void load(); };
   const importAct = async (slug: string, action: 'stop' | 'resume') => { await fetch(`/api/${product}/imports`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug, action }) }).catch(() => undefined); void load(); };
 
   const running = agents.filter(a => a.state !== 'queued');
@@ -56,6 +60,17 @@ export function QueueOverview({ product }: { product: string }) {
             <p className="small">{b.current ? <>now <code>{b.current}</code> · </> : null}{b.next.length ? <>next: {b.next.join(', ')}{b.total - b.done > b.next.length + (b.current ? 1 : 0) ? ` and ${b.total - b.done - b.next.length - (b.current ? 1 : 0)} more` : ''}</> : 'nothing left'}</p>
             <p className="muted small">one file at a time, each through an agent slot{b.stopped ? ' — paused: nothing new starts' : ''}</p>
           </div>)) : <p className="muted small">no import running or paused</p>}
+      </div>
+      <div className="q-col q-sched">
+        <h3>Scheduled <small>{jobs.length || ''}</small></h3>
+        {jobs.length ? <ol className="q-list">{jobs.map(j => (
+          <li key={j.hook} className={j.status !== 'active' ? 'q-off' : ''}>
+            <span className="q-job" title={`${j.hook} — ${j.does} · ${j.schedule}`}><b>{j.title}</b>
+              <span className="muted">{j.status === 'active' ? `next ${when(j.next)}` : j.status === 'paused' ? 'paused' : 'off'} · {j.agent} · last {when(j.last)}</span></span>
+            <button onClick={() => void jobAct(j.hook, 'run')} title="Run it now, outside its schedule">Run now</button>
+            {j.status !== 'off' && <button onClick={() => void jobAct(j.hook, j.status === 'paused' ? 'resume' : 'pause')} title={j.status === 'paused' ? 'Resume its schedule' : 'Pause it for this product'}>{j.status === 'paused' ? 'Resume' : 'Pause'}</button>}
+          </li>))}</ol>
+          : <p className="muted small">nothing scheduled — a hook with <code>on: time.…</code> runs here</p>}
       </div>
     </section>
   );

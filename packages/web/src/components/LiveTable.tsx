@@ -17,7 +17,10 @@ const TASKISH = new Set(['goal', 'task', 'commitment']);
 const DUE_WINDOWS = ['', 'late', 'today', '7d', '14d', '30d'];
 
 export function LiveTable({ product, kind, query, view, type, head, onQuery }: Props) {
-  const { statuses: byKind } = usePeek();
+  const { statuses: byKind, open: openNode } = usePeek();
+  // inside a page's editor a row selects its item (the column follows the editor); elsewhere — a Knowledge page — it opens it
+  const rootRef = useRef<HTMLDivElement>(null); const [inEditor, setInEditor] = useState(true);
+  useEffect(() => { setInEditor(!!rootRef.current?.closest('.doc-editor')); }, []);
   const [table, setTable] = useState<InstanceTable | null>(null);
   const [err, setErr] = useState('');
   const [open, setOpen] = useState(false);
@@ -75,31 +78,31 @@ export function LiveTable({ product, kind, query, view, type, head, onQuery }: P
   );
 
   if (view === 'list') return (
-    <div className={`collection c-list c-live c-${kind}`} contentEditable={false}>
+    <div ref={rootRef} className={`collection c-list c-live c-${kind}`} contentEditable={false}>
       <div className="collection-list-head">{head}{summary}</div>
       {open && bar}
       {err && <p className="notice">{err}</p>}
-      <div className="ilist">{rows.map(r => <EmbeddedCard key={r.id} id={r.id} className="ilist-item" inEditor />)}</div>
+      <div className="ilist">{rows.map(r => <div key={r.id} onClickCapture={e => { if (!inEditor && !(e.target as Element).closest('a, button, select, input, .embed-editor')) openNode(r.id); }}><EmbeddedCard id={r.id} className="ilist-item" inEditor={inEditor} /></div>)}</div>
       {table && !rows.length && <p className="muted small live-empty">Nothing here right now.</p>}
     </div>
   );
   return (
-    <div className={`collection c-live c-${kind}`} contentEditable={false}>
+    <div ref={rootRef} className={`collection c-live c-${kind}`} contentEditable={false}>
       <div className="nrow nrow-head" style={{ gridTemplateColumns: grid }}>
         <div className="nrow-cell nrow-name">{head}{summary}</div><div className="nrow-cell">Status</div>
         {type ? type.cols.map(c => <div key={c.name} className="nrow-cell">{c.name}</div>) : <><div className="nrow-cell">{dateKey === 'target' ? 'Target' : 'Due'}</div><div className="nrow-cell">Owner</div></>}
       </div>
       {open && bar}
       {err && <p className="notice">{err}</p>}
-      {rows.map(r => <LiveRow key={r.id} r={r} grid={grid} type={type} dateKey={TASKISH.has(kind) ? dateKey : ''} statuses={[...new Set([...statusOptions(byKind, r.kind, r.status), 'done'])]} onEdit={p => edit(r, p)} />)}
+      {rows.map(r => <LiveRow key={r.id} r={r} grid={grid} type={type} dateKey={TASKISH.has(kind) ? dateKey : ''} statuses={[...new Set([...statusOptions(byKind, r.kind, r.status), 'done'])]} onEdit={p => edit(r, p)} onOpen={inEditor ? undefined : () => openNode(r.id)} />)}
       {table && !rows.length && <p className="muted small live-empty">Nothing here right now.</p>}
     </div>
   );
 }
 
-function LiveRow({ r, grid, type, dateKey, statuses, onEdit }: { r: InstanceRow; grid: string; type?: OwnType; dateKey: string; statuses: string[]; onEdit: (p: { status?: string; props?: Record<string, string> }) => void }) {
+function LiveRow({ r, grid, type, dateKey, statuses, onEdit, onOpen }: { r: InstanceRow; grid: string; type?: OwnType; dateKey: string; statuses: string[]; onEdit: (p: { status?: string; props?: Record<string, string> }) => void; onOpen?: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  const peek = () => ref.current?.dispatchEvent(new CustomEvent('wf:select', { detail: r.id, bubbles: true }));
+  const peek = () => onOpen ? onOpen() : ref.current?.dispatchEvent(new CustomEvent('wf:select', { detail: r.id, bubbles: true }));
   const cell = (key: string, placeholder: string, kind = '') => kind === 'date' || kind === 'month'
     ? <DateField className="nrow-in" value={r.props[key] ?? ''} month={kind === 'month'} placeholder={placeholder} onCommit={v => onEdit({ props: { [key]: v } })} />
     : <LiveInput value={r.props[key] ?? ''} placeholder={placeholder} onCommit={v => onEdit({ props: { [key]: v } })} />;
@@ -107,7 +110,7 @@ function LiveRow({ r, grid, type, dateKey, statuses, onEdit }: { r: InstanceRow;
     <div ref={ref} className={`nrow live-row k-${r.kind} ${isOpen(r) ? '' : 'done'}`} style={{ gridTemplateColumns: grid }} data-id={r.id}>
       <div className="nrow-cell nrow-name">
         <button type="button" className="nrow-open" title={r.id} onMouseDown={e => e.stopPropagation()} onClick={peek}><i style={{ background: `var(--k-${r.kind}, var(--k-other))` }} /></button>
-        <span className="nrow-text live-text" onClick={peek} title={`${r.title} — ${r.doc}`}>{r.title}</span>
+        <span className="nrow-text live-text" onClick={peek} title={`${plainTitle(r.title)} — ${r.doc}`}>{plainTitle(r.title)}</span>
       </div>
       <div className="nrow-cell">
         <select className={`status-sel s-${r.status}`} value={r.status} onMouseDown={e => e.stopPropagation()} onChange={e => onEdit({ status: e.target.value })}>
@@ -129,3 +132,6 @@ function LiveInput({ value, placeholder, onCommit }: { value: string; placeholde
   const commit = () => { if (v !== value) onCommit(v.trim()); };
   return <input className="nrow-in" value={v} placeholder={placeholder} onMouseDown={e => e.stopPropagation()} onChange={e => setV(e.target.value)} onBlur={commit} onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') { setV(value); (e.target as HTMLInputElement).blur(); } }} />;
 }
+
+// a title as it reads: markdown emphasis, links ([text](id) → text) and inline code taken off
+const plainTitle = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\*\*|__|`/g, '').replace(/(^|\s)[*_](\S)/g, '$1$2').replace(/\s+/g, ' ').trim();

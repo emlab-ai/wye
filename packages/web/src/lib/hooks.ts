@@ -8,7 +8,7 @@ import type { BlockChange } from './session-types';
 export type HookEvent = { kind: string; id: string; event: string; verb?: string; session?: string; role?: string };
 export type HookAction = { kind: 'run'; skill: string } | { kind: 'workflow'; workflow: string } | { kind: 'add'; template: string; to?: string } | { kind: 'task'; text: string; worker?: string; skill?: string } | { kind: 'assign'; task: string; worker?: string; skill?: string } | { kind: 'notify'; text: string } | { kind: 'dispatch'; doc: string; workers?: number };
 // for: the node a `time.<schedule>` hook fires on (decision:ea.time-based-hooks) — its own node when absent
-export type HookDef = { id: string; title: string; on: { kind: string; event: string }; where: Record<string, string>; actions: HookAction[]; once: boolean; status: string; skills: string[]; for?: string };
+export type HookDef = { id: string; title: string; on: { kind: string; event: string }; where: Record<string, string>; actions: HookAction[]; once: boolean; status: string; skills: string[]; for?: string; /** `agent: claude-code | codex` — who runs the hook's skill: that agent as it is set up on this machine (decision:wf2.scheduler-runs-agents) */ agent?: string };
 
 export const HOOK_EVENTS = ['created', 'status:<x>', 'linked:<verb>', 'pr.approved', 'pr.built', 'session.done', 'time.<schedule>'];
 export const MAX_DEPTH = 3;
@@ -65,7 +65,8 @@ export function parseHook(n: Pick<GraphNode, 'id' | 'kind' | 'title' | 'body' | 
   const actions = lines.map(parseAction).filter((a): a is HookAction => !!a);
   const once = cardValue(n.body, 'once');
   const skills = (cardValue(n.body, 'skills').match(/skill:[A-Za-z0-9_.\-]+/g) ?? []);
-  return { id: n.id, title: n.title, on: { kind: m[1], event: m[2] }, where, actions, once: once !== 'false' && once !== 'no', status: n.status || 'active', skills, ...(forNode ? { for: forNode } : {}) };
+  const agent = cardValue(n.body, 'agent').trim();
+  return { id: n.id, title: n.title, on: { kind: m[1], event: m[2] }, where, actions, once: once !== 'false' && once !== 'no', status: n.status || 'active', skills, ...(forNode ? { for: forNode } : {}), ...(agent === 'claude-code' || agent === 'codex' ? { agent } : {}) };
 }
 
 // Every hook of a graph: the hook nodes that parse.
@@ -231,4 +232,13 @@ export function describeHookOn(h: Pick<HookDef, 'on'>, tz?: string): string {
   const at = s.text.slice(s.text.lastIndexOf(' ') + 1);
   const words = s.kind === 'daily' ? `daily at ${at}` : s.kind === 'weekdays' ? `weekdays at ${at}` : s.kind === 'days' ? `${s.dow.map(d => DAY_NAMES[d]).join(', ')} at ${at}` : s.text;
   return tz ? `${words} (${tz})` : words;
+}
+
+// The next slot of a schedule after `now` (the Scheduled panel's "next run"): the first minute, within eight days, at
+// which the last slot moves past the one now. Null when there is none (an unreadable or empty schedule).
+export function nextSlot(s: Schedule, now: Date, tz: string): Date | null {
+  const cur = lastSlot(s, now, tz)?.getTime() ?? 0;
+  const start = Math.floor(now.getTime() / 60000) * 60000 + 60000;
+  for (let t = start; t < start + 8 * 86400000; t += 60000) { const l = lastSlot(s, new Date(t), tz); if (l && l.getTime() > cur) return l; }
+  return null;
 }

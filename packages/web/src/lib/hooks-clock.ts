@@ -7,7 +7,7 @@
 // record in _hooks/<id>.json like any. A ticker every 60 s over every product, armed once per server (instrumentation).
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { hooksOf, lastSlot, parseSchedule, type HookDef } from './hooks';
+import { hooksOf, lastSlot, nextSlot, parseSchedule, type HookDef } from './hooks';
 import type { Firing } from './hooks-run'; // the engine itself is imported when a tick runs: the core stays light for tests
 import { readSettings, timeZoneOf } from './settings';
 import { loadScope } from './scope';
@@ -58,7 +58,8 @@ export async function tickHooks(productDir: string, hooks: HookDef[], now: Date,
 export async function tick(product: string, now: Date = new Date(), o: { fire?: FireOne; log?: (m: string) => void } = {}): Promise<ClockTick[]> {
   const log = o.log ?? (m => console.log(`[wf] ${m}`));
   const scope = await loadScope(product); if (!scope) return [];
-  const hooks = hooksOf(scope.graph);
+  const paused = await readPaused(scope.product.dir);
+  const hooks = hooksOf(scope.graph).map(h => (paused.includes(h.id) ? { ...h, status: 'paused' } : h));   // paused for this product (the Scheduled panel)
   const tz = timeZoneOf(await readSettings());
   const { fire, hooksEnabled } = await import('./hooks-run');
   const fireOne: FireOne = o.fire ?? ((h, node, _slot) => fire(product, [{ kind: scope.idx.byId.get(node)?.kind ?? node.split(':')[0], id: node, event: `time.${h.on.event}`, depth: 0 }], log, { only: h.id, force: true }));
@@ -84,4 +85,35 @@ export function startClock(everyMs = 60000): void {
   const c = clock(); if (c.timer) return;
   c.timer = setInterval(() => { void clock().run().catch(() => {}); }, everyMs); c.timer.unref?.();
   setTimeout(() => { void clock().run().catch(() => {}); }, 3000).unref?.(); // the catch-up at startup, once the server answers
+}
+
+// ---- the Scheduled panel (decision:wf2.scheduler-runs-agents): the product's time hooks — what runs, when next, when
+// last, on which agent — paused or resumed for this product only (_hooks/paused.json: a package's hook is shared, its
+// card is not the product's to edit), or run now through the engine like a tick would.
+const pausedFile = (productDir: string) => path.join(productDir, '_hooks', 'paused.json');
+export async function readPaused(productDir: string): Promise<string[]> { try { return JSON.parse(await readFile(pausedFile(productDir), 'utf8')) as string[]; } catch { return []; } }
+export async function setPaused(productDir: string, hook: string, on: boolean): Promise<string[]> {
+  const cur = await readPaused(productDir); const next = on ? [...new Set([...cur, hook])] : cur.filter(x => x !== hook);
+  const f = pausedFile(productDir); await mkdir(path.dirname(f), { recursive: true });
+  const tmp = `${f}.tmp-${process.pid}`; await writeFile(tmp, JSON.stringify(next, null, 2) + '\n'); await rename(tmp, f);
+  return next;
+}
+export type ScheduledJob = { hook: string; title: string; schedule: string; does: string; agent: string; on: string; status: 'active' | 'paused' | 'off'; next: string | null; last: string | null; readable: boolean };
+export async function scheduleOf(product: string, now: Date = new Date()): Promise<ScheduledJob[]> {
+  const scope = await loadScope(product); if (!scope) return [];
+  const tz = timeZoneOf(await readSettings());
+  const [state, paused] = await Promise.all([readClock(scope.product.dir), readPaused(scope.product.dir)]);
+  return hooksOf(scope.graph).filter(h => h.on.kind === 'time').map(h => {
+    const s = parseSchedule(h.on.event);
+    const off = inactive(h); const p = paused.includes(h.id);
+    const does = h.actions.map(a => a.kind === 'run' ? `runs ${a.skill}` : a.kind === 'workflow' ? `runs ${a.workflow}` : a.kind).join(', ');
+    return { hook: h.id, title: h.title, schedule: h.on.event, does, agent: h.agent ?? 'the app\'s agent', on: forNode(h), status: (off ? 'off' : p ? 'paused' : 'active') as ScheduledJob['status'], next: s && !off && !p ? nextSlot(s, now, tz)?.toISOString() ?? null : null, last: state[h.id]?.last ?? null, readable: !!s };
+  }).sort((a, b) => (a.next ?? '9').localeCompare(b.next ?? '9'));
+}
+export async function runNow(product: string, hook: string): Promise<Firing[]> {
+  const scope = await loadScope(product); if (!scope) return [];
+  const h = hooksOf(scope.graph).find(x => x.id === hook && x.on.kind === 'time'); if (!h) return [];
+  const { fire } = await import('./hooks-run');
+  const node = forNode(h);
+  return fire(product, [{ kind: scope.idx.byId.get(node)?.kind ?? node.split(':')[0], id: node, event: `time.${h.on.event}`, depth: 0 }], m => console.log(`[wf] ${m}`), { only: h.id, force: true });
 }

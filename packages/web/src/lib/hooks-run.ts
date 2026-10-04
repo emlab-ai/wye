@@ -28,8 +28,8 @@ export type FiringAction = { kind: HookAction['kind']; session?: string; added?:
 export type Firing = { id: string; hook: string; title: string; node: string; event: string; at: string; depth: number; actions: FiringAction[]; by?: { hook?: string; run?: string; stage?: string } };
 // Who is running the actions: a hook, or a stage of a workflow run. The runner only needs an id, a title and the
 // skills to attach, so it takes this instead of a HookDef.
-export type Actor = { id: string; title: string; skills: string[] };
-const actorOf = (h: HookDef): Actor => ({ id: h.id, title: h.title, skills: h.skills });
+export type Actor = { id: string; title: string; skills: string[]; agent?: string };
+const actorOf = (h: HookDef): Actor => ({ id: h.id, title: h.title, skills: h.skills, ...(h.agent ? { agent: h.agent } : {}) });
 
 const g = globalThis as unknown as { __wfHooks?: { wfUrl: string; busy: Set<string> } };
 const state = () => (g.__wfHooks ??= { wfUrl: process.env.WYE_URL || process.env.WF_URL || 'http://localhost:3456', busy: new Set() });
@@ -176,14 +176,17 @@ async function startSkillSession(scope: Scope, actor: Actor, skill: string, ev: 
   const skills = await listSkills(scope);
   const meta = skills.find(s => s.id === skill);
   const skillNode = scope.idx.byId.get(skill);
-  const role = (meta?.role ?? (skillNode ? cardValue(skillNode.body, 'role') : '')) === 'worker' ? 'worker' : 'librarian';
+  // a hook that names its agent (a scheduled job, decision:wf2.scheduler-runs-agents) runs that agent as it is set up on
+  // this machine — its connectors, its permissions — with none of the librarian's limits and no sandbox of Wye's
+  const own = !!actor.agent;
+  const role = own ? 'worker' : (meta?.role ?? (skillNode ? cardValue(skillNode.body, 'role') : '')) === 'worker' ? 'worker' : 'librarian';
   const settings = agentSettings(await readSettings());
-  const cwd = role === 'librarian' ? REPO_ROOT : productRepo(scope.product) ?? REPO_ROOT;
+  const cwd = role === 'librarian' || own ? REPO_ROOT : productRepo(scope.product) ?? REPO_ROOT;
   const partOf = node ? (scope.idx.out.get(node.id) ?? []).filter(e => e.verb === 'part-of').map(e => e.to) : [];
   const route = node ? docRoute(node.file) : null;
   const title = node?.title || ev.id;
   const s = await createSession(productDir, product, {
-    agent: role === 'librarian' ? 'claude-code' : settings.agent, mode: 'chat', cwd, role,
+    agent: own ? actor.agent! : role === 'librarian' ? 'claude-code' : settings.agent, mode: 'chat', cwd, role, ...(own ? { ownConfig: true } : {}),
     instruction: `Run ${skill} on ${ev.id}: ${title}`,
     refs: [ev.id, ...partOf, ...(ev.session ? [`session:${ev.session}`] : [])],
     source: route ? { project: route.project, doc: route.doc, link: `${product}/${route.project}/${route.doc}` } : {},
