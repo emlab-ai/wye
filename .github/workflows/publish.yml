@@ -28,9 +28,9 @@ jobs:
     env:
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'   # the desktop shell is not part of the npm package
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
