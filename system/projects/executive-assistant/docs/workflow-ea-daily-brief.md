@@ -10,7 +10,7 @@ part-of: module:ea-assistant
 
 # Daily brief
 
-Each weekday morning hook:ea.daily-brief runs this on [Briefs](module:ea-briefs); run it by hand any time with
+Run by hand (the weekday-morning rhythm is now the Digest's daily summary, workflow:ea.daily-summary) on [Briefs](module:ea-briefs) with
 `wye workflow run workflow:ea.daily-brief --on module:ea-briefs --again`. One stage: an agent builds today's brief with
 skill:ea.daily-brief and adds what to do first. It moves on by itself — nothing waits for you but the brief.
 

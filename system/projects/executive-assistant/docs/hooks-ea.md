@@ -16,11 +16,11 @@ time by editing its `on:` line — `time.weekdays 08:00`, `time.fri 16:00`, `tim
 ## Hooks
 
 ```yaml
-- id: hook:ea.daily-brief
-  title: The daily brief is written every weekday morning
+- id: hook:ea.daily-summary
+  title: The Digest's daily summary is written every weekday morning
   on: time.weekdays 08:00
-  for: module:ea-briefs
-  do: run workflow:ea.daily-brief
+  for: module:ea-digest
+  do: run workflow:ea.daily-summary
   status: active
 - id: hook:ea.weekly-review
   title: The weekly execution review is written on Friday afternoon

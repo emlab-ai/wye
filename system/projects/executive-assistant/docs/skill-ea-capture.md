@@ -67,6 +67,26 @@ The intake files each item under its project and people, linked to the meeting, 
 meeting twice creates nothing new. Read its summary: an item it could not place is in the director's Inbox with a
 question — do not push it again with a guessed project.
 
+## 3b. Push what waits for a reply — Slack and email
+
+Push the Slack threads and the emails that wait on the director as `messages` — on their own, or in the same file as
+a meeting. Push only what needs them: a question to them, a request, a thread they were asked into and have not
+answered. Push the same thread again (same `id`) when it moves, and with `"answered": true` once they replied — it
+leaves the Digest.
+
+```json
+{ "messages": [
+  { "via": "slack", "id": "<channel id>/<thread ts>", "title": "Can we ship the speed-limit fix this week?",
+    "channel": "#safety", "from": "Jane Roe", "link": "https://…/archives/…", "at": "2026-10-04T09:12:00Z",
+    "waiting": "reply", "project": "Atlas" },
+  { "via": "email", "id": "<message-id>", "title": "Q4 budget approval", "from": "Kim Lee",
+    "link": "https://mail…/…", "at": "2026-10-03", "waiting": "reply" }
+] }
+```
+
+`via` slack or email; `waiting` reply (they owe an answer) or look (they should read it); `from` and `project` are
+names, matched to the people and projects Wye knows.
+
 ## 4. Upcoming 1:1s
 
 When you see a 1:1 on the director's calendar for the next day, push it as a meeting with `"type": "1on1"`, its date

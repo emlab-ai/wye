@@ -1,7 +1,7 @@
 ---
 node: package:executive-assistant
 title: Executive assistant
-description: A director's assistant — people, projects, commitments, decisions, risks and meetings, filed from what outside tools push and followed in a daily brief, a weekly execution review and 1:1 prep.
+description: A director's assistant — people, projects, commitments, decisions, risks and meetings, filed from what outside tools push and followed on a live Digest with a daily summary, a weekly execution review and 1:1 prep.
 ---
 
 # Executive assistant
@@ -17,9 +17,11 @@ It brings:
 
 - **Kinds** (types.md, declared in the product on install, decision:ea.packages-carry-types): person, project,
   commitment, meeting, risk. Decisions are Wye's own, with an owner and a project.
-- **Skills**: capture (handed to Cowork or any outside agent), daily brief, weekly review, 1:1 prep.
-- **Workflows**: capture → approve, daily brief, weekly review, 1:1 prep.
-- **Hooks**: the daily brief on weekday mornings and the weekly review on Friday afternoon (time hooks,
+- **Kinds** also: thread (Slack) and email — what waits for your reply, pushed by your outside agent.
+- **Pages** (seeded once, yours to edit): the Digest — live views of what needs you, and a daily summary.
+- **Skills**: capture (handed to Cowork or any outside agent), daily summary, daily brief, weekly review, 1:1 prep.
+- **Workflows**: capture → approve, daily summary, daily brief, weekly review, 1:1 prep.
+- **Hooks**: the Digest's daily summary on weekday mornings and the weekly review on Friday afternoon (time hooks,
   decision:ea.time-based-hooks), 1:1 prep when a 1:1 is pushed in.
 
 After installing, set yourself as the director: add your person card (`wye node add person:ea.<you> --product ea`) with

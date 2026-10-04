@@ -13,13 +13,14 @@ A director's assistant, built from documents you can edit: what you follow (peop
 | rhythm | when | what you get |
 |---|---|---|
 | Capture | an outside tool pushes a meeting analysis | its decisions, commitments, risks and updates filed under their project and people, proposed, linked to the meeting |
-| Daily brief | weekday mornings (hook:ea.daily-brief) | late and due today on top, then every open commitment by project, decisions waiting on you, what you owe, what changed since yesterday |
+| Digest | always — a live page, pinned at the top ([Digest](module:ea-digest)) | what is late or due, Slack threads and emails waiting for your reply, important tasks, open decisions, projects, risks — each a live view you can edit |
+| Daily summary | weekday mornings (hook:ea.daily-summary) | at the bottom of the Digest: what arrived, changed or closed since yesterday and what it means for your decisions, written by skill:ea.daily-summary (edit it to change what it looks for) |
 | Weekly review | Friday afternoon (hook:ea.weekly-review) | each project's pace: done against planned, moved dates and why, blockers, risks, gone-quiet projects first |
 | 1:1 prep | a 1:1 is pushed in (hook:ea.one-on-one-prep), or by hand | open threads with the person, what each owes the other, notes from your last 1:1s, their projects |
 
 ## How it is fed
 
-Wye pulls nothing (decision:ea.tools-push-through-cli). Cowork, or any agent that reads your calendar, Slack, email and meeting recordings, is handed skill:ea.capture and pushes what it learns through one command:
+Wye pulls nothing (decision:ea.tools-push-through-cli). Cowork, or any agent that reads your calendar, Slack, email and meeting recordings, is handed skill:ea.capture and pushes what it learns through one command — meetings, and the Slack threads and emails waiting on you (`messages`, decision:ea.messages-pushed):
 
 ```
 wye ea intake --product ea --file analysis.json
@@ -49,4 +50,11 @@ wye ea brief weekly --product ea --write
 wye ea brief 1on1 --person person:ea.<slug> --product ea --write
 ```
 
-Briefs are pages under [Briefs](module:ea-briefs) — one per day, per week, per 1:1.
+Briefs are pages under [Briefs](module:ea-briefs) — one per day, per week, per 1:1. The daily brief no longer runs
+on its own: the Digest shows the same, live, and the daily summary says what changed. Run it by hand when you want the
+full list on one page.
+
+```shell
+wye ea digest context                       # what the daily summary reads
+wye ea digest summary --file entry.md       # an entry written at the top of the Digest's Daily summary
+```
