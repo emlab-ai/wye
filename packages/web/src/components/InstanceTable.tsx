@@ -35,7 +35,7 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
   const groupable = ['doc', 'status', ...table.columns.filter(c => c.kind !== 'string').map(c => c.name)];
   const sortOn = (col: string) => set({ sort: f.sort === col ? '-' + col : f.sort === '-' + col ? '' : col });
   const arrow = (col: string) => f.sort === col ? ' ▲' : f.sort === '-' + col ? ' ▼' : '';
-  const active = Object.values(f.props).some(Boolean) || f.q || f.status;
+  const active = Object.values(f.props).some(Boolean) || f.q || f.status || f.open || f.due;
   // `coverage=1` on a req view: one more cell per row saying whether the requirement is covered and what is missing
   const cover = coverage && table.slug === 'req';
   const span = 2 + table.columns.length + (table.typed ? 0 : 1) + (cover ? 1 : 0);

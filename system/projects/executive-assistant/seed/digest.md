@@ -39,9 +39,9 @@ Emails:
 
 <!-- view:task open=1 priority=high as=table -->
 
-Decisions not made yet:
+Decisions that are yours to take, still open:
 
-<!-- view:decision status=proposed as=table -->
+<!-- view:decision status=proposed owner=me as=table -->
 
 ## Projects
 

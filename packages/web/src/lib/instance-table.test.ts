@@ -120,4 +120,11 @@ describe('open, due windows and owner=me', () => {
     expect(f.open).toBe('1'); expect(f.due).toBe('7d'); expect(f.props.owner).toBe('me');
     expect(viewQuery(f)).toBe('open=1 due=7d owner=me');
   });
+  it('on a type with a due column, due=7d is the window, not the column equal to "7d"; a date is the column', () => {
+    const f = parseViewQuery('open=1 due=7d', ['due', 'state']);
+    expect(f.due).toBe('7d'); expect(f.props.due).toBeUndefined();
+    expect(filterRows(rows, f, { today: '2026-10-05' }).map(r => r.id)).toEqual(['late', 'soon']);
+    const exact = parseViewQuery('due=2026-10-09', ['due']);
+    expect(exact.due).toBeUndefined(); expect(exact.props.due).toBe('2026-10-09');
+  });
 });

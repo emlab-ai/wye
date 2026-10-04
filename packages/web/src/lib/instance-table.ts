@@ -68,8 +68,10 @@ export function coverageOf(r: Pick<InstanceRow, 'props'>): { satisfiedBy: string
 export function parseFilters(params: URLSearchParams | Record<string, string | undefined>, columns: string[]): Filters {
   const get = (k: string) => (params instanceof URLSearchParams ? params.get(k) : params[k]) ?? '';
   const props: Record<string, string> = {};
-  for (const c of [...columns, 'part-of']) if (get(c)) props[c] = get(c);
-  return { q: get('q'), status: get('status'), group: get('group'), sort: get('sort'), props, ...(get('done') ? { done: get('done') } : {}), ...(get('open') ? { open: get('open') } : {}), ...(get('due') ? { due: get('due') } : {}) };
+  // `due=late|today|<n>d` is the window on the due date, not the `due` column equal to "7d"; another value is the column
+  const window = /^(late|today|\d+d)$/.test(get('due')) ? get('due') : '';
+  for (const c of [...columns, 'part-of']) if (get(c) && !(c === 'due' && window)) props[c] = get(c);
+  return { q: get('q'), status: get('status'), group: get('group'), sort: get('sort'), props, ...(get('done') ? { done: get('done') } : {}), ...(get('open') ? { open: get('open') } : {}), ...(window ? { due: window } : {}) };
 }
 export function filtersToQuery(f: Filters): string {
   const p = new URLSearchParams();
