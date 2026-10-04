@@ -161,7 +161,7 @@ code, pre { font-family: var(--font-m); }
 .peek-back, .peek-bar-close { flex: none; align-self: center; background: none; border: 0; border-radius: 6px; width: 28px; height: 26px; margin: 0 4px; color: var(--ink-2); cursor: pointer; font: 14px/1 var(--font-b); } .peek-back:hover, .peek-bar-close:hover { background: var(--sunk); color: var(--ink); } .peek-back:disabled { opacity: .35; cursor: default; background: none; }
 .pbar { display: inline-block; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; vertical-align: middle; } .pbar i { display: block; height: 100%; background: var(--ok); border-radius: 3px; transition: width .2s; } .pbar.unknown { background: repeating-linear-gradient(90deg, var(--line) 0 4px, transparent 4px 8px); }
 .collection { margin: 6px 0 0; width: 100%; } .collection-add { margin-left: auto; background: none; border: 1px dashed var(--line-2); border-radius: 6px; padding: 1px 8px; color: var(--muted); cursor: pointer; font: 11px var(--font-m); text-transform: none; letter-spacing: 0; } .collection-add:hover { color: var(--ink); border-color: var(--ink-2); }
-.nrow { display: grid; width: 100%; min-width: min-content; flex: 1; grid-template-columns: minmax(440px, 1fr) 128px 104px 148px 120px; gap: 12px; align-items: center; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.nrow { display: grid; width: max-content; min-width: 0; flex: none; grid-template-columns: minmax(360px, 520px) 128px 104px 148px 120px; gap: 12px; align-items: center; padding: 6px 8px; border-bottom: 1px solid var(--line); }
 .nrow-head { font: 600 11px var(--font-m); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); border-bottom: 1px solid var(--line-2); }
 .nrow-cell { min-width: 0; display: flex; align-items: center; gap: 6px; } .nrow-name { gap: 8px; } .nrow-text { flex: 1; min-width: 0; font-size: 14px; line-height: 1.4; } .nrow.k-task.done .nrow-text { color: var(--muted); } .nrow.k-goal.done .nrow-text { color: var(--muted); }
 .nrow-open { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; } .nrow-open i { width: 8px; height: 8px; border-radius: 50%; display: block; } .nrow-open:hover { border-color: var(--accent); }
@@ -1272,3 +1272,19 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .npt-about .pri { align-self: flex-start; margin-top: auto; background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 18px; font: 500 14px var(--font-b); cursor: pointer; }
 @media (max-width: 720px) { .np-picker-body { grid-template-columns: 1fr; } .npt-list { border-right: 0; border-bottom: 1px solid var(--line); max-height: 220px; } }
 .modal.np-sheet { overflow-y: auto; }   /* the template list can be taller than a short window: the sheet scrolls */
+
+/* tables keep their own width (decision:wf2.tables-own-width): columns sized to their content, never stretched to the
+   page; a table wider than the page scrolls sideways inside its block */
+.itable-grid { width: max-content; min-width: 0; }
+.itable-grid th, .itable-grid td { white-space: nowrap; max-width: none; }
+.itable-grid td:first-child, .itable-grid th:first-child { white-space: normal; width: auto; min-width: 280px; max-width: 440px; }
+.itable-grid td .tag, .itable-grid td .chip { max-width: 260px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+.ttable, .view-block .ttable { overflow-x: auto; max-width: 100%; }
+.c-live { overflow-x: auto; max-width: 100%; } .c-live .live-row .live-text { cursor: pointer; white-space: normal; }
+.live-scope { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; font: 11px var(--font-m); text-transform: none; letter-spacing: 0; }
+.live-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 8px 6px; font: 12px var(--font-b); color: var(--ink-2); border-bottom: 1px solid var(--line); }
+.live-filter input[type=search] { max-width: 200px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--ground); font: 12px var(--font-m); }
+.live-filter select { font: 12px var(--font-b); background: var(--ground); border: 1px solid var(--line-2); border-radius: 6px; padding: 2px 4px; color: var(--ink); }
+.live-empty { padding: 8px 6px; }
+
+.c-live .nrow-head .nrow-name { white-space: nowrap; gap: 6px; } .c-live .collection-view-toggle.on { color: var(--accent); border-color: var(--accent); }

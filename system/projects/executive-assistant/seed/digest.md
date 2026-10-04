@@ -10,46 +10,54 @@ seed-pin: true
 
 # Digest
 
-Everything that asks something of you, live: each view below is computed from what is filed now, so this page is never
-out of date. Edit it like any page — drop a view, add one, change a filter (`open=1`, `due=7d`, `owner=me`,
-`priority=high` …). The **Daily summary** at the bottom is written each weekday morning by skill:ea.daily-summary;
+Everything that asks something of you, live: each table below shows the matching items from the whole product as they
+are now, and an edit in a row is written where the item lives. Edit this page like any other — drop a table, add one
+(/ Data table, then ⊕ whole product), change a filter with ⏷ filter. The **Daily summary** at the bottom is written each weekday morning by skill:ea.daily-summary;
 edit that skill to change what it looks for.
 
 ## Needs you now
 
 Commitments late or due within a week:
 
-<!-- view:commitment open=1 due=7d as=table -->
+<!-- table:commitment scope=product open=1 due=7d -->
+<!-- /table:commitment -->
 
 Tasks late or due within a week:
 
-<!-- view:task open=1 due=7d as=table -->
+<!-- tasks scope=product open=1 due=7d -->
+<!-- /tasks -->
 
 ## Waiting for your reply
 
 Slack threads:
 
-<!-- view:thread open=1 as=table -->
+<!-- table:thread scope=product open=1 -->
+<!-- /table:thread -->
 
 Emails:
 
-<!-- view:email open=1 as=table -->
+<!-- table:email scope=product open=1 -->
+<!-- /table:email -->
 
 ## Important
 
-<!-- view:task open=1 priority=high as=table -->
+<!-- tasks scope=product open=1 priority=high -->
+<!-- /tasks -->
 
 Decisions that are yours to take, still open:
 
-<!-- view:decision status=proposed owner=me as=table -->
+<!-- table:decision scope=product status=proposed owner=me -->
+<!-- /table:decision -->
 
 ## Projects
 
-<!-- view:project open=1 as=table -->
+<!-- table:project scope=product open=1 -->
+<!-- /table:project -->
 
 ## Risks and blockers
 
-<!-- view:risk open=1 as=table -->
+<!-- table:risk scope=product open=1 -->
+<!-- /table:risk -->
 
 ## Daily summary
 

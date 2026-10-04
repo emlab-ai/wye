@@ -37,6 +37,8 @@ export function instanceTable(g: GraphData, slug: string): InstanceTable {
     const r = docRoute(n.file);
     const row: InstanceRow = { id: n.id, kind: n.kind, title: n.title, status: n.status, file: n.file, doc: r ? `${r.project} / ${r.doc}` : n.file, props: {} };
     if (t) { for (const p of nodeProps(g, n)) if (cols.some(c => c.name === p.name) && p.value) row.props[p.name] = p.value; }
+    // a base kind has no columns, but its owner and dates still filter (owner=me, due=7d)
+    else for (const k of ['owner', 'due', 'target']) { const v = n.body.match(new RegExp(`^${k}:\\s*(.+)$`, 'm'))?.[1]?.trim(); if (v) row.props[k] = v; }
     // `part-of` rides on every row (a root property, never a column) so a view can say `part-of=goal:x` — the block a
     // goal's Requirements / Tasks are (decision:wf2.column-is-content)
     const partOf = g.edges.filter(e => e.from === n.id && e.verb === 'part-of').map(e => e.to);
@@ -70,7 +72,7 @@ export function parseFilters(params: URLSearchParams | Record<string, string | u
   const props: Record<string, string> = {};
   // `due=late|today|<n>d` is the window on the due date, not the `due` column equal to "7d"; another value is the column
   const window = /^(late|today|\d+d)$/.test(get('due')) ? get('due') : '';
-  for (const c of [...columns, 'part-of']) if (get(c) && !(c === 'due' && window)) props[c] = get(c);
+  for (const c of [...columns, 'part-of', 'owner']) if (get(c) && !(c === 'due' && window)) props[c] = get(c);   // owner filters on every kind
   return { q: get('q'), status: get('status'), group: get('group'), sort: get('sort'), props, ...(get('done') ? { done: get('done') } : {}), ...(get('open') ? { open: get('open') } : {}), ...(window ? { due: window } : {}) };
 }
 export function filtersToQuery(f: Filters): string {

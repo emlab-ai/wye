@@ -32,6 +32,7 @@ import { blockHash } from '@/lib/anchors';
 import { applyLinks, blockText, blockLinked, type LinkBlock } from '@/lib/apply-links';
 import { headingSlug, docNodeOf, DONE_STATUSES } from '@/lib/doc';
 import { ProgressBar } from './Progress';
+import { LiveTable } from './LiveTable';
 import { requestSend } from './CommandBox';
 import { AskAgentBox, type AskRequest } from './AskAgent';
 
@@ -309,7 +310,7 @@ function TypeRow({ p, set, contentRef, block, type, editor }: { p: { kind: strin
 }
 // name (never under 200px — a narrow editor scrolls the table, rule:table-scroll), status, then one column per property
 // (comma-separated values such as ids get room)
-const typeGrid = (t: OwnType) => `minmax(440px, 1fr) 128px${t.cols.map(c => c.type === 'bool' ? ' 56px' : c.ref ? ' minmax(140px, 200px)' : ' minmax(112px, 180px)').join('')}`;
+const typeGrid = (t: OwnType) => `minmax(360px, 520px) 128px${t.cols.map(c => c.type === 'bool' ? ' 56px' : c.ref ? ' minmax(140px, 200px)' : ' minmax(112px, 180px)').join('')}`;
 
 // Selecting a row or block by clicking anything in it but its text (a status select, a property cell, the grid
 // background) puts the editor cursor in that block without taking focus from the control, so the context column
@@ -357,6 +358,7 @@ function withSlug(editor: EditorLike, index: Record<string, unknown>, block: Any
 // An empty row for a goals/tasks/type table: typing into it makes it a real item.
 // a fresh row of a collection: in a table it renders as a row (`row: kind`), in a list as an ordinary block (rule:list-view)
 const emptyRow = (kind: string, view = 'table') => ({ type: 'node', props: { kind, slug: '', status: kind === 'goal' ? 'proposed' : kind === 'task' ? 'open' : '', form: 'prose', textKey: 'text', body: '', extra: '', check: kind === 'task' ? 'todo' : '', list: 'bullet', row: view === 'list' ? '' : kind }, content: [] as unknown[] });
+const isLive = (q?: string) => /(^|\s)scope=product(\s|$)/.test(q ?? '');
 const rowText = (b: AnyBlock) => (Array.isArray(b.content) ? (b.content as { type: string; text?: string; props?: { id?: string } }[]).map(i => i.type === 'text' ? i.text ?? '' : i.type === 'tag' ? i.props?.id ?? '' : '').join('') : '').trim();
 
 // Every goals/tasks/type table ends with one empty row; a row that gained text gets its id, and a new empty row
@@ -366,6 +368,7 @@ function settleCollections(editor: EditorLike, taken: Set<string>, assignSlugs: 
   let changed = false;
   for (const b of editor.document as AnyBlock[]) {
     if (b.type !== 'collection') continue;
+    if (isLive((b.props as { query?: string }).query)) continue;   // a table from the whole product has no rows of its own
     const { kind, view = 'table' } = b.props as { kind: string; view?: string };
     const kids = [...(b.children ?? [])] as AnyBlock[];
     // Enter in a row makes a paragraph: inside a table or list every child is a node of the kind, so it becomes one (its text kept)
@@ -410,7 +413,7 @@ const CollectionBlock = createReactBlockSpec(
   {
     render: props => {
       const { kind, query, view } = props.block.props as { kind: string; query: string; view: string };
-      const { ownTypes } = usePeek();
+      const { ownTypes, product } = usePeek();
       const type = kind === 'goal' || kind === 'task' ? undefined : ownTypes.find(t => t.slug === kind);
       // the header re-renders on every editor change: whether the type can still change depends on the rows' text
       const [, tick] = useState(0); useEditorChange(() => tick(t => t + 1), props.editor);
@@ -433,15 +436,34 @@ const CollectionBlock = createReactBlockSpec(
         <button type="button" className="collection-view-toggle" title={view === 'list' ? 'show as a table' : 'show as blocks'} onMouseDown={e => e.stopPropagation()} onClick={() => setView(view === 'list' ? 'table' : 'list')}>{view === 'list' ? '▤ table' : '☰ list'}</button>
       );
       const filter = useTableFilter(props.editor as unknown as EditorLike, props.block as unknown as AnyBlock, kids, type ?? (kind === 'goal' || kind === 'task' ? undefined : { slug: kind, cols: [] }), query);
+      // this page's rows ⇄ the whole product's (decision:wf2.live-collections): a table with rows of its own stays this page's
+      const live = isLive(query);
+      const hasRows = kids.some(k => k.type === 'node' && (rowText(k) || (k.props as unknown as { slug: string }).slug));
+      const setLive = (on: boolean) => {
+        if (on === live || (on && hasRows)) return;
+        const q = query.replace(/(^|\s)scope=product(?=\s|$)/, '').trim();
+        props.editor.updateBlock(props.block, { props: { kind, view, query: on ? [q, 'scope=product'].filter(Boolean).join(' ') : q }, ...(on ? { children: [] } : { children: [emptyRow(kind, view)] }) } as never);
+      };
+      const scopeToggle = (
+        <button type="button" className={`collection-view-toggle ${live ? 'on' : ''}`} disabled={!live && hasRows} onMouseDown={e => e.stopPropagation()} onClick={() => setLive(!live)}
+          title={live ? 'rows from the whole product, live — click to use this page\'s own rows instead' : hasRows ? 'this table has rows of its own — start another table for the whole product' : 'show the matching items from the whole product, live'}>{live ? '⊕ whole product' : '⊕'}</button>
+      );
       const picker = (
         <select className="collection-kind" value={kind} disabled={locked} title={locked ? 'rows already have ids of this type; start another table for another type' : 'the type of this table'} onChange={e => setKind(e.target.value)} onMouseDown={e => e.stopPropagation()}>
           {options.map(o => <option key={o} value={o}>{pluralTitle({ slug: o, plural: ownTypes.find(t => t.slug === o)?.plural })}</option>)}
         </select>
       );
+      if (live) return (
+        <div ref={stopEditorEvents}>
+          <LiveTable product={product} kind={kind} view={view} type={type} query={query.replace(/(^|\s)scope=product(?=\s|$)/, '').trim()}
+            head={<>{picker}{viewToggle}{scopeToggle}</>}
+            onQuery={q => props.editor.updateBlock(props.block, { props: { kind, view, query: [q, 'scope=product'].filter(Boolean).join(' ') } } as never)} />
+        </div>
+      );
       if (view === 'list') return (
         <div className={`collection c-list c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
           {filter.hide}
-          <div className="collection-list-head">{picker}{filter.toggle}{viewToggle}<span className="muted small">{kids.filter(k => k.type === 'node' && rowText(k)).length}</span></div>
+          <div className="collection-list-head">{picker}{filter.toggle}{viewToggle}{scopeToggle}<span className="muted small">{kids.filter(k => k.type === 'node' && rowText(k)).length}</span></div>
           {filter.bar}
         </div>
       );
@@ -449,7 +471,7 @@ const CollectionBlock = createReactBlockSpec(
         <div className={`collection c-type c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
           {filter.hide}{filter.bar}
           <div className="nrow nrow-head nrow-type" style={{ gridTemplateColumns: typeGrid(type ?? { slug: kind, cols: [] }) }}>
-            <div className="nrow-cell nrow-name">{picker}{!type && <span className="muted" title="the product declares no such type; rows are still written">?</span>}{filter.toggle}{viewToggle}</div><div className="nrow-cell">Status</div>
+            <div className="nrow-cell nrow-name">{picker}{!type && <span className="muted" title="the product declares no such type; rows are still written">?</span>}{filter.toggle}{viewToggle}{scopeToggle}</div><div className="nrow-cell">Status</div>
             {(type?.cols ?? []).map(c => <div key={c.name} className="nrow-cell" title={c.ref ? `${c.type}` : c.type}>{c.name}</div>)}
           </div>
         </div>
@@ -458,7 +480,7 @@ const CollectionBlock = createReactBlockSpec(
         <div className={`collection c-${kind}`} contentEditable={false} ref={stopEditorEvents}>
           {filter.hide}{filter.bar}
           <div className="nrow nrow-head">
-            <div className="nrow-cell nrow-name">{picker}{filter.toggle}{viewToggle}</div><div className="nrow-cell">Status</div><div className="nrow-cell">{kind === 'goal' ? 'Target' : 'Due'}</div><div className="nrow-cell nrow-progress">Progress</div><div className="nrow-cell">Owner</div>
+            <div className="nrow-cell nrow-name">{picker}{filter.toggle}{viewToggle}{scopeToggle}</div><div className="nrow-cell">Status</div><div className="nrow-cell">{kind === 'goal' ? 'Target' : 'Due'}</div><div className="nrow-cell nrow-progress">Progress</div><div className="nrow-cell">Owner</div>
           </div>
         </div>
       );

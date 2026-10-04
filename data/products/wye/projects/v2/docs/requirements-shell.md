@@ -699,3 +699,29 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 ```
 
   - choice:wf2.package-seeds-and-new-types `seed/*.md` in a package is copied into the project on install (and on the next sync for older installs) as the person's own page, recorded (`seeded:`) so a deleted seed is not copied again; `seed-pin: true` pins it. The packages listing syncs: types the package declares that the product does not are declared and recorded.
+
+```yaml
+- id: decision:wf2.live-collections
+  title: A Data table or Data list can show the whole product's items, live — the Digest is built from them
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [page:web/editor, component:executive-assistant]
+  part-of: module:req-shell
+```
+
+  - context:wf2.live-collections "digest must not be a custom page! it must be normal page with normal blocks, editable by a user, i.e. use data lists or data tables" — asked how the rows get there, alex chose "Live rows from everywhere".
+
+  - choice:wf2.live-collections `scope=product` on a table's marker (⊕ in its header, on a table with no rows of its own): its rows are the product's items of the kind that its filter keeps (open=1, due=7d, owner=me, a status, a column), each the same editable row as in any table — status, date, owner, a type's columns — written where the item lives (the node API). Done rows are hidden unless asked; a row edited here stays until the page is opened again. The Digest's sections are such tables; "Instances view" blocks are no longer used there.
+
+```yaml
+- id: decision:wf2.tables-own-width
+  title: Tables keep their own width — columns sized to content, never stretched to the page; a wider table scrolls inside its block
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [page:web/editor]
+  part-of: module:req-shell
+```
+
+  - context:wf2.tables-own-width "current tables looks shit, do not force them to be 100% width, make them scrollable" — the instances table squeezed its columns to the page and chips overlapped.
