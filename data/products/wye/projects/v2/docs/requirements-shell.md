@@ -647,3 +647,55 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - context:wf2.table-hides-done "tasks/goals by default should hide completed items (but not immediately) if i complete item it must not dissapear immediately".
 
   - choice:wf2.table-hides-done done, shipped and complete rows are hidden unless the table's filter says `done=show` (the "✓ n done" toggle in its header) or a done status is picked; a row seen open since the page was opened stays visible when it is completed, and goes on the next visit. The row the cursor is in is spared only while the editor has focus.
+
+```yaml
+- id: decision:wf2.digest-live-page
+  title: The executive assistant's digest is a live page of views, with a daily summary section — not a brief page written each day
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [component:executive-assistant]
+  part-of: module:req-shell
+```
+
+  - context:wf2.digest-live-page "my digest overivew must be realtime page, which consists of multiple filters, i.e. show important tasks, show status on projects" — then "not a page, but i need to add a section inside, where we will write daily summary, analysed context (which is done using a skill which cn be customised)" and "add also slack threads … emails to be answered".
+
+  - choice:wf2.digest-live-page the package seeds a Digest page (module:ea-digest, pinned, the person's own to edit): views of commitments and tasks late or due within a week, Slack threads and emails waiting (open), important tasks (priority=high), decisions that are the director's and still open, projects, risks; and a "Daily summary" section. Each weekday at 08:00 hook:ea.daily-summary runs workflow:ea.daily-summary: skill:ea.daily-summary (an editable skill document) reads `wye ea digest context` — what arrived, changed or closed since the last summary, grouped by project and person, from a snapshot of the assistant's nodes — and writes a dated entry at the top of the section (`wye ea digest summary`). The daily brief is run by hand now.
+
+```yaml
+- id: decision:wf2.messages-pushed
+  title: Slack threads and emails waiting on the director are pushed in by outside tools, not fetched by Wye
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [component:executive-assistant]
+  part-of: module:req-shell
+```
+
+  - context:wf2.messages-pushed asked "agent fetches them, outside tools push, or both" — alex chose "Outside tools push" (Wye pulls nothing stays).
+
+  - choice:wf2.messages-pushed `wye ea intake` takes `messages: [{ via: slack|email, id, title, link, at, from?, channel?, waiting?, answered?, project? }]`, with or without a meeting; each is a thread: or email: card (types the package gained), open until a push says answered (then done); the tool's id updates the same card. Not proposed: they are what waits, not knowledge to review.
+
+```yaml
+- id: decision:wf2.view-windows
+  title: Views filter on what is still open, a due-date window and the director — open=1, due=late|today|<n>d, <column>=me
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [component:instance-table]
+  part-of: module:req-shell
+```
+
+  - choice:wf2.view-windows open=1 leaves out done, met, dropped, answered (status or state); due=7d keeps due within a week, late included (a date value is still the column); `=me` is the product's director by id, title or alias. In every table and view block.
+
+```yaml
+- id: decision:wf2.package-seeds-and-new-types
+  title: A package can seed pages once, and a type it gains later reaches the products that installed it
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [component:install]
+  part-of: module:req-shell
+```
+
+  - choice:wf2.package-seeds-and-new-types `seed/*.md` in a package is copied into the project on install (and on the next sync for older installs) as the person's own page, recorded (`seeded:`) so a deleted seed is not copied again; `seed-pin: true` pins it. The packages listing syncs: types the package declares that the product does not are declared and recorded.
