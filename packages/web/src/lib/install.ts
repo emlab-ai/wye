@@ -157,6 +157,34 @@ export async function restoreLinks(productDir: string, system = systemRoot()): P
   return fixed;
 }
 
+// A package that grew a type after it was installed (the assistant's thread and email): each recorded install gets the
+// package's types the product does not declare yet — declared the way an install declares them, and recorded so an
+// uninstall takes them away again. Returns the ids declared. Nothing changes when there is nothing new.
+export async function syncPackageTypes(productDir: string, system = systemRoot()): Promise<string[]> {
+  const added: string[] = [];
+  let projects: string[] = []; try { projects = (await readdir(path.join(productDir, 'projects'), { withFileTypes: true })).filter(e => e.isDirectory()).map(e => e.name); } catch { return added; }
+  for (const p of projects) {
+    const dir = path.join(productDir, 'projects', p);
+    const record = await readRecord(dir); if (!record.length) continue;
+    for (const e of record) {
+      const pkg = await getPackage(e.package, system); if (!pkg) continue;
+      const graph = parseProduct(productDir);
+      const declared = new Set((graph.types ?? []).map(t => t.id));
+      const fresh = pkg.contents.types.filter(t => !declared.has(t.id));
+      if (!fresh.length) continue;
+      const rel = ontologyDoc(graph) ?? path.relative(REPO_ROOT, path.join(dir, 'docs', 'ontology.md'));
+      const abs = path.resolve(REPO_ROOT, rel);
+      if (!(await exists(abs))) continue;   // no ontology page to declare into: the next install makes one
+      await withFileLock(abs, async () => { let md = await readFile(abs, 'utf8'); for (const t of fresh) md = appendTypeCard(md, t.card); await writeAtomic(abs, md); });
+      e.types = [...new Set([...e.types, ...fresh.map(t => t.id)])];
+      added.push(...fresh.map(t => t.id));
+    }
+    if (added.length) await writeAtomic(recordFile(dir), formatRecord(record));
+  }
+  if (added.length) await rebuild(productDir);
+  return added;
+}
+
 // ---- install / uninstall ------------------------------------------------------------------------------------------
 
 type Opts = { dataRoot?: string; system?: string };

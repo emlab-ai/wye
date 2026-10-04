@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { mkdtemp, mkdir, writeFile, readFile, lstat, access, readdir } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { installPackage, uninstallPackage, listPackages, readRecord, parseRecord, formatRecord, InstallRefused, linkPath } from './install';
+import { installPackage, uninstallPackage, syncPackageTypes, listPackages, readRecord, parseRecord, formatRecord, InstallRefused, linkPath } from './install';
 import { docRoute, docSlug, packageOfSlug } from './doc';
 import { pageFile } from './products';
 import { writeAtomic } from './write';
@@ -150,5 +150,17 @@ describe('the record', () => {
   it('reads what it writes', () => {
     const e = [{ package: 'a', installed: '2026-10-03', by: 'alex', types: ['type:x'] }, { package: 'b', installed: '2026-10-03', by: 'agent:s1', types: [] }];
     expect(parseRecord(formatRecord(e))).toEqual(e);
+  });
+});
+
+describe('syncPackageTypes', () => {
+  it('a type the package gained after the install is declared and recorded; a second sync changes nothing', async () => {
+    await installPackage('acme', 'main', 'helper', { ...o(), by: 'alex' });
+    const types = path.join(system, 'projects/helper/types.md');
+    await writeFile(types, (await readFile(types, 'utf8')) + '\n```yaml\n- id: type:thread\n  extends: type:node\n  purpose: a thread that waits for an answer\n```\n');
+    expect(await syncPackageTypes(productDir, system)).toEqual(['type:thread']);
+    expect(await readFile(path.join(project, 'docs/ontology.md'), 'utf8')).toContain('- id: type:thread\n  extends: type:node\n  purpose: a thread that waits for an answer');
+    expect((await readRecord(project))[0].types).toEqual(['type:meeting', 'type:standup', 'type:thread']);
+    expect(await syncPackageTypes(productDir, system)).toEqual([]);
   });
 });

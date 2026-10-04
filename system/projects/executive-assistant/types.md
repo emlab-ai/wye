@@ -69,3 +69,32 @@ a kind the product already has is kept as it is.
     severity: string?                         # low | medium | high
     from: ref meeting? -(inverse)-> yielded
 ```
+
+```yaml
+- id: type:thread
+  extends: type:node
+  purpose: a Slack thread an outside tool pushed because it may need the director — open while a reply or a look is owed, answered once given
+  open: true
+  props:
+    channel: string                           # #channel, or dm for a direct message
+    from: ref person?                         # who is waiting
+    link: string                              # where to answer it
+    at: date                                  # when it last moved
+    waiting: string?                          # reply | look — what it needs from the director
+    project: ref project?
+    source-id: string                         # the tool's own id, so a second push updates the same thread
+```
+
+```yaml
+- id: type:email
+  extends: type:node
+  purpose: an email an outside tool pushed because it waits for the director's answer — open until answered
+  open: true
+  props:
+    from: ref person?
+    link: string
+    at: date
+    waiting: string?                          # reply | look
+    project: ref project?
+    source-id: string
+```
