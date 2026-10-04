@@ -18,7 +18,7 @@ import { captureTask } from './work-io';
 import { editNode } from './node-edit';
 import type { ImportFile } from './import-docs';
 
-export type BatchStatus = { legacy?: boolean; product?: string; project?: string; title?: string; stopped?: boolean; task?: string; requestSlug: string; total: number; done: number; current: string | null; startedAt: string; finishedAt?: string; failed: string[] };
+export type BatchStatus = { next?: string[]; legacy?: boolean; product?: string; project?: string; title?: string; stopped?: boolean; task?: string; requestSlug: string; total: number; done: number; current: string | null; startedAt: string; finishedAt?: string; failed: string[] };
 const g = globalThis as unknown as { __wfImportBatches?: Map<string, BatchStatus>; __wfImportWaiters?: Map<string, () => void> };
 const batches = () => (g.__wfImportBatches ??= new Map());
 const waiters = () => (g.__wfImportWaiters ??= new Map());
@@ -45,7 +45,8 @@ const work = () => (g2.__wfImportWork ??= new Map());
 // The imports of a product the rail shows under Agents: running, or stopped and not finished. Kept in memory — a
 // server restart ends them; the import page still lists which files are left (each keeps its Analyse button).
 export function productBatches(product: string): BatchStatus[] {
-  return [...batches().values()].filter(b => b.product === product && !b.finishedAt);
+  return [...batches().values()].filter(b => b.product === product && !b.finishedAt)
+    .map(b => ({ ...b, next: ((work().get(b.requestSlug)?.real ?? []) as Item[]).filter(d => !d.skip && d.slug !== b.current).slice(0, 5).map(d => d.title) }));
 }
 // Stop: no file after the one running now is started (that one finishes, or is cancelled from its own session).
 // Resume: the loop goes on from the first file not done.
@@ -202,7 +203,8 @@ export async function pagesLeft(product: string): Promise<BatchStatus[]> {
     if (!/^- \[ \] task:import-\d+ /m.test(md) || /^analyse: off$/m.test(md)) continue;   // nothing left, or imported as is
     const all = (md.match(/^- \[[ x]\] task:import-\d+ /gm) ?? []).length; const done = (md.match(/^- \[x\] task:import-\d+ /gm) ?? []).length;
     const project = scope.projects.find(p => m.file.includes(`/projects/${p.slug}/`))?.slug;
-    out.push({ product, project, title: m.title, requestSlug: slug, total: all, done, current: null, startedAt: '', failed: [], stopped: true });
+    const next = [...md.matchAll(/^- \[ \] task:import-\d+ `[^`]+` → .*?\*\*(.+?)\*\*/gm)].slice(0, 5).map(x => x[1]);
+    out.push({ product, project, title: m.title, requestSlug: slug, total: all, done, current: null, startedAt: '', failed: [], stopped: true, next });
   }
   return out;
 }

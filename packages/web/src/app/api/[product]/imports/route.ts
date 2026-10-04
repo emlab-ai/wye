@@ -6,7 +6,7 @@ import { productBatches, pagesLeft, controlBatch } from '@/lib/import-run';
 export async function GET(_req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const batches = [...productBatches(product), ...(await pagesLeft(product))];
-  return NextResponse.json({ batches: batches.map(({ requestSlug, project, title, total, done, current, stopped, legacy }) => ({ requestSlug, project, title, total, done, current, stopped: !!stopped, legacy: !!legacy })) });
+  return NextResponse.json({ batches: batches.map(({ requestSlug, project, title, total, done, current, stopped, legacy, next }) => ({ requestSlug, project, title, total, done, current, stopped: !!stopped, legacy: !!legacy, next: next ?? [] })) });
 }
 
 // POST { slug, action: 'stop' | 'resume' } — stop starts no further file; resume goes on from the first file not done.

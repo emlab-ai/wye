@@ -169,6 +169,12 @@ export async function startQueued(): Promise<void> {
   }
 }
 onSessionEnd(async () => { await startQueued(); }, 'agent-slots');
+// The slot gate as the queue overview shows it: how many slots, how many taken, and the sessions waiting, in the
+// order they will start.
+export async function slotState(product: string): Promise<{ parallel: number; running: number; waiting: string[] }> {
+  const { parallel } = agentSettings(await readSettings());
+  return { parallel, running: runningWorkers(), waiting: waiting().filter(w => w.product === product).map(w => w.id) };
+}
 
 export async function startChat(productDir: string, product: string, id: string, opts: { wfUrl: string; firstMessage?: string; shown?: string; images?: string[]; resume?: boolean }): Promise<Session | null> {
   const s = await getSession(productDir, id); if (!s) return null;

@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { railAgents, type RailAgent, type RailSession } from '@/lib/rail-agents';
 
 type ImportRow = { requestSlug: string; project: string; title: string; total: number; done: number; current: string | null; stopped: boolean; legacy: boolean };
@@ -12,10 +13,20 @@ const STATE: Record<RailAgent['state'], string> = { working: 'working', idle: 'i
 // agents running in this product now — state, what each works on, what it is doing, for how long — a click opens the
 // conversation as the page (/sessions/<id>/chat), in the main window. Refreshed on every change event, and every 5 s while one runs.
 export function AgentFolder({ product }: { product: string }) {
-  const path = usePathname();
+  const path = usePathname(); const router = useRouter();
+  // the row's menu (right-click, or the hover ⋯): open, and cancel an agent / pause or resume an import
+  type Menu = { x: number; y: number } & ({ kind: 'agent'; id: string } | { kind: 'import'; b: ImportRow });
+  const [menu, setMenu] = useState<Menu | null>(null); const menuEl = useRef<HTMLDivElement>(null);
+  useEffect(() => {   // a press outside, Escape or a scroll closes it (React listens on document too: check the target)
+    if (!menu) return;
+    const close = (e: Event) => { if (!(e.target instanceof Node && menuEl.current?.contains(e.target))) setMenu(null); }; const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenu(null); };
+    document.addEventListener('mousedown', close); document.addEventListener('keydown', key); window.addEventListener('scroll', close, true);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', key); window.removeEventListener('scroll', close, true); };
+  }, [menu]);
+  const at = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); if (e.type === 'contextmenu') return { x: e.clientX, y: e.clientY }; const b = (e.currentTarget as HTMLElement).getBoundingClientRect(); return { x: b.left, y: b.bottom + 2 }; };
   const [open, setOpen] = useState(true);
   const [rows, setRows] = useState<RailAgent[]>([]);
-  // background imports (lib:import-run) are a queue of their own, not agent slots: one row each, with Stop / Resume
+  // background imports (lib:import-run) are a queue of their own, not agent slots: one row each; pause/resume is on its page
   const [imports, setImports] = useState<ImportRow[]>([]);
   useEffect(() => { try { setOpen(localStorage.getItem('wf-agents-open') !== '0'); } catch { /* ignore */ } }, []);
   const toggle = () => setOpen(o => { const n = !o; try { localStorage.setItem('wf-agents-open', n ? '1' : '0'); } catch { /* ignore */ } return n; });
@@ -25,7 +36,9 @@ export function AgentFolder({ product }: { product: string }) {
   }, [product]);
   useEffect(() => { void load(); const h = () => void load(); window.addEventListener('wf:change', h); return () => window.removeEventListener('wf:change', h); }, [load]);
   useEffect(() => { const t = setInterval(() => void load(), rows.length || imports.some(i => !i.stopped) ? 5000 : 30000); return () => clearInterval(t); }, [load, rows.length, imports]);
-  const control = async (slug: string, action: 'stop' | 'resume') => { await fetch(`/api/${product}/imports`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug, action }) }).catch(() => undefined); void load(); };
+  const act = async (fn: () => Promise<unknown>) => { setMenu(null); await fn().catch(() => undefined); void load(); };
+  const cancel = (id: string) => act(() => fetch(`/api/${product}/sessions/${id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status: 'cancelled' }) }));
+  const importAct = (slug: string, action: 'stop' | 'resume') => act(() => fetch(`/api/${product}/imports`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ slug, action }) }));
   const href = `/${product}/sessions`;
   return (
     <li className="pr-folder agent-folder">
@@ -35,7 +48,7 @@ export function AgentFolder({ product }: { product: string }) {
       </div>
       {open && <ul className="pf-list">
         {rows.map(a => (
-          <li key={a.id} className={`af-row af-${a.state} ${path === `/${product}/sessions/${a.id}/chat` ? 'on' : ''}`}>
+          <li key={a.id} className={`af-row af-${a.state} ${path === `/${product}/sessions/${a.id}/chat` ? 'on' : ''}`} onContextMenu={e => setMenu({ ...at(e), kind: 'agent', id: a.id })}>
             <Link className="af-link" href={`/${product}/sessions/${a.id}/chat`} title={`${AGENT[a.agent] ?? a.agent} · ${STATE[a.state]} · ${a.since}`}>
               <span className="af-state" aria-label={STATE[a.state]}>{a.state === 'asking' ? '?' : a.state === 'queued' ? '◷' : ''}</span>
               <span className="af-body">
@@ -44,22 +57,32 @@ export function AgentFolder({ product }: { product: string }) {
               </span>
               <span className="af-since">{a.since}</span>
             </Link>
+            <button className="af-more" onClick={e => setMenu({ ...at(e), kind: 'agent', id: a.id })} aria-label="agent menu">⋯</button>
           </li>))}
         {imports.map(b => (
-          <li key={b.requestSlug} className={`af-row af-import ${b.stopped ? 'af-idle' : 'af-working'}`}>
-            <Link className="af-link" href={`/${product}/${b.project}/d/${b.requestSlug}`} title="A background import: it hands the files to an agent one at a time. Its page lists every file.">
-              <span className="af-state" aria-label={b.stopped ? 'stopped' : 'importing'}>⇩</span>
+          <li key={b.requestSlug} className={`af-row ${b.stopped ? 'af-idle' : 'af-working'}`} onContextMenu={e => setMenu({ ...at(e), kind: 'import', b })}>
+            <Link className="af-link" href={`/${product}/${b.project}/d/${b.requestSlug}`} title="A background import — it hands the files to an agent one at a time. Open it to pause or resume.">
+              <span className="af-state" aria-label={b.stopped ? 'paused' : 'importing'}>{b.stopped ? '⏸' : ''}</span>
               <span className="af-body">
                 <span className="af-title">{b.title}</span>
-                <span className="af-doing">{b.done} of {b.total}{b.stopped ? ' · stopped' : b.current ? ` · now ${b.current}` : ''}</span>
+                <span className="af-doing">{b.done} of {b.total} files{b.stopped ? ' · paused' : ''}</span>
               </span>
             </Link>
-            {b.stopped
-              ? <button className="af-ctl" onClick={() => void control(b.requestSlug, 'resume')} title="Go on from the first file not done">Resume</button>
-              : b.legacy ? null : <button className="af-ctl" onClick={() => void control(b.requestSlug, 'stop')} title="Start no further file; the one running finishes (or Cancel it)">Stop</button>}
+            <button className="af-more" onClick={e => setMenu({ ...at(e), kind: 'import', b })} aria-label="import menu">⋯</button>
           </li>))}
         {!rows.length && !imports.length && <li className="pf-empty muted">no agents running</li>}
       </ul>}
+      {menu && <div ref={menuEl} className="pg-menu" role="menu" style={{ left: menu.x, top: menu.y }}>
+        {menu.kind === 'agent' ? <>
+          <button role="menuitem" onClick={() => { setMenu(null); router.push(`/${product}/sessions/${menu.id}/chat`); }}>Open</button>
+          <button role="menuitem" className="danger" onClick={() => void cancel(menu.id)}>Cancel agent</button>
+        </> : <>
+          <button role="menuitem" onClick={() => { setMenu(null); router.push(`/${product}/${menu.b.project}/d/${menu.b.requestSlug}`); }}>Open import</button>
+          {menu.b.stopped ? <button role="menuitem" onClick={() => void importAct(menu.b.requestSlug, 'resume')}>Resume import</button>
+            : !menu.b.legacy && <button role="menuitem" onClick={() => void importAct(menu.b.requestSlug, 'stop')}>Pause import</button>}
+        </>}
+        <button role="menuitem" onClick={() => { setMenu(null); router.push(href); }}>Queue overview</button>
+      </div>}
     </li>
   );
 }

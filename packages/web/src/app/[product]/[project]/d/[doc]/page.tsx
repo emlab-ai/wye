@@ -8,6 +8,7 @@ import { bodyOf, hashOf } from '@/lib/write';
 import { DocumentReader } from '@/components/DocumentReader';
 import { DocProps } from '@/components/DocProps';
 import { ImportedNotice } from '@/components/ImportedNotice';
+import { ImportProgress } from '@/components/ImportProgress';
 import { PrHead } from '@/components/PrHead';
 import { RunStrip } from '@/components/RunStrip';
 import { LiveDocument } from '@/components/LiveDocument';
@@ -77,6 +78,7 @@ export default async function DocPage({ params }: { params: Promise<{ product: s
       {split.frontmatter.type === 'pr' && <PrHead product={product} prRef={`${product}/${project}/${d.slug}`} />}
       <RunStrip product={product} node={d.module.id} />
       <DocProps product={product} project={project} slug={d.slug} file={d.file} fm={split.frontmatter} node={d.module.id} types={scope.graph.types ?? []} titled={/^\s*# \S/.test(body)} />
+      {/^Import: /.test(split.frontmatter.title ?? '') && <ImportProgress product={product} slug={d.slug} />}
       {['imported', 'raw', 'importing'].includes(split.frontmatter.status ?? '') && <ImportedNotice product={product} project={project} slug={d.slug} node={d.module.id} status={split.frontmatter.status} source={split.frontmatter.source} />}
       <LiveDocument product={product} project={project} slug={d.slug} body={body} ifMatch={hashOf(body)}>
         {rsc ? null : <DocumentReader doc={split} index={scope.index} />}
