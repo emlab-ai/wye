@@ -912,10 +912,11 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .taskwork-def { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 12px; margin: 6px 0 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 12px; } .taskwork-def small { font: 600 10px var(--font-m); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); } .taskwork-def .tags { flex-basis: 100%; }
 
 /* the search panel (req:wf2.ui.search): ⌘F — hits left, the highlighted hit's card right */
-.search-veil { position: fixed; inset: 0; background: color-mix(in srgb, var(--ink) 30%, transparent); z-index: 60; display: flex; align-items: flex-start; justify-content: center; padding-top: 8vh; }
-.search-panel { width: min(1100px, 94vw); height: min(680px, 84vh); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 60px rgba(0,0,0,.35); display: flex; flex-direction: column; overflow: hidden; }
+.search-veil { position: fixed; inset: 0; background: color-mix(in srgb, var(--ink) 30%, transparent); z-index: 60; display: flex; align-items: flex-start; justify-content: center; padding-top: 4vh; }
+.search-panel { width: min(1280px, 96vw); height: min(1100px, 92vh); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 60px rgba(0,0,0,.35); display: flex; flex-direction: column; overflow: hidden; }
 .search-in { font: 16px var(--font); padding: 14px 16px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); outline: none; }
-.search-body { display: grid; grid-template-columns: minmax(280px, 42%) 1fr; min-height: 0; flex: 1; }
+/* an answer takes at most 55 % of the panel, so the results below always keep a working share */
+.search-body { display: grid; grid-template-columns: minmax(280px, 42%) 1fr; min-height: 38%; flex: 1 1 0; }
 .search-hits { list-style: none; margin: 0; padding: 6px; overflow-y: auto; border-right: 1px solid var(--line); }
 .search-hits li { padding: 7px 10px; border-radius: 8px; cursor: pointer; } .search-hits li.on { background: var(--ground); box-shadow: inset 2px 0 0 var(--accent); }
 .search-hit-head { display: flex; align-items: center; gap: 6px; } .search-hit-title { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -931,7 +932,7 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .ask-go-key { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .ask-go.is-q .ask-go-key { color: var(--accent); font-weight: 500; }
 .ask-go kbd { font: 11px var(--font-m); padding: 1px 6px; border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 5px; background: var(--surface); color: var(--ink); }
-.ask-box { padding: 10px 14px; border-bottom: 1px solid var(--line); max-height: 45vh; overflow: auto; }
+.ask-box { padding: 10px 14px; border-bottom: 1px solid var(--line); flex: 0 1 auto; max-height: 55%; overflow: auto; }
 .ask-head { font-size: 13px; margin-bottom: 6px; }
 .ask-answer { font-size: 14px; line-height: 1.55; }
 .ask-answer p { margin: 0 0 8px; }
@@ -940,6 +941,7 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .ask-found { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; font-size: 12px; }
 .ask-chip { border: 1px solid var(--line); border-radius: 12px; padding: 2px 8px; background: none; cursor: pointer; font-size: 12px; animation: ask-in .2s ease-out; }
 .ask-chip:hover { border-color: var(--accent); }
+.ask-chips-more { border: 0; background: none; padding: 2px 4px; cursor: pointer; color: var(--accent); font-size: 12px; }
 @keyframes ask-in { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
 .ask-more { background: none; border: none; padding: 4px 0; cursor: pointer; color: var(--accent); }
 .ask-deep { border-top: 1px dashed var(--line); margin-top: 8px; padding-top: 8px; }
