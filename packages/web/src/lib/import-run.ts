@@ -6,6 +6,7 @@
 // time: fire the analyse hook, wait for its session to end, check the task, move on. The request page is the
 // progress: reopen it any time to see how far the import got.
 import path from 'node:path';
+import { existsSync } from 'node:fs';
 import { readFile, readdir } from 'node:fs/promises';
 import { plan, write, readTree, copyAssetFrom, type PlannedDoc } from './import-docs';
 import { loadScope, treeFor } from './scope';
@@ -49,6 +50,8 @@ const work = () => (g2.__wfImportWork ??= new Map());
 // The imports of a product the rail shows under Agents: running, or stopped and not finished. Kept in memory — a
 // server restart ends them; the import page still lists which files are left (each keeps its Analyse button).
 export function productBatches(product: string): BatchStatus[] {
+  // an import whose page was deleted is over: forgotten, not listed
+  for (const [slug, b] of batches()) { const w = work().get(slug); if (b.product === product && w && !existsSync(w.reqFile)) { b.stopped = true; batches().delete(slug); work().delete(slug); } }
   return [...batches().values()].filter(b => b.product === product && !b.finishedAt)
     .map(b => { const w: BatchWork | undefined = work().get(b.requestSlug); const real: Item[] = w?.real ?? []; const order: number[] = w?.order ?? real.map((_, i) => i);
       const now = new Set((b.current ?? '').split(', '));

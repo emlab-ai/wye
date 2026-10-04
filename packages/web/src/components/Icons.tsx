@@ -49,3 +49,11 @@ export const IconPlus = ({ size = 20 }: IconProps) => (
 export const IconTrash = ({ size = 20 }: IconProps) => (
   <svg {...svg(size)}><path d="M4 7h16" /><path d="M9.5 7V5a1.5 1.5 0 0 1 1.5-1.5h2A1.5 1.5 0 0 1 14.5 5v2" /><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" /><path d="M10 11v6M14 11v6" /></svg>
 );
+
+// The Documents head's tools: show the open page in the tree, import, new page.
+export const IconTarget = ({ size = 18 }: IconProps) => (
+  <svg {...svg(size)}><circle cx="12" cy="12" r="7" /><circle cx="12" cy="12" r="2.2" /><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3" /></svg>
+);
+export const IconImport = ({ size = 18 }: IconProps) => (
+  <svg {...svg(size)}><path d="M12 4v11" /><path d="m7.5 10.5 4.5 4.5 4.5-4.5" /><path d="M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16" /></svg>
+);

@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type DragEvent, type MouseEvent } from 'react';
+import { requestSend } from './CommandBox';
 
 export type TreeItem = { slug: string; node: string; title: string; icon: string; project: string; tasks?: { done: number; total: number }; children: TreeItem[] };
 type Zone = 'before' | 'into' | 'after';
@@ -85,6 +86,11 @@ export function DocTree({ product, roots, onAddChild, pinned = [] }: { product: 
     if ([d, ...below].some(x => path === `/${product}/${x.project}/d/${x.slug}`)) router.push(j.href);
     router.refresh();
   };
+  // the page's own ⋯ in the top bar (event wf:doc-menu) opens this same menu for the page on screen
+  useEffect(() => {
+    const open = (e: Event) => { const { node, x, y } = (e as CustomEvent<{ node: string; x: number; y: number }>).detail; const d = find(roots, node); if (d) setTimeout(() => setMenu({ d, x: Math.max(8, x), y }), 0); };
+    window.addEventListener('wf:doc-menu', open); return () => window.removeEventListener('wf:doc-menu', open);
+  }, [roots]);
   const tree: Tree = { product, path, closed, toggle, drag, over, setDrag, setOver, move, onAddChild, openMenu: setMenu };
   return (
     <div className="pg-wrap" ref={box}>
@@ -92,6 +98,7 @@ export function DocTree({ product, roots, onAddChild, pinned = [] }: { product: 
         {pinned.includes(`${menu.d.project}/${menu.d.slug}`)
           ? <button role="menuitem" onClick={() => pin(menu.d, false)}>Unpin from top</button>
           : <button role="menuitem" onClick={() => pin(menu.d, true)}>Pin to top</button>}
+        <button role="menuitem" onClick={() => { const d = menu.d; setMenu(null); requestSend({ refs: [d.node], source: { project: d.project, doc: d.slug, link: `${location.origin}/${product}/${d.project}/d/${d.slug}` } }); }}>Ask an agent…</button>
         <button role="menuitem" onClick={() => duplicate(menu.d)}>Duplicate</button>
         <button role="menuitem" className="danger" onClick={() => remove(menu.d)}>Delete{menu.d.children.length ? ` (with ${descendants(menu.d).length} below)` : ''}</button>
       </div>}

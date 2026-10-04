@@ -6,7 +6,7 @@ import { DocTree, type TreeItem } from './DocTree';
 import { NewPage } from './NewPage';
 import { filesOfDrop, type Picked } from './ImportDocs';
 import { ThemeButton } from './ThemeSwitch';
-import { IconChevronsLeft, IconSettings } from './Icons';
+import { IconChevronsLeft, IconSettings, IconTarget, IconImport, IconPlus } from './Icons';
 import { AgentFolder } from './AgentFolder';
 import type { Pin } from '@/lib/pins';
 import { PrFolder, type PrItem } from './PrFolder';
@@ -78,7 +78,7 @@ export function Rail({ pins = [], mainProject, products, product, projects, prs,
       </ul>
       </div>
       <div className="rail-split" ref={split} role="separator" aria-orientation="horizontal" title="Drag to resize; double-click to reset" onMouseDown={onSplit} onDoubleClick={resetSplit} />
-      <div className="rail-pages-head"><span>Documents</span><span className="rail-pages-tools"><button className="rail-reveal" onClick={() => window.dispatchEvent(new Event('wf:reveal-doc'))} title="Show the open document in the tree" aria-label="Show the open document">⌖</button><button onClick={() => { setNewIn(null); setImporting(importing ? null : []); }} title="Import markdown files, a folder, or code" aria-label="Import">↥</button><button onClick={() => { setImporting(null); setNewIn(newIn === '' ? null : ''); }} title="New document">+</button></span></div>
+      <div className="rail-pages-head"><span>Documents</span><span className="rail-pages-tools"><button className="rail-reveal" onClick={() => window.dispatchEvent(new Event('wf:reveal-doc'))} title="Show the open document in the tree" aria-label="Show the open document"><IconTarget /></button><button onClick={() => { setNewIn(null); setImporting(importing ? null : []); }} title="Import markdown files, a folder, or code" aria-label="Import"><IconImport /></button><button onClick={() => { setImporting(null); setNewIn(newIn === '' ? null : ''); }} title="New document" aria-label="New document"><IconPlus size={18} /></button></span></div>
       {(importing !== null || newIn !== null) && <NewPage product={product.slug} project={newIn ? newIn.split('/')[0] : mainProject ?? projects[0]?.slug ?? ''} projects={projects.map(p => ({ slug: p.slug, title: p.title }))} docs={docs} defaultParent={newIn ?? ''} initial={importing ?? []} startImport={importing !== null} onClose={() => { setNewIn(null); setImporting(null); }} />}
       <div className={`rail-body ${fileOver ? 'file-over' : ''}`}
         onDragOver={e => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; if (!fileOver) setFileOver(true); }}

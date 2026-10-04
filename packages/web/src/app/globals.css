@@ -475,8 +475,8 @@ textarea.raw { width: 100%; font: 13px/1.5 var(--font-m); background: var(--sunk
 .rail-top { flex: 0 1 auto; max-height: 60%; min-height: 96px; overflow-y: auto; }
 .rail-split { flex: none; height: 9px; margin: 2px 0 0; cursor: row-resize; position: relative; } .rail-split::after { content: ''; position: absolute; left: 0; right: 0; top: 4px; height: 1px; background: var(--line); transition: background .15s, height .15s; } .rail-split:hover::after, body.resizing-y .rail-split::after { background: var(--accent); height: 2px; }
 body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y iframe { pointer-events: none; }
-.rail-pages-head button { background: none; border: 1px solid var(--line-2); border-radius: 5px; width: 22px; height: 22px; color: var(--ink-2); cursor: pointer; }
-.rail-pages-tools { display: inline-flex; gap: 4px; }
+.rail-pages-head button { display: inline-flex; align-items: center; justify-content: center; background: none; border: 0; border-radius: 6px; width: 28px; height: 28px; padding: 0; color: var(--muted); cursor: pointer; } .rail-pages-head button:hover { color: var(--ink); background: var(--sunk); }
+.rail-pages-tools { display: inline-flex; gap: 2px; margin-right: -6px; }
 .rail-body { position: relative; }
 .rail-body.file-over { outline: 2px dashed var(--accent); outline-offset: -4px; border-radius: 8px; }
 .rail-filedrop { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 500 13px var(--font-b); color: var(--accent); background: color-mix(in srgb, var(--ground) 85%, transparent); z-index: 2; pointer-events: none; }
@@ -1234,7 +1234,7 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .ip-line { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; } .ip-actions { margin-left: auto; } .ip-actions button { font: 12px var(--font-b); border: 1px solid var(--line-2); background: none; color: var(--ink); border-radius: 6px; padding: 3px 12px; cursor: pointer; } .ip-actions .pri { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .ip-bar { height: 4px; border-radius: 2px; background: var(--sunk); margin-top: 8px; overflow: hidden; } .ip-bar i { display: block; height: 100%; background: var(--accent); transition: width .4s; } .import-progress.paused .ip-bar i { background: var(--muted); }
 /* the ⌖ in the Documents head scrolls to the open document; its row flashes once */
-.rail-reveal { font-size: 15px; line-height: 1; } .pg-row.flash { animation: pg-flash .9s ease-out; } @keyframes pg-flash { 0%, 40% { background: color-mix(in srgb, var(--accent) 22%, transparent); } 100% { background: transparent; } }
+.pg-row.flash { animation: pg-flash .9s ease-out; } @keyframes pg-flash { 0%, 40% { background: color-mix(in srgb, var(--accent) 22%, transparent); } 100% { background: transparent; } }
 /* the queue overview on top of the Agents page: running · waiting for a slot · imports */
 .queue { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0 22px; }
 .q-col { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface); min-width: 0; }

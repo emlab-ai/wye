@@ -120,6 +120,8 @@ export function TopBar({ product, docs }: { product: { slug: string; title: stri
         {edited && <span className="muted topbar-edited">Edited {edited}</span>}
         {doc && <button className="topbar-btn" onClick={() => requestSend({ refs: [doc!.node], source: { project: doc!.project, doc: doc!.slug, link } })} title="Send this document to an agent">⇢ agent</button>}
         <button className="topbar-btn" onClick={copy} title="Copy link">⧉</button>
+        {doc && <button className="topbar-btn topbar-more" title="Pin, duplicate or delete this page" aria-label="Page menu"
+          onClick={e => { const b = e.currentTarget.getBoundingClientRect(); window.dispatchEvent(new CustomEvent('wf:doc-menu', { detail: { node: doc!.node, x: b.right - 180, y: b.bottom + 4 } })); }}>⋯</button>}
       </span>
     </header>
     </div>
