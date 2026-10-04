@@ -724,6 +724,81 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/ea/intake/route.ts
   status: proposed
   part-of: module:api
+- id: op:api.ea-digest
+  args: GET | POST /api/<product>/ea/digest
+  does: >
+    GET [?date=YYYY-MM-DD] → { markdown, since }: what arrived, changed or closed since the last daily summary and
+    what waits now, for skill:ea.daily-summary. POST { summary, date? } → writes the entry at the top of the Digest
+    page's "Daily summary" section and leaves today's snapshot (decision&#58;ea.digest-is-a-page).
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/ea/digest/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.ea-suggest
+  args: GET | POST /api/<product>/ea/suggest
+  does: >
+    (decision&#58;ea.suggested-actions) — GET [?all=1] → the open suggestions (all of them with all=1). POST {
+    action: 'add', title, about?, why, source? } → a suggestion, or the open one of the same action renewed; POST {
+    action: 'close', id, how: done|dismissed, reason? } → closed.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/ea/suggest/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.imports
+  args: GET | POST /api/<product>/imports
+  does: >
+    The product's background imports (lib:import-run), for the rail's Agents folder: running ones with how far they
+    got and the file in hand, and stopped ones (Stop, or a server restart) with files left.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/imports/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.pins
+  args: PATCH /api/<product>/pins
+  does: >
+    PATCH { doc: 'project/slug', pinned: boolean } → { pinned: [...] } (decision:wf2.pinned-documents): the
+    product's `pinned:` list in _product.md, the document added at the end or taken out.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/pins/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.query
+  args: POST /api/<product>/query
+  does: >
+    (decision:wf2.graph-query) — POST { sql } → { columns, rows, truncated, graph, ms }: one read query over the
+    product's graph (tables nodes and edges; with DuckPGQ, graph wye for MATCH patterns). 422 with the engine's
+    message when the query is not read-only or does not parse.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/query/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.query-write
+  args: POST /api/<product>/query/write
+  does: >
+    (decision:wf2.query-from-words) — POST { ask, sql?, kind?, page?, me? } → { sql, rows }: a query an agent wrote
+    from the words and the server ran once; 422 with why when it could not.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/query/write/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.queue
+  args: GET /api/<product>/queue
+  does: >
+    The agent slots for the queue overview (rule:agent-slots): how many, how many taken, who waits and in what
+    order.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/queue/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.schedule
+  args: GET | POST /api/<product>/schedule
+  does: >
+    (decision:wf2.scheduler-runs-agents) — GET → the product's scheduled jobs (its time hooks): what each runs, on
+    which agent, next and last run, paused or not. POST { hook, action: 'run' | 'pause' | 'resume' }.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/schedule/route.ts
+  status: proposed
+  part-of: module:api
 ```
 
 <!-- /list:op -->

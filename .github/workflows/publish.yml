@@ -1,0 +1,55 @@
+# Publishes @emlab-ai/wye to npm when a GitHub release is published: the version comes from the release tag
+# (v0.3.0 → 0.3.0), the tests run, `prepack` builds the app (packages/web/.next and the externals list,
+# scripts/externals-manifest.js), and npm publishes it with provenance. Run it by hand (Actions › Publish to npm ›
+# Run workflow) for a dry run: everything but the upload.
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Build and pack, but do not publish
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write   # npm provenance: the package says which workflow run built it
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'   # the desktop shell is not part of the npm package
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Version from the release tag
+        if: github.event_name == 'release'
+        run: npm pkg set version="${GITHUB_REF_NAME#v}"
+
+      - run: npm test
+
+      - name: Publish
+        if: github.event_name == 'release' || inputs.dry-run == false
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Dry run
+        if: github.event_name == 'workflow_dispatch' && inputs.dry-run
+        run: npm publish --dry-run

@@ -8,8 +8,10 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 
-export const DATA_ROOT = path.resolve(process.cwd(), process.env.WATERFALL_DATA ?? '../../data');
-export const REPO_ROOT = path.resolve(process.cwd(), '../..');
+// The folder laid out like the Wye checkout that everything reads and writes (bin/wye-home.js): the clone when running
+// from source, WYE_HOME (~/.wye) when the package was installed from npm — its data/ is the person's, the rest links in.
+export const REPO_ROOT = process.env.WYE_HOME ? path.resolve(process.env.WYE_HOME) : path.resolve(process.cwd(), '../..');
+export const DATA_ROOT = process.env.WATERFALL_DATA ? path.resolve(process.cwd(), process.env.WATERFALL_DATA) : path.join(REPO_ROOT, 'data');
 
 // people: the names that can hold work (`people: alex, bo` in _product.md — req:exec.human-work); settings: every
 // other frontmatter key as written (`impact: manual`, `auto-take: off`, `verdicts: on`), read by the features they switch

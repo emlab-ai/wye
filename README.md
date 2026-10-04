@@ -12,8 +12,9 @@ develops a memory.
 ![A tour of Wye: a document, a Prompt Request, Remember, the Inbox, Ask, the mind map and a table's SQL](docs/tour.gif)
 
 ```bash
-git clone https://github.com/emlab-ai/wye.git && cd wye && npm install && ./install.sh
-npm run dev            # http://localhost:3000, or npm run desktop for the app in its own window
+npm install -g @emlab-ai/wye
+wye setup              # your products go in ~/.wye/data; the Claude Code skills into ~/.claude/skills
+wye app                # the app at http://localhost:3456
 ```
 
 Local-first, no accounts, Apache-2.0. [Getting started](#getting-started) has the details.
@@ -463,24 +464,33 @@ itself.
 
 ## Getting started
 
-Wye needs Node.js 18+ and git.
+Wye needs Node.js 20.9+.
 
 ```bash
-git clone https://github.com/emlab-ai/wye.git
-cd wye
-npm install
-./install.sh                              # the wye CLI into ~/.local/bin, the Claude Code skills into ~/.claude/skills
-
-wye build --root data/products/wye        # build Wye's own definition into a graph
-wye check --root data/products/wye        # and validate it
-
-npm run dev                               # the web app at http://localhost:3000
-npm run desktop                           # or the app in its own window
+npm install -g @emlab-ai/wye
+wye setup                                 # the home (~/.wye) and the Claude Code skills (~/.claude/skills)
+wye init --product shop --repo ~/code/shop   # a first definition read from your code
+wye app                                   # the app at http://localhost:3456
 ```
 
+Your products live in `~/.wye/data/products/` (set `WYE_HOME` to put them elsewhere), and an update never touches
+them. A product can also keep its documents next to its code: `root: <path>` in its `_product.md`.
+
 The agent features need `claude` or `codex` on your `PATH`. The core (Markdown, the graph, the product definition)
-needs neither. The `wye` command, the desktop app's install, and everything else in detail are in
-[docs/reference.md](docs/reference.md).
+needs neither. The first search downloads two small local models into `~/.wye/.cache/models`.
+
+**From a clone**, to work on Wye itself:
+
+```bash
+git clone https://github.com/emlab-ai/wye.git && cd wye
+npm install
+./install.sh                              # the wye CLI into ~/.local/bin, the Claude Code skills into ~/.claude/skills
+wye build --root data/products/wye && wye check --root data/products/wye
+npm run dev                               # the dev server; or npm run desktop for the app in its own window
+```
+
+A clone is its own home: its products are in `data/products/`. The `wye` command, the desktop app and everything
+else in detail are in [docs/reference.md](docs/reference.md).
 
 ## Repository structure
 

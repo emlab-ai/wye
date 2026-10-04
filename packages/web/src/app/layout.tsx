@@ -4,6 +4,9 @@ import type { ReactNode } from 'react';
 import { THEME_BOOT } from '@/lib/theme';
 
 export const metadata = { title: 'Wye' };
+// Every page reads the products on disk when it is asked for, never at build time: a prerendered page would show the
+// build machine's products — stale for whoever runs the app, and a leak in the published package.
+export const dynamic = 'force-dynamic';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

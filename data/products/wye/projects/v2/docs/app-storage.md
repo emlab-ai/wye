@@ -807,6 +807,150 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     each as one row — its state, what it works on, what it is doing, for how long. Pure, client-safe.
   status: proposed
   part-of: module:app-storage
+- id: lib:digest-run
+  file: packages/web/src/lib/ea/digest-run.ts
+  side: server
+  purpose: >
+    The Digest's daily summary, the IO part (decision&#58;ea.digest-is-a-page): the context for the agent (the
+    assistant's nodes against the snapshot the last summary left in <product>/_ea/digest/<date>.json), and the
+    summary written into the Digest page's "Daily summary" section — which leaves today's snapshot, what the next
+    context compares with.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:digest
+  file: packages/web/src/lib/ea/digest.ts
+  side: server
+  purpose: >
+    The Digest's daily summary, the pure part (decision&#58;ea.digest-is-a-page). The Digest is a live page of
+    views; once a weekday morning skill:ea.daily-summary writes an entry into its "Daily summary" section. The agent
+    reads a context computed here — what arrived, changed or closed since the last summary (a snapshot of the
+    assistant's nodes then against now), grouped by project and person, and what waits now — then writes a few lines
+    of judgment on top of it.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:messages
+  file: packages/web/src/lib/ea/messages.ts
+  side: server
+  purpose: >
+    Slack threads and emails waiting on the director (decision&#58;ea.messages-pushed): an outside tool pushes them
+    with `wye ea intake` as `{ "messages": [...] }`, next to or instead of a meeting. Each becomes a thread: or
+    email: card in its collection page — open while a reply (or a look) is owed, answered once given. The tool's own
+    id is kept (`source-id`), so a second push of the same thread updates its card: a newer time, the answer given.
+    They are not knowledge waiting for review but what is waiting on the director, so they are not proposed;
+    answered is `done`. Pure: the IO is in intake-run.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:suggest
+  file: packages/web/src/lib/ea/suggest.ts
+  side: server
+  purpose: >
+    Suggested actions (decision&#58;ea.suggested-actions): what the assistant suggests the director does now —
+    follow up on a project gone quiet, answer a thread, check a commitment due soon — each a suggestion: card (type
+    of the package) in the project's Suggestions page, about one item, with why. The Digest lists the open ones at
+    the top as a live table; the director ticks one done or dismisses it there. skill:ea.suggest-actions writes them
+    with `wye ea suggest`; a second suggestion of the same action about the same item renews the one that is open
+    instead of adding another.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:import-brief
+  file: packages/web/src/lib/import-brief.ts
+  side: server
+  purpose: >
+    The import lane's shared brief and its sorting of files (decision:wf2.import-lane). One agent session takes a
+    whole import, files arriving as messages; what every file needs — the product's types, the ids of the people,
+    projects and the like it already has, the commands, one finished page — goes once into the session's system
+    text, a stable prefix the model caches, instead of each file's agent looking it all up again (a third of its
+    time). Pure: the caller hands in the graph's nodes and the pages.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:menu-fit
+  file: packages/web/src/lib/menu-fit.ts
+  side: server
+  purpose: >
+    A popup menu placed at a point (a right-click, or under a ⋯ button) is kept inside the window: once it is drawn
+    and its size known, a menu that would run past the bottom opens upward from the point, and one past the right
+    edge moves left. Call from a layout effect with the menu element and the point it was opened at. `above`: the
+    top of the button it hangs from, so an upward menu ends above the button, not over it.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:obsidian-drawing
+  file: packages/web/src/lib/obsidian-drawing.ts
+  side: server
+  purpose: >
+    Obsidian Excalidraw files in an import (decision:wf2.import-drawings). The plugin keeps a drawing as a markdown
+    note (`<name>.excalidraw.md`, front matter `excalidraw-plugin: parsed`): a "Text Elements" list and the scene
+    itself in a ```compressed-json block (LZ-string, base64) or a plain ```json one. On import it becomes a page
+    with a Wye drawing on it — the scene stored as docs/drawings/<slug>.excalidraw, the page
+    `![Title](drawings/<slug>.excalidraw)` — and the drawing's words listed under it, so search and agents read
+    them. Pure.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:pins
+  file: packages/web/src/lib/pins.ts
+  side: server
+  purpose: >
+    Pinned documents (decision:wf2.pinned-documents): `pinned: [project/doc, …]` in the product's _product.md, shown
+    at the top of the rail in pin order. Pure.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:query-write
+  file: packages/web/src/lib/query-write.ts
+  side: server
+  purpose: >
+    A table's SQL written from words (decision:wf2.query-from-words): the person says what the table should show;
+    one `claude -p` call (no tools) writes the query from the graph's real shape — the columns of `nodes`, its kinds
+    with counts, the verbs of `edges`, the table's kind, page and current SQL — and the server runs it before
+    handing it back. A query that fails is sent back once with the engine's message. Nothing is saved here: the
+    table keeps it.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:query
+  file: packages/web/src/lib/query.ts
+  side: server
+  purpose: >
+    Queries over the product's graph (decision:wf2.graph-query): SQL — and SQL/PGQ graph patterns (MATCH) through
+    the DuckPGQ extension — run by an in-memory DuckDB that holds the graph Wye already built (graph.json), nothing
+    else. Nothing is stored: the markdown stays the only source; the engine is rebuilt in memory when the graph
+    changes. File and network access are switched off and the settings locked before any query runs, so a query can
+    only read the graph; one read statement at a time (SELECT / WITH / FROM). nodes(id, kind, title, status, open,
+    folder, page (folder/slug: the page it is on), file, text, props JSON, <a column per property in use>) — state,
+    due, owner, project (the item it links), date … each `-` as `_` (part_of); props->>'key' for any other
+    edges(src, dst, verb) — every link: part-of, project, to, mentions … has(cell, v) — the cell is v or a list [a,
+    b] that holds v (owner, to, tags …) graph `wye` (when DuckPGQ loads): FROM GRAPH_TABLE (wye MATCH
+    (a:nodes)-[e:edges]->(b:nodes) WHERE … COLUMNS (…))
+  status: proposed
+  part-of: module:app-storage
+- id: lib:table-sql
+  file: packages/web/src/lib/table-sql.ts
+  side: server
+  purpose: >
+    Every Data table is a query (decision:wf2.table-is-sql): a new table on a page runs SELECT id FROM nodes WHERE
+    kind = 'task' AND page = 'folder/this-page' AND open ORDER BY coalesce(due, target), title and each filter of
+    its bar adds a line to that SQL — search, status, open only, a due window, mine, a column's value, the sort. "⊕
+    whole product" drops the page line. The SQL is shown under the bar; edited by hand it becomes the table's own
+    (`sql=` on the marker) and the bar's switches step aside. Pure: lib/query runs it.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:when
+  file: packages/web/src/lib/when.ts
+  side: server
+  purpose: >
+    Dates as the app prints them — one fixed locale, so the server's render and the browser's agree (a
+    default-locale toLocaleString printed "Oct 3, 12:50 PM" on the server and "3 Oct, 12:50" in the browser: a
+    hydration error).
+  status: proposed
+  part-of: module:app-storage
+- id: lib:wikilinks
+  file: packages/web/src/lib/wikilinks.ts
+  side: server
+  purpose: >
+    Obsidian-style links in imported notes (decision:wf2.wikilinks-to-links): `[[Note]]`, `[[Note|shown text]]`,
+    `[[Note#Heading]]`, `[[Folder/Note]]` and embeds `![[picture.png]]` become Wye's own links — `[shown text](id)`,
+    a tag the graph follows — when the name is something the product has: a person, project or the like under that
+    name or alias (the knowledge model first), else a page by its file name or title. An image embed becomes a plain
+    image the import copies. A name nothing matches stays `[[Name]]`, so no link is lost. Code is left alone. Pure.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

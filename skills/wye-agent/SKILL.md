@@ -36,7 +36,7 @@ wye explain <id | "text">        # one librarian turn: the current state around 
 wye packet --root data/products/<product> --task "<sentence>"   # a token-budgeted slice of the graph (offline)
 ```
 
-A link like `…/yessensei/offline/d/prd#n-goal%3Aoffline.g2` points at a node; `#b-<hash>` at a paragraph; a bare
+A link like `…/pos/offline/d/prd#n-goal%3Aoffline.g2` points at a node; `#b-<hash>` at a paragraph; a bare
 `#slug` at a heading. Resolve it before acting: the answer names the file and line, so edits go to the right place.
 
 ## Write back

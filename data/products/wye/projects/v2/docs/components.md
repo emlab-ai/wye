@@ -931,6 +931,61 @@ The editor's blocks and the components the pages are made of, by area.
     (no header comment)
   status: proposed
   part-of: module:components
+- id: component:date-field
+  file: packages/web/src/components/DateField.tsx
+  side: client
+  purpose: >
+    A date property (`due`, a type's `date` column) or a month one (`target: month`): typed as it is written —
+    YYYY-MM-DD, YYYY-MM — or picked from a calendar that opens from the ▦ beside it, with quick picks (today,
+    tomorrow, next Monday, in a week; this month, next month) and Clear. The value is committed on a pick, on Enter
+    or on blur.
+  status: proposed
+  part-of: module:components
+- id: component:import-progress
+  file: packages/web/src/components/ImportProgress.tsx
+  side: client
+  purpose: >
+    (no header comment)
+  status: proposed
+  part-of: module:components
+- id: component:kind-table
+  file: packages/web/src/components/KindTable.tsx
+  side: client
+  purpose: >
+    A Knowledge page of one kind (decision:wf2.knowledge-pages-are-data-tables): the same Data table / Data list a
+    page holds, from the whole product — rows edited in place, the filter on top — with table ⇄ list. The filter and
+    the view live in the URL, so a filtered list is a link.
+  status: proposed
+  part-of: module:components
+- id: component:live-table
+  file: packages/web/src/components/LiveTable.tsx
+  side: client
+  purpose: >
+    Every Data table and Data list is a query (decision:wf2.table-is-sql). Its rows are what its SQL returns, over
+    the graph of the whole product: a table on a page starts as this page's items of its kind (`page = 'module:…'`),
+    "⊕ whole product" drops that line, and each switch of the filter bar adds its line (lib/table-sql). The SQL
+    shows under the bar; edited by hand it is the table's own (`sql=` on the marker) and the switches step aside
+    until "Back to filters". A result with an `id` column is the items: each row looks and edits like any row —
+    status, date, owner, a type's columns — and an edit is written where the item lives: in this page's editor when
+    the item is defined here (`own`), else through the node API. A result's other columns show beside, read only; a
+    result with no `id` is a plain table.
+  status: proposed
+  part-of: module:components
+- id: component:queue-overview
+  file: packages/web/src/components/QueueOverview.tsx
+  side: client
+  purpose: >
+    (no header comment)
+  status: proposed
+  part-of: module:components
+- id: component:rail-settings
+  file: packages/web/src/components/RailSettings.tsx
+  side: client
+  purpose: >
+    Settings in the rail is a folder: what configures the product — Types, Hooks, Skills — sits under it, folded
+    with it.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

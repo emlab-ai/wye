@@ -8,6 +8,9 @@
 //   wye check [--root <product dir>] [--strict]   the graph's problems (dangling references, missing fields…)
 //   wye graph <get|neighbors|search|constraints|reqs|stats|site|impact|packet|verdicts> …   every graph command by name
 //
+//   wye setup                             the home (~/.wye when installed from npm: your products in data/) and the Claude Code skills
+//   wye app [--port 3456] [--no-open]     the app in your browser, over the home
+//
 //   wye resolve <link|id>                 what a link points at: document, node, block or section (text included)
 //   wye doc <product/project/doc>         a document's markdown body
 //   wye doc write <product/project/doc> [--file f] [--section "Analysis"]   replace the body (stdin or --file) — or one ## section of it — checked against the current hash
@@ -160,6 +163,28 @@ async function resolve(link) {
 }
 
 const commands = {
+  // wye setup: the home (~/.wye for an installed package, bin/wye-home.js) and the Claude Code skills
+  async setup() {
+    const h = require('./wye-home.js'); const dir = h.ensureHome();
+    console.log(`home     → ${dir}${dir === h.INSTALL ? ' (this clone)' : ''}  — products in ${path.join(dir, 'data', 'products')}`);
+    for (const l of h.linkSkills()) console.log(`skill    → ${l}`);
+    console.log('\nnext: wye app   (the app in your browser)');
+  },
+  // wye app: the built web app over the home, on WYE_PORT (default 3456) — the port the CLI and the agents expect
+  async app() {
+    const h = require('./wye-home.js'); const dir = h.ensureHome();
+    const web = path.join(h.INSTALL, 'packages', 'web');
+    if (!fs.existsSync(path.join(web, '.next', 'BUILD_ID'))) die(h.isCheckout() ? 'no build yet: npm run build --workspace=packages/web (or npm run dev for the dev server)' : `the package has no app build (${web}/.next) — reinstall it`);
+    const port = String(flags.port || process.env.WYE_PORT || 3456);
+    const next = require.resolve('next/dist/bin/next', { paths: [web] });
+    const url = `http://localhost:${port}`;
+    console.log(`Wye on ${url} — home ${dir}  (Ctrl+C stops it)`);
+    const cwd = h.prepareApp(web, dir);
+    const child = spawn(process.execPath, [next, 'start', '-p', port, '-H', '127.0.0.1'], { cwd, stdio: 'inherit', env: { ...process.env, WYE_HOME: dir, WYE_URL: url } });
+    if (!flags['no-open']) setTimeout(() => { const o = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'; try { spawn(o, [url], { stdio: 'ignore', detached: true, shell: process.platform === 'win32' }).unref(); } catch { /* no opener */ } }, 2500);
+    for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => child.kill(sig));
+    await new Promise(res => child.on('exit', code => { process.exitCode = code ?? 0; res(); }));
+  },
   // the benchmarks (eval/cli.js): runs here, reads the documents, asks the app for hits and packets; exit 2 when the gate fails
   async eval() { const code = await require('../eval/cli.js').main(pos.slice(1), flags); if (code) process.exit(code); },
   async resolve() { if (!pos[1]) die('wye resolve <link|id>'); await resolve(pos[1]); },
@@ -380,12 +405,14 @@ const commands = {
     const p = flags.product || die('wye init --product <slug> --repo <dir> [--title "…"] [--project main] [--feature "<name>" --path <dir>] [--icon 📦] [--description "…"]');
     const repo = flags.repo || die('--repo <dir> — the code the product is read from');
     const { init } = require('../lib/init.js');
-    const r = init({ dataRoot: path.join(__dirname, '..', 'data'), product: p, title: flags.title, project: flags.project, repo, feature: flags.feature, path: flags.path, icon: flags.icon, description: flags.description });
+    const dataRoot = path.join(require('./wye-home.js').ensureHome(), 'data');
+    const r = init({ dataRoot, product: p, title: flags.title, project: flags.project, repo, feature: flags.feature, path: flags.path, icon: flags.icon, description: flags.description });
     if (flags.json) return out({ ...r.made, areas: r.areas.map(a => ({ dir: a.dir, slug: a.slug, files: a.files.length })), project: r.project });
-    console.log(`${r.made.written.length} page(s) written under data/products/${p}/projects/${r.project}/docs${r.made.skipped.length ? ` (${r.made.skipped.length} existed and were kept)` : ''}`);
+    console.log(`${r.made.written.length} page(s) written under ${path.join(dataRoot, 'products', p, 'projects', r.project, 'docs')}${r.made.skipped.length ? ` (${r.made.skipped.length} existed and were kept)` : ''}`);
     console.log(`scanned ${r.made.counts.files} files: ${r.areas.length} modules, ${r.made.counts.pages} pages, ${r.made.counts.components} components, ${r.made.counts.ops} operations, ${r.made.counts.tests} tests`);
     for (const a of r.areas) console.log(`  ${a.slug.padEnd(20)} ${String(a.files.length).padStart(5)} files  ${a.dir}`);
-    console.log(`\nnext: wye build --root data/products/${p} && wye check --root data/products/${p} --repo ${repo}\n      open it in the app, then wye deepen <module> --product ${p}   (or let a runner take the #ready tasks)`);
+    const root = path.join(dataRoot, 'products', p);
+    console.log(`\nnext: wye build --root ${root} && wye check --root ${root} --repo ${repo}\n      open it in the app, then wye deepen <module> --product ${p}   (or let a runner take the #ready tasks)`);
   },
   // wye deepen <module>: assign the module's describe task to a worker with the describe contract (prompts/describe-module.md)
   async deepen() {

@@ -19,7 +19,7 @@ export default function NewProductPage() {
       <h1 className="prop-in h1" style={{ margin: '0 0 12px' }}>New product</h1>
       <div className="form">
         <label><span>icon</span><input value={icon} onChange={e => setIcon(e.target.value)} style={{ width: 60 }} /></label>
-        <label><span>title</span><input autoFocus value={title} placeholder="e.g. YesSensei POS" onChange={e => setTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') create(); }} /></label>
+        <label><span>title</span><input autoFocus value={title} placeholder="e.g. Kitchen POS" onChange={e => setTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') create(); }} /></label>
         <label><span>description</span><textarea value={description} rows={3} onChange={e => setDescription(e.target.value)} /></label>
       </div>
       <div className="sec-actions"><button className="pri" disabled={busy || !title.trim()} onClick={create}>{busy ? 'Creating…' : 'Create product'}</button><button onClick={() => router.back()}>Cancel</button>{msg && <span className="notice">{msg}</span>}</div>

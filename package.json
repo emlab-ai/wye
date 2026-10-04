@@ -1,11 +1,49 @@
 {
-    "name": "wye",
+    "name": "@emlab-ai/wye",
     "version": "0.2.0",
-    "description": "Product context graph: describe a system as requirements, entities, rules, ops and pages in markdown; query it as a graph; browse and edit it in a web app.",
-    "private": true,
+    "description": "Product definition and long-term memory for coding agents: requirements, rules, decisions and constraints as Markdown in Git, a graph Claude Code and Codex query before they build, and an app to review what they decide.",
+    "keywords": [
+        "coding-agents",
+        "claude-code",
+        "codex",
+        "product-definition",
+        "requirements",
+        "knowledge-graph",
+        "memory",
+        "markdown",
+        "local-first"
+    ],
+    "homepage": "https://github.com/emlab-ai/wye#readme",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/emlab-ai/wye.git"
+    },
+    "bugs": {
+        "url": "https://github.com/emlab-ai/wye/issues"
+    },
+    "license": "Apache-2.0",
     "bin": {
         "wye": "bin/wye.js"
     },
+    "files": [
+        "bin/",
+        "lib/",
+        "prompts/",
+        "schema/",
+        "skills/",
+        "templates/",
+        "viewer/",
+        "install.sh",
+        "packages/web/package.json",
+        "packages/web/next.config.ts",
+        "packages/web/.next/wye-externals.json",
+        "packages/web/.next/",
+        "!packages/web/.next/cache/",
+        "!packages/web/.next/dev/",
+        "!packages/web/.next/trace*",
+        "README.md",
+        "LICENSE"
+    ],
     "workspaces": [
         "packages/*"
     ],
@@ -18,13 +56,43 @@
         "desktop:prod": "npm run build --workspace=packages/web && electron packages/desktop",
         "desktop:dist": "npm run dist --workspace=packages/desktop",
         "desktop:dist:mac": "npm run dist:mac --workspace=packages/desktop",
-        "desktop:dist:linux": "npm run dist:linux --workspace=packages/desktop"
+        "desktop:dist:linux": "npm run dist:linux --workspace=packages/desktop",
+        "prepack": "npm run build --workspace=packages/web && node scripts/externals-manifest.js"
     },
     "engines": {
-        "node": ">=18"
+        "node": ">=20.9"
     },
-    "license": "Apache-2.0",
+    "publishConfig": {
+        "access": "public",
+        "provenance": true
+    },
+    "dependencies": {
+        "@duckdb/node-api": "1.5.4-r.1",
+        "@huggingface/transformers": "^4.3.0",
+        "@lancedb/lancedb": "^0.39.0",
+        "apache-arrow": "^18.1.0",
+        "next": "^16.3.5",
+        "react": "^19.3.0",
+        "react-dom": "^19.3.0"
+    },
     "devDependencies": {
-        "hyparquet": "^1.31.1"
+        "@blocknote/core": "^0.54.2",
+        "@blocknote/mantine": "^0.54.2",
+        "@blocknote/react": "^0.54.2",
+        "@dagrejs/dagre": "^3.1.1",
+        "@excalidraw/excalidraw": "^0.18.1",
+        "@monaco-editor/react": "^4.7.0",
+        "@xyflow/react": "^12.11.6",
+        "hyparquet": "^1.31.1",
+        "lz-string": "^1.5.0",
+        "monaco-editor": "^0.56.0",
+        "react-markdown": "^10.1.0",
+        "remark-gfm": "^4.0.1",
+        "unist-util-visit": "^5.1.0"
+    },
+    "overrides": {
+        "@lancedb/lancedb": {
+            "@huggingface/transformers": "$@huggingface/transformers"
+        }
     }
 }
