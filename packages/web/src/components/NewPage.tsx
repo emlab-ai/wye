@@ -1,7 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { TEMPLATES } from '@/lib/templates';
+import { TEMPLATES, TEMPLATE_INFO } from '@/lib/templates';
 import { usePeek } from './PeekProvider';
 import { ImportDocs, type Picked } from './ImportDocs';
 import { requestSend } from './CommandBox';
@@ -104,7 +104,7 @@ export function NewPage({ product, project: initialProject, projects, docs, defa
               {!page && chip('Timeline', '▤', () => create({ template: 'timeline' }))}
               {!page && chip('Blank', '＋', () => ensurePage())}
             </div>
-            {pick === 'template' && <div className="np-picks">{TEMPLATES.filter(t => t !== 'blank').map(t => <button key={t} type="button" onClick={() => create({ template: t })} disabled={busy}>{t.replace(/-/g, ' ')}</button>)}</div>}
+            {pick === 'template' && <TemplatePicker busy={busy} onPick={t => create({ template: t })} />}
             {pick === 'type' && <div className="np-picks">{ownTypes.map(t => <button key={t.slug} type="button" onClick={() => create({ type: t.slug })} disabled={busy} title={t.slug}>{t.slug}</button>)}</div>}
             {msg && <p className="notice">{msg}</p>}
             {parentDoc && <p className="muted small">under {parentDoc.icon ? `${parentDoc.icon} ` : ''}{parentDoc.title}</p>}
@@ -114,6 +114,34 @@ export function NewPage({ product, project: initialProject, projects, docs, defa
           <button type="button" className="linkish" onClick={() => setMode('page')}>‹ New page</button>
           <ImportDocs product={product} project={effectiveProject} projects={projects} docs={docs} defaultParent={parentDoc?.slug ?? ''} initial={initial} onClose={onClose} />
         </div>}
+      </div>
+    </div>
+  );
+}
+
+// The template picker: every template in a list on the left; the one under the pointer (or the keyboard) is described
+// on the right — what the page is for and the sections it starts with. A click, or Enter, makes the page from it.
+type TemplateKey = keyof typeof TEMPLATE_INFO;
+function TemplatePicker({ busy, onPick }: { busy: boolean; onPick: (t: TemplateKey) => void }) {
+  const keys = TEMPLATES.filter((t): t is TemplateKey => t !== 'blank');
+  const [hot, setHot] = useState<TemplateKey>(keys[0]);
+  const info = TEMPLATE_INFO[hot];
+  const move = (d: number) => setHot(k => keys[(keys.indexOf(k) + d + keys.length) % keys.length]);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => { box.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, []);   // opened below the fold of a short window: bring it up
+  return (
+    <div ref={box} className="np-templates" onKeyDown={e => { if (e.key === 'ArrowDown') { e.preventDefault(); move(1); } else if (e.key === 'ArrowUp') { e.preventDefault(); move(-1); } }}>
+      <ul className="npt-list" role="listbox" aria-label="Templates">
+        {keys.map(k => (
+          <li key={k}><button type="button" role="option" aria-selected={k === hot} className={k === hot ? 'on' : ''} disabled={busy}
+            onMouseEnter={() => setHot(k)} onFocus={() => setHot(k)} onClick={() => onPick(k)}>
+            <i>{TEMPLATE_INFO[k].icon}</i>{TEMPLATE_INFO[k].title}</button></li>))}
+      </ul>
+      <div className="npt-about">
+        <h4><i>{info.icon}</i>{info.title}</h4>
+        <p>{info.description}</p>
+        {info.sections.length > 0 && <><span className="muted small">Starts with</span><ol>{info.sections.map(x => <li key={x}>{x}</li>)}</ol></>}
+        <button type="button" className="pri" disabled={busy} onClick={() => onPick(hot)}>Use {info.title.toLowerCase()}</button>
       </div>
     </div>
   );

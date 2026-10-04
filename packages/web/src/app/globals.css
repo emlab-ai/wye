@@ -1252,3 +1252,16 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .pg-row .pg-more { margin-left: auto; } .pg-row .pg-add { margin-left: 2px; margin-right: 2px; }
 .pg-row .pg-more:hover, .pg-row .pg-add:hover { color: var(--ink); background: var(--line); }
 .pg-row .pg-more:focus, .pg-row .pg-add:focus { outline: none; } .pg-row .pg-more:focus-visible, .pg-row .pg-add:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* New page › Template: a vertical list of templates, the one under the pointer described on the right */
+.np-templates { display: grid; grid-template-columns: minmax(200px, 240px) 1fr; gap: 0; margin-top: 12px; max-width: 760px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.npt-list { list-style: none; margin: 0; padding: 6px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+.npt-list button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 7px; background: none; color: var(--ink); font: 14px var(--font-b); text-align: left; cursor: pointer; }
+.npt-list button i { font-style: normal; width: 20px; text-align: center; } .npt-list button.on { background: var(--sunk); }
+.npt-about { padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.npt-about h4 { margin: 0; font: 600 16px var(--font-b); display: flex; align-items: center; gap: 8px; } .npt-about h4 i { font-style: normal; }
+.npt-about p { margin: 0; color: var(--ink-2); font: 14px/1.5 var(--font-b); }
+.npt-about ol { margin: 0; padding-left: 20px; color: var(--ink-2); font: 13px/1.6 var(--font-b); }
+.npt-about .pri { align-self: flex-start; margin-top: 6px; background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); border-radius: 7px; padding: 6px 14px; font: 500 13px var(--font-b); cursor: pointer; }
+@media (max-width: 640px) { .np-templates { grid-template-columns: 1fr; } .npt-list { border-right: 0; border-bottom: 1px solid var(--line); } }
+.modal.np-sheet { overflow-y: auto; }   /* the template list can be taller than a short window: the sheet scrolls */
