@@ -1303,3 +1303,9 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 
 .q-job { flex: 1; min-width: 0; display: flex; flex-direction: column; } .q-job b { font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .q-job span { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .q-sched li.q-off .q-job b { color: var(--muted); } .q-sched .q-list button:hover { color: var(--ink); border-color: var(--ink-2); }
+
+/* a table's SQL (decision:wf2.graph-query): the query box under its filter, results as rows */
+.sql-box { padding: 8px 6px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.sql-box textarea { width: 100%; min-width: 360px; font: 12.5px/1.5 var(--font-m); color: var(--ink); background: var(--ground); border: 1px solid var(--line-2); border-radius: 8px; padding: 8px 10px; resize: vertical; }
+.sql-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; } .sql-actions button { font: 12px var(--font-b); border: 1px solid var(--line-2); background: none; color: var(--ink-2); border-radius: 6px; padding: 3px 10px; cursor: pointer; } .sql-actions .pri { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.sql-actions .muted { max-width: 720px; } .live-cell { font: 12px var(--font-m); color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

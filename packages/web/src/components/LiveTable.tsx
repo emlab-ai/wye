@@ -57,7 +57,8 @@ export function LiveTable({ product, kind, query, view, type, head, onQuery }: P
 
   const dateKey = kind === 'goal' ? 'target' : 'due';
   const grid = type ? `minmax(360px, 520px) 128px${type.cols.map(c => (c.type === 'bool' ? ' 56px' : c.ref ? ' minmax(140px, 200px)' : ' minmax(112px, 180px)')).join('')}` : 'minmax(360px, 520px) 128px 112px 140px';
-  const filterOn = !!(f.q || f.status || f.open || f.due || Object.values(f.props).some(Boolean));
+  const filterOn = !!(f.q || f.status || f.open || f.due || f.sql || Object.values(f.props).some(Boolean));
+  const [sqlOpen, setSqlOpen] = useState(!!f.sql);
   const mine = Object.values(f.props).includes('me');
   const ownerKey = cols.includes('owner') || !type ? 'owner' : cols.find(c => c === 'to' || c === 'from') ?? 'owner';
   const bar = (
@@ -68,8 +69,10 @@ export function LiveTable({ product, kind, query, view, type, head, onQuery }: P
       <label><input type="checkbox" checked={mine} onChange={e => set({ props: { ...f.props, [ownerKey]: e.target.checked ? 'me' : '' } })} /> mine</label>
       {(table?.statuses ?? []).length > 1 && <label>status <select value={f.status} onChange={e => set({ status: e.target.value })}><option value="">any</option>{table!.statuses.map(([s, n]) => <option key={s} value={s}>{s} ({n})</option>)}</select></label>}
       <label><input type="checkbox" checked={f.done === 'show'} onChange={e => set({ done: e.target.checked ? 'show' : '' })} /> show done</label>
+      <button type="button" className={`collection-view-toggle ${sqlOpen ? 'on' : ''}`} onClick={() => setSqlOpen(o => !o)} title="Query the graph with SQL — joins, lookups, graph patterns">SQL</button>
     </div>
   );
+  const sqlBox = (open || f.sql) && sqlOpen ? <SqlBox sql={f.sql ?? ''} onRun={q => set({ sql: q })} /> : null;
   const summary = (
     <span className="live-scope muted small" title="rows from the whole product: edit one here and it changes where it is defined">
       {table ? `${rows.length}${table.rows.length !== rows.length ? ` of ${table.rows.length}` : ''}` : '…'}
@@ -77,10 +80,17 @@ export function LiveTable({ product, kind, query, view, type, head, onQuery }: P
     </span>
   );
 
+  if (f.sql) return (
+    <div ref={rootRef} className={`collection c-live c-query c-${kind}`} contentEditable={false}>
+      <QueryRows product={product} sql={f.sql} inEditor={inEditor} onOpen={openNode}
+        head={head} summaryExtra={<button type="button" className="collection-filter-toggle on" onMouseDown={e => e.stopPropagation()} onClick={() => { setOpen(o => !o); setSqlOpen(true); }}>⏷ query</button>} />
+      {open && <SqlBox sql={f.sql} onRun={q => set({ sql: q })} />}
+    </div>
+  );
   if (view === 'list') return (
     <div ref={rootRef} className={`collection c-list c-live c-${kind}`} contentEditable={false}>
       <div className="collection-list-head">{head}{summary}</div>
-      {open && bar}
+      {open && bar}{sqlBox}
       {err && <p className="notice">{err}</p>}
       <div className="ilist">{rows.map(r => <div key={r.id} onClickCapture={e => { if (!inEditor && !(e.target as Element).closest('a, button, select, input, .embed-editor')) openNode(r.id); }}><EmbeddedCard id={r.id} className="ilist-item" inEditor={inEditor} /></div>)}</div>
       {table && !rows.length && <p className="muted small live-empty">Nothing here right now.</p>}
@@ -92,7 +102,7 @@ export function LiveTable({ product, kind, query, view, type, head, onQuery }: P
         <div className="nrow-cell nrow-name">{head}{summary}</div><div className="nrow-cell">Status</div>
         {type ? type.cols.map(c => <div key={c.name} className="nrow-cell">{c.name}</div>) : <><div className="nrow-cell">{dateKey === 'target' ? 'Target' : 'Due'}</div><div className="nrow-cell">Owner</div></>}
       </div>
-      {open && bar}
+      {open && bar}{sqlBox}
       {err && <p className="notice">{err}</p>}
       {rows.map(r => <LiveRow key={r.id} r={r} grid={grid} type={type} dateKey={TASKISH.has(kind) ? dateKey : ''} statuses={[...new Set([...statusOptions(byKind, r.kind, r.status), 'done'])]} onEdit={p => edit(r, p)} onOpen={inEditor ? undefined : () => openNode(r.id)} />)}
       {table && !rows.length && <p className="muted small live-empty">Nothing here right now.</p>}
@@ -135,3 +145,65 @@ function LiveInput({ value, placeholder, onCommit }: { value: string; placeholde
 
 // a title as it reads: markdown emphasis, links ([text](id) → text) and inline code taken off
 const plainTitle = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\*\*|__|`/g, '').replace(/(^|\s)[*_](\S)/g, '$1$2').replace(/\s+/g, ' ').trim();
+
+// Query mode (decision:wf2.graph-query): the table's `sql` runs over the graph; a row per result row. With an `id`
+// column each row is the item — its title opens it, its status is edited in place — and the other columns show beside;
+// without one the result is a read-only table.
+type QResult = { columns: string[]; rows: Record<string, unknown>[]; truncated: boolean; ms: number };
+export function QueryRows({ product, sql, head, summaryExtra, inEditor, onOpen }: { product: string; sql: string; head: React.ReactNode; summaryExtra: React.ReactNode; inEditor: boolean; onOpen: (id: string) => void }) {
+  const { index, statuses: byKind } = usePeek();
+  const [res, setRes] = useState<QResult | null>(null); const [err, setErr] = useState('');
+  const run = useCallback(() => {
+    fetch(`/api/${product}/query`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ sql }) })
+      .then(async r => { const j = await r.json(); if (!r.ok) throw new Error(j.message ?? r.statusText); setRes(j); setErr(''); }).catch(e => { setErr(String(e.message ?? e)); setRes(null); });
+  }, [product, sql]);
+  useEffect(() => { run(); }, [run]);
+  useEffect(() => { const h = (e: Event) => { if ((e as CustomEvent<{ kinds: string[] }>).detail?.kinds?.includes('graph')) run(); }; window.addEventListener('wf:change', h); return () => window.removeEventListener('wf:change', h); }, [run]);
+  const hasId = !!res?.columns.includes('id');
+  const extra = (res?.columns ?? []).filter(c => !(hasId && (c === 'id' || c === 'title' || c === 'status')));
+  const grid = hasId ? `minmax(320px, 480px) 128px${extra.map(() => ' minmax(110px, 240px)').join('')}` : extra.map(() => 'minmax(110px, 280px)').join(' ');
+  const cell = (v: unknown) => v === null || v === undefined ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+  const setStatus = async (id: string, status: string) => { await fetch(`/api/${product}/node/${encodeURIComponent(id)}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status }) }).catch(() => undefined); };
+  return (
+    <>
+      <div className="nrow nrow-head" style={{ gridTemplateColumns: grid || '1fr' }}>
+        <div className="nrow-cell nrow-name">{head}<span className="live-scope muted small">query · {res ? `${res.rows.length}${res.truncated ? '+' : ''}` : '…'}{summaryExtra}</span></div>
+        {hasId && <div className="nrow-cell">Status</div>}
+        {extra.map(c => <div key={c} className="nrow-cell">{c}</div>)}
+      </div>
+      {err && <p className="notice live-empty">{err}</p>}
+      {res?.rows.map((row, i) => {
+        const id = hasId ? String(row.id ?? '') : ''; const e = id ? index[id] : undefined;
+        const title = String(row.title ?? e?.title ?? id);
+        return (
+          <div key={id || i} className="nrow live-row" style={{ gridTemplateColumns: grid || '1fr' }} data-id={id || undefined}>
+            {hasId && <div className="nrow-cell nrow-name">
+              <button type="button" className="nrow-open" title={id} onMouseDown={ev => ev.stopPropagation()} onClick={ev => inEditor ? ev.currentTarget.dispatchEvent(new CustomEvent('wf:select', { detail: id, bubbles: true })) : onOpen(id)}><i style={{ background: `var(--k-${e?.kind ?? 'other'}, var(--k-other))` }} /></button>
+              <span className="nrow-text live-text" onClick={ev => inEditor ? ev.currentTarget.dispatchEvent(new CustomEvent('wf:select', { detail: id, bubbles: true })) : onOpen(id)} title={id}>{plainTitle(title)}</span>
+            </div>}
+            {hasId && <div className="nrow-cell">{e ? <select className={`status-sel s-${e.status}`} defaultValue={e.status} onMouseDown={ev => ev.stopPropagation()} onChange={ev => void setStatus(id, ev.target.value)}>{[...new Set([...statusOptions(byKind, e.kind, e.status), 'done'])].map(st => <option key={st} value={st}>{st || '— status'}</option>)}</select> : <span className="muted small">{cell(row.status)}</span>}</div>}
+            {extra.map(c => <div key={c} className="nrow-cell live-cell" title={cell(row[c])}>{cell(row[c])}</div>)}
+          </div>);
+      })}
+      {res && !res.rows.length && <p className="muted small live-empty">The query returned nothing.</p>}
+    </>
+  );
+}
+
+// the SQL editor of a table's filter bar: run writes it onto the table (quotes in SQL are single; the marker holds it)
+export function SqlBox({ sql, onRun }: { sql: string; onRun: (q: string) => void }) {
+  const [v, setV] = useState(sql); const [msg, setMsg] = useState('');
+  useEffect(() => setV(sql), [sql]);
+  const go = () => { const q = v.trim(); if (/"/.test(q)) { setMsg('use single quotes in the query — double quotes cannot be saved on the table'); return; } if (q.includes('-->')) { setMsg('the query cannot contain -->'); return; } setMsg(''); onRun(q); };
+  return (
+    <div className="sql-box" onMouseDown={e => e.stopPropagation()} onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); go(); } }}>
+      <textarea value={v} rows={Math.min(8, Math.max(3, v.split('\n').length))} spellCheck={false} placeholder={"SELECT c.id, c.due, p.title AS project FROM nodes c JOIN nodes p ON p.id = c.project WHERE c.kind = 'commitment' AND c.state = 'open'"} onChange={e => setV(e.target.value)} />
+      <div className="sql-actions">
+        <button type="button" className="pri" onClick={go}>Run ⌘↵</button>
+        {sql && <button type="button" onClick={() => onRun('')}>Back to filters</button>}
+        <span className="muted small">tables <code>nodes</code> (id, kind, title, status, due, owner, project, state …, props) and <code>edges</code> (src, dst, verb); graph patterns: <code>FROM GRAPH_TABLE (wye MATCH (a:nodes)-[e:edges]-&gt;(b:nodes) COLUMNS (…))</code>. An <code>id</code> column makes each row the item.</span>
+        {msg && <span className="notice">{msg}</span>}
+      </div>
+    </div>
+  );
+}

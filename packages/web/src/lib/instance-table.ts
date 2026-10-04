@@ -10,7 +10,7 @@ export type ColumnKind = 'enum' | 'bool' | 'ref' | 'string';
 export interface Column { name: string; kind: ColumnKind; options?: string[]; ref?: string; many?: boolean }
 export interface InstanceRow { id: string; kind: string; title: string; status: string; file: string; doc: string; props: Record<string, string>; rels?: { verb: string; to: string }[]; text?: string }
 export interface InstanceTable { slug: string; typed: boolean; columns: Column[]; rows: InstanceRow[]; statuses: [string, number][]; /** who `owner=me` means: the product's director and the names they go by */ me?: string[] }
-export interface Filters { q: string; status: string; group: string; sort: string; props: Record<string, string>; /** 'show': completed rows are listed (a table hides them by default) */ done?: string; /** '1': only what is still open — not done, met, dropped or answered */ open?: string; /** a window on the `due` date: 'late', 'today', '<n>d' (due within n days, late included) */ due?: string }
+export interface Filters { q: string; status: string; group: string; sort: string; props: Record<string, string>; /** 'show': completed rows are listed (a table hides them by default) */ done?: string; /** '1': only what is still open — not done, met, dropped or answered */ open?: string; /** a window on the `due` date: 'late', 'today', '<n>d' (due within n days, late included) */ due?: string; /** a read query over the graph (lib/query): its `id` column picks the rows (decision:wf2.graph-query) */ sql?: string }
 
 export const EMPTY_FILTERS: Filters = { q: '', status: '', group: '', sort: '', props: {} };
 const NONE = '—';
@@ -73,11 +73,11 @@ export function parseFilters(params: URLSearchParams | Record<string, string | u
   // `due=late|today|<n>d` is the window on the due date, not the `due` column equal to "7d"; another value is the column
   const window = /^(late|today|\d+d)$/.test(get('due')) ? get('due') : '';
   for (const c of [...columns, 'part-of', 'owner']) if (get(c) && !(c === 'due' && window)) props[c] = get(c);   // owner filters on every kind
-  return { q: get('q'), status: get('status'), group: get('group'), sort: get('sort'), props, ...(get('done') ? { done: get('done') } : {}), ...(get('open') ? { open: get('open') } : {}), ...(window ? { due: window } : {}) };
+  return { q: get('q'), status: get('status'), group: get('group'), sort: get('sort'), props, ...(get('done') ? { done: get('done') } : {}), ...(get('open') ? { open: get('open') } : {}), ...(window ? { due: window } : {}), ...(get('sql') ? { sql: get('sql') } : {}) };
 }
 export function filtersToQuery(f: Filters): string {
   const p = new URLSearchParams();
-  for (const [k, v] of Object.entries({ q: f.q, status: f.status, group: f.group, sort: f.sort, done: f.done ?? '', open: f.open ?? '', due: f.due ?? '', ...f.props })) if (v) p.set(k, v);
+  for (const [k, v] of Object.entries({ q: f.q, status: f.status, group: f.group, sort: f.sort, done: f.done ?? '', open: f.open ?? '', due: f.due ?? '', sql: f.sql ?? '', ...f.props })) if (v) p.set(k, v);
   return p.toString().replace(/%3A/g, ':').replace(/%2F/g, '/');
 }
 
@@ -153,5 +153,5 @@ export function parseViewQuery(query: string, columns: string[]): Filters {
   return parseFilters(m, columns);
 }
 export function viewQuery(f: Filters): string {
-  return Object.entries({ q: f.q, status: f.status, group: f.group, sort: f.sort, done: f.done ?? '', open: f.open ?? '', due: f.due ?? '', ...f.props }).filter(([, v]) => v).map(([k, v]) => `${k}=${/\s/.test(v) ? `"${v}"` : v}`).join(' ');
+  return Object.entries({ q: f.q, status: f.status, group: f.group, sort: f.sort, done: f.done ?? '', open: f.open ?? '', due: f.due ?? '', sql: f.sql ?? '', ...f.props }).filter(([, v]) => v).map(([k, v]) => `${k}=${/\s/.test(v) ? `"${v}"` : v}`).join(' ');
 }

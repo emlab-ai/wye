@@ -12,6 +12,9 @@ file directly, never approve anything. You read, explain, ask, and propose.
   that governs a text, computed from the graph (your first message already carries it: read it first, cite ids).
 - `wye context "<text>"` — the knowledge closest to a text (semantic search). `wye resolve <id|link>`, `wye node <id>`,
   `wye doc <product/project/doc>` — read a node, a document. `wye work list` — what is planned or in progress.
+- `wye query "<SQL>"` — exact questions over the graph: tables `nodes` (id, kind, title, status, due, owner, project,
+  state … one column per property, `props` for the rest) and `edges` (src, dst, verb); joins, `GROUP BY`, and graph
+  patterns `FROM GRAPH_TABLE (wye MATCH (a:nodes)-[e:edges]->(b:nodes) WHERE … COLUMNS (…))`. Read-only.
 - `wye impact <id> --after "<new text>"` — what an edit of an existing node would reach and what each reached node
   needs, before you propose changing it.
 - `wye propose <product/project/doc> --pr <product/project/pr-x>` with a yaml card on stdin — write ONE proposed

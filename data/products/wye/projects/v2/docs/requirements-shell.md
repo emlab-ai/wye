@@ -807,3 +807,17 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - context:wf2.knowledge-pages-are-data-tables "it must be datatable or datalist component, and i should be able to switch views (this is for all pages inside knowledge)"; "remove constitution tab, it jsut part of knowledge already"; "if i click on goal item i don't see context opened".
 
   - choice:wf2.knowledge-pages-are-data-tables /<product>/knowledge/<kind> shows the whole product's items of the kind with the live table from wf2.live-collections — rows edited in place, done hidden unless asked, ▤ table ⇄ ☰ list, filter and view in the URL; a row or card outside a page's editor opens its item in the column. Titles read without markdown. The rail no longer lists Constitution (its page stays reachable from Knowledge).
+
+```yaml
+- id: decision:wf2.graph-query
+  title: Tables can be queried with SQL and graph patterns — DuckDB in memory over the built graph, storage unchanged
+  date: 2026-10-04
+  status: proposed
+  by: alex
+  affects: [component:instance-table, component:cli]
+  part-of: module:req-shell
+```
+
+  - context:wf2.graph-query "have a SQL like language support to query elements, do graph joins and lookups (graph query language) find if any oss libs" — then "i don't want to change storage if possible"; DuckDB + DuckPGQ approved over LadybugDB (Kùzu's successor, Cypher, schema per kind), LeanGraph (Cypher on SQLite, young), Oxigraph (SPARQL) and AlaSQL (pure JS, no graph patterns).
+
+  - choice:wf2.graph-query lib/query: an in-memory DuckDB (pinned 1.5.4, the latest with a DuckPGQ build) loaded from the built graph — `nodes` (id, kind, title, status, folder, page, file, text, props JSON, a column per property in use or declared) and `edges` (src, dst, verb), and graph `wye` for SQL/PGQ MATCH — rebuilt when the graph changes, never written. File and network access off and the configuration locked before any query; one read statement (SELECT / WITH / FROM). `wye query "<SQL>"`, POST /api/<product>/query, and a Data table's SQL (⏷ filter → SQL, saved as `sql=` on the table; single quotes): an `id` column makes each row the item, opened and status-edited in place, other columns shown beside.

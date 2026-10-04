@@ -13,6 +13,8 @@
 //   wye doc write <product/project/doc> [--file f] [--section "Analysis"]   replace the body (stdin or --file) — or one ## section of it — checked against the current hash
 //   wye doc create <product/project/slug> --title "…" [--template blank] [--parent doc] [--type module]   a new document in a project (a page of that type)
 //   wye doc retype <product/project/doc> --type <slug>   the page becomes an instance of that type; every link to it follows
+//   wye query "<SQL>" [--json]   one read query over the graph: nodes(id, kind, title, status, project, page, file, text, props JSON),
+//        edges(src, dst, verb); MATCH patterns on graph wye — e.g. FROM GRAPH_TABLE (wye MATCH (c:nodes)-[e:edges]->(p:nodes) …)
 //   wye node <id> [--product p]           a node with its relations
 //   wye node set <id> --product p [--status s] [--text t] [--set key=value ...] [--unset key ...]
 //   wye node content <id> [--product p]   the blocks under the node (its content) as markdown; --file f | stdin replaces it
@@ -186,6 +188,20 @@ const commands = {
     }
     const d = docRef(pos[1]); const j = await api('GET', `/api/${d.product}/${d.project}/doc/${d.doc}`);
     out(flags.json ? j : j.body);
+  },
+  async query() {   // decision:wf2.graph-query — op:api.query
+    const sql = pos.slice(1).join(' ').trim() || (flags.file ? fs.readFileSync(String(flags.file), 'utf8') : await readStdin());
+    if (!sql.trim()) die('wye query "<SQL>" [--json]   tables nodes(id, kind, title, status, project, page, file, text, props JSON) and edges(src, dst, verb); graph wye for MATCH');
+    const p = product();
+    const j = await api('POST', `/api/${p}/query`, { sql });
+    if (flags.json) return out(j);
+    if (!j.rows.length) return console.log(`no rows (${j.ms} ms)`);
+    const cols = j.columns; const cell = v => v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+    const w = cols.map(c => Math.min(60, Math.max(c.length, ...j.rows.map(r => cell(r[c]).length))));
+    const line = vals => vals.map((v, i) => v.slice(0, w[i]).padEnd(w[i])).join('  ');
+    console.log(line(cols)); console.log(w.map(n => '-'.repeat(n)).join('  '));
+    for (const r of j.rows) console.log(line(cols.map(c => cell(r[c]))));
+    console.log(`${j.rows.length}${j.truncated ? '+' : ''} row(s), ${j.ms} ms${j.graph ? '' : ' (graph patterns unavailable: SQL only)'}`);
   },
   async node() {
     if (pos[1] === 'add') {
