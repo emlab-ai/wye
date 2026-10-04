@@ -3,7 +3,7 @@
 # scripts/externals-manifest.js), and npm publishes it with provenance. Run it by hand (Actions › Publish to npm ›
 # Run workflow) for a dry run: everything but the upload.
 #
-# No token: npm's Trusted Publishing trusts this workflow by its GitHub OIDC identity (npmjs.com › @emlab/wye ›
+# No token needed once npm's Trusted Publishing trusts this workflow by its GitHub OIDC identity (npmjs.com › @emlab/wye ›
 # Settings › Trusted publishing: emlab-ai/wye, publish.yml). It needs npm 11.5.1 or later.
 name: Publish to npm
 
@@ -53,6 +53,9 @@ jobs:
       - name: Publish
         if: github.event_name == 'release' || inputs.dry-run == false
         run: npm publish
+        env:
+          # only until Trusted Publishing is set up on npmjs.com; npm prefers the workflow's OIDC identity when it is
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Dry run
         if: github.event_name == 'workflow_dispatch' && inputs.dry-run
