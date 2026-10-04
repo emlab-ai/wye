@@ -14,6 +14,7 @@ A director's assistant, built from documents you can edit: what you follow (peop
 |---|---|---|
 | Capture | an outside tool pushes a meeting analysis | its decisions, commitments, risks and updates filed under their project and people, proposed, linked to the meeting |
 | Digest | always — a live page, pinned at the top ([Digest](module:ea-digest)) | what is late or due, Slack threads and emails waiting for your reply, important tasks, open decisions, projects, risks — each a live view you can edit |
+| Suggested actions | weekday mornings (hook:ea.suggest-actions) and whenever an outside tool pushes something new (hook:ea.suggest-on-new-information) | at the top of the Digest: what to do now — follow up on a quiet project, reply to a thread, check a commitment about to slip — each with why; tick done or dismiss; the rules are skill:ea.suggest-actions |
 | Daily summary | weekday mornings (hook:ea.daily-summary) | at the bottom of the Digest: what arrived, changed or closed since yesterday and what it means for your decisions, written by skill:ea.daily-summary (edit it to change what it looks for) |
 | Weekly review | Friday afternoon (hook:ea.weekly-review) | each project's pace: done against planned, moved dates and why, blockers, risks, gone-quiet projects first |
 | 1:1 prep | a 1:1 is pushed in (hook:ea.one-on-one-prep), or by hand | open threads with the person, what each owes the other, notes from your last 1:1s, their projects |
