@@ -10,7 +10,7 @@ const TTL = 60_000;
 const cache = new Map<string, { at: number; agents: Promise<Agents> }>();
 const exts = (env: NodeJS.ProcessEnv) => process.platform === 'win32' ? ['', ...(env.PATHEXT ?? '.EXE;.CMD;.BAT').split(';').map(e => e.toLowerCase())] : [''];
 
-async function onPath(bin: string, dirs: string[], env: NodeJS.ProcessEnv): Promise<boolean> {
+export async function onPath(bin: string, dirs: string[], env: NodeJS.ProcessEnv): Promise<boolean> {
   for (const d of dirs) for (const e of exts(env)) { try { await access(path.join(d, bin + e), constants.X_OK); return true; } catch { /* not here */ } }
   return false;
 }

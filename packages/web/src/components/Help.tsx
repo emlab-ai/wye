@@ -52,6 +52,26 @@ export function FeatureRow({ f, base, links, onGo }: { f: Feature; base: string;
   return <div className="help-row">{body}</div>;
 }
 
+// The wye command and the Claude Code skills, installed from here (POST /api/system/cli) — the same as `wye setup`
+function CliInstall() {
+  const [st, setSt] = useState<{ installed?: boolean; elsewhere?: boolean; onPath?: boolean; link?: string; dir?: string } | null>(null);
+  const [msg, setMsg] = useState('');
+  useEffect(() => { fetch('/api/system/cli').then(r => r.ok ? r.json() : null).then(setSt).catch(() => {}); }, []);
+  const install = async () => {
+    setMsg('');
+    const r = await fetch('/api/system/cli', { method: 'POST' }); const j = await r.json().catch(() => ({}));
+    if (r.ok) setSt(j); else setMsg(j.message || 'could not install');
+  };
+  return (
+    <div className="help-qs">
+      <button type="button" className="btn" onClick={() => void install()}>{st?.installed ? 'Reinstall the wye command and skills' : 'Install the wye command and skills'}</button>
+      {st?.elsewhere && !st.installed && <small>{st.link} runs another checkout; install to use this one</small>}
+      {st?.installed && <small>{st.link}{st.onPath ? ' — on your PATH' : ` — add ${st.dir} to your PATH`}</small>}
+      {msg && <small role="alert">{msg}</small>}
+    </div>
+  );
+}
+
 // The Help sheet (spec §4): the `?` in the rail, ⌘/ or a `wf:help` event opens it; Esc or a click outside closes it
 export function Help({ product, links, onClose }: { product: string; links: QuickStartLinks; onClose: () => void }) {
   const base = `/${product}`;
@@ -83,6 +103,10 @@ export function Help({ product, links, onClose }: { product: string; links: Quic
         <section>
           <h4>What is where</h4>
           <div className="help-list">{FEATURES.map(f => <FeatureRow key={f.key} f={f} base={base} links={links} onGo={onClose} />)}</div>
+        </section>
+        <section>
+          <h4>Install</h4>
+          <CliInstall />
         </section>
         <section>
           <h4>Read more</h4>

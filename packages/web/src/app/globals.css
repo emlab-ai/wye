@@ -1386,6 +1386,13 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .qs-notice p { margin: 0 0 4px; } .qs-notice p:last-child { margin: 0; }
 .qs-group .lede { margin: -2px 0 10px; font-size: 13px; }
 .qs-further { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+.qs-tool .qs-mark { font: 600 13px var(--font-m); }
+.qs-tool.ok .qs-mark { background: var(--ok); border-color: var(--ok); color: #fff; }
+.qs-tool.warn .qs-mark { border-color: var(--warn); color: var(--warn); }
+.qs-tool.bad .qs-mark { border-color: var(--bad); color: var(--bad); }
+.qs-tool.ok .qs-title b { font-weight: 500; }
+.qs-tool code { padding: 1px 5px; border-radius: 4px; background: var(--sunk); font-size: 12px; color: var(--ink); }
+.qs-foot { margin-top: 16px; }
 .qs-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--line); } .qs-foot p { margin: 0; font-size: 12.5px; }
 /* one feature, in Help's list and as a Quick start "Go further" tile */
 .help-row { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: none; font: inherit; color: var(--ink); text-align: left; text-decoration: none; cursor: pointer; box-sizing: border-box; }

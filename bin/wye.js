@@ -170,6 +170,7 @@ const commands = {
   async setup() {
     const h = require('./wye-home.js'); const dir = h.ensureHome();
     console.log(`home     → ${dir}${dir === h.INSTALL ? ' (this clone)' : ''}  — products in ${path.join(dir, 'data', 'products')}`);
+    try { const c = h.linkCli(); console.log(`wye      → ${c.link}  ${c.onPath ? '(on PATH)' : `(add ${c.dir} to PATH)`}`); } catch (e) { console.error(`wye: ${e.message}`); }
     for (const l of h.linkSkills()) console.log(`skill    → ${l}`);
     console.log('\nnext: wye app   (the app in your browser)\n      or start from your code: wye init --product <slug> --repo <dir>');
   },

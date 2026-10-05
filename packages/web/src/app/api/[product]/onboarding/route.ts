@@ -4,7 +4,7 @@ import { readOnboarding, markStep, setDismissed } from '@/lib/onboarding-io';
 import { STEPS, type StepKey } from '@/lib/onboarding';
 
 // The Quick start (docs/superpowers/specs/2026-10-05-onboarding-design.md). GET → { steps: [{ key, group, title, why,
-// shortcut?, done }], done, total, next, complete, dismissed, show, agents: { claude, codex } }. POST { mark?: StepKey,
+// shortcut?, done }], done, total, next, complete, dismissed, show, agents: { claude, codex }, wye: { installed, elsewhere, link, onPath, … } | null }. POST { mark?: StepKey,
 // dismissed?: boolean } → the same body; the marks and the dismissal are this machine's (_settings.json), never the product's.
 const KEYS = new Set<string>(STEPS.map(s => s.key));
 const state = async (product: string) => {
