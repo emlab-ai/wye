@@ -34,6 +34,9 @@
         "templates/",
         "viewer/",
         "install.sh",
+        "packages/desktop/main.js",
+        "packages/desktop/package.json",
+        "packages/desktop/build/icon.png",
         "packages/web/package.json",
         "packages/web/next.config.ts",
         "packages/web/.next/wye-externals.json",
@@ -94,5 +97,8 @@
         "@lancedb/lancedb": {
             "@huggingface/transformers": "$@huggingface/transformers"
         }
+    },
+    "optionalDependencies": {
+        "electron": "44.5.1"
     }
 }

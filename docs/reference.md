@@ -428,7 +428,16 @@ data/products/wye  Wye's own definition — the app described in itself
 checkout of this repo: your documents stay in git, the server runs from the checkout, and the `wye` CLI on your PATH
 is what the agents use.
 
-### Install
+### From npm
+
+`npm install -g @emlab/wye`, then `wye app`: the app opens in its own window (Electron, an optional dependency of the
+package — its binary, about 100 MB, is fetched the first time when npm did not run its install script). `wye app` owns
+the server over your home (`~/.wye`) and the window is a view on it: closing the window, or Ctrl+C in the terminal,
+stops both. `wye app --browser` opens your browser on `http://localhost:3456` instead, `--no-open` starts the server
+alone, and an install without Electron falls back to the browser. If a Wye already answers on the port, `wye app` only
+opens a window on it.
+
+### Install from a checkout
 
 1. **Prerequisites:** Node.js 18+ and npm; git; the agent CLIs you want (`claude`, `codex`) on your login shell's
    PATH. The app reads the PATH from your login shell, so whatever works in a terminal works in the app.

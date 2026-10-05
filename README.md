@@ -14,7 +14,7 @@ develops a memory.
 ```bash
 npm install -g @emlab/wye
 wye setup              # your products go in ~/.wye/data; the Claude Code skills into ~/.claude/skills
-wye app                # the app at http://localhost:3456
+wye app                # the app in its own window (--browser: in your browser, at http://localhost:3456)
 ```
 
 Needs Node.js 20.9+ and [Claude Code](https://claude.com/claude-code) or [Codex](https://github.com/openai/codex)
@@ -477,7 +477,7 @@ own agent, it runs one of those.
 npm install -g @emlab/wye
 wye setup                                 # the home (~/.wye) and the Claude Code skills (~/.claude/skills)
 wye init --product shop --repo ~/code/shop   # a first definition read from your code
-wye app                                   # the app at http://localhost:3456
+wye app                                   # the app in its own window; --browser for http://localhost:3456
 ```
 
 Your products live in `~/.wye/data/products/` (set `WYE_HOME` to put them elsewhere), and an update never touches

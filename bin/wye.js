@@ -9,7 +9,7 @@
 //   wye graph <get|neighbors|search|constraints|reqs|stats|site|impact|packet|verdicts> …   every graph command by name
 //
 //   wye setup                             the home (~/.wye when installed from npm: your products in data/) and the Claude Code skills
-//   wye app [--port 3456] [--no-open]     the app in your browser, over the home
+//   wye app [--port 3456] [--browser] [--no-open]   the app in its own window, over the home (--browser: in your browser)
 //   wye export <product> [--out file]     the product as one file, <product>.wye.tgz (documents, pages, inbox; not sessions)
 //   wye import <file.wye.tgz> [--slug s]  a new product from an export (markdown into a product: wye import <file|dir> --product p, below)
 //   wye open <folder> [--slug s]          a product folder already on disk (projects/, or a repo's wye/) used where it is
@@ -172,7 +172,7 @@ const commands = {
     console.log(`home     → ${dir}${dir === h.INSTALL ? ' (this clone)' : ''}  — products in ${path.join(dir, 'data', 'products')}`);
     try { const c = h.linkCli(); console.log(`wye      → ${c.link}  ${c.onPath ? '(on PATH)' : `(add ${c.dir} to PATH)`}`); } catch (e) { console.error(`wye: ${e.message}`); }
     for (const l of h.linkSkills()) console.log(`skill    → ${l}`);
-    console.log('\nnext: wye app   (the app in your browser)\n      or start from your code: wye init --product <slug> --repo <dir>');
+    console.log('\nnext: wye app   (the app, in its own window)\n      or start from your code: wye init --product <slug> --repo <dir>');
   },
   // wye export / import / open (decision:wf2.product-transfer) — through the running app
   async export() {
@@ -195,7 +195,10 @@ const commands = {
     const j = await api('POST', '/api/products/open', { folder: path.resolve(folder.replace(/^~(?=$|\/)/, os.homedir())), slug: flags.slug });
     console.log(`${j.existing ? 'already open as' : 'opened as'} ${j.slug} → ${WF_URL}/${j.slug}  (${j.dir})`);
   },
-  // wye app: the built web app over the home, on WYE_PORT (default 3456) — the port the CLI and the agents expect
+  // wye app: the built web app over the home, on WYE_PORT (default 3456) — the port the CLI and the agents expect — in
+  // its own window: this process owns the server, the Electron shell (packages/desktop, WYE_ATTACH) is the window on
+  // it, and closing the window stops both. --browser opens the system browser instead; --no-open is the server alone.
+  // Without Electron (an install that skipped the optional dependency or its download) the browser is the window.
   async app() {
     const h = require('./wye-home.js'); const dir = h.ensureHome();
     const web = path.join(h.INSTALL, 'packages', 'web');
@@ -203,12 +206,44 @@ const commands = {
     const port = String(flags.port || process.env.WYE_PORT || 3456);
     const next = require.resolve('next/dist/bin/next', { paths: [web] });
     const url = `http://localhost:${port}`;
-    console.log(`Wye on ${url} — home ${dir}  (Ctrl+C stops it)`);
-    const cwd = h.prepareApp(web, dir);
-    const child = spawn(process.execPath, [next, 'start', '-p', port, '-H', '127.0.0.1'], { cwd, stdio: 'inherit', env: { ...process.env, WYE_HOME: dir, WYE_URL: url } });
-    if (!flags['no-open']) setTimeout(() => { const o = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'; try { spawn(o, [url], { stdio: 'ignore', detached: true, shell: process.platform === 'win32' }).unref(); } catch { /* no opener */ } }, 2500);
-    for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => child.kill(sig));
-    await new Promise(res => child.on('exit', code => { process.exitCode = code ?? 0; res(); }));
+    const browser = () => { const o = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'; try { spawn(o, [url], { stdio: 'ignore', detached: true, shell: process.platform === 'win32' }).unref(); } catch { /* no opener */ } };
+    // the Electron binary of this install, or null: the package lists it as optional so an install without it still runs
+    const desktop = path.join(h.INSTALL, 'packages', 'desktop');
+    let electron = null;
+    if (!flags.browser && !flags['no-open'] && fs.existsSync(path.join(desktop, 'main.js'))) {
+      const find = () => { try { return require(require.resolve('electron', { paths: [h.INSTALL] })); } catch { return null; } };
+      electron = find();
+      // the package is there but its binary is not: npm (11+) does not run a dependency's install script on a global
+      // install unless told to, and that script is Electron's download — run it here, once
+      if (!electron) {
+        let pkgDir = null; try { pkgDir = path.dirname(require.resolve('electron/package.json', { paths: [h.INSTALL] })); } catch { /* not installed */ }
+        if (pkgDir && fs.existsSync(path.join(pkgDir, 'install.js'))) {
+          console.log('getting the window — Electron, a download of about 100 MB, once…');
+          require('child_process').spawnSync(process.execPath, ['install.js'], { cwd: pkgDir, stdio: 'inherit' });
+          electron = find();
+        }
+      }
+    }
+    // a Wye already answering on the port: this one is only a window on it
+    const up = await fetch(`${url}/api/products`, { signal: AbortSignal.timeout(1500) }).then(() => true, () => false);
+    console.log(`Wye on ${url} — home ${dir}  (${up ? 'already running' : electron ? 'close the window or Ctrl+C to stop it' : 'Ctrl+C stops it'})`);
+    if (!electron && !flags.browser && !flags['no-open']) console.log('no Electron in this install — opening your browser instead (reinstall with: npm install -g @emlab/wye --include=optional --allow-scripts=electron)');
+    const child = up ? null : spawn(process.execPath, [next, 'start', '-p', port, '-H', '127.0.0.1'], { cwd: h.prepareApp(web, dir), stdio: 'inherit', env: { ...process.env, WYE_HOME: dir, WYE_URL: url } });
+    let shell = null; let done = false;
+    const stop = sig => { if (done) return; done = true; if (shell) shell.kill(); if (child) child.kill(sig); else process.exit(0); };
+    for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => stop(sig));
+    if (electron) {
+      const started = Date.now();
+      // ELECTRON_RUN_AS_NODE (set by some shells and editors) would make the binary run main.js as plain Node
+      const env = { ...process.env, WYE_ATTACH: '1', WYE_PORT: port, WYE_HOME: dir }; delete env.ELECTRON_RUN_AS_NODE;
+      shell = spawn(electron, [desktop], { stdio: ['ignore', 'ignore', 'inherit'], env });
+      const fallback = why => { shell = null; if (done) return; console.log(`the window could not open (${why}) — the app stays on ${url}`); if (up) process.exit(0); browser(); };
+      shell.on('error', e => fallback(e.message));
+      // the window closed: the app stops with it — unless Electron never got as far as a window (no display)
+      shell.on('exit', code => { if (!shell) return; if (code && Date.now() - started < 8000) return fallback(`Electron exit ${code}`); shell = null; stop('SIGTERM'); });
+    } else if (!flags['no-open']) setTimeout(browser, up ? 0 : 2500);
+    if (!child) { if (!electron) return; await new Promise(() => {}); }
+    await new Promise(res => child.on('exit', code => { if (shell) shell.kill(); process.exitCode = done ? 0 : code ?? 0; res(); }));
   },
   // the benchmarks (eval/cli.js): runs here, reads the documents, asks the app for hits and packets; exit 2 when the gate fails
   async eval() { const code = await require('../eval/cli.js').main(pos.slice(1), flags); if (code) process.exit(code); },

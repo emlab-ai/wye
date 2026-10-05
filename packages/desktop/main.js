@@ -16,6 +16,9 @@ let ROOT = null;
 const PORT = Number(process.env.WYE_PORT || 3456);
 const URL_ = `http://localhost:${PORT}`;
 const DEV = !!process.env.WYE_DEV;
+// Started by `wye app` (bin/wye.js — the npm package's way in): that process owns the server over the person's home,
+// this one is only the window on it. No checkout to find, nothing to install or build, no server to stop.
+const ATTACH = !!process.env.WYE_ATTACH;
 let server = null; let win = null; let tray = null; let quitting = false; let status = null;
 
 const configFile = () => path.join(app.getPath('userData'), 'config.json');
@@ -130,7 +133,7 @@ function buildMenu() {
   const isMac = process.platform === 'darwin';
   const template = [
     ...(isMac ? [{ label: app.name, submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { type: 'separator' }, { role: 'quit' }] }] : []),
-    { label: 'File', submenu: [{ label: 'New window', accelerator: 'CmdOrCtrl+N', click: createWindow }, { label: 'Open in browser', click: () => shell.openExternal(win ? win.webContents.getURL() : URL_) }, { label: 'Choose checkout…', click: chooseRoot }, { type: 'separator' }, isMac ? { role: 'close' } : { role: 'quit' }] },
+    { label: 'File', submenu: [{ label: 'New window', accelerator: 'CmdOrCtrl+N', click: createWindow }, { label: 'Open in browser', click: () => shell.openExternal(win ? win.webContents.getURL() : URL_) }, ...(ATTACH ? [] : [{ label: 'Choose checkout…', click: chooseRoot }]), { type: 'separator' }, isMac ? { role: 'close' } : { role: 'quit' }] },
     { label: 'Edit', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },
     { label: 'View', submenu: [{ role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' }, { type: 'separator' }, { label: 'Back', accelerator: 'CmdOrCtrl+[', click: () => win && win.webContents.navigationHistory.canGoBack() && win.webContents.navigationHistory.goBack() }, { label: 'Forward', accelerator: 'CmdOrCtrl+]', click: () => win && win.webContents.navigationHistory.canGoForward() && win.webContents.navigationHistory.goForward() }, { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'togglefullscreen' }] },
     // ⌘M belongs to Wye (the command box in Remember mode); Minimize moves to ⌥⌘M
@@ -174,6 +177,16 @@ async function chooseRoot() {
 app.whenReady().then(async () => {
   // a packaged app carries build/icon.icns; a dev run is plain Electron, so the Dock gets the Wye icon by hand
   if (process.platform === 'darwin' && !app.isPackaged && app.dock) { try { app.dock.setIcon(path.join(__dirname, 'build/icon.png')); } catch { /* no icon file */ } }
+  if (ATTACH) {
+    dlog(`[desktop] window on ${URL_} (wye app); log: ${logFile()}`);
+    buildMenu(); showStatus('Starting the server…');
+    let up = false; for (let i = 0; i < 240 && !(up = await ping()); i++) await new Promise(r => setTimeout(r, 500));
+    hideStatus();
+    if (!up) { dialog.showErrorBox('Wye', `The app server did not answer on ${URL_} after two minutes — see the terminal \`wye app\` runs in.`); app.exit(1); return; }
+    createWindow(); createTray();
+    app.on('activate', () => { if (!win) createWindow(); });
+    return;
+  }
   fixPath();
   ROOT = await resolveRoot();
   if (!ROOT) { app.quit(); return; }
