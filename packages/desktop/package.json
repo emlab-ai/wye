@@ -1,7 +1,7 @@
 {
   "name": "@wye/desktop",
   "productName": "Wye",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Wye desktop: the web app in a window, with Claude Code and Codex as child processes the app controls.",
   "author": "emlab",

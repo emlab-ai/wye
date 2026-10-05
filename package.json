@@ -1,6 +1,6 @@
 {
     "name": "@emlab/wye",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "Product definition and long-term memory for coding agents: requirements, rules, decisions and constraints as Markdown in Git, a graph Claude Code and Codex query before they build, and an app to review what they decide.",
     "keywords": [
         "coding-agents",
@@ -96,7 +96,18 @@
     "overrides": {
         "@lancedb/lancedb": {
             "@huggingface/transformers": "$@huggingface/transformers"
-        }
+        },
+        "@excalidraw/excalidraw": {
+            "nanoid": "^3.3.19",
+            "sass": "^1.105.1"
+        },
+        "@excalidraw/mermaid-to-excalidraw": {
+            "nanoid": "^5.1.16"
+        },
+        "monaco-editor": {
+            "dompurify": "^3.4.16"
+        },
+        "lodash-es": "^4.18.1"
     },
     "optionalDependencies": {
         "electron": "44.5.1"
