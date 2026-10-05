@@ -1324,3 +1324,12 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .sql-ask input { flex: 1; min-width: 0; font: 13px var(--font-b); color: var(--ink); background: var(--ground); border: 1px solid var(--line-2); border-radius: 8px; padding: 6px 10px; }
 .sql-ask input:focus { border-color: var(--accent); outline: none; }
 .sql-ask button { font: 12px var(--font-b); border: 1px solid var(--accent); color: var(--accent); background: none; border-radius: 6px; padding: 4px 10px; cursor: pointer; white-space: nowrap; } .sql-ask button:disabled { opacity: .5; cursor: default; }
+/* empty state (onboarding) — components/EmptyState: what a page is for and the action that fills it */
+.empty-state { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; max-width: 440px; margin: 28px auto; padding: 22px 18px; border: 1px dashed var(--line-2); border-radius: 12px; background: var(--surface); color: var(--ink-2); box-sizing: border-box; width: 100%; }
+.empty-state-icon { font-size: 26px; line-height: 1; opacity: .85; }
+.empty-state-title { margin: 2px 0 0; font: 600 15px var(--font-b); color: var(--ink); }
+.empty-state-body { font-size: 13px; line-height: 1.5; color: var(--ink-2); } .empty-state-body p { margin: 0 0 6px; } .empty-state-body p:last-child { margin: 0; }
+.empty-state-body code { font-size: 12px; background: var(--sunk); border-radius: 4px; padding: 1px 5px; color: var(--ink); }
+.empty-state-actions { justify-content: center; margin-top: 6px; }
+.empty-state-hint { margin: 4px 0 0; font: 11px var(--font-m); color: var(--muted); }
+.rail .empty-state { margin: 10px 8px; padding: 14px 10px; max-width: none; width: auto; } .rail .empty-state-icon { font-size: 20px; }

@@ -5,7 +5,9 @@ import { readFile, writeFile, chmod } from 'node:fs/promises';
 import path from 'node:path';
 import { DATA_ROOT } from './products';
 
-export interface Settings { jev?: { key?: string }; agents?: { parallel?: number; agent?: string; hooks?: boolean }; timezone?: string }
+// onboarding: the Quick start's marked steps and dismissal per product slug — about the person at this machine, so here
+// and never in a product file, Git or an export (docs/superpowers/specs/2026-10-05-onboarding-design.md)
+export interface Settings { jev?: { key?: string }; agents?: { parallel?: number; agent?: string; hooks?: boolean }; timezone?: string; onboarding?: Record<string, { done?: string[]; dismissed?: boolean }> }
 
 // The dispatcher's knobs (decision:wf2.pr-scheduler): how many builds run at once, and which agent builds by default.
 export const AGENT_IDS = ['claude-code', 'codex'];
@@ -32,13 +34,19 @@ export async function readSettings(root: string = DATA_ROOT): Promise<Settings> 
 }
 export async function writeSettings(patch: Settings, root: string = DATA_ROOT): Promise<Settings> {
   const cur = await readSettings(root);
-  const next: Settings = { ...cur, ...(patch.jev ? { jev: { ...cur.jev, ...patch.jev } } : {}), ...(patch.agents ? { agents: { ...cur.agents, ...patch.agents } } : {}), ...(patch.timezone !== undefined ? { timezone: patch.timezone } : {}) };
+  const next: Settings = { ...cur, ...(patch.jev ? { jev: { ...cur.jev, ...patch.jev } } : {}), ...(patch.agents ? { agents: { ...cur.agents, ...patch.agents } } : {}), ...(patch.timezone !== undefined ? { timezone: patch.timezone } : {}), ...(patch.onboarding ? { onboarding: mergeOnboarding(cur.onboarding, patch.onboarding) } : {}) };
   if (next.timezone !== undefined && !validZone(next.timezone)) delete next.timezone; // an empty or unknown zone: back to the machine's
   if (next.jev && !next.jev.key) delete next.jev; // an empty key removes the section
   await writeFile(file(root), JSON.stringify(next, null, 2) + '\n', { mode: 0o600 });
   await chmod(file(root), 0o600).catch(() => {}); // writeFile's mode only applies to a new file
   return next;
 }
+// a patch's products merged field by field into the stored ones; products the patch does not name are kept
+const mergeOnboarding = (cur: Settings['onboarding'], patch: NonNullable<Settings['onboarding']>) => {
+  const out = { ...(cur && typeof cur === 'object' ? cur : {}) };
+  for (const [p, v] of Object.entries(patch)) out[p] = { ...out[p], ...v };
+  return out;
+};
 // the stored key, or the environment's for tests and evals outside the app
 export async function jevKey(root: string = DATA_ROOT): Promise<string> { return (await readSettings(root)).jev?.key || (root === DATA_ROOT ? process.env.TYPESAFE_API_KEY : '') || ''; }
 export function publicSettings(s: Settings): { jev: { set: boolean; last4: string }; agents: { parallel: number; agent: string; hooks: boolean }; timezone: string } {

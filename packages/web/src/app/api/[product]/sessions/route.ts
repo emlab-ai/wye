@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { markStep } from '@/lib/onboarding-io';
 import { getProduct, productRepo } from '@/lib/products';
 import { AGENTS, addRefs, createSession, listSessions, listRunners, setPrDoc } from '@/lib/sessions';
 import { startChat, liveState, reconcileStale } from '@/lib/agent-host';
@@ -53,6 +54,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const s = await createSession(p.dir, product, { agent, instruction: instruction || '(image)', refs: (body.refs ?? []).filter(r => typeof r === 'string').slice(0, 50), source: body.source ?? {}, mode, cwd: cwd || undefined, images, role, skills: [...(remember ? ['skill:remember'] : []), ...(skillId ? [skillId] : []), ...(body.skills ?? []).filter(x => /^skill:[A-Za-z0-9_.\-]+$/.test(x))], hooks: (body.hooks ?? []).filter(x => /^hook:[A-Za-z0-9_.\-]+$/.test(x)) });
   // a request has its page before the first message names it (rule:pr-doc); an ad-hoc conversation and a queued run have none
   const wfUrl = new URL(req.url).origin;
+  // the Quick start's `remember` step: a Remember was accepted (markStep never throws)
+  if (remember) void markStep(p.slug, 'remember');
   if (remember || skillId) { const started = await startChat(p.dir, product, s.id, { wfUrl }); return NextResponse.json(started ?? s, { status: 201 }); }
   if (role === 'librarian') {
     // `prRef`: refine an existing PR (its page stays; the message row on the PR head) instead of making a page

@@ -36,4 +36,15 @@ describe('settings', () => {
     expect((await writeSettings({ timezone: 'Mars/Olympus' }, root)).timezone).toBeUndefined();
     if (!process.env.WYE_TZ) expect(timeZoneOf(await readSettings(root))).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
   });
+  it('onboarding: merged per product, the other sections kept (the Quick start marks)', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'wf-settings-'));
+    await writeSettings({ jev: { key: 'sk-1234' }, agents: { parallel: 2 }, timezone: 'Europe/London' }, root);
+    await writeSettings({ onboarding: { a: { done: ['ask'] } } }, root);
+    await writeSettings({ onboarding: { b: { dismissed: true } } }, root);
+    const s = await writeSettings({ onboarding: { a: { dismissed: true } } }, root);
+    expect(s.onboarding).toEqual({ a: { done: ['ask'], dismissed: true }, b: { dismissed: true } });
+    expect(s.jev?.key).toBe('sk-1234'); expect(s.agents?.parallel).toBe(2); expect(s.timezone).toBe('Europe/London');
+    expect((await writeSettings({ agents: { parallel: 3 } }, root)).onboarding).toEqual(s.onboarding);
+    expect(await readSettings(root)).toMatchObject({ onboarding: { a: { done: ['ask'] } } });
+  });
 });

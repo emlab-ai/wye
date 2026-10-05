@@ -2,6 +2,7 @@ import { askEnv } from '@/lib/ask/env';
 import { ask } from '@/lib/ask/ask';
 import { codeRoot } from '@/lib/ask/refresh';
 import type { AskRequest } from '@/lib/ask/types';
+import { markStep } from '@/lib/onboarding-io';
 
 export const dynamic = 'force-dynamic';
 // POST { q, history?, lanes? } → server-sent events (decision:wf2.ask-two-lanes): results, fast.delta…, fast.done,
@@ -18,7 +19,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const stream = new ReadableStream({
     async start(ctrl) {
       const send = (name: string, data: unknown) => { try { ctrl.enqueue(enc.encode(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`)); } catch { ac.abort(); } };
-      try { for await (const e of ask({ ctx: env.ctx, productDir: env.scope.product.dir, codeRoot: codeRoot(env.scope.product) ?? '', degraded: env.degraded, indexing: env.indexing }, { q, history: body.history, lanes: body.lanes }, { signal: ac.signal, wfUrl })) send(e.type, e); }
+      try { let marked = false;
+        for await (const e of ask({ ctx: env.ctx, productDir: env.scope.product.dir, codeRoot: codeRoot(env.scope.product) ?? '', degraded: env.degraded, indexing: env.indexing }, { q, history: body.history, lanes: body.lanes }, { signal: ac.signal, wfUrl })) {
+          send(e.type, e);
+          // the Quick start's `ask` step: a lane answered (markStep never throws)
+          if (!marked && (e.type === 'fast.done' || e.type === 'deep.done')) { marked = true; void markStep(env.scope.product.slug, 'ask'); }
+        }
+      }
       catch (e) { send('error', { type: 'error', lane: 'retrieve', message: String(e) }); }
       try { ctrl.close(); } catch { /* closed */ }
     },
