@@ -479,6 +479,12 @@ wye app                                   # the app at http://localhost:3456
 Your products live in `~/.wye/data/products/` (set `WYE_HOME` to put them elsewhere), and an update never touches
 them. A product can also keep its documents next to its code: `root: <path>` in its `_product.md`.
 
+**Bring products in and out.** Add a product (the product menu, or `/new`) offers three ways: **New**, **Open a folder**
+(a product folder already on disk, used where it is, such as a teammate's clone or a repo that keeps its product in
+`wye/`) and **Import a file** (a `.wye.tgz` made with Settings › Export). From the command line: `wye export <product>`,
+`wye import <product>.wye.tgz`, `wye open <folder>`. An export carries the documents, the app's pages, the inbox and
+agent instructions; agent sessions and change history stay on the machine that made them.
+
 Without either, only the core works: the Markdown, the graph, `wye build` / `wye check` and the app's documents. The
 librarian, builds, Ask's answers, Remember and contradiction checks all run through `claude` or `codex`. The first search downloads two small local models into `~/.wye/.cache/models`.
 

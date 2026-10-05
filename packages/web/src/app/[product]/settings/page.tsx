@@ -2,9 +2,10 @@ import Link from 'next/link';
 import path from 'node:path';
 import { getProduct, registryDir } from '@/lib/products';
 import { SettingsFolder } from '@/components/SettingsFolder';
+import { SettingsExport } from '@/components/SettingsExport';
 import { DeleteProduct } from '@/components/DeleteProduct';
 
-// One product's settings: where its folder is, and deleting it. What belongs to the app on this machine rather than to
+// One product's settings: where its folder is, exporting it, and deleting it. What belongs to the app on this machine rather than to
 // this product — the theme, agents, the Jev key — is at /settings.
 export default async function ProductSettingsPage({ params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
@@ -17,6 +18,7 @@ export default async function ProductSettingsPage({ params }: { params: Promise<
         <p className="sub">this product — the app&apos;s own are in <Link href={`/settings?from=${product}`}>App settings</Link></p>
       </header>
       <SettingsFolder product={product} />
+      <SettingsExport product={product} />
       {p && <DeleteProduct product={product} title={p.meta.title || product} relocated={relocated} dir={p.dir} />}
     </div>
   );

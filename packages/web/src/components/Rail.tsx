@@ -55,9 +55,10 @@ export function Rail({ pins = [], mainProject, products, product, projects, prs,
       <div className="rail-ws"><span className="rail-ws-mark">Y</span><span className="rail-ws-name">Wye</span><span className="rail-ws-tools"><Link className="rail-theme" href={`/settings?from=${product.slug}`} title="App settings — the theme, agents, keys" aria-label="App settings"><IconSettings /></Link><ThemeButton /><button className="rail-close" onClick={() => window.dispatchEvent(new CustomEvent('wf:rail', { detail: 'toggle' }))} title="Close the sidebar (⌘\\)" aria-label="Close sidebar"><IconChevronsLeft /></button></span></div>
       <div className="rail-space">
         <span className="rail-space-mark">{product.icon || product.title.slice(0, 2).toUpperCase()}</span>
-        <select className="rail-space-sel" value={product.slug} onChange={e => router.push(e.target.value === '__new' ? '/new' : `/${e.target.value}`)}>
+        <select className="rail-space-sel" value={product.slug} onChange={e => router.push(e.target.value === '__new' ? '/new' : e.target.value === '__open' ? '/new?way=open' : `/${e.target.value}`)}>
           {products.map(p => <option key={p.slug} value={p.slug}>{p.title}</option>)}
           <option value="__new">+ New product…</option>
+          <option value="__open">Open or import a product…</option>
         </select>
       </div>
       <div className="rail-top" ref={top} style={topH ? { flex: `0 0 ${topH}px`, maxHeight: 'none' } : undefined}>

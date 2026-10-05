@@ -108,6 +108,26 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 
   - choice:wf2.app-vs-product-settings Settings split along the boundary their storage already has: what lives in <data>/_settings.json is about the app on this machine — the theme, the agents, the Jev key — and sits at /settings, reached from the rail's workspace row; what lives in a product's own _product.md is about that product — where its folder is, deleting it — and sits at /<product>/settings, where the rail's gear points. One page mixing the two made a machine-wide key look like a product's property.
 
+```yaml
+- id: decision:wf2.product-transfer
+  title: A product comes and goes as one file, or is opened where its folder already is
+  date: 2026-10-05
+  status: proposed
+  by: agent
+  affects: [lib:products, lib:product-transfer]
+  related-to: [decision:wf2.app-vs-product-settings, decision:wf2.delete-to-trash]
+```
+
+  - context:wf2.product-transfer Products could only be created empty (Add a product › New). A product made on another machine, a teammate's clone or a repo that keeps its product in wye/ could not be brought in without copying folders by hand into the data folder, and there was no way to hand a product to someone.
+
+  - choice:wf2.product-transfer Three ways in and one out. Export writes <slug>.wye.tgz: _product.md without root:, projects/ (documents and the app's .wye pages), inbox/ and _agent.md; the graph is rebuilt on the other side, and sessions, change records and hook logs stay on the machine that made them. Import lists the archive before writing anything — only those top-level names, no absolute path, no .., no link or device — unpacks it beside the registry under a free slug and builds it. Open registers a folder that holds projects/ (or a repo's wye/projects/) in place, as a registry entry with root: pointing at it; nothing is copied, and opening the same folder again answers with the product that already points at it. In the app: Add a product › Open a folder / Import a file, and Settings › Export; on the command line wye export, wye import <file.wye.tgz>, wye open <folder>.
+
+  - alternative:wf2.product-transfer-zip A .zip export: friendlier to double-click on Windows, but Node has no zip writer and the package would need a dependency; tar is on macOS, Linux and Windows 10+.
+
+  - alternative:wf2.product-transfer-sessions Exporting agent sessions and change records too: a complete history, but large, often private (prompts, paths on this machine), and meaningless without the machine's agents; the knowledge they produced is already in the documents.
+
+  - consequence:wf2.product-transfer Opening a folder gives a product whose edits land in that folder, so a product kept in a repo is shared through git like the code; importing gives an independent copy. A Markdown folder that is not a Wye product (no projects/) is refused by Open and goes through wye import --product instead.
+
 ## Libraries
 
 <!-- list:lib -->
@@ -949,6 +969,21 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     a tag the graph follows — when the name is something the product has: a person, project or the like under that
     name or alias (the knowledge model first), else a page by its file name or title. An image embed becomes a plain
     image the import copies. A name nothing matches stays `[[Name]]`, so no link is lost. Code is left alone. Pure.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:product-transfer
+  file: packages/web/src/lib/product-transfer.ts
+  side: server
+  purpose: >
+    A product in and out of this machine, besides creating one: export it as one file, import such a file as a new
+    product, or open a product folder that is already on disk where it is (decision&#58;wf2.product-transfer).
+    export — a gzipped tar of what the product knows: _product.md (without `root:`, a path on this machine),
+    projects/ (documents and the app's .wye pages), inbox/ and _agent.md. The graph (_build) is rebuilt from the
+    documents; sessions, change records and hook logs are this machine's history and stay here. import — the archive
+    is listed before anything is written: only those top-level names, no absolute path, no `..`, no link or device;
+    it is unpacked beside the registry and renamed into place, then built. open — a folder holding projects/ (or a
+    repo holding wye/projects/) becomes a product in place: a registry entry with `root:` pointing at it
+    (decision&#58;wf2.product-folder), nothing copied.
   status: proposed
   part-of: module:app-storage
 ```

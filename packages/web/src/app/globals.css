@@ -306,9 +306,10 @@ button.pill { cursor: pointer; font-family: var(--font-m); } .nblock-peek:hover 
 .sec { position: relative; }
 .sec-tools { position: absolute; right: -4px; top: 2px; display: none; gap: 4px; z-index: 2; }
 .sec:hover > .sec-tools { display: flex; }
-.sec-tools button, .sec-actions button, .newdoc, .addcard button { background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 9px; font: 12px var(--font-b); color: var(--ink-2); cursor: pointer; }
-.sec-tools button:hover, .sec-actions button:hover, .newdoc:hover, .addcard button:hover { border-color: var(--accent); color: var(--ink); }
+.sec-tools button, .sec-actions button, .sec-actions a.btn, .newdoc, .addcard button { background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 9px; font: 12px var(--font-b); color: var(--ink-2); cursor: pointer; }
+.sec-tools button:hover, .sec-actions button:hover, .sec-actions a.btn:hover, .newdoc:hover, .addcard button:hover { border-color: var(--accent); color: var(--ink); }
 .sec-actions { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.sec-actions a.btn { display: inline-block; text-decoration: none; } .sec-actions a.btn.pri { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .sec-actions .pri { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .sec.editing { border: 1px solid var(--accent); border-radius: 10px; padding: 10px 12px; margin: 8px 0; background: var(--surface); }
 .card.editing { border-color: var(--accent); }

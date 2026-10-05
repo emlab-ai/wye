@@ -799,6 +799,34 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/schedule/route.ts
   status: proposed
   part-of: module:api
+- id: op:api.product-export
+  args: GET /api/<product>/export
+  does: >
+    (decision&#58;wf2.product-transfer) — GET → the product as one file, <slug>.wye.tgz: _product.md (without
+    `root:`), projects/, inbox/, _agent.md. Sessions, change records and the built graph stay on this machine.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/export/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.product-import
+  args: POST /api/products/import
+  does: >
+    (decision&#58;wf2.product-transfer) — POST <.wye.tgz bytes> [?slug=] → a new product from an export: the archive
+    is checked before anything is written, unpacked under a free slug, built. → { slug }
+  gate: none (local app)
+  source: packages/web/src/app/api/products/import/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.product-open
+  args: POST /api/products/open
+  does: >
+    (decision&#58;wf2.product-transfer) — POST { folder, slug? } → a product folder already on disk (projects/, or a
+    repo's wye/projects/) becomes a product where it is: a registry entry with `root:`, nothing copied. A folder
+    some product already points at answers with that product. → { slug, dir, existing }
+  gate: none (local app)
+  source: packages/web/src/app/api/products/open/route.ts
+  status: proposed
+  part-of: module:api
 ```
 
 <!-- /list:op -->

@@ -10,6 +10,9 @@
 //
 //   wye setup                             the home (~/.wye when installed from npm: your products in data/) and the Claude Code skills
 //   wye app [--port 3456] [--no-open]     the app in your browser, over the home
+//   wye export <product> [--out file]     the product as one file, <product>.wye.tgz (documents, pages, inbox; not sessions)
+//   wye import <file.wye.tgz> [--slug s]  a new product from an export (markdown into a product: wye import <file|dir> --product p, below)
+//   wye open <folder> [--slug s]          a product folder already on disk (projects/, or a repo's wye/) used where it is
 //
 //   wye resolve <link|id>                 what a link points at: document, node, block or section (text included)
 //   wye doc <product/project/doc>         a document's markdown body
@@ -169,6 +172,27 @@ const commands = {
     console.log(`home     → ${dir}${dir === h.INSTALL ? ' (this clone)' : ''}  — products in ${path.join(dir, 'data', 'products')}`);
     for (const l of h.linkSkills()) console.log(`skill    → ${l}`);
     console.log('\nnext: wye app   (the app in your browser)');
+  },
+  // wye export / import / open (decision:wf2.product-transfer) — through the running app
+  async export() {
+    const p = pos[1] || flags.product || env('PRODUCT') || die('wye export <product> [--out file]');
+    const r = await fetch(`${WF_URL}/api/${p}/export`);
+    if (!r.ok) { const j = await r.json().catch(() => ({})); die(`export: ${j.message || j.error || r.status}`); }
+    const file = path.resolve(flags.out || `${p}.wye.tgz`);
+    fs.writeFileSync(file, Buffer.from(await r.arrayBuffer()));
+    console.log(`${file}  (${(fs.statSync(file).size / 1024).toFixed(0)} KB) — wye import ${path.basename(file)} on the other side`);
+  },
+  // a product exported as one file (wye export) → a new product; `wye import` sends a .wye.tgz here
+  async importProduct() {
+    const file = pos[1] || die('wye import <file.wye.tgz> [--slug s]');
+    const r = await fetch(`${WF_URL}/api/products/import${flags.slug ? `?slug=${encodeURIComponent(flags.slug)}` : ''}`, { method: 'POST', headers: { 'content-type': 'application/gzip' }, body: fs.readFileSync(file) });
+    const j = await r.json().catch(() => ({})); if (!r.ok) die(`import: ${j.message || j.error || r.status}`);
+    console.log(`imported as ${j.slug} → ${WF_URL}/${j.slug}  (${j.dir})`);
+  },
+  async open() {
+    const folder = pos[1] || die('wye open <folder> [--slug s]');
+    const j = await api('POST', '/api/products/open', { folder: path.resolve(folder.replace(/^~(?=$|\/)/, os.homedir())), slug: flags.slug });
+    console.log(`${j.existing ? 'already open as' : 'opened as'} ${j.slug} → ${WF_URL}/${j.slug}  (${j.dir})`);
   },
   // wye app: the built web app over the home, on WYE_PORT (default 3456) — the port the CLI and the agents expect
   async app() {
@@ -573,6 +597,7 @@ const commands = {
   // wye import --code <dir> --name "<feature>" --product p [--no-analyse]   a feature's definition read from its code, the
   // describe tasks handed to an agent with skill:describe-module (req:wf2.import.code)
   async import() {
+    if (/\.(wye\.)?tgz$|\.tar\.gz$/.test(pos[1] || '') && !flags.product) return commands.importProduct();
     const p = product();
     if (flags.code) {
       const name = flags.name || die('wye import --code <dir> --name "<feature>" --product p [--no-analyse]');

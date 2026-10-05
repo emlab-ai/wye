@@ -986,6 +986,14 @@ The editor's blocks and the components the pages are made of, by area.
     with it.
   status: proposed
   part-of: module:components
+- id: component:settings-export
+  file: packages/web/src/components/SettingsExport.tsx
+  side: server
+  purpose: >
+    Export a product as one file (decision&#58;wf2.product-transfer): what it knows — documents, the app's pages,
+    inbox, agent instructions — to hand to someone or keep; they open it with Add a product › Import a file.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->
