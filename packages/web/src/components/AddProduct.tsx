@@ -1,6 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { FolderField } from './FolderPicker';
 
 // Add a product (decision:wf2.product-transfer), on /new and on the Welcome: read one from a code folder the way
 // `wye init` does (lib/product-from-code), make a blank one, open a product folder already on disk where it is (a
@@ -38,7 +39,7 @@ export function AddProduct({ start = 'new', cancel = true }: { start?: Way; canc
         <p className="lede">Wye reads the folder into a first, shallow definition: its modules, pages, components, operations and tests. No model is called and nothing in the folder changes. Afterwards, an agent can deepen each module into requirements.</p>
         <div className="form">
           <label><span>title</span><input autoFocus value={title} placeholder="e.g. My app" onChange={e => { setTitle(e.target.value); setMsg(null); }} /></label>
-          <label><span>folder</span><input value={folder} placeholder="~/code/my-app" spellCheck={false} onChange={e => setFolder(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && title.trim() && folder.trim()) fromCode(); }} /></label>
+          <label><span>folder</span><FolderField title="The code folder" value={folder} placeholder="~/code/my-app" onChange={v => { setFolder(v); setMsg(null); }} onEnter={() => { if (title.trim() && folder.trim()) fromCode(); }} /></label>
         </div>
         {actions('Read the code', 'Reading the code…', fromCode, !!title.trim() && !!folder.trim())}
       </>}
@@ -48,7 +49,7 @@ export function AddProduct({ start = 'new', cancel = true }: { start?: Way; canc
           <label><span>icon</span><input value={icon} onChange={e => setIcon(e.target.value)} style={{ width: 60 }} /></label>
           <label><span>title</span><input autoFocus value={title} placeholder="e.g. My app" onChange={e => { setTitle(e.target.value); setMsg(null); }} onKeyDown={e => { if (e.key === 'Enter' && title.trim()) create(); }} /></label>
           <label><span>description</span><textarea value={description} rows={3} onChange={e => setDescription(e.target.value)} /></label>
-          <label><span>folder</span><input value={home} placeholder="optional — e.g. ~/code/my-app/wye" spellCheck={false} onChange={e => { setHome(e.target.value); setMsg(null); }} onKeyDown={e => { if (e.key === 'Enter' && title.trim()) create(); }} /></label>
+          <label><span>folder</span><FolderField title="Where the product is kept" value={home} placeholder="optional — e.g. ~/code/my-app/wye" onChange={v => { setHome(v); setMsg(null); }} onEnter={() => { if (title.trim()) create(); }} /></label>
         </div>
         <p className="muted small add-product-note">Where the product&apos;s documents are kept. Empty: in Wye&apos;s own data folder. A folder of yours — beside the code, in a repo — is made if it is not there, and edits land in it.</p>
         {actions('Create product', 'Creating…', create, !!title.trim())}
@@ -56,7 +57,7 @@ export function AddProduct({ start = 'new', cancel = true }: { start?: Way; canc
       {way === 'open' && <>
         <p className="lede">A product folder that is already on this machine — a teammate&apos;s clone, a repo that keeps its product in <code>wye/</code>, an unpacked export. Wye uses it where it is: nothing is copied, and edits land in that folder.</p>
         <div className="form">
-          <label><span>folder</span><input autoFocus value={folder} placeholder="~/code/shop  (or ~/code/shop/wye)" spellCheck={false} onChange={e => setFolder(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && folder.trim()) open(); }} /></label>
+          <label><span>folder</span><FolderField autoFocus title="Open a product folder" value={folder} placeholder="~/code/my-app  (or ~/code/my-app/wye)" onChange={v => { setFolder(v); setMsg(null); }} onEnter={() => { if (folder.trim()) open(); }} /></label>
         </div>
         {actions('Open', 'Opening…', open, !!folder.trim())}
       </>}

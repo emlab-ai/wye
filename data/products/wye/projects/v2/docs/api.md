@@ -844,6 +844,14 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/onboarding/route.ts
   status: proposed
   part-of: module:api
+- id: op:api.system.folders
+  args: GET | POST /api/system/folders
+  does: >
+    (no header comment)
+  gate: none (local app)
+  source: packages/web/src/app/api/system/folders/route.ts
+  status: proposed
+  part-of: module:api
 ```
 
 <!-- /list:op -->

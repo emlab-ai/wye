@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { FolderField } from './FolderPicker';
 
 // Where a product's folder is (decision:wf2.product-folder): by default under the app's data, or a folder the person
 // names — beside the code, in a shared drive — everything but the registry entry moves there.
@@ -24,7 +25,7 @@ export function SettingsFolder({ product }: { product: string }) {
       <p className="lede">Where <b>{product}</b> keeps its documents, graph, sessions and inbox. By default under the app&apos;s data; name a folder to keep them elsewhere — beside the code, say — and the app moves them there and points at them.</p>
       <div className="inbox-form">
         <div className="inbox-row"><span className="muted">now: <code>{info?.dir ?? '…'}</code>{info?.isDefault ? ' (default)' : ''}</span></div>
-        <div className="inbox-row"><label className="settings-field" style={{ flex: 1 }}>folder <input style={{ width: '100%' }} value={root} placeholder={info?.default ?? ''} onChange={e => setRoot(e.target.value)} /></label></div>
+        <div className="inbox-row"><label className="settings-field" style={{ flex: 1 }}>folder <FolderField title="Where the product is kept" value={root} placeholder={info?.default ?? ''} onChange={setRoot} /></label></div>
         <div className="sec-actions"><button className="pri" disabled={busy || !info || (root.trim() === (info.root ?? ''))} onClick={move}>{busy ? 'moving…' : root.trim() ? 'Move there' : 'Move back to the default'}</button>{msg && <span className={msg.startsWith('Failed') ? 'notice' : 'muted'}>{msg}</span>}</div>
       </div>
     </section>

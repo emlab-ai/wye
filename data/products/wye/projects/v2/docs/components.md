@@ -1060,6 +1060,16 @@ The editor's blocks and the components the pages are made of, by area.
     for.
   status: proposed
   part-of: module:components
+- id: component:folder-picker
+  file: packages/web/src/components/FolderPicker.tsx
+  side: client
+  purpose: >
+    A folder on this machine, chosen by browsing (GET /api/system/folders): the app runs where the folders are, and
+    a browser's own picker never gives a path. FolderField is the text field with Choose… beside it — typing still
+    works; the sheet walks folders (double-click or Enter opens one), can make a new one, and hands back the folder
+    it is in.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

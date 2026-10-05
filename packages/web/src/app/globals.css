@@ -1441,3 +1441,27 @@ div.help-row { cursor: default; }
 .view-block .empty-state, .itable .empty-state { margin: 14px auto; font-family: var(--font-b); letter-spacing: normal; }
 .qs-type code { display: block; width: fit-content; max-width: 100%; margin-top: 4px; white-space: pre-wrap; }
 .page > section > .empty-state { margin-top: 12px; }
+
+/* folder picker */
+.folder-field { display: flex; gap: 6px; align-items: center; } .folder-field input { flex: 1; min-width: 0; }
+.folder-field > button { flex: none; font: 500 12px/1.5 var(--font-b); padding: 5px 10px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--ground); color: var(--ink); cursor: pointer; white-space: nowrap; }
+.folder-field > button:hover { border-color: var(--accent); }
+.folder-back { z-index: 90; }
+.folder-picker { width: min(640px, 100%); display: flex; flex-direction: column; gap: 10px; max-height: min(620px, 90vh); }
+.folder-head { display: flex; align-items: center; justify-content: space-between; } .folder-head h3 { margin: 0; }
+.folder-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; font: 12px/1.6 var(--font-m); color: var(--muted); }
+.folder-crumbs button { background: none; border: 0; padding: 1px 4px; border-radius: 4px; color: inherit; font: inherit; cursor: pointer; }
+.folder-crumbs button:hover:not(:disabled) { background: var(--line); color: var(--ink); } .folder-crumbs button.here { color: var(--ink); font-weight: 600; }
+.folder-crumbs i { font-style: normal; opacity: .5; } .folder-crumbs .folder-up { margin-right: 6px; border: 1px solid var(--line-2); } .folder-crumbs .folder-up:disabled { opacity: .35; cursor: default; }
+.folder-list { list-style: none; margin: 0; padding: 4px; border: 1px solid var(--line-2); border-radius: 8px; overflow: auto; flex: 1; min-height: 220px; max-height: 360px; }
+.folder-list li > button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; border-radius: 6px; padding: 5px 8px; font: 13px/1.5 var(--font-b); color: var(--ink); cursor: pointer; }
+.folder-list li > button:hover { background: var(--line); } .folder-list li > button.on { background: var(--accent); color: var(--ground); }
+.folder-list i { font-style: normal; } .folder-list em { margin-left: auto; font: 11px/1.5 var(--font-m); font-style: normal; opacity: .7; }
+.folder-none { padding: 10px; font-size: 13px; }
+.folder-new { display: flex; gap: 6px; } .folder-new input { flex: 1; font: 13px/1.5 var(--font-b); background: var(--ground); color: var(--ink); border: 1px solid var(--line-2); border-radius: 6px; padding: 5px 8px; }
+.folder-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.folder-foot button, .folder-new button { font: 500 12px/1.5 var(--font-b); padding: 5px 10px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--ground); color: var(--ink); cursor: pointer; }
+.folder-foot button.pri { background: var(--accent); border-color: var(--accent); color: var(--ground); } .folder-foot button:disabled, .folder-new button:disabled { opacity: .45; cursor: default; }
+.folder-foot label { display: flex; align-items: center; gap: 4px; }
+.folder-target { white-space: nowrap; font-size: 11px; color: var(--muted); }
+.folder-foot label { font-size: 12px; }

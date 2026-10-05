@@ -1046,6 +1046,15 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     of a new product lead to "Page not found" until something else builds it.
   status: proposed
   part-of: module:app-storage
+- id: lib:folders
+  file: packages/web/src/lib/folders.ts
+  side: server
+  purpose: >
+    The folders under a path, for the folder picker (components/FolderPicker): names only, hidden ones left out
+    unless asked for, sorted; `product` says the folder holds projects/ (or wye/projects/) — what Open a folder
+    takes. An empty path is the home folder; a path that is not a folder answers with its nearest existing parent.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->
