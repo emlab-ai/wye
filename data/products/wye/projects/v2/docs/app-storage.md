@@ -986,6 +986,66 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     (decision&#58;wf2.product-folder), nothing copied.
   status: proposed
   part-of: module:app-storage
+- id: lib:agents-available
+  file: packages/web/src/lib/agents-available.ts
+  side: server
+  purpose: >
+    Which coding agents this machine has (the Quick start's `agent` step, the Welcome's agent check): `claude` and
+    `codex` looked up on PATH the way agent-host spawns them — an executable file in a PATH entry, no child process.
+    Cached a minute per PATH value: an install shows up without a restart, a page render never scans twice.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:onboarding-io
+  file: packages/web/src/lib/onboarding-io.ts
+  side: server
+  purpose: >
+    The Quick start's state for one product (docs/superpowers/specs/2026-10-05-onboarding-design.md): the Signals
+    read from the built graph in a pass over its nodes and edges (no file reads, no model calls — a product of
+    thousands of nodes costs one walk), the agent check, and the per-machine marks in <data>/_settings.json
+    `onboarding`.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:onboarding
+  file: packages/web/src/lib/onboarding.ts
+  side: server
+  purpose: >
+    The Quick start (docs/superpowers/specs/2026-10-05-onboarding-design.md): nine steps that tick themselves from
+    the product's real state. Pure — Signals in, step states out — so it is tested without a product;
+    lib/onboarding-io reads the Signals from the graph, the disk and the per-machine marks in _settings.json.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:product-from-code
+  file: packages/web/src/lib/product-from-code.ts
+  side: server
+  purpose: >
+    A product from a code folder (Add a product › From your code): what `wye init --product <slug> --repo <dir>
+    --title "…"` does, through the same code (lib/init.js) — the registry entry with `repo:`, the layered definition
+    read from the folder's surface (modules, pages, components, operations, tests, one #ready describe task per
+    module), no model, the folder untouched — then an inbox and the built graph. The folder is checked before
+    anything is written, and a failure on the way removes what was made, so a refusal never leaves half a product.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:quick-start-links
+  file: packages/web/src/lib/quick-start-links.ts
+  side: server
+  purpose: >
+    Where the Quick start's buttons and the Help sheet's lines go
+    (docs/superpowers/specs/2026-10-05-onboarding-design.md): the pages that live at a project-dependent address —
+    the first document, the newest Prompt Request, the Hooks and Skills pages — resolved from the graph once, on the
+    server, and handed to the client components as plain hrefs.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:system-pages
+  file: packages/web/src/lib/system-pages.ts
+  side: server
+  purpose: >
+    The pages the app writes into every product (lib/doc SYSTEM_DIR): Goals and Work (lib/pr-docs SYSTEM_VIEWS),
+    Hooks, Skills with the base skills and the shipped workflows (decision:wf2.hooks-and-skills). They live in the
+    project that holds PRs (else the first) and are written the first time the product is shown. A page written just
+    now is not in the graph yet, so the product is built before anything renders it — or the rail's Goals and Work
+    of a new product lead to "Page not found" until something else builds it.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

@@ -130,4 +130,9 @@ assert(has(c2.warnings, /worker:cy: level "boss" is not a enum/), 'a value outsi
 assert(has(c2.warnings, /worker:cy: skills "\[js, rust\]" is not a manyOf/), 'a multi-select item outside the choice is flagged');
 assert(!has(c2.warnings, /worker:bo: skills/), 'a multi-select within the choice passes');
 
-console.log('ok — ontology: types, inheritance, edges, inverses, check, render, oneOf / manyOf');
+// the base types keep their place in the package (schema/…) when the build runs from elsewhere — a home of links to an
+// installed package, bin/wye-home.js — so they never read as the product's own types (lib/types isBaseType)
+const d3 = parseFiles([path.join(dir2, 'o.md')], { cwd: os.tmpdir() });
+assert(d3.types.filter(t => t.id === 'type:node' || t.id === 'type:req').every(t => t.file === 'schema/base-ontology.md'), 'the base ontology is schema/base-ontology.md from any cwd');
+
+console.log('ok — ontology: types, inheritance, edges, inverses, check, render, oneOf / manyOf, base types from any cwd');

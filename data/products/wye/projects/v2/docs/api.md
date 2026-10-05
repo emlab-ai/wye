@@ -315,7 +315,10 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
 - id: op:api.products.create
   args: POST /api/products
   does: >
-    Create a product: { title, description, icon } → data/products/<slug>/_product.md.
+    Create a product: { title, description, icon } → data/products/<slug>/_product.md. With `repo` (a folder; ~ is
+    the home folder), the product is read from that code the way wye init reads it (lib/product-from-code,
+    req:wf2.onboarding.from-code): 422 { error: 'invalid', message } when the folder is missing or a file, and
+    nothing is left behind.
   gate: none (local app)
   source: packages/web/src/app/api/products/route.ts
   part-of: module:api
@@ -825,6 +828,17 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
     some product already points at answers with that product. → { slug, dir, existing }
   gate: none (local app)
   source: packages/web/src/app/api/products/open/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.onboarding
+  args: GET | POST /api/<product>/onboarding
+  does: >
+    The Quick start (docs/superpowers/specs/2026-10-05-onboarding-design.md). GET → { steps: [{ key, group, title,
+    why, shortcut?, done }], done, total, next, complete, dismissed, show, agents: { claude, codex } }. POST {
+    mark?: StepKey, dismissed?: boolean } → the same body; the marks and the dismissal are this machine's
+    (_settings.json), never the product's.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/onboarding/route.ts
   status: proposed
   part-of: module:api
 ```

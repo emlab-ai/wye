@@ -457,6 +457,14 @@ Every page of the app by area: its route, what it shows, its actions. The table 
     where its folder is, deleting it — are at /<product>/settings.
   status: proposed
   part-of: module:pages
+- id: page:web/start
+  route: /<product>/start
+  component: packages/web/src/app/[product]/start/page.tsx
+  purpose: >
+    The Quick start (docs/superpowers/specs/2026-10-05-onboarding-design.md §2): an app route on every product, not
+    a document — nothing is written to the product, and it cannot collide with a person's page.
+  status: proposed
+  part-of: module:pages
 ```
 
 <!-- /list:page -->

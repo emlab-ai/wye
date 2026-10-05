@@ -848,3 +848,180 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 ```
 
   - choice:wf2.query-from-words ✦ Ask an agent above a table's SQL: POST /api/<product>/query/write { ask, sql, kind, page, me } — one `claude -p` call without tools (ASK_MODEL) given the columns of nodes, the kinds and edge verbs with counts, and the table's kind, page and current SQL; the server runs the query (one retry with the engine's message) and returns it; the table puts it in the box and runs it like a query typed by hand.
+
+## Onboarding
+
+A person who has never seen Wye gets from `wye app` to a product with a first document, a block with an id and one pass through the loop without reading the README, and meets every important feature once, where it lives (docs/superpowers/specs/2026-10-05-onboarding-design.md).
+
+```yaml
+- id: req:wf2.onboarding.welcome
+  title: The first run says what Wye is and adds a first product — from the code by default
+  status: proposed
+  satisfied-by: [page:web/home, component:welcome, component:add-product, lib:agents-available]
+  by: alex
+  part-of: module:req-shell
+```
+
+  - when:wf2.onboarding.welcome the app opens with no products
+
+  - then:wf2.onboarding.welcome one screen says what Wye is in three steps (Define, Request, Remember), whether Claude Code or Codex is on this machine — and, when neither is, what works without one and what waits — and offers the four ways to add a product with From your code first; every way lands on the new product's Quick start
+
+  - unless:wf2.onboarding.welcome a product exists, where `/` opens the first product
+
+```yaml
+- id: req:wf2.onboarding.from-code
+  title: A product can be made from a code folder in the app, the way wye init makes it
+  status: proposed
+  satisfied-by: [component:add-product, lib:product-from-code, op:api.products.create]
+  by: alex
+  part-of: module:req-shell
+```
+
+  - when:wf2.onboarding.from-code the person gives a title and a folder under Add a product › From your code
+
+  - then:wf2.onboarding.from-code the product is made with `repo:` set, the folder is read into a first shallow definition (modules, pages, components, operations, tests) without a model and without changing the folder, the graph is built, and the person lands on its Quick start
+
+  - unless:wf2.onboarding.from-code the folder does not exist or is a file — the form says so and no product is left behind
+
+```yaml
+- id: req:wf2.onboarding.quick-start
+  title: Every product has a Quick start whose nine steps tick themselves from the product's real state
+  status: proposed
+  satisfied-by: [page:web/start, component:quick-start, component:quick-start-card, lib:onboarding, lib:onboarding-io, op:api.onboarding]
+  by: alex
+  part-of: module:req-shell
+```
+
+  - when:wf2.onboarding.quick-start the person opens /<product>/start, the rail's Quick start (with its n/9) or the Overview's card
+
+  - then:wf2.onboarding.quick-start the steps — connect a coding agent, a first document, a block with an id, two blocks linked, Remember, an approval in the Inbox, Ask, a Prompt Request, a build — show done or open with one button that does the step, the next one highlighted; a step ticks without a reload when the product changes; Go further names Mind map, Tables and SQL, Constitution, Types, Work, Hooks and skills, Packages and the CLI; "I know my way around" hides it from the rail and the Overview
+
+  - unless:wf2.onboarding.quick-start all nine are done or it was dismissed on this machine — the rail item and the card are gone and Help opens the page
+
+```yaml
+- id: req:wf2.onboarding.empty-states
+  title: A page with nothing to show says what it is for and offers the one action that fills it
+  status: proposed
+  satisfied-by: [component:empty-state, component:empty-actions]
+  by: alex
+  part-of: module:req-shell
+```
+
+  - when:wf2.onboarding.empty-states a feature page has never had anything to show — Overview and rail documents, Inbox, PRs, Knowledge and a kind, Work, Goals, Questions, Constitution, Types, Agents, Graph, the search panel
+
+  - then:wf2.onboarding.empty-states it says in a sentence or two what the page is for, shows the line to write where a line makes one (`req:…`, `- [ ] task:…`), and offers the action that fills it (New document, Remember, New Prompt Request)
+
+  - unless:wf2.onboarding.empty-states a filter matches nothing, where a short "nothing matches" stays
+
+```yaml
+- id: req:wf2.onboarding.help
+  title: Help is one key away — shortcuts, what is where, and the way back to the Quick start
+  status: proposed
+  satisfied-by: [component:help, component:rail, component:shell]
+  by: alex
+  part-of: module:req-shell
+```
+
+  - when:wf2.onboarding.help the person clicks ? in the rail or presses ⌘/
+
+  - then:wf2.onboarding.help a sheet lists the shortcuts, every important feature with one line and a link (with the same glyph as the rail), Open Quick start — and Show it in the rail again when it was dismissed — and links to the README and the reference; Esc or a click outside closes it
+
+```yaml
+- id: decision:wf2.onboarding.live-checklist
+  title: The Quick start is a live checklist computed from the product, not a seeded document
+  date: 2026-10-05
+  status: proposed
+  by: alex
+  affects: [req:wf2.onboarding.quick-start, lib:onboarding, lib:onboarding-io]
+  part-of: module:req-shell
+```
+
+  - context:wf2.onboarding.live-checklist "build the best possible onboarding for the app — show/talk about all important features, help users to start, maybe add a quick start page to every new product"
+
+  - choice:wf2.onboarding.live-checklist nine steps whose done state is read from the built graph and the disk on every request (documents, blocks, links, approvals, Prompt Requests, builds), with two — Remember and Ask — marked when the app does them; the page, the rail count and the Overview card are three views of that one state
+
+  - alternative:wf2.onboarding.live-checklist a Quick start document written into every new product, ticked by hand — it goes stale, sits among the person's pages, and is exported with the product
+
+```yaml
+- id: decision:wf2.onboarding.no-sample
+  title: No sample product — a person learns Wye on their own product
+  date: 2026-10-05
+  status: proposed
+  by: alex
+  affects: [req:wf2.onboarding.welcome]
+  part-of: module:req-shell
+```
+
+  - choice:wf2.onboarding.no-sample the Welcome adds the person's own product (from their code first) and the Quick start teaches on it
+
+  - alternative:wf2.onboarding.no-sample a bundled demo product to explore first — knowledge about a product nobody works on, to be deleted afterwards, and a second place to learn the same things
+
+```yaml
+- id: decision:wf2.onboarding.no-tour
+  title: No overlay tour or coach marks — teaching happens in place
+  date: 2026-10-05
+  status: proposed
+  by: alex
+  affects: [req:wf2.onboarding.quick-start, req:wf2.onboarding.empty-states, req:wf2.onboarding.help]
+  part-of: module:req-shell
+```
+
+  - choice:wf2.onboarding.no-tour the checklist, the empty states and the Help sheet say what each feature is where it lives, and each offers the action itself
+
+  - alternative:wf2.onboarding.no-tour a step-by-step overlay pointing at parts of the screen — skipped on first sight, breaks when the layout changes, and teaches nothing the page could not say itself
+
+```yaml
+- id: decision:wf2.onboarding.marks-per-machine
+  title: Marked steps and the dismissal belong to this machine — _settings.json, never the product
+  date: 2026-10-05
+  status: proposed
+  by: alex
+  affects: [lib:onboarding-io, lib:settings, op:api.onboarding]
+  part-of: module:req-shell
+```
+
+  - choice:wf2.onboarding.marks-per-machine `<data>/_settings.json` holds `onboarding: { <product>: { done: [remember, ask], dismissed } }`; nothing about onboarding is written into the product, so it never reaches Git or an export, and a teammate who opens the same product gets their own Quick start
+
+  - alternative:wf2.onboarding.marks-per-machine the marks in `_product.md` — one person's progress shown to everyone who opens the product, and committed with it
+
+```yaml
+- id: decision:wf2.onboarding.app-route
+  title: The Quick start is an app route (/<product>/start), not a document
+  date: 2026-10-05
+  status: proposed
+  by: alex
+  affects: [page:web/start, req:wf2.onboarding.quick-start]
+  part-of: module:req-shell
+```
+
+  - choice:wf2.onboarding.app-route a page of the app like Inbox and Knowledge: nothing is written to docs/ or .wye/, it cannot collide with a person's page, and it is not exported
+
+  - alternative:wf2.onboarding.app-route a system page in .wye/ (like Goals and Work) — a file in every product for something that is about the person, not the product
+
+```yaml
+- id: decision:wf2.onboarding.from-code-first
+  title: From your code is the first way to add a product — wye init through the app
+  date: 2026-10-05
+  status: proposed
+  by: alex
+  affects: [req:wf2.onboarding.from-code, req:wf2.onboarding.welcome, component:add-product]
+  part-of: module:req-shell
+```
+
+  - choice:wf2.onboarding.from-code-first Add a product offers From your code first and the Welcome opens on it: a title and a folder, and lib/init.js (what `wye init` runs — no model, shallow, nothing overwritten) reads it into a first definition, so a new person starts from a product that already has pages and blocks; New, Open a folder and Import a file follow
+
+  - alternative:wf2.onboarding.from-code-first a blank product first — an empty page to fill by hand before anything in Wye has something to show
+
+```yaml
+- id: decision:wf2.onboarding.honest-counts
+  title: The document, block and link steps count only what a person wrote
+  date: 2026-10-05
+  status: proposed
+  by: alex
+  affects: [lib:onboarding-io, req:wf2.onboarding.quick-start]
+  part-of: module:req-shell
+```
+
+  - choice:wf2.onboarding.honest-counts a document is a page under a project's docs/ (not an app-written .wye/ page); a block is a defined node with an id written in such a page — not a page node, not a hidden kind, not a card's part such as a decision's choice; a link is a written edge between two such blocks — so a new product starts at the steps it has really done
+
+  - alternative:wf2.onboarding.honest-counts counting every node and edge — the Goals, Work, Hooks and Skills pages the app writes into every product would tick the first steps before the person did anything

@@ -8,8 +8,8 @@ import { TabStrip, type Tab } from './Tabs';
 import { formatDay } from '@/lib/when';
 
 export type DocMeta = { slug: string; node: string; title: string; icon: string; project: string; parent?: string; mtime: string };
-const PAGES: Record<string, string> = { goals: 'Goals', tasks: 'Tasks', questions: 'Questions', knowledge: 'Knowledge', graph: 'Graph', inbox: 'Inbox', sessions: 'Agents', prs: 'PRs', new: 'New product', types: 'Types', search: 'Search', start: 'Quick start' };
-const PAGE_ICONS: Record<string, string> = { goals: '◎', tasks: '☑', questions: '?', knowledge: '◈', graph: '⌬', inbox: '⇩', sessions: '⚡', types: '○', search: '⌕', prs: '🗺️', settings: '⚙', start: '◔' };
+const PAGES: Record<string, string> = { goals: 'Goals', tasks: 'Tasks', questions: 'Questions', knowledge: 'Knowledge', graph: 'Graph', inbox: 'Inbox', sessions: 'Agents', prs: 'PRs', new: 'New product', types: 'Types', search: 'Search', start: 'Quick start', settings: 'Settings', constitution: 'Constitution' };
+const PAGE_ICONS: Record<string, string> = { goals: '◎', tasks: '☑', questions: '?', knowledge: '◈', graph: '⌬', inbox: '⇩', sessions: '⚡', types: '⬡', search: '⌕', prs: '🗺️', settings: '⚙', start: '◔', constitution: '§' };
 
 const ago = (iso: string) => { const m = (Date.now() - Date.parse(iso)) / 60000; if (m < 1) return 'just now'; if (m < 60) return `${Math.round(m)} min ago`; if (m < 1440) return `${Math.round(m / 60)} h ago`; const d = Math.round(m / 1440); return d < 30 ? `${d} d ago` : formatDay(iso); };
 

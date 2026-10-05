@@ -479,7 +479,15 @@ wye app                                   # the app at http://localhost:3456
 Your products live in `~/.wye/data/products/` (set `WYE_HOME` to put them elsewhere), and an update never touches
 them. A product can also keep its documents next to its code: `root: <path>` in its `_product.md`.
 
-**Bring products in and out.** Add a product (the product menu, or `/new`) offers three ways: **New**, **Open a folder**
+**The first run.** With no products yet, `wye app` opens a Welcome: what Wye is in three steps, whether Claude Code or
+Codex was found, and Add a product, which starts on **From your code** (`wye init` through the app: a title and a
+folder). Every product then has a **Quick start** (`/<product>/start`, in the rail with its count): nine steps that tick
+themselves as the product fills in, from a first document to a first build, each with the button that does it. Empty
+pages say what they are for, and **Help** (`?` in the rail, ⌘/) lists the shortcuts and where everything is.
+
+![The Quick start of a new product: four steps done, the next one highlighted](docs/screenshots/quick-start.png)
+
+**Bring products in and out.** Add a product (the product menu, or `/new`) also offers **New**, **Open a folder**
 (a product folder already on disk, used where it is, such as a teammate's clone or a repo that keeps its product in
 `wye/`) and **Import a file** (a `.wye.tgz` made with Settings › Export). From the command line: `wye export <product>`,
 `wye import <product>.wye.tgz`, `wye open <folder>`. An export carries the documents, the app's pages, the inbox and

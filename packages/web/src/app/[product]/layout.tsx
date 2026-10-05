@@ -3,7 +3,7 @@ import { parsePins, resolvePins } from '@/lib/pins';
 import { isRscRequest } from '@/lib/request';
 import type { ReactNode } from 'react';
 import { Rail } from '@/components/Rail';
-import { SYSTEM_VIEWS, ensureViewPages, viewPageId } from '@/lib/pr-docs';
+import { SYSTEM_VIEWS, viewPageId } from '@/lib/pr-docs';
 import { PeekProvider } from '@/components/PeekProvider';
 import { Shell } from '@/components/Shell';
 import { TopBar, type DocMeta } from '@/components/TopBar';
@@ -20,19 +20,23 @@ import { REPO_ROOT } from '@/lib/products';
 import type { TreeItem } from '@/components/DocTree';
 import type { PrItem } from '@/components/PrFolder';
 import { prsPageId } from '@/lib/pr-doc';
-import { ensureBaseSkills, ensureBaseWorkflows, ensureHooksPage, hooksPageId, skillsPageId } from '@/lib/skills';
+import { hooksPageId, skillsPageId } from '@/lib/skills';
 import type { SkillItem } from '@/components/SkillFolder';
 import { waitingReasons } from '@/lib/dispatch';
 import { GoneNotice } from '@/components/GoneNotice';
+import { ensureSystemPages, viewProjectOf } from '@/lib/system-pages';
 import { readOnboarding } from '@/lib/onboarding-io';
 import { quickStartLinks } from '@/lib/quick-start-links';
 
 export default async function ProductLayout({ children, params }: { children: ReactNode; params: Promise<{ product: string }> }) {
   const { product } = await params;
-  const scope = await loadScope(product);
+  const loaded = await loadScope(product);
   // a product that is not here — moved, removed, a slug mistyped — is a page of the app, not a bare 404
   // (decision:wf2.deleted-outside-stays-put): what exists is one click away
-  if (!scope) return <GoneNotice what="product" slug={product} products={(await listProducts()).map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} />;
+  if (!loaded) return <GoneNotice what="product" slug={product} products={(await listProducts()).map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} />;
+  // the pages the app writes into every product (Goals, Work, Hooks, Skills — lib/system-pages): written the first time
+  // and built before the rail links to them; they leave the Documents tree below
+  const scope = await ensureSystemPages(loaded);
   // a refresh or a client navigation (an RSC request) carries no node index: the provider fetches it (decision:wf2.parse-cache)
   const rsc = await isRscRequest();
   const products = await listProducts();
@@ -47,17 +51,13 @@ export default async function ProductLayout({ children, params }: { children: Re
   // the project's PRs page is a system folder (rule:prs-folder): it and its sub-documents leave the Documents
   // tree, and the requests go to the rail's PRs folder, every project together, newest first
   const prs: PrItem[] = [];
-  // the system view pages (Goals, Work) live in the project that holds PRs (else the first) and leave the tree too
-  const viewProject = scope.projects.find(p => scope.graph.modules.some(m => m.id === prsPageId(p.slug))) ?? scope.projects[0];
-  // the Skills and Hooks pages (decision:wf2.hooks-and-skills) live there too: the base skills are written from the
-  // prompts the first time, the skill documents go to the rail's Skills folder, Hooks is a menu link
+  // the system view pages (Goals, Work) live in the project that holds PRs (else the first) and leave the tree too;
+  // the Skills and Hooks pages (decision:wf2.hooks-and-skills) live there too: the skill documents go to the rail's
+  // Skills folder, Hooks is a menu link
+  const viewProject = viewProjectOf(scope);
   // where a new top-level page is stored: the largest folder — folders are not shown, a page's place is its part-of
   const docCount = (slug: string) => scope.graph.modules.filter(m => m.file?.includes(`/projects/${slug}/docs/`)).length;
   const rootsHome = [...scope.projects].sort((a, b) => docCount(b.slug) - docCount(a.slug))[0]?.slug;
-  const mainOf = (p: typeof viewProject) => { if (!p) return null; const t = treeFor(scope, p.slug); return t.main && !isSystemSlug(t.main.slug) ? t.main.module.id : null; };
- 
-  if (viewProject) { try { await ensureViewPages(viewProject); const m = mainOf(viewProject); await ensureBaseSkills(viewProject, m); await ensureBaseWorkflows(viewProject, m); await ensureHooksPage(viewProject, m); } catch { /* read-only tree */ } }
- 
   const views = viewProject ? [...SYSTEM_VIEWS.map(v => ({ slug: systemSlug(v.slug), title: v.title, icon: v.icon, project: viewProject.slug })), { slug: systemSlug('hooks'), title: 'Hooks', icon: '⚓', project: viewProject.slug }] : [];
   const viewIds = new Set(viewProject ? [...SYSTEM_VIEWS.map(v => viewPageId(viewProject.slug, v.slug)), hooksPageId(viewProject.slug)] : []);
   const skills: SkillItem[] = []; let skillsPage: { project: string; slug: string } | null = null;

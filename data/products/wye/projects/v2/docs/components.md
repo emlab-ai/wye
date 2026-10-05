@@ -994,6 +994,72 @@ The editor's blocks and the components the pages are made of, by area.
     inbox, agent instructions — to hand to someone or keep; they open it with Add a product › Import a file.
   status: proposed
   part-of: module:components
+- id: component:add-product
+  file: packages/web/src/components/AddProduct.tsx
+  side: client
+  purpose: >
+    Add a product (decision:wf2.product-transfer), on /new and on the Welcome: read one from a code folder the way
+    `wye init` does (lib/product-from-code), make a blank one, open a product folder already on disk where it is (a
+    teammate's, a clone, a repo's wye/ folder), or import a .wye.tgz someone exported. Every way lands on the
+    product's Quick start.
+  status: proposed
+  part-of: module:components
+- id: component:empty-actions
+  file: packages/web/src/components/EmptyActions.tsx
+  side: client
+  purpose: >
+    The buttons of the empty states (components/EmptyState): a server page passes one of these as `actions`. Each
+    opens what fills the page through the app's own openers (Help's `open`): the command box in Remember or PR mode,
+    the rail's New page sheet (on Import when asked), the search panel; `agent` opens the box on an ad-hoc
+    conversation.
+  status: proposed
+  part-of: module:components
+- id: component:empty-state
+  file: packages/web/src/components/EmptyState.tsx
+  side: server
+  purpose: >
+    A page with nothing to show yet says what it is for and offers the one action that fills it
+    (docs/superpowers/specs/2026-10-05-onboarding-design.md §3). No hooks: a server page can render it; the actions
+    are passed in, so a client button (open the command box, a New page sheet) or a plain <a className="btn pri">
+    fits. The actions row is a `sec-actions`, so buttons and a.btn get the app's button styles.
+  status: proposed
+  part-of: module:components
+- id: component:help
+  file: packages/web/src/components/Help.tsx
+  side: client
+  purpose: >
+    The openers other parts of the app call to teach in place
+    (docs/superpowers/specs/2026-10-05-onboarding-design.md): the Help sheet (Shell), the New page sheet (Rail, on
+    Import when asked), the search panel (Shell), and the command box in Remember or Prompt Request mode
+    (CommandBox).
+  status: proposed
+  part-of: module:components
+- id: component:quick-start
+  file: packages/web/src/components/QuickStart.tsx
+  side: client
+  purpose: >
+    (no header comment)
+  status: proposed
+  part-of: module:components
+- id: component:quick-start-card
+  file: packages/web/src/components/QuickStartCard.tsx
+  side: client
+  purpose: >
+    The Overview's Quick start card (docs/superpowers/specs/2026-10-05-onboarding-design.md §2): while the product's
+    Quick start is neither complete nor dismissed, how far it has got and the next step with its button — `bare`
+    leaves the button to the Documents empty state below when the next step is the first document, so it is not
+    there twice.
+  status: proposed
+  part-of: module:components
+- id: component:welcome
+  file: packages/web/src/components/Welcome.tsx
+  side: server
+  purpose: >
+    The first screen (/ with no products): what Wye is, in the loop it runs, whether a coding agent is on this
+    machine, and the ways to add a first product — from the code first. No rail: there is no product to show one
+    for.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

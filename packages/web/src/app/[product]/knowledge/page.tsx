@@ -20,12 +20,13 @@ export default async function KnowledgePage({ params }: { params: Promise<{ prod
   const none = !kinds.some(k => byKind.get(k)!.some(n => !isSystemFile(n.file)));
   return (
     <div className="page">
-      <header className="doc-head"><h1 className="prop-in h1" style={{ margin: 0 }}>Knowledge</h1><p className="lede">Everything {scope.product.meta.title} knows, built from its documents. {scope.graph.nodes.filter(n => n.defined).length} nodes, {scope.graph.edges.length} relations. <Link href={`/${product}/types`}>Types →</Link></p></header>
+      <header className="doc-head"><h1 className="prop-in h1" style={{ margin: 0 }}>Knowledge</h1><p className="lede">Everything {scope.product.meta.title} knows, built from its documents.{!none && <> {scope.graph.nodes.filter(n => n.defined).length} nodes, {scope.graph.edges.length} relations.</>} <Link href={`/${product}/types`}>Types →</Link></p></header>
       {none && (
         <EmptyState icon="◈" title="Nothing known yet" actions={<><EmptyAction act="new-page" pri>New document</EmptyAction><EmptyAction act="import">Import code or Markdown</EmptyAction></>}>
           <p>Knowledge is built from the documents. Most of a document is prose; a block with an id becomes a node here, grouped by kind:</p>
           <p><code>{kindExample('goal')}</code></p>
         </EmptyState>)}
+      {none && kinds.length > 0 && <p className="muted">Below: what the app wrote for itself — the hooks, templates and workflow stages every product starts with.</p>}
       {kinds.map(k => {
         const items = byKind.get(k)!;
         return (

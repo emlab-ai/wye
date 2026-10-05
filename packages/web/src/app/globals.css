@@ -1390,7 +1390,7 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 /* one feature, in Help's list and as a Quick start "Go further" tile */
 .help-row { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: none; font: inherit; color: var(--ink); text-align: left; text-decoration: none; cursor: pointer; box-sizing: border-box; }
 div.help-row { cursor: default; }
-.help-row > i { flex: none; width: 20px; font: normal 14px/20px var(--font-m); color: var(--muted); text-align: center; }
+.help-row > i { flex: none; width: 20px; font-style: normal; font-size: 15px; line-height: 20px; color: var(--muted); text-align: center; }  /* the rail's own glyphs, in the text face like the rail (a mono face lacks most of them) */
 .help-row > span { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .help-row b { font-size: 13.5px; font-weight: 600; } .help-row small { font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
 .help-row code { align-self: flex-start; margin-top: 4px; padding: 1px 6px; border-radius: 4px; background: var(--sunk); font: 11px var(--font-m); color: var(--ink); }

@@ -20,7 +20,7 @@ export default async function GraphPage({ params, searchParams }: { params: Prom
     return (
       <div className="page">{blocks
         ? <p className="muted">Nothing in the {preset} view. <a href={`/${product}/graph?preset=Everything`}>Everything →</a></p>
-        : <EmptyState icon="⇄" title="No graph yet" actions={<EmptyAction act="new-page">New document</EmptyAction>}>
+        : <EmptyState icon="⌬" title="No graph yet" actions={<EmptyAction act="new-page">New document</EmptyAction>}>
             <p>The graph draws the blocks and the links between them. It appears once a document has blocks with ids that refer to each other:</p>
             <p><code>{kindExample('test')}</code></p>
           </EmptyState>}

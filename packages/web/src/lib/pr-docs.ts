@@ -57,7 +57,8 @@ export const SYSTEM_VIEWS = [
   { slug: 'work', title: 'Work', icon: '☑', view: 'task', query: 'group=status', intro: 'Every task of the product, wherever it is written — PRs, definition pages, the Backlog — as blocks, grouped by status. A task\'s panel assigns it, builds a PR or ticks it done.' },
 ] as const;
 export const viewPageId = (projectSlug: string, slug: string) => `module:${projectSlug}-${slug}`;
-export async function ensureViewPages(project: Project): Promise<void> {
+export async function ensureViewPages(project: Project): Promise<string[]> {
+  const written: string[] = [];
   for (const v of SYSTEM_VIEWS) {
     const file = path.join(project.wyeDir, `${v.slug}.md`);
     try { await stat(file); continue; } catch { /* write it */ }
@@ -77,7 +78,9 @@ ${v.intro}
 <!-- view:${v.view}${v.query ? ' ' + v.query : ''} -->
 `;
     await writeAtomic(file, md);
+    written.push(v.slug);
   }
+  return written;
 }
 
 // Where the request was made: the project and document slug from the source (the palette's Context) or from the

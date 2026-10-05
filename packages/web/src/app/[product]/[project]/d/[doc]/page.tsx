@@ -3,7 +3,8 @@ import { isRscRequest } from '@/lib/request';
 import { loadScope, treeFor } from '@/lib/scope';
 import { loadMarkdown } from '@/lib/load';
 import { REPO_ROOT } from '@/lib/products';
-import { docRoute, linkedDocuments, pageBySlug, splitDocument } from '@/lib/doc';
+import { docRoute, isSystemSlug, linkedDocuments, pageBySlug, splitDocument } from '@/lib/doc';
+import { ensureSystemPages } from '@/lib/system-pages';
 import { bodyOf, hashOf } from '@/lib/write';
 import { DocumentReader } from '@/components/DocumentReader';
 import { DocProps } from '@/components/DocProps';
@@ -22,8 +23,11 @@ import { GoneNotice } from '@/components/GoneNotice';
 
 export default async function DocPage({ params }: { params: Promise<{ product: string; project: string; doc: string }> }) {
   const { product, project, doc } = await params;
-  const scope = await loadScope(product, project);
+  let scope = await loadScope(product, project);
   if (!scope) { const all = await loadScope(product); return <GoneNotice what="project" slug={project} product={product} projects={(all?.projects ?? []).map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} />; }
+  // an app-written page (~goals, ~work…) asked for before the layout's first pass built it (lib/system-pages): written
+  // and built here, so a brand-new product's rail links never land on "not found"
+  if (isSystemSlug(decodeURIComponent(doc)) && !pageBySlug(treeFor(scope, project).byFile.values(), project, decodeURIComponent(doc))) scope = await ensureSystemPages(scope);
   const tree = treeFor(scope, project);
   // a document that is not there — never was, or was deleted outside the app while open — is a notice in place of the
   // content, not a 404 boundary: the layout (top bar, rail, tabs) stays and the next live refresh brings the document

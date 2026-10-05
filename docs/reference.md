@@ -122,6 +122,24 @@ npm run dev               # the app at http://localhost:3000 (npx --workspace=pa
 quits it on exit — see [Desktop app](#desktop-app) for the installable `Wye.app` / AppImage. Wye's own definition
 lives in `data/products/wye` — the app is described in itself, and every change to it goes through the loop above.
 
+### First run and the Quick start
+
+With no products, `/` is the Welcome; otherwise it opens the first product. Add a product (`/new`, `?way=code|new|open|import`)
+starts on **From your code**: `POST /api/products { title, icon?, repo }` makes the product and reads the folder the way
+`wye init` does (`lib/init.js`: no model, nothing in the folder changed), then builds the graph; a missing folder or a
+file answers 422 `{ error: 'invalid', message }` and leaves nothing behind (`~` is the home folder). Without `repo`
+it makes an empty product, as before. Every way lands on `/<product>/start`.
+
+The Quick start is an app route, not a document — nothing is written into the product. Its nine steps (`agent`,
+`document`, `block`, `link`, `remember`, `approve`, `ask`, `pr`, `build`) are computed from the built graph on each
+request: a document is a page under a project's `docs/` (not `.wye/`), a block a defined node with an id written in
+one (not a page node, a hidden kind or a card's part), a link a written edge between two blocks. `remember` and `ask`
+are marked when the app does them. `GET /api/<product>/onboarding` answers `{ steps, done, total, next, complete,
+dismissed, show, agents: { claude, codex } }`; `POST` takes `{ mark?: <step>, dismissed?: boolean }`. The marks and
+the dismissal belong to this machine: `<data>/_settings.json` holds `onboarding: { <product>: { done: [...],
+dismissed } }`, so they never reach Git or an export. The rail shows Quick start with its count, and the Overview a
+card, until all nine are done or it is dismissed; Help (`?`, ⌘/) opens it again.
+
 ### Data layout
 
 ```

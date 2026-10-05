@@ -22,7 +22,7 @@ export const FEATURES: Feature[] = [
   { key: 'inbox', icon: '⇩', title: 'Inbox', line: 'What agents propose and what Remember files, waiting for a person to approve.', href: b => `${b}/inbox` },
   { key: 'remember', icon: '✦', title: 'Remember', line: 'Paste a note, a transcript or a decision; the librarian files it as proposed knowledge.', act: () => open.remember() },
   { key: 'ask', icon: '⌕', title: 'Search and Ask', line: 'Find any block, page or session, or ask a question and get an answer with its sources.', act: () => open.search() },
-  { key: 'prs', icon: '◆', title: 'Prompt Requests', line: 'Your suggestion to change the knowledge, refined with the librarian, approved, then built.', href: b => `${b}/prs` },
+  { key: 'prs', icon: '🗺', title: 'Prompt Requests', line: 'Your suggestion to change the knowledge, refined with the librarian, approved, then built.', href: b => `${b}/prs` },
   { key: 'knowledge', icon: '◈', title: 'Knowledge', line: 'Every block with an id, by kind, with its links and where it is written.', href: b => `${b}/knowledge` },
   { key: 'map', icon: '◇', title: 'Mind map', line: 'A page whose nodes are its own blocks: drag, link and group them, and the document follows.', act: () => open.newPage(), further: true },
   { key: 'tables', icon: '▦', title: 'Tables and SQL', line: 'A table on a page is a query over the graph; write the SQL or ask for it in words.', href: b => `${b}/knowledge`, further: true },
@@ -31,7 +31,7 @@ export const FEATURES: Feature[] = [
   { key: 'work', icon: '☑', title: 'Work', line: 'Every task in every document as one board, whoever holds it.', href: b => `${b}/work`, further: true },
   { key: 'hooks', icon: '⚓', title: 'Hooks and skills', line: 'Skills are the agents’ prompts, kept as documents you can edit; hooks run them when something happens.', href: (_, l) => l.hooks ?? l.skills, further: true },
   { key: 'agents', icon: '⚡', title: 'Agents', line: 'Every agent run with its log, what it changed and what it asked.', href: b => `${b}/sessions` },
-  { key: 'graph', icon: '◎', title: 'Graph', line: 'The blocks and their links, drawn, from any block outwards.', href: b => `${b}/graph` },
+  { key: 'graph', icon: '⌬', title: 'Graph', line: 'The blocks and their links, drawn, from any block outwards.', href: b => `${b}/graph` },
   { key: 'packages', icon: '▣', title: 'Packages', line: 'Ready-made skills, workflows, templates and types to install into a project.', cmd: 'wye packages', further: true },
   { key: 'cli', icon: '›_', title: 'The wye CLI and Claude Code skills', line: 'Agents read and write the product through wye; the wye-context and wye-agent skills teach Claude Code how.', cmd: 'wye setup', further: true },
 ];

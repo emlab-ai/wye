@@ -16,7 +16,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     <div className="page page-wide">
       <header className="doc-head"><h1 className="prop-in h1" style={{ margin: 0 }}>PRs</h1><p className="sub">every Prompt Request to {scope.product.meta.title}: what was asked, what it touches, the blocks it proposes, its impact, the tasks and the result — refined until clear, approved here, then built.</p></header>
       {table.rows.length ? <InstanceTable product={product} table={table} initial={filters} urlState /> : (
-        <EmptyState icon="◆" title="No Prompt Requests yet" actions={<EmptyAction act="pr" pri>New Prompt Request</EmptyAction>} hint="⌘P opens the command box anywhere">
+        <EmptyState icon="🗺" title="No Prompt Requests yet" actions={<EmptyAction act="pr" pri>New Prompt Request</EmptyAction>} hint="⌘P opens the command box anywhere">
           <p>A Prompt Request is a person&apos;s suggestion to change the product, written before an agent changes the code: what is asked and why, what behaviour changes, what it may reach. Here PR does not mean pull request.</p>
           <p>The librarian refines it with you; you approve it, then an agent builds it.</p>
         </EmptyState>)}
