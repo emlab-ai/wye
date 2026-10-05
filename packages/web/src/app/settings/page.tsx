@@ -18,7 +18,7 @@ export default async function AppSettingsPage({ searchParams }: { searchParams: 
         <p className="sub">the app on this machine — for one product&apos;s own settings, open it and press ⚙</p>
       </header>
       <ThemeSettings />
-      <SettingsAgents initial={s.agents} />
+      <SettingsAgents initial={s.agents} launch={s.launch} />
       <SettingsJev initial={s.jev} />
     </div>
   );

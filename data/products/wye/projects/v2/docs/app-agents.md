@@ -369,6 +369,12 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   purpose: >
     The agent host: the app runs Claude Code / Codex as child processes for chat sessions, keeps the conversation open, turns their streaming JSON into ChatEvents, persists them to the session and pushes them to subscribers. Lives on globalThis so dev-server module reloads do not orphan the processes. The pump hands queue items to the idle agent and, on a fresh item, calls restartFresh, which swaps the conversation's process for a new one without its context (rule:clean-slate); `Live.turn` remembers the handed items and the turn's end stamps them done / failed (rule:session-queue); armIdleStop ends a claude process idle for WF_AGENT_IDLE_MIN minutes (rule:idle-stop); stopChat ends a process for Stop / Close and marks the entry stopped so it counts as gone at once.
   part-of: module:app-agents
+- id: lib:agent-launch
+  file: packages/web/src/lib/agent-launch.ts
+  side: shared
+  purpose: >
+    How an agent process is launched (decision:wf2.agent-launch): the options each CLI has (modes, efforts), the stored launch settings cleaned, a card's `model:` read for one agent, the model resolved from the session, stage, skill, workflow and app default, and the arguments the host adds to `claude -p` and `codex exec`.
+  part-of: module:app-agents
 - id: lib:agent-prompt
   file: packages/web/src/lib/agent-prompt.ts
   side: server

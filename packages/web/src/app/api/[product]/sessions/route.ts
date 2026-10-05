@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { markStep } from '@/lib/onboarding-io';
 import { getProduct, productRepo } from '@/lib/products';
 import { AGENTS, addRefs, createSession, listSessions, listRunners, setPrDoc } from '@/lib/sessions';
+import { validModel } from '@/lib/agent-launch';
 import { startChat, liveState, reconcileStale } from '@/lib/agent-host';
 import { askingOf } from '@/lib/asking';
 import { createPrDoc, goalForRequest, readPrDoc, setRefining } from '@/lib/pr-docs';
@@ -13,7 +14,7 @@ import { listSkills } from '@/lib/skills';
 import { stat } from 'node:fs/promises';
 import { REPO_ROOT } from '@/lib/products';
 
-// GET → { sessions } — each with its requests from the graph (decision:wf2.plan-per-request); POST { agent, instruction, refs?, source?, images?, pr? } → the new session (status queued).
+// GET → { sessions } — each with its requests from the graph (decision:wf2.plan-per-request); POST { agent, instruction, refs?, source?, images?, pr?, model? } → the new session (status queued).
 // `pr: true` (or role librarian) makes a Prompt Request: the page is created as draft, set refining, and a librarian refines it (decision:wf2.cmd-modes);
 // `pr: false` is an ad-hoc conversation on the chosen agent — no page.
 export async function GET(_req: Request, { params }: { params: Promise<{ product: string }> }) {
@@ -27,7 +28,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ product
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const body = (await req.json()) as { agent?: string; instruction?: string; refs?: string[]; source?: Record<string, string>; mode?: 'run' | 'chat'; cwd?: string; pr?: boolean; prRef?: string; remember?: boolean; images?: { name?: string; dataUrl: string }[]; role?: 'worker' | 'librarian'; skills?: string[]; hooks?: string[]; skill?: string };
+  const body = (await req.json()) as { agent?: string; instruction?: string; refs?: string[]; source?: Record<string, string>; mode?: 'run' | 'chat'; cwd?: string; pr?: boolean; prRef?: string; remember?: boolean; images?: { name?: string; dataUrl: string }[]; role?: 'worker' | 'librarian'; skills?: string[]; hooks?: string[]; skill?: string; model?: string };
   // Ask Wye (req:exec.ask-wye): a librarian session — claude on the host with the librarian prompt, in the Wye repo
   // Remember (skill:remember): what the person pasted, filed as knowledge by a librarian — a conversation, no request page
   const remember = body.remember === true;
@@ -51,7 +52,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     if (!cwd) return NextResponse.json({ error: 'invalid', message: 'a working folder is required' }, { status: 422 });
     try { if (!(await stat(cwd)).isDirectory()) throw new Error(); } catch { return NextResponse.json({ error: 'invalid', message: `folder not found: ${cwd}` }, { status: 422 }); }
   }
-  const s = await createSession(p.dir, product, { agent, instruction: instruction || '(image)', refs: (body.refs ?? []).filter(r => typeof r === 'string').slice(0, 50), source: body.source ?? {}, mode, cwd: cwd || undefined, images, role, skills: [...(remember ? ['skill:remember'] : []), ...(skillId ? [skillId] : []), ...(body.skills ?? []).filter(x => /^skill:[A-Za-z0-9_.\-]+$/.test(x))], hooks: (body.hooks ?? []).filter(x => /^hook:[A-Za-z0-9_.\-]+$/.test(x)) });
+  const s = await createSession(p.dir, product, { agent, instruction: instruction || '(image)', refs: (body.refs ?? []).filter(r => typeof r === 'string').slice(0, 50), source: body.source ?? {}, mode, cwd: cwd || undefined, images, role, ...(validModel(body.model?.trim()) ? { model: body.model!.trim() } : {}), skills: [...(remember ? ['skill:remember'] : []), ...(skillId ? [skillId] : []), ...(body.skills ?? []).filter(x => /^skill:[A-Za-z0-9_.\-]+$/.test(x))], hooks: (body.hooks ?? []).filter(x => /^hook:[A-Za-z0-9_.\-]+$/.test(x)) });
   // a request has its page before the first message names it (rule:pr-doc); an ad-hoc conversation and a queued run have none
   const wfUrl = new URL(req.url).origin;
   // the Quick start's `remember` step: a Remember was accepted (markStep never throws)

@@ -418,6 +418,7 @@ type means instances may carry properties the type does not declare without a wa
     takes: string?                                    # the kind it runs on
     writes: list of string?                           # the kinds it produces
     skills: list of skill?                            # composition, one level
+    model: string?                                    # the model its sessions run: `opus`, or `claude-code=opus codex=gpt-5` (decision:wf2.agent-launch)
 - id: type:hook
   extends: type:node
   purpose: >
@@ -459,6 +460,7 @@ type means instances may carry properties the type does not declare without a wa
     until: string?
     gate: enum [person, auto]?
     worker: string?
+    model: string?                                    # the model this stage's sessions run, over the skill's and the workflow's
     skills: list of skill?
 - id: type:run
   extends: type:node

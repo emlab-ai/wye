@@ -441,6 +441,10 @@ Worker      implements the approved change; never quietly redefines the product
 Every running agent shows in the app's left rail with what it is doing. A click opens its conversation, where you
 answer its questions.
 
+Which model an agent runs and how much it does without asking is yours to set: **Settings › Agents** has, for each of
+the two, a default model, a mode (ask, accept edits, auto, plan … up to skipping every check), an effort, and a line
+for any other flag the CLI takes. A skill, a workflow or one stage can name its own model with `model:` on its card.
+
 ## Parallel work
 
 Agents can work faster than people can keep overlapping changes in their heads, and two reasonable changes can each

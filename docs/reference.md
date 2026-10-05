@@ -318,6 +318,26 @@ The Claude Code skills in `skills/` (linked by `install.sh`) teach an agent the 
 `wye-context` (query the graph before code, describe the change before building, `wye check` before done),
 `wye-describe-module` (the inventory process behind `wye deepen`), `wye-restore` (continue a session by id).
 
+### How an agent is launched
+
+Settings › Agents holds, per agent, what the app adds when it starts one (`<data>/_settings.json`, `launch: {
+"claude-code": { model, mode, effort, args }, codex: { … } }`; `PUT /api/settings { launch }` replaces the agents it
+names):
+
+| | Claude Code (`claude -p …`) | Codex (`codex exec …`) |
+|---|---|---|
+| model | `--model <alias or id>` | `--model <id>` |
+| mode | ask (nothing added) · `--permission-mode acceptEdits` · `auto` · `plan` · `dontAsk` · YOLO `--dangerously-skip-permissions` | `--sandbox workspace-write` (as before) · `read-only` · `--approve-for-me` · `danger-full-access` · YOLO `--dangerously-bypass-approvals-and-sandbox` |
+| effort | `--effort low … max` | `-c model_reasoning_effort=minimal … xhigh` |
+| more flags | added last, as typed — quotes keep a value together | the same, after `exec` |
+
+The model is the first one named of: the conversation's own (the Model field of the command box, `model` on `POST
+/api/<product>/sessions`), the stage's, the skill's, the workflow's, the app's default, the CLI's own. On a card it is
+`model: opus` — for whichever agent runs — or `model: claude-code=opus codex=gpt-5` to name one each. The
+conversation's first note says what was added and where the model came from. A librarian keeps its closed tool set
+whatever the mode; a scheduled job's own agent takes only a model named on its skill; a resumed Codex turn takes the
+sandbox as `-c sandbox_mode=`; `wye agent listen` runners keep their own `--cmd`.
+
 ## The command line
 
 `wye` is the one command: the agent's and the person's door into the running app (`WYE_URL`, default

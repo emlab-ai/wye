@@ -8,6 +8,7 @@ import { docNodeOf } from '@/lib/doc';
 import { prDocPath } from '@/lib/pr-doc';
 import { SmartTag } from './SmartTag';
 import { AGENTS, type Session } from '@/lib/session-types';
+import { LAUNCH_OPTIONS } from '@/lib/agent-launch';
 import { AttachStrip, useImageAttachments } from './Attachments';
 import { loadRecent, rememberRecent } from '@/lib/recent';
 
@@ -45,6 +46,9 @@ export function CommandBox() {
   const [target, setTarget] = useState<string>('new'); // session id | 'new' | 'runner'
   const [agent, setAgent] = useState(AGENTS[0].id);
   const [cwd, setCwd] = useState('');
+  // the model of a new conversation; empty = the default of Settings › Agents (decision:wf2.agent-launch), kept per agent
+  const [model, setModel] = useState('');
+  useEffect(() => { let m = ''; try { m = localStorage.getItem(`wf-model-${agent}`) ?? ''; } catch { /* ignore */ } setModel(m); }, [agent]);
   const [defaults, setDefaults] = useState<{ cwd: string; wye: string }>({ cwd: '', wye: '' });
   const [mode, setModeState] = useState<CmdMode>('pr');
   const [workflows, setWorkflows] = useState<{ id: string; title: string; stages: { id: string; title: string }[] }[]>([]);
@@ -208,10 +212,10 @@ export function CommandBox() {
     }
     const sessionMode = target === 'runner' ? 'run' : 'chat';
     const source = { ...(req.source ?? {}), ...(req.text ? { text: req.text.slice(0, 2000) } : {}) };
-    const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ agent, instruction, refs, source, mode: sessionMode, cwd: cwd.trim(), pr: false, images: attach.images }) });
+    const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ agent, instruction, refs, source, mode: sessionMode, cwd: cwd.trim(), pr: false, images: attach.images, ...(model.trim() ? { model: model.trim() } : {}) }) });
     const j = await r.json().catch(() => ({})); setBusy(false);
     if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not start'); return; }
-    try { localStorage.setItem(`wf-cwd-${product}`, cwd.trim()); localStorage.setItem(`wf-agent-${product}`, agent); } catch { /* ignore */ }
+    try { localStorage.setItem(`wf-cwd-${product}`, cwd.trim()); localStorage.setItem(`wf-agent-${product}`, agent); localStorage.setItem(`wf-model-${agent}`, model.trim()); } catch { /* ignore */ }
     remember(instruction);
     setReq(null); open(`session:${j.id}`);
   };
@@ -278,6 +282,7 @@ export function CommandBox() {
               </select>
             </label>
             {isNew && <label className="palette-field"><span>Agent</span><select value={agent} onChange={e => setAgent(e.target.value)}>{AGENTS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}</select></label>}
+            {isNew && LAUNCH_OPTIONS[agent] && <label className="palette-field" title="The model this conversation runs — empty: the default of Settings › Agents"><span>Model</span><input className="palette-cwd palette-model" value={model} placeholder="default" list={`models-${agent}`} onChange={e => setModel(e.target.value)} spellCheck={false} /><datalist id={`models-${agent}`}>{LAUNCH_OPTIONS[agent].models.map(m => <option key={m} value={m} />)}</datalist></label>}
             {target === 'new' && <label className="palette-field palette-field-wide"><span>Folder</span><input className="palette-cwd" value={cwd} placeholder={defaults.cwd || 'the code repository the agent works in'} onChange={e => setCwd(e.target.value)} spellCheck={false} /></label>}
             {!isNew && <label className="palette-check" title="Stop that agent and start a fresh one in the same folder before this message: it forgets the conversation so far and reads what it needs from Wye"><input type="checkbox" checked={fresh} onChange={e => setFresh(e.target.checked)} /> clear context first</label>}
           </div>}

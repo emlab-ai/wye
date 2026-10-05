@@ -3,7 +3,9 @@
 // Lives on globalThis so dev-server module reloads do not orphan the processes.
 import { spawn, type ChildProcess } from 'node:child_process';
 import { getSession, updateSession, appendTranscript, enqueue, takeFromQueue, markTurnEnd, queueMessage, imageLines, filesDir, runAskHooks, onSessionEnd, type AskInput } from './sessions';
-import { agentSettings, readSettings } from './settings';
+import { agentSettings, launchSettings, readSettings } from './settings';
+import { claudeLaunchArgs, codexLaunchArgs, launchLine, resolveModel, type AgentLaunch, type ModelSource } from './agent-launch';
+import { cardValue } from './hooks';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { queueView, type ChatEvent, type QueueItem, type QueueView, type Session, type TurnUsage } from './session-types';
@@ -23,7 +25,7 @@ import './hooks-run';     // registers the session-end events of the hooks engin
 // `turn`: the queue items handed to the open turn — stamped done / failed when it ends (decision:wf2.queue-item-state);
 // `product` / `wfUrl` let the pump build a first message when a fresh item comes up (rule:clean-slate); `stopped`: the
 // person ended the process, so its exit must not rewrite the recorded status.
-type Live = { ownConfig?: boolean; id: string; productDir: string; product: string; wfUrl: string; agent: string; role?: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string; known: Set<string>; model?: string; codexError?: string; codexUsage?: TurnUsage; idle?: ReturnType<typeof setTimeout>; turn: string[]; stopped?: boolean };
+type Live = { ownConfig?: boolean; /** how this session's agent is launched, resolved when its process starts (decision:wf2.agent-launch) */ launch?: AgentLaunch; launchModel?: string; id: string; productDir: string; product: string; wfUrl: string; agent: string; role?: string; cwd: string; proc: ChildProcess | null; subs: Set<(e: ChatEvent) => void>; pending: ChatEvent[]; flush: ReturnType<typeof setTimeout> | null; agentSessionId?: string; turnBusy: boolean; pumping: boolean; codexThread?: string; known: Set<string>; model?: string; codexError?: string; codexUsage?: TurnUsage; idle?: ReturnType<typeof setTimeout>; turn: string[]; stopped?: boolean };
 const g = globalThis as unknown as { __wfAgentHost?: Map<string, Live> };
 const live = () => (g.__wfAgentHost ??= new Map<string, Live>());
 
@@ -207,6 +209,23 @@ export async function startChat(productDir: string, product: string, id: string,
 const spawnFailed = (l: Live, bin: string) => (e: NodeJS.ErrnoException) => emit(l, { kind: 'stderr', text: e.code === 'ENOENT' ? `${bin} is not installed (not on PATH) — install it, or pick the other agent in Settings › Agents` : `${bin} could not start: ${e.message}` });
 const agentPath = () => `${path.resolve(process.cwd(), '../../bin/path')}${path.delimiter}${process.env.PATH ?? ''}`;
 
+// How a session's agent is launched (decision:wf2.agent-launch): the agent's settings, and the model — the session's
+// own, else its stage's, its skills', its workflow's, the app's default for the agent; the first that names one. A
+// scheduled job's agent (ownConfig) runs as this machine set it up, so the app's default is not its.
+export async function launchOf(product: string, s: Session): Promise<{ launch: AgentLaunch; model: { model: string; from: string } | null }> {
+  const launch = launchSettings(await readSettings())[s.agent] ?? {};
+  const sources: ModelSource[] = [{ from: 'this session', value: s.model }];
+  const scope = await loadScope(product).catch(() => null);
+  if (scope) {
+    const card = (id: string) => { const n = scope.idx.byId.get(id); return n ? cardValue(n.body, 'model') : ''; };
+    const stage = s.hook?.id.startsWith('stage:') ? s.hook.id : '';
+    if (stage) sources.push({ from: stage, value: card(stage) });
+    for (const id of new Set([...(s.hook?.skill ? [s.hook.skill] : []), ...(s.skills ?? [])])) sources.push({ from: id, value: card(id) });
+    if (stage) for (const e of scope.idx.out.get(stage) ?? []) if (e.verb === 'part-of' && e.to.startsWith('workflow:')) sources.push({ from: e.to, value: card(e.to) });
+  }
+  if (!s.ownConfig) sources.push({ from: 'Settings › Agents', value: launch.model });
+  return { launch, model: resolveModel(s.agent, sources) };
+}
 async function startProcess(l: Live, s: Session, product: string, opts: { wfUrl: string; firstMessage?: string; shown?: string; images?: string[]; resume?: boolean }): Promise<Session | null> {
   const { id, productDir, cwd } = l;
   const first = opts.firstMessage ?? (opts.resume ? undefined : await buildPrompt(product, s, opts.wfUrl, productDir));
@@ -218,20 +237,23 @@ async function startProcess(l: Live, s: Session, product: string, opts: { wfUrl:
   // a session's own system text (an import lane's brief) follows the contract: one stable prefix, cached across turns
   const system = (await agentSystemPrompt(product, productDir, opts.wfUrl, s.role ?? 'worker')) + (s.system ? `\n\n${s.system.trim()}\n` : '');
   await updateSession(productDir, id, { status: 'running', runner: `app@${process.pid}`, line: opts.resume ? 'resumed' : 'started in the app', cwd });
+  const { launch, model } = await launchOf(product, s);
+  l.launch = launch; l.launchModel = model?.model;
+  const how = launchLine(s.agent, launch, model, { librarian: s.role === 'librarian', own: !!s.ownConfig });
   if (s.agent === 'codex') {
     // codex exec has no system-prompt flag: the contract opens the first turn
-    emit(l, { kind: 'note', text: `codex in ${cwd}` });
+    emit(l, { kind: 'note', text: `codex in ${cwd}${how ? ` · ${how}` : ''}` });
     if (first) { emit(l, userEvent(shown)!); codexTurn(l, cwd, l.codexThread ? first : `${system}\n\n---\n\n${first}`, true, imgs.map(i => i.path)); } else pump(l);
     return getSession(productDir, id);
   }
   const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--permission-prompt-tool', 'stdio', '--forward-subagent-text', '--append-system-prompt', system, '--add-dir', REPO_ROOT];
   // the librarian's closed tool set (decision:exec.librarian-on-the-host): wye reads and proposals, reading files, questions — no edits, no shell, no git
   if (s.role === 'librarian') args.push('--allowedTools', 'Bash(wye:*)', 'Read', 'Grep', 'Glob', '--disallowedTools', 'Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash(git:*)', 'Bash(rm:*)', 'Bash(npm:*)', 'Bash(node:*)', 'Agent', 'Task');
-  if (s.model) args.push('--model', s.model);
+  args.push(...claudeLaunchArgs(launch, { model: model?.model, librarian: s.role === 'librarian', own: !!s.ownConfig }));
   if (opts.resume && s.agentSessionId) args.push('--resume', s.agentSessionId);
   const proc = spawn('claude', args, { cwd, env: { ...process.env, PATH: agentPath(), WYE_URL: opts.wfUrl, WYE_PRODUCT: product, WYE_SESSION: id, WF_URL: opts.wfUrl, WF_PRODUCT: product, WF_SESSION: id } });
   l.proc = proc;
-  emit(l, { kind: 'note', text: `claude ${opts.resume ? 'resumed' : 'started'} in ${cwd} · ${s.role === 'librarian' ? 'the librarian: reads and proposes, no code' : 'Wye contract applied as system prompt'}` });
+  emit(l, { kind: 'note', text: `claude ${opts.resume ? 'resumed' : 'started'} in ${cwd} · ${s.role === 'librarian' ? 'the librarian: reads and proposes, no code' : 'Wye contract applied as system prompt'}${how ? ` · ${how}` : ''}` });
   let buf = '';
   // a process replaced by restartFresh may still write its last lines: they are not this conversation's any more
   proc.stdout.on('data', d => { if (l.proc !== proc) return; buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) onClaudeLine(l, line); } });
@@ -436,7 +458,9 @@ function codexTurn(l: Live, cwd: string, text: string, fromQueue = false, imageP
   // the sandbox may write the workspace and reach the network: the `wye` CLI talks to this app on localhost (a sandbox
   // without network made every wye call fail with `fetch failed`)
   const net = ['-c', 'sandbox_workspace_write.network_access=true'];
-  const args = l.codexThread ? [...net, 'exec', 'resume', l.codexThread, '--json', ...imgArgs, text] : [...net, 'exec', '--json', ...(l.ownConfig ? [] : ['--sandbox', 'workspace-write']), ...imgArgs, text];
+  // the model, the sandbox or approvals and the person's own flags, as Settings › Agents says (decision:wf2.agent-launch)
+  const how = (resume: boolean) => codexLaunchArgs(l.launch ?? {}, { model: l.launchModel, resume, own: !!l.ownConfig });
+  const args = l.codexThread ? [...net, 'exec', 'resume', l.codexThread, '--json', ...how(true), ...imgArgs, text] : [...net, 'exec', '--json', ...how(false), ...imgArgs, text];
   // stdin must not be an open pipe: `codex exec` appends piped stdin to the prompt and waits for EOF, so a pipe
   // nobody closes hangs the turn with no output (found 2026-09-20; the prompt is the argument, images are files)
   const proc = spawn('codex', args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, PATH: agentPath(), WF_SESSION: l.id, WF_PRODUCT: l.productDir.split('/').pop() } });

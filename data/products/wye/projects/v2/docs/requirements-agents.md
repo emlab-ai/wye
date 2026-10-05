@@ -636,6 +636,43 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - then:wf.self it appears first as a req in this file, is approved, implemented, and flipped to shipped with a test
 
+```yaml
+- id: req:wf2.agent-launch
+  title: A person chooses the model and the mode Claude Code and Codex run with — a default for the app, a model per skill, workflow and stage, any other flag as typed
+  status: proposed
+  refines: req:wf2.hooks
+  satisfied-by: [lib:agent-launch, lib:agent-host, lib:settings, component:settings-agents, component:command-box, op:api.settings, type:skill, type:stage]
+  verified-by: [test:web-lib#agent-launch]
+  by: alex
+  evidence: [session:4e398381-6c8c-4445-b822-a07e48e1597a]
+  part-of: module:req-agents
+```
+
+  - when:wf2.agent-launch the app starts an agent for a conversation — from the command box, a task assigned to an agent, a hook's `run skill:`, a stage of a workflow run, an approved PR's build
+
+  - then:wf2.agent-launch the process is launched as Settings › Agents says for that agent (decision:wf2.agent-launch): its model, its mode (Claude Code: ask, accept edits, auto, plan, don't ask, YOLO; Codex: workspace, read only, auto review, full access, YOLO), its effort, and the person's own flags added after them as typed; the model is the session's own when the person named one in the command box, else the stage's, the skill's, the workflow's `model:` (a bare name for whichever agent runs, or `claude-code=opus codex=gpt-5` to name one each), else the app's default for the agent, else the CLI's own; the conversation's opening note says what was added and where the model came from
+
+  - unless:wf2.agent-launch the session is a librarian's — it keeps its closed tool set whatever the mode (decision:exec.librarian-on-the-host), only model, effort and flags apply; or a scheduled job's own agent (decision:wf2.scheduler-runs-agents) — it runs as this machine set it up and takes only a model named on its skill; a conversation already running keeps what it started with until its next start; `wye agent listen` runners keep their own `--cmd`, and the one-shot model calls (intake, verdicts, ask) keep their fixed models
+
+```yaml
+- id: decision:wf2.agent-launch
+  title: How an agent is launched is the app's setting per agent; a skill, workflow or stage names only its model, and the most specific one wins
+  date: 2026-10-05
+  status: proposed
+  by: alex
+  affects: [lib:agent-host, lib:agent-launch, component:settings-agents, type:skill, type:stage]
+  evidence: [session:4e398381-6c8c-4445-b822-a07e48e1597a]
+  part-of: module:req-agents
+```
+
+  - context:wf2.agent-launch "add ability to choose model to run on claude/codex allow to specify default model for app, allow to specify default model for each skill and workflow. also add configuration parameters to claude / codex i.e. run by default in auto mode, or yolo etc (see which parameters are allowed by each cli, and support them, but also let user specify custom i.e. --asdfads)". Until now every session ran the CLI's own default model and a fixed mode (Claude asking for each permission, Codex in the workspace sandbox).
+
+  - choice:wf2.agent-launch `launch: { <agent>: { model, mode, effort, args } }` in the app's settings (this machine's, like the parallel runners), edited under Settings › Agents with the flags it adds shown as a line. Modes are the ones each CLI has: `--permission-mode` / `--dangerously-skip-permissions` for claude, `--sandbox` / `--approve-for-me` / `--dangerously-bypass-approvals-and-sandbox` for codex (a resumed Codex turn has no `--sandbox`, so it goes as `-c sandbox_mode=`); effort is `--effort` and `-c model_reasoning_effort=`. A model is the one thing a card carries: `model:` on a skill, a workflow or a stage card. Order: the session's own, the stage's, the skill's, the workflow's, the app's default — a stage is the person's override inside one pipeline, a skill knows what its work needs, the workflow is the default for its stages.
+
+  - alternative:wf2.agent-launch the mode on a skill or workflow card too — rejected for now: a card travels with a product (export, packages), and "skip every permission check" should be this machine's person's decision, not something an imported skill brings. A workflow's model over its skills' — rejected: a skill that names a model has a reason tied to its work; the stage card is where a pipeline overrides it. A fixed list of models — rejected: the CLIs take aliases and full ids that change with every release, so the field is free text with the aliases suggested.
+
+  - consequence:wf2.agent-launch claude's `auto` mode is silently `default` on a model without it (Haiku, checked 2026-10-05); the opening `init` line shows the mode the CLI really took. A wrong flag of the person's own makes every start of that agent fail with the CLI's error in the conversation — the setting is theirs to fix.
+
 <!-- /list:req -->
 
 ## Open questions

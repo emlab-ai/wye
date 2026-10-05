@@ -4,10 +4,11 @@
 import { readFile, writeFile, chmod } from 'node:fs/promises';
 import path from 'node:path';
 import { DATA_ROOT } from './products';
+import { cleanLaunch, type LaunchSettings } from './agent-launch';
 
 // onboarding: the Quick start's marked steps and dismissal per product slug — about the person at this machine, so here
 // and never in a product file, Git or an export (docs/superpowers/specs/2026-10-05-onboarding-design.md)
-export interface Settings { jev?: { key?: string }; agents?: { parallel?: number; agent?: string; hooks?: boolean }; timezone?: string; onboarding?: Record<string, { done?: string[]; dismissed?: boolean }> }
+export interface Settings { jev?: { key?: string }; agents?: { parallel?: number; agent?: string; hooks?: boolean }; /** how each agent CLI is launched: model, mode, effort, the person's own flags (lib/agent-launch) */ launch?: LaunchSettings; timezone?: string; onboarding?: Record<string, { done?: string[]; dismissed?: boolean }> }
 
 // The dispatcher's knobs (decision:wf2.pr-scheduler): how many builds run at once, and which agent builds by default.
 export const AGENT_IDS = ['claude-code', 'codex'];
@@ -18,6 +19,9 @@ export function agentSettings(s: Settings): { parallel: number; agent: string; h
   const agent = AGENT_IDS.includes(s.agents?.agent ?? '') ? s.agents!.agent! : DEFAULT_AGENTS.agent;
   return { parallel, agent, hooks: s.agents?.hooks !== false };
 }
+
+// how each agent is launched (decision:wf2.agent-launch): every known agent, empty when nothing is set
+export const launchSettings = (s: Settings): LaunchSettings => cleanLaunch(s.launch);
 
 // the person's time zone (decision:ea.time-based-hooks): what a `time.<schedule>` hook's HH:MM means; WYE_TZ overrides
 // it (tests), else the setting, else this machine's zone — an IANA name Intl does not know falls through
@@ -34,13 +38,15 @@ export async function readSettings(root: string = DATA_ROOT): Promise<Settings> 
 }
 export async function writeSettings(patch: Settings, root: string = DATA_ROOT): Promise<Settings> {
   const cur = await readSettings(root);
-  const next: Settings = { ...cur, ...(patch.jev ? { jev: { ...cur.jev, ...patch.jev } } : {}), ...(patch.agents ? { agents: { ...cur.agents, ...patch.agents } } : {}), ...(patch.timezone !== undefined ? { timezone: patch.timezone } : {}), ...(patch.onboarding ? { onboarding: mergeOnboarding(cur.onboarding, patch.onboarding) } : {}) };
+  const next: Settings = { ...cur, ...(patch.jev ? { jev: { ...cur.jev, ...patch.jev } } : {}), ...(patch.agents ? { agents: { ...cur.agents, ...patch.agents } } : {}), ...(patch.launch ? { launch: mergeLaunch(cur.launch, patch.launch) } : {}), ...(patch.timezone !== undefined ? { timezone: patch.timezone } : {}), ...(patch.onboarding ? { onboarding: mergeOnboarding(cur.onboarding, patch.onboarding) } : {}) };
   if (next.timezone !== undefined && !validZone(next.timezone)) delete next.timezone; // an empty or unknown zone: back to the machine's
   if (next.jev && !next.jev.key) delete next.jev; // an empty key removes the section
   await writeFile(file(root), JSON.stringify(next, null, 2) + '\n', { mode: 0o600 });
   await chmod(file(root), 0o600).catch(() => {}); // writeFile's mode only applies to a new file
   return next;
 }
+// an agent the patch names is replaced whole (an emptied field must go); the others are kept
+const mergeLaunch = (cur: Settings['launch'], patch: LaunchSettings) => cleanLaunch({ ...(cur && typeof cur === 'object' ? cur : {}), ...patch });
 // a patch's products merged field by field into the stored ones; products the patch does not name are kept
 const mergeOnboarding = (cur: Settings['onboarding'], patch: NonNullable<Settings['onboarding']>) => {
   const out = { ...(cur && typeof cur === 'object' ? cur : {}) };
@@ -49,6 +55,6 @@ const mergeOnboarding = (cur: Settings['onboarding'], patch: NonNullable<Setting
 };
 // the stored key, or the environment's for tests and evals outside the app
 export async function jevKey(root: string = DATA_ROOT): Promise<string> { return (await readSettings(root)).jev?.key || (root === DATA_ROOT ? process.env.TYPESAFE_API_KEY : '') || ''; }
-export function publicSettings(s: Settings): { jev: { set: boolean; last4: string }; agents: { parallel: number; agent: string; hooks: boolean }; timezone: string } {
-  const k = s.jev?.key ?? ''; return { jev: { set: !!k, last4: k.slice(-4) }, agents: agentSettings(s), timezone: timeZoneOf(s) };
+export function publicSettings(s: Settings): { jev: { set: boolean; last4: string }; agents: { parallel: number; agent: string; hooks: boolean }; launch: LaunchSettings; timezone: string } {
+  const k = s.jev?.key ?? ''; return { jev: { set: !!k, last4: k.slice(-4) }, agents: agentSettings(s), launch: launchSettings(s), timezone: timeZoneOf(s) };
 }
