@@ -852,6 +852,25 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/system/folders/route.ts
   status: proposed
   part-of: module:api
+- id: op:install.cli
+  args: GET | POST /api/system/cli
+  does: >
+    the wye command and the Claude Code skills, installed from the app (what `wye setup` and install.sh do; the app
+    also does it at startup when the command is missing). GET → { installed, link, onPath, blocked }; POST → links
+    the command into ~/.local/bin and the skills into ~/.claude/skills.
+  gate: none (local app)
+  source: packages/web/src/app/api/system/cli/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:install.toolchain
+  args: GET /api/system/tools
+  does: >
+    GET → { agents: { claude, codex }, wye: { installed, link, onPath, … }, tools: { git, gh, … } }; ?fresh=1 skips
+    the minute's cache
+  gate: none (local app)
+  source: packages/web/src/app/api/system/tools/route.ts
+  status: proposed
+  part-of: module:api
 ```
 
 <!-- /list:op -->

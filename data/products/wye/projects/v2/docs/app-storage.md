@@ -1055,6 +1055,16 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     takes. An empty path is the home folder; a path that is not a folder answers with its nearest existing parent.
   status: proposed
   part-of: module:app-storage
+- id: lib:toolchain
+  file: packages/web/src/lib/toolchain.ts
+  side: server
+  purpose: >
+    What this machine has for the app and its agents (op&#58;install.toolchain): the coding agents
+    (agents-available), the `wye` command (installed in ~/.local/bin, bin/wye-home.js) and the command-line tools an
+    agent may reach for. Checked once at startup (instrumentation.ts, which also installs `wye` when it is missing),
+    then on request, cached a minute.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->
