@@ -17,7 +17,9 @@ wye setup              # your products go in ~/.wye/data; the Claude Code skills
 wye app                # the app at http://localhost:3456
 ```
 
-Local-first, no accounts, Apache-2.0. [Getting started](#getting-started) has the details.
+Needs Node.js 20.9+ and [Claude Code](https://claude.com/claude-code) or [Codex](https://github.com/openai/codex)
+installed: Wye runs its agents through them. Local-first, no accounts, Apache-2.0.
+[Getting started](#getting-started) has the details.
 
 ---
 
@@ -464,7 +466,8 @@ itself.
 
 ## Getting started
 
-Wye needs Node.js 20.9+.
+Wye needs Node.js 20.9+ and **Claude Code (`claude`) or Codex (`codex`) installed and signed in**: it doesn't have its
+own agent, it runs one of those.
 
 ```bash
 npm install -g @emlab/wye
@@ -476,8 +479,8 @@ wye app                                   # the app at http://localhost:3456
 Your products live in `~/.wye/data/products/` (set `WYE_HOME` to put them elsewhere), and an update never touches
 them. A product can also keep its documents next to its code: `root: <path>` in its `_product.md`.
 
-The agent features need `claude` or `codex` on your `PATH`. The core (Markdown, the graph, the product definition)
-needs neither. The first search downloads two small local models into `~/.wye/.cache/models`.
+Without either, only the core works: the Markdown, the graph, `wye build` / `wye check` and the app's documents. The
+librarian, builds, Ask's answers, Remember and contradiction checks all run through `claude` or `codex`. The first search downloads two small local models into `~/.wye/.cache/models`.
 
 **From a clone**, to work on Wye itself:
 
@@ -546,6 +549,11 @@ exercise: add structure where it gives leverage, and leave the rest as prose.
 
 ## What Wye is not
 
+- **A new coding agent.** Wye doesn't write your code. Claude Code or Codex does, with the product's definition in
+  front of it; Wye decides what goes into that first message and keeps what comes back.
+- **A new agent harness.** Wye doesn't replace the tool that runs the agent: no new agent loop, tool system or model
+  client. It starts the agents you already use (Claude Code or Codex, through their own command-line tools, with your
+  login) and talks to them. **For now, that means Claude Code or Codex must be installed on the machine.**
 - **A replacement for Git.** Git stays the history and the storage.
 - **Another issue tracker.** Tasks exist, but the central object is product knowledge, not tickets.
 - **A new programming language.** The output is ordinary software.
