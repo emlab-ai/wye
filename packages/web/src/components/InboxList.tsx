@@ -10,7 +10,8 @@ type Docs = { file: string; slug: string; title: string; project: string }[];
 
 // Inbox items to review: each one can be filed into a document as a node (with a suggested document and id) or
 // dismissed. Filed and dismissed items stay for the record.
-export function InboxList({ product, initial }: { product: string; initial: InboxItem[] }) {
+// `quiet`: the page already shows the Inbox's empty state, so no second "nothing" line under the form
+export function InboxList({ product, initial, quiet }: { product: string; initial: InboxItem[]; quiet?: boolean }) {
   const router = useRouter(); const { open } = usePeek();
   const [items, setItems] = useState(initial);
   const [filter, setFilter] = useState<'new' | 'all'>('new');
@@ -37,11 +38,11 @@ export function InboxList({ product, initial }: { product: string; initial: Inbo
   const counts = { new: items.filter(i => i.status === 'new').length, all: items.length };
   return (
     <div className="inbox">
-      <div className="track-tools"><div className="chips">
+      {!(quiet && !items.length) && <div className="track-tools"><div className="chips">
         <button className={`chip ${filter === 'new' ? 'on' : ''}`} onClick={() => setFilter('new')}>To review <small>{counts.new}</small></button>
         <button className={`chip ${filter === 'all' ? 'on' : ''}`} onClick={() => setFilter('all')}>All <small>{counts.all}</small></button>
-      </div></div>
-      {!shown.length && <p className="muted">Nothing to review. Agents drop decisions, requirements and questions here with <code>wye inbox add</code>; people with the form above.</p>}
+      </div></div>}
+      {!shown.length && !(quiet && !items.length) && <p className="muted">Nothing to review. Agents drop decisions, requirements and questions here with <code>wye inbox add</code>; people with the form above.</p>}
       <ul className="inbox-items">
         {shown.map(i => (
           <li key={i.name} className={`inbox-item ${i.status} ${openName === i.name ? 'open' : ''}`}>

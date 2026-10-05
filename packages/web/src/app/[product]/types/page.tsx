@@ -5,6 +5,7 @@ import { instancesOf, isBaseType, ontologyDoc } from '@/lib/types';
 import { docRoute } from '@/lib/doc';
 import { TypeRows, type TypeRow } from '@/components/TypeRows';
 import { AddType } from '@/components/AddType';
+import { EmptyState } from '@/components/EmptyState';
 
 // The product's ontology: its own types first (declared in its documents), then the base types every product has.
 export default async function TypesPage({ params }: { params: Promise<{ product: string }> }) {
@@ -24,8 +25,10 @@ export default async function TypesPage({ params }: { params: Promise<{ product:
       <header className="doc-head"><p className="crumbs"><Link href={`/${product}/knowledge`}>Knowledge</Link> / Types</p><h1 className="prop-in h1" style={{ margin: 0 }}>Types <span className="muted">{types.length}</span></h1>
         <p className="lede">Every kind of node is a type. A product declares its own with a <code>type:</code> card (<code>extends</code>, <code>props</code>) in any document; an instance of <code>type:team</code> is <code>team:&lt;slug&gt;</code>. Properties inherit along <code>extends</code>; a <code>ref</code> or <code>list of</code> property is a link with a named inverse on the other side.</p></header>
       <section className="kind-section"><h2>{scope.product.meta.title}&apos;s types <span className="muted">{own.length}</span></h2>
-        {own.length ? <TypeRows product={product} rows={own.map(row)} /> : <p className="muted">None yet. Add one below, or write a <code>type:</code> card in a document — see <Link href={`/${product}/types/node`}>type:node</Link> for the form.</p>}
-        <AddType product={product} types={types.map(t => ({ id: t.id, slug: t.slug }))} docs={docs} home={home} /></section>
+        {own.length ? <><TypeRows product={product} rows={own.map(row)} /><AddType product={product} types={types.map(t => ({ id: t.id, slug: t.slug }))} docs={docs} home={home} /></> : (
+          <EmptyState icon="⬡" title="No types of its own yet" actions={<AddType product={product} types={types.map(t => ({ id: t.id, slug: t.slug }))} docs={docs} home={home} />}>
+            <p>The base types below fit most products. A product can add its own vocabulary — <code>team:</code>, <code>vehicle:</code>, <code>dish:</code> — and its instances join the same graph. See <Link href={`/${product}/types/node`}>type:node</Link> for the form of a <code>type:</code> card.</p>
+          </EmptyState>)}</section>
       <section className="kind-section"><h2>Base types <span className="muted">{base.length}</span></h2><TypeRows product={product} rows={base.map(row)} /></section>
     </div>
   );

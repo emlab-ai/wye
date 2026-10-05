@@ -7,6 +7,8 @@ import { requestSend } from './CommandBox';
 import { filterWork, groupWork, workCounts, STATE_ORDER, type WorkItem, type WorkGroupBy, type WorkFilter, type WorkState } from '@/lib/work';
 import { TASK_STATUSES } from '@/lib/props';
 import { Assign } from './Assign';
+import { EmptyState } from './EmptyState';
+import { kindExample } from '@/lib/knowledge';
 
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');
 const GROUPS: { key: WorkGroupBy; label: string }[] = [{ key: 'status', label: 'status' }, { key: 'state', label: 'state' }, { key: 'goal', label: 'goal' }, { key: 'pr', label: 'request' }, { key: 'document', label: 'document' }, { key: 'worker', label: 'worker' }];
@@ -67,6 +69,8 @@ export function WorkList({ product, items, people }: { product: string; items: W
       {!collapsed.has(r.id) && r.children.map(c => <Row key={c.id} r={c} depth={depth + 1} />)}
     </>
   );
+  // no task anywhere yet (not a filter that matches none): what Work collects, and the line that makes a task
+  if (!items.length) return <WorkEmpty />;
   return (
     <div className="track work">
       <div className="track-tools">
@@ -101,5 +105,14 @@ export function WorkList({ product, items, people }: { product: string; items: W
       </div>
       {assigning && <Assign product={product} item={assigning} people={people} me={me} build={building ?? undefined} onClose={() => setAssigning(null)} onDone={s => { setAssigning(null); if (s) open(`session:${s}`); else router.refresh(); }} />}
     </div>
+  );
+}
+
+export function WorkEmpty() {
+  return (
+    <EmptyState icon="☑" title="No tasks yet">
+      <p>Tasks live in the documents, next to what made them: a requirement, a design, a Prompt Request. Work collects them into one board, grouped by status. Write one as a line:</p>
+      <p><code>{kindExample('task')}</code></p>
+    </EmptyState>
   );
 }

@@ -4,6 +4,8 @@ import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import { StatusPill } from './Pills';
 import { requestSend } from './CommandBox';
+import { EmptyState } from './EmptyState';
+import { kindExample } from '@/lib/knowledge';
 
 export type QuestionRow = { key: string; source: 'doc' | 'inbox'; id?: string; title: string; text?: string; status: string; where: string; href?: string; when: string; refs: string[]; node?: string; open?: boolean };
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');
@@ -13,6 +15,13 @@ export function QuestionList({ product, rows }: { product: string; rows: Questio
   const [filter, setFilter] = useState<'open' | 'all'>('open');
   const isOpen = (r: QuestionRow) => r.open ?? (r.source === 'inbox' ? r.status === 'new' : !['done', 'resolved', 'dismissed', 'answered', 'rejected'].includes(r.status));
   const shown = rows.filter(r => filter === 'all' || isOpen(r));
+  // none ever asked (not "none open"): what a question is here
+  if (!rows.length) return (
+    <EmptyState icon="?" title="No questions yet">
+      <p>A question is a block where it arose: written by a person, or asked by an agent that could not decide alone. The answer is a decision block next to it; the question is resolved in the Inbox.</p>
+      <p><code>{kindExample('question')}</code></p>
+    </EmptyState>
+  );
   return (
     <div className="track">
       <div className="track-tools"><div className="chips">

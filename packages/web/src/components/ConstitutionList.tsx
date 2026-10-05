@@ -2,13 +2,20 @@
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import { StatusPill } from './Pills';
+import { EmptyState } from './EmptyState';
+import { kindExample } from '@/lib/knowledge';
 import type { Constitutional } from '@/lib/constitution';
 
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');
 
-export function ConstitutionList({ product, rows }: { product: string; rows: Constitutional[] }) {
+export function ConstitutionList({ rows }: { product: string; rows: Constitutional[] }) {
   const { open } = usePeek();
-  if (!rows.length) return <p className="muted">No constraints yet. Write one as a <code>constraint:</code> block in the document it belongs to — <code>constraint:{product}.local-first Every write lands on this machine first #proposed</code> — and approve it in the inbox.</p>;
+  if (!rows.length) return (
+    <EmptyState icon="§" title="No constraints yet">
+      <p>The Constitution holds the rules no code enforces. Write one as a block in the document it belongs to, then approve it in the Inbox; from then on every agent reads it.</p>
+      <p><code>{kindExample('constraint')}</code></p>
+    </EmptyState>
+  );
   return (
     <ul className="qlist">
       {rows.map(r => (

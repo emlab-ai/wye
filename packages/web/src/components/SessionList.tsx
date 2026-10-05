@@ -22,7 +22,8 @@ export const isActive = (s: Session) => s.status === 'queued' || s.status === 'r
 export const shownStatus = (s: Session) => s.busy ? 'working' : s.live ? 'live' : s.status;
 // live, no open turn, nothing waiting: what "Stop idle" ends
 export const isIdle = (s: Session) => !!s.live && !s.busy && !(s.queue ?? []).some(q => !q.sentAt);
-export function SessionList({ product, initial, initialRunners }: { product: string; initial: Session[]; initialRunners: Runner[] }) {
+// `quiet`: the page shows its empty state above (no agent has ever run here), so no chips or "none" line while there are none
+export function SessionList({ product, initial, initialRunners, quiet }: { product: string; initial: Session[]; initialRunners: Runner[]; quiet?: boolean }) {
   const { openId, index } = usePeek(); const router = useRouter();
   const [origin, setOrigin] = useState(''); useEffect(() => { setOrigin(window.location.origin); }, []);
   const titles = docTitles(index);
@@ -54,11 +55,11 @@ export function SessionList({ product, initial, initialRunners }: { product: str
           ? <ul>{runners.map(r => <li key={r.name}><span className={`rdot ${r.busy ? 'busy' : ''}`} /><strong>{r.name}</strong><span className="muted">{agentLabel(r.agent)} · {r.host}{r.cwd ? ' · ' + r.cwd.replace(/^\/Users\/[^/]+/, '~') : ''}</span>{r.busy ? <button className="linkish" onClick={() => router.push(`/${product}/sessions/${r.busy}/chat`)}>on session {r.busy.slice(0, 6)}</button> : <span className="muted">idle</span>}</li>)}</ul>
           : <p className="muted">No runner is connected. Start one next to the code it should work on:<br /><code>wye agent listen --product {product} --agent claude-code</code> (or <code>--agent codex</code>). It picks up queued work for that agent and streams its output here.</p>}
       </div>
-      <div className="track-tools"><div className="chips">
+      {!(quiet && !sessions.length) && <div className="track-tools"><div className="chips">
         <button className={`chip ${filter === 'active' ? 'on' : ''}`} onClick={() => setFilter('active')}>Active <small>{activeCount}</small></button>
         <button className={`chip ${filter === 'all' ? 'on' : ''}`} onClick={() => setFilter('all')}>All <small>{sessions.length}</small></button>
-      </div></div>
-      {!shown.length && <p className="muted">{filter === 'active' ? 'No agent is active. ⌘P or Send to agent on any block starts one.' : 'No agents have worked here yet.'}</p>}
+      </div></div>}
+      {!(quiet && !sessions.length) && !shown.length && <p className="muted">{filter === 'active' ? 'No agent is active. ⌘P or Send to agent on any block starts one.' : 'No agents have worked here yet.'}</p>}
       <ul className="session-rows">
         {shown.map(s => (
           <li key={s.id} className={`session-row ${openId === `session:${s.id}` ? 'on' : ''}`} onClick={() => router.push(`/${product}/sessions/${s.id}/chat`)}>

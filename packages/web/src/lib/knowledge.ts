@@ -5,3 +5,18 @@ export const KIND_LABELS: Record<string, string> = {
   test: 'Tests', 'ui-test': 'UI tests', drift: 'Drift', product: 'Products', type: 'Types',
 };
 export const KIND_ORDER = Object.keys(KIND_LABELS);
+
+// The line that makes one node of a kind, for a page that has none yet (the onboarding's empty states) — the README's
+// own examples where it has one, else the bare shape.
+const EXAMPLES: Record<string, string> = {
+  goal: 'goal:checkout.fast Checkout should feel instantaneous.',
+  req: 'req:sale.close When the final kitchen item is completed, the order becomes Closed.',
+  rule: 'rule:payments.capture Payment must be captured before an order can be completed.',
+  decision: 'decision:payments.provider Use Stripe for online card processing.',
+  constraint: 'constraint:tenants.isolated Never expose one tenant\'s data to another tenant.',
+  entity: 'entity:order One customer\'s active purchase.',
+  task: '- [ ] task:kitchen-screen Build the kitchen display.',
+  question: 'question:refund.window Do enterprise contracts still promise 30 days?',
+  test: 'test:sale.close verifies req:sale.close.',
+};
+export const kindExample = (kind: string) => EXAMPLES[kind] ?? `${kind}:area.name One line that says what it is.`;

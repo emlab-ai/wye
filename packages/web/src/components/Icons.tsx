@@ -33,6 +33,14 @@ export const IconChevronsLeft = ({ size = 17 }: IconProps) => (
   </svg>
 );
 
+export const IconHelp = ({ size = 17 }: IconProps) => (
+  <svg {...svg(size)}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.6 9.3a2.5 2.5 0 0 1 4.85.85c0 1.7-2.45 2.2-2.45 3.6" />
+    <path d="M12 17.1h.01" strokeWidth={2.4} />
+  </svg>
+);
+
 // The node column's tools (PeekPanel): open, graph, send, capture, delete — one set with the rail's.
 export const IconOpen = ({ size = 20 }: IconProps) => (
   <svg {...svg(size)}><path d="M14 4h6v6" /><path d="M20 4 11 13" /><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" /></svg>

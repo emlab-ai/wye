@@ -24,6 +24,8 @@ import { ensureBaseSkills, ensureBaseWorkflows, ensureHooksPage, hooksPageId, sk
 import type { SkillItem } from '@/components/SkillFolder';
 import { waitingReasons } from '@/lib/dispatch';
 import { GoneNotice } from '@/components/GoneNotice';
+import { readOnboarding } from '@/lib/onboarding-io';
+import { quickStartLinks } from '@/lib/quick-start-links';
 
 export default async function ProductLayout({ children, params }: { children: ReactNode; params: Promise<{ product: string }> }) {
   const { product } = await params;
@@ -84,12 +86,16 @@ export default async function ProductLayout({ children, params }: { children: Re
   for (const p of scope.projects) for (const r of treeFor(scope, p.slug).roots) await walk(r);
  
   // the product's own types with the columns a table of them shows: every declared property but the root type's
+  // the Quick start's count for the rail, and the addresses the Help sheet links to (onboarding spec §2, §4)
+  const onboarding = await readOnboarding(scope.product.slug).catch(() => null);
+  const links = quickStartLinks(scope);
+
   const ownTypes = (scope.graph.types ?? []).filter(t => !isBaseType(t)).map(t => ({ slug: t.slug, ...(t.nestsIn?.length ? { nestsIn: t.nestsIn } : {}), ...(t.plural ? { plural: t.plural } : {}), cols: t.props.filter(p => !isImplicit(p)).map(p => ({ name: p.name, type: p.type, enum: p.enum, ref: p.ref, required: p.required })) }));
  
   return (
     <PeekProvider product={scope.product.slug} index={rsc ? null : scope.index} kinds={scope.graph.kinds} types={ownTypes} nests={nestingMap(scope.graph.types ?? [])} statuses={statusesByKind(scope.graph.types ?? [])}>
-      <Shell>
-        <Rail pins={pins} mainProject={rootsHome} products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} prs={prs} views={views} skills={skills} skillsPage={skillsPage} headings={headings} />
+      <Shell links={links}>
+        <Rail onboarding={onboarding && { done: onboarding.done, total: onboarding.total, show: onboarding.show }} pins={pins} mainProject={rootsHome} products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} prs={prs} views={views} skills={skills} skillsPage={skillsPage} headings={headings} />
         <LiveRefresh product={scope.product.slug} />
         <main className="content"><TopBar product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} docs={docs} />{children}</main>
       </Shell>

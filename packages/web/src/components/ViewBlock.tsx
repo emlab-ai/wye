@@ -6,6 +6,10 @@ import { createReactBlockSpec } from '@blocknote/react';
 import { usePeek } from './PeekProvider';
 import { InstanceTable } from './InstanceTable';
 import { KINDS } from '@/lib/ids';
+import { KIND_LABELS, kindExample } from '@/lib/knowledge';
+import { EmptyState } from './EmptyState';
+import { GoalsEmpty } from './TrackList';
+import { WorkEmpty } from './WorkList';
 import { parseViewQuery, viewQuery, type Filters, type InstanceTable as Table } from '@/lib/instance-table';
 
 // the kinds a view can list: the product's own types first, then the base kinds people look at as lists
@@ -84,10 +88,23 @@ export const ViewBlock = createReactBlockSpec(
             </select>
             {err && <span className="bad">{err}</span>}
           </div>
-          {scoped && initial && <InstanceTable product={product} table={scoped} initial={initial} onChange={onChange} as={asTable ? 'table' : 'list'} readOnly compact={!!scope} onNew={onNew} coverage={coverage} />}
-          {scoped && !scoped.rows.length && <p className="muted small">No {slug}s yet.</p>}
+          {scoped && initial && <InstanceTable product={product} table={scoped} initial={initial} onChange={onChange} as={asTable ? 'table' : 'list'} readOnly compact={!!scope} onNew={onNew} coverage={coverage} empty={scope ? undefined : viewEmpty(slug, !asTable)} />}
+          {scoped && !scoped.rows.length && scope && <p className="muted small">No {slug}s yet.</p>}
         </div>
       );
     },
   },
 );
+
+// a view with nothing to list yet (the system Goals and Work pages first of all, decision:wf2.views-are-pages): what
+// the kind is for and the line that makes one; the list's own new line below it writes one here
+function viewEmpty(slug: string, list: boolean) {
+  if (slug === 'goal') return <GoalsEmpty />;
+  if (slug === 'task') return <WorkEmpty />;
+  return (
+    <EmptyState title={`No ${(KIND_LABELS[slug] ?? slug).toLowerCase()} yet`}>
+      <p>Write one as a line in any document{list ? ', or type a title below' : ''}:</p>
+      <p><code>{kindExample(slug)}</code></p>
+    </EmptyState>
+  );
+}

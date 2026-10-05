@@ -10,6 +10,7 @@ import { SourceChips } from './search/SourceChips';
 import { useAsk } from './search/useAsk';
 import { isQuestion } from '@/lib/ask/question';
 import type { Citation, Hit, Source } from '@/lib/ask/types';
+import { EmptyState } from './EmptyState';
 
 // The search panel (req:wf2.ui.search, decision:wf2.ask-in-search-panel): ⌘F from anywhere. Typing ranks passages from
 // the product's blocks, documents, code and sessions — no model. Enter, or a question, asks: the fast answer streams
@@ -17,6 +18,8 @@ import type { Citation, Hit, Source } from '@/lib/ask/types';
 // itself when the fast one says the sources were thin). ⌘Enter opens the highlighted hit; follow-ups keep the thread.
 const TABS: { key: Source | 'all'; label: string }[] = [{ key: 'all', label: 'All' }, { key: 'node', label: 'Blocks' }, { key: 'doc', label: 'Docs' }, { key: 'code', label: 'Code' }, { key: 'session', label: 'Sessions' }];
 type Pick = { source: Source; ref: string };
+// before the first query: what Ask can answer, as questions to start from (onboarding, the `ask` step)
+const EXAMPLES = ['What is this product for?', 'Which requirements are still proposed?', 'What did agents decide this week?'];
 
 export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { product } = usePeek(); const router = useRouter();
@@ -85,7 +88,11 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
               </li>))}
             {q.trim().length >= 2 && !hits.length && <li className="muted search-none">Nothing matches — Enter asks anyway.</li>}
           </ul>
-          <div className={`search-preview${cur?.source === 'code' ? ' is-code' : ''}`}>{cur ? (cur.source === 'node' ? <EmbeddedCard id={cur.ref} /> : cur.source === 'code' ? <CodeView file={cur.ref.replace(/-\d+$/, '')} /> : <PassagePreview hit={list.find(h => h.ref === cur.ref)} cite={state?.found.find(f => f.ref === cur.ref)} />) : <p className="muted">Type to search; <b>Enter</b> asks. <b>⌘Enter</b> opens the highlighted hit.</p>}</div>
+          <div className={`search-preview${cur?.source === 'code' ? ' is-code' : ''}`}>{cur ? (cur.source === 'node' ? <EmbeddedCard id={cur.ref} /> : cur.source === 'code' ? <CodeView file={cur.ref.replace(/-\d+$/, '')} /> : <PassagePreview hit={list.find(h => h.ref === cur.ref)} cite={state?.found.find(f => f.ref === cur.ref)} />) : !q.trim() && !state ? (
+            <EmptyState title="Search or ask">
+              <p>Typing finds blocks, documents, code and agent sessions. Enter asks Wye: a fast answer in seconds and a deeper one with the sources it read, each cited.</p>
+              <div className="empty-state-chips">{EXAMPLES.map(x => <button key={x} type="button" className="chip" onClick={() => { setShowDeep(false); ask(x); }}>{x}</button>)}</div>
+            </EmptyState>) : <p className="muted">Type to search; <b>Enter</b> asks. <b>⌘Enter</b> opens the highlighted hit.</p>}</div>
         </div>
         <div className="search-foot muted">↑↓ move · Enter ask · ⌘Enter open · <button type="button" className="link" onClick={openAll}>Open as blocks</button> · Esc close</div>
       </div>

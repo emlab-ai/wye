@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation';
 import { listProducts } from '@/lib/products';
+import { Welcome } from '@/components/Welcome';
 
 export default async function Home() {
   const products = await listProducts();
-  if (!products.length) return <main style={{ padding: 32 }}><h1>No products yet</h1><p>Create <code>data/products/&lt;slug&gt;/_product.md</code> or use the API.</p></main>;
+  if (!products.length) return <Welcome />;
   redirect(`/${products[0].slug}`);
 }

@@ -1333,3 +1333,104 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .empty-state-actions { justify-content: center; margin-top: 6px; }
 .empty-state-hint { margin: 4px 0 0; font: 11px var(--font-m); color: var(--muted); }
 .rail .empty-state { margin: 10px 8px; padding: 14px 10px; max-width: none; width: auto; } .rail .empty-state-icon { font-size: 20px; }
+/* welcome + add product (onboarding) — components/Welcome (/ with no products) and components/AddProduct (/new, Welcome) */
+.add-product .seg-group { margin-bottom: 14px; }
+.add-product .form input:focus, .add-product .form textarea:focus { outline: none; border-color: var(--accent); }
+.add-product .sec-actions .pri:disabled { opacity: .45; cursor: default; }
+.add-product .lede { font-size: 14px; margin: 0 0 12px; }
+.welcome { max-width: 640px; margin: 0 auto; padding: 72px 24px 96px; }
+.welcome-head { display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-items: center; margin-bottom: 36px; }
+.welcome-mark { grid-row: span 2; width: 48px; height: 48px; border-radius: 12px; background: var(--ink); color: var(--ground); font: 700 24px var(--font-b); display: inline-flex; align-items: center; justify-content: center; }
+.welcome-head h1 { margin: 0; font-size: 30px; line-height: 1.1; letter-spacing: -.02em; }
+.welcome-tag { margin: 2px 0 0; color: var(--ink-2); font-size: 15px; }
+.welcome-loop { list-style: none; margin: 0 0 22px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.welcome-loop li { padding: 14px 16px 16px; } .welcome-loop li + li { border-left: 1px solid var(--line); } .welcome-loop li:first-child { padding-left: 0; } .welcome-loop li:last-child { padding-right: 0; }
+.welcome-loop b { font-size: 14px; } .welcome-loop code { font-size: 12px; background: var(--sunk); border-radius: 4px; padding: 0 4px; color: var(--ink); } .welcome-loop p { margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+.welcome-step { display: inline-block; min-width: 1.6em; font: 500 11px var(--font-m); color: var(--muted); }
+.welcome-agent { margin: 0 0 40px; font: 12px var(--font-m); color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.welcome-agent i { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); flex: none; display: inline-block; } .welcome-agent i.ok { background: var(--ok); }
+.welcome-agent.off { display: block; padding: 10px 14px; border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 8px; background: var(--surface); font: 13px/1.5 var(--font-b); color: var(--ink-2); }
+.welcome-agent.off p { margin: 0; } .welcome-agent.off p + p { margin-top: 4px; } .welcome-agent.off i { margin-right: 8px; vertical-align: 1px; } .welcome-agent.off b { color: var(--ink); font-weight: 600; }
+.welcome-agent.off code { font-size: 12px; background: var(--sunk); border-radius: 4px; padding: 1px 5px; }
+.welcome-add h2 { font-size: 18px; margin: 0 0 12px; letter-spacing: -.01em; }
+@media (max-width: 640px) {
+  .add-product .seg-group { display: grid; grid-template-columns: 1fr 1fr; width: 100%; } .add-product .seg:nth-child(2n) { border-right: 0; } .add-product .seg:nth-child(-n+2) { border-bottom: 1px solid var(--line-2); }
+  .welcome { padding-top: 40px; } .welcome-loop { grid-template-columns: 1fr; }
+  .welcome-loop li, .welcome-loop li:first-child, .welcome-loop li:last-child { padding: 12px 0; } .welcome-loop li + li { border-left: 0; border-top: 1px solid var(--line); }
+}
+/* quick start + help (onboarding) — components/QuickStart, QuickStartCard, Help; the rail's Quick start item */
+.qs .doc-head { margin-bottom: 4px; }
+.qs-bar { height: 4px; max-width: 320px; border-radius: 999px; background: var(--sunk); overflow: hidden; }
+.qs-bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .4s ease; }
+.qs-group { margin-top: 28px; }
+.qs-group h2 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; font-size: 15px; }
+.qs-count { font: 400 11px var(--font-m); color: var(--muted); }
+.qs-steps { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.qs-step { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 12px 14px; border-top: 1px solid var(--line); }
+.qs-step:first-child { border-top: 0; }
+.qs-mark { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin-top: 1px; border: 1.5px solid var(--line-2); border-radius: 50%; font: 11px var(--font-m); color: var(--muted); box-sizing: border-box; }
+.qs-step.next .qs-mark { border-color: var(--accent); color: var(--accent); }
+.qs-step.done .qs-mark { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.qs-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .qs-title b { font-size: 14px; font-weight: 600; }
+.qs-step.done .qs-title b { font-weight: 500; color: var(--ink-2); }
+.qs-why { margin: 2px 0 0; max-width: 64ch; font-size: 13px; color: var(--ink-2); } .qs-step.done .qs-why { color: var(--muted); }
+.qs-act { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; align-self: center; max-width: 240px; }
+.qs kbd, .qs-card kbd, .help-keys kbd { display: inline-block; padding: 0 6px; border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 5px; background: var(--ground); font: 11px/17px var(--font-m); color: var(--ink-2); }
+.qs .btn, .help-qs .btn, .help-qs button { display: inline-block; padding: 4px 10px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--surface); font: 12px var(--font-b); color: var(--ink-2); text-decoration: none; white-space: nowrap; cursor: pointer; }
+.qs .btn:hover, .help-qs .btn:hover, .help-qs button:hover { border-color: var(--accent); color: var(--ink); }
+.qs .btn.pri { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); } .qs .btn.pri:hover { color: var(--accent-ink); filter: brightness(1.06); }
+.qs-type { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+.qs-type code, .qs-notice code { padding: 1px 6px; border-radius: 4px; background: var(--sunk); font-size: 12px; color: var(--ink); }
+.qs-found { margin: 4px 0 0; font: 11px var(--font-m); color: var(--ok); }
+.qs-notice { margin: 8px 0 2px; padding: 8px 12px; border-left: 2px solid var(--warn); border-radius: 0 6px 6px 0; background: color-mix(in srgb, var(--warn) 9%, transparent); font-size: 12.5px; color: var(--ink-2); max-width: 64ch; }
+.qs-notice p { margin: 0 0 4px; } .qs-notice p:last-child { margin: 0; }
+.qs-group .lede { margin: -2px 0 10px; font-size: 13px; }
+.qs-further { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+.qs-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--line); } .qs-foot p { margin: 0; font-size: 12.5px; }
+/* one feature, in Help's list and as a Quick start "Go further" tile */
+.help-row { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: none; font: inherit; color: var(--ink); text-align: left; text-decoration: none; cursor: pointer; box-sizing: border-box; }
+div.help-row { cursor: default; }
+.help-row > i { flex: none; width: 20px; font: normal 14px/20px var(--font-m); color: var(--muted); text-align: center; }
+.help-row > span { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.help-row b { font-size: 13.5px; font-weight: 600; } .help-row small { font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
+.help-row code { align-self: flex-start; margin-top: 4px; padding: 1px 6px; border-radius: 4px; background: var(--sunk); font: 11px var(--font-m); color: var(--ink); }
+.help-list .help-row:hover { background: var(--sunk); }
+.qs-further .help-row { height: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.qs-further a.help-row:hover, .qs-further button.help-row:hover { border-color: var(--accent); }
+/* the Overview's card */
+.qs-card { margin: 6px 0 26px; padding: 12px 16px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.qs-card-head { display: flex; align-items: center; gap: 10px; }
+.qs-card-label { font: 600 11px var(--font-m); letter-spacing: .04em; text-transform: uppercase; color: var(--accent); text-decoration: none; } .qs-card-label:hover { text-decoration: underline; }
+.qs-card-count { font: 11px var(--font-m); color: var(--muted); }
+.qs-bar.small { flex: 1; max-width: 160px; height: 3px; }
+.qs-card-x { margin-left: auto; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px; background: none; font-size: 17px; line-height: 1; color: var(--muted); cursor: pointer; } .qs-card-x:hover { background: var(--sunk); color: var(--ink); }
+.qs-card-next { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 10px 0 2px; font-size: 15px; } .qs-card-next .muted { font-size: 13px; }
+.qs-card-why { margin: 0; max-width: 70ch; font-size: 13px; color: var(--ink-2); }
+/* the rail's item: a ring that fills, the count on the right */
+.rail-qs i { display: inline-flex; justify-content: center; } .rail-qs-count { margin-left: auto; font: 11px var(--font-m); color: var(--muted); }
+/* the Help sheet */
+.help-sheet { width: min(640px, 100%); max-height: min(86dvh, 820px); overflow-y: auto; padding: 18px 22px 20px; }
+.help-top { display: flex; align-items: center; } .help-top h3 { margin: 0; font-size: 18px; }
+.help-x { margin-left: auto; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: none; font-size: 20px; line-height: 1; color: var(--muted); cursor: pointer; } .help-x:hover { background: var(--sunk); color: var(--ink); }
+.help-sheet section { margin-top: 18px; }
+.help-sheet h4 { margin: 0 0 8px; font: 600 11px var(--font-m); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.help-keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px; margin: 0; }
+.help-keys > div { display: flex; align-items: center; gap: 10px; } .help-keys dt { flex: none; width: 40px; } .help-keys dd { margin: 0; font-size: 13px; color: var(--ink-2); }
+.help-note { margin: 10px 0 0; font-size: 11.5px; color: var(--muted); }
+.help-qs { display: flex; flex-wrap: wrap; gap: 8px; }
+.help-list { display: flex; flex-direction: column; margin: 0 -10px; }
+.help-docs { margin: 0; font-size: 13px; color: var(--muted); }
+@media (max-width: 560px) { .qs-step { grid-template-columns: 22px minmax(0, 1fr); } .qs-act { grid-column: 2; justify-content: flex-start; max-width: none; } .help-keys { grid-template-columns: 1fr; } }
+/* the New page sheet is the rail's: with the rail hidden it still shows when a Quick start step asks for it */
+.shell.rail-hidden .rail .np-back { visibility: visible; }
+
+/* empty states (onboarding) — the example questions in the search panel, a view block's empty list */
+.empty-state-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px; }
+.empty-state-chips .chip { border: 1px solid var(--line-2); border-radius: 999px; padding: 4px 12px; background: var(--ground); color: var(--ink-2); font: 12px var(--font-b); cursor: pointer; } .empty-state-chips .chip:hover { border-color: var(--accent); color: var(--ink); }
+.search-preview .empty-state { margin: 40px auto; }
+.empty-state-actions p { margin: 0; }
+/* an example line to type sits on its own as one box, not a code run broken over two lines */
+.empty-state-body p > code:only-child { display: inline-block; max-width: 100%; padding: 4px 8px; text-align: left; line-height: 1.45; overflow-wrap: anywhere; }
+.view-block .empty-state, .itable .empty-state { margin: 14px auto; font-family: var(--font-b); letter-spacing: normal; }
+.qs-type code { display: block; width: fit-content; max-width: 100%; margin-top: 4px; white-space: pre-wrap; }
+.page > section > .empty-state { margin-top: 12px; }

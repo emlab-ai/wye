@@ -171,7 +171,7 @@ const commands = {
     const h = require('./wye-home.js'); const dir = h.ensureHome();
     console.log(`home     → ${dir}${dir === h.INSTALL ? ' (this clone)' : ''}  — products in ${path.join(dir, 'data', 'products')}`);
     for (const l of h.linkSkills()) console.log(`skill    → ${l}`);
-    console.log('\nnext: wye app   (the app in your browser)');
+    console.log('\nnext: wye app   (the app in your browser)\n      or start from your code: wye init --product <slug> --repo <dir>');
   },
   // wye export / import / open (decision:wf2.product-transfer) — through the running app
   async export() {
@@ -437,6 +437,7 @@ const commands = {
     for (const a of r.areas) console.log(`  ${a.slug.padEnd(20)} ${String(a.files.length).padStart(5)} files  ${a.dir}`);
     const root = path.join(dataRoot, 'products', p);
     console.log(`\nnext: wye build --root ${root} && wye check --root ${root} --repo ${repo}\n      open it in the app, then wye deepen <module> --product ${p}   (or let a runner take the #ready tasks)`);
+    console.log(`\nquick start → ${WF_URL}/${p}/start`);
   },
   // wye deepen <module>: assign the module's describe task to a worker with the describe contract (prompts/describe-module.md)
   async deepen() {

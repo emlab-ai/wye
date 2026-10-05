@@ -1,0 +1,119 @@
+'use client';
+import Link from 'next/link';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import type { Onboarding, StepState } from '@/lib/onboarding';
+import type { Agents } from '@/lib/agents-available';
+import type { QuickStartLinks } from '@/lib/quick-start-links';
+import { FEATURES, FeatureRow, open } from './Help';
+
+export type QuickStartState = Onboarding & { agents: Agents };
+
+// The Quick start (docs/superpowers/specs/2026-10-05-onboarding-design.md §2): nine steps that tick themselves from the
+// product's real state. The server page reads the first state; this keeps it live — on the app's `wf:change`, on
+// window focus, and on `wf:onboarding` (a dismissal or a mark made elsewhere) — so a step ticks without a reload.
+export function useOnboarding(product: string, initial: QuickStartState | null) {
+  const [o, setO] = useState(initial);
+  useEffect(() => setO(initial), [initial]);
+  const load = useCallback(() => { fetch(`/api/${product}/onboarding`).then(r => r.ok ? r.json() : null).then(j => { if (j) setO(j); }).catch(() => {}); }, [product]);
+  useEffect(() => {
+    const set = (e: Event) => { const j = (e as CustomEvent<QuickStartState>).detail; if (j?.steps) setO(j); };
+    window.addEventListener('wf:change', load); window.addEventListener('focus', load); window.addEventListener('wf:onboarding', set);
+    return () => { window.removeEventListener('wf:change', load); window.removeEventListener('focus', load); window.removeEventListener('wf:onboarding', set); };
+  }, [load]);
+  return [o, setO] as const;
+}
+
+// dismiss or bring back: per machine (_settings.json), told to the rail and the Overview card through `wf:onboarding`
+export async function setDismissed(product: string, dismissed: boolean): Promise<QuickStartState | null> {
+  const r = await fetch(`/api/${product}/onboarding`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ dismissed }) });
+  if (!r.ok) return null;
+  const j = await r.json() as QuickStartState; window.dispatchEvent(new CustomEvent('wf:onboarding', { detail: j })); return j;
+}
+
+// a step's button(s), per the spec's action column; `primary` on the next step only
+export function StepAction({ step, product, links, primary }: { step: StepState; product: string; links: QuickStartLinks; primary?: boolean }) {
+  const base = `/${product}`; const cls = primary ? 'btn pri' : 'btn';
+  const go = (href: string, label: string) => <Link className={cls} href={href}>{label}</Link>;
+  const act = (fn: () => void, label: string, c = cls) => <button type="button" className={c} onClick={fn}>{label}</button>;
+  switch (step.key) {
+    case 'agent': return go(`/settings?from=${product}`, 'Agent settings');
+    case 'document': return <>{act(() => open.newPage(), 'New document')}{act(() => open.newPage(true), 'Import code or Markdown', 'btn')}</>;
+    case 'block': return links.doc ? go(links.doc, 'Open your document') : act(() => open.newPage(), 'New document');
+    case 'link': return go(`${base}/knowledge`, 'Open Knowledge');
+    case 'remember': return act(open.remember, 'Remember a note');
+    case 'approve': return go(`${base}/inbox`, 'Open the Inbox');
+    case 'ask': return act(open.search, 'Ask a question');
+    case 'pr': return act(open.pr, 'New Prompt Request');
+    case 'build': return links.pr ? go(links.pr, 'Open the newest Prompt Request') : go(`${base}/prs`, 'Open PRs');
+  }
+}
+
+const Check = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>;
+const agentName = (a: Agents) => a.claude && a.codex ? 'Claude Code and Codex found' : a.claude ? 'Claude Code found' : 'Codex found';
+
+// what a step shows under its reason: the agent check, the line to type
+function StepExtra({ step, agents }: { step: StepState; agents: Agents }): ReactNode {
+  if (step.key === 'agent') return step.done ? <p className="qs-found">{agentName(agents)} on this machine.</p> : (
+    <div className="qs-notice">
+      <p>Neither <code>claude</code> nor <code>codex</code> is on this machine’s PATH. Without one, documents, the graph and <code>wye check</code> work; the librarian, builds, Ask’s answers, Remember and contradiction checks do not.</p>
+      <p>Install <a href="https://claude.com/claude-code" target="_blank" rel="noreferrer">Claude Code</a> or <a href="https://github.com/openai/codex" target="_blank" rel="noreferrer">Codex</a>, then come back to this page.</p>
+    </div>
+  );
+  if (step.key === 'block' && !step.done) return <p className="qs-type">Type on a line of its own: <code>req:checkout.fast Checkout should feel instantaneous.</code></p>;
+  return null;
+}
+
+function StepRow({ step, n, next, product, links, agents }: { step: StepState; n: number; next: boolean; product: string; links: QuickStartLinks; agents: Agents }) {
+  return (
+    <li className={`qs-step${step.done ? ' done' : ''}${next ? ' next' : ''}`}>
+      <span className="qs-mark" aria-label={step.done ? 'done' : 'not done yet'}>{step.done ? <Check /> : n}</span>
+      <div className="qs-text">
+        <div className="qs-title"><b>{step.title}</b>{step.shortcut && <kbd>{step.shortcut}</kbd>}</div>
+        <p className="qs-why">{step.why}</p>
+        <StepExtra step={step} agents={agents} />
+      </div>
+      {!step.done && <div className="qs-act"><StepAction step={step} product={product} links={links} primary={next} /></div>}
+    </li>
+  );
+}
+
+const GROUPS: { key: StepState['group']; title: string }[] = [{ key: 'setup', title: 'Set up' }, { key: 'loop', title: 'The loop' }];
+
+export function QuickStart({ product, initial, links }: { product: string; initial: QuickStartState; links: QuickStartLinks }) {
+  const [state, setState] = useOnboarding(product, initial); const o = state ?? initial;
+  const router = useRouter();
+  const base = `/${product}`;
+  const dismiss = async (d: boolean) => { const j = await setDismissed(product, d); if (j) { setState(j); router.refresh(); } };
+  let n = 0;
+  return (
+    <div className="page qs">
+      <header className="doc-head">
+        <h1 className="prop-in h1" style={{ margin: 0 }}>Quick start</h1>
+        <p className="sub">{o.complete ? 'all nine done — the product has a definition, the loop has run once' : `${o.done} of ${o.total} done — the steps tick themselves as the product fills in`}</p>
+        <div className="qs-bar" role="progressbar" aria-valuemin={0} aria-valuemax={o.total} aria-valuenow={o.done}><i style={{ width: `${(o.done / o.total) * 100}%` }} /></div>
+      </header>
+      {GROUPS.map(g => { const steps = o.steps.filter(s => s.group === g.key); return (
+        <section key={g.key} className="qs-group">
+          <h2>{g.title} <span className="qs-count">{steps.filter(s => s.done).length}/{steps.length}</span></h2>
+          <ol className="qs-steps">{steps.map(s => <StepRow key={s.key} step={s} n={++n} next={o.next === s.key} product={product} links={links} agents={o.agents} />)}</ol>
+        </section>
+      ); })}
+      <section className="qs-group">
+        <h2>Go further</h2>
+        <p className="lede">Not tracked. Each lives in its own place in the app; this is where to find it.</p>
+        <div className="qs-further">{FEATURES.filter(f => f.further).map(f => <FeatureRow key={f.key} f={f} base={base} links={links} />)}</div>
+      </section>
+      <footer className="qs-foot">
+        {o.complete ? <p className="muted">Every step is done, so the rail and the Overview no longer show the Quick start. Help (?) opens it again.</p>
+          : o.dismissed ? <><p className="muted">Hidden from the rail and the Overview on this machine.</p><button type="button" className="btn" onClick={() => void dismiss(false)}>Show it in the rail again</button></>
+          : <><button type="button" className="btn" onClick={() => void dismiss(true)}>I know my way around</button><p className="muted">Hides the Quick start from the rail and the Overview. Help (?) brings it back.</p></>}
+      </footer>
+    </div>
+  );
+}
+
+// the Overview's documents when there are none (spec §3): the two ways to the first document
+export function NewDocumentActions() {
+  return <><button type="button" className="pri" onClick={() => open.newPage()}>New document</button><button type="button" onClick={() => open.newPage(true)}>Import code or Markdown</button></>;
+}

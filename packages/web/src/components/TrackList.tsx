@@ -6,6 +6,9 @@ import { StatusPill } from './Pills';
 import { docRoute } from '@/lib/doc';
 import { GOAL_STATUSES, TASK_STATUSES } from '@/lib/props';
 import { requestSend } from './CommandBox';
+import { EmptyState } from './EmptyState';
+import { WorkEmpty } from './WorkList';
+import { kindExample } from '@/lib/knowledge';
 
 export type TrackRow = { id: string; title: string; status: string; target?: string; owner?: string; progress?: number; parts?: { done: number; total: number }; parent?: string; file: string; doc?: string; children: TrackRow[] };
 
@@ -64,6 +67,8 @@ export function TrackList({ product, kind, rows }: { product: string; kind: 'goa
       </>
     );
   };
+  // none at all yet (not a search that matches none): what the list is for, and the line that makes the first one
+  if (!rows.length) return kind === 'goal' ? <GoalsEmpty /> : <WorkEmpty />;
   return (
     <div className="track">
       <div className="track-tools">
@@ -91,5 +96,14 @@ export function TrackList({ product, kind, rows }: { product: string; kind: 'goa
         {!visible.length && <p className="muted" style={{ padding: 16 }}>No {kind}s match.</p>}
       </div>
     </div>
+  );
+}
+
+export function GoalsEmpty() {
+  return (
+    <EmptyState icon="◎" title="No goals yet">
+      <p>A goal says what the product is for. Prompt Requests and tasks hang under goals, so progress shows up here. Write one as a line in any document, or add it under a Goals data list:</p>
+      <p><code>{kindExample('goal')}</code></p>
+    </EmptyState>
   );
 }

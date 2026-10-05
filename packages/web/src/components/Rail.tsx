@@ -6,7 +6,8 @@ import { DocTree, type TreeItem } from './DocTree';
 import { NewPage } from './NewPage';
 import { filesOfDrop, type Picked } from './ImportDocs';
 import { ThemeButton } from './ThemeSwitch';
-import { IconChevronsLeft, IconSettings, IconTarget, IconImport, IconPlus } from './Icons';
+import { IconChevronsLeft, IconSettings, IconTarget, IconImport, IconPlus, IconHelp } from './Icons';
+import { EmptyState } from './EmptyState';
 import { AgentFolder } from './AgentFolder';
 import type { Pin } from '@/lib/pins';
 import { PrFolder, type PrItem } from './PrFolder';
@@ -20,13 +21,17 @@ export type RailProject = { slug: string; title: string; icon: string; kind: str
 
 // The left rail: product switcher, menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Constitution, Questions, Inbox, Agents,
 // then the PRs system folder — component:request-folder), then every project's documents as one tree.
-export function Rail({ pins = [], mainProject, products, product, projects, prs, views = [], skills = [], skillsPage = null, headings }: { skills?: SkillItem[]; skillsPage?: { project: string; slug: string } | null; views?: { slug: string; title: string; icon: string; project: string }[]; products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; prs: PrItem[]; headings: { doc: string; slug: string; text: string }[]; pins?: Pin[]; mainProject?: string }) {
+export type RailOnboarding = { done: number; total: number; show: boolean };
+
+export function Rail({ onboarding, pins = [], mainProject, products, product, projects, prs, views = [], skills = [], skillsPage = null, headings }: { skills?: SkillItem[]; skillsPage?: { project: string; slug: string } | null; views?: { slug: string; title: string; icon: string; project: string }[]; products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; prs: PrItem[]; headings: { doc: string; slug: string; text: string }[]; pins?: Pin[]; mainProject?: string; onboarding?: RailOnboarding | null }) {
   const path = usePathname(); const router = useRouter();
   const [newIn, setNewIn] = useState<string | null>(null); // '' = top level, <project>/<slug> = under that document
   // Import… (component:import-docs): the dialog, opened by its button or by files dropped on the documents area
   const [importing, setImporting] = useState<Picked[] | null>(null);
   const [fileOver, setFileOver] = useState(false);
   const hasFiles = (e: React.DragEvent) => [...e.dataTransfer.types].includes('Files');
+  // a Quick start step or an empty state asks for the New page sheet (`wf:new-page`, detail.import: on Import)
+  useEffect(() => { const h = (e: Event) => { if ((e as CustomEvent<{ import?: boolean } | null>).detail?.import) { setNewIn(null); setImporting([]); } else { setImporting(null); setNewIn(''); } }; window.addEventListener('wf:new-page', h); return () => window.removeEventListener('wf:new-page', h); }, []);
   // every project's documents in one tree; a project is just the folder a document lives in
   const roots = projects.flatMap(p => p.roots);
   const docs = projects.flatMap(p => p.docs.map(d => ({ ...d, project: p.slug })));
@@ -52,7 +57,7 @@ export function Rail({ pins = [], mainProject, products, product, projects, prs,
   const resetSplit = () => { setTop(null); try { localStorage.removeItem('wf-rail-split'); } catch { /* ignore */ } };
   return (
     <nav className="rail" ref={nav}>
-      <div className="rail-ws"><span className="rail-ws-mark">Y</span><span className="rail-ws-name">Wye</span><span className="rail-ws-tools"><Link className="rail-theme" href={`/settings?from=${product.slug}`} title="App settings — the theme, agents, keys" aria-label="App settings"><IconSettings /></Link><ThemeButton /><button className="rail-close" onClick={() => window.dispatchEvent(new CustomEvent('wf:rail', { detail: 'toggle' }))} title="Close the sidebar (⌘\\)" aria-label="Close sidebar"><IconChevronsLeft /></button></span></div>
+      <div className="rail-ws"><span className="rail-ws-mark">Y</span><span className="rail-ws-name">Wye</span><span className="rail-ws-tools"><button className="rail-theme" onClick={() => window.dispatchEvent(new Event('wf:help'))} title="Help — shortcuts, what is where, the Quick start (⌘/)" aria-label="Help"><IconHelp /></button><Link className="rail-theme" href={`/settings?from=${product.slug}`} title="App settings — the theme, agents, keys" aria-label="App settings"><IconSettings /></Link><ThemeButton /><button className="rail-close" onClick={() => window.dispatchEvent(new CustomEvent('wf:rail', { detail: 'toggle' }))} title="Close the sidebar (⌘\\)" aria-label="Close sidebar"><IconChevronsLeft /></button></span></div>
       <div className="rail-space">
         <span className="rail-space-mark">{product.icon || product.title.slice(0, 2).toUpperCase()}</span>
         <select className="rail-space-sel" value={product.slug} onChange={e => router.push(e.target.value === '__new' ? '/new' : e.target.value === '__open' ? '/new?way=open' : `/${e.target.value}`)}>
@@ -64,6 +69,7 @@ export function Rail({ pins = [], mainProject, products, product, projects, prs,
       <div className="rail-top" ref={top} style={topH ? { flex: `0 0 ${topH}px`, maxHeight: 'none' } : undefined}>
       <ul className="rail-menu">
         {item(base, 'Overview', '⌂')}
+        <QuickStartItem href={`${base}/start`} on={path === `${base}/start`} product={product.slug} initial={onboarding ?? null} />
         {pins.map(p => { const h = `${base}/${p.project}/d/${p.slug}`; return <li key={p.ref} className="rail-pin"><Link href={h} className={path === h ? 'on' : ''} title={`${p.title} — pinned (unpin from the document's ⋯ menu)`}><i>{p.icon}</i><span className="rail-pin-title">{p.title}</span><span className="rail-pin-star" aria-label="pinned">★</span></Link></li>; })}
         {views.length ? views.filter(v => v.slug !== hooksSlug).map(v => <li key={v.slug}><Link href={`${base}/${v.project}/d/${v.slug}`} className={path === `${base}/${v.project}/d/${v.slug}` ? 'on' : ''}><i>{v.icon}</i>{v.title}</Link></li>) : <>{item(`${base}/goals`, 'Goals', '◎')}{item(`${base}/work`, 'Work', '☑')}</>}
         {item(`${base}/knowledge`, 'Knowledge', '◈')}
@@ -86,8 +92,26 @@ export function Rail({ pins = [], mainProject, products, product, projects, prs,
         onDrop={async e => { if (!hasFiles(e)) return; e.preventDefault(); setFileOver(false); const got = await filesOfDrop(e.dataTransfer); if (got.length) { setNewIn(null); setImporting(got); } }}>
         {fileOver && <div className="rail-filedrop">drop to import as documents</div>}
         <DocTree product={product.slug} roots={roots} onAddChild={d => setNewIn(`${d.project}/${d.slug}`)} pinned={pins.map(p => p.ref)} />
-        {!roots.length && <p className="muted" style={{ padding: '6px 16px', fontSize: 13 }}>No documents yet. Press + to create one.</p>}
+        {!roots.length && <EmptyState title="No documents yet" actions={<><button className="pri" onClick={() => { setImporting(null); setNewIn(''); }}>New document</button><button onClick={() => { setNewIn(null); setImporting([]); }}>Import</button></>}>Write the product down here, or import Markdown or code. Or drop files on this space.</EmptyState>}
       </div>
     </nav>
   );
+}
+
+// The rail's Quick start (docs/superpowers/specs/2026-10-05-onboarding-design.md §2): under Overview, with how many of
+// the nine steps are done, while they are not all done and the person has not dismissed it on this machine. The layout
+// gives the first count; it follows the app's changes, window focus and a dismissal (`wf:onboarding`).
+function QuickStartItem({ href, on, product, initial }: { href: string; on: boolean; product: string; initial: RailOnboarding | null }) {
+  const [o, setO] = useState(initial);
+  useEffect(() => setO(initial), [initial]);
+  useEffect(() => {
+    const load = () => { fetch(`/api/${product}/onboarding`).then(r => r.ok ? r.json() : null).then(j => { if (j) setO({ done: j.done, total: j.total, show: j.show }); }).catch(() => {}); };
+    const set = (e: Event) => { const j = (e as CustomEvent<RailOnboarding>).detail; if (j) setO({ done: j.done, total: j.total, show: j.show }); };
+    window.addEventListener('wf:change', load); window.addEventListener('focus', load); window.addEventListener('wf:onboarding', set);
+    return () => { window.removeEventListener('wf:change', load); window.removeEventListener('focus', load); window.removeEventListener('wf:onboarding', set); };
+  }, [product]);
+  if (!o?.show) return null;
+  // a ring that fills as the steps are done
+  const r = 6.5, c = 2 * Math.PI * r;
+  return <li><Link href={href} className={`rail-qs${on ? ' on' : ''}`} title="Quick start — the first steps with this product"><i><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden><circle cx="8" cy="8" r={r} fill="none" stroke="var(--line-2)" strokeWidth="2" /><circle cx="8" cy="8" r={r} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeDasharray={`${(o.done / o.total) * c} ${c}`} transform="rotate(-90 8 8)" /></svg></i>Quick start<span className="rail-qs-count">{o.done}/{o.total}</span></Link></li>;
 }

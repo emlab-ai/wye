@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { loadScope } from '@/lib/scope';
-import { KIND_LABELS } from '@/lib/knowledge';
+import { KIND_LABELS, kindExample } from '@/lib/knowledge';
+import { KINDS } from '@/lib/ids';
+import { EmptyState } from '@/components/EmptyState';
+import { EmptyAction } from '@/components/EmptyActions';
 import { instanceTable, parseFilters, viewQuery } from '@/lib/instance-table';
 import { KindTable } from '@/components/KindTable';
 
@@ -12,7 +15,17 @@ export default async function KindPage({ params, searchParams }: { params: Promi
   const query = await searchParams;
   const scope = await loadScope(product); if (!scope) notFound();
   const table = instanceTable(scope.graph, kind);
-  if (!table.rows.length) notFound();
+  // a kind the product knows (a base kind or a declared type) with no instances yet says how to write the first one
+  if (!table.rows.length && !table.typed && !(KINDS as readonly string[]).includes(kind)) notFound();
+  if (!table.rows.length) return (
+    <div className="page type-page">
+      <header className="doc-head"><p className="crumbs"><Link href={`/${product}/knowledge`}>Knowledge</Link> / {KIND_LABELS[kind] ?? kind}</p><h1 className="prop-in h1" style={{ margin: 0 }}>{KIND_LABELS[kind] ?? kind}</h1></header>
+      <EmptyState title={`No ${(KIND_LABELS[kind] ?? kind).toLowerCase()} yet`} actions={<EmptyAction act="new-page">New document</EmptyAction>}>
+        <p>Write one as a line in the document it belongs to; it shows here once the document is saved.</p>
+        <p><code>{kindExample(kind)}</code></p>
+      </EmptyState>
+    </div>
+  );
   const filters = parseFilters(query, table.columns.map(c => c.name));
   return (
     <div className="page type-page">
