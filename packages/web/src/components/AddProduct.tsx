@@ -13,7 +13,7 @@ export function AddProduct({ start = 'new', cancel = true }: { start?: Way; canc
   const router = useRouter();
   const [way, setWay] = useState<Way>(start);
   const [title, setTitle] = useState(''); const [icon, setIcon] = useState('📦'); const [description, setDescription] = useState('');
-  const [folder, setFolder] = useState(''); const [file, setFile] = useState<File | null>(null);
+  const [folder, setFolder] = useState(''); const [home, setHome] = useState(''); const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false); const [msg, setMsg] = useState<string | null>(null);
   const done = (slug: string) => { router.push(`/${slug}/start`); router.refresh(); };
   const send = async (r: Promise<Response>) => {
@@ -23,7 +23,7 @@ export function AddProduct({ start = 'new', cancel = true }: { start?: Way; canc
   };
   const post = (url: string, body: object) => send(fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }));
   const fromCode = () => post('/api/products', { title, icon, repo: folder });
-  const create = () => post('/api/products', { title, icon, description });
+  const create = () => post('/api/products', { title, icon, description, ...(home.trim() ? { folder: home.trim() } : {}) });
   const open = () => post('/api/products/open', { folder });
   const importIt = () => file && send(fetch('/api/products/import', { method: 'POST', headers: { 'content-type': 'application/gzip' }, body: file }));
   const actions = (label: string, busyLabel: string, go: () => void, ready: boolean) => (
@@ -37,7 +37,7 @@ export function AddProduct({ start = 'new', cancel = true }: { start?: Way; canc
       {way === 'code' && <>
         <p className="lede">Wye reads the folder into a first, shallow definition: its modules, pages, components, operations and tests. No model is called and nothing in the folder changes. Afterwards, an agent can deepen each module into requirements.</p>
         <div className="form">
-          <label><span>title</span><input autoFocus value={title} placeholder="e.g. My app" onChange={e => setTitle(e.target.value)} /></label>
+          <label><span>title</span><input autoFocus value={title} placeholder="e.g. My app" onChange={e => { setTitle(e.target.value); setMsg(null); }} /></label>
           <label><span>folder</span><input value={folder} placeholder="~/code/my-app" spellCheck={false} onChange={e => setFolder(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && title.trim() && folder.trim()) fromCode(); }} /></label>
         </div>
         {actions('Read the code', 'Reading the code…', fromCode, !!title.trim() && !!folder.trim())}
@@ -46,9 +46,11 @@ export function AddProduct({ start = 'new', cancel = true }: { start?: Way; canc
         <p className="lede">An empty product. Write its first document, or import code or Markdown into it later.</p>
         <div className="form">
           <label><span>icon</span><input value={icon} onChange={e => setIcon(e.target.value)} style={{ width: 60 }} /></label>
-          <label><span>title</span><input autoFocus value={title} placeholder="e.g. My app" onChange={e => setTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && title.trim()) create(); }} /></label>
+          <label><span>title</span><input autoFocus value={title} placeholder="e.g. My app" onChange={e => { setTitle(e.target.value); setMsg(null); }} onKeyDown={e => { if (e.key === 'Enter' && title.trim()) create(); }} /></label>
           <label><span>description</span><textarea value={description} rows={3} onChange={e => setDescription(e.target.value)} /></label>
+          <label><span>folder</span><input value={home} placeholder="optional — e.g. ~/code/my-app/wye" spellCheck={false} onChange={e => { setHome(e.target.value); setMsg(null); }} onKeyDown={e => { if (e.key === 'Enter' && title.trim()) create(); }} /></label>
         </div>
+        <p className="muted small add-product-note">Where the product&apos;s documents are kept. Empty: in Wye&apos;s own data folder. A folder of yours — beside the code, in a repo — is made if it is not there, and edits land in it.</p>
         {actions('Create product', 'Creating…', create, !!title.trim())}
       </>}
       {way === 'open' && <>

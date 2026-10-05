@@ -128,7 +128,8 @@ With no products, `/` is the Welcome; otherwise it opens the first product. Add 
 starts on **From your code**: `POST /api/products { title, icon?, repo }` makes the product and reads the folder the way
 `wye init` does (`lib/init.js`: no model, nothing in the folder changed), then builds the graph; a missing folder or a
 file answers 422 `{ error: 'invalid', message }` and leaves nothing behind (`~` is the home folder). Without `repo`
-it makes an empty product, as before. Every way lands on `/<product>/start`.
+it makes an empty product; with `folder` (the New form's optional field) the product's documents live in that folder,
+`root:` in its `_product.md`, rather than in Wye's data — the folder is made if it is not there. Every way lands on `/<product>/start`.
 
 The Quick start is an app route, not a document — nothing is written into the product. Its nine steps (`agent`,
 `document`, `block`, `link`, `remember`, `approve`, `ask`, `pr`, `build`) are computed from the built graph on each

@@ -318,7 +318,10 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
     Create a product: { title, description, icon } → data/products/<slug>/_product.md. With `repo` (a folder; ~ is
     the home folder), the product is read from that code the way wye init reads it (lib/product-from-code,
     req:wf2.onboarding.from-code): 422 { error: 'invalid', message } when the folder is missing or a file, and
-    nothing is left behind.
+    nothing is left behind. With `folder` (New, without `repo`), the product's projects and inbox are made in that
+    folder and the registry entry names it with `root:` (decision:wf2.product-folder): the folder is made when it is
+    not there; a file, a folder that already holds projects/ (that is Open a folder) or another product's folder is
+    refused with 422.
   gate: none (local app)
   source: packages/web/src/app/api/products/route.ts
   part-of: module:api
