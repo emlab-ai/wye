@@ -2,9 +2,10 @@
 // data/products/<product> (documents, inbox, sessions) is pushed to subscribers, and a changed document rebuilds
 // the graph (agents may edit files without running wye build). Lives on globalThis across dev reloads.
 import { watch, type FSWatcher } from 'node:fs';
+import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { slugOfDir } from './products';
-import { buildProduct, builtAt, onBuilt } from './build';
+import { buildProduct, onBuilt, readStamps } from './build';
 import { creditDocumentChange, creditBlockChanges } from './artifacts';
 import { diffGraphs } from './graph-diff';
 import { scheduleVerdicts } from './verdicts';
@@ -19,10 +20,19 @@ import { sweepRuns } from './runs-run';
 
 type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other'; file: string }) => void;
 // bump when the watcher callback changes: dev reloads keep globalThis, so an old watcher would keep running old code
-const VERSION = 16;
+const VERSION = 18;
 type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>> };
 const g = globalThis as unknown as { __wfWatch?: State };
 const st = (): State => (g.__wfWatch ??= { watchers: new Map(), subs: new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map() });
+
+// Did the last build read these documents as they are now? Yes when each still has the mtime the build found on it
+// (lib/build#readStamps). The watcher used to compare the build's time with the moment the file event arrived — which
+// is after the save's own build has run (the event is delivered late, the build blocks) — so every save through the
+// app built the product twice. A file the build did not read, or one that is gone, is never covered.
+export function builtWith(read: Map<string, number>, now: [file: string, mtime: number | null][]): boolean {
+  return now.every(([f, m]) => m !== null && read.get(f) === m);
+}
+const mtimeOf = (file: string) => stat(file).then(x => x.mtimeMs, () => null);
 
 export function classify(rel: string): 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other' {
   if (rel.startsWith('_build/search.lance/')) return 'other';   // the Ask index: its own writes, nothing a page shows
@@ -54,13 +64,13 @@ export function ensureWatch(productDir: string) {
         // one build per burst of writes, unless the app built since the write (a save through the API builds in-process —
         // lib/build — and its listeners already ran); running sessions get the document credit either way
         if (!s.changedDocs.has(productDir)) s.changedDocs.set(productDir, new Set()); s.changedDocs.get(productDir)!.add(rel);
-        const at = Date.now();
         const t = s.rebuildTimer.get(productDir); if (t) clearTimeout(t);
         s.rebuildTimer.set(productDir, setTimeout(async () => {
           s.rebuildTimer.delete(productDir); if (s.rebuilding.has(productDir)) return; s.rebuilding.add(productDir);
           const docs = [...(s.changedDocs.get(productDir) ?? [])]; s.changedDocs.get(productDir)?.clear();
           try {
-            if (builtAt(productDir) < at) await buildProduct(productDir);
+            const now = await Promise.all(docs.map(async d => { const f = path.resolve(productDir, d); return [f, await mtimeOf(f)] as [string, number | null]; }));
+            if (!builtWith(readStamps(productDir), now)) await buildProduct(productDir);
             for (const d of docs) await creditDocumentChange(productDir, slugOfDir(productDir), d).catch(() => {});
           } finally { s.rebuilding.delete(productDir); }
         }, 400));

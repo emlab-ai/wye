@@ -10,6 +10,7 @@ import { KIND_LABELS, kindExample } from '@/lib/knowledge';
 import { EmptyState } from './EmptyState';
 import { GoalsEmpty } from './TrackList';
 import { WorkEmpty } from './WorkList';
+import { detailOf, knowledgeChanged } from '@/lib/change';
 import { parseViewQuery, viewQuery, type Filters, type InstanceTable as Table } from '@/lib/instance-table';
 
 // the kinds a view can list: the product's own types first, then the base kinds people look at as lists
@@ -48,7 +49,7 @@ export const ViewBlock = createReactBlockSpec(
       const [err, setErr] = useState('');
       const [version, setVersion] = useState(0);
       useEffect(() => { // refetch when the graph changes on disk (LiveRefresh relays the server's events)
-        const h = (e: Event) => { if ((e as CustomEvent<{ kinds: string[] }>).detail.kinds.includes('graph')) setVersion(v => v + 1); };
+        const h = (e: Event) => { if (knowledgeChanged(detailOf(e))) setVersion(v => v + 1); };   // not for a save of prose (lib/change)
         window.addEventListener('wf:change', h); return () => window.removeEventListener('wf:change', h);
       }, []);
       useEffect(() => {

@@ -362,6 +362,26 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     pipeline lives there.
   status: proposed
   part-of: module:app-storage
+- id: lib:graph-delta
+  file: packages/web/src/lib/graph-delta.ts
+  side: shared
+  purpose: >
+    What one build changed, for the pages that are open (decision&#58;wf2.change-names-what-changed): the ids whose
+    record, content or relations changed — a line that only moved is not a change — and whether any of it is
+    knowledge (a node a list shows, or a relation other than a paragraph's place on its page). More than 400 ids,
+    or no graph before, is "everything". Pure; tested by test:web-lib#graph-delta.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:change
+  file: packages/web/src/lib/change.ts
+  side: shared
+  purpose: >
+    The app's change event as a page hears it (`wf:change`, relayed by component:live-refresh): which kinds of
+    things changed on disk and, for the graph, what in it (lib:graph-delta). `nodeChanged` is what a card asks,
+    `knowledgeChanged` what a view, a table and the node index ask, so a save of prose makes none of them fetch
+    again. An event that does not say reads as everything. Pure; tested by test:web-lib#change.
+  status: proposed
+  part-of: module:app-storage
 - id: lib:request
   file: packages/web/src/lib/request.ts
   side: server

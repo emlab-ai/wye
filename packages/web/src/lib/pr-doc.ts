@@ -135,19 +135,27 @@ export function getFrontmatter(md: string, key: string): string | undefined {
 // A worker's PRs (SessionPr), read from the graph (decision:wf2.plan-per-request): every pr node whose
 // `session` names the session's id, oldest first, with its task counts (tasks `part of` the request; done = status done).
 type PrGraph = { nodes: { id: string; kind: string; title: string; status: string; body: string; file: string; defined?: boolean }[]; edges: { from: string; to: string; verb: string }[] };
-export function prsOf(product: string, g: PrGraph, sessionId: string): SessionPr[] {
+export function prsOf(product: string, g: PrGraph, sessionId: string): SessionPr[] { return prsBySession(product, g)(sessionId); }
+// The same for a list of sessions: the graph is walked once, not once per session (a product's hundred sessions over
+// eight thousand nodes and forty thousand edges was most of what the sessions list cost).
+export function prsBySession(product: string, g: PrGraph): (sessionId: string) => SessionPr[] {
   const prop = (body: string, key: string) => body.match(new RegExp(`^${key}:[ \\t]*(.*)$`, 'm'))?.[1].trim() || undefined;
+  const prs = g.nodes.filter(n => n.kind === 'pr' && n.defined !== false);
+  const isPr = new Set(prs.map(n => n.id));
   const byId = new Map(g.nodes.map(n => [n.id, n]));
-  const out: SessionPr[] = [];
-  for (const n of g.nodes) {
-    if (n.kind !== 'pr' || n.defined === false) continue;
-    if (!(prop(n.body, 'session') ?? '').split(/\s+/).includes(sessionId)) continue;
+  const tasksOf = new Map<string, PrGraph['nodes']>();
+  for (const e of g.edges) if (e.verb === 'part-of' && isPr.has(e.to) && byId.get(e.from)?.kind === 'task') { if (!tasksOf.has(e.to)) tasksOf.set(e.to, []); tasksOf.get(e.to)!.push(byId.get(e.from)!); }
+  const by = new Map<string, SessionPr[]>();
+  for (const n of prs) {
+    const sessions = (prop(n.body, 'session') ?? '').split(/\s+/).filter(Boolean); if (!sessions.length) continue;
     const m = n.file.match(/projects\/([^/]+)\/docs\/([^/]+)\.md$/); if (!m) continue;
-    const tasks = g.edges.filter(e => e.to === n.id && e.verb === 'part-of' && byId.get(e.from)?.kind === 'task').map(e => byId.get(e.from)!);
+    const tasks = tasksOf.get(n.id) ?? [];
     const num = prNumberOf(n.id);
-    out.push({ ref: `${product}/${m[1]}/${m[2]}`, node: n.id, title: num ? prLabel(num, n.title) : n.title, status: n.status, started: prop(n.body, 'started'), finished: prop(n.body, 'finished'), tasks: { done: tasks.filter(t => t.status === 'done').length, total: tasks.length } });
+    const pr: SessionPr = { ref: `${product}/${m[1]}/${m[2]}`, node: n.id, title: num ? prLabel(num, n.title) : n.title, status: n.status, started: prop(n.body, 'started'), finished: prop(n.body, 'finished'), tasks: { done: tasks.filter(t => t.status === 'done').length, total: tasks.length } };
+    for (const id of new Set(sessions)) { if (!by.has(id)) by.set(id, []); by.get(id)!.push(pr); }
   }
-  return out.sort((a, b) => (a.started ?? '').localeCompare(b.started ?? '') || a.ref.localeCompare(b.ref));
+  for (const list of by.values()) list.sort((a, b) => (a.started ?? '').localeCompare(b.started ?? '') || a.ref.localeCompare(b.ref));
+  return id => (by.get(id) ?? []).map(pr => ({ ...pr, tasks: { ...pr.tasks } }));
 }
 
 // Set (or add) a key in the frontmatter.

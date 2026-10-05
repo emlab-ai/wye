@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import type { ChangeDetail } from '@/lib/change';
 
 // Follows the product on disk: when an agent or an editor writes a document, the graph, the inbox or a session,
 // the server-rendered parts of the page (rail, lists, panels) refresh on their own.
@@ -11,7 +12,7 @@ export function LiveRefresh({ product }: { product: string }) {
   useEffect(() => {
     const es = new EventSource(`/api/${product}/events`);
     es.addEventListener('change', e => {
-      const j = JSON.parse((e as MessageEvent).data) as { kinds: string[]; files: string[] };
+      const j = JSON.parse((e as MessageEvent).data) as ChangeDetail;   // with what the graph changed, when it did (lib/change)
       // documents trigger a rebuild whose graph.json change arrives next; refresh once on the graph (or straight
       // away for inbox/session changes) so lists and the rail show the new state
       // one refresh per burst: a save's graph, change-record and session writes land within a second of each other

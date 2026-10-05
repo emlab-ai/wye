@@ -51,6 +51,8 @@ see: module:types
   title: B
   satisfies: thing:a
 \`\`\`
+
+thing:just-added
 `);
 
 const files = [types, parent, child];
@@ -65,6 +67,12 @@ assert.strictEqual(key(replayed), key(cold), 'a replayed build is a cold build')
 assert.ok(key(cold).includes('module:child|part-of|module:parent'), 'the page under another');
 assert.ok(key(cold).includes('module:child|see|module:types'), 'a frontmatter relation');
 assert.ok(key(cold).includes('thing:a|satisfied-by|thing:b'), 'a link written from the other side');
+// an id alone on its line (a block just added in the editor) is a node the file defines once every file is read:
+// kept aside by the per-file pass, so it has to be replayed too — it used to exist on a cold build only
+const defined = g => g.nodes.filter(n => n.defined).map(n => n.id).sort().join('\n');
+assert.ok(defined(cold).includes('thing:just-added'), 'an id alone on its line is a node');
+assert.strictEqual(defined(first), defined(cold), 'a cached first build defines what a cold build defines');
+assert.strictEqual(defined(replayed), defined(cold), 'a replayed build defines what a cold build defines');
 
 // and after one file changes: the others replay, the changed one is parsed again, the graph still matches a cold parse
 fs.writeFileSync(child, fs.readFileSync(child, 'utf8').replace('title: B', 'title: B two'));

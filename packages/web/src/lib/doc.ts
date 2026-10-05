@@ -53,6 +53,22 @@ export function headingSlug(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
+// Where a long page's first screen ends (decision:wf2.first-screen-first): the offset of the first blank line at or
+// after `budget` characters that is not inside a code fence — a yaml card or a code block is never cut. A full page
+// load renders that much on the server and the editor brings the rest; a page not much longer than the budget is
+// rendered whole (the cut would save nothing).
+export const FIRST_SCREEN = 6000;
+export function firstScreenCut(body: string, budget = FIRST_SCREEN): number {
+  if (body.length <= budget * 1.5) return body.length;
+  let at = 0, fence = false;
+  for (const line of body.split('\n')) {
+    if (/^\s*(```|~~~)/.test(line)) fence = !fence;
+    else if (!fence && at >= budget && !line.trim()) return at;
+    at += line.length + 1;
+  }
+  return body.length;
+}
+
 export function splitDocument(md: string): SplitDoc {
   const frontmatter: Record<string, string> = {};
   let offset = 0;

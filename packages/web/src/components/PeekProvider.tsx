@@ -3,6 +3,7 @@ import { setKinds, KINDS } from '@/lib/ids';
 import { useRef, createContext, useCallback, useContext, useEffect, useState, type ReactNode, useMemo } from 'react';
 import type { IndexEntry } from '@/lib/doc';
 import { docRoute } from '@/lib/doc';
+import { detailOf, knowledgeChanged } from '@/lib/change';
 
 // What the editor is working on right now: the current block's text, the ids it already links, and a function that
 // inserts a tag at the cursor. The panel's Context mode searches the product's knowledge for it.
@@ -56,7 +57,7 @@ export function PeekProvider({ product, index: indexProp, kinds, types, nests: n
     let live = true; let timer: ReturnType<typeof setTimeout> | null = null;
     const load = async () => { try { const r = await fetch(`/api/${product}/index`, { headers: stampRef.current ? { 'if-none-match': stampRef.current } : {} }); if (r.status === 304 || !r.ok || !live) return; stampRef.current = r.headers.get('etag') ?? ''; const j = await r.json(); if (live && j.index) setIndex(j.index); } catch { /* keep what we have */ } };
     if (!indexProp) load();
-    const onChange = (e: Event) => { const d = (e as CustomEvent<{ kinds: string[] }>).detail; if (!d.kinds.includes('graph')) return; if (timer) clearTimeout(timer); timer = setTimeout(load, 900); };
+    const onChange = (e: Event) => { if (!knowledgeChanged(detailOf(e))) return; if (timer) clearTimeout(timer); timer = setTimeout(load, 900); };
     window.addEventListener('wf:change', onChange);
     return () => { live = false; window.removeEventListener('wf:change', onChange); if (timer) clearTimeout(timer); };
   }, [product]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -6,6 +6,7 @@ import { parseViewQuery, viewQuery, isOpen, type Filters, type InstanceRow, type
 import { tableSql, oneLine } from '@/lib/table-sql';
 import { statusOptions } from '@/lib/props';
 import { DateField } from './DateField';
+import { detailOf, knowledgeChanged } from '@/lib/change';
 
 // Every Data table and Data list is a query (decision:wf2.table-is-sql). Its rows are what its SQL returns, over the
 // graph of the whole product: a table on a page starts as this page's items of its kind (`page = 'module:…'`), "⊕ whole
@@ -65,7 +66,7 @@ export function LiveTable({ product, kind, query, view, type, head, onQuery, pag
   useEffect(() => { load(); }, [load]);
   useEffect(() => { run(); }, [run]);
   useEffect(() => {   // the graph changed on disk (an edit here, an agent, an import): fetch again
-    const h = (e: Event) => { if ((e as CustomEvent<{ kinds: string[] }>).detail?.kinds?.includes('graph')) load(); };
+    const h = (e: Event) => { if (knowledgeChanged(detailOf(e))) load(); };   // not for a save of prose (lib/change)
     window.addEventListener('wf:change', h); return () => window.removeEventListener('wf:change', h);
   }, [load]);
 

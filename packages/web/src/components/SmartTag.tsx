@@ -5,6 +5,7 @@ import { usePeek } from './PeekProvider';
 import { kindOf } from '@/lib/ids';
 import { parseBody } from '@/lib/graph';
 import { useRouter } from 'next/navigation';
+import { detailOf } from '@/lib/change';
 
 // A hover on a tag shows the node's card (req:wf2.ui.tag-hover): kind, title, status, its text and the properties
 // that say something — fetched once per node and kept; the card can be entered (a link in it, "open ›") and goes
@@ -25,7 +26,8 @@ function loadHover(product: string, id: string): Promise<Hover | null> {
   }).catch(() => null));
   return cache.get(id)!;
 }
-if (typeof window !== 'undefined') window.addEventListener('wf:change', e => { if ((e as CustomEvent<{ kinds: string[] }>).detail.kinds.includes('graph')) cache.clear(); });
+// a card kept for a node goes when the change names the node (lib/change), all of them when it does not say
+if (typeof window !== 'undefined') window.addEventListener('wf:change', e => { const d = detailOf(e); if (!d.kinds?.includes('graph')) return; if (!d.graph || d.graph.ids === null) cache.clear(); else for (const id of d.graph.ids) cache.delete(id); });
 
 export function TagHover({ id, anchor, onEnter, onLeave }: { id: string; anchor: DOMRect; onEnter: () => void; onLeave: () => void }) {
   const { product, index, open } = usePeek();

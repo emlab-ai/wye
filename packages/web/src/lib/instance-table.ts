@@ -33,6 +33,13 @@ export function instanceTable(g: GraphData, slug: string): InstanceTable {
   const t = slug === 'node' ? undefined : typeBySlug(g, slug);
   const nodes = t ? instancesOf(g, slug) : g.nodes.filter(n => n.defined && (slug === 'node' ? !SEARCH_HIDDEN.has(n.kind) : n.kind === slug)).sort((a, b) => a.id.localeCompare(b.id));
   const cols = t ? t.props.filter(p => (!NOT_COLUMNS.has(p.name) || p.from === t.id) && p.type !== 'text' && p.from !== 'type:node').map(column) : [];
+  // every edge by its source, and the part-of edges by their target, read once: a filter over all the edges per row
+  // (twice, three for a requirement) made a table of seven hundred decisions forty thousand edges long each time
+  const out = new Map<string, GraphData['edges']>(), partsOf = new Map<string, GraphData['edges']>();
+  for (const e of g.edges) {
+    let l = out.get(e.from); if (!l) out.set(e.from, l = []); l.push(e);
+    if (e.verb === 'part-of') { let p = partsOf.get(e.to); if (!p) partsOf.set(e.to, p = []); p.push(e); }
+  }
   const rows = nodes.map((n): InstanceRow => {
     const r = docRoute(n.file);
     const row: InstanceRow = { id: n.id, kind: n.kind, title: n.title, status: n.status, file: n.file, doc: r ? `${r.project} / ${r.doc}` : n.file, props: {} };
@@ -41,12 +48,12 @@ export function instanceTable(g: GraphData, slug: string): InstanceTable {
     else for (const k of ['owner', 'due', 'target']) { const v = n.body.match(new RegExp(`^${k}:\\s*(.+)$`, 'm'))?.[1]?.trim(); if (v) row.props[k] = v; }
     // `part-of` rides on every row (a root property, never a column) so a view can say `part-of=goal:x` — the block a
     // goal's Requirements / Tasks are (decision:wf2.column-is-content)
-    const partOf = g.edges.filter(e => e.from === n.id && e.verb === 'part-of').map(e => e.to);
+    const partOf = (out.get(n.id) ?? []).filter(e => e.verb === 'part-of').map(e => e.to);
     if (partOf.length) row.props['part-of'] = partOf.length === 1 ? partOf[0] : `[${partOf.join(', ')}]`;
     // the tasks on a requirement (the inverse of a task's part-of): what a coverage view reads beside satisfied-by and
     // verified-by (decision:wf2.traceability-is-the-verb)
-    if (n.kind === 'req') { const tasks = g.edges.filter(e => e.to === n.id && e.verb === 'part-of' && e.from.startsWith('task:')).map(e => e.from); if (tasks.length) row.props.tasks = `[${tasks.join(', ')}]`; }
-    else row.rels = g.edges.filter(e => e.from === n.id && e.verb !== 'mentions' && e.verb !== 'has').map(e => ({ verb: e.verb, to: e.to }));
+    if (n.kind === 'req') { const tasks = (partsOf.get(n.id) ?? []).filter(e => e.from.startsWith('task:')).map(e => e.from); if (tasks.length) row.props.tasks = `[${tasks.join(', ')}]`; }
+    else row.rels = (out.get(n.id) ?? []).filter(e => e.verb !== 'mentions' && e.verb !== 'has').map(e => ({ verb: e.verb, to: e.to }));
     if (slug === 'node') row.text = plain(nodeText(n)).slice(0, 400);
     return row;
   });

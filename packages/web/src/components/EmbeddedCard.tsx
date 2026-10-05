@@ -8,6 +8,7 @@ import { NodeCard, contentBlocks, type CardP, type CardHost } from './NodeCards'
 import { EditorScope } from './EditorScope';
 import { cardFromNode, cardText, cardPatchToNodePatch, type ApiNode } from '@/lib/embed';
 import { setBodyField } from '@/lib/yaml-form';
+import { detailOf, nodeChanged } from '@/lib/change';
 import { requestSend } from './CommandBox';
 import type { NodePatch } from '@/lib/node-edit';
 
@@ -39,9 +40,10 @@ export function EmbeddedCard({ id, badge, className, inEditor }: { id: string; b
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const h = (e: Event) => { if ((e as CustomEvent<{ kinds: string[] }>).detail.kinds.includes('graph')) setVersion(v => v + 1); };
+    // only when the change names this node (lib/change): a page of fifty cards used to ask fifty times per save
+    const h = (e: Event) => { if (nodeChanged(detailOf(e), id)) setVersion(v => v + 1); };
     window.addEventListener('wf:change', h); return () => window.removeEventListener('wf:change', h);
-  }, []);
+  }, [id]);
   const known = index[id]?.defined === true; // the index refreshes with the graph; an unknown or stub id is not fetched
   useEffect(() => {
     if (!known) { setMissing(true); return; }

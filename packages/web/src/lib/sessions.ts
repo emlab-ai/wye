@@ -1,7 +1,7 @@
 // Agent sessions: work sent from a block, node or page to an agent. Stored as JSON files under the product's
 // _sessions/ folder (the parser skips _-prefixed folders). Execution is not wired yet: a session is queued and an
 // external runner will pick it up later and stream its log here.
-import { mkdir, readdir, readFile, writeFile, rename } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile, rename, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { withFileLock } from './write';
@@ -19,8 +19,19 @@ export async function listSessions(productDir: string): Promise<Session[]> {
   let names: string[] = [];
   try { names = (await readdir(dir(productDir))).filter(n => n.endsWith('.json') && !n.startsWith('_')); } catch { return []; }
   const out: Session[] = [];
-  for (const n of names) { try { out.push(upgrade(JSON.parse(await readFile(path.join(dir(productDir), n), 'utf8')))); } catch { /* skip broken */ } }
+  for (const n of names) { try { out.push(upgrade(JSON.parse(await textOf(path.join(dir(productDir), n))))); } catch { /* skip broken */ } }
   return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+// A session file's text, read again only when the file changed (its mtime and size): the list is asked for on every
+// change event and by every open rail, and reading a product's transcripts each time was 16 MB off the disk per call.
+// The text is kept, not the parsed session — every caller gets objects of its own, as before.
+const gt = globalThis as unknown as { __wfSessionText?: Map<string, { key: string; text: string }> };
+async function textOf(f: string): Promise<string> {
+  const kept = (gt.__wfSessionText ??= new Map());
+  const st = await stat(f); const key = `${st.mtimeMs}:${st.size}`;
+  const hit = kept.get(f); if (hit && hit.key === key) return hit.text;
+  const text = await readFile(f, 'utf8');
+  kept.set(f, { key, text }); return text;
 }
 export async function getSession(productDir: string, id: string): Promise<Session | null> {
   if (!ID.test(id)) return null;

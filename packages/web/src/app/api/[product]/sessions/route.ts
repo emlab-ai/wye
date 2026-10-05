@@ -8,7 +8,7 @@ import { askingOf } from '@/lib/asking';
 import { createPrDoc, goalForRequest, readPrDoc, setRefining } from '@/lib/pr-docs';
 import { markReading, runIntake } from '@/lib/pr-intake';
 import { buildPrompt } from '@/lib/agent-host';
-import { prsOf } from '@/lib/pr-doc';
+import { prsBySession } from '@/lib/pr-doc';
 import { loadScope } from '@/lib/scope';
 import { listSkills } from '@/lib/skills';
 import { stat } from 'node:fs/promises';
@@ -22,7 +22,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ product
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   await reconcileStale(p.dir);
   const scope = await loadScope(product);
-  const sessions = (await listSessions(p.dir)).map(s => { const live = s.mode === 'chat' ? liveState(s.id) : {}; return { ...s, transcript: undefined, artifacts: s.artifacts ? { docs: s.artifacts.docs, nodes: s.artifacts.nodes, blocks: undefined, blockCount: s.artifacts.blocks?.length ?? 0 } : undefined, ...live, asking: (live as { live?: boolean }).live ? askingOf(s.transcript ?? []) : undefined, prs: scope ? prsOf(product, scope.graph, s.id) : [] }; });
+  const prs = scope ? prsBySession(product, scope.graph) : () => [];
+  const sessions = (await listSessions(p.dir)).map(s => { const live = s.mode === 'chat' ? liveState(s.id) : {}; return { ...s, transcript: undefined, artifacts: s.artifacts ? { docs: s.artifacts.docs, nodes: s.artifacts.nodes, blocks: undefined, blockCount: s.artifacts.blocks?.length ?? 0 } : undefined, ...live, asking: (live as { live?: boolean }).live ? askingOf(s.transcript ?? []) : undefined, prs: prs(s.id) }; });
   return NextResponse.json({ sessions, runners: await listRunners(p.dir), defaults: { cwd: productRepo(p) ?? '', wye: REPO_ROOT } }, { headers: { 'cache-control': 'no-store' } });
 }
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {

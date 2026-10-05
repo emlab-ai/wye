@@ -3,7 +3,7 @@ import { isRscRequest } from '@/lib/request';
 import { loadScope, treeFor } from '@/lib/scope';
 import { loadMarkdown } from '@/lib/load';
 import { REPO_ROOT } from '@/lib/products';
-import { docRoute, isSystemSlug, linkedDocuments, pageBySlug, splitDocument } from '@/lib/doc';
+import { docRoute, firstScreenCut, isSystemSlug, linkedDocuments, pageBySlug, splitDocument } from '@/lib/doc';
 import { ensureSystemPages } from '@/lib/system-pages';
 import { bodyOf, hashOf } from '@/lib/write';
 import { DocumentReader } from '@/components/DocumentReader';
@@ -42,6 +42,10 @@ export default async function DocPage({ params }: { params: Promise<{ product: s
   // the server-rendered reader is the first paint of a full page load; a client navigation or a refresh (an RSC request)
   // lands in the editor already on the page, so the markdown is not rendered again on the server (decision:wf2.parse-cache)
   const rsc = await isRscRequest();
+  // and of a long page only the first screen (decision:wf2.first-screen-first): rendering all of an 88 KB page was
+  // 0.8 s before the browser got a byte, for markup the editor replaces — the editor brings the rest
+  const shown = firstScreenCut(body);
+  const first = shown < body.length ? splitDocument(body.slice(0, shown)) : split;
   // a map page is a canvas (decision:map.page-owns-its-nodes): its cards are the nodes, so the canvas takes the place of
   // the reader and the page's own text stays a fold away
   // a map page and a run page are both canvases: a run's stages are its nodes, so its sequence and where it stands are
@@ -84,8 +88,8 @@ export default async function DocPage({ params }: { params: Promise<{ product: s
       <DocProps product={product} project={project} slug={d.slug} file={d.file} fm={split.frontmatter} node={d.module.id} types={scope.graph.types ?? []} titled={/^\s*# \S/.test(body)} />
       {/^Import: /.test(split.frontmatter.title ?? '') && <ImportProgress product={product} slug={d.slug} />}
       {['imported', 'raw', 'importing'].includes(split.frontmatter.status ?? '') && <ImportedNotice product={product} project={project} slug={d.slug} node={d.module.id} status={split.frontmatter.status} source={split.frontmatter.source} />}
-      <LiveDocument product={product} project={project} slug={d.slug} body={body} ifMatch={hashOf(body)}>
-        {rsc ? null : <DocumentReader doc={split} index={scope.index} />}
+      <LiveDocument product={product} project={project} slug={d.slug} body={body} ifMatch={hashOf(body)} shown={shown}>
+        {rsc ? null : <DocumentReader doc={first} index={scope.index} />}
       </LiveDocument>
       {linked.length > 0 && (
         <section className="linked"><h2>Linked pages</h2>

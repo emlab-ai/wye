@@ -3,7 +3,7 @@ import { getProduct } from '@/lib/products';
 import { listSessions, listRunners } from '@/lib/sessions';
 import { liveState } from '@/lib/agent-host';
 import { loadScope } from '@/lib/scope';
-import { prsOf } from '@/lib/pr-doc';
+import { prsBySession } from '@/lib/pr-doc';
 import { SessionList } from '@/components/SessionList';
 import { QueueOverview } from '@/components/QueueOverview';
 import { EmptyState } from '@/components/EmptyState';
@@ -24,7 +24,8 @@ export default async function SessionsPage({ params }: { params: Promise<{ produ
       {!found && <p>Agents run through <a href="https://claude.com/claude-code" target="_blank" rel="noreferrer">Claude Code</a> or <a href="https://github.com/openai/codex" target="_blank" rel="noreferrer">Codex</a>, and neither is on this machine&apos;s PATH. Documents, the graph and <code>wye check</code> work without them.</p>}
     </EmptyState>
   );
-  const sessions = list.map(s => ({ ...s, transcript: undefined, ...(s.mode === 'chat' ? liveState(s.id) : {}), prs: scope ? prsOf(product, scope.graph, s.id) : [] }));
+  const prs = scope ? prsBySession(product, scope.graph) : () => [];
+  const sessions = list.map(s => ({ ...s, transcript: undefined, ...(s.mode === 'chat' ? liveState(s.id) : {}), prs: prs(s.id) }));
   return (
     <div className="page page-wide">
       <header className="doc-head"><h1 className="prop-in h1" style={{ margin: 0 }}>Agents</h1><p className="sub">every worker — a conversation or a run — with the plans it is on and has done: a claude or codex process that is up is active — working, or live and waiting for your next message; runners pick queued work up and stream here.</p></header>

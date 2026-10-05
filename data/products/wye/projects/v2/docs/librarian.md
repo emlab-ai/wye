@@ -279,6 +279,46 @@ Definition — the librarian
   - consequence:wf2.parse-cache A save is ~170 ms (build ~100 ms of it), a refresh ~60 ms and 350 KB, a full page load ~600 ms with the reader and the index in the HTML; the column's change list 60 ms; the session list 200 KB. `wye build` is 0.24 s cold. Found on the way and fixed: a yaml card without a title inside a list region was dropped by the editor's save (lib:serialize wrote only rows with text) — every document of the product now round-trips with no id lost; and the dev server's "Duplicate use of selection JSON ID" 500 came from @blocknote/react evaluated on the server through EmbedBlock — component:embedded-card is its own file now.
 
 ```yaml
+- id: decision:wf2.change-names-what-changed
+  title: A change event names what the graph changed — an open page asks again only for that
+  date: 2026-10-05
+  status: proposed
+  affects: [lib:build, lib:watch, lib:graph-delta, lib:change, lib:parse, lib:sessions, lib:instance-table, op:api.events, component:live-refresh, component:embedded-card, component:view-block, component:live-table, component:peek-provider, component:smart-tag]
+  related-to: [decision:wf2.parse-cache]
+  by: alex
+  evidence: [session:8b52a015-44b6-402d-a6a4-3cfcf3fc78bd]
+  part-of: goal:exec.define-first
+```
+
+  - context:wf2.change-names-what-changed alex: "when i add blocks in a large projects, it takes time (super slow), also switch to things like knowlege also takes time … we need to make sure we do not query disk all the time, think about the cache (if not done yet) and more efficient cahce storage (db??)". Measured in a browser on a copy of the wye product (131 documents, 8.3k nodes, 41k edges), the dev server: the save itself answered in 0.3 s, but the graph event it sent made everything on the open page fetch again — one request per embedded card (50), each view and table, the 960 KB node index, the session list: 60 requests and 1.9 MB per save, 250 and 6.5 MB when leaving the editor saved again. The server answers one request at a time, so Knowledge clicked just after typing opened in 1.7–3.8 s; idle it opens in 0.2 s. The disk was not it: a warm scope load is 2 ms, reading every document 3 ms.
+
+  - choice:wf2.change-names-what-changed Each graph the app holds is a step with a rev (lib:build `keep`), and a step knows its delta from the one before (lib:graph-delta): the ids whose record, content or relations changed — a line that only moved is not a change — and whether any of it is knowledge (a node a list shows, or a relation other than a paragraph's place on its page). The event stream (op:api.events) sends the delta since that subscriber's last event with every `graph` change; the page asks through lib:change: a card when its own id is named, a view, a table and the node index when it is knowledge, a tag's hover card dropped by id. No delta (an older server), more than 400 ids (an import) or a rev further back than is kept reads as "everything", which is what every event meant before.
+
+  - alternative:wf2.change-names-what-changed A database for the graph or a cache store (SQLite, DuckDB on disk) — rejected again: the graph is already in memory and the measured cost was requests and repeated work, not reads. ETags per card — rejected: fifty conditional requests per save are still fifty turns of a server that takes one at a time. Dropping the refresh of the server-rendered parts on a prose save — left: the rail's outline and the last-edit time come from it, and it is one request.
+
+  - consequence:wf2.change-names-what-changed A prose save is the PUT, four small requests and one refresh (11 requests, 77 KB, was 70–250 and 2–6.5 MB); Knowledge right after typing opens in 0.2–0.5 s. Found on the way and fixed: every save built the product twice — the watcher compared the build's time with the moment the file event arrived, which is after the save's own build; it now compares each changed document's mtime with the one the build read (`readStamps`, `builtWith`). An id alone on its line was a node on a cold build and gone on every cached one (kept aside outside the per-file recorder; test/parse-cache.js now compares the defined nodes too). A view's table filtered all the edges per row (180 ms for the decisions, now 20). The session list read 16 MB of session files per call and walked the graph once per session (150–290 ms, now 60): the files' text is kept by mtime, the PRs are found in one pass. Not done: the warm parse still replays every file (90 ms), graph.json is written whole on every save (9 MB, 45 ms), and the check runs on every save (50 ms).
+
+```yaml
+- id: decision:wf2.first-screen-first
+  title: A full load of a long page renders its first screen on the server; the editor brings the rest
+  date: 2026-10-05
+  status: proposed
+  affects: [lib:doc, component:live-document, component:document-reader, page:document]
+  related-to: [decision:wf2.parse-cache, decision:wf2.change-names-what-changed]
+  by: alex
+  evidence: [session:8b52a015-44b6-402d-a6a4-3cfcf3fc78bd]
+  part-of: goal:exec.define-first
+```
+
+  - context:wf2.first-screen-first alex: "that is a bit slow: Full load of a large document … can we do partial load first, then do the rest async?". Measured in a browser on wye/v2/app-documents (88 KB), the dev server: the first byte came after 1.1 s, 0.8 s of it the server rendering the whole page as a reader the editor replaces; first paint 1.2 s, the editor 2.0–3.0 s.
+
+  - choice:wf2.first-screen-first The server renders the page up to the first blank line past 6,000 characters that is not inside a code fence (lib:doc `firstScreenCut` — a card is never cut; a page under 9,000 is rendered whole), with "Loading the rest…" under it. The reader now stays until the editor's code has arrived (component:live-document imports it itself; with next/dynamic the reader left on hydration). Where the editor cannot open the page, the rest follows the first screen as plain text, so the read-only fallback is still the whole page.
+
+  - alternative:wf2.first-screen-first Streaming the whole reader behind a Suspense boundary — rejected: the server still spends 0.8 s on markup that is thrown away. A loading.tsx for the product — left: it would show a skeleton on every client navigation, which today keeps the old page until the new one is ready. Fetching the node index after the load instead of carrying it in the HTML — left: about 60 ms, and every card would say "missing" until it arrived.
+
+  - consequence:wf2.first-screen-first First byte 0.35 s, first paint 0.47 s (was 1.2 s), the editor 1.0 s (was 2.0–3.0 s), the HTML 240 KB compressed (was 378). Not done: the editor still builds all of a page's blocks in one task of 0.3–0.4 s after it appears.
+
+```yaml
 - id: decision:wf2.cmd-modes
   title: ⌘P has two modes — PR (a request page with a refining session) and Ad-hoc (a conversation, no page)
   date: 2026-09-20

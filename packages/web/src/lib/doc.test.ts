@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { docSlug, splitDocument, outline, headingSlug, documentTree, linkedDocuments, nodeIndex } from './doc';
+import { docSlug, splitDocument, outline, headingSlug, documentTree, linkedDocuments, nodeIndex, firstScreenCut } from './doc';
 import { indexGraph, type GraphData } from './graph';
 
 const md = `---
@@ -53,6 +53,23 @@ describe('splitDocument', () => {
     const d = splitDocument(md);
     const first = d.segments[0]; if (first.type !== 'markdown') throw new Error();
     expect(first.text.startsWith('# Module M')).toBe(true);
+  });
+});
+
+describe('firstScreenCut', () => {
+  const para = (n: number) => `Paragraph ${n} ` + 'word '.repeat(20).trim() + '.';
+  it('a short page is rendered whole', () => { const b = [para(1), para(2)].join('\n\n'); expect(firstScreenCut(b, 200)).toBe(b.length); });
+  it('a long page is cut at the first blank line past the budget', () => {
+    const b = Array.from({ length: 30 }, (_, i) => para(i)).join('\n\n');
+    const cut = firstScreenCut(b, 500);
+    expect(cut).toBeGreaterThanOrEqual(500); expect(cut).toBeLessThan(700);
+    expect(b.slice(0, cut).endsWith('.\n')).toBe(true); expect(b.slice(cut).startsWith('\nParagraph')).toBe(true);
+  });
+  it('a card or a code block is never cut: the blank lines inside a fence do not count', () => {
+    const card = '```yaml\n- id: rule:x\n  purpose: >\n' + Array.from({ length: 40 }, () => '    a line of the card').join('\n\n') + '\n```';
+    const b = [para(1), card, ...Array.from({ length: 30 }, (_, i) => para(i))].join('\n\n');
+    const cut = firstScreenCut(b, 300);
+    expect(b.slice(0, cut).trimEnd().endsWith('```')).toBe(true);
   });
 });
 
