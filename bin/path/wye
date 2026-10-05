@@ -1,0 +1,3 @@
+#!/bin/sh
+# `wye` for the agents the app starts: the app puts this directory on their PATH, so they need no install step.
+exec node "$(dirname "$0")/../wye.js" "$@"

@@ -49,6 +49,23 @@ function linkSkills() {
   return out;
 }
 
+// The `wye` command: ~/.local/bin/wye → this install's bin/wye.js (what install.sh does). A real file already there is left alone.
+function cliPath() { return path.join(os.homedir(), '.local', 'bin', 'wye'); }
+function cliStatus() {
+  const link = cliPath(), target = path.join(INSTALL, 'bin', 'wye.js'), dir = path.dirname(link);
+  let cur = null; try { cur = fs.readlinkSync(link); } catch { /* none, or a real file */ }
+  return { link, target, installed: cur === target, elsewhere: cur !== null && cur !== target && fs.existsSync(link), blocked: cur === null && fs.existsSync(link), onPath: (process.env.PATH || '').split(path.delimiter).includes(dir), dir };
+}
+function linkCli() {
+  const st = cliStatus();
+  if (st.blocked) throw new Error(`${st.link} is a real file, not a link — left as it is`);
+  fs.mkdirSync(st.dir, { recursive: true });
+  for (const f of ['wye.js', 'wye-graph.js']) fs.chmodSync(path.join(INSTALL, 'bin', f), 0o755);
+  try { fs.unlinkSync(st.link); } catch { /* none yet */ }
+  fs.symlinkSync(st.target, st.link);
+  return cliStatus();
+}
+
 // The folder `next start` runs in. Turbopack loads the server's external packages (next.config.ts
 // serverExternalPackages) through hashed aliases in .next/node_modules — `@duckdb/node-api-<hash>` → the package — which
 // npm cannot pack (symlinks), so the package carries their names (.next/wye-externals.json, scripts/externals-manifest.js)
@@ -80,4 +97,4 @@ function prepareApp(web, homeDir) {
   return dir;
 }
 
-module.exports = { INSTALL, home, ensureHome, linkSkills, prepareApp, isCheckout };
+module.exports = { INSTALL, home, ensureHome, linkSkills, linkCli, cliStatus, prepareApp, isCheckout };

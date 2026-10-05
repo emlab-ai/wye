@@ -202,6 +202,11 @@ export async function startChat(productDir: string, product: string, id: string,
   live().set(id, l);
   return startProcess(l, s, product, opts);
 }
+// the agents call `wye`; an app run from a checkout has no installed one, so the package's bin/path (a `wye` shim; the server runs in packages/web) leads their PATH
+// a spawn that fails (ENOENT: the agent is not installed) says so; 'close' follows and ends the turn
+const spawnFailed = (l: Live, bin: string) => (e: NodeJS.ErrnoException) => emit(l, { kind: 'stderr', text: e.code === 'ENOENT' ? `${bin} is not installed (not on PATH) — install it, or pick the other agent in Settings › Agents` : `${bin} could not start: ${e.message}` });
+const agentPath = () => `${path.resolve(process.cwd(), '../../bin/path')}${path.delimiter}${process.env.PATH ?? ''}`;
+
 async function startProcess(l: Live, s: Session, product: string, opts: { wfUrl: string; firstMessage?: string; shown?: string; images?: string[]; resume?: boolean }): Promise<Session | null> {
   const { id, productDir, cwd } = l;
   const first = opts.firstMessage ?? (opts.resume ? undefined : await buildPrompt(product, s, opts.wfUrl, productDir));
@@ -224,7 +229,7 @@ async function startProcess(l: Live, s: Session, product: string, opts: { wfUrl:
   if (s.role === 'librarian') args.push('--allowedTools', 'Bash(wye:*)', 'Read', 'Grep', 'Glob', '--disallowedTools', 'Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash(git:*)', 'Bash(rm:*)', 'Bash(npm:*)', 'Bash(node:*)', 'Agent', 'Task');
   if (s.model) args.push('--model', s.model);
   if (opts.resume && s.agentSessionId) args.push('--resume', s.agentSessionId);
-  const proc = spawn('claude', args, { cwd, env: { ...process.env, WYE_URL: opts.wfUrl, WYE_PRODUCT: product, WYE_SESSION: id, WF_URL: opts.wfUrl, WF_PRODUCT: product, WF_SESSION: id } });
+  const proc = spawn('claude', args, { cwd, env: { ...process.env, PATH: agentPath(), WYE_URL: opts.wfUrl, WYE_PRODUCT: product, WYE_SESSION: id, WF_URL: opts.wfUrl, WF_PRODUCT: product, WF_SESSION: id } });
   l.proc = proc;
   emit(l, { kind: 'note', text: `claude ${opts.resume ? 'resumed' : 'started'} in ${cwd} · ${s.role === 'librarian' ? 'the librarian: reads and proposes, no code' : 'Wye contract applied as system prompt'}` });
   let buf = '';
@@ -233,6 +238,7 @@ async function startProcess(l: Live, s: Session, product: string, opts: { wfUrl:
   proc.stderr.on('data', d => { if (l.proc !== proc) return; const t = String(d).trim(); if (t) emit(l, { kind: 'stderr', text: t.slice(0, 2000) }); });
   proc.on('close', code => { if (l.proc !== proc) return; clearIdle(l); reportKnowledge(l, 0); emit(l, { kind: 'exit', code: code ?? -1, text: `claude exited (${code})` }); l.proc = null; endTurn(l, l.turnBusy ? { error: `agent exited with ${code} during the turn` } : undefined); l.turnBusy = false; if (l.stopped) return; getSession(productDir, id).then(cur => { if (cur?.status === 'cancelled') return; return updateSession(productDir, id, { status: code === 0 ? 'done' : 'failed', line: `agent exited with ${code}` }); }).catch(() => {}); });
   proc.stdin.on('error', () => {});
+  proc.on('error', spawnFailed(l, 'claude'));
   if (first) { emit(l, userEvent(shown)!); writeUser(l, first, imgs); } else setTimeout(() => pump(l), 500); // a resumed agent takes what waited in the queue
   return getSession(productDir, id);
 }
@@ -433,8 +439,9 @@ function codexTurn(l: Live, cwd: string, text: string, fromQueue = false, imageP
   const args = l.codexThread ? [...net, 'exec', 'resume', l.codexThread, '--json', ...imgArgs, text] : [...net, 'exec', '--json', ...(l.ownConfig ? [] : ['--sandbox', 'workspace-write']), ...imgArgs, text];
   // stdin must not be an open pipe: `codex exec` appends piped stdin to the prompt and waits for EOF, so a pipe
   // nobody closes hangs the turn with no output (found 2026-09-20; the prompt is the argument, images are files)
-  const proc = spawn('codex', args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, WF_SESSION: l.id, WF_PRODUCT: l.productDir.split('/').pop() } });
+  const proc = spawn('codex', args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, PATH: agentPath(), WF_SESSION: l.id, WF_PRODUCT: l.productDir.split('/').pop() } });
   l.proc = proc; l.turnBusy = true;
+  proc.on('error', spawnFailed(l, 'codex'));
   let buf = '';
   proc.stdout.on('data', d => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); if (line.trim()) onCodexLine(l, line); } });
   proc.stderr.on('data', d => { const t = String(d).trim(); if (t && !/^warning:/i.test(t) && !/^Reading additional input from stdin/.test(t)) emit(l, { kind: 'stderr', text: t.slice(0, 2000) }); });

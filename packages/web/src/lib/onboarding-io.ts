@@ -12,6 +12,7 @@ import { DATA_ROOT } from './products';
 import { readSettings, writeSettings, type Settings } from './settings';
 import { withFileLock } from './write';
 import { agentsAvailable, type Agents } from './agents-available';
+import { wyeHome, type CliStatus } from './toolchain';
 import { STEPS, onboardingOf, type Onboarding, type Signals, type StepKey } from './onboarding';
 
 // a person's document: Markdown under a project's docs/, not an app-written page in .wye/ (rule:prs-folder)
@@ -57,11 +58,14 @@ export function marksOf(s: Settings, product: string): { done: StepKey[]; dismis
   return { done, dismissed: o?.dismissed === true };
 }
 
-export async function readOnboarding(product: string): Promise<(Onboarding & { agents: Agents }) | null> {
+// the `wye` command's install (bin/wye-home.js): null when it cannot be read, so the page says "unknown", not "missing"
+const wyeStatus = (): CliStatus | null => { try { return wyeHome().cliStatus(); } catch { return null; } };
+
+export async function readOnboarding(product: string): Promise<(Onboarding & { agents: Agents; wye: CliStatus | null }) | null> {
   const scope = await loadScope(product); if (!scope) return null;
   const [agents, settings] = await Promise.all([agentsAvailable(), readSettings()]);
   const m = marksOf(settings, scope.product.slug);
-  return { ...onboardingOf(signalsOf(scope, agents, m.done), m.dismissed), agents };
+  return { ...onboardingOf(signalsOf(scope, agents, m.done), m.dismissed), agents, wye: wyeStatus() };
 }
 
 // read-modify-write under the settings file's lock, so a Remember and an Ask marked at once both land

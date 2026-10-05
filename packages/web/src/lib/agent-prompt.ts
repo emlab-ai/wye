@@ -1,5 +1,6 @@
 // The system prompt every agent started by Wye receives: the shared contract (prompts/agent-system.md) plus
 // the product's own instructions (data/products/<product>/_agent.md) when present.
+import { toolchain, toolsLine } from './toolchain';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { REPO_ROOT } from './products';
@@ -30,5 +31,8 @@ export async function agentSystemPrompt(product: string, productDir: string, wfU
   // the constitution (decision:memory.constraint-type): the product's approved constraints, verbatim, in every prompt
   let constitution = '';
   try { const g = await loadGraph(path.join(productDir, '_build/graph.json')); constitution = constitutionSection(g, indexGraph(g)); } catch { /* no graph yet */ }
-  return base.trim() + env + constitution + (own.trim() ? `\n\n## Product instructions\n${own.trim()}` : '') + '\n';
+  // what the agent can call (lib/toolchain), so it does not probe PATH
+  let tools = '';
+  try { tools = `\n${toolsLine(await toolchain())}`; } catch { /* unknown: say nothing */ }
+  return base.trim() + env + tools + constitution + (own.trim() ? `\n\n## Product instructions\n${own.trim()}` : '') + '\n';
 }
