@@ -45,7 +45,7 @@ export default async function ProductPage({ params }: { params: Promise<{ produc
           ); })}
         </div>}
         {!roots.length && <EmptyState icon="📄" title="No documents yet" actions={<NewDocumentActions />}>
-          <p>A document is Markdown in this product’s folder: prose, with an id on the lines that matter, like <code>req:checkout.fast</code>. Agents read it before they build, and what they learn comes back to it.</p>
+          <p>A document is Markdown in this product’s folder: prose, with an id on the lines that matter, like <code>req:search.fast</code>. Agents read it before they build, and what they learn comes back to it.</p>
         </EmptyState>}
       </section>
       <section>

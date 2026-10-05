@@ -4,7 +4,7 @@ import { AddProduct } from './AddProduct';
 // The first screen (/ with no products): what Wye is, in the loop it runs, whether a coding agent is on this machine,
 // and the ways to add a first product — from the code first. No rail: there is no product to show one for.
 const LOOP = [
-  { name: 'Define', text: <>What the product must do, in Markdown. A line that starts with an id, like <code>req:checkout.fast</code>, becomes a block in the graph.</> },
+  { name: 'Define', text: <>What the product must do, in Markdown. A line that starts with an id, like <code>req:search.fast</code>, becomes a block in the graph.</> },
   { name: 'Request', text: 'A Prompt Request asks for a change. An agent builds it with the definition as context.' },
   { name: 'Remember', text: 'What agents learn comes back as proposals. A person approves them in the Inbox.' },
 ];

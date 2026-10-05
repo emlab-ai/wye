@@ -37,8 +37,8 @@ export function AddProduct({ start = 'new', cancel = true }: { start?: Way; canc
       {way === 'code' && <>
         <p className="lede">Wye reads the folder into a first, shallow definition: its modules, pages, components, operations and tests. No model is called and nothing in the folder changes. Afterwards, an agent can deepen each module into requirements.</p>
         <div className="form">
-          <label><span>title</span><input autoFocus value={title} placeholder="e.g. Kitchen POS" onChange={e => setTitle(e.target.value)} /></label>
-          <label><span>folder</span><input value={folder} placeholder="~/code/kitchen-pos" spellCheck={false} onChange={e => setFolder(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && title.trim() && folder.trim()) fromCode(); }} /></label>
+          <label><span>title</span><input autoFocus value={title} placeholder="e.g. My app" onChange={e => setTitle(e.target.value)} /></label>
+          <label><span>folder</span><input value={folder} placeholder="~/code/my-app" spellCheck={false} onChange={e => setFolder(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && title.trim() && folder.trim()) fromCode(); }} /></label>
         </div>
         {actions('Read the code', 'Reading the code…', fromCode, !!title.trim() && !!folder.trim())}
       </>}
@@ -46,7 +46,7 @@ export function AddProduct({ start = 'new', cancel = true }: { start?: Way; canc
         <p className="lede">An empty product. Write its first document, or import code or Markdown into it later.</p>
         <div className="form">
           <label><span>icon</span><input value={icon} onChange={e => setIcon(e.target.value)} style={{ width: 60 }} /></label>
-          <label><span>title</span><input autoFocus value={title} placeholder="e.g. Kitchen POS" onChange={e => setTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && title.trim()) create(); }} /></label>
+          <label><span>title</span><input autoFocus value={title} placeholder="e.g. My app" onChange={e => setTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && title.trim()) create(); }} /></label>
           <label><span>description</span><textarea value={description} rows={3} onChange={e => setDescription(e.target.value)} /></label>
         </div>
         {actions('Create product', 'Creating…', create, !!title.trim())}

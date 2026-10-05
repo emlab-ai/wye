@@ -60,7 +60,7 @@ function StepExtra({ step, agents }: { step: StepState; agents: Agents }): React
       <p>Install <a href="https://claude.com/claude-code" target="_blank" rel="noreferrer">Claude Code</a> or <a href="https://github.com/openai/codex" target="_blank" rel="noreferrer">Codex</a>, then come back to this page.</p>
     </div>
   );
-  if (step.key === 'block' && !step.done) return <p className="qs-type">Type on a line of its own: <code>req:checkout.fast Checkout should feel instantaneous.</code></p>;
+  if (step.key === 'block' && !step.done) return <p className="qs-type">Type on a line of its own: <code>req:search.fast Search shows results within a second.</code></p>;
   return null;
 }
 

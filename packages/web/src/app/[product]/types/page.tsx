@@ -27,7 +27,7 @@ export default async function TypesPage({ params }: { params: Promise<{ product:
       <section className="kind-section"><h2>{scope.product.meta.title}&apos;s types <span className="muted">{own.length}</span></h2>
         {own.length ? <><TypeRows product={product} rows={own.map(row)} /><AddType product={product} types={types.map(t => ({ id: t.id, slug: t.slug }))} docs={docs} home={home} /></> : (
           <EmptyState icon="⬡" title="No types of its own yet" actions={<AddType product={product} types={types.map(t => ({ id: t.id, slug: t.slug }))} docs={docs} home={home} />}>
-            <p>The base types below fit most products. A product can add its own vocabulary — <code>team:</code>, <code>vehicle:</code>, <code>dish:</code> — and its instances join the same graph. See <Link href={`/${product}/types/node`}>type:node</Link> for the form of a <code>type:</code> card.</p>
+            <p>The base types below fit most products. A product can add its own vocabulary — <code>team:</code>, <code>customer:</code>, <code>service:</code> — and its instances join the same graph. See <Link href={`/${product}/types/node`}>type:node</Link> for the form of a <code>type:</code> card.</p>
           </EmptyState>)}</section>
       <section className="kind-section"><h2>Base types <span className="muted">{base.length}</span></h2><TypeRows product={product} rows={base.map(row)} /></section>
     </div>
