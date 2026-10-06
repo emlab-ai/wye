@@ -34,13 +34,19 @@ assert.deepStrictEqual(g.check({ repo: F('services/payments') }).errors, [], 'th
 assert(defined.includes('module:payments') && defined.includes('goal:payments.defined') && defined.some(id => id.startsWith('task:payments.describe.')), 'ids carry the vault\'s slug');
 // the note: appended to a CLAUDE.md that exists, AGENTS.md made
 const claude = fs.readFileSync(F('services/payments/CLAUDE.md'), 'utf8');
-assert(claude.startsWith('# Payments\n\nRun the tests with make.\n') && claude.includes('<!-- wye:vault -->') && claude.includes('run `wye` from this folder') && claude.includes('--product payments'), 'CLAUDE.md keeps its text and gains the section');
+assert(claude.startsWith('# Payments\n\nRun the tests with make.\n') && claude.includes('<!-- wye:vault -->') && claude.includes('wye propose payments/payments/decisions') && claude.includes('--product payments'), 'CLAUDE.md keeps its text and gains the section');
 assert(fs.readFileSync(F('services/payments/AGENTS.md'), 'utf8').includes('<!-- wye:vault -->'), 'AGENTS.md is written');
 
 // again: nothing is written, the person is told where it is
 const before = fs.readFileSync(F('services/payments/CLAUDE.md'), 'utf8');
 const again = initVault({ folder: F('services/payments') });
 assert(again.existing && again.dir === dir && again.slug === 'payments' && fs.readFileSync(F('services/payments/CLAUDE.md'), 'utf8') === before, 'an existing vault is kept');
+// the section is refreshed in place when an older one is there: everything around it is kept byte for byte
+fs.writeFileSync(F('services/payments/CLAUDE.md'), '# Payments\n\nRun the tests with make.\n\n<!-- wye:vault -->\n## old note\n<!-- /wye:vault -->\n\n## After\n\nNever touch prod.\n');
+initVault({ folder: F('services/payments') });
+const refreshed = fs.readFileSync(F('services/payments/CLAUDE.md'), 'utf8');
+assert(refreshed.startsWith('# Payments\n\nRun the tests with make.\n\n<!-- wye:vault -->') && refreshed.endsWith('<!-- /wye:vault -->\n\n## After\n\nNever touch prod.\n') && !refreshed.includes('## old note') && refreshed.includes('wye propose') && refreshed.split('<!-- wye:vault -->').length === 2, 'an older section is replaced, the text around it kept');
+assert.strictEqual(fs.readFileSync(F('services/payments/CLAUDE.md'), 'utf8'), refreshed, 'a second refresh changes nothing');
 
 // below: the child names its parent, the parent lists it
 const ref = initVault({ folder: F('services/payments/refunds') });

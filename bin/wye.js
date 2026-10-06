@@ -58,7 +58,8 @@
 //        document it is defined on the request under Definition (decision:exec.definition-home-fallback)
 //   wye init [folder] [--slug s] [--title "…"]   a vault for the current folder (lib/vault.js): its own knowledge in <folder>/.wye/
 //        beside the code — the shallow definition, _agent.md, a note to agents in AGENTS.md / CLAUDE.md — linked to the vault
-//        above and the ones below (`parent:` / `vaults:` in _product.md), and opened in the app; an existing one is kept
+//        above and the ones below (`parent:` / `vaults:` in _product.md), and opened in the app; on a folder that has one, only the
+//        note to agents in CLAUDE.md / AGENTS.md is brought up to date (the text between its markers)
 //   wye init [folder] [--slug s] [--title "…"]   a vault for the folder (the current one): its own knowledge in .wye/ beside the
 //        code — a first definition read from it, _agent.md, a note in AGENTS.md / CLAUDE.md — linked to the vault above
 //        and the ones below. Inside a folder that has a vault, every command below finds its product from there.
@@ -532,7 +533,7 @@ const commands = {
     try { opened = await api('POST', '/api/products/open', { folder: v.dir }); } catch (e) { why = e.cause ? 'the app is not running' : e.message; }
     if (flags.json) return out({ existing: v.existing, folder: v.folder, dir: v.dir, slug: v.slug, product: opened ? opened.slug : null, parent: v.parent || null, children: v.children || [], linked: v.linked || [], written: v.made ? v.made.written : [], skipped: v.made ? v.made.skipped : [] });
     const there = opened ? `${WF_URL}/${opened.slug}` : `not opened in the app (${why}) — wye open ${v.folder}`;
-    if (v.existing) { console.log(`this folder already has its knowledge: ${v.dir}  (vault ${v.slug}) — nothing was written\n${there}`); return; }
+    if (v.existing) { const w = v.made.written.map(f => path.relative(v.folder, f)); console.log(`this folder already has its knowledge: ${v.dir}  (vault ${v.slug}) — ${w.length ? `the note to agents brought up to date in ${w.join(', ')}` : 'nothing was written'}\n${there}`); return; }
     const relTo = f => path.relative(v.folder, f) || '.';
     console.log(`vault ${v.slug} → ${v.dir}`);
     console.log(`${v.made.written.length} file(s) written${v.made.skipped.length ? ` (${v.made.skipped.length} existed and were kept)` : ''}; scanned ${v.made.counts.files} files: ${v.areas.length} modules, ${v.made.counts.pages} pages, ${v.made.counts.components} components, ${v.made.counts.ops} operations, ${v.made.counts.tests} tests`);

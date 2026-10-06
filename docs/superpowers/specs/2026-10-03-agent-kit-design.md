@@ -1,5 +1,9 @@
 # Agent kit — Wye in Claude Code, Codex and Cursor (design)
 
+> **Superseded on 2026-10-06** (decision:waterfall.agent-contract-is-the-note): the per-session hooks, the external
+> session and `/wye-init` were dropped as too complicated. The connection is the note `wye init` writes once into
+> CLAUDE.md / AGENTS.md (lib/vault.js#note), refreshed between its markers by running `wye init` again.
+
 2026-10-03. A person who installs Wye can install its skills into the coding agents they use, globally or into one
 repo, from a popup the first time the app opens (and later from Settings › Agents or the CLI). In a repo,
 `/wye-init` links it to a Wye product — an existing one, or a new one made from the repo's code. From then on an agent
