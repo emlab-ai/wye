@@ -25,11 +25,11 @@ If an existing plan covers it, open that one (`wye doc <v>/<v>/<doc>`) and go to
 ## 2. Make the page
 
 ```bash
-wye doc create <v>/<v>/<slug> --title "<Title>" --template plan
+wye doc create <v>/<v>/<slug> --title "<Title>" --template plan --type plan
 ```
 
 The slug comes from the title — keep it short (two or three words: the task ids carry it); the command prints the ref and the link. The template gives a Goal, Phases and Tasks
-section; the page's node is `module:<slug>` — the id every task of the plan is part of.
+section; the page is a plan (`type:plan`), its node `plan:<slug>` — what every requirement of the plan is part of.
 
 ## 3. Define it — by section, never the whole document
 
@@ -39,7 +39,7 @@ section; the page's node is `module:<slug>` — the id every task of the plan is
   the words: `[the vault's note](decision:<v>.x)`. Never a bare id in prose.
 - **Scope** — what is in, what is out, in two short lists.
 - **Requirements** — the `req:` blocks this plan implements, **defined on the plan page**, never as links to cards
-  written elsewhere. A card holds only `id`, `title`, `status: proposed`, `part-of: module:<slug>`; its When / Then /
+  written elsewhere. A card holds only `id`, `title`, `status: proposed`, `part-of: plan:<slug>`; its When / Then /
   Unless are **content lines indented two spaces under the fence**, each a node of its own — never yaml properties:
 
   ```markdown
@@ -47,7 +47,7 @@ section; the page's node is `module:<slug>` — the id every task of the plan is
   - id: req:<v>.<slug>.<x>
     title: <what is true for the person, one sentence>
     status: proposed
-    part-of: module:<slug>
+    part-of: plan:<slug>
   ```
     - when:<slug>.<x> <the trigger, a sentence>
     - then:<slug>.<x> <the outcome>
@@ -64,7 +64,7 @@ section; the page's node is `module:<slug>` — the id every task of the plan is
   - [ ] task:<slug>.<y> <what>, part of req:<…>, depends on task:<slug>.<x>
   ```
 
-  `part of` the requirement (or `module:<slug>` for a chore), `depends on` what it waits for, `#ready` only when a
+  `part of` the requirement (or `plan:<slug>` for a chore), `depends on` what it waits for, `#ready` only when a
   worker could start it now. A sub-task is a task line indented two spaces under its task.
 - **Questions** — what you could not decide, as `question:` cards with `status: open`, never as prose.
 - Every decision taken while planning (an approach chosen, an option rejected) is a `decision:` card proposed with
@@ -79,7 +79,7 @@ status in the app, or their word); approving is theirs.
 wye doc <v>/<v>/<slug>                              # the plan with its task lines and their status — the record
 wye work list --goal req:<…>                        # a requirement's tasks and their state, across plans
 wye node set task:<slug>.<x> --status done          # as each lands — in the plan, not only in your reply
-wye work add "<a to-do found on the way>" --part-of module:<slug> [--ready]   # new work goes under the plan
+wye work add "<a to-do found on the way>" --part-of plan:<slug> [--ready]   # new work goes under the plan
 wye doc write <v>/<v>/<slug> --section "Tasks" …    # re-order or refine the task lines when the plan changes
 ```
 

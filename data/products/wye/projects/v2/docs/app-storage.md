@@ -1118,6 +1118,16 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     — the links themselves are text in each vault's _product.md, in the folder's git.
   status: proposed
   part-of: module:app-storage
+- id: lib:inbox-raw
+  file: packages/web/src/lib/inbox-raw.ts
+  side: server
+  purpose: >
+    Raw input in the inbox (decision&#58;waterfall.raw-input-stays-raw,
+    decision&#58;waterfall.raw-request-to-inbox-then-digest): the person's words from `wye remember`, their impact
+    on what is known judged on arrival, and the digest — a Remember conversation told that the input is a request,
+    not knowledge. Shared by the inbox routes (arrival, Digest again).
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

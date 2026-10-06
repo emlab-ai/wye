@@ -520,6 +520,16 @@ type means instances may carry properties the type does not declare without a wa
     keeps its position, never its content. Positions live in a fenced `## Layout` section
     (decision:map.layout-is-a-fenced-section), invisible to the graph.
   open: true
+- id: type:plan
+  extends: type:module
+  mixes-in: [type:timed]
+  purpose: >
+    a plan for a piece of work, one page per plan (decision:waterfall.plan-is-a-vault-document): its goal and scope,
+    the requirements it implements as cards of the page, the phases with their exit criteria, the tasks as task lines
+    part of those requirements, and — once building — the progress per phase. Made by the wye-plan skill, approved
+    by the person on the page, built by the wye-build skill; a plan whose tasks are all done counts as ended.
+  open: true
+  statuses: [proposed, approved, building, done, cancelled]
 - id: type:step
   extends: type:node
   mixes-in: [type:timed]

@@ -1146,6 +1146,27 @@ The editor's blocks and the components the pages are made of, by area.
     (decision:wf2.vault-links).
   status: proposed
   part-of: module:components
+- id: component:console-terminal
+  file: packages/web/src/components/ConsoleTerminal.tsx
+  side: client
+  purpose: >
+    The console's events drawn the way Claude Code draws its own transcript (req:wf2.sessions.quiet-console): `❯`
+    the person's words, `●` the agent's, a tool call as `● Name(what)` with its result under a `⎿`, an edit as the
+    diff of the lines it changed, a run of calls folded to "Read 2 files, ran a command", the turn's end as `✻ Done
+    (time)`.
+  status: proposed
+  part-of: module:components
+- id: component:task-table
+  file: packages/web/src/components/TaskTable.tsx
+  side: client
+  purpose: >
+    The Tasks table (page:web/work, req:exec.work-view), issue-tracker style: one row per task — and per block of
+    any type that extends task (a bug, a chore), with the kind shown — its title with where it is written, who holds
+    it, its status as a control, its due date, Start (the row sent to an agent) and a menu. Open / Assigned to me, a
+    search, a filter by type and, over a workspace, by vault; done rows out of the way unless asked. The choices are
+    this browser's for the moment, never written to the view's line.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

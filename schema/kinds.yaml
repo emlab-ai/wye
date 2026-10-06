@@ -27,6 +27,7 @@ kinds:
   note:           { purpose: a remark under a rule, a constraint or any node — a child block of it, nests-in: [node] }
   op:             { purpose: a query, mutation, endpoint or tool — the public API surface }
   page:           { purpose: a screen the user can navigate to }
+  plan:           { purpose: a plan for a piece of work, one page per plan }
   pr:             { purpose: A Prompt Request — a person's request to change the knowledge, one page per request, required: [session] }
   product:        { purpose: a thing being built; groups projects }
   question:       { purpose: something the knowledge leaves unspecified; open until a person resolves it with a decision }
@@ -106,6 +107,7 @@ statuses:
   goal:        [proposed, on-track, at-risk, off-track, paused, complete, non-goal]
   hook:        [active, paused]
   node:        [proposed, approved, shipped, deprecated, superseded, retired]
+  plan:        [proposed, approved, building, done, cancelled]
   pr:          [draft, refining, approved, building, done, failed, cancelled]
   question:    [open, resolved, rejected]
   req:         [proposed, approved, rejected, shipped, api-only, unverified, question, superseded]
