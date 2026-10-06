@@ -1438,7 +1438,9 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       if (!sel.empty || sel.$from.parentOffset !== sel.$from.parent.content.size) return;
       let cur: AnyBlock; try { cur = editor.getTextCursorPosition().block as unknown as AnyBlock; } catch { return; }
       const p = cur.props as unknown as { kind: string; slug: string; form: string; textKey: string; check: string; list: string; row: string };
-      if (cur.type !== 'node' || p.row || p.form === 'yaml') return;
+      // a yaml card too: left to the editor's own Enter, the split would hand the card's children — its content, the
+      // when / then / unless under a requirement — to the new paragraph
+      if (cur.type !== 'node' || p.row) return;
       if (!rowText(cur)) {   // the block Enter made and nothing was typed into: it is the plain line again, not an empty task left behind
         if (!/^new-\d+$/.test(p.slug) || cur.children?.length) return;
         e.preventDefault(); e.stopPropagation();
@@ -1450,7 +1452,10 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       const [line] = editor.insertBlocks([{ type: 'paragraph', content: [] } as never], cur as never, 'after');
       editor.setTextCursorPosition(line as never, 'start');
       view.dispatch(closeHistory(view.state.tr));
-      editor.updateBlock(line as never, { type: 'node', props: { kind: p.kind, slug, form: 'prose', textKey: p.textKey || 'text', status: p.kind === 'task' ? 'open' : p.kind === 'goal' || PARTS[p.kind] ? 'proposed' : '', check: p.check ? 'todo' : '', list: p.list } } as never);
+      // the new block is like the one before it: after a card that carries its parts (a yaml card, or a node with
+      // content), the next one is born with its parts too, as the slash menu makes it
+      const parts = PARTS[p.kind] && (p.form === 'yaml' || cur.children?.length) ? PARTS[p.kind].map(([k, t]) => child(k, t)) : [];
+      editor.updateBlock(line as never, { type: 'node', props: { kind: p.kind, slug, form: 'prose', textKey: p.textKey || 'text', status: p.kind === 'task' ? 'open' : p.kind === 'goal' || PARTS[p.kind] ? 'proposed' : '', check: p.check ? 'todo' : '', list: p.list }, ...(parts.length ? { children: parts } : {}) } as never);
       touched.current = true;
     };
     el.addEventListener('keydown', key, true); return () => el.removeEventListener('keydown', key, true);
