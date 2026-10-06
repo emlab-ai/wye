@@ -36,6 +36,10 @@ export const BASE_SKILLS: { slug: string; title: string; role: SkillRole; file: 
   { slug: 'tech-design', title: 'Write the technical design', role: 'librarian', file: 'prompts/tech-design.md', takes: 'module', writes: ['decision', 'entity', 'op', 'rule', 'state', 'page'] },
   { slug: 'test-design', title: 'Write the test design', role: 'librarian', file: 'prompts/test-design.md', takes: 'module', writes: ['test', 'ui-test', 'question'], skills: ['skill:define-tests'] },
   { slug: 'plan', title: 'Build the implementation plan', role: 'librarian', file: 'prompts/plan.md', takes: 'module', writes: ['task'] },
+  // a plan page and its build, run by an agent in a terminal from the folder with the vault (/wye-plan, /wye-build —
+  // decision:waterfall.plan-is-a-vault-document): the launchers fetch these, so a person edits them here
+  { slug: 'plan-page', title: 'Plan a piece of work as a plan page', role: 'worker', file: 'prompts/plan-page.md', takes: '*', writes: ['plan', 'req', 'task', 'decision', 'question'] },
+  { slug: 'build-plan', title: 'Build a plan', role: 'worker', file: 'prompts/build-plan.md', takes: 'plan', writes: ['task', 'decision', 'question', 'req'] },
 ];
 
 // The workflows shipped as documents beside the skills (decision:wf2.workflow-is-a-skill): a workflow is a skill that

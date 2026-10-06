@@ -19,6 +19,7 @@
 //   wye doc <product/project/doc>         a document's markdown body
 //   wye doc write <product/project/doc> [--file f] [--section "Analysis"]   replace the body (stdin or --file) — or one ## section of it — checked against the current hash
 //   wye doc create <product/project/slug> --title "…" [--template blank] [--parent doc] [--type module]   a new document in a project (a page of that type)
+//   wye doc set <product/project/doc> [--status s] [--set key=value ...]   the page's own frontmatter: a plan's status, an owner
 //   wye doc retype <product/project/doc> --type <slug>   the page becomes an instance of that type; every link to it follows
 //   wye query "<SQL>" [--json]   one read query over the graph: nodes(id, kind, title, status, project, page, file, text, props JSON),
 //        edges(src, dst, verb); MATCH patterns on graph wye — e.g. FROM GRAPH_TABLE (wye MATCH (c:nodes)-[e:edges]->(p:nodes) …)
@@ -298,6 +299,16 @@ const commands = {
       const j = await api('POST', `/api/${d.product}/${d.project}/doc`, { title: flags.title || die('--title is required'), template: flags.template || 'blank', parent: flags.parent || '', type: flags.type || 'module' });
       if (j.slug !== d.doc) console.error(`note: the slug comes from the title — created ${j.slug}, not ${d.doc}`);
       return out(flags.json ? j : `created ${d.product}/${d.project}/${j.slug} (${WF_URL}/${d.product}/${d.project}/d/${j.slug})`);
+    }
+    // wye doc set <doc> --status s [--set key=value ...]: the page's own frontmatter — a plan's status from approved to
+    // building to done, an owner — as the properties bar sets it (op:doc.frontmatter)
+    if (pos[1] === 'set') {
+      const d = docRef(pos[2] || die('wye doc set <product/project/doc> [--status s] [--set key=value ...]'));
+      const patch = {}; if (flags.status) patch.status = String(flags.status);
+      for (const kv of list(flags.set)) { const i = kv.indexOf('='); if (i > 0) patch[kv.slice(0, i).trim()] = kv.slice(i + 1).trim(); }
+      if (!Object.keys(patch).length) die('nothing to set: --status s and/or --set key=value');
+      await api('PUT', `/api/${d.product}/${d.project}/doc/${d.doc}`, { op: 'frontmatter', patch });
+      return out(flags.json ? patch : `${d.product}/${d.project}/${d.doc}: ${Object.entries(patch).map(([k, v]) => `${k} = ${v}`).join(', ')}`);
     }
     if (pos[1] === 'retype') {
       const d = docRef(pos[2] || die('wye doc retype <product/project/doc> --type <slug>'));

@@ -49,3 +49,12 @@ with a status: `part of` the requirement it implements, `depends on` what it wai
 could start it now.
 
 - [ ] task:{{slug}}.first What it delivers, in one sentence, part of req:{{slug}}.first #ready
+
+## Progress
+
+Written by the build (skill:build-plan), one entry per phase, the current one first: what is done, what is being
+done and where it stands, the exit criterion and whether it held. Nothing here until the build starts.
+
+## Questions
+
+What could not be decided while planning, as `question:` cards with `status: open`.
