@@ -28,7 +28,7 @@ If an existing plan covers it, open that one (`wye doc <v>/<v>/<doc>`) and go to
 wye doc create <v>/<v>/<slug> --title "<Title>" --template plan
 ```
 
-The slug comes from the title; the command prints the ref and the link. The template gives a Goal, Phases and Tasks
+The slug comes from the title — keep it short (two or three words: the task ids carry it); the command prints the ref and the link. The template gives a Goal, Phases and Tasks
 section; the page's node is `module:<slug>` — the id every task of the plan is part of.
 
 ## 3. Define it — by section, never the whole document
