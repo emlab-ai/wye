@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { digestRaw, judgeRawImpact } from '@/lib/inbox-raw';
 import { captureTask } from '@/lib/work-io';
 import { markFiled } from '@/lib/inbox';
 import { loadScope } from '@/lib/scope';
@@ -6,7 +7,8 @@ import { dismissItem, fileItem, listInboxItems, suggestFiling } from '@/lib/inbo
 import { documentTree, docRoute } from '@/lib/doc';
 import { jevClient } from '@/lib/jev';
 
-// GET → the item with a filing suggestion. POST { action: 'file', doc, project, id } | { action: 'dismiss' }.
+// GET → the item with a filing suggestion. POST { action: 'file', doc, project, id } | { action: 'dismiss' } | { action: 'task' }
+// | { action: 'digest' } (raw input: its impact judged again and a new Remember session on it) | { action: 'impact' } (judged again only).
 export async function GET(_req: Request, { params }: { params: Promise<{ product: string; name: string }> }) {
   const { product, name } = await params;
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
@@ -21,6 +23,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const item = (await listInboxItems(scope.product.dir)).find(i => i.name === decodeURIComponent(name)); if (!item) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const b = (await req.json()) as { action?: string; doc?: string; project?: string; id?: string };
   if (b.action === 'dismiss') { await dismissItem(scope.product.dir, item.name); return NextResponse.json({ ok: true }); }
+  if (b.action === 'impact' || b.action === 'digest') {
+    const impact = await judgeRawImpact(scope.product.dir, product, item.name);
+    if (b.action === 'impact') return NextResponse.json({ ok: true, impact });
+    const d = await digestRaw(scope.product, product, item.name, impact, new URL(req.url).origin);
+    return NextResponse.json({ ok: !d.error, impact, session: d.session, ...(d.error ? { error: d.error } : {}) }, { status: d.error ? 502 : 200 });
+  }
   if (b.action === 'file') {
     const d = [...documentTree(scope.graph).byFile.values()].find(x => x.slug === b.doc && docRoute(x.file)?.project === b.project); if (!d) return NextResponse.json({ error: 'not_found', message: 'document not found' }, { status: 404 });
     if (!b.id || !/^[a-z-]+:[A-Za-z0-9_.\-]+$/.test(b.id)) return NextResponse.json({ error: 'invalid', message: 'a node id like decision:offline.x is required' }, { status: 422 });

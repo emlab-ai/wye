@@ -29,3 +29,38 @@ describe('inbox digest', () => {
     expect(await readFile(path.join(dir, 'inbox', name), 'utf8')).not.toMatch(/^session:/m);
   });
 });
+
+import { impactInboxItem, linkInboxItem } from './inbox';
+import type { GraphData, GraphNode } from './graph';
+import type { JevClient } from './jev';
+
+// raw input (decision:waterfall.raw-input-stays-raw): an item from `wye remember` keeps `type: note` whatever Jev is
+// sure of — it is the person's words, not a block — and its impact on what is known is judged on arrival and kept
+// beside it, never written into the documents
+const node = (id: string, body: string): GraphNode => ({ id, kind: id.split(':')[0], title: id, status: 'approved', section: '', subsection: '', file: 'x/docs/d.md', line: 1, body, defined: true });
+const g: GraphData = { generatedAt: '', modules: [], files: [], nodes: [node('decision:hooks', 'text: agents connect through per-session hooks'), node('req:login', 'title: Login')], edges: [], fieldIndex: {} };
+const searchFn = async () => Object.assign([{ id: 'decision:hooks', score: 0.8, semantic: 0.8, keyword: 0, snippet: '' }, { id: 'req:login', score: 0.2, semantic: 0.2, keyword: 0, snippet: '' }], { hidden: 0 });
+const jev: JevClient = { enabled: true, model: 'fake', ask: async () => ({ model: '', answers: {}, usage: {} }), judgeLinks: async (_t, c) => c.map(x => ({ id: x.id, p: 0.95 })), judgeKind: async () => ({ kind: 'requirement', p: 0.99 }) };
+
+describe('raw input', () => {
+  it('is linked but never retyped', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'wf-inbox-raw-'));
+    const name = await addInboxItem(dir, { text: 'no hooks, it must be done once', from: 'agent', raw: true });
+    expect(await readFile(path.join(dir, 'inbox', name), 'utf8')).toMatch(/^raw: true$/m);
+    const r = await linkInboxItem(dir, g, name, jev, searchFn as never);
+    expect(r.type).toBeUndefined();
+    const item = (await listInboxItems(dir)).find(i => i.name === name)!;
+    expect(item.raw).toBe(true); expect(item.type).toBe('note'); expect(item.refs).toContain('decision:hooks');
+  });
+  it('keeps the impact judged on arrival beside the item', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'wf-inbox-raw-'));
+    const name = await addInboxItem(dir, { text: 'no hooks, it must be done once', raw: true });
+    const seen: { before: string; after: string }[] = [];
+    const r = await impactInboxItem(dir, g, name, { searchFn: searchFn as never, judge: async (change, cands) => { seen.push(change); return cands.map(c => c.id === 'decision:hooks' ? { verdict: 'contradicts', reason: 'the input rules hooks out', question: null } : { verdict: 'unaffected', reason: '', question: null }); } });
+    expect(seen[0].after).toContain('no hooks'); expect(seen[0].before).toMatch(/nothing/);
+    expect(r.candidates.map(c => [c.id, c.verdict])).toEqual([['decision:hooks', 'contradicts']]); // the unaffected one is not kept
+    const item = (await listInboxItems(dir)).find(i => i.name === name)!;
+    expect(item.impact?.candidates[0]).toMatchObject({ id: 'decision:hooks', verdict: 'contradicts', reason: 'the input rules hooks out' });
+    expect((await listInboxItems(dir)).map(i => i.name)).toEqual([name]); // the sidecar is not an item
+  });
+});

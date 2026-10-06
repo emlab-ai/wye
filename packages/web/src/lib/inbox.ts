@@ -8,11 +8,15 @@ import { REPO_ROOT } from './products';
 import { search } from './semantic';
 import { judgeText, confidentIds, type SearchFn } from './links';
 import { LINK_MIN, type JevClient } from './jev';
-import type { GraphData } from './graph';
+import type { GraphData, GraphNode } from './graph';
 import { docRoute } from './doc';
 
 export type InboxType = 'decision' | 'requirement' | 'rule' | 'question' | 'note';
-export interface InboxItem { name: string; type: InboxType; title: string; from: string; added: string; status: 'new' | 'filed' | 'dismissed'; refs: string[]; session?: string; fields: Record<string, string>; body: string; filedTo?: string; node?: string; size: number; mtime: string }
+// raw: the person's words as they were said (wye remember) — never typed, never filed as a block; the digest and the
+// impact judged on arrival are what Wye makes of it (decision:waterfall.raw-input-stays-raw)
+export type InboxImpactCandidate = { id: string; kind: string; title: string; verdict: 'update' | 'rework' | 'contradicts' | 'ask'; reason: string; question?: string };
+export type InboxImpact = { at: string; judged: number; candidates: InboxImpactCandidate[] };
+export interface InboxItem { name: string; type: InboxType; title: string; from: string; added: string; status: 'new' | 'filed' | 'dismissed'; refs: string[]; session?: string; raw?: boolean; impact?: InboxImpact; fields: Record<string, string>; body: string; filedTo?: string; node?: string; size: number; mtime: string }
 
 const FIELD_KEYS = ['context', 'choice', 'alternatives', 'consequences', 'when', 'then', 'unless', 'statement', 'source', 'q'];
 
@@ -24,7 +28,8 @@ export async function listInboxItems(productDir: string): Promise<InboxItem[]> {
     const st = await stat(path.join(dir, name));
     if (!name.endsWith('.md')) { items.push({ name, type: 'note', title: name, from: 'file', added: st.mtime.toISOString(), status: 'new', refs: [], fields: {}, body: '', size: st.size, mtime: st.mtime.toISOString() }); continue; }
     const md = await readFile(path.join(dir, name), 'utf8');
-    items.push({ ...parseItem(name, md), size: st.size, mtime: st.mtime.toISOString() });
+    let impact: InboxImpact | undefined; try { impact = JSON.parse(await readFile(impactFile(productDir, name), 'utf8')) as InboxImpact; } catch { /* not judged */ }
+    items.push({ ...parseItem(name, md), ...(impact ? { impact } : {}), size: st.size, mtime: st.mtime.toISOString() });
   }
   return items.sort((a, b) => b.added.localeCompare(a.added));
 }
@@ -39,15 +44,15 @@ export function parseItem(name: string, md: string): Omit<InboxItem, 'size' | 'm
   for (const line of rest.split('\n')) { const h = line.match(/^##\s+(.+)$/); if (h) { flush(); cur = h[1].trim().toLowerCase(); } else buf.push(line); }
   flush();
   const type = (['decision', 'requirement', 'rule', 'question', 'note'].includes(head.type) ? head.type : 'note') as InboxType;
-  return { name, type, title: head.title || body.split('\n')[0].slice(0, 80) || name, from: head.from || 'unknown', added: head.added || '', status: (head.status as InboxItem['status']) || 'new', refs: (head.refs || '').split(/[,\s]+/).filter(Boolean), session: head.session || undefined, fields, body, filedTo: head['filed-to'] || undefined, node: head.node || undefined };
+  return { name, type, title: head.title || body.split('\n')[0].slice(0, 80) || name, from: head.from || 'unknown', added: head.added || '', status: (head.status as InboxItem['status']) || 'new', refs: (head.refs || '').split(/[,\s]+/).filter(Boolean), session: head.session || undefined, ...(head.raw === 'true' ? { raw: true } : {}), fields, body, filedTo: head['filed-to'] || undefined, node: head.node || undefined };
 }
 
-export async function addInboxItem(productDir: string, input: { type?: string; title?: string; text?: string; from?: string; refs?: string[]; session?: string; fields?: Record<string, string> }): Promise<string> {
+export async function addInboxItem(productDir: string, input: { type?: string; title?: string; text?: string; from?: string; refs?: string[]; session?: string; raw?: boolean; fields?: Record<string, string> }): Promise<string> {
   const type = (['decision', 'requirement', 'rule', 'question', 'note'].includes(input.type ?? '') ? input.type : 'note') as InboxType;
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const name = `${stamp}-${type}-${slugify(input.title || input.text?.slice(0, 40) || type)}.md`;
   const dir = path.join(productDir, 'inbox'); await mkdir(dir, { recursive: true });
-  const head = ['---', `type: ${type}`, `title: ${(input.title ?? '').replace(/\n/g, ' ')}`, `from: ${input.from ?? 'ui'}`, `added: ${new Date().toISOString()}`, 'status: new', ...(input.refs?.length ? [`refs: ${input.refs.join(', ')}`] : []), ...(input.session ? [`session: ${input.session}`] : []), '---', ''];
+  const head = ['---', `type: ${type}`, `title: ${(input.title ?? '').replace(/\n/g, ' ')}`, `from: ${input.from ?? 'ui'}`, `added: ${new Date().toISOString()}`, 'status: new', ...(input.refs?.length ? [`refs: ${input.refs.join(', ')}`] : []), ...(input.session ? [`session: ${input.session}`] : []), ...(input.raw ? ['raw: true'] : []), '---', ''];
   const sections = Object.entries(input.fields ?? {}).filter(([, v]) => v?.trim()).map(([k, v]) => `## ${k}\n${v.trim()}\n`);
   await writeAtomic(path.join(dir, name), head.join('\n') + (input.text?.trim() ? input.text.trim() + '\n\n' : '') + sections.join('\n'));
   return name;
@@ -65,7 +70,7 @@ export async function linkInboxItem(productDir: string, graph: GraphData, name: 
   const patch: Record<string, string> = {};
   if (refs.length) { patch.refs = [...item.refs, ...refs].join(', '); patch['linked-by'] = 'jev'; }
   let type: string | undefined;
-  if (item.type === 'note') { // the head's default: the item came without a type (or as a note — a retype is still reviewed at filing)
+  if (item.type === 'note' && !item.raw) { // the head's default: the item came without a type (or as a note — a retype is still reviewed at filing); raw input stays raw
     const k = await jev.judgeKind(text).catch(() => ({ kind: 'note', p: 0 }));
     if (k.p >= LINK_MIN() && ['decision', 'requirement', 'rule', 'question'].includes(k.kind)) { type = k.kind; patch.type = k.kind; }
   }
@@ -81,6 +86,28 @@ async function patchHead(productDir: string, name: string, patch: Record<string,
   for (const [k, v] of Object.entries(patch)) if (!seen.has(k)) out.push(`${k}: ${v}`);
   await writeAtomic(f, '---\n' + out.join('\n') + '\n---\n' + md.slice(fm[0].length));
 }
+// Impact of raw input on what is known (decision:waterfall.raw-input-stays-raw): the closest nodes by text, judged as
+// `wye impact` judges a change — here the change is "nothing before → this input" — and the verdicts that matter
+// (update | rework | contradicts | ask) kept in inbox/.impact/<name>.json, never written into a document. `judge`
+// is injectable for tests; the route passes lib/impact.js#judgeImpact.
+const impactFile = (productDir: string, name: string) => path.join(productDir, 'inbox', '.impact', `${name}.json`);
+export type ImpactJudge = (change: { node: string; kind: string; before: string; after: string }, cands: { id: string; kind: string; status?: string; path: string; text: string }[]) => Promise<({ verdict: string; reason: string; question?: string | null } | null)[]>;
+export function rawText(item: InboxItem): string { return [item.title, item.body, ...Object.entries(item.fields).map(([k, v]) => `${k}: ${v}`)].filter(s => s?.trim()).join('\n\n'); }
+export async function impactInboxItem(productDir: string, graph: GraphData, name: string, deps: { judge: ImpactJudge; searchFn?: SearchFn; limit?: number }): Promise<InboxImpact> {
+  const item = (await listInboxItems(productDir)).find(i => i.name === name); if (!item) throw new Error(`inbox item ${name} not found`);
+  const text = rawText(item);
+  const byId = new Map(graph.nodes.map(n => [n.id, n]));
+  const hits = await (deps.searchFn ?? search)(productDir, graph, text, { limit: deps.limit ?? 12 });
+  const ids = [...new Set([...item.refs, ...hits.filter(h => h.score >= 0.45).map(h => h.id)])];
+  const cands = ids.map(id => byId.get(id)).filter((n): n is GraphNode => !!n && n.defined && n.kind !== 'block').map(n => ({ id: n.id, kind: n.kind, status: n.status, path: '', text: `${n.title ? n.title + '. ' : ''}${n.body}`.slice(0, 1500) }));
+  const verdicts = cands.length ? await deps.judge({ node: `inbox:${name}`, kind: 'raw input', before: '(nothing — new input from the person, not in the vault yet)', after: text.slice(0, 4000) }, cands) : [];
+  const kept: InboxImpactCandidate[] = [];
+  cands.forEach((c, i) => { const v = verdicts[i]; if (!v || !['update', 'rework', 'contradicts', 'ask'].includes(v.verdict)) return; kept.push({ id: c.id, kind: c.kind, title: byId.get(c.id)?.title ?? c.id, verdict: v.verdict as InboxImpactCandidate['verdict'], reason: v.reason, ...(v.question ? { question: v.question } : {}) }); });
+  const impact: InboxImpact = { at: new Date().toISOString(), judged: cands.length, candidates: kept };
+  await mkdir(path.dirname(impactFile(productDir, name)), { recursive: true });
+  await writeAtomic(impactFile(productDir, name), JSON.stringify(impact, null, 1));
+  return impact;
+}
 // Digest (decision:waterfall.raw-request-to-inbox-then-digest): a raw request kept in the inbox as it was said, and a
 // Remember session (skill:remember) started on its words at once — the librarian splits it into statements, refines
 // what is known, supersedes what changed and raises what contradicts as questions, everything proposed. The item
@@ -88,7 +115,7 @@ async function patchHead(productDir: string, name: string, patch: Record<string,
 export type RememberStarter = (o: { instruction: string; refs: string[]; source: Record<string, string> }) => Promise<{ id: string }>;
 export async function digestInboxItem(productDir: string, name: string, start: RememberStarter): Promise<{ session: string | null; error?: string }> {
   const item = (await listInboxItems(productDir)).find(i => i.name === name); if (!item) return { session: null, error: `inbox item ${name} not found` };
-  const text = [item.title, item.body, ...Object.entries(item.fields).map(([k, v]) => `${k}: ${v}`)].filter(s => s?.trim()).join('\n\n');
+  const text = rawText(item);
   try {
     const s = await start({ instruction: text, refs: item.refs, source: { inbox: name, from: item.from } });
     await patchHead(productDir, name, { session: s.id });

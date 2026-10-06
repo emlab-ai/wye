@@ -23,6 +23,11 @@ import { scheduleVerdicts } from './verdicts';
 const req = createRequire(path.join(REPO_ROOT, 'package.json'));
 const lib = () => ({ Graph: req('./lib/graph.js').Graph as any, impact: req('./lib/impact.js') as any, judge: req('./lib/judge.js') as { nodeText: (n: any) => string } });
 
+// the judge as the inbox uses it on raw input (lib/inbox#impactInboxItem): the same model, cache and budget as a change
+export async function rawInputJudge(productDir: string): Promise<(change: { node: string; kind: string; before: string; after: string }, cands: { id: string; kind: string; status?: string; path: string; text: string }[]) => Promise<({ verdict: string; reason: string; question?: string | null } | null)[]>> {
+  const { impact } = lib(); const budget = { candidates: await impactBudget(productDir), calls: 3 };
+  return (change, cands) => impact.judgeImpact(change, cands, { cacheFile: path.join(productDir, '_build/impact.json'), budget });
+}
 export type ImpactVerdict = 'unaffected' | 'update' | 'rework' | 'contradicts' | 'ask';
 export type ImpactCandidate = { id: string; kind: string; title: string; status?: string; path: string; via: 'content' | 'structure' | 'text'; weight: number; text: string; hash: string; verdict?: ImpactVerdict; reason?: string; update?: { text?: string; props?: Record<string, string> }; question?: string; cached?: boolean; outcome?: { state: 'applied' | 'skipped' | 'task' | 'contradiction' | 'question'; ref?: string; by?: string; at?: string; reason?: string } };
 export type ImpactSet = { at: string; status: 'candidates' | 'running' | 'done' | 'off' | 'failed'; mode: 'auto' | 'manual' | 'off'; candidates: ImpactCandidate[]; pending: number; model?: string; error?: string };

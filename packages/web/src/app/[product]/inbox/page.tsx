@@ -73,7 +73,7 @@ export default async function InboxPage({ params, searchParams }: { params: Prom
           </div>))}
       </section>}
       {!project && <>
-        <h3 className="inbox-notes-head">Notes <span className="muted">pasted material without a document yet</span></h3>
+        <h3 className="inbox-notes-head">Notes <span className="muted">raw input — the person&apos;s words as they were said, with what they touch; and pasted material without a document yet</span></h3>
         <InboxNote product={product} />
         <InboxList product={product} initial={notes} quiet={empty} />
       </>}
