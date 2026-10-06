@@ -8,7 +8,7 @@ import { requestSend } from './CommandBox';
 import type { ReviewItem } from '@/lib/review';
 import { describeBlock, verdictSummary } from '@/lib/review-summary';
 
-const LABEL: Record<string, string> = { question: 'Questions', contradiction: 'Contradictions', decision: 'Decisions', req: 'Requirements', rule: 'Rules', constraint: 'Constraints', lesson: 'Lessons', goal: 'Goals', entity: 'Entities', task: 'Tasks' };
+const LABEL: Record<string, string> = { question: 'Questions', contradiction: 'Contradictions', decision: 'Decisions', req: 'Requirements', rule: 'Rules', constraint: 'Constraints', lesson: 'Lessons', fact: 'Facts', goal: 'Goals', entity: 'Entities', task: 'Tasks' };
 const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '');
 
 // Review what agents wrote into the documents: approve, reject or resolve in place; open the node or its document.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hashOf, replaceSegment, replaceChunk, appendChunk, insertYamlAfterSegment, patchFrontmatter, indentChunk, bodyOf, replaceBody } from './write';
+import { hashOf, replaceSegment, replaceChunk, appendChunk, insertYamlAfterSegment, patchFrontmatter, indentChunk, bodyOf, replaceBody, leadTitle, followHeading, renamePage } from './write';
 import { splitDocument } from './doc';
 
 const md = `---
@@ -85,5 +85,34 @@ describe('replaceBody', () => {
     const cur = bodyOf(md);
     const r = replaceBody(md, hashOf(cur), '---\nnode: module:m\nstatus: analysed\nsource: import/x.md\n---\n\n# New\n\nbody\n');
     expect(r.md).toBe('---\nnode: module:m\ntitle: Module M\nstatus: analysed\nsource: import/x.md\n---\n\n# New\n\nbody\n');
+  });
+});
+
+describe('a page is renamed where its title is read', () => {
+  it('leadTitle is the heading the text opens with, as plain words', () => {
+    expect(leadTitle(bodyOf(md))).toBe('Module M');
+    expect(leadTitle('\n# A **bold** [link](x)\n\ntext')).toBe('A bold link');
+    expect(leadTitle('Intro.\n\n# Later')).toBeNull();
+    expect(leadTitle('## Not the title')).toBeNull();
+  });
+  it('followHeading: a changed opening heading becomes the title', () => {
+    const after = md.replace('# Module M', '# Module N');
+    expect(followHeading(md, after)).toContain('title: Module N');
+    expect(bodyOf(followHeading(md, after))).toBe(bodyOf(after));
+  });
+  it('followHeading: an edit that leaves the heading alone leaves the title alone', () => {
+    const other = md.replace('title: Module M', 'title: Something else');
+    const after = other.replace('Intro.', 'Intro, longer.');
+    expect(followHeading(other, after)).toBe(after);
+    expect(followHeading(md, md.replace('# Module M\n', ''))).toContain('title: Module M');   // heading removed: the title stays
+  });
+  it('renamePage sets the title and the heading the text opens with', () => {
+    const r = renamePage(md, '  Module Z ');
+    expect(r.md).toContain('title: Module Z');
+    expect(r.md).toContain('\n# Module Z\n');
+    expect(r.md).not.toContain('Module M');
+    expect(renamePage(md, ' ').error).toBe('invalid');
+    const bare = md.replace('# Module M\n\n', '');
+    expect(bodyOf(renamePage(bare, 'Z').md)).toBe(bodyOf(bare));
   });
 });

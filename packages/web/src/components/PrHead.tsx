@@ -40,16 +40,24 @@ export function PrHead({ product, prRef }: { product: string; prRef: string }) {
   useEffect(() => { if (!pr || !['refining', 'building', 'approved'].includes(pr.status)) return; const t = setInterval(load, 5000); return () => clearInterval(t); }, [pr, load]);
   useEffect(() => { const h = () => load(); window.addEventListener('wf:change', h); return () => window.removeEventListener('wf:change', h); }, [load]);
   if (!pr) return null;
-  const act = async (action: 'approve' | 'cancel' | 'reopen' | 'revisit') => {
+  const act = async (action: 'approve' | 'cancel' | 'reopen' | 'revisit' | 'build') => {
     setBusy(true); setMsg(''); setConfirm(false);
     const r = await fetch(`/api/${product}/pr`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ref: prRef, action, by: me || undefined }) });
     const j = await r.json(); setBusy(false);
     if (!r.ok) { setMsg(j.message ?? j.error); return; }
-    if (action === 'approve') setMsg(j.stopped?.length ? 'approved — the refining conversation was told and stopped' : 'approved');
+    // approving approves what is in it: the proposed blocks of the Definition go with the PR; open questions stay open
+    if (action === 'approve') setMsg(['approved', j.approved?.length ? `${j.approved.length} block${j.approved.length === 1 ? '' : 's'} of the Definition approved with it` : '', j.left?.length ? `${j.left.length} question${j.left.length === 1 ? '' : 's'} still open` : '', j.stopped?.length ? 'the refining conversation was told and stopped' : ''].filter(Boolean).join(' — '));
+    // Build now: a builder's session of its own, opened in the column — never the conversation that refined the request
+    if (action === 'build') { setMsg('building — a new session works from the approved Definition'); if (j.session) open(`session:${j.session}`); }
     if (action === 'revisit') { setMsg(j.mode === 'told' ? 'Wye was asked to revisit the page' : 'Wye is revisiting the page'); if (j.session) open(`session:${j.session}`); }
     await load();
   };
-  const approve = () => { if (pr.readiness.ok || confirm) act('approve'); else setConfirm(true); };
+  // a block that is only proposed is approved by this click, so it is not a reason to ask twice: an open question, a
+  // contradiction or a missing part is
+  const unanswered = pr.readiness.unagreed.filter(id => id.startsWith('question:'));
+  const proposed = pr.readiness.unagreed.filter(id => !id.startsWith('question:'));
+  const holds = CHECKS.every(c => c.key === 'agreed' ? unanswered.length === 0 : pr.readiness[c.key]);
+  const approve = () => { if (holds || confirm) act('approve'); else setConfirm(true); };
   const open_ = pr.questions.filter(q => q.status === 'open');
   // Tell Wye (decision:wf2.pr-talk): into the PR's conversation — resumed when it ended, started on this page when there is none
   const talk = async () => {
@@ -78,12 +86,12 @@ export function PrHead({ product, prRef }: { product: string; prRef: string }) {
         <span className="pr-acts">
           {['draft', 'refining', 'approved'].includes(pr.status) && <button disabled={busy} onClick={() => act('revisit')} title="Bring this page up to the current approach — a Summary of what gets built, one decision per choice, requirements and tests that match the decisions — without changing what was decided (skill:revisit-request)">Revisit</button>}
           {(pr.status === 'draft' || pr.status === 'refining') && <>
-            <button className="pri" disabled={busy} onClick={approve} title={rd.ok ? 'Approve: the PR is queued for a build' : 'Not everything holds yet — a second click approves anyway'}>{confirm ? `Approve anyway? ${rd.unagreed.length} unagreed, ${rd.contradicted.length} contradicted` : 'Approve'}</button>
+            <button className="pri" disabled={busy} onClick={approve} title={holds ? `Approve: ${proposed.length ? `the ${proposed.length} proposed block${proposed.length === 1 ? '' : 's'} of the Definition ${proposed.length === 1 ? 'is' : 'are'} approved with it, and ` : ''}the PR is queued for a build` : 'Not everything holds yet — a second click approves anyway'}>{confirm ? `Approve anyway? ${unanswered.length} open question${unanswered.length === 1 ? '' : 's'}, ${rd.contradicted.length} contradicted` : 'Approve'}</button>
             <button disabled={busy} onClick={() => act('cancel')}>Cancel</button>
           </>}
           {pr.status === 'approved' && <>
             <span className="muted small" title="The dispatcher builds approved PRs when a slot is free and no building PR overlaps this one's scope">{pr.waiting ? `waiting: ${pr.waiting}` : 'queued for a build'}</span>
-            {pr.task && <button onClick={() => open(pr.task!)} title="Assign the build by hand from the request task's panel">Build now</button>}
+            {pr.task && <button disabled={busy} onClick={() => act('build')} title="Start the build now: a new session works from the approved Definition">Build now</button>}
             <button disabled={busy} onClick={() => act('reopen')}>Reopen</button>
             <button disabled={busy} onClick={() => act('cancel')}>Cancel</button>
           </>}
@@ -92,7 +100,7 @@ export function PrHead({ product, prRef }: { product: string; prRef: string }) {
         </span>
       </div>
       {(rd.unagreed.length > 0 || rd.contradicted.length > 0) && !ended && <p className="pr-head-why muted">
-        {rd.unagreed.length > 0 && <>not agreed: {(allUnagreed ? rd.unagreed : rd.unagreed.slice(0, UNAGREED_SHOWN)).map(id => <span key={id}><SmartTag id={id} /> </span>)}{rd.unagreed.length > UNAGREED_SHOWN && <button type="button" className="linkish" onClick={() => setAllUnagreed(a => !a)}>{allUnagreed ? 'fewer' : `+${rd.unagreed.length - UNAGREED_SHOWN} more`}</button>} </>}
+        {rd.unagreed.length > 0 && <>not agreed: {(allUnagreed ? rd.unagreed : rd.unagreed.slice(0, UNAGREED_SHOWN)).map(id => <span key={id}><SmartTag id={id} /> </span>)}{rd.unagreed.length > UNAGREED_SHOWN && <button type="button" className="linkish" onClick={() => setAllUnagreed(a => !a)}>{allUnagreed ? 'fewer' : `+${rd.unagreed.length - UNAGREED_SHOWN} more`}</button>} {/* a PR approved before approval reached its blocks: one click brings them along */}{pr.status === 'approved' && proposed.length > 0 && <button type="button" className="linkish" disabled={busy} onClick={() => act('approve')} title="Approve every proposed block of the Definition — open questions stay open">approve {proposed.length === 1 ? 'it' : `all ${proposed.length}`}</button>} </>}
         {rd.contradicted.length > 0 && <>· contradicted: {rd.contradicted.map(id => <span key={id}><SmartTag id={id} /> </span>)}</>}
       </p>}
       {msg && <p className="muted small">{msg}</p>}

@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtemp, mkdir, writeFile, readFile, access, symlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { listProducts, productRepo } from './products';
 import { archiveProblems, exportProduct, importProduct, openProduct, portableMeta } from './product-transfer';
 
 // a data root holding the products named, each with one document, a session log and a built graph — what an export
@@ -100,6 +101,24 @@ describe('openProduct', () => {
     expect(reg).not.toMatch(/root: \/elsewhere/);
     // opening it again answers with the same product
     expect(await openProduct(path.join(repo, 'wye'), { dataRoot: data })).toMatchObject({ slug: 'kitchen-pos', existing: true });
+  });
+
+  it('opens a vault — a folder\'s .wye/ — under the slug its _product.md names, its links left in the vault, its code the folder', async () => {
+    const repo = await mkdtemp(path.join(os.tmpdir(), 'wf-vault-'));
+    const vault = path.join(repo, 'services/payments/.wye');
+    await mkdir(path.join(vault, 'projects/payments/docs'), { recursive: true });
+    await writeFile(path.join(vault, '_product.md'), '---\ntitle: Payments service\nslug: payments\nicon: 📦\nparent: ../..\nvaults: [refunds]\n---\n');
+    await writeFile(path.join(vault, 'projects/payments/docs/prd.md'), '# PRD\n');
+    const data = await dataRoot([]);
+    const r = await openProduct(path.join(repo, 'services/payments'), { dataRoot: data });
+    expect(r).toMatchObject({ slug: 'payments', dir: vault, existing: false });
+    const reg = await readFile(path.join(data, 'products/payments/_product.md'), 'utf8');
+    expect(reg).toMatch(/title: Payments service/);
+    expect(reg).not.toMatch(/^(parent|vaults|slug):/m);
+    expect(await readFile(path.join(vault, '_product.md'), 'utf8')).toMatch(/^vaults: \[refunds\]$/m);
+    const p = (await listProducts(data)).find(x => x.slug === 'payments')!;
+    expect(productRepo(p)).toBe(path.join(repo, 'services/payments'));
+    expect(await openProduct(vault, { dataRoot: data })).toMatchObject({ slug: 'payments', existing: true });
   });
 
   it('refuses a folder that holds no product', async () => {

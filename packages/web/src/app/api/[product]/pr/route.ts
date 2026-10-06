@@ -4,7 +4,9 @@ import { readPrDoc, prDefinition, prReadiness, approvePr, cancelPr, reopenPr, re
 import { stopRefining } from '@/lib/pr-sessions';
 import { questionsOf, answerOnPage } from '@/lib/pr-questions';
 import { answerPermission, isLive, liveState, sendMessage, startChat } from '@/lib/agent-host';
-import { getSession, listSessions, createSession, setPrDoc } from '@/lib/sessions';
+import { getSession, listSessions, createSession, setPrDoc, updateSession } from '@/lib/sessions';
+import { assignTask } from '@/lib/work-io';
+import { AGENT_IDS, agentSettings, readSettings } from '@/lib/settings';
 import { notifyDispatch, waitingReasons } from '@/lib/dispatch';
 import { firePrApproved, rememberHooksUrl } from '@/lib/hooks-run';
 import { REPO_ROOT } from '@/lib/products';
@@ -22,10 +24,15 @@ import { writeAtomic, rebuild } from '@/lib/write';
 // PATCH { ref, action: 'answer', id, answer, by? } — the person's answer on the page: the card resolved; once every card of
 // that request is answered the agent's AskUserQuestion is answered with them and the session goes on.
 // PATCH { ref, action: 'approve' | 'cancel' | 'reopen', by? } — the person's moves: approve sets approved + approved-by /
-// approved-at and stops a live refining session; cancel ends it; reopen puts it back to draft. PATCH { ref, status } sets a status outright.
+// approved-at, approves every proposed block of the Definition (→ approved: [ids], left: [open questions]) and stops a live
+// refining session; build starts a builder's session on the approved PR now (→ session); cancel ends it; reopen puts it back to draft. PATCH { ref, status } sets a status outright.
+// a PR is named product/project/pr-N everywhere it is stored (a session's prDoc, the dispatcher's waiting list); its page
+// is a system page, so the PR head asks with the marked slug (~pr-N) — the same PR. Without this an approval's "stop
+// refining" looked for sessions on ~pr-N and stopped none.
+const bareRef = (ref: string) => ref.replace('/~', '/');
 export async function GET(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
-  const ref = new URL(req.url).searchParams.get('ref'); if (!ref) return NextResponse.json({ error: 'invalid', message: 'ref required' }, { status: 422 });
+  const asked = new URL(req.url).searchParams.get('ref'); const ref = asked ? bareRef(asked) : asked; if (!ref) return NextResponse.json({ error: 'invalid', message: 'ref required' }, { status: 422 });
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const pr = await readPrDoc(product, ref); if (!pr) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const d = prDefinition(scope, pr.md);
@@ -40,8 +47,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ product:
 }
 export async function PATCH(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
-  const body = (await req.json()) as { ref?: string; status?: string; action?: 'approve' | 'cancel' | 'reopen' | 'answer' | 'attach' | 'revisit'; by?: string; id?: string; answer?: string; skills?: string[]; hooks?: string[] };
+  const body = (await req.json()) as { ref?: string; status?: string; action?: 'approve' | 'cancel' | 'reopen' | 'answer' | 'attach' | 'revisit' | 'build'; agent?: string; by?: string; id?: string; answer?: string; skills?: string[]; hooks?: string[] };
   if (!body.ref) return NextResponse.json({ error: 'invalid', message: 'ref required' }, { status: 422 });
+  body.ref = bareRef(body.ref);
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const pr = await readPrDoc(product, body.ref); if (!pr) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const by = (body.by ?? '').trim() || 'person';
@@ -103,11 +111,26 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ produc
     return NextResponse.json({ ok: true, settled: !!r.settled, continued, told });
   }
   if (body.action === 'approve') {
-    await approvePr(scope.product.dir, product, body.ref, by);
+    // approving the request approves what is in it: every proposed block of its Definition (lib/pr-docs#approvePr)
+    const items = await approvePr(scope.product.dir, product, body.ref, by);
     const stopped = await stopRefining(scope.product.dir, body.ref, `The PR was approved by ${by} — stop here; say in one line what is on the page.`).catch(() => []);
     notifyDispatch(product, new URL(req.url).origin); // the build starts from here (decision:wf2.pr-scheduler)
     rememberHooksUrl(new URL(req.url).origin); void firePrApproved(product, body.ref); // pr.approved hooks (decision:wf2.hooks-and-skills)
-    return NextResponse.json({ ok: true, status: 'approved', stopped });
+    return NextResponse.json({ ok: true, status: 'approved', stopped, approved: items.approved, left: items.left });
+  }
+  // build (decision:wf2.build-is-a-new-session): the person's "Build now" — the request task handed to a builder with
+  // the Definition, as a session of its own, now; never the conversation that refined the request. What the dispatcher
+  // does by itself for an approved PR when a slot is free.
+  if (body.action === 'build') {
+    const status = getFrontmatter(pr.md, 'status') ?? '';
+    if (status !== 'approved') return NextResponse.json({ error: 'invalid', message: status === 'building' ? 'it is being built already' : 'approve the PR first — a build works from an approved Definition' }, { status: 409 });
+    const task = getFrontmatter(pr.md, 'task') ?? (pr.md.includes(`${requestTaskId(pr.slug)} `) ? requestTaskId(pr.slug) : null);
+    if (!task) return NextResponse.json({ error: 'invalid', message: 'the PR has no request task to build' }, { status: 409 });
+    const worker = AGENT_IDS.includes(body.agent ?? '') ? body.agent! : agentSettings(await readSettings()).agent;
+    const r = await assignTask(scope, task, { worker, build: body.ref, wfUrl: new URL(req.url).origin, by, force: true });
+    if (!r.ok) return NextResponse.json({ error: r.error, message: r.message }, { status: 409 });
+    if (r.session) await updateSession(scope.product.dir, r.session, { line: `started by ${by} — Build now` }).catch(() => {});
+    return NextResponse.json({ ok: true, status: 'building', session: r.session });
   }
   if (body.action === 'cancel') {
     await cancelPr(scope.product.dir, product, body.ref);

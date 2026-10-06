@@ -866,3 +866,106 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
   - consequence:wf2.block-menu-reuses-actions one component for the block menu, shared by cards, rows, embeds and prose blocks; the tree menu's close handler becomes shared code; no new API — delete, duplicate and comment write through op:doc.update and op:api.comments.
 
   verdict:bf994c8076f6 refines req:wf2.ui.block-menu — B specifies the implementation approach for A's required menu actions: how they reuse existing surfaces, which actions grey out when no node exists, and how Comment integrates with column selection—detailing how A's menu is built and behaves. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:wf2.ui.block-menu decision:wf2.block-menu-reuses-actions)
+
+
+```yaml
+- id: decision:wf2.drop-into-table
+  title: A block dragged onto a table or a list of its kind becomes one of its rows
+  status: proposed
+  date: 2026-10-05
+  by: alex
+  affects: [rule:list-view, decision:wf2.table-is-sql, component:embed-block]
+  part-of: module:app-documents
+```
+
+  - context:wf2.drop-into-table Alex, 2026-10-05: "i have a page where i added i.e. task block, then i decided to add a new block which is task data list, i want to be able to drag my old task block inside the list, and page must have only 1 block inside list visible". A list on a page shows this page's items of its kind (decision:wf2.table-is-sql), so a task written on the page before the list showed twice — as its block and as the list's card — and the list's own rows are hidden children, so there was no line between them to drop on. Under it, no block could be dragged by its handle at all: the side menu was written inline, a new component type on every render, and the render a drag's own selection change causes unmounted the handle — the browser ends a drag whose source left the page.
+
+  - choice:wf2.drop-into-table The whole table is the drop target. Blocks dragged by the handle that are all nodes of the table's kind, over a table of this page's rows, light it up (no line between blocks is shown) and on the drop leave the page's text and become its children — after the last row, before the empty one kept for typing; `row` follows the table's view. What shows is the table's card or row, once. The side menu is one component for the editor's life.
+
+  - alternative:wf2.drop-into-table hiding from a list the items the page defines outside it (the list would stop being "this page's tasks", and a table of the whole product would still show them); showing a list's children as blocks again so the editor's own drop works between them (undoes decision:wf2.table-is-sql's one rendering); taking blocks of another kind and retyping them (a silent change of id). A block of another kind, or a table of the whole product, keeps the editor's drop: beside the table.
+
+  - consequence:wf2.drop-into-table DocEditor collectionDrop / moveIntoCollection, a capture-phase dragover and drop on the editor's root, BlockNote's dropCursor hook. Dragging a row back out of a table is not there: a card in a list is not a block.
+
+```yaml
+- id: decision:wf2.enter-continues-the-kind
+  title: Enter after a block starts the next block of the same kind; one undo leaves a plain line
+  status: proposed
+  date: 2026-10-05
+  by: alex
+  affects: [rule:list-view]
+  part-of: module:app-documents
+```
+
+  - context:wf2.enter-continues-the-kind Alex, 2026-10-05: "when i am inside the block press enter, it goes to a new line, by default it must add the block of the same type, but if i press cmd+z, it must undo new block of the same type and just keep new line". Enter at the end of a task made a paragraph; the next task took the slash menu again.
+
+  - choice:wf2.enter-continues-the-kind Enter at the end of a prose block's text makes the next block of its kind with an id of its own (`new-NNN`, as the slash menu gives), in two steps of the undo history: the new line, then the line made a block — ⌘Z once leaves the plain line with the caret in it, twice takes the Enter back. Enter in that new block while it is still empty turns it into the plain line: the way out of a run. In a card's own text (a list's card, an embed — one line; a second was never saved) Enter goes to the list's "New …" field.
+
+  - alternative:wf2.enter-continues-the-kind keeping the kind on BlockNote's split (it copies the id — two blocks with one id; Enter inside the text still does this and is left as it was); one undo step for the whole Enter (no way back to a plain line but deleting the block).
+
+  - consequence:wf2.enter-continues-the-kind a capture-phase keydown on the editor's root, before BlockNote's keymap; an open / or @ menu keeps its Enter; `closeHistory` from @tiptap/pm, now a declared dependency of packages/web. A yaml card and a table's row are not touched.
+
+```yaml
+- id: decision:wf2.files-are-code-tabs
+  title: Files is a rail section beside Documents, and a file opens as a tab holding the code view
+  date: 2026-10-05
+  status: proposed
+  by: alex
+  evidence: [session:fc7ee08157]
+  affects: [component:code-view, op:api.code, component:tabs, page:web/sidebar]
+```
+
+  - context:wf2.files-are-code-tabs The person wants to see every file of the opened folder and open any of them in a tab with the VS Code editor; today component:code-view opens only a file the graph names, and op:api.code lists a folder (?dir) inside the product's code root.
+
+  - choice:wf2.files-are-code-tabs Files is a second tree in the rail's Documents pane, under the vault roots — a section like Documents (req:wf2.ui.rail-split), not one more menu entry, so the menu keeps the entries decision:wf2.rail-fewer-entries chose. It is rooted at the workspace folder, lazily listed through op:api.code ?dir with the workspace as its root, .gitignore and the usual build folders hidden. A click opens the file as a tab (req:wf2.ui.tabs) whose content is the code view — a document with one block, not a page of its own (constraint:wf2.no-custom-pages). Its context menu has Init Wye here on a folder without a vault, Reveal in Documents on a vault folder, Copy path. A file of the code is read only here, as component:code-view is today; a code block inside a document stays editable (req:wf2.editor.code-monaco) — the two share the editor, not the mode.
+
+  - alternative:wf2.files-embedded-vscode An embedded VS Code (code-server / openvscode) — editing and extensions, but a second server, a second process, and a page that is not made of Wye's blocks.
+
+  - consequence:wf2.files-are-code-tabs op:api.code's root becomes the workspace folder rather than one product's repo:, with the same rule that a path must resolve inside it.
+
+```yaml
+- id: rule:vault-roots
+  source: packages/web/src/components/VaultRoots.tsx; packages/web/src/components/Rail.tsx; packages/web/src/components/WorkspaceMenu.tsx; packages/web/src/app/[product]/layout.tsx; packages/web/src/app/api/[product]/docs/tree/route.ts; packages/web/src/app/page.tsx; packages/web/src/components/WorkspaceEmpty.tsx
+  status: proposed
+  satisfies: [req:wf2.workspace-open]
+  title: Documents has one root per vault of the workspace; the vault on screen is open to its tree
+```
+
+  - statement:vault-roots The top of the rail names the workspace — the open folder, or Home — and its menu opens another (Open folder…, the recent ones, Home), rescans the folder and adds a product. Documents lists the workspace's vaults as roots, nested as their folders nest (a vault under the vault its `parent:` names). The vault whose pages are on screen is open to its documents as the tree the rail always had — drag, add, rename, pin; another vault opens in place to its documents, read from its own graph when asked (GET /api/<vault>/docs/tree), and a click on one goes to that vault. `/` opens the first vault of the workspace; a folder that reaches no vault shows a page that says so, offers Init Wye here on the folder, and still lists its files.
+
+```yaml
+- id: rule:workspace-views
+  source: packages/web/src/lib/instance-table.ts#mergeTables; packages/web/src/app/api/[product]/view/[slug]/route.ts; packages/web/src/components/ViewBlock.tsx; packages/web/src/components/InstanceTable.tsx; packages/web/src/app/[product]/inbox/page.tsx; packages/web/src/app/api/[product]/search/route.ts; packages/web/src/components/SearchPanel.tsx; packages/web/src/app/[product]/layout.tsx
+  status: proposed
+  satisfies: [req:wf2.workspace-open]
+  title: In an opened folder Goals, Work, the Inbox, pins and search read every vault, each item named by its vault and opened in its own
+```
+
+  - statement:workspace-views A view's line may say `scope=workspace`; the app's own Goals and Work pages take it without saying so when a folder with more than one vault is open (decision:wf2.home-is-separate-products). GET /api/<product>/view/<type>?scope=workspace returns the rows of every vault, this one's first, each with its `vault`; the table gains a vault column and a group by vault. A row of another vault is not a card of this vault's graph: it shows its id, title and status and opens in its own vault, where it is edited. The Inbox lists, under this vault's own queue, what waits in each other vault — each row opens that vault's Inbox on that block, because a block is approved in the vault whose document holds it. The rail shows the pins of every vault, the others named by their vault. ⌘F adds the best hits of the other vaults after this one's, each named. Each vault keeps its own graph: these are unions for the eye, never a merged store.
+
+```yaml
+- id: rule:workspace-files
+  source: packages/web/src/lib/files.ts; packages/web/src/app/api/workspace/files/route.ts; packages/web/src/components/FileTree.tsx; packages/web/src/components/FileView.tsx; packages/web/src/app/[product]/files/[...path]/page.tsx; packages/web/src/components/TopBar.tsx
+  status: proposed
+  satisfies: [req:wf2.workspace-files]
+  title: Files lists the open folder lazily, a file opens as a tab with the code view, and the menu makes a vault for a folder
+```
+
+  - statement:workspace-files Files is a section of the rail's Documents pane, under the vault roots, rooted at the workspace's folder — in the home workspace at the code folder of the product on screen, and absent when it names none. A folder is listed when it is opened (GET /api/workspace/files?dir=): folders first, a folder that has its own vault marked; what git ignores (`git check-ignore`), build and install folders and a vault's own .wye/ are left out until "show ignored" is on, and .git is never listed. A file opens at /<product>/files/<path> as a tab (req:wf2.ui.tabs) whose page is the code view alone — Monaco, read only, the language by extension; a binary file or one over 1 MB says so instead of showing bytes. A path that leaves the root is refused. Right-click on a folder (for a file, its folder) offers Init Wye here when that folder has no vault of its own — op:api.product-init, then the new vault opens — and Reveal in Documents when it has one; Copy path always.
+
+```yaml
+- id: decision:wf2.files-own-op
+  title: Files reads through an operation of its own, and a file's tab is a route of the app
+  date: 2026-10-05
+  status: proposed
+  by: agent:claude-code
+  evidence: [pr:31]
+  affects: [decision:wf2.files-are-code-tabs, op:api.code, op:api.workspace-files, page:web/files-path, constraint:wf2.no-custom-pages]
+```
+
+  - context:wf2.files-own-op decision:wf2.files-are-code-tabs says op:api.code's root becomes the workspace folder and that a file opens as a document with one block. op:api.code answers under /api/<product>/ with one product's code folder as its root, and the node panel's code view depends on a card's `source:` path resolving there; a folder with no vault has no product to ask.
+
+  - choice:wf2.files-own-op Files has its own operation, GET /api/workspace/files, rooted at the workspace folder and answering with or without a product; op:api.code keeps its root, so every `source:` link resolves as before. A file's tab is the route /<product>/files/<path>, whose page renders the code view and nothing else — the tab strip keys tabs by address, and a file is not a document of any vault.
+
+  - alternative:wf2.files-own-op Re-root op:api.code at the workspace — every card's `source:` path (written relative to its product's code) would stop resolving in a monorepo.
+
+  - consequence:wf2.files-own-op constraint:wf2.no-custom-pages is bent for one page: the file tab is not made of blocks. It holds no state and no controls of its own beyond the code view.

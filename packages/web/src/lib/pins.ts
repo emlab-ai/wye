@@ -1,7 +1,8 @@
 // Pinned documents (decision:wf2.pinned-documents): `pinned: [project/doc, …]` in the product's _product.md, shown at
 // the top of the rail in pin order. Pure.
 export type PinDoc = { project: string; slug: string; title: string; icon: string };
-export type Pin = PinDoc & { ref: string };
+// product / vault: set on a pin of another vault of the workspace (the rail shows every vault's pins together)
+export type Pin = PinDoc & { ref: string; product?: string; vault?: string };
 
 export const parsePins = (v?: string): string[] => (v ?? '').trim().replace(/^\[|\]$/g, '').split(',').map(s => s.trim()).filter(Boolean);
 export const formatPins = (list: string[]): string => `[${list.join(', ')}]`;

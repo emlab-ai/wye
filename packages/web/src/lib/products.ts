@@ -16,7 +16,10 @@ export const DATA_ROOT = process.env.WATERFALL_DATA ? path.resolve(process.cwd()
 // people: the names that can hold work (`people: alex, bo` in _product.md — req:exec.human-work); settings: every
 // other frontmatter key as written (`impact: manual`, `auto-take: off`, `verdicts: on`), read by the features they switch
 export interface Meta { title: string; icon: string; description: string; kind: string; status: string; repo?: string; people?: string[]; settings: Record<string, string> }
-export interface Product { slug: string; dir: string; graphPath: string; meta: Meta }
+// metaFile: the _product.md the meta was read from and a rename or a setting is written to — the registry entry's, or
+// a vault's own. vault: set when the product is a vault (<folder>/.wye, lib/vault.js) — the folder it describes and the
+// vault folder above it, from its `parent:` link. inWorkspace: it is one of the open workspace's vaults (lib/workspace).
+export interface Product { slug: string; dir: string; graphPath: string; meta: Meta; metaFile?: string; vault?: { folder: string; parent: string | null }; inWorkspace?: boolean }
 // docsDir: the person's pages; wyeDir: the pages the app writes (lib/doc SYSTEM_DIR) — never the same folder
 export interface Project { slug: string; product: string; dir: string; docsDir: string; meta: Meta; docsRel: string; wyeDir: string }
 
@@ -39,23 +42,57 @@ async function dirs(p: string): Promise<string[]> {
 // `root: <path>` in _product.md, that folder holds everything but _product.md — the projects and their documents, the
 // graph, sessions, changes, hooks, inbox — so a product's knowledge can live beside its code (~ is the home folder).
 // The product's code folder, from `repo:` in _product.md: an absolute path as it is, a relative one against the repo the
-// app runs from (`repo: .` is this repo), null when the product names none.
-export function productRepo(p: Pick<Product, 'meta'>): string | null {
-  const r = p.meta.repo?.trim(); if (!r) return null;
+// app runs from (`repo: .` is this repo), null when the product names none. A vault (<folder>/.wye, lib/vault.js) names
+// none and needs none: its code is the folder it sits in (decision:wf2.vault-is-a-product-in-wye).
+export const isVaultDir = (dir: string) => path.basename(dir) === '.wye';
+export function productRepo(p: Pick<Product, 'meta'> & { dir?: string }): string | null {
+  const r = p.meta.repo?.trim(); if (!r) return p.dir && isVaultDir(p.dir) ? path.dirname(p.dir) : null;
   return path.isAbsolute(r) ? r : path.resolve(REPO_ROOT, r);
 }
 export function resolveRoot(root: string): string { return path.resolve(root.replace(/^~(?=$|\/)/, os.homedir())); }
 export const registryDir = (slug: string, dataRoot: string = DATA_ROOT) => path.join(dataRoot, 'products', slug);
 const dirSlugs = new Map<string, string>(); // product folder → slug, for the callers that only hold the folder
 export function slugOfDir(productDir: string): string { return dirSlugs.get(path.resolve(productDir)) ?? path.basename(productDir); }
+// Every product the app can address: the registry's entries (<data>/products/<slug>) and the vaults of the open
+// workspace (decision:wf2.workspace-is-the-top, lib/workspace) — found through their links, with no entry of their own.
+// A vault is read from its own _product.md wherever it was found: an entry that points at one (`root:` — a vault
+// outside the open workspace, decision:wf2.vault-first-slice) is this machine's pointer and nothing more. A vault's
+// address is its own `slug:`, stepped (`-2`) when a product already has it.
+export const metaFileOf = (p: Pick<Product, 'dir' | 'metaFile'>) => p.metaFile ?? path.join(p.dir, '_product.md');
+async function asVault(dir: string, fallbackTitle: string): Promise<Pick<Product, 'meta' | 'metaFile' | 'vault'> | null> {
+  if (!isVaultDir(dir)) return null;
+  const metaFile = path.join(dir, '_product.md'); let md = ''; try { md = await readFile(metaFile, 'utf8'); } catch { return null; }
+  const meta = parseMeta(md, fallbackTitle); const folder = path.dirname(dir);
+  return { meta, metaFile, vault: { folder, parent: meta.settings.parent ? path.resolve(folder, meta.settings.parent) : null } };
+}
 export async function listProducts(dataRoot: string = DATA_ROOT): Promise<Product[]> {
   const base = path.join(dataRoot, 'products');
-  return Promise.all((await dirs(base)).map(async slug => {
-    const meta = await readMeta(path.join(base, slug, '_product.md'), slug);
+  const list: Product[] = await Promise.all((await dirs(base)).map(async slug => {
+    const metaFile = path.join(base, slug, '_product.md');
+    const meta = await readMeta(metaFile, slug);
     const dir = meta.settings.root ? resolveRoot(meta.settings.root) : path.join(base, slug);
-    dirSlugs.set(dir, slug);
-    return { slug, dir, graphPath: path.join(dir, '_build/graph.json'), meta };
+    const v = await asVault(dir, meta.title);
+    return v ? { slug, dir, graphPath: path.join(dir, '_build/graph.json'), ...v, meta: { ...v.meta, settings: { ...v.meta.settings, root: meta.settings.root } } } : { slug, dir, graphPath: path.join(dir, '_build/graph.json'), meta, metaFile };
   }));
+  // the open workspace applies to the app's own data only (a test's data root has no workspace)
+  if (dataRoot === DATA_ROOT) {
+    const { workspaceVaults } = await import('./workspace');
+    const ws = await workspaceVaults();
+    if (ws.folder) {
+      const byDir = new Map(list.map(p => [path.resolve(p.dir), p]));
+      const taken = new Set(list.map(p => p.slug));
+      for (const v of ws.vaults) {
+        const known = byDir.get(v.dir); if (known) { known.inWorkspace = true; continue; }
+        const a = await asVault(v.dir, path.basename(v.folder)); if (!a) continue;
+        const own = (a.meta.settings.slug || path.basename(v.folder)).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'vault';
+        let slug = own; for (let n = 2; taken.has(slug); n++) slug = `${own}-${n}`;
+        taken.add(slug);
+        list.push({ slug, dir: v.dir, graphPath: path.join(v.dir, '_build/graph.json'), ...a, inWorkspace: true });
+      }
+    } else for (const p of list) p.inWorkspace = true;
+  }
+  for (const p of list) dirSlugs.set(path.resolve(p.dir), p.slug);
+  return list;
 }
 export async function getProduct(slug: string): Promise<Product | undefined> {
   return (await listProducts()).find(p => p.slug === slug);

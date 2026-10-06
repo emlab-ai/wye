@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import { readFile, stat, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { getProduct, REPO_ROOT, productRepo } from '@/lib/products';
+import { languageOf } from '@/lib/files';
 
 // op:api.code (req:wf2.code-preview) — GET ?path=<file>[#<symbol>|:<line>] → the file's text from the product's code
 // (its `repo:` in _product.md, else this repo), the language for the viewer, and the line a symbol is defined on
 // (`#name` → the line with `function name`, `const name`, `class name`, `name(`…); 1 MB at most; a path must resolve
 // inside the code root. ?dir=<folder> lists a folder instead.
-const LANG: Record<string, string> = { ts: 'typescript', tsx: 'typescript', js: 'javascript', mjs: 'javascript', cjs: 'javascript', jsx: 'javascript', json: 'json', md: 'markdown', css: 'css', scss: 'scss', html: 'html', yml: 'yaml', yaml: 'yaml', py: 'python', go: 'go', rs: 'rust', java: 'java', kt: 'kotlin', swift: 'swift', rb: 'ruby', php: 'php', sh: 'shell', bash: 'shell', sql: 'sql', xml: 'xml', toml: 'ini', ini: 'ini', c: 'c', h: 'c', cpp: 'cpp', hpp: 'cpp', cs: 'csharp', graphql: 'graphql', dockerfile: 'dockerfile', txt: 'plaintext' };
 
 export async function GET(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
@@ -26,8 +26,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ product:
   }
   if (st.size > 1024 * 1024) return NextResponse.json({ error: 'invalid', message: `${rel} is ${Math.round(st.size / 1024)} KB — too large to show` }, { status: 422 });
   const text = await readFile(abs, 'utf8');
-  const ext = path.extname(rel).slice(1).toLowerCase(); const base = path.basename(rel).toLowerCase();
-  const language = LANG[ext] ?? (base === 'dockerfile' ? 'dockerfile' : 'plaintext');
+  const language = languageOf(rel);
   let line = m?.[3] ? Number(m[3]) : 0;
   if (!line && m?.[2]) {
     const sym = m[2].split('.').pop()!; const esc = sym.replace(/[.*+?^${}()|[\]\\$]/g, '\\$&');

@@ -7,6 +7,7 @@ import type { PropDef, TypeDef } from '@/lib/graph';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import { Cover, IconPicker, PageComments, TagsRow } from './PageHead';
+import { isSystemSlug } from '@/lib/doc';
 
 // frontmatter keys the header shows in its own places (or never): not properties of the type
 const HEAD_KEYS = new Set(['node', 'type', 'title', 'status', 'icon', 'cover', 'tags', 'owner', 'last-verified', 'order', 'sources', 'source-roots', 'text', 'part-of']);
@@ -138,7 +139,8 @@ export function DocProps({ product, project, slug, file, fm, node, types, titled
           {folded > 0 && <div><dt /><dd><button className="linkish doc-more" onClick={() => setMore(m => !m)}>{more ? '⌃ fewer properties' : `⌄ ${folded} more properties`}</button></dd></div>}
         </dl>
       )}
-      <PageComments product={product} node={node} />
+      {/* a page the app writes (Goals, Work, Hooks, Skills — a `~` slug) is a view, not a thing to discuss; a request's page (~pr-n) is */}
+      {(!isSystemSlug(slug) || /^~pr-\d+/.test(slug)) && <PageComments product={product} node={node} />}
     </header>
   );
 }

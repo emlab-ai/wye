@@ -42,10 +42,14 @@ interface Ctx {
   panelOpen: boolean; setPanelOpen: (v: boolean) => void;
   // Related (the knowledge nearest to the block) is closed until asked for; remembered per browser (rule:related-collapsed)
   relatedOpen: boolean; setRelatedOpen: (v: boolean) => void;
+  // the other vaults of the open workspace (lib/workspace) — what a view over "all vaults" reads; `folder`: a folder is open
+  workspace: WorkspaceCtx;
 }
+export type WorkspaceCtx = { folder: boolean; /** the open folder's path (none at home) */ path?: string; vaults: { slug: string; title: string }[] };
+const NO_WORKSPACE: WorkspaceCtx = { folder: false, vaults: [] };
 const PeekCtx = createContext<Ctx | null>(null);
 
-export function PeekProvider({ product, index: indexProp, kinds, types, nests: nestsProp, statuses: statusesProp, children }: { product: string; index: Record<string, IndexEntry> | null; kinds?: string[]; types?: OwnType[]; nests?: Record<string, string[]>; statuses?: Record<string, string[]>; children: ReactNode }) {
+export function PeekProvider({ product, index: indexProp, kinds, types, nests: nestsProp, statuses: statusesProp, workspace = NO_WORKSPACE, children }: { workspace?: WorkspaceCtx; product: string; index: Record<string, IndexEntry> | null; kinds?: string[]; types?: OwnType[]; nests?: Record<string, string[]>; statuses?: Record<string, string[]>; children: ReactNode }) {
   // the product's open kind list (its type: cards) so tags, node lines and the editor recognise person:ana as an id
   setKinds(kinds);
   // the node index (decision:wf2.parse-cache): the full page load carries it in the HTML; a refresh or a client
@@ -108,6 +112,8 @@ export function PeekProvider({ product, index: indexProp, kinds, types, nests: n
   // a document's node opens the document itself (whatever the node's kind, rule:page-node-line); any other node its anchor
   const hrefFor = useCallback((id: string) => { const e = index[id]; const r = e?.file ? docRoute(e.file) : null; if (!r) return null; return e.doc ? `/${product}/${r.project}/d/${e.doc}` : `/${product}/${r.project}/d/${r.doc}#n-${encodeURIComponent(id)}`; }, [index, product]);
   useEffect(() => { const h = (e: KeyboardEvent) => { if (e.key === 'Escape') back(); }; window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [back]);
-  return <PeekCtx.Provider value={{ product, index, ownKinds, ownTypes, nests, statuses, openId, stack, cursor, open, back, go, togglePin, remove, close, focused, select, setFocused, followCaret, hrefFor, editing, setEditing, showContext, setShowContext, panelOpen, setPanelOpen, relatedOpen, setRelatedOpen }}>{children}</PeekCtx.Provider>;
+  return <PeekCtx.Provider value={{ workspace, product, index, ownKinds, ownTypes, nests, statuses, openId, stack, cursor, open, back, go, togglePin, remove, close, focused, select, setFocused, followCaret, hrefFor, editing, setEditing, showContext, setShowContext, panelOpen, setPanelOpen, relatedOpen, setRelatedOpen }}>{children}</PeekCtx.Provider>;
 }
 export function usePeek(): Ctx { const c = useContext(PeekCtx); if (!c) throw new Error('PeekProvider missing'); return c; }
+// the same, null on a page without the column (the Welcome, an empty workspace)
+export function usePeekMaybe(): Ctx | null { return useContext(PeekCtx); }

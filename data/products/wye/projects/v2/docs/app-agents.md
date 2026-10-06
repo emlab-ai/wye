@@ -202,6 +202,46 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 <!-- list:decision -->
 
 ```yaml
+- id: decision:wf2.remote-tunnel
+  title: An agent on another machine reaches Wye through an SSH reverse tunnel the app opens and keeps
+  date: 2026-10-05
+  status: proposed
+  affects: [lib:remote, lib:remote-view, lib:settings, op:api.system.remote, component:settings-remote]
+  by: alex
+  evidence: [session:8b52a015-44b6-402d-a6a4-3cfcf3fc78bd]
+  part-of: module:app-agents
+```
+
+  - context:wf2.remote-tunnel alex: "i have a setup where wye is running on the laptop by claude agent is running on the remote ssh server, how can we build a communication? i can install wye on the remote server, what is the best way to send data back" — then "that make sense to start with 1" and "add it in UI in the wye to connect ssh with reverse forward". The wye CLI already talks to the app over HTTP (WYE_URL); the app answers on 127.0.0.1 only and has no login.
+
+  - choice:wf2.remote-tunnel The app runs `ssh -N -R <port>:localhost:<port> <host>` itself (lib:remote) from App settings › Remote agents: the host as typed for ssh, the same port on both sides by default so the links Wye hands an agent open on the server unchanged. It is kept up — opened again after a drop and when the app starts — until the person disconnects. ssh runs with BatchMode and ExitOnForwardFailure: no prompt can wait unseen, and a tunnel that could not take the port is a failure with a reason, not a session that looks fine. The host is checked to be a plain ssh destination before anything runs.
+
+  - alternative:wf2.remote-tunnel Binding the app to the network (a private network such as Tailscale) — later: it needs a login on the API first. Git as the transport — rejected for this: not live, and sessions, change records and attribution do not travel. Typing the password into the app — rejected: the app would hold a credential; the person makes their key work once in a terminal.
+
+  - consequence:wf2.remote-tunnel While a tunnel is up every account on that server can read and write the products through it, and can ask the app to open tunnels to other hosts the laptop's key reaches — the settings section and docs/remote-agent.md say to use it with servers only the person uses. Each agent there joins as a session of its own (decision:wf2.remote-agents-join). Handing work the other way (`wye agent listen` over the same tunnel) is not covered yet. The opening and failing paths are tested against a stand-in for ssh and, for the failures, against real ssh in the app; a real connected tunnel was not exercised here.
+
+```yaml
+- id: decision:wf2.remote-agents-join
+  title: An agent that is already running somewhere joins Wye as a session of its own
+  date: 2026-10-05
+  status: proposed
+  affects: [lib:sessions, op:api.sessions, lib:remote-view, component:settings-remote]
+  related-to: [decision:wf2.remote-tunnel]
+  by: alex
+  evidence: [session:8b52a015-44b6-402d-a6a4-3cfcf3fc78bd]
+  part-of: module:app-agents
+```
+
+  - context:wf2.remote-agents-join alex, on the first Remote agents section — one host field and Connect: "this is wrong: i may have multiple agents running, and each of them will have to contribute back". A tunnel is per server and was already shared, but the section read as one connection, and nothing gave an agent started by hand an identity: with several writing at once their changes had no session behind them and could not be told apart.
+
+  - choice:wf2.remote-agents-join `wye session join "what it is working on"` (POST sessions `{ join: true, runner }`) makes a session that is running from the start under the agent's runner name (`user@host`, or `--name`) and is never queued — the app starts nothing for it — and prints `export WYE_SESSION=<id>`. Started as `eval "$(wye session join …)"` then the agent, everything it writes carries the session: its row in the rail and on Sessions, its blocks attributed to it, its log and result. The settings section is a list of servers (N of M connected, Add server), says one tunnel serves every agent on a server, and shows on a connected row what to run once per server and what to run per agent.
+
+  - alternative:wf2.remote-agents-join `wye session create` then `take` — rejected: the session is queued in between, and the app's own dispatcher may start it on this machine. One session per tunnel — rejected: a server runs several agents. Leaving attribution to "the one running session" — rejected: it only holds for one agent at a time.
+
+  - consequence:wf2.remote-agents-join A joined session that is never finished (`wye session done`) stays listed as running until the person cancels it; nothing checks that its agent is alive. The command is in the CLI after 0.3.0 — a server installed from npm has it with the next release. Tried against the running app with two agents joined at once: two running sessions under their own runner names, neither started by the app, each finished on its own.
+
+
+```yaml
 - id: decision:wf2.cli-is-wye
   title: The agent CLI is `wye`; `wf` stays an alias until nothing says it any more
   date: 2026-09-20
@@ -389,6 +429,29 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     changed (title, status, body — the app's own session / produced task links ignored) or gone, each with its
     document. Pure; tested by test:web-lib#graph-diff.
   part-of: module:app-agents
+- id: lib:remote
+  file: packages/web/src/lib/remote.ts
+  side: server
+  purpose: >
+    The tunnels to remote agents (decision&#58;wf2.remote-tunnel): `ssh -N -R <port>:localhost:<port> <host>` started
+    and watched by the app, so `wye` on the server reaches this app. A tunnel that drops is opened again (2 s,
+    doubling to a minute); one the server refuses for a reason the person has to fix — no key, an unknown host, no
+    such host — is not. The hosts and whether each is wanted are in the app's settings (`remotes`), so the wanted
+    ones are opened again when the app starts (instrumentation); the running ones live on globalThis and end with
+    the app. ssh runs with BatchMode: nothing can be typed into it. Tested with a stand-in for ssh by
+    test:web-lib#remote-run.
+  status: proposed
+  part-of: module:app-agents
+- id: lib:remote-view
+  file: packages/web/src/lib/remote-view.ts
+  side: shared
+  purpose: >
+    The part of the remote tunnels a page reads too: what a host may be (a plain ssh destination — nothing ssh
+    could take for an option), the port, the ssh arguments, how a line of ssh's output is read (the forward is up,
+    or a reason in words a person can act on), the retry delay, and the commands to run on the server. Pure;
+    tested by test:web-lib#remote.
+  status: proposed
+  part-of: module:app-agents
 - id: lib:session-changes
   file: packages/web/src/lib/session-changes.ts
   side: shared
@@ -462,3 +525,68 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
 ```
 
 <!-- /list:lib -->
+
+```yaml
+- id: decision:wf2.write-back-nearest-vault
+  title: An agent's knowledge goes to the nearest vault above the files it works on
+  date: 2026-10-05
+  status: proposed
+  by: alex
+  evidence: [session:fc7ee08157]
+  affects: [rule:agent-contract, rule:agent-host, lib:agent-prompt, decision:memory.consolidate-sessions]
+```
+
+  - context:wf2.write-back-nearest-vault The person wants any agent changing a folder to write back to that folder's vault — including Claude Code or Codex started in a terminal, not by Wye.
+
+  - choice:wf2.write-back-nearest-vault The agent contract stays as it is — read before acting, record knowledge with `wye inbox add` / `wye propose`, never directly into documents (rule:agent-contract) — and "the product" in it becomes the nearest vault above the files the agent works on. init writes a short CLAUDE.md / AGENTS.md section in the folder ("this folder's knowledge is in .wye — read with wye packet, write with wye propose") and the service's skills under .wye/. The wye CLI finds its vault by walking up from the current folder to the nearest .wye/, so WYE_PRODUCT is no longer needed inside a repo. A session Wye starts runs in the vault's folder and gets that vault's contract and _agent.md. When the session ends, consolidation sends each extracted decision or task to the vault of the files it concerns; the Inbox labels each proposal with its vault.
+
+  - alternative:wf2.write-back-hook-only A hook on file writes alone — catches Wye's own sessions but not an agent the person starts in a terminal, which reads CLAUDE.md and nothing else.
+
+  - alternative:wf2.write-back-person-picks Ask the person which vault for every proposal — always right, and tiring in a repo with twenty services.
+
+  - consequence:wf2.write-back-nearest-vault rule:agent-contract's statement changes when this is built: "the product inbox" becomes "the inbox of the nearest vault", and its source gains the CLAUDE.md / AGENTS.md section init writes. Work that spans two services leaves proposals in both vaults — see question:wf2.write-back-spanning-vaults.
+
+```yaml
+- id: rule:vault-write-back
+  source: bin/wye.js#findHereProduct; bin/wye-graph.js; lib/vault.js#vaultOf; lib/vault.js#writeNote; prompts/agent-system.md; packages/web/src/lib/consolidate.ts#vaultFor; packages/web/src/lib/consolidate.ts#touchedFiles; packages/web/src/lib/consolidate.ts#fileInVault
+  status: proposed
+  verified-by: [test:vault]
+  satisfies: [req:wf2.vault-write-back]
+  title: wye finds its vault from the folder it runs in, and what a session learns is filed in the vault of the files it wrote
+```
+
+  - statement:vault-write-back Without --product or WYE_PRODUCT, a wye command is about the vault nearest at or above the folder it runs in; the CLI asks the app to open that vault when it does not know it and uses the name the app gives it (the vault's own slug when no app answers). `wye build` and `wye check` take that vault as their root and its folder as the code. In a session Wye started (WYE_SESSION) the folder's vault wins over WYE_PRODUCT for every command but `wye session`, so an agent that works in another service's folder writes to that service's vault. The note init writes into AGENTS.md / CLAUDE.md and the agent contract both say: read the vault of the files before changing them, write what you learn there, and for files of two vaults write to the nearest vault above both. At session end, consolidation files each candidate in the vault of the files written in the turns its evidence cites (every written file when those turns wrote none): one vault — on that vault's Backlog page, under its own slug; several — the nearest vault above them all; none, or none above them all — on the request's page, where the session began. The session's log names what went to which vault. A folder with no vault at or above it has no vault to find: the CLI says so and names `wye init`.
+
+```yaml
+- id: decision:wf2.session-follows-folder
+  title: In a Wye session the vault of the folder wye runs in wins over the session's product
+  date: 2026-10-05
+  status: proposed
+  by: agent:claude-code
+  evidence: [pr:31]
+  affects: [decision:wf2.write-back-nearest-vault, decision:wf2.spanning-session-each-vault-its-share, rule:agent-contract, rule:vault-write-back]
+```
+
+  - context:wf2.session-follows-folder Wye starts an agent with WYE_PRODUCT set to the product of the session. An agent that then edits files of another vault and runs wye from their folder would, with the environment winning, still write into the session's own vault — the opposite of decision:wf2.spanning-session-each-vault-its-share.
+
+  - choice:wf2.session-follows-folder When WYE_SESSION is set, the nearest vault at or above the current folder wins over WYE_PRODUCT for every command except `wye session …`, which always speaks for the session. Outside a session the environment wins as before, so a person who sets WYE_PRODUCT in their shell keeps what they asked for; --product wins over both.
+
+  - alternative:wf2.session-follows-folder Leave the environment winning and rely on the contract telling the agent to pass --product — one forgotten flag files a decision in the wrong vault, silently.
+
+```yaml
+- id: decision:wf2.consolidation-routes-by-written-files
+  title: Consolidation places a candidate by the files the session wrote in the turns it cites, without asking the model
+  date: 2026-10-05
+  status: proposed
+  by: agent:claude-code
+  evidence: [pr:31]
+  affects: [decision:memory.consolidate-sessions, decision:wf2.spanning-session-each-vault-its-share, lib:consolidate, rule:vault-write-back]
+```
+
+  - context:wf2.consolidation-routes-by-written-files decision:wf2.spanning-session-each-vault-its-share needs each extracted decision or task to reach "the vault of the files it concerns". The consolidation prompt returns no files, and its text is measured by a benchmark under a prompt hash.
+
+  - choice:wf2.consolidation-routes-by-written-files The prompt is unchanged. The files a candidate concerns are the ones the agent wrote (Edit, Write, MultiEdit, NotebookEdit) between the person's message before its evidence and the next one; with none there, every file the session wrote. In another vault the cards go on its Backlog page (projects/<slug>/docs/plan.md), which every vault has, with no part-of — that vault has no page for this request.
+
+  - alternative:wf2.consolidation-routes-by-written-files Ask the model for the files of each candidate — a new prompt version, a new benchmark baseline, and a guess where the transcript already holds the fact.
+
+  - consequence:wf2.consolidation-routes-by-written-files A candidate about a file the agent only read, or wrote through a shell command, is placed by the session's other writes or stays where the session began.

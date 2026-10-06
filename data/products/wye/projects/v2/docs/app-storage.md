@@ -1085,6 +1085,281 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     then on request, cached a minute.
   status: proposed
   part-of: module:app-storage
+- id: lib:vault-init
+  file: packages/web/src/lib/vault-init.ts
+  side: server
+  purpose: >
+    Init Wye here (req:wf2.vault-init): a vault for a folder, the way `wye init` in that folder makes one — through
+    the same code (lib/vault.js): <folder>/.wye/ with the shallow definition of the folder's code, _agent.md, the
+    note to agents in AGENTS.md / CLAUDE.md, and the parent / child links on both sides — then opened in place and
+    built, so it is a product in the app at once (decision:wf2.vault-first-slice). A folder that has a vault is
+    opened, never rewritten.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:files
+  file: packages/web/src/lib/files.ts
+  side: server
+  purpose: >
+    The files of a folder, for the rail's Files section and a file's tab (req:wf2.workspace-files,
+    decision:wf2.files-are-code-tabs): a folder's entries — what git ignores and the usual build folders left out
+    unless asked for — and one file's text with its language. A path always resolves inside the root it is asked
+    under; a binary file or one over 1 MB is named, not sent.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:workspace
+  file: packages/web/src/lib/workspace.ts
+  side: server
+  purpose: >
+    The workspace (decision:wf2.workspace-is-the-top): the folder the person has open. Its vaults — the folder's
+    own, and link by link every vault below it (decision:wf2.vault-links, lib/vault.js#reach) — are the products the
+    rail shows, one Documents root each; Goals, Work, Inbox and Pinned read all of them. No folder open is the home
+    workspace: the app's own products (<data>/products), as before workspaces existed. Which folder is open, the
+    recent ones and the list a Rescan found for a folder no vault names are this machine's, in <data>/_settings.json
+    — the links themselves are text in each vault's _product.md, in the folder's git.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->
+
+```yaml
+- id: decision:wf2.vault-is-a-product-in-wye
+  title: A vault is a product kept in its folder's .wye/, beside the code it describes
+  date: 2026-10-05
+  status: proposed
+  by: alex
+  evidence: [session:fc7ee08157]
+  affects: [lib:products, lib:init, lib:product-transfer, decision:wf2.product-model, decision:wf2.system-pages-in-wye]
+  related-to: [decision:wf2.product-transfer]
+```
+
+  - context:wf2.vault-is-a-product-in-wye A large monorepo holds many services; the person wants each to keep its own knowledge, made by running wye init in its folder. Today a product is a folder in the app's data (decision:wf2.product-model), or one opened in place with root: (decision:wf2.product-transfer) — one per registration, never discovered.
+
+  - choice:wf2.vault-is-a-product-in-wye A vault is exactly what a product is today, laid out in <folder>/.wye/: product.md (title, slug, links), docs/ (the person's pages), system/ (the app's pages that now live in projects/<p>/.wye/), inbox/, _agent.md and skills; _build/ and the caches are gitignored. The vault's slug is its id prefix (req&#58;payments.x) and is unique in a workspace. Everything per product — graph, packet, librarian, hooks, Inbox — works per vault unchanged; the folder the vault sits in is its code root. The person chose this over a new lighter unit.
+
+  - alternative:wf2.vault-lighter-unit A new, smaller unit (docs and config only) hanging under products — two notions of "a place for knowledge" and every feature asked which one it serves.
+
+  - alternative:wf2.vault-plain-folder Any folder of markdown is a vault, no metadata and no graph of its own — no packet, no ids, nothing for an agent to write back to.
+
+  - consequence:wf2.vault-is-a-product-in-wye The knowledge of a service is committed with its code and moves with it; decision:wf2.product-model's data folder becomes one place a vault can be, not the only one. The projects/ level disappears from a vault's layout (decision:wf2.no-projects already removed it from the app); existing products are migrated by a script, ids unchanged.
+
+  verdict:ede034c0bf9d contradicts decision:wf2.product-model — A describes centralized product storage in data/ folder; B proposes distributed vaults in code/.wye/ folders, replacing the storage model. (kind: contradicts, conflict: dynamic, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:wf2.product-model decision:wf2.vault-is-a-product-in-wye)
+
+  contradiction:wye.ede034c0bf9d decision:wf2.vault-is-a-product-in-wye contradicts decision:wf2.product-model — A describes centralized product storage in data/ folder; B proposes distributed vaults in code/.wye/ folders, replacing the storage model. #open (between: decision:wf2.vault-is-a-product-in-wye decision:wf2.product-model, conflict: dynamic)
+
+  verdict:b7dc71b47f87 refines decision:wf2.system-pages-in-wye — A specifies system pages live in projects/<p>/.wye/; B refines this by showing system pages (formerly in projects/<p>/.wye/) now live in vault's system/ folder, preserving the principle of segregating app content in .wye/. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:wf2.system-pages-in-wye decision:wf2.vault-is-a-product-in-wye)
+
+  verdict:e9eebe3e6df4 contradicts decision:wf2.product-transfer — A describes import with central registry and slug assignment (unpacking under registry with new slug); B's distributed vault model has no central registry and assigns slug as id prefix from vault location. (kind: contradicts, conflict: dynamic, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:wf2.product-transfer decision:wf2.vault-is-a-product-in-wye)
+
+  contradiction:wye.e9eebe3e6df4 decision:wf2.vault-is-a-product-in-wye contradicts decision:wf2.product-transfer — A describes import with central registry and slug assignment (unpacking under registry with new slug); B's distributed vault model has no central registry and assigns slug as id prefix from vault location. #open (between: decision:wf2.vault-is-a-product-in-wye decision:wf2.product-transfer, conflict: dynamic)
+
+  verdict:2de9dd712507 refines decision:wf2.app-vs-product-settings — A establishes the principle of product settings living separately in _product.md; B refines this by specifying product.md in vault's .wye/ contains title, slug, and links. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:wf2.app-vs-product-settings decision:wf2.vault-is-a-product-in-wye)
+
+  verdict:0e572d9bc62a contradicts req:wf2.store.products — A specifies products as folders in centralized data/products/<slug> with nested projects; B proposes vaults in code/.wye/, replacing the centralized storage model. (kind: contradicts, conflict: dynamic, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: req:wf2.store.products decision:wf2.vault-is-a-product-in-wye)
+
+  contradiction:wye.0e572d9bc62a decision:wf2.vault-is-a-product-in-wye contradicts req:wf2.store.products — A specifies products as folders in centralized data/products/<slug> with nested projects; B proposes vaults in code/.wye/, replacing the centralized storage model. #open (between: decision:wf2.vault-is-a-product-in-wye req:wf2.store.products, conflict: dynamic)
+
+  verdict:8c138f3fd0b3 refines constraint:wf2.one-defining-place — A states every id is defined in one place; B adds that vault slugs are unique in the workspace and prefix ids (e.g., req&#58;payments.x), clarifying how one-defining-place works across multiple vaults through namespace scoping. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: constraint:wf2.one-defining-place decision:wf2.vault-is-a-product-in-wye)
+
+```yaml
+- id: decision:wf2.workspace-is-the-top
+  title: The app opens a folder as a workspace; the vaults it reaches replace the product list
+  date: 2026-10-05
+  status: proposed
+  by: alex
+  evidence: [session:fc7ee08157]
+  affects: [lib:products, rule:documents-tree, page:web/sidebar, page:web/overview, decision:wf2.product-model]
+```
+
+  - context:wf2.workspace-is-the-top With vaults in many folders, the product picker can no longer be the top: the person wants to open any folder — the monorepo or one service — and see every vault in it.
+
+  - choice:wf2.workspace-is-the-top A workspace is a folder the person opens (wye app <folder>, Open folder in the app; the recent ones are remembered in ~/.wye). Its vaults are the folder's own, every vault reached through child links, and every linked shared vault. Documents has one root per vault, nested as the folders nest. Goals, Work, Inbox, Pinned and search are views over all of them, each item labelled with its vault. Each vault keeps its own graph; a workspace is the union for views and packets, never a merged store. Today's data/products is opened as the default workspace, so existing products are its vaults and their URLs keep working. The person chose this over keeping the product picker.
+
+  - alternative:wf2.workspace-beside-products Keep the product picker and add a workspace as one more kind of entry grouping several products — two top levels, and the merged views would exist only in one of them.
+
+  - alternative:wf2.workspace-merged-graph One graph over the whole workspace with vaults as folders in it — ids would collide across services and a service's knowledge would no longer stand on its own when opened alone.
+
+  - consequence:wf2.workspace-is-the-top Every route that starts with /<product> resolves a vault inside the open workspace; a reference across vaults (req&#58;payments.x from search's page) resolves through the workspace and is unresolved when that vault is not reachable — see question:wf2.cross-vault-ids.
+
+  verdict:0a178921fc0f contradicts rule:documents-tree — A establishes Documents as drag-reorderable via UI (part-of and order: frontmatter control hierarchy), while B's 'nested as the folders nest' implies folder structure determines hierarchy in the workspace model. (kind: contradicts, conflict: dynamic, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: rule:documents-tree decision:wf2.workspace-is-the-top)
+
+  contradiction:wye.0a178921fc0f decision:wf2.workspace-is-the-top contradicts rule:documents-tree — A establishes Documents as drag-reorderable via UI (part-of and order: frontmatter control hierarchy), while B's 'nested as the folders nest' implies folder structure determines hierarchy in the workspace model. #open (between: decision:wf2.workspace-is-the-top rule:documents-tree, conflict: dynamic)
+
+  verdict:1bf618e47556 refines decision:wf2.product-model — B refines A's centralized data-folder product model by generalizing it to workspace-based vault discovery, with existing products becoming vaults in the default workspace. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:wf2.product-model decision:wf2.workspace-is-the-top)
+
+```yaml
+- id: decision:wf2.vault-links
+  title: A parent vault lists its child vaults, and init keeps the links both ways
+  date: 2026-10-05
+  status: proposed
+  by: alex
+  evidence: [session:fc7ee08157]
+  affects: [lib:init, lib:products, decision:wf2.workspace-is-the-top]
+```
+
+  - context:wf2.vault-links Finding vaults by walking a large monorepo on every open is slow (node_modules, build output, thousands of folders); the person asked that parents store links to their children.
+
+  - choice:wf2.vault-links product.md carries vaults: (relative paths of the nearest vaults below) and parent: (the relative path of the nearest vault above). wye init walks up to the nearest .wye/ and adds itself there, takes over the children below it that pointed at that parent, and records its own parent; moving a vault to trash removes it from both sides and gives its children back to its parent. Opening a workspace follows the links from the vaults at and above the folder; a full scan happens only on Rescan, or when a link points at nothing — and then it proposes the corrected links rather than writing them silently.
+
+  - alternative:wf2.vault-links-scan Scan the folder on every open — always right, but seconds on a large monorepo and repeated on every reload.
+
+  - alternative:wf2.vault-links-registry A central list of vaults in ~/.wye — fast, but outside git: a teammate's clone would not know its vaults (constraint:wf2.text-canonical).
+
+  - consequence:wf2.vault-links The links are text in git, so a clone finds every vault without a scan; a vault made by hand without init is found by Rescan.
+
+```yaml
+- id: decision:wf2.shared-vault-is-a-local-clone
+  title: A shared vault is a folder the person cloned themselves; Wye links to its path and never syncs it
+  date: 2026-10-05
+  status: proposed
+  by: alex
+  evidence: [session:fc7ee08157]
+  affects: [req:wf2.shared-vault, decision:wf2.vault-links, constraint:wf2.local-first]
+```
+
+  - context:wf2.shared-vault-is-a-local-clone Company knowledge kept in its own git repository should govern the services that link to it. constraint:wf2.local-first rules out remote git sync by Wye.
+
+  - choice:wf2.shared-vault-is-a-local-clone A vault's product.md lists shared: (absolute or ~ paths of vaults outside the workspace, each with a name). Wye reads them like any reachable vault: a linked root in Documents, their approved constraints and decisions in the packet of every vault that links them. Agents propose into them like into any vault; the person commits and pushes. Wye never clones, pulls or pushes. Designed now, built later.
+
+  - alternative:wf2.shared-vault-by-url Wye clones and pulls a shared vault from a git URL — convenient, but needs constraint:wf2.local-first changed.
+
+  - alternative:wf2.shared-vault-read-only Linked vaults are never written — simpler, but a lesson learned in a service could never reach company knowledge except by hand.
+
+  - consequence:wf2.shared-vault-is-a-local-clone A path differs per machine, so the link lives in the vault but a teammate whose clone is elsewhere sees it unreachable until they point it at their copy (a per-machine override in ~/.wye).
+
+```yaml
+- id: decision:wf2.vault-keeps-folders
+  title: A vault keeps today's folders inside .wye/ — not flat; the person makes subfolders as with documents now
+  status: proposed
+  date: 2026-10-05
+  by: alex
+  evidence: session:13bdb849d4
+  affects: [decision:wf2.vault-is-a-product-in-wye, task:wf2.vault-loader, lib:products, lib:product-transfer]
+  text: >
+    Asked how a vault is laid out, the person answered "not flat, let user to create subfolders, the same as we do it with documents now". So <folder>/.wye/ is exactly a product folder as it is today — _product.md, projects/<folder>/docs for the person's pages, projects/<folder>/.wye for the app's pages, inbox/, _agent.md, _build/ gitignored — and not the flat product.md / docs/ / system/ layout the choice of decision:wf2.vault-is-a-product-in-wye describes. That reading is the agent's (agent:claude-code): "subfolders as with documents now" is taken to mean the folders a product has today. It follows that the loader is the existing root: path (decision:wf2.product-folder) taught to find .wye/, that no migration script is needed for existing products, and that the layout sentence of decision:wf2.vault-is-a-product-in-wye and the migration half of task:wf2.vault-loader no longer hold.
+```
+
+```yaml
+- id: decision:wf2.vault-first-slice
+  title: The vault loader and wye init in a folder are built first; a vault shows in the app as an opened product until workspaces exist
+  status: proposed
+  date: 2026-10-05
+  by: alex
+  evidence: session:13bdb849d4
+  affects: [task:wf2.vault-loader, task:wf2.vault-init-here, task:wf2.workspace-open, decision:wf2.product-transfer, decision:wf2.vault-links]
+  text: >
+    The person chose to build task:wf2.vault-loader and task:wf2.vault-init-here now, with the proposed decisions of the request treated as agreed for that slice only; workspace open, Files, write-back routing and the default workspace stay open tasks. Until a workspace can be opened, the agent (agent:claude-code) bridges the gap this way: wye init registers the new vault with the running app the way Open a folder does (a registry entry with root: pointing at <folder>/.wye, decision:wf2.product-transfer), so the vault is a product in the picker today. The entry is this machine's pointer only; the vault's own _product.md with its parent: and vaults: links stays the text in git, and the entry goes away when task:wf2.workspace-open lands.
+```
+
+```yaml
+- id: lib:vault
+  file: lib/vault.js
+  side: server
+  purpose: >
+    A vault — a product kept in <folder>/.wye/, beside the code it describes (decision:wf2.vault-is-a-product-in-wye, decision:wf2.vault-keeps-folders). initVault is what `wye init` in a folder and Init Wye here both run: the shallow definition of the folder's code through lib:init, _agent.md, a .gitignore for the built graph and this machine's history, the note to agents in AGENTS.md / CLAUDE.md, and the parent: / vaults: links in _product.md on both sides. vaultAbove, vaultsBelow, links and readMeta read them — tested by test:vault.
+  status: proposed
+  part-of: module:app-storage
+```
+
+```yaml
+- id: rule:vault-init
+  source: lib/vault.js#initVault; lib/vault.js#writeNote; packages/web/src/lib/vault-init.ts#initVaultHere; bin/wye.js#initHere
+  status: proposed
+  verified-by: [test:vault]
+  satisfies: [req:wf2.vault-init]
+  title: wye init in a folder writes that folder's vault once and never overwrites one
+```
+
+  - statement:vault-init `wye init [folder]` without --product, and POST /api/products/init, make <folder>/.wye/ as a product folder: _product.md with the vault's slug (the folder's name, or --slug) and no path of this machine, projects/<slug>/docs with the shallow definition (rule:init-shallow) whose ids carry the slug, _agent.md, inbox/, and a .gitignore for _build, _sessions, _changes, _hooks and _impact. The code of a folder below that has its own vault is left out of the scan. AGENTS.md gains a marked section that sends agents to the vault, CLAUDE.md too unless it takes AGENTS.md in; a file that exists keeps its text and gains the section at its end, once. A folder whose .wye/ already holds _product.md or projects/ is reported with its path and nothing is written. A slug already used by the parent, a sibling under it or a child is refused before anything is written. When the app runs, the vault is opened in place as a product (op:api.product-open).
+
+```yaml
+- id: rule:vault-links
+  source: lib/vault.js#initVault; lib/vault.js#links; lib/vault.js#vaultAbove; lib/vault.js#vaultsBelow
+  status: proposed
+  verified-by: [test:vault]
+  satisfies: [req:wf2.vault-init]
+  title: A new vault is linked to the nearest vault above and the nearest ones below, on both sides
+```
+
+  - statement:vault-links A vault's _product.md holds parent: (the path from its folder to the nearest folder above that has a vault) and vaults: (the paths to the nearest ones below), as relative paths between folders. initVault finds the parent by walking up and the children by a walk down that stops at each vault and skips what init skips; it writes its own links, adds itself to the parent's vaults: in place of the children it takes over, and sets parent: in each of those children. A grandchild keeps its parent. Reading the links never rewrites them: a path that no longer holds a vault is returned as missing (decision:wf2.vault-links).
+
+```yaml
+- id: rule:workspace-open
+  source: lib/vault.js#reach; lib/vault.js#rescan; lib/vault.js#applyFixes; packages/web/src/lib/workspace.ts; packages/web/src/lib/products.ts#listProducts; packages/web/src/app/api/workspace/route.ts; bin/wye.js#app
+  status: proposed
+  verified-by: [test:vault]
+  satisfies: [req:wf2.workspace-open]
+  title: An opened folder reaches its vaults through their links; which folder is open is this machine's
+```
+
+  - statement:workspace-open The workspace is the folder the person has open (`wye app <folder>`, Open folder… at the top of the rail, POST /api/workspace { folder }); none open is the home workspace — the app's own products under <data>/products. Its vaults are found without a walk: the folder's own vault and, link by link (`vaults:`), every vault below it; a folder without a vault takes the links of the nearest vault above that point inside it; a folder with no vault at or above it is walked once when it is opened and the roots found are kept. listProducts returns the registry's products and the open folder's vaults — a vault read from its own _product.md, addressed by its own `slug:` (stepped, `-2`, when a product already has it) and needing no registry entry — so every /<product>/… address and API resolves a vault like any product. The open folder, the twelve most recent ones and the kept roots are in <data>/_settings.json (`workspace`, `workspaces`, `workspaceScan`), never in a vault. Rescan walks the folder once and answers with every vault found and the links that differ from what it found; they are written only when the person sends them back (POST { fix }), and only for vaults at, under or above the open folder.
+
+```yaml
+- id: rule:vault-packet-inherit
+  source: packages/web/src/lib/packet.ts#inheritedConstraints
+  status: proposed
+  satisfies: [req:wf2.workspace-open]
+  title: A vault's packet carries the approved constraints of the vaults above it, and nothing else of them
+```
+
+  - statement:vault-packet-inherit packetFor appends, for each vault above the product's own (its `parent:` link, then that vault's, to the top), a section "From the vault above — <title>" listing that vault's approved, current constraints, read from its own built graph; a parent that was never built on this machine is named with how to build it instead of being silently empty. Rules, decisions, goals and questions of a parent do not flow down (decision:wf2.root-vault-only-if-inited).
+
+```yaml
+- id: rule:vault-delete
+  source: packages/web/src/lib/delete-product.ts#deleteProduct; packages/web/src/lib/workspace.ts#unlinkVault
+  status: proposed
+  satisfies: [req:wf2.vault-init]
+  title: Deleting a vault moves its .wye/ to the app's trash and takes it out of the links on both sides
+```
+
+  - statement:vault-delete A vault of the open workspace has no registry entry to move: deleteProduct moves <folder>/.wye/ into <data>/_trash/<slug>-<stamp> (a copy and a removal when the trash is on another disk), the vault above stops naming it and names its children instead, each child names that vault as its parent, and a pointer entry the vault had goes to the trash with it. The note in the folder's AGENTS.md / CLAUDE.md stays — it is the person's file. A vault's folder cannot be moved from Settings › Folder: it lives in its folder and moves with it.
+
+```yaml
+- id: decision:wf2.vault-pointer-outside-workspace
+  title: A vault inside the open folder needs no registry entry; one outside it keeps the entry as this machine's pointer
+  date: 2026-10-05
+  status: proposed
+  by: agent:claude-code
+  evidence: [pr:31]
+  affects: [decision:wf2.vault-first-slice, lib:products, lib:product-transfer, lib:workspace]
+```
+
+  - context:wf2.vault-pointer-outside-workspace decision:wf2.vault-first-slice said the registry entry `wye init` makes goes away when workspaces exist. With them built, a vault the open folder reaches is found through its links — but `wye init` in a terminal, or `wye` run inside a vault, may concern a folder the app does not have open, and the CLI must still be able to address it.
+
+  - choice:wf2.vault-pointer-outside-workspace openProduct makes no entry for a vault the open workspace reaches (lib/workspace#noteVault), and makes the `root:` entry as before for one it does not. A vault is always read from its own _product.md — the entry carries only where it is — and a rename or a setting is written to the vault's own file (Product.metaFile). In the home workspace every such pointer is listed with the app's own products.
+
+  - alternative:wf2.vault-pointer-outside-workspace Drop the entry everywhere and refuse a vault outside the open folder — the CLI inside a service would fail whenever the app shows another folder.
+
+```yaml
+- id: decision:wf2.home-is-separate-products
+  title: The home workspace keeps its products apart; only an opened folder reads its vaults together
+  date: 2026-10-05
+  status: proposed
+  by: agent:claude-code
+  evidence: [pr:31]
+  affects: [decision:wf2.workspace-is-the-top, req:wf2.workspace-open, component:rail, page:web/inbox]
+```
+
+  - context:wf2.home-is-separate-products decision:wf2.workspace-is-the-top says today's data/products is the default workspace and that Goals, Work, Inbox, Pinned and search read every vault. The app's own data holds unrelated products (a person's work products, private ones, scratch ones); reading them together would put one product's tasks, pins and proposals into another's pages.
+
+  - choice:wf2.home-is-separate-products In an opened folder the app's Goals and Work pages default to every vault, the rail shows every vault's pins, the Inbox lists what waits in the other vaults and ⌘F searches them all. At home each product keeps its own: a view reads the others only when its line says `scope=workspace`, and pins, the Inbox and search stay per product. In both, Documents has one root per product. The agent chose this; the person can overrule it by making home behave as a folder does.
+
+  - alternative:wf2.home-is-separate-products Merge at home too, as the decision reads literally — unrelated products in one Work list.
+
+```yaml
+- id: decision:wf2.shared-vault-design
+  title: A shared vault is named in the linking vault, overridden per machine, and governs with its constraints and its decisions
+  date: 2026-10-05
+  status: proposed
+  by: agent:claude-code
+  evidence: [pr:31]
+  affects: [req:wf2.shared-vault, decision:wf2.shared-vault-is-a-local-clone, rule:vault-packet-inherit, constraint:wf2.local-first]
+```
+
+  - context:wf2.shared-vault-design task:wf2.shared-vault-design asked for the `shared:` links, the per-machine path override and how a shared vault's constraints enter a packet, as blocks for review, with no build.
+
+  - choice:wf2.shared-vault-design Designed, not built. A vault's _product.md carries `shared: [company=~/code/company-knowledge, legal=../legal]` — a name and the folder of a vault the person cloned themselves, `~` or relative to the vault's folder. This machine may point a name elsewhere: `sharedPaths: { "<vault folder>": { "company": "/abs/path" } }` in <data>/_settings.json, which wins over the vault's own path and is never committed. lib/vault.js#reach gains the shared vaults of every vault it reaches, marked `shared`, never followed further (a shared vault's own links are not the workspace's); a path that holds no vault is kept in the list as unreachable. The rail shows a shared vault as a root with ↗, its slug stepped like any vault's. In a packet a shared vault counts as a vault above (rule:vault-packet-inherit): its approved constraints, and — unlike a parent — its approved decisions, since a shared vault exists to govern. Writes go into it like into any vault (wye run in its folder, or --product); Wye never clones, pulls, commits or pushes it. Building it is a task of its own once the person approves this.
+
+  - alternative:wf2.shared-vault-design Keep the link only in this machine's settings — nothing in git says the service depends on the company vault, and a teammate would not know to link it.
+
+  - consequence:wf2.shared-vault-design Approved decisions of a shared vault enter every linking vault's packet: a large company vault makes large packets, so the packet's budget rule applies to them as to the vault's own.

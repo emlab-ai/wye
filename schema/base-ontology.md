@@ -324,6 +324,19 @@ type means instances may carry properties the type does not declare without a wa
   props:
     statement: text
     about: list of node? -(inverse)-> lessons
+- id: type:fact
+  extends: type:node
+  purpose: >
+    a plain fact worth keeping — about the product, a person, a date, the world — that is no decision, rule or
+    requirement: "Alex created Wye", "the launch is on the 12th"; what Remember files when nothing fits better
+    (skill:remember). `since:` when it holds from a date; a newer fact supersedes the old one, never overwrites it
+  open: true
+  statuses: [proposed, approved, superseded, retired]
+  props:
+    statement: text
+    since: date?
+    source: string?                                   # where it came from: "pasted by alex on 2026-10-06", a meeting, a message
+    of: list of node? -(inverse)-> facts                # what it is about (`about` is the lesson's verb)
 - id: type:comment
   extends: type:node
   purpose: >

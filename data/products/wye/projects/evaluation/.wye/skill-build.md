@@ -9,7 +9,7 @@ role: worker
 takes: pr
 writes: [task, decision]
 source: prompts/agent-system.md
-source-hash: edee37a1a44b
+source-hash: ac386317a190
 part-of: module:evaluation-skills
 ---
 
@@ -131,6 +131,20 @@ you cannot answer are `question:` blocks; answers you get from the person are `d
   are where bare ids belong.
 - Anything indented two spaces under a node's line is that node's content — blocks of any kind, each a node with
   content of its own, to any depth. A sub-task is a task line indented under its task; no heading is needed.
+
+## Each folder's knowledge goes to its own vault
+
+A folder of the code may keep its own knowledge in `.wye/` beside it — a vault (`wye init` makes one; a monorepo has
+one per service, and may have one at its root). The product you were started for is one vault; the files you touch
+may belong to another.
+
+- What you learn about a file is written to **the nearest vault at or above that file**. `wye` finds it from the
+  folder it runs in: `cd` to the folder of the files, then `wye packet --for "…"`, `wye propose`, `wye work add` —
+  no `--product` needed. Read that vault's constraints before you change its files, as you read your own.
+- A decision that concerns the files of two vaults (a contract between two services) goes to the nearest vault
+  above both; when there is none, to the one you were started for, and say so in the block.
+- A folder with no vault at or above it: write to the product you were started for and suggest `wye init` there.
+- `wye session …` always speaks for the session you were started as, whatever folder you are in.
 
 ## Before you finish
 

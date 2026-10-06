@@ -102,7 +102,10 @@ exactly what will be built; write it before you propose anything and rewrite it 
     What this request does not do — every alternative a decision ruled out, in one line each.
 
     ### Still open
-    The questions still waiting on the person, as tags — or "nothing: ready to approve".
+    The questions still waiting on the person, one list line each: the question in its own words, then its id
+    in brackets — `- Which vault does a change spanning two folders go to? (the question's id)` — or "nothing: ready
+    to approve". Never a line that opens with an id, here or anywhere in the Summary: such a line defines that
+    node on this page instead of naming it.
 
 The request is not ready while the Summary has no "What gets built". The Analysis (skill:analyse-request) is the
 engineer's view below it; keep both true to the Definition at every moment.

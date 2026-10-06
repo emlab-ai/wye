@@ -9,6 +9,7 @@ import { prDocPath } from '@/lib/pr-doc';
 import { SmartTag } from './SmartTag';
 import { AGENTS, type Session } from '@/lib/session-types';
 import { LAUNCH_OPTIONS } from '@/lib/agent-launch';
+import { AgentModelPicker } from './AgentModelPicker';
 import { AttachStrip, useImageAttachments } from './Attachments';
 import { loadRecent, rememberRecent } from '@/lib/recent';
 
@@ -24,6 +25,8 @@ import { loadRecent, rememberRecent } from '@/lib/recent';
 // becomes the document the run starts from. Images pasted or dropped into the box go along (req:wf2.ui.palette-images).
 export type CmdMode = 'pr' | 'adhoc' | 'workflow' | 'skill' | 'remember';
 // the box's modes, in the order ⌘1–5 picks them
+// a request's librarian runs on an agent that has models to choose from (not the clerk)
+const PR_AGENTS = Object.entries(LAUNCH_OPTIONS).map(([id, o]) => ({ id, label: o.label }));
 const MODES: { key: CmdMode; label: string; icon: string; title: string }[] = [
   { key: 'pr', label: 'PR', icon: '◆', title: 'A Prompt Request: a page under PRs, refined with Wye until it is clear, approved by you, then built' },
   { key: 'adhoc', label: 'Ad-hoc', icon: '⇢', title: 'A conversation with a coding agent on what you are looking at' },
@@ -32,7 +35,7 @@ const MODES: { key: CmdMode; label: string; icon: string; title: string }[] = [
   { key: 'remember', label: 'Remember', icon: '✦', title: 'Paste information: Wye files it as knowledge, linked to what it knows' },
 ];
 // `mode` opens the box in that mode whatever was used last (⌘M → remember)
-export type SendRequest = { text?: string; refs?: string[]; source?: { project?: string; doc?: string; blockId?: string; link?: string }; mode?: CmdMode; /** Skill mode: the skill picked first */ skill?: string };
+export type SendRequest = { text?: string; refs?: string[]; source?: { project?: string; doc?: string; blockId?: string; link?: string }; mode?: CmdMode; /** Skill mode: the skill picked first */ skill?: string; /** the folder the agent works in, chosen by the caller (a session started from the Agents folder runs in the workspace's folder) */ cwd?: string; /** always a new session, never a message to a running one */ fresh?: boolean };
 export function requestSend(detail: SendRequest) { window.dispatchEvent(new CustomEvent('wf:send', { detail })); }
 type Live = Session & { live?: boolean };
 const refsOf = (r: SendRequest | null) => r?.refs ?? [];
@@ -49,6 +52,12 @@ export function CommandBox() {
   // the model of a new conversation; empty = the default of Settings › Agents (decision:wf2.agent-launch), kept per agent
   const [model, setModel] = useState('');
   useEffect(() => { let m = ''; try { m = localStorage.getItem(`wf-model-${agent}`) ?? ''; } catch { /* ignore */ } setModel(m); }, [agent]);
+  // a Prompt Request's librarian: its own agent and model (decision:wf2.pr-agent-and-model), remembered apart from the
+  // conversations' — refining a request and writing code are often different models
+  const [prAgent, setPrAgent] = useState('claude-code');
+  const [prModel, setPrModel] = useState('');
+  useEffect(() => { try { const a = localStorage.getItem('wf-pr-agent') ?? ''; if (LAUNCH_OPTIONS[a]) setPrAgent(a); } catch { /* ignore */ } }, []);
+  useEffect(() => { let m = ''; try { m = localStorage.getItem(`wf-pr-model-${prAgent}`) ?? ''; } catch { /* ignore */ } setPrModel(m); }, [prAgent]);
   const [defaults, setDefaults] = useState<{ cwd: string; wye: string }>({ cwd: '', wye: '' });
   const [mode, setModeState] = useState<CmdMode>('pr');
   const [workflows, setWorkflows] = useState<{ id: string; title: string; stages: { id: string; title: string }[] }[]>([]);
@@ -75,6 +84,8 @@ export function CommandBox() {
     const ids = d.refs?.length ? d.refs.join(', ') : '';
     setText(d.text ? `${ids ? `Work on ${ids}.\n\n` : ''}${d.text.trim()}` : '');
     setReq(d); setMsg(null); setFresh(false); attach.clear(); setAt(-1); setRecent(loadRecent(product));
+    if (d.cwd) setCwd(d.cwd);
+    if (d.fresh) { setTarget('new'); setModeState('adhoc'); } // a session by hand: the Agent mode, a new conversation
   };
   // the history keys: ↑ from an empty box recalls the last command, then walks back; ↓ walks forward and out of it
   const history = (e: { key: string; preventDefault: () => void }): boolean => {
@@ -96,7 +107,7 @@ export function CommandBox() {
       else if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'm') { e.preventDefault(); if (req && mode === 'remember') setReq(null); else { show({ ...here(), mode: 'remember' }); setModeState('remember'); } }
       else if (req && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && /^[1-5]$/.test(e.key)) { e.preventDefault(); setMode(MODES[Number(e.key) - 1].key); }
       // Escape leaves a recalled command behind first, and closes the box on the next press (task:palette-recent-commands)
-      else if (e.key === 'Escape' && req) { if (at >= 0) { e.preventDefault(); e.stopPropagation(); setAt(-1); setText(''); } else setReq(null); }
+      else if (e.key === 'Escape' && req) { if (document.querySelector('.amp-menu')) return; /* the model menu is open: Escape is its */ if (at >= 0) { e.preventDefault(); e.stopPropagation(); setAt(-1); setText(''); } else setReq(null); }
     };
     const send = (e: Event) => show((e as CustomEvent<SendRequest>).detail);
     // capture phase: the shortcut works wherever the focus is, even inside controls that stop key events
@@ -117,7 +128,7 @@ export function CommandBox() {
         // on a PR page with a live conversation the box talks to that PR (decision:wf2.pr-talk); else a clean slate (rule:clean-slate)
         const here = m ? index[docNodeOf(index, m[2]) ?? ''] : undefined;
         const mine = here?.kind === 'pr' ? active.find(s => (here.sessions ?? []).includes(s.id)) : undefined;
-        if (mine && !req.mode) { setTarget(mine.id); setModeState('adhoc'); } else setTarget('new');
+        if (mine && !req.mode && !req.fresh) { setTarget(mine.id); setModeState('adhoc'); } else setTarget('new');
         setCwd(c => c || remembered || j.defaults?.cwd || j.defaults?.wye || '');
         if (AGENTS.some(a => a.id === lastAgent)) setAgent(lastAgent);
       } catch { setSessions([]); setTarget('new'); }
@@ -193,10 +204,11 @@ export function CommandBox() {
     if (isPr) {
       // a Prompt Request (decision:wf2.cmd-modes): the page is created as draft, a librarian refines it (decision:exec.librarian-on-the-host)
       setBusy(true); setMsg(null);
-      const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ pr: true, instruction, refs: req.refs ?? [], source: { ...(req.source ?? {}), ...(req.text ? { text: req.text.slice(0, 2000) } : {}) }, images: attach.images, skills: attachTo.skills, hooks: attachTo.hooks }) });
+      const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ pr: true, agent: prAgent, ...(prModel.trim() ? { model: prModel.trim() } : {}), instruction, refs: req.refs ?? [], source: { ...(req.source ?? {}), ...(req.text ? { text: req.text.slice(0, 2000) } : {}) }, images: attach.images, skills: attachTo.skills, hooks: attachTo.hooks }) });
       const j = await r.json().catch(() => ({})); setBusy(false);
       if (!r.ok) { setMsg(j.message ?? j.error ?? 'could not start'); return; }
       remember(instruction);
+      try { localStorage.setItem('wf-pr-agent', prAgent); localStorage.setItem(`wf-pr-model-${prAgent}`, prModel.trim()); } catch { /* ignore */ }
       // the PR's page, the conversation in the column
       setReq(null); open(`session:${j.id}`); if (j.prDoc) location.assign(prDocPath(j.prDoc)); return;
     }
@@ -236,7 +248,7 @@ export function CommandBox() {
   const refs = req.refs ?? [];
   const M = MODES.find(m => m.key === mode) ?? MODES[0];
   const placeholder = isSk ? 'Anything the skill should know — optional (e.g. "the Atlas rollout finished on 3 Oct")' : isRem ? 'Paste notes, a message, an update…' : isWf ? 'The idea, in a line or two' : isPr ? 'What do you want to change?' : isNew ? 'What should the agent do?' : 'Your next message to that conversation';
-  const about = isPr ? 'A Prompt Request — Wye\u2019s librarian on Claude Code reads what the product knows, asks what it must and proposes the blocks; you approve on the PR\u2019s page before anything is built.'
+  const about = isPr ? `A Prompt Request — Wye\u2019s librarian on ${LAUNCH_OPTIONS[prAgent]?.label ?? 'Claude Code'} reads what the product knows, asks what it must and proposes the blocks; you approve on the PR\u2019s page before anything is built.${prAgent === 'codex' ? ' On Codex its rule of never editing files is an instruction it is given, not a limit on its tools.' : ''}`
     : isRem ? 'Filed as knowledge in the right documents, linked to what Wye already knows — by Wye\u2019s librarian on Claude Code. You review it in the Inbox.'
     : isWf ? 'Runs a workflow on what you are looking at — each stage writes its document and waits for you to advance it.'
     : isSk ? 'Runs one skill on what you are looking at — an agent with that skill\u2019s instructions; it asks when it is unsure. Edit a skill on its page under Settings › Skills.'
@@ -246,7 +258,7 @@ export function CommandBox() {
   const canLater = isNew && !isWf && !isRem && !isSk;
   const empty = !text.trim() && !attach.images.length && !(isWf && refsOf(req).length) && !(isSk && sk);
   return createPortal(
-    <div className="modal-back palette-back" onMouseDown={e => { if (e.target === e.currentTarget) setReq(null); }}>
+    <div className="modal-back palette-back" onMouseDown={e => { if (e.target === e.currentTarget && !document.querySelector('.amp-menu')) setReq(null); /* a click outside an open model menu closes the menu, not the box */ }}>
       <div className={`modal palette mode-${mode}`} role="dialog" aria-label="Command" onDragOver={attach.onDragOver} onDrop={attach.onDrop}>
         <div className="palette-modes" role="tablist" aria-label="Mode">
           {MODES.map((m, i) => <button key={m.key} type="button" role="tab" aria-selected={mode === m.key} className={`pm ${mode === m.key ? 'on' : ''}`} onClick={() => setMode(m.key)} title={`${m.title} (⌘${i + 1})`}><i aria-hidden>{m.icon}</i>{m.label}</button>)}
@@ -281,8 +293,6 @@ export function CommandBox() {
                 <optgroup label="new"><option value="new">New conversation</option><option value="runner">Queue for a runner</option></optgroup>
               </select>
             </label>
-            {isNew && <label className="palette-field"><span>Agent</span><select value={agent} onChange={e => setAgent(e.target.value)}>{AGENTS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}</select></label>}
-            {isNew && LAUNCH_OPTIONS[agent] && <label className="palette-field" title="The model this conversation runs — empty: the default of Settings › Agents"><span>Model</span><input className="palette-cwd palette-model" value={model} placeholder="default" list={`models-${agent}`} onChange={e => setModel(e.target.value)} spellCheck={false} /><datalist id={`models-${agent}`}>{LAUNCH_OPTIONS[agent].models.map(m => <option key={m} value={m} />)}</datalist></label>}
             {target === 'new' && <label className="palette-field palette-field-wide"><span>Folder</span><input className="palette-cwd" value={cwd} placeholder={defaults.cwd || 'the code repository the agent works in'} onChange={e => setCwd(e.target.value)} spellCheck={false} /></label>}
             {!isNew && <label className="palette-check" title="Stop that agent and start a fresh one in the same folder before this message: it forgets the conversation so far and reads what it needs from Wye"><input type="checkbox" checked={fresh} onChange={e => setFresh(e.target.checked)} /> clear context first</label>}
           </div>}
@@ -290,6 +300,10 @@ export function CommandBox() {
         </div>
         {msg && <p className="bad palette-msg">{msg}</p>}
         <div className="palette-actions">
+          {/* what will run it: the agent and the model as one choice (component:agent-model-picker) */}
+          {isPr && <AgentModelPicker agents={PR_AGENTS} agent={prAgent} model={prModel} what="request's librarian runs" onChange={(a, m) => { setPrAgent(a); setPrModel(m); try { localStorage.setItem('wf-pr-agent', a); localStorage.setItem(`wf-pr-model-${a}`, m); } catch { /* ignore */ } }} />}
+          {mode === 'adhoc' && isNew && <AgentModelPicker agents={AGENTS} agent={agent} model={model} what="conversation runs" onChange={(a, m) => { setAgent(a); setModel(m); try { localStorage.setItem(`wf-model-${a}`, m); } catch { /* ignore */ } }} />}
+          <span className="palette-gap" />
           {canLater && <button className="palette-later" onClick={later} disabled={!text.trim() || busy} title="Keep it as a task on the backlog — unassigned, on the Work view — without sending it to anyone">Later <kbd>⌥↵</kbd></button>}
           <button className="palette-go" onClick={run} disabled={empty || busy}>{verb}{!busy && <kbd>↵</kbd>}</button>
         </div>

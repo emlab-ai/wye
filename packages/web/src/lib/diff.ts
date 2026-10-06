@@ -20,3 +20,19 @@ export function wordDiff(a: string, b: string): DiffRun[] {
   while (j < m) { push('add', y[j]); j++; }
   return out;
 }
+
+// A line diff for the console's edits (component:console): old and new text as lines kept, removed and added — the
+// same LCS over lines; the first and last unchanged lines beyond three of context are folded
+export type LineRun = { kind: 'same' | 'del' | 'add'; text: string };
+export function lineDiff(a: string, b: string): LineRun[] {
+  const x = a.split('\n'), y = b.split('\n');
+  if (x.length * y.length > 400_000) return [...x.map(text => ({ kind: 'del' as const, text })), ...y.map(text => ({ kind: 'add' as const, text }))];
+  const n = x.length, m = y.length;
+  const L: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) L[i][j] = x[i] === y[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const out: LineRun[] = []; let i = 0, j = 0;
+  while (i < n && j < m) { if (x[i] === y[j]) { out.push({ kind: 'same', text: x[i] }); i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) { out.push({ kind: 'del', text: x[i] }); i++; } else { out.push({ kind: 'add', text: y[j] }); j++; } }
+  while (i < n) out.push({ kind: 'del', text: x[i++] });
+  while (j < m) out.push({ kind: 'add', text: y[j++] });
+  return out;
+}

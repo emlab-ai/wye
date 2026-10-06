@@ -78,6 +78,31 @@ export function patchFrontmatter(md: string, patch: Record<string, string | null
   return { md: '---\n' + out.join('\n') + '\n---\n' + md.slice(fm[0].length) };
 }
 
+// A page's title is read from `title:` in its front matter (the rail, the top bar, links), while its text may open
+// with the same words as `# Title` — the heading the reader sees and edits. The two are kept as one.
+const HEADING = /^(\s*)# +(\S.*?)[ \t]*$/m;
+const opens = (body: string) => /^\s*# \S/.test(body);
+// The heading a page's text opens with, as plain words; null when it opens with anything else.
+export function leadTitle(body: string): string | null {
+  if (!opens(body)) return null;
+  return body.match(HEADING)![2].replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '').trim() || null;
+}
+// After a write of the text: an opening heading that changed becomes the title. A write that leaves the heading as
+// it was (or removes it) leaves the title as it was.
+export function followHeading(before: string, after: string): string {
+  const now = leadTitle(bodyOf(after));
+  if (!now || now === leadTitle(bodyOf(before))) return after;
+  const r = patchFrontmatter(after, { title: now });
+  return r.error ? after : r.md;
+}
+// Rename a page: the title, and the heading its text opens with when there is one.
+export function renamePage(md: string, title: string): WriteResult {
+  const t = title.replace(/\s+/g, ' ').trim(); if (!t) return { md, error: 'invalid' };
+  const r = patchFrontmatter(md, { title: t }); if (r.error) return r;
+  const body = bodyOf(r.md);
+  return opens(body) ? { md: r.md.slice(0, r.md.length - body.length) + body.replace(HEADING, (_m, lead: string) => `${lead}# ${t}`) } : r;
+}
+
 // The temp name is unique per call, not per process: two writes of one file in flight at once (a save and the debounced
 // one behind it) must never share a temp file — one would truncate the other's and the rename that lost would fail.
 let writeSeq = 0;

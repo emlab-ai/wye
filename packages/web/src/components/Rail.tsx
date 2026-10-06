@@ -6,7 +6,7 @@ import { DocTree, type TreeItem } from './DocTree';
 import { NewPage } from './NewPage';
 import { filesOfDrop, type Picked } from './ImportDocs';
 import { ThemeButton } from './ThemeSwitch';
-import { IconChevronsLeft, IconSettings, IconTarget, IconImport, IconPlus, IconHelp } from './Icons';
+import { IconChevronsLeft, IconSettings, IconTarget, IconImport, IconPlus, IconHelp, IconEye, IconRefresh } from './Icons';
 import { EmptyState } from './EmptyState';
 import { AgentFolder } from './AgentFolder';
 import type { Pin } from '@/lib/pins';
@@ -14,17 +14,26 @@ import { PrFolder, type PrItem } from './PrFolder';
 import { SkillFolder, type SkillItem } from './SkillFolder';
 import { RailSettings } from './RailSettings';
 import { systemSlug } from '@/lib/doc';
+import { WorkspaceMenu, type RailWorkspace } from './WorkspaceMenu';
+import { VaultRoots, type RailVault } from './VaultRoots';
+import { FileTree } from './FileTree';
 
 const MIN_PANE = 96; // the least a pane keeps when the splitter is dragged: a few rows
 
 export type RailProject = { slug: string; title: string; icon: string; kind: string; status: string; main: string; roots: TreeItem[]; docs: { slug: string; title: string }[] };
 
-// The left rail: product switcher, menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Constitution, Questions, Inbox, Agents,
-// then the PRs system folder — component:request-folder), then every project's documents as one tree.
+// The left rail: the workspace (the open folder, lib/workspace), menu (Overview, Search, Goals, Tasks, Knowledge, Types, Graph, Constitution, Questions, Inbox, Agents,
+// then the PRs system folder — component:request-folder), then Documents — one root per vault of the workspace, the
+// vault on screen open to its documents as one tree — or, on its Files tab, the open folder's files.
 export type RailOnboarding = { done: number; total: number; show: boolean };
 
-export function Rail({ onboarding, pins = [], mainProject, products, product, projects, prs, views = [], skills = [], skillsPage = null, headings }: { skills?: SkillItem[]; skillsPage?: { project: string; slug: string } | null; views?: { slug: string; title: string; icon: string; project: string }[]; products: { slug: string; title: string; icon: string }[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; prs: PrItem[]; headings: { doc: string; slug: string; text: string }[]; pins?: Pin[]; mainProject?: string; onboarding?: RailOnboarding | null }) {
+export function Rail({ onboarding, pins = [], mainProject, workspace, vaults, product, projects, prs, views = [], skills = [], skillsPage = null, headings }: { skills?: SkillItem[]; skillsPage?: { project: string; slug: string } | null; views?: { slug: string; title: string; icon: string; project: string }[]; workspace: RailWorkspace; vaults: RailVault[]; product: { slug: string; title: string; icon: string }; projects: RailProject[]; prs: PrItem[]; headings: { doc: string; slug: string; text: string }[]; pins?: Pin[]; mainProject?: string; onboarding?: RailOnboarding | null }) {
   const path = usePathname(); const router = useRouter();
+  // the lower pane shows one tree at a time (req:wf2.ui.rail-split): the workspaces' documents, or the open folder's files; remembered per browser
+  const [pane, setPaneState] = useState<'docs' | 'files'>('docs'); const [filesHidden, setFilesHidden] = useState(false);
+  const [find, setFind] = useState({ docs: '', files: '' }); // the pane's filter field: workspaces and documents by title, files by name
+  useEffect(() => { try { if (localStorage.getItem('wf-rail-pane') === 'files') setPaneState('files'); } catch { /* ignore */ } }, []);
+  const setPane = (p: 'docs' | 'files') => { setPaneState(p); try { localStorage.setItem('wf-rail-pane', p); } catch { /* ignore */ } };
   const [newIn, setNewIn] = useState<string | null>(null); // '' = top level, <project>/<slug> = under that document
   // Import… (component:import-docs): the dialog, opened by its button or by files dropped on the documents area
   const [importing, setImporting] = useState<Picked[] | null>(null);
@@ -58,20 +67,13 @@ export function Rail({ onboarding, pins = [], mainProject, products, product, pr
   return (
     <nav className="rail" ref={nav}>
       <div className="rail-ws"><span className="rail-ws-mark">Y</span><span className="rail-ws-name">Wye</span><span className="rail-ws-tools"><button className="rail-theme" onClick={() => window.dispatchEvent(new Event('wf:help'))} title="Help — shortcuts, what is where, the Quick start (⌘/)" aria-label="Help"><IconHelp /></button><Link className="rail-theme" href={`/settings?from=${product.slug}`} title="App settings — the theme, agents, keys" aria-label="App settings"><IconSettings /></Link><ThemeButton /><button className="rail-close" onClick={() => window.dispatchEvent(new CustomEvent('wf:rail', { detail: 'toggle' }))} title="Close the sidebar (⌘\\)" aria-label="Close sidebar"><IconChevronsLeft /></button></span></div>
-      <div className="rail-space">
-        <span className="rail-space-mark">{product.icon || product.title.slice(0, 2).toUpperCase()}</span>
-        <select className="rail-space-sel" value={product.slug} onChange={e => router.push(e.target.value === '__new' ? '/new' : e.target.value === '__open' ? '/new?way=open' : `/${e.target.value}`)}>
-          {products.map(p => <option key={p.slug} value={p.slug}>{p.title}</option>)}
-          <option value="__new">+ New product…</option>
-          <option value="__open">Open or import a product…</option>
-        </select>
-      </div>
+      <WorkspaceMenu workspace={workspace} />
       <div className="rail-top" ref={top} style={topH ? { flex: `0 0 ${topH}px`, maxHeight: 'none' } : undefined}>
       <ul className="rail-menu">
         {item(base, 'Overview', '⌂')}
         <QuickStartItem href={`${base}/start`} on={path === `${base}/start`} product={product.slug} initial={onboarding ?? null} />
-        {pins.map(p => { const h = `${base}/${p.project}/d/${p.slug}`; return <li key={p.ref} className="rail-pin"><Link href={h} className={path === h ? 'on' : ''} title={`${p.title} — pinned (unpin from the document's ⋯ menu)`}><i>{p.icon}</i><span className="rail-pin-title">{p.title}</span><span className="rail-pin-star" aria-label="pinned">★</span></Link></li>; })}
-        {views.length ? views.filter(v => v.slug !== hooksSlug).map(v => <li key={v.slug}><Link href={`${base}/${v.project}/d/${v.slug}`} className={path === `${base}/${v.project}/d/${v.slug}` ? 'on' : ''}><i>{v.icon}</i>{v.title}</Link></li>) : <>{item(`${base}/goals`, 'Goals', '◎')}{item(`${base}/work`, 'Work', '☑')}</>}
+        {pins.map(p => { const h = `/${p.product ?? product.slug}/${p.project}/d/${p.slug}`; return <li key={`${p.product ?? ''}/${p.ref}`} className="rail-pin"><Link href={h} className={path === h ? 'on' : ''} title={`${p.title} — pinned${p.vault ? ` in ${p.vault}` : ''} (unpin from the document's ⋯ menu)`}><i>{p.icon}</i><span className="rail-pin-title">{p.title}</span>{p.vault && <span className="vault-chip">{p.vault}</span>}<span className="rail-pin-star" aria-label="pinned">★</span></Link></li>; })}
+        {views.length ? views.filter(v => v.slug !== hooksSlug).map(v => <li key={v.slug}><Link href={`${base}/${v.project}/d/${v.slug}`} className={path === `${base}/${v.project}/d/${v.slug}` ? 'on' : ''}><i>{v.icon}</i>{v.title}</Link></li>) : <>{item(`${base}/goals`, 'Goals', '◎')}{item(`${base}/work`, 'Tasks', '☑')}</>}
         {item(`${base}/knowledge`, 'Knowledge', '◈')}
         {item(`${base}/inbox`, 'Inbox', '⇩')}
         <AgentFolder product={product.slug} />
@@ -84,15 +86,27 @@ export function Rail({ onboarding, pins = [], mainProject, products, product, pr
       </ul>
       </div>
       <div className="rail-split" ref={split} role="separator" aria-orientation="horizontal" title="Drag to resize; double-click to reset" onMouseDown={onSplit} onDoubleClick={resetSplit} />
-      <div className="rail-pages-head"><span>Documents</span><span className="rail-pages-tools"><button className="rail-reveal" onClick={() => window.dispatchEvent(new Event('wf:reveal-doc'))} title="Show the open document in the tree" aria-label="Show the open document"><IconTarget /></button><button onClick={() => { setNewIn(null); setImporting(importing ? null : []); }} title="Import markdown files, a folder, or code" aria-label="Import"><IconImport /></button><button onClick={() => { setImporting(null); setNewIn(newIn === '' ? null : ''); }} title="New document" aria-label="New document"><IconPlus size={18} /></button></span></div>
+      <div className="rail-pages-head rail-pane-tabs" role="tablist">
+        <span className="rail-pane-tabset">
+          <button role="tab" aria-selected={pane === 'docs'} className={pane === 'docs' ? 'on' : ''} onClick={() => setPane('docs')}>Workspaces</button>
+          <button role="tab" aria-selected={pane === 'files'} className={pane === 'files' ? 'on' : ''} onClick={() => setPane('files')}>Files</button>
+        </span>
+        {pane === 'docs'
+          ? <span className="rail-pages-tools"><button className="rail-reveal" onClick={() => window.dispatchEvent(new Event('wf:reveal-doc'))} title="Show the open document in the tree" aria-label="Show the open document"><IconTarget /></button><button onClick={() => { setNewIn(null); setImporting(importing ? null : []); }} title="Import markdown files, a folder, or code" aria-label="Import"><IconImport /></button><button onClick={() => { setImporting(null); setNewIn(newIn === '' ? null : ''); }} title="New document" aria-label="New document"><IconPlus size={18} /></button></span>
+          : <span className="rail-pages-tools"><button className={filesHidden ? 'on' : ''} onClick={() => { setFilesHidden(h => !h); window.dispatchEvent(new CustomEvent('wf:files-hidden', { detail: !filesHidden })); }} title={filesHidden ? 'Hide what git ignores and build folders' : 'Show ignored files too (node_modules, build output, .wye)'} aria-pressed={filesHidden} aria-label="Show ignored files"><IconEye /></button><button onClick={() => window.dispatchEvent(new Event('wf:files'))} title="Read the folder again" aria-label="Reload files"><IconRefresh /></button></span>}
+      </div>
+      <div className="rail-find"><input type="search" value={find[pane]} placeholder={pane === 'docs' ? 'Filter workspaces and documents…' : 'Filter files…'} aria-label={pane === 'docs' ? 'Filter workspaces and documents' : 'Filter files'} onChange={e => setFind(f => ({ ...f, [pane]: e.target.value }))} onKeyDown={e => { if (e.key === 'Escape') setFind(f => ({ ...f, [pane]: '' })); }} /></div>
       {(importing !== null || newIn !== null) && <NewPage product={product.slug} project={newIn ? newIn.split('/')[0] : mainProject ?? projects[0]?.slug ?? ''} projects={projects.map(p => ({ slug: p.slug, title: p.title }))} docs={docs} defaultParent={newIn ?? ''} initial={importing ?? []} startImport={importing !== null} onClose={() => { setNewIn(null); setImporting(null); }} />}
       <div className={`rail-body ${fileOver ? 'file-over' : ''}`}
         onDragOver={e => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; if (!fileOver) setFileOver(true); }}
         onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setFileOver(false); }}
         onDrop={async e => { if (!hasFiles(e)) return; e.preventDefault(); setFileOver(false); const got = await filesOfDrop(e.dataTransfer); if (got.length) { setNewIn(null); setImporting(got); } }}>
         {fileOver && <div className="rail-filedrop">drop to import as documents</div>}
-        <DocTree product={product.slug} roots={roots} onAddChild={d => setNewIn(`${d.project}/${d.slug}`)} pinned={pins.map(p => p.ref)} />
-        {!roots.length && <EmptyState title="No documents yet" actions={<><button className="pri" onClick={() => { setImporting(null); setNewIn(''); }}>New document</button><button onClick={() => { setNewIn(null); setImporting([]); }}>Import</button></>}>Write the product down here, or import Markdown or code. Or drop files on this space.</EmptyState>}
+        {pane === 'docs' && <VaultRoots vaults={vaults.some(v => v.slug === product.slug) ? vaults : [{ slug: product.slug, title: product.title, icon: product.icon, folder: null, parent: null }, ...vaults]} current={product.slug} filter={find.docs}>
+          <DocTree product={product.slug} roots={roots} filter={find.docs} onAddChild={d => setNewIn(`${d.project}/${d.slug}`)} pinned={pins.filter(p => !p.product || p.product === product.slug).map(p => p.ref)} />
+          {!roots.length && <EmptyState title="No documents yet" actions={<><button className="pri" onClick={() => { setImporting(null); setNewIn(''); }}>New document</button><button onClick={() => { setNewIn(null); setImporting([]); }}>Import</button></>}>Write the product down here, or import Markdown or code. Or drop files on this space.</EmptyState>}
+        </VaultRoots>}
+        {pane === 'files' && <FileTree product={product.slug} bare filter={find.files} />}
       </div>
     </nav>
   );

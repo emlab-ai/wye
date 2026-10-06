@@ -71,3 +71,10 @@ export const IconMore = ({ size = 16 }: IconProps) => (
 export const IconSkill = ({ size = 20 }: IconProps) => (
   <svg {...svg(size)}><path d="M12 3.5l1.9 4.6 4.6 1.9-4.6 1.9L12 16.5l-1.9-4.6L5.5 10l4.6-1.9z" /><path d="M18.5 15.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z" /></svg>
 );
+// the Files pane's tools: ignored files shown (an eye) and a reload (a circling arrow)
+export const IconEye = ({ size = 18 }: IconProps) => (
+  <svg {...svg(size)}><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="2.8" /></svg>
+);
+export const IconRefresh = ({ size = 18 }: IconProps) => (
+  <svg {...svg(size)}><path d="M20 12a8 8 0 1 1-2.6-5.9" /><path d="M20 4v5h-5" /></svg>
+);

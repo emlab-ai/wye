@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { nextPrNumber, prNumberOf, prLabel, prTitle, goalSlug, prDocBody, fromLine, resultSection, withResult, setFrontmatter, getFrontmatter, prsOf, prStatusOnEnd, requestTaskStatusOnEnd, definitionIds, withDefinition, definitionState, readiness, summaryWritten, taskLines } from './pr-doc';
+import { nextPrNumber, prNumberOf, prLabel, prTitle, goalSlug, prDocBody, fromLine, resultSection, withResult, setFrontmatter, getFrontmatter, prsOf, prStatusOnEnd, requestTaskStatusOnEnd, definitionIds, withDefinition, definitionState, readiness, summaryWritten, taskLines, approvalStatus } from './pr-doc';
 
 const TPL = readFileSync(path.join(__dirname, '../../../../templates/docs/pr.md'), 'utf8');
 const vars = { num: 41, slug: 'pr-41', title: 'page link on the session', date: '2026-09-18', session: 'abc123', agent: 'claude-code', parent: 'module:app-agents', started: '2026-09-18T12:00:00.000Z', request: 'page link on the session, it looks good\n\n## but\nshould be a plan', from: '_from: module:app-agents · refs: req:x_' };
@@ -176,5 +176,20 @@ describe('readiness', () => {
   it('an empty Definition is not ready', () => { expect(readiness(d([]), 2).definition).toBe(false); });
   it('taskLines reads the Tasks section', () => {
     expect(taskLines('# X\n\n## Tasks\n\n- [ ] task:a.one Do one #open\n- [x] task:a.two Done\n\n## Result\n')).toEqual(['task:a.one', 'task:a.two']);
+  });
+});
+
+describe('approvalStatus', () => {
+  it('a proposed block is approved with its request; what is agreed already stays', () => {
+    expect(approvalStatus('req:a', 'proposed')).toBe('approved'); expect(approvalStatus('decision:d', '')).toBe('approved'); expect(approvalStatus('rule:r', 'draft', ['draft', 'approved', 'shipped'])).toBe('approved');
+    for (const st of ['approved', 'shipped', 'rejected', 'superseded']) expect(approvalStatus('req:a', st)).toBeNull();
+  });
+  it('a question is answered, not approved; a proposed task becomes work', () => {
+    expect(approvalStatus('question:q', 'open')).toBeNull();
+    expect(approvalStatus('task:t', 'proposed')).toBe('open'); expect(approvalStatus('task:t', 'open')).toBeNull(); expect(approvalStatus('task:t', 'in-progress')).toBeNull();
+  });
+  it('a type with its own statuses takes its own agreed one', () => {
+    expect(approvalStatus('risk:r', 'proposed', ['proposed', 'accepted', 'rejected'])).toBe('accepted');
+    expect(approvalStatus('thing:x', 'new', ['new', 'old'])).toBeNull();
   });
 });

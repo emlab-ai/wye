@@ -4,7 +4,8 @@ export type Source = 'node' | 'doc' | 'code' | 'session';
 export const SOURCES: Source[] = ['node', 'doc', 'code', 'session'];
 // one indexed passage. id = `<source>:<ref>`; ref is what a citation opens; nodes = node ids the passage is about
 export interface ChunkRow { id: string; source: Source; ref: string; title: string; text: string; nodes: string[] }
-export interface Hit extends ChunkRow { score: number; via?: string; href: string | null }
+// vault / vaultTitle: set on a hit from another vault of the workspace (a search over the whole workspace)
+export interface Hit extends ChunkRow { score: number; via?: string; href: string | null; vault?: string; vaultTitle?: string }
 export interface Citation { n: number; ref: string; source: Source; title: string; href: string | null; snippet: string }
 export type AskEvent =
   | { type: 'results'; hits: Hit[]; degraded?: string; indexing?: boolean }

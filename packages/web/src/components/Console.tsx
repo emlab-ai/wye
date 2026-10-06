@@ -9,6 +9,7 @@ import { queueSummary, type ChatEvent, type QueueView, type Session } from '@/li
 import { QueueList } from './QueueList';
 import { AttachStrip, useImageAttachments } from './Attachments';
 import { SmartTag } from './SmartTag';
+import { Call, foldSummary, callLabel } from './ConsoleTerminal';
 
 // The live conversation with an agent: every event of the transcript, streamed over SSE, plus a message box.
 // The nearest scrolling ancestor — the column's body (rule:column-frame) — or the page when there is none.
@@ -73,6 +74,8 @@ export function Console({ session, onStatus, onKnowledge }: { session: Session; 
   const thinking = events.some(e => e.kind === 'thinking');
   // tokens: spent = every turn's usage added up (the transcript replays earlier processes too); context = the last turn's
   const usage = useMemo(() => { let inn = 0, out = 0, context: number | undefined, window: number | undefined; for (const e of events) { if (e.kind !== 'result' || !e.usage) continue; inn += e.usage.in; out += e.usage.out; if (e.usage.context !== undefined) context = e.usage.context; if (e.usage.window) window = e.usage.window; } return { in: inn, out, context, window }; }, [events]);
+  // every call's result, wherever the transcript holds it (a result may land after a log line, in another fold)
+  const results = useMemo(() => new Map(events.filter(e => e.kind === 'tool_result').map(e => [e.toolUseId, e])), [events]);
   const turnOpen = (() => { for (let i = events.length - 1; i >= 0; i--) { const k = events[i].kind; if (k === 'result' || k === 'exit') return false; if (k === 'user') return true; } return false; })();
   return (
     <div className="console">
@@ -93,10 +96,10 @@ export function Console({ session, onStatus, onKnowledge }: { session: Session; 
       )}
       <div className="console-log">
         {foldActivity(groupSubagents(flow)).map((g, i) => g.parent
-          ? <Subagent key={'s' + i} events={g.events} task={events.find(e => e.kind === 'tool_use' && e.toolUseId === g.parent)} finished={events.some(e => e.kind === 'tool_result' && e.toolUseId === g.parent)} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />
+          ? <Subagent key={'s' + i} events={g.events} results={results} running={live} task={events.find(e => e.kind === 'tool_use' && e.toolUseId === g.parent)} finished={events.some(e => e.kind === 'tool_result' && e.toolUseId === g.parent)} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />
           : g.activity
-            ? <Activity key={'a' + i} events={g.events} live={live && i === foldActivity(groupSubagents(flow)).length - 1} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />
-            : <Event key={i} e={g.events[0]} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />)}
+            ? <Activity key={'a' + i} events={g.events} results={results} running={live} live={live && i === foldActivity(groupSubagents(flow)).length - 1} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />
+            : <Event key={i} e={g.events[0]} results={results} running={live} answered={answered} answers={answers} showThinking={showThinking} answer={(requestId, allow, input) => control({ action: 'permission', requestId, allow, input })} />)}
         <div ref={bottom} />
       </div>
       <form className="console-input" onSubmit={e => { e.preventDefault(); send(); }} onDragOver={attach.onDragOver} onDrop={attach.onDrop}>
@@ -115,22 +118,23 @@ export function Console({ session, onStatus, onKnowledge }: { session: Session; 
   );
 }
 
-function Event({ e, answered, answers, showThinking, answer }: { e: ChatEvent; answered: Set<string | undefined>; answers: Map<string | undefined, unknown | 'denied'>; showThinking: boolean; answer: (requestId: string, allow: boolean, input?: unknown) => void }) {
+function Event({ e, results, running = false, answered, answers, showThinking, answer }: { e: ChatEvent; results?: Map<string | undefined, ChatEvent>; running?: boolean; answered: Set<string | undefined>; answers: Map<string | undefined, unknown | 'denied'>; showThinking: boolean; answer: (requestId: string, allow: boolean, input?: unknown) => void }) {
   void answered;
   const [open, setOpen] = useState(false);
   const time = <time dateTime={e.t} title={e.t}>{e.t.slice(11, 19)}</time>; // hidden until the row is hovered
   switch (e.kind) {
-    case 'user': return <div className="ev ev-user">{time}<div className="ev-body"><TranscriptMarkdown>{e.text ?? ''}</TranscriptMarkdown>{e.images && e.images.length > 0 && <div className="ev-images">{e.images.map(u => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="attachment" /></a>)}</div>}
+    case 'user': return <div className="ev ev-user">{time}<div className="ev-body"><span className="tt-chev" aria-hidden>❯</span><div className="tt-text"><TranscriptMarkdown>{e.text ?? ''}</TranscriptMarkdown></div>{e.images && e.images.length > 0 && <div className="ev-images">{e.images.map(u => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="attachment" /></a>)}</div>}
       {/* the first message's Wye wrapper is the agent's, not the person's words: folded (req:wf2.console.first-message-is-the-request) */}
       {e.prompt && e.prompt !== e.text && <details className="ev-prompt"><summary>what the agent received</summary><TranscriptMarkdown>{e.prompt}</TranscriptMarkdown></details>}</div></div>;
-    case 'assistant': return <div className="ev ev-assistant">{time}<div className="ev-body"><TranscriptMarkdown>{e.text ?? ''}</TranscriptMarkdown></div></div>;
-    case 'thinking': return showThinking ? <div className="ev ev-thinking">{time}<div className="ev-body">{e.text}</div></div> : null;
+    case 'assistant': return <div className="ev ev-assistant">{time}<div className="ev-body"><span className="tt-dot" aria-hidden>●</span><div className="tt-text"><TranscriptMarkdown>{e.text ?? ''}</TranscriptMarkdown></div></div></div>;
+    case 'thinking': return showThinking ? <div className="ev ev-thinking">{time}<details className="tt-think"><summary>✻ Thinking…</summary><div className="tt-think-text">{e.text}</div></details></div> : null;
     case 'tool_use': {
       const input = e.input as Record<string, unknown> | undefined;
       const summary = e.name === 'Bash' ? String(input?.command ?? '') : e.name === 'Read' || e.name === 'Edit' || e.name === 'Write' ? String(input?.file_path ?? '') : e.name === 'Grep' ? String(input?.pattern ?? '') : JSON.stringify(input ?? {}).slice(0, 120);
-      return <div className="ev ev-tool">{time}<button className="ev-tool-head" onClick={() => setOpen(o => !o)}><b>{e.name}</b> <span>{summary.slice(0, 160)}</span></button>{open && <pre className="ev-pre">{JSON.stringify(input, null, 2)}</pre>}</div>;
+      void summary; void input; void open; void setOpen;
+      return <div className="ev ev-tool">{time}<Call call={e} result={results?.get(e.toolUseId)} live={running} /></div>;
     }
-    case 'tool_result': return <div className={`ev ev-result ${e.isError ? 'err' : ''}`}>{time}<button className="ev-tool-head" onClick={() => setOpen(o => !o)}><span className="muted">{e.isError ? 'error' : 'result'}</span> <span>{(e.output ?? '').split('\n')[0].slice(0, 160)}</span></button>{open && <pre className="ev-pre">{e.output}</pre>}</div>;
+    case 'tool_result': return e.isError ? <div className="ev ev-result err">{time}<div className="tc-res"><span className="tc-elbow" aria-hidden>⎿</span><span>Error: {(e.output ?? '').split('\n')[0].slice(0, 200)}</span></div></div> : null; // a result is drawn under its call
     case 'permission': {
       // the agent's questions are a form; any other permission shows what the tool wants to do, with the raw input folded away
       const ans = answers.get(e.requestId);
@@ -139,7 +143,7 @@ function Event({ e, answered, answers, showThinking, answer }: { e: ChatEvent; a
       const summary = e.name === 'Bash' ? String(input?.command ?? '') : ['Read', 'Edit', 'Write', 'MultiEdit'].includes(e.name ?? '') ? String(input?.file_path ?? '') : e.text || '';
       return <div className="ev ev-perm">{time}<div className="ev-body"><p className="perm-head"><b>{e.name}</b> <span className="muted">asks permission</span></p>{summary && <pre className="ev-pre perm-summary">{summary.slice(0, 600)}</pre>}<details className="perm-raw"><summary className="muted">input</summary><pre className="ev-pre">{JSON.stringify(e.input, null, 2)}</pre></details>{ans !== undefined ? <span className="muted">{ans === 'denied' ? 'denied' : 'allowed'}</span> : <span className="sec-actions"><button className="pri" onClick={() => answer(e.requestId!, true, e.input)}>Allow</button><button onClick={() => answer(e.requestId!, false)}>Deny</button></span>}</div></div>;
     }
-    case 'result': return <div className="ev ev-turn">{time}<span className="muted">turn done{e.durationMs ? ` · ${(e.durationMs / 1000).toFixed(1)} s` : ''}{e.costUsd !== undefined ? ` · $${e.costUsd.toFixed(3)} total` : ''}{e.isError ? ' · error' : ''}</span></div>;
+    case 'result': return <div className="ev ev-turn"><span className="tt-done">✻ {e.isError ? 'Stopped' : 'Done'}{e.durationMs || e.usage || e.costUsd !== undefined ? <> ({[e.durationMs ? (e.durationMs < 60000 ? `${(e.durationMs / 1000).toFixed(0)}s` : `${Math.floor(e.durationMs / 60000)}m ${Math.round((e.durationMs % 60000) / 1000)}s`) : '', e.usage?.out ? `↓ ${k(e.usage.out)} tokens` : '', e.costUsd !== undefined ? `$${e.costUsd.toFixed(3)}` : ''].filter(Boolean).join(' · ')})</> : null}</span></div>;
     case 'init': return <div className="ev ev-note">{time}<span className="muted">{e.text}{e.cwd ? ` · ${e.cwd}` : ''}</span></div>;
     case 'note': return e.requestId ? null : <div className="ev ev-note">{time}<span className="muted">{e.text}</span></div>;
     case 'log': return <div className="ev ev-note ev-log">{time}<span className="muted"><i>log</i> {e.text}</span></div>;
@@ -185,32 +189,34 @@ function foldActivity(groups: { parent?: string; events: ChatEvent[] }[]): { par
   }
   return out;
 }
-function Activity({ events, live, answered, answers, showThinking, answer }: { events: ChatEvent[]; live: boolean; answered: Set<string | undefined>; answers: Map<string | undefined, unknown | 'denied'>; showThinking: boolean; answer: (requestId: string, allow: boolean, input?: unknown) => void }) {
+function Activity({ events, results: all, running, live, answered, answers, showThinking, answer }: { events: ChatEvent[]; results?: Map<string | undefined, ChatEvent>; running?: boolean; live: boolean; answered: Set<string | undefined>; answers: Map<string | undefined, unknown | 'denied'>; showThinking: boolean; answer: (requestId: string, allow: boolean, input?: unknown) => void }) {
   const [open, setOpen] = useState(false);
   const calls = events.filter(e => e.kind === 'tool_use');
+  const results = all ?? new Map(events.filter(e => e.kind === 'tool_result').map(e => [e.toolUseId, e]));
   const errors = events.filter(e => e.kind === 'tool_result' && e.isError).length;
   const lastCall = calls[calls.length - 1];
-  const input = lastCall?.input as Record<string, unknown> | undefined;
-  const step = lastCall ? `${lastCall.name} ${String(input?.command ?? input?.file_path ?? input?.pattern ?? input?.description ?? input?.query ?? '').split('\n')[0]}` : events[events.length - 1].kind;
+  const step = lastCall ? (() => { const l = callLabel(lastCall); return `${l.verb}(${l.what.split('\n')[0]})`; })() : events[events.length - 1].kind;
   const span = (new Date(events[events.length - 1].t).getTime() - new Date(events[0].t).getTime()) / 1000;
-  if (calls.length <= 1 && !open && events.length <= 2 && !live) return <>{events.map((e, i) => <Event key={i} e={e} answered={answered} answers={answers} showThinking={showThinking} answer={answer} />)}</>;
+  // the calls as the terminal draws them: each with its result under it; thinking and stderr between them
+  const rows = events.map((e, i) => e.kind === 'tool_use' ? <Call key={i} call={e} result={results.get(e.toolUseId)} live={!!running} /> : e.kind === 'tool_result' ? null : <Event key={i} e={e} results={results} running={running} answered={answered} answers={answers} showThinking={showThinking} answer={answer} />);
+  if (calls.length <= 2 && !open && !live) return <div className="ev ev-calls">{rows}</div>;
   return (
     <div className={`ev ev-act ${open ? 'open' : ''}`}>
       <time dateTime={events[0].t} title={events[0].t}>{events[0].t.slice(11, 19)}</time>
       <div className="ev-act-body">
-        <button className="ev-act-head" onClick={() => setOpen(o => !o)} title={open ? 'Collapse' : 'Show every step'}>
+        <button className="ev-act-head" onClick={() => setOpen(o => !o)} title={open ? 'Fold the calls' : 'Show every call'}>
           <span className="ev-act-tri">{open ? '▾' : '▸'}</span>
-          <b>{calls.length} step{calls.length === 1 ? '' : 's'}</b>
-          {span >= 1 && <span className="muted">· {span < 90 ? `${Math.round(span)} s` : `${Math.round(span / 60)} min`}</span>}
+          <b>{foldSummary(calls)}</b>
+          {span >= 1 && <span className="muted">· {span < 90 ? `${Math.round(span)}s` : `${Math.round(span / 60)}m`}</span>}
           {errors > 0 && <span className="ev-act-err">· {errors} error{errors === 1 ? '' : 's'}</span>}
           {!open && <span className="ev-act-step">{live ? <i className="live-dot" /> : null}{step.slice(0, 140)}</span>}
         </button>
-        {open && <div className="ev-act-events">{events.map((e, i) => <Event key={i} e={e} answered={answered} answers={answers} showThinking={showThinking} answer={answer} />)}</div>}
+        {open && <div className="ev-act-events">{rows}</div>}
       </div>
     </div>
   );
 }
-function Subagent({ events, task, finished, answered, answers, showThinking, answer }: { events: ChatEvent[]; task?: ChatEvent; finished: boolean; answered: Set<string | undefined>; answers: Map<string | undefined, unknown | 'denied'>; showThinking: boolean; answer: (requestId: string, allow: boolean, input?: unknown) => void }) {
+function Subagent({ events, results, running, task, finished, answered, answers, showThinking, answer }: { events: ChatEvent[]; results?: Map<string | undefined, ChatEvent>; running?: boolean; task?: ChatEvent; finished: boolean; answered: Set<string | undefined>; answers: Map<string | undefined, unknown | 'denied'>; showThinking: boolean; answer: (requestId: string, allow: boolean, input?: unknown) => void }) {
   const [open, setOpen] = useState(true);
   const input = task?.input as { description?: string; subagent_type?: string; prompt?: string } | undefined;
   const tools = events.filter(e => e.kind === 'tool_use').length;
@@ -220,7 +226,7 @@ function Subagent({ events, task, finished, answered, answers, showThinking, ans
       <time dateTime={events[0].t} title={events[0].t}>{events[0].t.slice(11, 19)}</time>
       <div className="ev-sub-body">
         <button className="ev-sub-head" onClick={() => setOpen(o => !o)}>{open ? '▾' : '▸'} <b>subagent</b> {input?.subagent_type ? <span className="muted">{input.subagent_type}</span> : null} <span>{input?.description ?? (input?.prompt ?? '').slice(0, 80)}</span> <span className="muted">· {events.length} events, {tools} tool calls{done ? '' : ' · working'}</span></button>
-        {open && <div className="ev-sub-events">{events.map((e, i) => <Event key={i} e={e} answered={answered} answers={answers} showThinking={showThinking} answer={answer} />)}</div>}
+        {open && <div className="ev-sub-events">{events.map((e, i) => e.kind === 'tool_use' ? <Call key={i} call={e} result={results?.get(e.toolUseId)} live={!!running} /> : e.kind === 'tool_result' ? null : <Event key={i} e={e} results={results} running={running} answered={answered} answers={answers} showThinking={showThinking} answer={answer} />)}</div>}
       </div>
     </div>
   );

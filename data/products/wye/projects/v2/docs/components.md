@@ -640,6 +640,27 @@ The editor's blocks and the components the pages are made of, by area.
     builds.
   status: approved
   part-of: module:components
+- id: component:agent-model-picker
+  file: packages/web/src/components/AgentModelPicker.tsx
+  side: client
+  purpose: >
+    The agent and the model of what is about to start, as one choice (decision&#58;wf2.pr-agent-and-model): a pill
+    that says what will run — "Opus · Claude Code" — and a menu with every agent as a group and its models as rows,
+    the one in use ticked. Default is the model of Settings › Agents, named when one is set; "Other model…" takes
+    any id the CLI accepts. Arrow keys move, Enter picks, Escape or a click outside closes the menu and leaves the
+    command box open. Used by component:command-box for a request and for a new conversation.
+  status: proposed
+  part-of: module:components
+- id: component:settings-remote
+  file: packages/web/src/components/SettingsRemote.tsx
+  side: client
+  purpose: >
+    App settings › Remote agents (decision&#58;wf2.remote-tunnel): a host as you would give it to ssh, Connect, and
+    one row per server with where its tunnel stands — connecting, connected, or ssh's reason in words — and
+    Disconnect, Try again, Remove. A connected row shows what to run on the server. Follows op:api.system.remote
+    every 1.5 s while a tunnel is being opened, every 6 s otherwise.
+  status: proposed
+  part-of: module:components
 - id: component:comments
   file: packages/web/src/components/Comments.tsx
   side: client
@@ -1068,6 +1089,61 @@ The editor's blocks and the components the pages are made of, by area.
     a browser's own picker never gives a path. FolderField is the text field with Choose… beside it — typing still
     works; the sheet walks folders (double-click or Enter opens one), can make a new one, and hands back the folder
     it is in.
+  status: proposed
+  part-of: module:components
+- id: component:settings-name
+  file: packages/web/src/components/SettingsName.tsx
+  side: client
+  purpose: >
+    A product's name: its title, icon and description (_product.md). Its address — /<slug> — stays as it is.
+  status: proposed
+  part-of: module:components
+- id: component:file-tree
+  file: packages/web/src/components/FileTree.tsx
+  side: client
+  purpose: >
+    The Files section of the rail (req:wf2.workspace-files, decision:wf2.files-are-code-tabs): the open folder as a
+    tree, a folder listed when it is opened (op&#58;api.workspace-files). A file opens in a tab with the code view;
+    right-click offers Init Wye here on a folder that has no vault of its own (for a file, its folder), Reveal in
+    Documents on one that has, and Copy path. What git ignores and build folders are left out until "show ignored"
+    is on.
+  status: proposed
+  part-of: module:components
+- id: component:file-view
+  file: packages/web/src/components/FileView.tsx
+  side: client
+  purpose: >
+    A file of the open folder in the content column (req:wf2.workspace-files): the code view — Monaco, read only,
+    the language by extension — as the one thing on the page. A binary file or one too large says so instead.
+  status: proposed
+  part-of: module:components
+- id: component:vault-roots
+  file: packages/web/src/components/VaultRoots.tsx
+  side: client
+  purpose: >
+    Documents with one root per vault (req:wf2.workspace-open, rule&#58;vault-roots): the vaults the workspace
+    reaches, nested as their folders nest. The vault on screen is open with its documents as the tree the rail
+    always had (`children`); another vault opens in place to its documents — read from its own graph when asked —
+    and a click on a document goes there. A vault's row itself opens that vault.
+  status: proposed
+  part-of: module:components
+- id: component:workspace-empty
+  file: packages/web/src/components/WorkspaceEmpty.tsx
+  side: client
+  purpose: >
+    A folder that is open and holds no vault yet (req:wf2.workspace-open): the page says so and offers Init Wye here
+    — on the folder itself, or on any folder below through the Files tree's menu; the files can be read all the
+    same.
+  status: proposed
+  part-of: module:components
+- id: component:workspace-menu
+  file: packages/web/src/components/WorkspaceMenu.tsx
+  side: client
+  purpose: >
+    The workspace at the top of the rail (decision:wf2.workspace-is-the-top): the folder that is open — or Home, the
+    app's own products — and the way to another: Open folder…, the recent ones, Home. Rescan walks the open folder
+    once and shows the links that differ from what it found; they are written only when the person says so
+    (decision:wf2.vault-links).
   status: proposed
   part-of: module:components
 ```

@@ -8,7 +8,7 @@ export default async function NewProductPage({ searchParams }: { searchParams: P
   const { way } = await searchParams;
   return (
     <div className="page" style={{ maxWidth: 600, margin: '60px auto' }}>
-      <h1 className="prop-in h1" style={{ margin: '0 0 12px' }}>Add a product</h1>
+      <h1 className="prop-in h1" style={{ margin: '0 0 12px' }}>Add a workspace</h1>
       <AddProduct start={WAYS.includes(way as Way) ? way as Way : 'new'} />
     </div>
   );

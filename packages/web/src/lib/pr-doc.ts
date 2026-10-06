@@ -43,6 +43,12 @@ export type PrDocVars = { num: number; slug: string; title: string; date: string
 // The request task (req:exec.request-is-a-task, decision:exec.task-is-the-unit): `task:<plan-slug>` on the plan
 // document — the request itself as a work item, on the Work view from the first second.
 export const requestTaskId = (slug: string) => `task:${slug}`;
+// A PR page's project and slug from its file: PR pages are the app's (projects/<p>/.wye/pr-N.md), and before the system
+// pages moved they were in docs/ — both are a PR's page. Everything that finds PRs by their file reads it here: the
+// dispatcher and the sessions list matched docs/ alone and found no PR at all after the move.
+export function prFileRef(file: string): { project: string; slug: string } | null {
+  const m = file.match(/projects\/([^/]+)\/(?:docs|\.wye)\/([^/]+)\.md$/); return m ? { project: m[1], slug: m[2] } : null;
+}
 
 // Fill the template. A request is quoted line by line so its own headings and blocks stay prose; `from` is the
 // line that names where the request came from (document, node, refs) as tags — empty when nothing is known.
@@ -148,7 +154,7 @@ export function prsBySession(product: string, g: PrGraph): (sessionId: string) =
   const by = new Map<string, SessionPr[]>();
   for (const n of prs) {
     const sessions = (prop(n.body, 'session') ?? '').split(/\s+/).filter(Boolean); if (!sessions.length) continue;
-    const m = n.file.match(/projects\/([^/]+)\/docs\/([^/]+)\.md$/); if (!m) continue;
+    const at = prFileRef(n.file); if (!at) continue; const m = ['', at.project, at.slug];
     const tasks = tasksOf.get(n.id) ?? [];
     const num = prNumberOf(n.id);
     const pr: SessionPr = { ref: `${product}/${m[1]}/${m[2]}`, node: n.id, title: num ? prLabel(num, n.title) : n.title, status: n.status, started: prop(n.body, 'started'), finished: prop(n.body, 'finished'), tasks: { done: tasks.filter(t => t.status === 'done').length, total: tasks.length } };
@@ -212,6 +218,18 @@ export function definitionState(ids: string[], lookup: (id: string) => { status:
   const contradicted = ids.filter(id => { const n = lookup(id); return n && ok(id, n.status) && n.openContradictions.length; });
   const agreed = items.filter(i => i.agreed).length; const missing = items.filter(i => i.missing).length;
   return { total: items.length, agreed, open: items.length - agreed - missing, missing, contradicted, defined: items.length > 0 && agreed === items.length && !contradicted.length, items };
+}
+
+// Approving a request approves what is in it (decision:wf2.approve-approves-the-definition): the status a Definition
+// block takes when the person approves the PR, null when it stays as it is — already agreed, or a question, which
+// is answered, not approved. `statuses` is the block's own type's list, when its type declares one.
+export function approvalStatus(id: string, status: string, statuses?: string[]): string | null {
+  const kind = id.slice(0, id.indexOf(':'));
+  if (kind === 'question' || kind === 'contradiction') return null;
+  if (kind === 'task') return ['proposed', 'draft'].includes(status) ? (statuses?.length && !statuses.includes('open') ? statuses.find(s => !['proposed', 'draft', 'rejected', 'done'].includes(s)) ?? null : 'open') : null;
+  if (AGREED.has(status)) return null;
+  if (!statuses?.length || statuses.includes('approved')) return 'approved';
+  return statuses.find(s => AGREED.has(s) && !['rejected', 'dismissed', 'superseded', 'retired'].includes(s)) ?? null;
 }
 
 // The Tasks section's task ids: `- [ ] task:x …` / `- [x] task:x …` lines, top level only.

@@ -17,7 +17,7 @@ file directly, never approve anything. You read, explain, ask, and propose.
   patterns `FROM GRAPH_TABLE (wye MATCH (a:nodes)-[e:edges]->(b:nodes) WHERE … COLUMNS (…))`. Read-only.
 - `wye impact <id> --after "<new text>"` — what an edit of an existing node would reach and what each reached node
   needs, before you propose changing it.
-- `wye propose <product/project/doc> --pr <product/project/pr-x>` with a yaml card on stdin — write ONE proposed
+- `wye propose <product/project/doc> [--pr <product/project/pr-x>]` with a yaml card on stdin — write ONE proposed
   block (a `req:`, `decision:`, `constraint:`, `question:`, `task:` card, `status: proposed` / `open`) into the
   document where that kind lives, embedded on the request's Definition. Only when the product has no document for
   that kind (`wye propose --pr …` alone) is the block defined on the request itself under Definition
@@ -87,7 +87,10 @@ exactly what will be built; write it before you propose anything and rewrite it 
     What this request does not do — every alternative a decision ruled out, in one line each.
 
     ### Still open
-    The questions still waiting on the person, as tags — or "nothing: ready to approve".
+    The questions still waiting on the person, one list line each: the question in its own words, then its id
+    in brackets — `- Which vault does a change spanning two folders go to? (the question's id)` — or "nothing: ready
+    to approve". Never a line that opens with an id, here or anywhere in the Summary: such a line defines that
+    node on this page instead of naming it.
 
 The request is not ready while the Summary has no "What gets built". The Analysis (skill:analyse-request) is the
 engineer's view below it; keep both true to the Definition at every moment.

@@ -139,7 +139,14 @@ decision:payments.provider Use Stripe for online card processing.
 
 These are still readable Markdown. Because they have ids, Wye can connect them. You can also start from code:
 `wye init` reads a repository into a first, shallow definition, and `wye deepen` sends an agent to describe each module
-in a person's words.
+in a person's words. In a monorepo, `wye init` run inside a service's folder gives that folder its own vault — `.wye/`
+committed with the code, a note in `AGENTS.md` / `CLAUDE.md` that sends agents to it, and links to the vault above and
+the ones below. Open the monorepo (or any folder of it) as the **workspace** — `wye app <folder>`, or Open folder… at
+the top of the rail — and every vault it reaches is a root in Documents; Goals, Work, the Inbox, pins and search read
+them all, each item named by its vault. **Files** lists the folder's files: a click opens one in a tab, read only, in
+the VS Code editor, and right-click on a folder offers Init Wye here. Inside a folder that has a vault, `wye` needs no
+`--product`: it finds the nearest `.wye/` above where it runs, so what an agent learns about a service is proposed into
+that service's vault — and a vault's packet carries the approved constraints of the vaults above it.
 
 ### 2. Request
 
@@ -477,23 +484,26 @@ own agent, it runs one of those.
 npm install -g @emlab/wye
 wye setup                                 # the home (~/.wye) and the Claude Code skills (~/.claude/skills)
 wye init --product shop --repo ~/code/shop   # a first definition read from your code
+cd ~/code/mono/services/payments && wye init # or: this folder's own knowledge in .wye/, beside its code (a vault)
 wye app                                   # the app in its own window; --browser for http://localhost:3456
+wye app ~/code/mono                       # …with that folder open as the workspace: its vaults, its files
 ```
 
 Your products live in `~/.wye/data/products/` (set `WYE_HOME` to put them elsewhere), and an update never touches
 them. A product can also keep its documents next to its code: `root: <path>` in its `_product.md`.
 
 **The first run.** With no products yet, `wye app` opens a Welcome: what Wye is in three steps, whether Claude Code or
-Codex was found, and Add a product, which starts on **From your code** (`wye init` through the app: a title and a
-folder). Every product then has a **Quick start** (`/<product>/start`, in the rail with its count): nine steps that tick
+Codex was found, and Add a product, which starts on **From your code** (`wye init` through the app: a folder, and
+its knowledge is kept in that folder's `.wye/` unless you ask for Wye's own data). Every product then has a **Quick start** (`/<product>/start`, in the rail with its count): nine steps that tick
 themselves as the product fills in, from a first document to a first build, each with the button that does it. Empty
 pages say what they are for, and **Help** (`?` in the rail, ⌘/) lists the shortcuts and where everything is.
 
 ![The Quick start of a new product: four steps done, the next one highlighted](docs/screenshots/quick-start.png)
 
-**Bring products in and out.** Add a product (the product menu, or `/new`) also offers **New**, **Open a folder**
-(a product folder already on disk, used where it is, such as a teammate's clone or a repo that keeps its product in
-`wye/`) and **Import a file** (a `.wye.tgz` made with Settings › Export). From the command line: `wye export <product>`,
+**Bring products in and out.** Add a product (the workspace menu at the top of the rail, or `/new`) also offers
+**New**, **Open a folder** (any folder, opened as the workspace: its vaults become the Documents roots; a folder that
+is itself a product kept the old way — `projects/` in it or in its `wye/` — opens as that product, where it is) and
+**Import a file** (a `.wye.tgz` made with Settings › Export). From the command line: `wye export <product>`,
 `wye import <product>.wye.tgz`, `wye open <folder>`. An export carries the documents, the app's pages, the inbox and
 agent instructions; agent sessions and change history stay on the machine that made them.
 

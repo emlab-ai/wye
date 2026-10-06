@@ -21,9 +21,19 @@ describe('pr approval', () => {
   it('approves with who and when, even when not ready; reopen and cancel', async () => {
     const scope = (await loadScope(product))!; const pr = (await readPrDoc(product, `${product}/p/pr-a`))!;
     const r = prReadiness(scope, pr.md); expect(r.ok).toBe(false); expect(r.unagreed).toEqual(['req:t.a']); expect(r.tasks).toBe(true); expect(r.definition).toBe(true);
-    await approvePr(dir, product, `${product}/p/pr-a`, 'alex');
+    const done = await approvePr(dir, product, `${product}/p/pr-a`, 'alex');
     const md = await readFile(path.join(dir, 'projects/p/.wye/pr-a.md'), 'utf8');
     expect(md).toMatch(/^status: approved$/m); expect(md).toMatch(/^approved-by: alex$/m); expect(md).toMatch(/^approved-at: \d{4}-/m);
+    // approving the request approves what is in it (decision:wf2.approve-approves-the-definition): the proposed block
+    // of its Definition is approved in its own document, and the Definition reads as agreed
+    expect(done.approved).toEqual(['req:t.a']);
+    const after = (await loadScope(product))!;
+    expect(after.idx.byId.get('req:t.a')?.status).toBe('approved'); expect(prReadiness(after, md).unagreed).toEqual([]);
+    // approving again keeps who approved it and when, and has nothing left to bring along
+    const at = md.match(/^approved-at: (.*)$/m)![1];
+    expect((await approvePr(dir, product, `${product}/p/pr-a`, 'someone else')).approved).toEqual([]);
+    const again = await readFile(path.join(dir, 'projects/p/.wye/pr-a.md'), 'utf8');
+    expect(again).toMatch(/^approved-by: alex$/m); expect(again.match(/^approved-at: (.*)$/m)![1]).toBe(at);
     await reopenPr(dir, product, `${product}/p/pr-a`);
     const back = await readFile(path.join(dir, 'projects/p/.wye/pr-a.md'), 'utf8');
     expect(back).toMatch(/^status: draft$/m); expect(back).not.toMatch(/approved-by/); expect(back).toMatch(/task:pr-a A #todo/);

@@ -74,6 +74,7 @@ export function takeClaim(nodeId: string, file: string): Claim | null {
 
 // The records a rebuild diff produces (pure): one per changed recorded node, `before` from the graph the watcher
 // last saw, `after` from the new one. `who` resolves attribution per node.
+const NOT_YET = ['proposed', 'draft', 'open', ''];
 export function recordsFromDiff(before: GraphData, after: GraphData, changes: BlockChange[], who: (id: string, file: string) => { by: string; session?: string; silent?: boolean }, at: string, product: string): Omit<ChangeRecord, 'id' | 'updatedAt'>[] {
   const old = new Map(before.nodes.map(n => [n.id, n]));
   const cur = new Map(after.nodes.map(n => [n.id, n]));
@@ -85,6 +86,9 @@ export function recordsFromDiff(before: GraphData, after: GraphData, changes: Bl
     const changed = changedKeys(a, b); if (!changed.length) continue;
     const w = who(c.id, n.file); if (w.silent) continue;
     const tracking = isTrackingOnly(changed);
+    // a block nobody approved yet is still being written: an edit to it — whoever makes it — refines the proposal the
+    // Inbox already shows, and is no change to review on its own
+    if (!tracking && NOT_YET.includes(a.status) && NOT_YET.includes(b.status)) continue;
     const own = !tracking && !w.session && !w.by.startsWith('agent:') && ['proposed', 'draft', 'open', ''].includes(b.status);
     out.push({ product, node: c.id, kind: n.kind, doc: docIdOf(after, n.file) ?? '', file: n.file, line: n.line, before: a, after: b, changed, by: w.by, session: w.session, at, state: tracking || own ? 'accepted' : 'pending', ...(tracking ? { tracking: true } : {}), ...(own ? { own: true } : {}) });
   }

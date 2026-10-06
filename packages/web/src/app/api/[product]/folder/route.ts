@@ -20,6 +20,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ product
 export async function PUT(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  // a vault is its folder's own .wye/ (lib/vault.js): moving it away would leave the folder without its knowledge and
+  // its links pointing at nothing
+  if (p.vault) return NextResponse.json({ error: 'invalid', message: `this product is the vault of ${p.vault.folder} — it lives in that folder's .wye/ and moves with the folder` }, { status: 422 });
   const body = (await req.json().catch(() => ({}))) as { root?: string };
   const root = (body.root ?? '').trim();
   const target = root ? resolveRoot(root) : registryDir(product);

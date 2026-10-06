@@ -465,6 +465,14 @@ Every page of the app by area: its route, what it shows, its actions. The table 
     a document — nothing is written to the product, and it cannot collide with a person's page.
   status: proposed
   part-of: module:pages
+- id: page:web/files-path
+  route: /<product>/files/<path>
+  component: packages/web/src/app/[product]/files/[...path]/page.tsx
+  purpose: >
+    A file of the open folder as a tab (req:wf2.workspace-files, decision:wf2.files-are-code-tabs): the address
+    names the file under the workspace's folder; the page is the code view and nothing else.
+  status: proposed
+  part-of: module:pages
 ```
 
 <!-- /list:page -->

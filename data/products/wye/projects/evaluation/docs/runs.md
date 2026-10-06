@@ -4,9 +4,8 @@ type: module
 title: Runs
 status: proposed
 owner: alex
-last-verified: 2026-09-25
+last-verified: 2026-10-05
 order: 30
-part-of: module:evaluation
 ---
 
 # Runs
@@ -18,18 +17,18 @@ Every run the harness made, as cards of the Evaluation project's types (module:e
 One card per results file: the suite, the graph and git shas, the model, the judge, the prompt hashes and the gate.
 
 ```yaml
-- id: eval-run:2026-09-25-own
-  title: "own — 2026-09-25 (replayed)"
+- id: eval-run:2026-10-05-own
+  title: "own — 2026-10-05 (replayed)"
   suite: own
-  date: 2026-09-25
-  graph-sha: "bb80106306b3"
-  git: "780832a0b8c2"
+  date: 2026-10-05
+  graph-sha: "57724d59c605"
+  git: "206f6072d680"
   model: "claude-haiku-4-5-20251001"
   judge: "claude-haiku-4-5-20251001 @ 6d31662f"
   prompts: "verdict 6d31662f, impact 291a2d1d, consolidation 1d527194"
   gate: passed
-  truth: "truth-wye-bb80106306b3.json: requirements 76, supersessions 5, commits 25, sessions 27, consolidation 33"
-  truth: "errors: packet: recording missing in eval/recorded/semantic-wye.json for context \"A request from the command palette can carry images when: a \" — run once with --live (WATERFALL_LIVE=1); currency: recording missing in eval/recorded/semantic-wye.json for context \"The session page is derived from the session and the graph, \" — run once with --live (WATERFALL_LIVE=1); impact: recording missing in eval/recorded/semantic-wye.json for context \"A timeline page is a query, not a list of what is on it choi\" — run once with --live (WATERFALL_LIVE=1)"
+  truth: "truth-wye-57724d59c605.json: requirements 79, supersessions 6, commits 47, sessions 31, consolidation 35"
+  truth: "errors: packet: recording missing in eval/recorded/semantic-wye.json for context \"A request from the command palette can carry images when: a \" — run once with --live (WATERFALL_LIVE=1); currency: recording missing in eval/recorded/semantic-wye.json for context \"The session page is derived from the session and the graph, \" — run once with --live (WATERFALL_LIVE=1); impact: recording missing in eval/recorded/semantic-wye.json for context \"What one build changed, for the pages that are open (decisio\" — run once with --live (WATERFALL_LIVE=1)"
 ```
 
 ## Scores
@@ -37,18 +36,18 @@ One card per results file: the suite, the graph and git shas, the model, the jud
 One card per number, with the previous run, the delta in points, the tolerance it is gated against and the judge's κ when a model scored it.
 
 ```yaml
-- id: eval-score:2026-09-25-own.contradictions-recall
+- id: eval-score:2026-10-05-own.contradictions-recall
   title: "contradictions.recall 14.3%"
-  run: eval-run:2026-09-25-own
+  run: eval-run:2026-10-05-own
   name: "contradictions.recall"
   value: "14.3%"
   n: 7
   tolerance: 5
   kappa: "n/a"
   what: "drift pairs judged contradicts; by conflict: static 1; 5 unjudged"
-- id: eval-score:2026-09-25-own.contradictions-precision
+- id: eval-score:2026-10-05-own.contradictions-precision
   title: "contradictions.precision n/a"
-  run: eval-run:2026-09-25-own
+  run: eval-run:2026-10-05-own
   name: "contradictions.precision"
   value: "n/a"
   n: 0

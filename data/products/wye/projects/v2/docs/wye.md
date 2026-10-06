@@ -396,3 +396,12 @@ a view. Ids never change.
     in server config; the internal clerk and the agent that posted the decision are refused.
   applies-to: [op:deltas.apply, op:deltas.reject]
 ```
+
+```yaml
+- id: fact:wye.alex-created-wye
+  title: Alex created Wye
+  statement: Alex created Wye.
+  about: [product:wye]
+  source: pasted by alex on 2026-10-06
+  status: proposed
+```

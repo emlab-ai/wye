@@ -10,17 +10,17 @@ export type TreeItem = { slug: string; node: string; title: string; icon: string
 type Zone = 'before' | 'into' | 'after';
 type Drag = { slug: string; node: string }; // the dragged document: its slug and its node id (rule:page-node-line)
 type Over = { slug: string; zone: Zone };
-type Menu = { d: TreeItem; x: number; y: number; above?: number }; // the row's context menu (rule:tree-menu), anchored where it was asked for
+type Menu = { d: TreeItem; x: number; y: number; above?: number; rename?: string }; // the row's context menu (rule:tree-menu), anchored where it was asked for; `rename`: the new title being typed in it
 // What every row shares with the tree. Rows are a module-level component (Row) on purpose: a component defined
 // inside DocTree's render would take a new identity on every state change, so setDrag on dragstart would remount
 // every row — and Chrome ends a native drag the moment its source node leaves the document (bug:dnd-remount).
-type Tree = { product: string; path: string; closed: Record<string, boolean>; toggle: (slug: string) => void; drag: Drag | null; over: Over | null;
+type Tree = { product: string; path: string; closed: Record<string, boolean>; hit: (d: TreeItem) => boolean; filtering: boolean; toggle: (slug: string) => void; drag: Drag | null; over: Over | null;
   setDrag: (d: Drag | null) => void; setOver: (o: Over | null) => void; move: (id: string, parent: string | null, rel?: { before?: string; after?: string }) => void; onAddChild: (parent: TreeItem) => void; openMenu: (m: Menu) => void };
 
 // Docmost-style document tree: chevron for documents with children, a dot for leaves, an emoji icon, the title.
 // Rows can be dragged: onto a row nests the document under it, between rows reorders; a hover "+" adds a child;
 // right-click (or the hover "⋯") opens a menu: duplicate the document, delete it with everything under it.
-export function DocTree({ product, roots, onAddChild, pinned = [] }: { product: string; roots: TreeItem[]; onAddChild: (parent: TreeItem) => void; pinned?: string[] }) {
+export function DocTree({ product, roots, onAddChild, pinned = [], filter = '' }: { product: string; roots: TreeItem[]; onAddChild: (parent: TreeItem) => void; pinned?: string[]; /** the rail's filter field: a document shows when its title holds the text, or one under it does; folders stay open meanwhile */ filter?: string }) {
   const path = usePathname(); const router = useRouter();
   const [closed, setClosed] = useState<Record<string, boolean>>({});
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -78,6 +78,13 @@ export function DocTree({ product, roots, onAddChild, pinned = [] }: { product: 
     const j = await r.json(); if (!r.ok) { setMsg(j.message ?? j.error); return; }
     router.push(j.href); router.refresh();
   };
+  // rename: the page's title and the heading its text opens with (op:doc rename); the address — the file — stays
+  const rename = async (d: TreeItem, title: string) => {
+    setMsg(null); setMenu(null); if (!title.trim()) return;
+    const r = await fetch(`/api/${product}/${d.project}/doc/${d.slug}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'rename', title }) });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); setMsg(j.message ?? j.error ?? 'could not rename'); return; }
+    router.refresh();
+  };
   const remove = async (d: TreeItem) => {
     setMenu(null); const below = descendants(d); const n = below.length;
     if (!window.confirm(n ? `Delete "${d.title}" and its ${n} sub-document${n === 1 ? '' : 's'}? This cannot be undone here.` : `Delete "${d.title}"? This cannot be undone here.`)) return;
@@ -94,10 +101,17 @@ export function DocTree({ product, roots, onAddChild, pinned = [] }: { product: 
     window.addEventListener('wf:doc-menu', open); return () => window.removeEventListener('wf:doc-menu', open);
   }, [roots]);
   useLayoutEffect(() => { if (menu) fitMenu(menuEl.current, menu.x, menu.y, menu.above); }, [menu]);   // near the window's bottom it opens upward
-  const tree: Tree = { product, path, closed, toggle, drag, over, setDrag, setOver, move, onAddChild, openMenu: setMenu };
+  const q = filter.trim().toLowerCase();
+  const hit = (d: TreeItem): boolean => !q || d.title.toLowerCase().includes(q) || d.slug.includes(q) || d.children.some(hit);
+  const tree: Tree = { product, path, closed, hit, filtering: !!q, toggle, drag, over, setDrag, setOver, move, onAddChild, openMenu: setMenu };
   return (
     <div className="pg-wrap" ref={box}>
-      {menu && <div ref={menuEl} className="pg-menu" role="menu" style={{ left: menu.x, top: menu.y }}>
+      {menu && menu.rename !== undefined && <div ref={menuEl} className="pg-menu pg-rename" style={{ left: menu.x, top: menu.y }}>
+        <input autoFocus aria-label="Title" value={menu.rename} placeholder="Title, then Enter" onFocus={e => e.target.select()} onChange={e => setMenu({ ...menu, rename: e.target.value })}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void rename(menu.d, menu.rename ?? ''); } }} />
+      </div>}
+      {menu && menu.rename === undefined && <div ref={menuEl} className="pg-menu" role="menu" style={{ left: menu.x, top: menu.y }}>
+        <button role="menuitem" onClick={() => setMenu({ ...menu, rename: menu.d.title.replace(/^#\d+ /, '') })}>Rename</button>
         {pinned.includes(`${menu.d.project}/${menu.d.slug}`)
           ? <button role="menuitem" onClick={() => pin(menu.d, false)}>Unpin from top</button>
           : <button role="menuitem" onClick={() => pin(menu.d, true)}>Pin to top</button>}
@@ -107,7 +121,8 @@ export function DocTree({ product, roots, onAddChild, pinned = [] }: { product: 
         <button role="menuitem" onClick={() => duplicate(menu.d)}>Duplicate</button>
         <button role="menuitem" className="danger" onClick={() => remove(menu.d)}>Delete{menu.d.children.length ? ` (with ${descendants(menu.d).length} below)` : ''}</button>
       </div>}
-      <ul className="pg-tree">{roots.map(r => <Row key={`${r.project}/${r.slug}`} d={r} depth={0} parent={null} tree={tree} />)}</ul>
+      <ul className="pg-tree">{roots.filter(hit).map(r => <Row key={`${r.project}/${r.slug}`} d={r} depth={0} parent={null} tree={tree} />)}</ul>
+      {!!q && !roots.some(hit) && <p className="ft-note" style={{ padding: '2px 16px' }}>no document matches</p>}
       {drag && <div className={`pg-rootdrop ${rootOver ? 'over' : ''}`} onDragOver={e => { e.preventDefault(); setRootOver(true); }} onDragLeave={() => setRootOver(false)} onDrop={e => { e.preventDefault(); setRootOver(false); const src = e.dataTransfer.getData('text/plain') || drag.node; setDrag(null); move(src, null); }}>drop here for top level</div>}
       {msg && <p className="notice pg-msg">{msg}</p>}
     </div>
@@ -117,9 +132,9 @@ export function DocTree({ product, roots, onAddChild, pinned = [] }: { product: 
 const zoneOf = (e: DragEvent<HTMLDivElement>): Zone => { const r = e.currentTarget.getBoundingClientRect(); const y = (e.clientY - r.top) / r.height; return y < 0.25 ? 'before' : y > 0.75 ? 'after' : 'into'; };
 
 function Row({ d, depth, parent, tree }: { d: TreeItem; depth: number; parent: TreeItem | null; tree: Tree }) {
-  const { product, path, closed, toggle, drag, over, setDrag, setOver, move, onAddChild, openMenu } = tree;
+  const { product, path, closed, hit, filtering, toggle, drag, over, setDrag, setOver, move, onAddChild, openMenu } = tree;
   const href = `/${product}/${d.project}/d/${d.slug}`; const on = path === href;
-  const open = !closed[d.slug];
+  const open = filtering || !closed[d.slug];
   const id = d.node;
   const dropClass = over?.slug === d.slug ? `drop-${over.zone}` : '';
   const onMenu = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); const b = (e.currentTarget as HTMLElement).getBoundingClientRect(); openMenu(e.type === 'contextmenu' ? { d, x: e.clientX, y: e.clientY } : { d, x: b.left, y: b.bottom + 2, above: b.top }); };
@@ -140,7 +155,7 @@ function Row({ d, depth, parent, tree }: { d: TreeItem; depth: number; parent: T
         <button className="pg-more" title="More…" aria-label="More" onClick={onMenu}><IconMore /></button>
         <button className="pg-add" title="Add a sub-document" aria-label="Add a sub-document" onClick={() => onAddChild(d)}><IconPlus size={16} /></button>
       </div>
-      {d.children.length > 0 && open && <ul>{d.children.map(c => <Row key={`${c.project}/${c.slug}`} d={c} depth={depth + 1} parent={d} tree={tree} />)}</ul>}
+      {d.children.length > 0 && open && <ul>{d.children.filter(hit).map(c => <Row key={`${c.project}/${c.slug}`} d={c} depth={depth + 1} parent={d} tree={tree} />)}</ul>}
     </li>
   );
 }

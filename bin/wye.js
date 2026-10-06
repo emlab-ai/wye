@@ -9,7 +9,8 @@
 //   wye graph <get|neighbors|search|constraints|reqs|stats|site|impact|packet|verdicts> …   every graph command by name
 //
 //   wye setup                             the home (~/.wye when installed from npm: your products in data/) and the Claude Code skills
-//   wye app [--port 3456] [--browser] [--no-open]   the app in its own window, over the home (--browser: in your browser)
+//   wye app [folder] [--port 3456] [--browser] [--no-open]   the app in its own window, over the home (--browser: in your browser);
+//        with a folder, that folder is opened as the workspace: its vaults are the Documents roots, its files are under Files
 //   wye export <product> [--out file]     the product as one file, <product>.wye.tgz (documents, pages, inbox; not sessions)
 //   wye import <file.wye.tgz> [--slug s]  a new product from an export (markdown into a product: wye import <file|dir> --product p, below)
 //   wye open <folder> [--slug s]          a product folder already on disk (projects/, or a repo's wye/) used where it is
@@ -49,9 +50,18 @@
 //   wye session handoff <id> --product p --agent a ["note"]  continue it under another agent
 //   wye session open <id> --product p <product/project/doc[#node] | url>   navigate the person's browser to a page
 //   wye session take <id> --product p       mark it running under you (interactive pick-up, e.g. /wye-restore)
+//   wye session join ["what you are working on"] --product p [--agent a] [--name n] [--ref id ...]   an agent that is already running
+//        (on a server, over the tunnel — docs/remote-agent.md) joins as a session of its own; prints `export WYE_SESSION=<id>`:
+//        eval "$(wye session join "…")" before starting the agent, and everything it writes is attributed to it
 //   wye propose [<product/project/doc>] --pr <product/project/pr-x> --product p (a yaml card with `- id: kind:slug` on stdin or --file f)
 //        one proposed block into the document where its kind lives, embedded on the request's Definition; without a
 //        document it is defined on the request under Definition (decision:exec.definition-home-fallback)
+//   wye init [folder] [--slug s] [--title "…"]   a vault for the current folder (lib/vault.js): its own knowledge in <folder>/.wye/
+//        beside the code — the shallow definition, _agent.md, a note to agents in AGENTS.md / CLAUDE.md — linked to the vault
+//        above and the ones below (`parent:` / `vaults:` in _product.md), and opened in the app; an existing one is kept
+//   wye init [folder] [--slug s] [--title "…"]   a vault for the folder (the current one): its own knowledge in .wye/ beside the
+//        code — a first definition read from it, _agent.md, a note in AGENTS.md / CLAUDE.md — linked to the vault above
+//        and the ones below. Inside a folder that has a vault, every command below finds its product from there.
 //   wye init --product <slug> --repo <dir> [--title "…"] [--feature "<name>" --path <dir>]   a product's (or feature's) definition
 //        from its code: the layered tree, every module / page / component / library / operation / test, shallow, and a
 //        #ready describe task per module (lib/init.js) — no model, nothing overwritten
@@ -119,7 +129,25 @@ for (let i = 0; i < argv.length; i++) {
 }
 const list = v => v === undefined ? [] : [].concat(v);
 const die = (m, code = 1) => { console.error(m); process.exit(code); };
-const product = () => flags.product || env('PRODUCT') || die('--product <slug> (or WYE_PRODUCT) is required');
+// The product a command is about: --product, WYE_PRODUCT, else the vault of the folder this runs in — the nearest
+// .wye/ at or above it (decision:wf2.write-back-nearest-vault), under the name the app knows it by (hereProduct, set
+// before the command runs). So inside a repository no flag is needed, and what an agent writes lands in that vault.
+let hereProduct = '';
+// In a session Wye started (WYE_SESSION), WYE_PRODUCT names the vault the session began in; when the agent runs wye
+// from a folder of another vault, what it writes concerns that vault's files and goes there
+// (decision:wf2.spanning-session-each-vault-its-share) — the session's own commands stay with its product.
+let hereFirst = false;
+const product = () => flags.product || (hereFirst && hereProduct) || env('PRODUCT') || hereProduct || die('--product <slug> (or WYE_PRODUCT) is required — or run wye inside a folder that has a vault (wye init)');
+async function findHereProduct() {
+  hereFirst = !!env('SESSION') && !!env('PRODUCT') && pos[0] !== 'session';
+  if (flags.product || (env('PRODUCT') && !hereFirst)) return;
+  let folder = null; try { folder = require('../lib/vault.js').vaultOf(process.cwd()); } catch { return; }
+  if (!folder) return;
+  const own = require('../lib/vault.js').readMeta(folder).slug || path.basename(folder);
+  // the app opens the vault when it does not know it yet, and says which name it has there (a second vault with one
+  // slug on this machine is shown as <slug>-2); with no app running, the vault's own name
+  try { const r = await fetch(`${WF_URL}/api/products/open`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ folder: path.join(folder, '.wye') }), signal: AbortSignal.timeout(4000) }); const j = await r.json(); hereProduct = (r.ok && j.slug) || own; } catch { hereProduct = own; }
+}
 
 async function api(method, p, body) {
   const headers = { ...(body ? { 'content-type': 'application/json' } : {}), ...(env('SESSION') ? { 'x-wf-session': env('SESSION') } : {}) };
@@ -148,7 +176,7 @@ function docRef(ref) {
   return { product: m[1], project: m[2], doc: m[3] };
 }
 // a product for a link: from the URL path, --product, or the env
-function productOf(link) { const m = String(link).match(/\/\/[^/]+\/([^/]+)\//); return (m && m[1]) || flags.product || env('PRODUCT') || die('cannot tell the product from that link; pass --product'); }
+function productOf(link) { const m = String(link).match(/\/\/[^/]+\/([^/]+)\//); return (m && m[1]) || flags.product || (hereFirst && hereProduct) || env('PRODUCT') || hereProduct || die('cannot tell the product from that link; pass --product'); }
 
 async function resolve(link) {
   const j = await api('GET', `/api/${productOf(link)}/resolve?link=${encodeURIComponent(link)}`);
@@ -229,6 +257,17 @@ const commands = {
     console.log(`Wye on ${url} — home ${dir}  (${up ? 'already running' : electron ? 'close the window or Ctrl+C to stop it' : 'Ctrl+C stops it'})`);
     if (!electron && !flags.browser && !flags['no-open']) console.log('no Electron in this install — opening your browser instead (reinstall with: npm install -g @emlab/wye --include=optional --allow-scripts=electron)');
     const child = up ? null : spawn(process.execPath, [next, 'start', '-p', port, '-H', '127.0.0.1'], { cwd: h.prepareApp(web, dir), stdio: 'inherit', env: { ...process.env, WYE_HOME: dir, WYE_URL: url } });
+    // wye app <folder>: that folder is the workspace (decision:wf2.workspace-is-the-top) — asked of the app once it answers
+    if (pos[1]) {
+      const folder = path.resolve(pos[1].replace(/^~(?=$|\/)/, os.homedir()));
+      if (!fs.existsSync(folder) || !fs.statSync(folder).isDirectory()) die(`wye app: ${folder} is not a folder`);
+      (async () => {
+        for (let i = 0; i < 80; i++) {
+          try { const r = await fetch(`${url}/api/workspace`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ folder }), signal: AbortSignal.timeout(8000) }); const j = await r.json().catch(() => ({})); console.log(r.ok ? `workspace: ${folder} — ${j.vaults.length} vault${j.vaults.length === 1 ? '' : 's'}` : `workspace: ${j.message || r.status}`); return; }
+          catch { await new Promise(res => setTimeout(res, 500)); }
+        }
+      })();
+    }
     let shell = null; let done = false;
     const stop = sig => { if (done) return; done = true; if (shell) shell.kill(); if (child) child.kill(sig); else process.exit(0); };
     for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => stop(sig));
@@ -425,6 +464,14 @@ const commands = {
       const instruction = pos[2] || (await readStdin()); const j = await api('POST', `/api/${p}/sessions`, { agent: flags.agent || 'claude-code', instruction, refs: list(flags.ref), source: flags.link ? { link: flags.link } : {} });
       return out(flags.json ? j : `session ${j.id} queued for ${j.agent}`);
     }
+    if (sub === 'join') {
+      const runner = flags.name || `${os.userInfo().username}@${os.hostname().split('.')[0]}`;
+      const j = await api('POST', `/api/${p}/sessions`, { join: true, agent: flags.agent || 'claude-code', instruction: pos[2] || '', runner, refs: list(flags.ref) });
+      if (flags.json) return out(j);
+      // the export line alone on stdout, so it can be eval'ed; the words for the person on stderr
+      console.error(`joined ${p} as session ${j.id} (${runner}) — finish with: wye session done ${j.id}`);
+      return console.log(`export WYE_SESSION=${j.id}`);
+    }
     if (!id) die(`wye session ${sub} <id>`);
     if (sub === 'show') {
       const s = await api('GET', `/api/${p}/sessions/${id}`); if (flags.json) return out(s);
@@ -462,7 +509,8 @@ const commands = {
   },
   // wye init: a product's (or a feature's) definition from its code, shallow, with the describe tasks (lib/init.js)
   async init() {
-    const p = flags.product || die('wye init --product <slug> --repo <dir> [--title "…"] [--project main] [--feature "<name>" --path <dir>] [--icon 📦] [--description "…"]');
+    if (!flags.product) return commands.initHere();
+    const p = flags.product;
     const repo = flags.repo || die('--repo <dir> — the code the product is read from');
     const { init } = require('../lib/init.js');
     const dataRoot = path.join(require('./wye-home.js').ensureHome(), 'data');
@@ -474,6 +522,24 @@ const commands = {
     const root = path.join(dataRoot, 'products', p);
     console.log(`\nnext: wye build --root ${root} && wye check --root ${root} --repo ${repo}\n      open it in the app, then wye deepen <module> --product ${p}   (or let a runner take the #ready tasks)`);
     console.log(`\nquick start → ${WF_URL}/${p}/start`);
+  },
+  // wye init [folder]: a vault for the current folder (req:wf2.vault-init, lib/vault.js) — its own knowledge in .wye/
+  // beside the code, linked to the vault above and the ones below; written here, then opened in the app when it runs
+  async initHere() {
+    const folder = path.resolve((pos[1] || '.').replace(/^~(?=$|\/)/, os.homedir()));
+    let v; try { v = require('../lib/vault.js').initVault({ folder, slug: flags.slug, title: flags.title, icon: flags.icon, description: flags.description }); } catch (e) { die(`init: ${e.message.replace(/^\w+: /, '')}`); }
+    let opened = null, why = '';
+    try { opened = await api('POST', '/api/products/open', { folder: v.dir }); } catch (e) { why = e.cause ? 'the app is not running' : e.message; }
+    if (flags.json) return out({ existing: v.existing, folder: v.folder, dir: v.dir, slug: v.slug, product: opened ? opened.slug : null, parent: v.parent || null, children: v.children || [], linked: v.linked || [], written: v.made ? v.made.written : [], skipped: v.made ? v.made.skipped : [] });
+    const there = opened ? `${WF_URL}/${opened.slug}` : `not opened in the app (${why}) — wye open ${v.folder}`;
+    if (v.existing) { console.log(`this folder already has its knowledge: ${v.dir}  (vault ${v.slug}) — nothing was written\n${there}`); return; }
+    const relTo = f => path.relative(v.folder, f) || '.';
+    console.log(`vault ${v.slug} → ${v.dir}`);
+    console.log(`${v.made.written.length} file(s) written${v.made.skipped.length ? ` (${v.made.skipped.length} existed and were kept)` : ''}; scanned ${v.made.counts.files} files: ${v.areas.length} modules, ${v.made.counts.pages} pages, ${v.made.counts.components} components, ${v.made.counts.ops} operations, ${v.made.counts.tests} tests`);
+    console.log(`parent: ${v.parent ? relTo(v.parent) : 'none above this folder'}${v.children.length ? `\nchildren: ${v.children.map(relTo).join(', ')}` : ''}${v.linked.length ? `\nlinks updated in: ${v.linked.map(f => path.join(relTo(f), '.wye/_product.md')).join(', ')}` : ''}`);
+    console.log(`agents working here are sent to it by AGENTS.md / CLAUDE.md; its own instructions: ${path.join(v.dir, '_agent.md')}`);
+    if (opened && opened.slug !== v.slug) console.log(`note: another product is already called ${v.slug} on this machine — the app shows this vault as ${opened.slug}; use --product ${opened.slug} with the CLI`);
+    console.log(`\n${there}${opened ? `\nnext: wye deepen <module> --product ${opened.slug}   (or let a runner take the #ready tasks)` : ''}`);
   },
   // wye deepen <module>: assign the module's describe task to a worker with the describe contract (prompts/describe-module.md)
   async deepen() {
@@ -904,5 +970,7 @@ if (GRAPH_CMDS.has(pos[0]) || pos[0] === 'graph') {
   if (!c) { // the help is this file's leading comment, whole — every command up to the first line of code
     const lines = fs.readFileSync(__filename, 'utf8').split('\n').slice(2); const end = lines.findIndex(l => !l.startsWith('//'));
     console.log(lines.slice(0, end < 0 ? undefined : end).map(l => l.replace(/^\/\/ ?/, '')).join('\n')); process.exit(pos[0] ? 1 : 0); }
+  // the commands that work on a folder or on the app itself never ask which product
+  if (!['setup', 'app', 'init', 'initHere', 'open', 'importProduct', 'eval'].includes(pos[0])) await findHereProduct();
   try { await c(); } catch (e) { die(e.message); }
 })();

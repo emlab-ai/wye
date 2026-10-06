@@ -380,6 +380,21 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
   - choice:wf2.page-head-folded The properties sit behind "⌄ properties" on every page, folded until opened; the choice is kept per browser. The head's title field shows only when the text has no `# ` heading of its own. The type picker is as wide as its type.
 
 ```yaml
+- id: decision:wf2.rename-where-the-title-is
+  title: A page is renamed by its opening heading or from its menu, a product in its settings; the address never changes
+  date: 2026-10-05
+  status: proposed
+  by: alex
+  affects: [decision:wf2.page-head-folded, req:wf2.page.header-card, op:api.product.rename]
+```
+
+  - context:wf2.rename-where-the-title-is The person: "currently i can't rename project or pages". Since decision:wf2.page-head-folded a page whose text opens with a `# ` heading has no title field, and editing that heading changed the text only — the rail, the top bar and links read `title:` and kept the old name. A product had no way to change its title at all: no field, no operation.
+
+  - choice:wf2.rename-where-the-title-is The heading a page's text opens with is its title: a write that changes it sets `title:` to the same words (lib/write followHeading); a write that leaves the heading alone leaves the title alone. The page's menu has Rename, which sets both (`op: rename` on the document). A product's Settings open with Name — title, icon, description — written to its _product.md (op:api.product.rename).
+
+  - alternative:wf2.rename-where-the-title-is Renaming the file or the product's folder with the title: rejected — the slug is the address, and every link, pin and session that names it would break for a change of words.
+
+```yaml
 - id: decision:wf2.answers-reach-the-librarian
   title: An answer on the PR's page is shown on its question card and reaches the PR's conversation, whichever way the question was asked
   date: 2026-10-02
@@ -1025,3 +1040,20 @@ A person who has never seen Wye gets from `wye app` to a product with a first do
   - choice:wf2.onboarding.honest-counts a document is a page under a project's docs/ (not an app-written .wye/ page); a block is a defined node with an id written in such a page — not a page node, not a hidden kind, not a card's part such as a decision's choice; a link is a written edge between two such blocks — so a new product starts at the steps it has really done
 
   - alternative:wf2.onboarding.honest-counts counting every node and edge — the Goals, Work, Hooks and Skills pages the app writes into every product would tick the first steps before the person did anything
+
+```yaml
+- id: req:wf2.workspace-files
+  title: The person browses every file of the opened folder and reads any of them in a tab
+  status: proposed
+  refines: req:wf2.ui.tabs
+  by: agent:wye
+  evidence: [session:fc7ee08157]
+```
+
+  - when:wf2.workspace-files the person expands the Files section of the rail and clicks a file, or right-clicks a folder or a file
+
+  - then:wf2.workspace-files the whole folder tree is there, as in an editor; a file opens in a tab in the VS Code editor, read only, highlighted by its language; right-click offers Init Wye here (on the folder, or on a file's folder) when that folder has no vault yet, and Reveal in Documents when it has one
+
+  - unless:wf2.workspace-files the file is binary or too large to show — then the tab says so instead of showing it; ignored folders (node_modules, build output, .git) are hidden unless the person asks to see them
+
+  verdict:6fd27e15a24a refines decision:wf2.files-are-code-tabs — A is a design decision implementing B's requirement, specifying code-view blocks in the rail with particular menu options and constraints. (kind: refines, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:wf2.files-are-code-tabs req:wf2.workspace-files)

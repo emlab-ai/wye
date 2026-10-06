@@ -8,7 +8,7 @@ import { cleanLaunch, type LaunchSettings } from './agent-launch';
 
 // onboarding: the Quick start's marked steps and dismissal per product slug — about the person at this machine, so here
 // and never in a product file, Git or an export (docs/superpowers/specs/2026-10-05-onboarding-design.md)
-export interface Settings { jev?: { key?: string }; agents?: { parallel?: number; agent?: string; hooks?: boolean }; /** how each agent CLI is launched: model, mode, effort, the person's own flags (lib/agent-launch) */ launch?: LaunchSettings; timezone?: string; onboarding?: Record<string, { done?: string[]; dismissed?: boolean }> }
+export interface Settings { jev?: { key?: string }; agents?: { parallel?: number; agent?: string; hooks?: boolean }; /** how each agent CLI is launched: model, mode, effort, the person's own flags (lib/agent-launch) */ launch?: LaunchSettings; timezone?: string; onboarding?: Record<string, { done?: string[]; dismissed?: boolean }>; /** servers this app keeps an SSH reverse tunnel to, and whether each is wanted on (lib/remote) — replaced whole by a patch */ remotes?: { host: string; port: number; on?: boolean }[]; /** the folder open as the workspace (lib/workspace) — none: the app's own products; `workspaces` the recent ones, newest first; `workspaceScan` the vaults a Rescan found under a folder no vault names */ workspace?: string; workspaces?: string[]; workspaceScan?: Record<string, string[]> }
 
 // The dispatcher's knobs (decision:wf2.pr-scheduler): how many builds run at once, and which agent builds by default.
 export const AGENT_IDS = ['claude-code', 'codex'];
@@ -38,7 +38,9 @@ export async function readSettings(root: string = DATA_ROOT): Promise<Settings> 
 }
 export async function writeSettings(patch: Settings, root: string = DATA_ROOT): Promise<Settings> {
   const cur = await readSettings(root);
-  const next: Settings = { ...cur, ...(patch.jev ? { jev: { ...cur.jev, ...patch.jev } } : {}), ...(patch.agents ? { agents: { ...cur.agents, ...patch.agents } } : {}), ...(patch.launch ? { launch: mergeLaunch(cur.launch, patch.launch) } : {}), ...(patch.timezone !== undefined ? { timezone: patch.timezone } : {}), ...(patch.onboarding ? { onboarding: mergeOnboarding(cur.onboarding, patch.onboarding) } : {}) };
+  const next: Settings = { ...cur, ...(patch.jev ? { jev: { ...cur.jev, ...patch.jev } } : {}), ...(patch.agents ? { agents: { ...cur.agents, ...patch.agents } } : {}), ...(patch.launch ? { launch: mergeLaunch(cur.launch, patch.launch) } : {}), ...(patch.timezone !== undefined ? { timezone: patch.timezone } : {}), ...(patch.onboarding ? { onboarding: mergeOnboarding(cur.onboarding, patch.onboarding) } : {}), ...(patch.remotes ? { remotes: patch.remotes } : {}), ...(patch.workspace !== undefined ? { workspace: patch.workspace } : {}), ...(patch.workspaces ? { workspaces: patch.workspaces } : {}), ...(patch.workspaceScan ? { workspaceScan: { ...cur.workspaceScan, ...patch.workspaceScan } } : {}) };
+  if (!next.workspace) delete next.workspace; // an empty folder: back to the app's own products
+  if (next.remotes && !next.remotes.length) delete next.remotes;
   if (next.timezone !== undefined && !validZone(next.timezone)) delete next.timezone; // an empty or unknown zone: back to the machine's
   if (next.jev && !next.jev.key) delete next.jev; // an empty key removes the section
   await writeFile(file(root), JSON.stringify(next, null, 2) + '\n', { mode: 0o600 });

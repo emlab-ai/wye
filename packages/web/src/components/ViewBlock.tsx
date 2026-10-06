@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createReactBlockSpec } from '@blocknote/react';
 import { usePeek } from './PeekProvider';
 import { InstanceTable } from './InstanceTable';
+import { TaskTable } from './TaskTable';
 import { KINDS } from '@/lib/ids';
 import { KIND_LABELS, kindExample } from '@/lib/knowledge';
 import { EmptyState } from './EmptyState';
@@ -36,15 +37,22 @@ export const ViewBlock = createReactBlockSpec(
       const asTable = /(^|\s)as=table(\s|$)/.test(rawQuery);
       // `scope=project` keeps the rows of this document's project; the default is the whole product (decision:wf2.views-are-pages)
       const scopeProject = /(^|\s)scope=project(\s|$)/.test(rawQuery);
+      const scopeNamed = rawQuery.match(/(?:^|\s)scope=(project|product|workspace)(?=\s|$)/)?.[1] ?? '';
       // `coverage=1` on a req view adds the coverage cell: what satisfies each requirement, what verifies it, its tasks,
       // and a gap where either side is missing (decision:wf2.traceability-is-the-verb)
       const coverage = /(^|\s)coverage=1(\s|$)/.test(rawQuery);
-      const query = rawQuery.replace(/(^|\s)as=(table|list)(?=\s|$)/, '').replace(/(^|\s)scope=(project|product)(?=\s|$)/, '').replace(/(^|\s)coverage=1(?=\s|$)/, '').trim();
-      const withAs = (q: string) => [q, asTable ? 'as=table' : '', scopeProject ? 'scope=project' : '', coverage ? 'coverage=1' : ''].filter(Boolean).join(' ');
+      const query = rawQuery.replace(/(^|\s)as=(table|list)(?=\s|$)/, '').replace(/(^|\s)scope=(project|product|workspace)(?=\s|$)/, '').replace(/(^|\s)coverage=1(?=\s|$)/, '').trim();
+      const withAs = (q: string, sc = scopeNamed) => [q, asTable ? 'as=table' : '', sc ? `scope=${sc}` : '', coverage ? 'coverage=1' : ''].filter(Boolean).join(' ');
       const hostRef = useRef<HTMLDivElement>(null);
       const [project, setProject] = useState('');
       useEffect(() => { setProject((hostRef.current?.closest('.doc-editor') as HTMLElement | null)?.dataset.project ?? ''); }, []);
-      const { product, ownTypes } = usePeek();
+      const { product, ownTypes, workspace } = usePeek();
+      const [docOf, setDocOf] = useState('');
+      useEffect(() => { setDocOf((hostRef.current?.closest('.doc-editor') as HTMLElement | null)?.dataset.doc ?? ''); }, []);
+      // every vault of the workspace (req:wf2.workspace-open): asked for on the line (`scope=workspace`), and what the
+      // app's own Goals and Work pages show when a folder with several vaults is open and the line names no scope
+      const many = workspace.vaults.length > 1;
+      const scopeAll = many && (scopeNamed === 'workspace' || (!scopeNamed && workspace.folder && /^~(goals|work)$/.test(docOf)));
       const [table, setTable] = useState<Table | null>(null);
       const [err, setErr] = useState('');
       const [version, setVersion] = useState(0);
@@ -54,15 +62,15 @@ export const ViewBlock = createReactBlockSpec(
       }, []);
       useEffect(() => {
         let live = true;
-        fetch(`/api/${product}/view/${slug}`).then(async r => { if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message ?? r.statusText); return r.json() as Promise<Table>; })
+        fetch(`/api/${product}/view/${slug}${scopeAll ? '?scope=workspace' : ''}`).then(async r => { if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message ?? r.statusText); return r.json() as Promise<Table>; })
           .then(t => { if (live) { setTable(t); setErr(''); } }).catch(e => { if (live) setErr(String(e.message ?? e)); });
         return () => { live = false; };
-      }, [product, slug, version]);
+      }, [product, slug, version, scopeAll]);
       const options = [...ownTypes.map(t => t.slug), ...BASE_VIEW_KINDS.filter(k => !ownTypes.some(t => t.slug === k))]; if (!options.includes(slug)) options.push(slug);
       const initial = table ? parseViewQuery(query, table.columns.map(c => c.name)) : undefined;
       const onChange = (f: Filters) => { const q = viewQuery(f); if (q !== query) props.editor.updateBlock(props.block, { props: { query: withAs(q) } } as never); };
-      const setAs = (t: boolean) => props.editor.updateBlock(props.block, { props: { query: [query, t ? 'as=table' : '', scopeProject ? 'scope=project' : '', coverage ? 'coverage=1' : ''].filter(Boolean).join(' ') } } as never);
-      const setScope = (proj: boolean) => props.editor.updateBlock(props.block, { props: { query: [query, asTable ? 'as=table' : '', proj ? 'scope=project' : '', coverage ? 'coverage=1' : ''].filter(Boolean).join(' ') } } as never);
+      const setAs = (t: boolean) => props.editor.updateBlock(props.block, { props: { query: [query, t ? 'as=table' : '', scopeNamed ? `scope=${scopeNamed}` : '', coverage ? 'coverage=1' : ''].filter(Boolean).join(' ') } } as never);
+      const setScope = (sc: string) => props.editor.updateBlock(props.block, { props: { query: withAs(query, sc) } } as never);
       const scoped = table && scopeProject && project ? { ...table, rows: table.rows.filter(r => r.file.includes(`/projects/${project}/`)) } : table;
       // a new instance from the list's empty last line: the document this view is in as its home (a base kind has no
       // collection), `part-of` from the view's own filter so the row lands where the list shows it
@@ -84,12 +92,13 @@ export const ViewBlock = createReactBlockSpec(
             </select>
             {table && <span className="muted small">{table.rows.length} {table.typed ? '' : '· not a declared type'}</span>}
             <button type="button" className="collection-view-toggle" title={asTable ? 'show as blocks' : 'show as a table'} onClick={() => setAs(!asTable)}>{asTable ? '☰ blocks' : '▤ table'}</button>
-            <select className="collection-kind" value={scopeProject ? 'project' : 'product'} title="where the blocks come from: the whole product, or this document's project" onChange={e => setScope(e.target.value === 'project')}>
-              <option value="product">whole product</option><option value="project">this project</option>
+            <select className="collection-kind" value={scopeAll ? 'workspace' : scopeProject ? 'project' : 'product'} title="where the blocks come from: every vault of the workspace, this vault, or this document's project" onChange={e => setScope(e.target.value)}>
+              {many && <option value="workspace">all vaults</option>}<option value="product">{many ? 'this vault' : 'whole product'}</option><option value="project">this project</option>
             </select>
             {err && <span className="bad">{err}</span>}
           </div>
-          {scoped && initial && <InstanceTable product={product} table={scoped} initial={initial} onChange={onChange} as={asTable ? 'table' : 'list'} readOnly compact={!!scope} onNew={onNew} coverage={coverage} empty={scope ? undefined : viewEmpty(slug, !asTable)} />}
+          {scoped && initial && asTable && slug === 'task' && <TaskTable product={product} table={scoped} onNew={onNew} />}
+          {scoped && initial && !(asTable && slug === 'task') && <InstanceTable product={product} table={scoped} initial={initial} onChange={onChange} as={asTable ? 'table' : 'list'} readOnly compact={!!scope} onNew={onNew} coverage={coverage} empty={scope ? undefined : viewEmpty(slug, !asTable)} />}
           {scoped && !scoped.rows.length && scope && <p className="muted small">No {slug}s yet.</p>}
         </div>
       );

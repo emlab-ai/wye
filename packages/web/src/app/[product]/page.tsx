@@ -3,7 +3,7 @@ import { loadScope, treeFor } from '@/lib/scope';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { REPO_ROOT } from '@/lib/products';
-import { docRoute, splitDocument, type DocNode } from '@/lib/doc';
+import { docRoute, splitDocument, type DocNode, isSystemFile } from '@/lib/doc';
 import { HIDDEN_KINDS } from '@/lib/graph';
 import { KIND_LABELS } from '@/lib/knowledge';
 import { readOnboarding } from '@/lib/onboarding-io';
@@ -21,7 +21,7 @@ export default async function ProductPage({ params }: { params: Promise<{ produc
   // the product's own blocks: the base ontology's types (schema/) are the app's, not something this product knows
   for (const n of scope.graph.nodes) if (n.defined && !HIDDEN_KINDS.has(n.kind) && n.kind !== 'module' && /(^|\/)projects\//.test(n.file)) counts[n.kind] = (counts[n.kind] ?? 0) + 1;
   // the top-level documents (decision:wf2.no-projects), each with how many pages are under it
-  const roots = scope.projects.flatMap(p => treeFor(scope, p.slug).roots).filter(d => !d.file.includes('/.wye/'));
+  const roots = scope.projects.flatMap(p => treeFor(scope, p.slug).roots).filter(d => !isSystemFile(d.file)); // a vault's own folder is .wye/ too: only a project's .wye/ holds the app's pages
   const count = (d: DocNode): number => d.children.reduce((n, c) => n + 1 + count(c), 0);
   const kinds = Object.entries(KIND_LABELS).filter(([k]) => counts[k]);
   const onboarding = await readOnboarding(product).catch(() => null);

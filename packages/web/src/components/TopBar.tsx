@@ -8,7 +8,7 @@ import { TabStrip, type Tab } from './Tabs';
 import { formatDay } from '@/lib/when';
 
 export type DocMeta = { slug: string; node: string; title: string; icon: string; project: string; parent?: string; mtime: string };
-const PAGES: Record<string, string> = { goals: 'Goals', tasks: 'Tasks', questions: 'Questions', knowledge: 'Knowledge', graph: 'Graph', inbox: 'Inbox', sessions: 'Agents', prs: 'PRs', new: 'New product', types: 'Types', search: 'Search', start: 'Quick start', settings: 'Settings', constitution: 'Constitution' };
+const PAGES: Record<string, string> = { goals: 'Goals', tasks: 'Tasks', work: 'Tasks', questions: 'Questions', knowledge: 'Knowledge', graph: 'Graph', inbox: 'Inbox', sessions: 'Agents', prs: 'PRs', new: 'New workspace', types: 'Types', search: 'Search', start: 'Quick start', settings: 'Settings', constitution: 'Constitution' };
 const PAGE_ICONS: Record<string, string> = { goals: '◎', tasks: '☑', questions: '?', knowledge: '◈', graph: '⌬', inbox: '⇩', sessions: '⚡', types: '⬡', search: '⌕', prs: '🗺️', settings: '⚙', start: '◔', constitution: '§' };
 
 const ago = (iso: string) => { const m = (Date.now() - Date.parse(iso)) / 60000; if (m < 1) return 'just now'; if (m < 60) return `${Math.round(m)} min ago`; if (m < 1440) return `${Math.round(m / 60)} h ago`; const d = Math.round(m / 1440); return d < 30 ? `${d} d ago` : formatDay(iso); };
@@ -85,6 +85,8 @@ export function TopBar({ product, docs }: { product: { slug: string; title: stri
   let doc: DocMeta | undefined; let edited = ''; let gone = false;
   if (parts[1] === 'sessions' && parts[2]) { crumbs.push({ href: `/${product.slug}/sessions`, label: PAGES.sessions }, { href: path, label: `session ${parts[2].slice(0, 6)}${parts[3] === 'changes' ? ' · changes' : ''}`, icon: '⚡' }); }
   else if (parts[1] === 'types' && parts[2]) crumbs.push({ href: `/${product.slug}/types`, label: PAGES.types }, { href: path, label: parts[2] });
+  // a file of the open folder (req:wf2.workspace-files): its folders as words, the file as the tab's name
+  else if (parts[1] === 'files' && parts[2]) { const segs = parts.slice(2).map(decodeURIComponent); for (const seg of segs.slice(0, -1)) crumbs.push({ href: path, label: seg }); crumbs.push({ href: path, label: segs[segs.length - 1], icon: '📄' }); }
   else if (parts[1] && PAGES[parts[1]]) crumbs.push({ href: `/${product.slug}/${parts[1]}`, label: PAGES[parts[1]] });
   else if (parts[1] === 'knowledge' && parts[2]) crumbs.push({ href: `/${product.slug}/knowledge`, label: 'Knowledge' }, { href: path, label: parts[2] });
   else if (parts[1] && parts[2] === 'd' && parts[3]) {

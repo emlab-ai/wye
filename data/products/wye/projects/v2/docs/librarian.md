@@ -319,6 +319,60 @@ Definition — the librarian
   - consequence:wf2.first-screen-first First byte 0.35 s, first paint 0.47 s (was 1.2 s), the editor 1.0 s (was 2.0–3.0 s), the HTML 240 KB compressed (was 378). Not done: the editor still builds all of a page's blocks in one task of 0.3–0.4 s after it appears.
 
 ```yaml
+- id: decision:wf2.pr-sections-readable
+  title: A request's Context and Impact say each node in its own words — and no line on the page opens with an id
+  date: 2026-10-05
+  status: proposed
+  affects: [lib:pr-intake, lib:agent-host]
+  by: alex
+  evidence: [session:8b52a015-44b6-402d-a6a4-3cfcf3fc78bd]
+  part-of: goal:exec.define-first
+```
+
+  - context:wf2.pr-sections-readable alex, on PR 31: "impact, is not readable, i need to open context to read each item"; of In force, "should be blocks, but it plain text"; "context has too many tags, should be more readable, and show blocks or links". Impact was thirty lines of an id, a weight and "via content"; each opened with an id, so the page drew it as that node's own card with the weight as its text. The same happened to a model's note that began with an id (a question's card holding the note) and to the librarian's Still open line of three ids. Most of the thirty were the touched decisions' own context, choice and alternatives — "via content" — not anything else the change reaches; In force was the packet's first twelve lines, which is alphabetical.
+
+  - choice:wf2.pr-sections-readable Context: Touches is a list by page, each node as its kind, its words, then its id in brackets — a node's text, led by its title only when the text does not open with it. What the request touches that governs it (a decision, a rule, a constraint in force) is not listed there but shown under In force as its own card (an embed line), followed by the other constraints and then what the packet reached, nearest first — twelve cards, the rest counted. Impact: grouped under the touched node it is reached from, each reached node in its words with how it is related ("it governs this"); a node's own content is left out; what is more than one step away is three per group and a count. The librarian's first message carries the same as plain lines (ids and words, no cards). No line the app writes opens with an id; a model's note that does is led in with "Note —"; the librarian is told to write Still open as the question in words with its id in brackets.
+
+  - alternative:wf2.pr-sections-readable Every touched and reached node as a card — rejected: thirty cards is a page nobody reads; cards are for what governs. Changing the renderer so a line that opens with an id is not a node — rejected: that is how a node is written everywhere else.
+
+  - consequence:wf2.pr-sections-readable PR 31's Context, Impact and Still open were rewritten on the page with the new writers, its text kept. A request made before this keeps its old sections; the intake runs once, when the page is made. A librarian already running keeps the prompt it started with.
+
+```yaml
+- id: decision:wf2.approve-approves-the-definition
+  title: Approving a request approves every proposed block of its Definition
+  date: 2026-10-05
+  status: proposed
+  affects: [lib:pr-docs, lib:pr-doc, op:api.pr, component:pr-head, lib:dispatch]
+  related-to: [decision:wf2.pr-approval-is-the-persons-click]
+  by: alex
+  evidence: [session:8b52a015-44b6-402d-a6a4-3cfcf3fc78bd]
+  part-of: goal:exec.define-first
+```
+
+  - context:wf2.approve-approves-the-definition alex, on PR 31 — approved, with "✗ agreed" and fourteen blocks listed as not agreed: "when i click approve it - it must approve all items inside". Approve set the PR's own status and nothing else; each requirement and decision had to be approved one by one on its own page.
+
+  - choice:wf2.approve-approves-the-definition The person's Approve writes the approved status on every Definition block that is still proposed, in the block's own document, as the person's change (the status its type calls agreed; a proposed task becomes open), and retires what an approved block supersedes. A question stays open — it is answered, not approved — and is the only thing left that makes Approve ask twice, with a contradiction or a missing part. A PR already approved keeps who approved it and when; its head offers "approve all N" for blocks still proposed. The dispatcher does not build an approved PR whose blocks are still proposed — it waits, and says so; Build now builds it anyway.
+
+  - consequence:wf2.approve-approves-the-definition What fires on an approved block fires for each: the product's own hooks on a requirement's approval start their tasks and agents for every requirement approved this way.
+
+```yaml
+- id: decision:wf2.build-is-a-new-session
+  title: Build now starts a builder's session of its own, and the dispatcher finds PR pages where they are
+  date: 2026-10-05
+  status: proposed
+  affects: [op:api.pr, component:pr-head, lib:dispatch, lib:pr-doc]
+  by: alex
+  evidence: [session:8b52a015-44b6-402d-a6a4-3cfcf3fc78bd]
+  part-of: goal:exec.define-first
+```
+
+  - context:wf2.build-is-a-new-session alex: "i click build on PR, and it went to old session, this should create new session build/implmenet result of the PR research". Build now opened the request task's panel, whose session is the librarian that refined the request; nothing was started. And "queued for a build" never came true: the dispatcher and the sessions list looked for PR pages under docs/, and the pages have been in .wye/ since the system pages moved — no approved PR had been built by itself since.
+
+  - choice:wf2.build-is-a-new-session PATCH pr with action build hands the request task to a builder with the Definition (the dispatcher's own path, `assignTask` with `build`), now, as a new session that opens in the column; refused unless the PR is approved. A PR's page is found by `prFileRef` — docs/ or .wye/ — wherever PRs are found by file. The PR's ref is taken with or without the system mark (~pr-N is pr-N), so an approval's "stop refining" finds the librarian's session.
+
+  - consequence:wf2.build-is-a-new-session With the dispatcher finding PR pages again, PR 31 — approved an hour earlier — was started by it within a minute of the fix, before the rule that holds a PR whose blocks are still proposed was in place: session 13bdb849d4 builds it from a Definition with eleven proposed blocks.
+
+```yaml
 - id: decision:wf2.cmd-modes
   title: ⌘P has two modes — PR (a request page with a refining session) and Ad-hoc (a conversation, no page)
   date: 2026-09-20

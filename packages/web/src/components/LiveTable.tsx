@@ -36,6 +36,12 @@ export function LiveTable({ product, kind, query, view, type, head, onQuery, pag
   // inside a page's editor a row selects its item (the column follows the editor); elsewhere — a Knowledge page — it opens it
   const rootRef = useRef<HTMLDivElement>(null); const [inEditor, setInEditor] = useState(true);
   useEffect(() => { setInEditor(!!rootRef.current?.closest('.doc-editor')); }, []);
+  // Enter in a card's text (a list's cards are one line each) goes to the next item: the "New …" field
+  useEffect(() => {
+    const el = rootRef.current; if (!el) return;
+    const next = (e: Event) => { const input = el.querySelector<HTMLInputElement>('.live-new input'); if (input) { e.stopPropagation(); input.focus(); } };
+    el.addEventListener('wf:next', next); return () => el.removeEventListener('wf:next', next);
+  });
   const [table, setTable] = useState<InstanceTable | null>(null);
   const [res, setRes] = useState<QResult | null>(null);
   const [err, setErr] = useState('');

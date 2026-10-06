@@ -862,6 +862,18 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/system/cli/route.ts
   status: proposed
   part-of: module:api
+- id: op:api.system.remote
+  args: GET | POST /api/system/remote
+  does: >
+    the SSH reverse tunnels this app keeps to servers where agents run (lib:remote). GET → { remotes: [{ host, port,
+    on, state: off | connecting | connected | failed, message, since }], port }; POST { action: connect, host, port? }
+    opens and remembers one (port is the port on the server, this app's own by default), { action: disconnect, host }
+    closes it and keeps the host, { action: remove, host } forgets it → the same view. A host that is not a plain ssh
+    destination is 422.
+  gate: none (local app)
+  source: packages/web/src/app/api/system/remote/route.ts
+  status: proposed
+  part-of: module:api
 - id: op:install.toolchain
   args: GET /api/system/tools
   does: >
@@ -869,6 +881,62 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
     the minute's cache
   gate: none (local app)
   source: packages/web/src/app/api/system/tools/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.product.rename
+  args: PATCH /api/<product>
+  does: >
+    PATCH { title?, icon?, description? } → { ok, title, icon, description }: rename a product — the keys of its
+    _product.md. The slug (its folder, its address) stays: every link to the product keeps working.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.product-init
+  args: POST /api/products/init
+  does: >
+    (req:wf2.vault-init) — POST { folder, slug?, title? } → Init Wye here: the folder gains its own vault in .wye/
+    (lib/vault.js, what `wye init` in that folder does), linked to the vault above and the ones below, and is opened
+    as a product. A folder that already has one is opened as it is. → { slug, vault, dir, folder, existing, written,
+    parent, children, linked }
+  gate: none (local app)
+  source: packages/web/src/app/api/products/init/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.docs.tree
+  args: GET /api/<product>/docs/tree
+  does: >
+    GET → { roots: [{ slug, title, icon, project, children }] } — the product's documents as the rail's tree,
+    without the pages the app writes (.wye/). What the rail asks for when a vault that is not on screen is opened in
+    place (rule&#58;vault-roots).
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/docs/tree/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.workspace-files
+  args: GET /api/workspace/files
+  does: >
+    (req:wf2.workspace-files) — the files of the open folder. The root is the workspace's folder; in the home
+    workspace, the code folder of ?product=<slug> (its `repo:`, or a vault's own folder). GET ?dir=<folder> → {
+    root, path, entries: [{ name, dir, vault?, ignored? }], vault } — what git ignores and build folders left out
+    unless &hidden=1; `vault`: the slug of the product whose vault is the nearest at or above the folder ('' when
+    there is none), `own`: that vault is this folder's own. GET ?path=<file> → { root, path, language, text, size,
+    mtime } — or { binary: true } / { large: true } with no text. A path that leaves the root is refused.
+  gate: none (local app)
+  source: packages/web/src/app/api/workspace/files/route.ts
+  status: proposed
+  part-of: module:api
+- id: op:api.workspace
+  args: GET | POST /api/workspace
+  does: >
+    (req:wf2.workspace-open) — the folder the app has open and the vaults it reaches. GET → { folder, name, recent,
+    vaults: [{ slug, title, icon, folder, parent }] } (folder null: the home workspace). POST { folder } opens a
+    folder ('' goes back to the home workspace) → the same view; with `auto: true` a folder that is itself a product
+    kept the old way (projects/ in it, or in its wye/) is opened as a product instead → { slug }; POST { rescan:
+    true } walks the open folder once → { vaults, fixes } — the links that differ from what it found, written by
+    nobody; POST { fix: fixes } writes the ones sent back → { changed }.
+  gate: none (local app)
+  source: packages/web/src/app/api/workspace/route.ts
   status: proposed
   part-of: module:api
 ```

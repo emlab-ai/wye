@@ -8,7 +8,7 @@ import { docRoute, pageBySlug, splitDocument } from '@/lib/doc';
 import { recordArtifact } from '@/lib/artifacts';
 import { retypeFrontmatter, rewriteId } from '@/lib/retype';
 import { readFile } from 'node:fs/promises';
-import { appendChunk, bodyOf, hashOf, insertYamlAfterSegment, lint, patchFrontmatter, rebuild, replaceBody, replaceChunk, replaceSegment, withFileLock, writeAtomic, type WriteResult } from '@/lib/write';
+import { appendChunk, bodyOf, followHeading, hashOf, insertYamlAfterSegment, lint, patchFrontmatter, rebuild, renamePage, replaceBody, replaceChunk, replaceSegment, withFileLock, writeAtomic, type WriteResult } from '@/lib/write';
 
 type Op =
   | { op: 'replace-segment'; index: number; ifMatch: string; text: string }
@@ -17,6 +17,7 @@ type Op =
   | { op: 'insert-yaml-after-segment'; segment: number; body: string }
   | { op: 'frontmatter'; patch: Record<string, string> }
   | { op: 'replace-body'; ifMatch: string; body: string }
+  | { op: 'rename'; title: string }
   | { op: 'retype'; type: string };
 
 async function locate(product: string, project: string, slug: string) {
@@ -54,10 +55,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
     case 'insert-yaml-after-segment': r = insertYamlAfterSegment(md, body.segment, body.body); break;
     case 'frontmatter': r = patchFrontmatter(md, body.patch); break;
     case 'replace-body': r = replaceBody(md, body.ifMatch, body.body); break;
+    case 'rename': r = renamePage(md, String(body.title ?? '')); break;
     default: return NextResponse.json({ error: 'invalid', message: 'unknown op' }, { status: 422 });
   }
   if (r.error === 'conflict') return NextResponse.json({ error: 'conflict', current: r.current }, { status: 409 });
   if (r.error) return NextResponse.json({ error: r.error }, { status: r.error === 'not_found' ? 404 : 422 });
+  // the heading a page's text opens with is its title: an edit of it renames the page (lib/write followHeading)
+  if (body.op !== 'frontmatter' && body.op !== 'rename') r = { md: followHeading(md, r.md) };
   await writeAtomic(path.join(REPO_ROOT, hit.d.file), r.md);
   const built = await rebuild(hit.scope.product.dir);
   const checked = await lint(hit.scope.product.dir);

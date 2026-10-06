@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { mkdtemp, mkdir, writeFile, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { transcriptExcerpt, parseCandidates, candidateSlug, candidateCard, insertIntoPlanSection, consolidateSession, consolidateEnabled } from './consolidate';
+import { transcriptExcerpt, parseCandidates, candidateSlug, candidateCard, insertIntoPlanSection, consolidateSession, consolidateEnabled, touchedFiles, vaultFor } from './consolidate';
 import { rebuild } from './write';
 import { REPO_ROOT } from './products';
 import type { ChatEvent, Session } from './session-types';
@@ -104,5 +104,41 @@ _What was understood._
     const g = JSON.parse(await readFile(path.join(dir, '_build/graph.json'), 'utf8')) as { nodes: { id: string; kind: string; status: string; defined: boolean }[] };
     expect(g.nodes.filter(n => n.defined && ['constraint', 'lesson', 'question'].includes(n.kind)).length).toBe(3);
     expect(g.nodes.find(n => n.kind === 'lesson')?.status).toBe('proposed');
+  });
+});
+
+// each vault its share (decision:wf2.spanning-session-each-vault-its-share)
+describe('a candidate goes to the vault of the files it concerns', () => {
+  const e = (kind: ChatEvent['kind'], x: Partial<ChatEvent> = {}): ChatEvent => ({ t: '', kind, ...x });
+  const events = [
+    e('user', { text: 'fix the charge' }),                                                   // 0
+    e('tool_use', { name: 'Edit', input: { file_path: '/repo/services/payments/src/charge.ts' } }), // 1
+    e('assistant', { text: 'charges carry an idempotency key' }),                               // 2
+    e('user', { text: 'and the search index' }),                                             // 3
+    e('tool_use', { name: 'Write', input: { file_path: 'services/search/src/index.ts' } }),   // 4
+    e('tool_use', { name: 'Read', input: { file_path: '/repo/README.md' } }),                 // 5
+    e('assistant', { text: 'the index is rebuilt nightly' }),                                   // 6
+    e('user', { text: 'payments must tell search about refunds' }),                           // 7
+    e('tool_use', { name: 'Edit', input: { file_path: '/repo/services/payments/src/events.ts' } }), // 8
+    e('tool_use', { name: 'Edit', input: { file_path: '/repo/services/search/src/consume.ts' } }),  // 9
+    e('assistant', { text: 'refund events are the contract' }),                                 // 10
+  ];
+  const vaults = ['/repo', '/repo/services/payments', '/repo/services/search'];
+  const vaultOf = (f: string) => vaults.filter(v => f === v || f.startsWith(v + '/')).sort((a, b) => b.length - a.length)[0] ?? null;
+  const touched = touchedFiles(events, '/repo');
+  it('reads the files a session wrote, a relative one against its folder, and no file it only read', () => {
+    expect(touched).toEqual([{ i: 1, file: '/repo/services/payments/src/charge.ts' }, { i: 4, file: '/repo/services/search/src/index.ts' }, { i: 8, file: '/repo/services/payments/src/events.ts' }, { i: 9, file: '/repo/services/search/src/consume.ts' }]);
+  });
+  it('one vault: that vault; two: the nearest vault above both; no write in its turn: every file the session wrote', () => {
+    const home = '/repo/services/payments';
+    expect(vaultFor({ evidence: [2] }, events, touched, vaultOf, home)).toBe('/repo/services/payments');
+    expect(vaultFor({ evidence: [6] }, events, touched, vaultOf, home)).toBe('/repo/services/search');
+    expect(vaultFor({ evidence: [10] }, events, touched, vaultOf, home)).toBe('/repo');
+    expect(vaultFor({ evidence: [] }, events, touched, vaultOf, home)).toBe('/repo');
+  });
+  it('no vault above them all, or no file written: where the session began', () => {
+    const two = (f: string) => vaultOf(f) === '/repo' ? null : vaultOf(f);
+    expect(vaultFor({ evidence: [10] }, events, touched, two, '/repo/services/payments')).toBe('/repo/services/payments');
+    expect(vaultFor({ evidence: [2] }, events, [], vaultOf, '/home')).toBe('/home');
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { instanceTable, EMPTY_FILTERS, type Filters, parseFilters, filterRows, groupRows, sortRows, filtersToQuery, parseViewQuery, viewQuery, type InstanceRow, coverageOf } from './instance-table';
+import { instanceTable, EMPTY_FILTERS, type Filters, parseFilters, filterRows, groupRows, sortRows, filtersToQuery, parseViewQuery, viewQuery, type InstanceRow, coverageOf, mergeTables } from './instance-table';
 import type { GraphData, GraphNode, TypeDef } from './graph';
 
 const P = (name: string, from: string, type: string, extra: Partial<TypeDef['props'][number]> = {}) => ({ name, from, type, ref: null, many: false, required: false, inverse: null, enum: null, ...extra });
@@ -126,5 +126,18 @@ describe('open, due windows and owner=me', () => {
     expect(filterRows(rows, f, { today: '2026-10-05' }).map(r => r.id)).toEqual(['late', 'soon']);
     const exact = parseViewQuery('due=2026-10-09', ['due']);
     expect(exact.due).toBeUndefined(); expect(exact.props.due).toBe('2026-10-09');
+  });
+});
+
+// a view over the whole workspace (decision:wf2.workspace-is-the-top): every vault's rows, each naming its vault
+describe('mergeTables', () => {
+  const t = (slug: string, ids: string[], cols: string[], statuses: [string, number][]) => ({ slug, typed: cols.length > 0, columns: cols.map(name => ({ name, kind: 'string' as const })), rows: ids.map(id => ({ id, kind: slug, title: id, status: 'open', file: `data/products/x/projects/p/docs/plan.md`, doc: 'p / plan', props: {} })), statuses });
+  it('keeps every row with its vault, the columns of any of them and the summed status counts', () => {
+    const m = mergeTables([{ slug: 'pay', title: 'Payments', table: t('task', ['task:pay.a', 'task:pay.b'], ['due'], [['open', 2]]) }, { slug: 'search', title: 'Search', table: t('task', ['task:search.a'], ['due', 'size'], [['open', 1], ['done', 3]]) }]);
+    expect(m.rows.map(r => [r.id, r.vault, r.vaultTitle])).toEqual([['task:pay.a', 'pay', 'Payments'], ['task:pay.b', 'pay', 'Payments'], ['task:search.a', 'search', 'Search']]);
+    expect(m.columns.map(c => c.name)).toEqual(['due', 'size']);
+    expect(m.statuses).toEqual([['open', 3], ['done', 3]].sort((a, b) => (b[1] as number) - (a[1] as number) || String(a[0]).localeCompare(String(b[0]))));
+    expect(m.vaults).toEqual([{ slug: 'pay', title: 'Payments' }, { slug: 'search', title: 'Search' }]);
+    expect(groupRows(m.rows, 'vault')?.map(([k, rs]) => [k, rs.length])).toEqual([['Payments', 2], ['Search', 1]]);
   });
 });

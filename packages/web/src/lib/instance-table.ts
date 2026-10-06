@@ -8,8 +8,8 @@ import { docRoute } from './doc';
 
 export type ColumnKind = 'enum' | 'bool' | 'ref' | 'string';
 export interface Column { name: string; kind: ColumnKind; options?: string[]; ref?: string; many?: boolean }
-export interface InstanceRow { id: string; kind: string; title: string; status: string; file: string; doc: string; props: Record<string, string>; rels?: { verb: string; to: string }[]; text?: string }
-export interface InstanceTable { slug: string; typed: boolean; columns: Column[]; rows: InstanceRow[]; statuses: [string, number][]; /** who `owner=me` means: the product's director and the names they go by */ me?: string[] }
+export interface InstanceRow { id: string; kind: string; title: string; status: string; file: string; doc: string; props: Record<string, string>; rels?: { verb: string; to: string }[]; text?: string; /** the vault (product slug) the row is from and its title — set on every row of a view over the whole workspace */ vault?: string; vaultTitle?: string }
+export interface InstanceTable { slug: string; typed: boolean; columns: Column[]; rows: InstanceRow[]; statuses: [string, number][]; /** who `owner=me` means: the product's director and the names they go by */ me?: string[]; /** the vaults a workspace view read, in order (the asking one first) */ vaults?: { slug: string; title: string }[] }
 export interface Filters { q: string; status: string; group: string; sort: string; props: Record<string, string>; /** 'show': completed rows are listed (a table hides them by default) */ done?: string; /** '1': only what is still open — not done, met, dropped or answered */ open?: string; /** a window on the `due` date: 'late', 'today', '<n>d' (due within n days, late included) */ due?: string; /** a read query over the graph (lib/query): its `id` column picks the rows (decision:wf2.graph-query) */ sql?: string }
 
 export const EMPTY_FILTERS: Filters = { q: '', status: '', group: '', sort: '', props: {} };
@@ -132,8 +132,8 @@ export function groupRows(rows: InstanceRow[], by: string): [string, InstanceRow
   if (!by) return null;
   const m = new Map<string, InstanceRow[]>();
   for (const r of rows) {
-    const raw = by === 'status' ? r.status : by === 'doc' ? r.doc : r.props[by] ?? '';
-    const keys = raw ? (by === 'status' || by === 'doc' ? [raw] : items(raw)) : [NONE];
+    const raw = by === 'status' ? r.status : by === 'doc' ? r.doc : by === 'vault' ? r.vaultTitle ?? '' : r.props[by] ?? '';
+    const keys = raw ? (by === 'status' || by === 'doc' || by === 'vault' ? [raw] : items(raw)) : [NONE];
     for (const k of keys) { if (!m.has(k)) m.set(k, []); m.get(k)!.push(r); }
   }
   return [...m].sort((a, b) => a[0] === NONE ? 1 : b[0] === NONE ? -1 : a[0].localeCompare(b[0]));
@@ -143,7 +143,7 @@ export function groupRows(rows: InstanceRow[], by: string): [string, InstanceRow
 export function sortRows(rows: InstanceRow[], sort: string): InstanceRow[] {
   if (!sort) return rows;
   const desc = sort.startsWith('-'), col = desc ? sort.slice(1) : sort;
-  const val = (r: InstanceRow) => col === 'status' ? r.status : col === 'doc' ? r.doc : col === 'title' ? plain(r.title) : r.props[col] ?? '';
+  const val = (r: InstanceRow) => col === 'status' ? r.status : col === 'doc' ? r.doc : col === 'vault' ? r.vaultTitle ?? '' : col === 'title' ? plain(r.title) : r.props[col] ?? '';
   return [...rows].sort((a, b) => {
     const x = val(a), y = val(b);
     if (!x !== !y) return x ? -1 : 1;
@@ -162,4 +162,12 @@ export function parseViewQuery(query: string, columns: string[]): Filters {
 }
 export function viewQuery(f: Filters): string {
   return Object.entries({ q: f.q, status: f.status, group: f.group, sort: f.sort, done: f.done ?? '', open: f.open ?? '', due: f.due ?? '', sql: f.sql ?? '', ...f.props }).filter(([, v]) => v).map(([k, v]) => `${k}=${/[\s"\\]/.test(v) ? `"${v.replace(/[\\"]/g, '\\$&')}"` : v}`).join(' ');
+}
+
+// One table over several vaults (decision:wf2.workspace-is-the-top): every vault's rows, each carrying its vault; the
+// columns any of them has; the status counts summed. Each vault keeps its own graph — this is a union for the eye.
+export function mergeTables(parts: { slug: string; title: string; table: InstanceTable }[]): InstanceTable {
+  const first = parts[0].table; const columns: Column[] = []; const count = new Map<string, number>();
+  for (const p of parts) { for (const c of p.table.columns) if (!columns.some(x => x.name === c.name)) columns.push(c); for (const [st, n] of p.table.statuses) count.set(st, (count.get(st) ?? 0) + n); }
+  return { slug: first.slug, typed: parts.some(p => p.table.typed), columns, rows: parts.flatMap(p => p.table.rows.map(r => ({ ...r, vault: p.slug, vaultTitle: p.title }))), statuses: [...count].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])), me: first.me, vaults: parts.map(p => ({ slug: p.slug, title: p.title })) };
 }

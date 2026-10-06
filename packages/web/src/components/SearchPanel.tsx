@@ -22,7 +22,8 @@ type Pick = { source: Source; ref: string };
 const EXAMPLES = ['What is this product for?', 'Which requirements are still proposed?', 'What did agents decide this week?'];
 
 export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { product } = usePeek(); const router = useRouter();
+  const { product, workspace } = usePeek(); const router = useRouter();
+  const across = workspace.folder && workspace.vaults.length > 1; // a folder with several vaults is open: typing searches them all
   const [q, setQ] = useState(''); const [tab, setTab] = useState<Source | 'all'>('all');
   const [hits, setHits] = useState<Hit[]>([]); const [degraded, setDegraded] = useState(''); const [indexing, setIndexing] = useState(false); const [sel, setSel] = useState(0);
   const [preview, setPreview] = useState<Pick | null>(null); const [showDeep, setShowDeep] = useState(false);
@@ -36,13 +37,14 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
     const t = setTimeout(() => {
       const sp = new URLSearchParams({ q: text, limit: '40' });
       if (kind === 'page') sp.set('source', 'doc'); else if (kind) sp.set('kind', kind); else if (tab !== 'all') sp.set('source', tab);
+      if (across) sp.set('scope', 'workspace');
       fetch(`/api/${product}/search?${sp}`).then(r => r.json()).then((j: { hits?: Hit[]; degraded?: string; indexing?: boolean }) => {
         const hs = j.hits ?? [];
         setHits(hs); setDegraded(j.degraded ?? ''); setIndexing(!!j.indexing); setSel(0);
       }).catch(() => setHits([]));
     }, 120);
     return () => clearTimeout(t);
-  }, [q, tab, kind, product]);
+  }, [q, tab, kind, product, across]);
   useEffect(() => { if (state?.fastDone && state.thin) setShowDeep(true); }, [state?.fastDone, state?.thin]);
   const go = (href: string | null, p?: Pick) => { if (href) { router.push(href); onClose(); } else if (p) setPreview(p); };
   const openCite = (c: Citation) => go(c.href, { source: c.source, ref: c.ref });
@@ -56,6 +58,8 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
   const list = !q.trim() && state ? state.hits.filter(h => tab === 'all' || h.source === tab) : hits;
   if (!open) return null;
   const cur: Pick | null = preview ?? (list[sel] ? { source: list[sel].source, ref: list[sel].ref } : null);
+  // a hit of another vault is shown as its passage: its block, file or session belongs to that vault's own pages
+  const curHit = preview ? undefined : list[sel];
   const openAll = () => { const sp = new URLSearchParams(); if (q.trim()) sp.set('q', q.trim()); router.push(`/${product}/search?${sp}`); onClose(); };
   return (
     <div className="search-veil" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -82,13 +86,13 @@ export function SearchPanel({ open, onClose }: { open: boolean; onClose: () => v
         <div className="search-body">
           <ul className="search-hits">
             {list.map((h, i) => (
-              <li key={h.id} className={i === sel ? 'on' : ''} onMouseEnter={() => { setSel(i); setPreview(null); }} onClick={() => go(h.href, h)}>
-                <div className="search-hit-head">{h.source === 'node' ? <KindPill kind={h.ref.split(':')[0]} /> : <span className={`ask-src ask-src-${h.source}`}>{h.source}</span>}<span className="search-hit-title">{h.title}</span></div>
+              <li key={`${h.vault ?? ''}/${h.id}`} className={i === sel ? 'on' : ''} onMouseEnter={() => { setSel(i); setPreview(null); }} onClick={() => { if (h.vault && !h.href) return; go(h.href, h); }}>
+                <div className="search-hit-head">{h.source === 'node' ? <KindPill kind={h.ref.split(':')[0]} /> : <span className={`ask-src ask-src-${h.source}`}>{h.source}</span>}<span className="search-hit-title">{h.title}</span>{h.vault && <span className="vault-chip">{h.vaultTitle}</span>}</div>
                 <div className="search-hit-snip muted">{h.via ? `via ${h.via} · ` : ''}{h.text.replace(/\s+/g, ' ').slice(0, 140)}</div>
               </li>))}
             {q.trim().length >= 2 && !hits.length && <li className="muted search-none">Nothing matches — Enter asks anyway.</li>}
           </ul>
-          <div className={`search-preview${cur?.source === 'code' ? ' is-code' : ''}`}>{cur ? (cur.source === 'node' ? <EmbeddedCard id={cur.ref} /> : cur.source === 'code' ? <CodeView file={cur.ref.replace(/-\d+$/, '')} /> : <PassagePreview hit={list.find(h => h.ref === cur.ref)} cite={state?.found.find(f => f.ref === cur.ref)} />) : !q.trim() && !state ? (
+          <div className={`search-preview${cur?.source === 'code' ? ' is-code' : ''}`}>{cur ? (curHit?.vault ? <PassagePreview hit={curHit} /> : cur.source === 'node' ? <EmbeddedCard id={cur.ref} /> : cur.source === 'code' ? <CodeView file={cur.ref.replace(/-\d+$/, '')} /> : <PassagePreview hit={list.find(h => h.ref === cur.ref)} cite={state?.found.find(f => f.ref === cur.ref)} />) : !q.trim() && !state ? (
             <EmptyState title="Search or ask">
               <p>Typing finds blocks, documents, code and agent sessions. Enter asks Wye: a fast answer in seconds and a deeper one with the sources it read, each cited.</p>
               <div className="empty-state-chips">{EXAMPLES.map(x => <button key={x} type="button" className="chip" onClick={() => { setShowDeep(false); ask(x); }}>{x}</button>)}</div>

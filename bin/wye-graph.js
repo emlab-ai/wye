@@ -27,7 +27,12 @@ const argv = process.argv.slice(2);
 const cmd = argv[0];
 const opt = (name, def) => { const i = argv.indexOf('--' + name); if (i === -1) return def; const v = argv[i + 1]; return v === undefined || v.startsWith('--') ? true : v; };
 const positional = argv.slice(1).filter((a, i, arr) => !a.startsWith('-') && !(arr[i - 1] && arr[i - 1].startsWith('--') && !['--strict', '--structural', '--json', '--all', '--deep', '--explain', '--semantic'].includes(arr[i - 1])));
-const ROOT = opt('root', process.env.CTX_ROOT || (require('fs').existsSync('data/products/wye') ? 'data/products/wye' : 'docs/context-graph'));
+// the root: --root, CTX_ROOT, else the vault of the folder this runs in (the nearest .wye/ at or above it —
+// decision:wf2.write-back-nearest-vault), else this repo's own product
+const HERE_VAULT = (() => { const v = require('../lib/vault.js').vaultOf(process.cwd()); return v ? require('path').join(v, '.wye') : null; })();
+const ROOT = opt('root', process.env.CTX_ROOT || HERE_VAULT || (require('fs').existsSync('data/products/wye') ? 'data/products/wye' : 'docs/context-graph'));
+// a vault's code is the folder it sits in: `check` reads it from there when --repo is not given
+const REPO_DEFAULT = require('path').basename(require('path').resolve(ROOT)) === '.wye' ? require('path').dirname(require('path').resolve(ROOT)) : '.';
 const BUILD = path.join(ROOT, '_build');
 const graphFile = opt('graph', path.join(BUILD, 'graph.json'));
 
@@ -152,7 +157,7 @@ switch (cmd) {
         break;
     }
     case 'check': {
-        const g = load(); const r = g.check({ repo: path.resolve(opt('repo', '.')), strict: argv.includes('--strict') });
+        const g = load(); const r = g.check({ repo: path.resolve(opt('repo', REPO_DEFAULT)), strict: argv.includes('--strict') });
         for (const w of r.warnings) console.log('warn  ' + w);
         for (const e of r.errors) console.log('ERROR ' + e);
         console.log(`\n${r.errors.length} error(s), ${r.warnings.length} warning(s)`);

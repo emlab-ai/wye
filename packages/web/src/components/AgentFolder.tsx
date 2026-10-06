@@ -5,6 +5,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEv
 import { fitMenu } from '@/lib/menu-fit';
 import { useRouter } from 'next/navigation';
 import { railAgents, type RailAgent, type RailSession } from '@/lib/rail-agents';
+import { requestSend } from './CommandBox';
+import { usePeekMaybe } from './PeekProvider';
 
 type ImportRow = { requestSlug: string; project: string; title: string; total: number; done: number; current: string | null; stopped: boolean; legacy: boolean };
 const AGENT: Record<string, string> = { 'claude-code': 'Claude Code', codex: 'Codex', clerk: 'Wye' };
@@ -16,7 +18,10 @@ const STATE: Record<RailAgent['state'], string> = { working: 'working', idle: 'i
 export function AgentFolder({ product }: { product: string }) {
   const path = usePathname(); const router = useRouter();
   // the row's menu (right-click, or the hover ⋯): open, and cancel an agent / pause or resume an import
-  type Menu = { x: number; y: number; above?: number } & ({ kind: 'agent'; id: string } | { kind: 'import'; b: ImportRow });
+  type Menu = { x: number; y: number; above?: number } & ({ kind: 'agent'; id: string } | { kind: 'import'; b: ImportRow } | { kind: 'head' });
+  // a new session by hand (the head's right-click or its +): the command box opens for a fresh agent in the workspace's folder — at home, the product's code folder
+  const ws = usePeekMaybe()?.workspace;
+  const newSession = () => { setMenu(null); requestSend({ fresh: true, ...(ws?.path ? { cwd: ws.path } : {}) }); };
   const [menu, setMenu] = useState<Menu | null>(null); const menuEl = useRef<HTMLDivElement>(null);
   useEffect(() => {   // a press outside, Escape or a scroll closes it (React listens on document too: check the target)
     if (!menu) return;
@@ -44,9 +49,10 @@ export function AgentFolder({ product }: { product: string }) {
   const href = `/${product}/sessions`;
   return (
     <li className="pr-folder agent-folder">
-      <div className={`pf-head ${path === href ? 'on' : ''}`}>
+      <div className={`pf-head ${path === href ? 'on' : ''}`} onContextMenu={e => setMenu({ ...at(e), kind: 'head' })}>
         <button className="pf-caret" onClick={toggle} aria-label={open ? 'collapse agents' : 'expand agents'} aria-expanded={open}>{open ? '▾' : '▸'}</button>
         <Link href={href}><i>⚡</i>Agents{rows.length + imports.length > 0 && <small className="af-count">{rows.length + imports.length}</small>}</Link>
+        <button className="pf-add" onClick={newSession} title={`New agent session${ws?.path ? ` in ${ws.path}` : ''}`} aria-label="New agent session">+</button>
       </div>
       {open && <ul className="pf-list">
         {rows.map(a => (
@@ -75,7 +81,9 @@ export function AgentFolder({ product }: { product: string }) {
         {!rows.length && !imports.length && <li className="pf-empty muted">no agents running</li>}
       </ul>}
       {menu && <div ref={menuEl} className="pg-menu" role="menu" style={{ left: menu.x, top: menu.y }}>
-        {menu.kind === 'agent' ? <>
+        {menu.kind === 'head' ? <>
+          <button role="menuitem" onClick={newSession} title={ws?.path ? `A fresh agent in ${ws.path}` : 'A fresh agent in the product\'s code folder'}>New session{ws?.path ? ` in ${ws.path.split('/').pop()}` : ''}…</button>
+        </> : menu.kind === 'agent' ? <>
           <button role="menuitem" onClick={() => { setMenu(null); router.push(`/${product}/sessions/${menu.id}/chat`); }}>Open</button>
           <button role="menuitem" className="danger" onClick={() => void cancel(menu.id)}>Cancel agent</button>
         </> : <>

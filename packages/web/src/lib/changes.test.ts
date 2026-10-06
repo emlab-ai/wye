@@ -36,9 +36,10 @@ describe('change records (decision:exec.change-record, decision:exec.changes-fro
     expect(isTrackingOnly(['status', 'worker', 'session'])).toBe(true);
     expect(isTrackingOnly(['status', 'then'])).toBe(false);
   });
-  it('makes one record per changed typed node: pending for an agent or an approved node, accepted for tracking-only and a person\'s own proposed block, none for paragraphs', () => {
+  it('makes one record per changed typed node: pending for an agent or an approved node, accepted for tracking-only, none for a block nobody approved yet or for paragraphs', () => {
     const recs = recordsFromDiff(before, after, changes, id => id === 'req:x.a' ? { by: 'agent:s9', session: 's9' } : { by: 'person' }, '2026-09-19T10:00:00Z', 'p');
-    expect(recs.map(r => [r.node, r.state, r.tracking ?? false, r.own ?? false])).toEqual([['req:x.a', 'pending', false, false], ['task:x.t', 'accepted', true, false], ['decision:x.d', 'accepted', false, true]]);
+    // decision:x.d is still proposed: an edit to it refines the proposal the Inbox shows, and leaves no record of its own
+    expect(recs.map(r => [r.node, r.state, r.tracking ?? false, r.own ?? false])).toEqual([['req:x.a', 'pending', false, false], ['task:x.t', 'accepted', true, false]]);
     expect(recs[0]).toMatchObject({ kind: 'req', doc: 'module:prd', by: 'agent:s9', session: 's9', changed: ['text', 'then', 'owner'] });
     expect(recs[0].before.text).toBe('The old title'); expect(recs[0].after.props.then).toBe('it opens at once');
   });

@@ -19,6 +19,7 @@
     "@huggingface/transformers": "^4.3.0",
     "@lancedb/lancedb": "^0.39.0",
     "@monaco-editor/react": "^4.7.0",
+    "@tiptap/pm": "^3.31.3",
     "@xyflow/react": "^12.11.6",
     "apache-arrow": "^18.1.0",
     "lz-string": "^1.5.0",

@@ -16,6 +16,7 @@ kinds:
   doc:            { purpose: a page that is only a page — prose and blocks — and not a bounded area of the product the way type:module is }
   drift:          { purpose: a contradiction between two nodes }
   entity:         { purpose: a persisted thing }
+  fact:           { purpose: a plain fact worth keeping — about the product, a person, a date, the world, required: [statement] }
   flag:           { purpose: a runtime setting that changes behaviour }
   gate:           { purpose: a feature flag, permission policy or role check }
   goal:           { purpose: what the product or a project sets out to achieve }
@@ -72,6 +73,7 @@ verbs:
   hooks:          pr → hook
   mentions:       any → node   (inverse: mentioned-by)
   navigates:      action → page   (inverse: reached-from)
+  of:             fact → node   (inverse: facts)
   on:             comment → node   (inverse: comments)
   owns:           entity → state   (inverse: owned-by)
   pair:           verdict → node
@@ -100,6 +102,7 @@ statuses:
   constraint:  [proposed, approved, retired]
   decision:    [proposed, approved, rejected, superseded]
   drift:       [drift]
+  fact:        [proposed, approved, superseded, retired]
   goal:        [proposed, on-track, at-risk, off-track, paused, complete, non-goal]
   hook:        [active, paused]
   node:        [proposed, approved, shipped, deprecated, superseded, retired]

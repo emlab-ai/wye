@@ -53,7 +53,7 @@ The stages of this run, in order — each one starts only when the one before it
   stage: stage:feature.design
   part-of: run:feature-1
   depends-on: step:feature-1.prd
-  needs: ✓ every req in prd has satisfied-by · ✓ every req in prd has verified-by · ○ no open contradiction (contradiction:wye.e0f217651378, contradiction:wye.a4ab2c5826d6, contradiction:wye.344704eb5ce7, contradiction:wye.3b8dc8b9d832, contradiction:wye.3e8a0f2aadb1)
+  needs: ✓ every req in prd has satisfied-by · ✓ every req in prd has verified-by · ○ no open contradiction (contradiction:wye.ede034c0bf9d, contradiction:wye.e9eebe3e6df4, contradiction:wye.0e572d9bc62a, contradiction:wye.0a178921fc0f, contradiction:wye.e0f217651378, contradiction:wye.c82d7e456560 and 4 more)
   then: Build the plan
   produced: [module:implement-a-feature-to-install-system-skills-and-dev-design, module:implement-a-feature-to-install-system-skills-and-test-design]
   session: session:786a99f913, session:5340e4ddaa
@@ -82,7 +82,7 @@ The stages of this run, in order — each one starts only when the one before it
 
 - ✓ every req in prd has satisfied-by
 - ✓ every req in prd has verified-by
-- ○ no open contradiction — contradiction:wye.e0f217651378, contradiction:wye.a4ab2c5826d6, contradiction:wye.344704eb5ce7, contradiction:wye.3b8dc8b9d832, contradiction:wye.3e8a0f2aadb1
+- ○ no open contradiction — contradiction:wye.ede034c0bf9d, contradiction:wye.e9eebe3e6df4, contradiction:wye.0e572d9bc62a, contradiction:wye.0a178921fc0f, contradiction:wye.e0f217651378, contradiction:wye.c82d7e456560, contradiction:wye.a4ab2c5826d6, contradiction:wye.344704eb5ce7, contradiction:wye.3b8dc8b9d832, contradiction:wye.3e8a0f2aadb1
 
 ## Log
 

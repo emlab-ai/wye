@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, filterSuggestionItems, insertOrUpdateBlockForSlashMenu, getNodeById } from '@blocknote/core';
 import { useCreateBlockNote, createReactInlineContentSpec, createReactBlockSpec, FormattingToolbarController, SuggestionMenuController, getDefaultReactSlashMenuItems, useBlockNoteEditor, useComponentsContext, SideMenuController, SideMenu, DragHandleMenu, RemoveBlockItem, BlockColorsItem, useExtensionState, useEditorSelectionChange, useEditorChange } from '@blocknote/react';
 import { SideMenuExtension } from '@blocknote/core/extensions';
+import { closeHistory } from '@tiptap/pm/history';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
 import { expand, importMarkdown } from '@/lib/import';
@@ -399,6 +400,43 @@ function settleCollections(editor: EditorLike, taken: Set<string>, assignSlugs: 
   return changed;
 }
 
+// Blocks dragged by their handle over a table or a list that takes them: each one a node of the table's kind, the
+// table one of this page's rows (a table of the whole product keeps none). The rows of a table are its children and
+// are not shown as blocks, so there is no line between them to drop on — the whole table is the place.
+type DragView = { dragging: { slice: { content: { forEach: (f: (n: { attrs?: { id?: string } }) => void) => void } } } | null };
+function collectionDrop(editor: EditorLike, target: EventTarget | null): { into: AnyBlock; el: Element; blocks: AnyBlock[] } | null {
+  const view = (editor as unknown as { prosemirrorView?: DragView }).prosemirrorView;
+  const el = target instanceof Element ? target.closest('.bn-block-content[data-content-type="collection"]') : null;
+  const id = el?.closest('.bn-block-outer[data-id]')?.getAttribute('data-id');
+  if (!view?.dragging || !el || !id) return null;
+  const into = editor.getBlock(id) as AnyBlock | undefined;
+  if (!into || into.type !== 'collection') return null;
+  const { kind, query } = into.props as { kind: string; query?: string };
+  if (isLive(query)) return null;
+  const blocks: AnyBlock[] = []; let ok = true;
+  view.dragging.slice.content.forEach(n => {
+    const b = n.attrs?.id ? editor.getBlock(n.attrs.id) as AnyBlock | undefined : undefined;
+    if (!b || b.type !== 'node' || (b.props as unknown as { kind: string }).kind !== kind) ok = false; else blocks.push(b);
+  });
+  return ok && blocks.length ? { into, el, blocks } : null;
+}
+// The dragged blocks leave the page's text and become rows of the table: after its last row, before the empty one
+// kept for typing. What shows is the table's own card or row for each — once, not the block and the row both.
+function moveIntoCollection(editor: EditorLike, into: AnyBlock, blocks: AnyBlock[]) {
+  const { kind, view = 'table' } = into.props as { kind: string; view?: string };
+  const bare = (b: AnyBlock): AnyBlock => { const { id: _id, ...rest } = b as AnyBlock & { id?: string }; return { ...rest, ...(b.children?.length ? { children: (b.children as AnyBlock[]).map(bare) } : {}) } as AnyBlock; };
+  const rows = blocks.map(b => ({ ...bare(b), props: { ...b.props, row: view === 'list' ? '' : kind } }));
+  const move = () => {
+    editor.removeBlocks(blocks.map(b => String((b as { id?: string }).id)));
+    const kids = ((editor.getBlock(String((into as { id?: string }).id)) as AnyBlock | undefined)?.children ?? []) as AnyBlock[];
+    const last = kids[kids.length - 1];
+    if (!last) editor.updateBlock(into, { children: rows });
+    else editor.insertBlocks(rows, String((last as { id?: string }).id), last.type === 'node' && !rowText(last) && !(last.props as unknown as { slug: string }).slug ? 'before' : 'after');
+  };
+  const ed = editor as unknown as { transact?: (f: () => void) => void };
+  if (ed.transact) ed.transact(move); else move();
+}
+
 // looks the row's type up in the product's own types; an unknown type still gets a row with name and status
 function TypeRowFor({ p, set, contentRef, block, editor }: { p: { kind: string; slug: string; status: string; extra: string; row: string }; set: (patch: Partial<typeof p>) => void; contentRef: (el: HTMLElement | null) => void; block: AnyBlock; editor: EditorLike }) {
   const { ownTypes } = usePeek();
@@ -783,6 +821,8 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   // this page has not heard of yet — a passage node, a type declared a moment ago — must not be silently dropped
   const isId = (href: string) => new RegExp('^' + ID_RE.source + '$').test(href) || /^[a-z][a-z0-9-]*:[A-Za-z0-9_][A-Za-z0-9_./#-]*$/.test(href);
   const editor = useCreateBlockNote({ schema, uploadFile,
+    // over a table or a list that takes the dragged blocks there is no line between blocks: the table itself lights up
+    dropCursor: { hooks: { computeDropPosition: ({ editor: ed, event, defaultPosition }) => collectionDrop(ed as unknown as EditorLike, event.target) ? null : defaultPosition } },
     links: {
       isValidLink: (href: string) => !href || isId(href) || /^(?:(?:https?|ftp|mailto|tel):|[^a-z]|[a-z0-9+.-]+(?:[^a-z+.:-]|$))/i.test(href),
       onClick: (ev: MouseEvent) => { const a = (ev.target as HTMLElement).closest('a[href]'); const href = a?.getAttribute('href') ?? ''; if (href) linkClick.current(href, ev); return true; },
@@ -821,6 +861,30 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
   };
   const imageInput = useRef<HTMLInputElement>(null);
   if (typeof window !== 'undefined' && scoped) (window as unknown as { __wfScoped: unknown }).__wfScoped = editor; // dev inspection
+  // Blocks dragged onto a table or a list of their kind go into it (collectionDrop). Heard before the editor's own
+  // drop, which would put them on the line above or below the table.
+  useEffect(() => {
+    const el = rootRef.current; if (!el) return;
+    let lit: Element | null = null;
+    const light = (to: Element | null) => { if (lit === to) return; lit?.classList.remove('drop-into'); to?.classList.add('drop-into'); lit = to; };
+    const over = (e: DragEvent) => { const hit = collectionDrop(editor as unknown as EditorLike, e.target); light(hit?.el ?? null); if (hit) e.preventDefault(); };
+    const drop = (e: DragEvent) => {
+      const hit = collectionDrop(editor as unknown as EditorLike, e.target); light(null);
+      if (!hit) return;
+      e.preventDefault(); e.stopPropagation();
+      (editor as unknown as { prosemirrorView: { dragging: unknown } }).prosemirrorView.dragging = null;
+      touched.current = true;
+      moveIntoCollection(editor as unknown as EditorLike, hit.into, hit.blocks);
+      // the selection was the dragged blocks; left on the table, the next Backspace would delete it
+      const top = editor.document as unknown as AnyBlock[]; const at = top.findIndex(b => (b as { id?: string }).id === (hit.into as { id?: string }).id);
+      const text = [...top.slice(0, at).reverse(), ...top.slice(at + 1)].find(b => Array.isArray(b.content));
+      try { if (text) editor.setTextCursorPosition(text as never, 'end'); } catch { /* nothing to put the caret in */ }
+    };
+    const end = () => light(null);
+    el.addEventListener('dragover', over, true); el.addEventListener('drop', drop, true); document.addEventListener('dragend', end, true);
+    return () => { el.removeEventListener('dragover', over, true); el.removeEventListener('drop', drop, true); document.removeEventListener('dragend', end, true); light(null); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor]);
   if (typeof window !== 'undefined' && !scoped) { const w = window as unknown as { __wf: unknown; __wfExport: () => string; __wfLink: (id: string) => string }; w.__wf = editor; w.__wfExport = () => blocksToMarkdown(editor.document as unknown as AnyBlock[]); const imp = (md: string) => importMarkdown(md, src => editor.tryParseMarkdownToBlocks(src) as unknown as AnyBlock[]); Object.assign(w, { __wfImport: imp, __wfRoundTrip: (md: string) => blocksToMarkdown(imp(md)) }); w.__wfLink = (id: string) => { const b = editor.getBlock(id) as unknown as AnyBlock; return `${location.origin}/${product}/${project}/d/${slug}#${blockAnchor(b)}`; }; } // dev inspection
   void index;
   const [ready, setReady] = useState(false);
@@ -1356,7 +1420,50 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
     { title: 'Code block → drawing', group: 'Wye', subtext: 'turn this ASCII diagram into an editable drawing', onItemClick: () => codeToDrawing(editor.getTextCursorPosition().block as unknown as AnyBlock) },
   ];
 
+  // Enter at the end of a block's text starts the next block of the same kind — after a task, a task — with an id of
+  // its own. It is two steps in the undo history: the new line, then the line made a block, so one ⌘Z leaves the
+  // plain line and the next takes the Enter back. Enter in the new block while it is still empty is the way out of
+  // the run: it becomes the plain line. Heard before the editor's keymap; a menu that is open (/ or @) keeps its Enter.
+  useEffect(() => {
+    const el = rootRef.current; if (!el) return;
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || e.shiftKey || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+      const t = e.target as HTMLElement;
+      if (!t.isContentEditable || t.closest('.doc-editor') !== el || document.querySelector('.bn-suggestion-menu')) return;
+      // a card's own text (in a list, an embed) is one line — a second one would not be saved. Enter there asks the
+      // list for its next item: the "New …" field takes the caret (LiveTable)
+      if (textOnly) { e.preventDefault(); e.stopPropagation(); el.dispatchEvent(new CustomEvent('wf:next', { bubbles: true })); return; }
+      const view = (editor as unknown as { prosemirrorView: { state: { tr: Parameters<typeof closeHistory>[0]; selection: { empty: boolean; $from: { parentOffset: number; parent: { content: { size: number } } } } }; dispatch: (tr: unknown) => void } }).prosemirrorView;
+      const sel = view.state.selection;
+      if (!sel.empty || sel.$from.parentOffset !== sel.$from.parent.content.size) return;
+      let cur: AnyBlock; try { cur = editor.getTextCursorPosition().block as unknown as AnyBlock; } catch { return; }
+      const p = cur.props as unknown as { kind: string; slug: string; form: string; textKey: string; check: string; list: string; row: string };
+      if (cur.type !== 'node' || p.row || p.form === 'yaml') return;
+      if (!rowText(cur)) {   // the block Enter made and nothing was typed into: it is the plain line again, not an empty task left behind
+        if (!/^new-\d+$/.test(p.slug) || cur.children?.length) return;
+        e.preventDefault(); e.stopPropagation();
+        editor.updateBlock(cur as never, { type: 'paragraph', props: {} } as never); touched.current = true;
+        return;
+      }
+      e.preventDefault(); e.stopPropagation();
+      const taken = nodeIds(); let slug = fresh(); while (taken.has(`${p.kind}:${slug}`) || index[`${p.kind}:${slug}`]) slug = fresh();
+      const [line] = editor.insertBlocks([{ type: 'paragraph', content: [] } as never], cur as never, 'after');
+      editor.setTextCursorPosition(line as never, 'start');
+      view.dispatch(closeHistory(view.state.tr));
+      editor.updateBlock(line as never, { type: 'node', props: { kind: p.kind, slug, form: 'prose', textKey: p.textKey || 'text', status: p.kind === 'task' ? 'open' : p.kind === 'goal' || PARTS[p.kind] ? 'proposed' : '', check: p.check ? 'todo' : '', list: p.list } } as never);
+      touched.current = true;
+    };
+    el.addEventListener('keydown', key, true); return () => el.removeEventListener('keydown', key, true);
+  }); // eslint-disable-line react-hooks/exhaustive-deps
   const docCtx = useMemo(() => ({ project, slug }), [project, slug]);
+  // The side menu is one component for the editor's life: written inline it is a new component type on every render,
+  // and the render a drag's own selection change causes unmounts the handle being dragged — the browser ends a drag
+  // whose source left the page, so no block could be moved by its handle.
+  const drawing = useRef({ codeToDrawing, imageToDrawing }); drawing.current = { codeToDrawing, imageToDrawing };
+  const sideMenu = useMemo(() => {
+    const Menu = () => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={b => drawing.current.codeToDrawing(b)} /><AnnotateItem annotate={b => drawing.current.imageToDrawing(b)} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>;
+    return function PageSideMenu(p: Parameters<typeof SideMenu>[0]) { return <SideMenu {...p} dragHandleMenu={Menu} />; };
+  }, []);
   if (loadError) return <div className="doc-editor"><p className="notice">Editing is off for this document: {loadError}. The text below is read-only.</p>{fallback}</div>;
   return (
     <EditorScope.Provider value={scope}><EditorDoc.Provider value={docCtx}>
@@ -1375,7 +1482,7 @@ export default function DocEditor({ product, project, slug, body, ifMatch, fallb
       {commentPop && <CommentPop at={commentPop} on={commentPop.on} product={product} words={commentPop.words} onClose={closeCommentPop} />}
       <div className="doc-editor-bar"><span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'conflict' ? 'changed on disk — reload' : state === 'error' ? 'save failed' : ready ? 'live' : 'loading…'}</span>{lintMsg && <span className="notice">Lint: {lintMsg}</span>}{!lintMsg && elsewhere > 0 && <span className="muted" title="ctx check finds an error in another document of the product — not in this one">{elsewhere} check error{elsewhere === 1 ? '' : 's'} elsewhere</span>}</div>
       <BlockNoteView editor={editor} theme={theme} onChange={changed} formattingToolbar={false} slashMenu={false} sideMenu={false} emojiPicker={false}>
-        <SideMenuController sideMenu={p => <SideMenu {...p} dragHandleMenu={() => <DragHandleMenu><RemoveBlockItem>Delete</RemoveBlockItem><BlockColorsItem>Colors</BlockColorsItem><ToDrawingItem convert={codeToDrawing} /><AnnotateItem annotate={imageToDrawing} /><CopyLinkItem /><SendToAgentItem /></DragHandleMenu>} />} />
+        <SideMenuController sideMenu={sideMenu} />
         <FormattingToolbarController formattingToolbar={() => <SelectionMenu actions={{
           linkNode: at => setLinkReq(linkRequestFrom(editor as unknown as Ed, at)),
           makeBlock: at => setMakeReq({ x: at.left, y: at.bottom, under: nodeKindAt(editor as unknown as { getTextCursorPosition: () => { block: { id: string } }; document: unknown }) }),

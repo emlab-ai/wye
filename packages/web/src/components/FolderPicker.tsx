@@ -7,12 +7,18 @@ import { createPortal } from 'react-dom';
 // the sheet walks folders (double-click or Enter opens one), can make a new one, and hands back the folder it is in.
 type List = { path: string; parent: string | null; home: string; folders: { name: string; product: boolean }[]; product: boolean };
 
+// The system's folder dialog (POST /api/system/folders { pick }) — the app runs on the machine the folders are on, so
+// Choose… opens Finder's, the shell's or zenity's; resolves to the path, '' when cancelled, null when there is none
+export async function pickFolder(title: string, start = ''): Promise<string | null> {
+  try { const r = await fetch('/api/system/folders', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ pick: true, title, start }) }); if (r.status === 501) return null; const j = await r.json(); return r.ok ? String(j.path ?? '') : null; } catch { return null; }
+}
 export function FolderField({ value, onChange, placeholder, autoFocus, onEnter, title = 'Choose a folder' }: { value: string; onChange: (v: string) => void; placeholder?: string; autoFocus?: boolean; onEnter?: () => void; title?: string }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false); const [busy, setBusy] = useState(false);
+  const choose = async () => { setBusy(true); const p = await pickFolder(title, value); setBusy(false); if (p === null) setOpen(true); else if (p) onChange(p); };
   return (
     <span className="folder-field">
       <input autoFocus={autoFocus} value={value} placeholder={placeholder} spellCheck={false} onChange={e => onChange(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') onEnter?.(); }} />
-      <button type="button" onClick={() => setOpen(true)}>Choose…</button>
+      <button type="button" disabled={busy} onClick={choose}>{busy ? 'Choosing…' : 'Choose…'}</button>
       {open && <FolderPicker title={title} start={value} onClose={() => setOpen(false)} onPick={p => { onChange(p); setOpen(false); }} />}
     </span>
   );

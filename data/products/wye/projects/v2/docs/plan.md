@@ -119,6 +119,15 @@ Work that is planned but on no plan document yet, by area, and the tasks past pa
   - [ ] task:wye.place-the-16-generated-cards-unsorted Place the 16 generated cards Unsorted on components.md, api.md, pages.md; Libraries on app-storage.md in their sections, word their purposes, and write header comments for the files that had none app/page.tsx, app/[product]/page.tsx, sessions/[id]/chat/page.tsx ; answer question:app.cards-and-code-source. (by: agent:7a334e57e6, since: 2026-09-20, part-of: task:app.keep-in-step)
 <!-- /tasks -->
 
+- [ ] task:wye.edit-the-choice-of-decision-wf2 Edit the choice of decision:wf2.vault-is-a-product-in-wye and the text of task:wf2.vault-loader once decision:wf2.vault-keeps-folders is approved: the flat product.md / docs / system layout and the migration script no longer hold wye impact first . (by: agent:13bdb849d4, since: 2026-10-05, part-of: pr:31)
+- [x] task:wye.moving-a-vault-to-trash-removes Moving a vault to trash removes it from its parent's vaults: and gives its children back to the parent the second half of decision:wf2.vault-links; rule:vault-links covers init only . S (by: agent:13bdb849d4, since: 2026-10-05, part-of: pr:31)
+- [x] task:wye.wye-check-and-wye-build-on wye check and wye build on a vault take the folder the vault sits in as the code root when --repo is not given, and every wye command finds --product from the nearest .wye/ above the current folder part of task:wf2.vault-write-back; today the note init writes names --product <slug> . S (by: agent:13bdb849d4, since: 2026-10-05, part-of: pr:31)
+- [x] task:wye.the-init-wye-here-entry-in The Init Wye here entry in the Files context menu and in Add a product calls op:api.product-init, which exists and is tested by hand only part of task:wf2.workspace-files . S (by: agent:13bdb849d4, since: 2026-10-05, part-of: pr:31)
+- [x] task:wye.when-task-wf2-workspace-open-lands When task:wf2.workspace-open lands, drop the registry entry wye init makes for a vault decision:wf2.vault-first-slice — until then a vault whose slug another product already has on this machine is shown as <slug>-2 in the app. S (by: agent:13bdb849d4, since: 2026-10-05, part-of: pr:31)
+- [ ] task:wye.build-the-shared-vault-as-decision Build the shared vault as decision:wf2.shared-vault-design says, once it is approved: shared: links in _product.md, the sharedPaths override in this machine's settings, shared roots in Documents, their approved constraints and decisions in the packet (by: agent, since: 2026-10-05, part-of: pr:31)
+- [ ] task:wye.ask-s-answers-the-fast-and Ask's answers the fast and the deep lane read one vault; in an opened folder only the typing search reads them all — let a question be answered from every vault of the workspace, each citation named by its vault (by: agent, since: 2026-10-05, part-of: pr:31)
+- [ ] task:wye.a-vault-made-before-a-vault A vault made before a vault below it still describes that folder's code as one of its modules — when a child vault is inited, propose retiring those pages in the parent (by: agent, since: 2026-10-05, part-of: pr:31)
+
 ## Definition — the librarian
 
 <!-- tasks -->
@@ -127,6 +136,57 @@ Work that is planned but on no plan document yet, by area, and the tasks past pa
 - [x] task:exec.wye-turns The librarian's first turn (explain with tags, say when satisfied or contradicting), the question form along when / then / unless and constraints (three at a time, skipped → question block), and `wye propose` writing proposed blocks to home documents and embedding them on the plan with verdicts. Part of goal:exec.define-first (req:exec.wye-explains, req:exec.wye-asks, req:exec.wye-proposes). Depends on task:memory.verdict-pass and task:memory.constraint-packet. (session: de966d3bd9)
 - [ ] task:exec.librarian-tests test:librarian — recorded librarian turns on the YesSensei pilot: explains with tags, asks only unfilled slots, proposes into home documents, never edits code; ui-test:ask-wye and ui-test:build-plan in Chrome. Part of goal:exec.define-first.
 <!-- /tasks -->
+
+```yaml
+- id: task:wf2.vault-loader
+  title: "A product read from <folder>/.wye/ (product.md, docs/, system/, inbox/, gitignored _build/) beside the data folder's products; a migration script for existing products, ids unchanged (L, decision:wf2.vault-is-a-product-in-wye)."
+  status: done
+  part-of: pr:31
+  session: 13bdb849d4
+```
+
+```yaml
+- id: task:wf2.vault-init-here
+  title: "wye init with no flags in the current folder: slug from the folder name, the shallow definition (rule:init-shallow), _agent.md, the service skills, the CLAUDE.md / AGENTS.md section, parent and child links both ways; Init Wye here calls the same (M, decision:wf2.vault-links, req:wf2.vault-init)."
+  status: done
+  part-of: pr:31
+  session: 13bdb849d4
+```
+
+```yaml
+- id: task:wf2.workspace-open
+  title: "Open a folder as the workspace (wye app <folder>, Open folder, recent ones in ~/.wye): vaults through links, Rescan, one Documents root per vault, Goals / Work / Inbox / Pinned / search across them with a vault label (L, decision:wf2.workspace-is-the-top, req:wf2.workspace-open)."
+  status: done
+  part-of: pr:31
+```
+
+```yaml
+- id: task:wf2.workspace-files
+  title: "The Files rail section over the workspace folder, a file in a tab with the code view, the context menu (Init Wye here, Reveal in Documents, Copy path); op:api.code rooted at the workspace (M, decision:wf2.files-are-code-tabs, req:wf2.workspace-files)."
+  status: done
+  part-of: pr:31
+```
+
+```yaml
+- id: task:wf2.vault-write-back
+  title: "The wye CLI finds its vault from the current folder; Wye's sessions run in the vault's folder with its contract; consolidation routes each proposal to the vault of its files; the Inbox shows the vault (M, decision:wf2.write-back-nearest-vault, req:wf2.vault-write-back)."
+  status: done
+  part-of: pr:31
+```
+
+```yaml
+- id: task:wf2.workspace-migration
+  title: "data/products opened as the default workspace, every /<product>/… URL still resolving, Settings and Add a product turned into Open folder / Init here (M, decision:wf2.workspace-is-the-top)."
+  status: done
+  part-of: pr:31
+```
+
+```yaml
+- id: task:wf2.shared-vault-design
+  title: "Design only, no build: the shared: links, the per-machine path override, how a shared vault's constraints enter a packet, written as rules and decisions for review (S, decision:wf2.shared-vault-is-a-local-clone, req:wf2.shared-vault)."
+  status: done
+  part-of: pr:31
+```
 
 ## Documents and editing
 

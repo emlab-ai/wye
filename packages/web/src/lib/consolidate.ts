@@ -52,7 +52,7 @@ export function candidateCard(id: string, c: Candidate, s: Pick<Session, 'id'>, 
   else if (c.kind === 'question') lines.push(y('q', c.text || c.title), y('context', c.context));
   else lines.push(y('statement', c.text || c.title), y('context', c.context));
   if (related.length) lines.push(`  related-to: [${related.join(', ')}]`); // the knowledge Jev is sure the card is about (Jev auto-linking design §4)
-  lines.push(`  status: ${c.kind === 'question' ? 'open' : 'proposed'}`, `  by: ${by}`, `  evidence: [${evidence}]`, `  part-of: ${planId}`);
+  lines.push(`  status: ${c.kind === 'question' ? 'open' : 'proposed'}`, `  by: ${by}`, `  evidence: [${evidence}]`, ...(planId ? [`  part-of: ${planId}`] : []));
   return lines.filter(Boolean).join('\n');
 }
 // A decision's parts as child lines under its card (decision:wf2.decision-free-text): choice (its text), context.
@@ -73,8 +73,36 @@ export function insertIntoPlanSection(md: string, cards: string[], parts: string
   return md.slice(0, i) + section + '\n\n' + block + '\n' + md.slice(end);
 }
 
+// ---- each vault its share (decision:wf2.spanning-session-each-vault-its-share)
+// The files a session wrote, with the transcript index of each write: the agent's Edit / Write / MultiEdit /
+// NotebookEdit calls (their `file_path`), relative ones against the session's folder.
+export function touchedFiles(events: ChatEvent[], cwd = ''): { i: number; file: string }[] {
+  const out: { i: number; file: string }[] = [];
+  events.forEach((e, i) => {
+    if (e.kind !== 'tool_use' || !/^(Edit|Write|MultiEdit|NotebookEdit)$/.test(e.name ?? '')) return;
+    const inp = (e.input ?? {}) as { file_path?: unknown; notebook_path?: unknown }; const f = typeof inp.file_path === 'string' ? inp.file_path : typeof inp.notebook_path === 'string' ? inp.notebook_path : '';
+    if (f) out.push({ i, file: path.isAbsolute(f) ? f : path.resolve(cwd || '/', f) });
+  });
+  return out;
+}
+// The vault folder a candidate belongs to: the vault of the files written in the turns its evidence cites (a turn
+// runs from one message of the person to the next); with no write there, of every file the session wrote. One vault:
+// that one. Several: the nearest vault above them all. None, or none above them all: `home`, where the session began.
+export function vaultFor(c: Pick<Candidate, 'evidence'>, events: ChatEvent[], touched: { i: number; file: string }[], vaultOf: (file: string) => string | null, home: string | null): string | null {
+  const users = events.map((e, i) => e.kind === 'user' ? i : -1).filter(i => i >= 0);
+  const turn = (n: number): [number, number] => [users.filter(u => u <= n).pop() ?? 0, users.find(u => u > n) ?? events.length];
+  const spans = c.evidence.map(turn);
+  const near = touched.filter(t => spans.some(([a, b]) => t.i >= a && t.i < b));
+  const vaults = [...new Set((near.length ? near : touched).map(t => vaultOf(t.file)).filter((v): v is string => !!v))];
+  if (!vaults.length) return home;
+  if (vaults.length === 1) return vaults[0];
+  // the nearest vault at or above every one of them
+  for (let f: string | null = vaults[0]; f; f = vaultOf(path.dirname(f))) if (vaults.every(v => v === f || v.startsWith(f + path.sep))) return f;
+  return home;
+}
+
 // The run: transcript → candidates → cards filed on the plan; the session log says what happened.
-export async function consolidateSession(productDir: string, product: string, s: Session, opts: { model?: string; jev?: JevClient; searchFn?: SearchFn } = {}): Promise<{ candidates: Candidate[]; filed: string[]; doc?: string }> {
+export async function consolidateSession(productDir: string, product: string, s: Session, opts: { model?: string; jev?: JevClient; searchFn?: SearchFn } = {}): Promise<{ candidates: Candidate[]; filed: string[]; doc?: string; /** what went to other vaults: the vault's slug and the ids filed there */ sent?: { vault: string; ids: string[] }[] }> {
   const excerpt = transcriptExcerpt(s.transcript ?? []);
   if (excerpt.length < 200) return { candidates: [], filed: [] };
   const written = (s.artifacts?.blocks ?? []).filter(b => b.change !== 'removed' && /^(decision|constraint|question|lesson|req|rule|task):/.test(b.id)).map(b => ({ id: b.id, title: b.title }));
@@ -88,16 +116,46 @@ export async function consolidateSession(productDir: string, product: string, s:
   const taken = new Set(graph.nodes.map(n => n.id));
   const date = new Date().toISOString().slice(0, 10);
   const filed: string[] = []; const cards: string[] = []; const parts: string[][] = [];
+  // each vault its share (decision:wf2.spanning-session-each-vault-its-share): a candidate about the files of another
+  // vault is filed there — on that vault's Backlog page, which every vault has — and the rest on the request's page
+  const touched = touchedFiles(s.transcript ?? [], s.cwd); const elsewhere = new Map<string, Candidate[]>();
+  const home = path.basename(productDir) === '.wye' ? path.dirname(productDir) : null;
+  let vaultOf: (f: string) => string | null = () => null;
+  if (touched.length) { try { const lib = (await import('./workspace')).vaultLib(); vaultOf = f => lib.vaultOf(f); } catch { /* no vault library: everything stays here */ } }
   // each card linked before it is written when a Jev key is stored (Jev auto-linking design §4); a failure leaves the card unlinked
   const jev = opts.jev ?? await jevClient();
   for (const c of candidates) {
+    const at = touched.length ? vaultFor(c, s.transcript ?? [], touched, vaultOf, home) : home;
+    if (at && at !== home) { elsewhere.set(at, [...(elsewhere.get(at) ?? []), c]); continue; }
     const id = candidateSlug(product, c, taken); taken.add(id); filed.push(id);
     let related: string[] = [];
     if (jev.enabled) { try { related = confidentIds(await judgeText(productDir, graph, `${c.title}. ${c.text}`, { jev, searchFn: opts.searchFn })); } catch (e) { console.warn('jev: consolidation link failed —', e instanceof Error ? e.message : e); } }
     cards.push(candidateCard(id, c, s, page.id, s.agent, date, related)); parts.push(decisionParts(id, c));
   }
+  if (cards.length) await withFileLock(file, async () => { const md = await readFile(file, 'utf8'); await writeAtomic(file, insertIntoPlanSection(md, cards, parts)); });
+  const sent: { vault: string; ids: string[] }[] = [];
+  for (const [folder, list] of elsewhere) {
+    const ids = await fileInVault(folder, list, s, date).catch(e => { console.warn(`consolidation: ${folder}: ${e instanceof Error ? e.message : e}`); return null; });
+    if (ids) { sent.push({ vault: ids.slug, ids: ids.ids }); filed.push(...ids.ids); }
+    // a vault that cannot take them (no Backlog page): they stay with the request rather than being lost
+    else { const extra: string[] = [], extraParts: string[][] = []; for (const c of list) { const id = candidateSlug(product, c, taken); taken.add(id); filed.push(id); extra.push(candidateCard(id, c, s, page.id, s.agent, date)); extraParts.push(decisionParts(id, c)); } await withFileLock(file, async () => { const md = await readFile(file, 'utf8'); await writeAtomic(file, insertIntoPlanSection(md, extra, extraParts)); }); }
+  }
+  return { candidates, filed, doc: s.prDoc, ...(sent.length ? { sent } : {}) };
+}
+
+// A vault's share of a session's candidates: proposed cards on its Backlog page (projects/<main>/docs/plan.md), ids
+// under its own slug. → the ids written, or null when the vault has no such page.
+async function fileInVault(folder: string, list: Candidate[], s: Session, date: string): Promise<{ slug: string; ids: string[] } | null> {
+  const { vaultLib } = await import('./workspace'); const { readdir } = await import('node:fs/promises');
+  const dir = path.join(folder, '.wye'); const slug = vaultLib().readMeta(folder).slug || path.basename(folder);
+  const projects = (await readdir(path.join(dir, 'projects'), { withFileTypes: true }).catch(() => [])).filter(e => e.isDirectory()).map(e => e.name);
+  let file = ''; for (const p of [slug, ...projects]) { const f = path.join(dir, 'projects', p, 'docs', 'plan.md'); try { await readFile(f, 'utf8'); file = f; break; } catch { /* next */ } }
+  if (!file) return null;
+  const graph = await loadGraph(path.join(dir, '_build/graph.json')).catch(() => null);
+  const taken = new Set((graph?.nodes ?? []).map(n => n.id)); const ids: string[] = [], cards: string[] = [], parts: string[][] = [];
+  for (const c of list) { const id = candidateSlug(slug, c, taken); taken.add(id); ids.push(id); cards.push(candidateCard(id, c, s, '', s.agent, date)); parts.push(decisionParts(id, c)); }
   await withFileLock(file, async () => { const md = await readFile(file, 'utf8'); await writeAtomic(file, insertIntoPlanSection(md, cards, parts)); });
-  return { candidates, filed, doc: s.prDoc };
+  return { slug, ids };
 }
 
 // registered once the module is loaded (lib/agent-host imports it): after the plan's result is written, a done session is consolidated, detached
@@ -105,5 +163,5 @@ onSessionEnd(async (productDir, s) => {
   if (s.status !== 'done' || !s.prDoc) return;
   if (!(await consolidateEnabled(productDir))) return;
   const product = slugOfDir(productDir);
-  void consolidateSession(productDir, product, s).then(r => updateSession(productDir, s.id, { line: r.filed.length ? `consolidation: ${r.filed.length} block(s) the conversation decided but nobody wrote — filed as proposed on ${r.doc}: ${r.filed.join(', ')}` : `consolidation: ${r.candidates.length ? 'everything the conversation decided was written' : 'nothing to consolidate'}` })).catch(e => updateSession(productDir, s.id, { line: `consolidation failed: ${e instanceof Error ? e.message : e}` }));
+  void consolidateSession(productDir, product, s).then(r => updateSession(productDir, s.id, { line: r.filed.length ? `consolidation: ${r.filed.length} block(s) the conversation decided but nobody wrote — filed as proposed on ${r.doc}${r.sent?.length ? `, and in the vault of the files they concern (${r.sent.map(x => `${x.vault}: ${x.ids.length}`).join(', ')})` : ''}: ${r.filed.join(', ')}` : `consolidation: ${r.candidates.length ? 'everything the conversation decided was written' : 'nothing to consolidate'}` })).catch(e => updateSession(productDir, s.id, { line: `consolidation failed: ${e instanceof Error ? e.message : e}` }));
 }, 'consolidate');

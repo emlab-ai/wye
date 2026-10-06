@@ -10,6 +10,8 @@ import { listChanges } from './changes';
 import { search } from './semantic';
 import { resolveLink } from './resolve';
 import { docIdOf } from './doc';
+import path from 'node:path';
+import { graphFor } from './build';
 
 export const PACKET_VERBS = new Set(['governs', 'governed-by', 'gated-by', 'gates', 'affects', 'affected-by', 'refines', 'refined-by', 'part-of', 'has', 'depends-on', 'depended-on-by', 'scope', 'constrained-by', 'about', 'lessons', 'applies-to', 'satisfied-by', 'satisfies', 'rationale', 'rationale-for']);
 export const PACKET_KINDS = new Set(['rule', 'constraint', 'gate', 'decision', 'goal', 'lesson', 'question']);
@@ -96,5 +98,24 @@ export async function packetFor(scope: Scope, text: string, refs: string[], opts
     const hit = pending.filter(c => ids.has(c.node));
     if (hit.length) markdown += `\n\n_Changed, pending review (the value above is the new one; the old value is on the change record): ${[...new Set(hit.map(c => `${c.node} (${c.by})`))].join(', ')}._`;
   } catch { /* no change store */ }
+  // a vault under another: the approved constraints of every vault above it bind it too (decision:wf2.root-vault-only-if-inited)
+  try { const up = await inheritedConstraints(scope.product); if (up) markdown += '\n\n' + up; } catch { /* a parent that cannot be read binds nothing here */ }
   return { markdown, packet };
+}
+
+// The approved constraints of the vaults above a vault, nearest first — nothing else of a parent flows down
+// (decision:wf2.root-vault-only-if-inited). Read from each parent's own built graph; a parent never built says so.
+export async function inheritedConstraints(product: Scope['product']): Promise<string> {
+  if (!product.vault?.parent) return '';
+  const { vaultLib } = await import('./workspace');
+  const lib = vaultLib(); const parts: string[] = []; const seen = new Set<string>();
+  for (let folder: string | null = product.vault.parent; folder && !seen.has(folder); folder = lib.links(folder).parent) {
+    seen.add(folder);
+    const name = lib.readMeta(folder).title || path.basename(folder);
+    const g = await graphFor(path.join(folder, '.wye'));
+    if (!g) { parts.push(`### From the vault above — ${name}\n_Not built on this machine yet (open ${folder} in Wye, or \`wye build\` there): its constraints are not listed._`); continue; }
+    const list = g.graph.nodes.filter(n => n.kind === 'constraint' && n.defined && n.status === 'approved' && isCurrent(n) && !n.archived).sort((a, b) => a.id.localeCompare(b.id));
+    if (list.length) parts.push([`### From the vault above — ${name} (${list.length} constraint${list.length === 1 ? '' : 's'}, they bind this vault too)`, ...list.map(constraintLine)].join('\n'));
+  }
+  return parts.join('\n\n');
 }

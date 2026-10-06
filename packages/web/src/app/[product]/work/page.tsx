@@ -16,7 +16,7 @@ export default async function Page({ params }: { params: Promise<{ product: stri
   const { items, people } = await loadWork(scope);
   return (
     <div className="page page-wide">
-      <header className="doc-head"><h1 className="prop-in h1" style={{ margin: 0 }}>Work</h1><p className="sub">every task of {scope.product.meta.title}, whoever holds it — a request sent to an agent, a step on a plan, a line in a document, an item dropped for later. Assign hands one to a person or an agent; a task in review waits for you.</p></header>
+      <header className="doc-head"><h1 className="prop-in h1" style={{ margin: 0 }}>Tasks</h1><p className="sub">every task of {scope.product.meta.title}, whoever holds it — a request sent to an agent, a step on a plan, a line in a document, an item dropped for later. Assign hands one to a person or an agent; a task in review waits for you.</p></header>
       <Suspense><WorkList product={product} items={items} people={people} /></Suspense>
     </div>
   );

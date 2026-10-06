@@ -3,6 +3,7 @@ import { markStep } from '@/lib/onboarding-io';
 import { getProduct, productRepo } from '@/lib/products';
 import { AGENTS, addRefs, createSession, listSessions, listRunners, setPrDoc } from '@/lib/sessions';
 import { validModel } from '@/lib/agent-launch';
+import { AGENT_IDS } from '@/lib/settings';
 import { startChat, liveState, reconcileStale } from '@/lib/agent-host';
 import { askingOf } from '@/lib/asking';
 import { createPrDoc, goalForRequest, readPrDoc, setRefining } from '@/lib/pr-docs';
@@ -14,7 +15,9 @@ import { listSkills } from '@/lib/skills';
 import { stat } from 'node:fs/promises';
 import { REPO_ROOT } from '@/lib/products';
 
-// GET → { sessions } — each with its requests from the graph (decision:wf2.plan-per-request); POST { agent, instruction, refs?, source?, images?, pr?, model? } → the new session (status queued).
+// POST { join: true, agent?, instruction?, runner?, refs? } → an agent that is already running somewhere (a server, over the tunnel) joins as a
+// session of its own: running from the start under its runner name, never queued, so what it writes is attributed to it (decision:wf2.remote-agents-join).
+// GET → { sessions } — each with its requests from the graph (decision:wf2.plan-per-request); POST { agent, instruction, refs?, source?, images?, pr?, model? } → the new session (status queued); with `pr: true`, `agent` (claude-code | codex) and `model` are the librarian's.
 // `pr: true` (or role librarian) makes a Prompt Request: the page is created as draft, set refining, and a librarian refines it (decision:wf2.cmd-modes);
 // `pr: false` is an ad-hoc conversation on the chosen agent — no page.
 export async function GET(_req: Request, { params }: { params: Promise<{ product: string }> }) {
@@ -30,6 +33,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const { product } = await params;
   const p = await getProduct(product); if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const body = (await req.json()) as { agent?: string; instruction?: string; refs?: string[]; source?: Record<string, string>; mode?: 'run' | 'chat'; cwd?: string; pr?: boolean; prRef?: string; remember?: boolean; images?: { name?: string; dataUrl: string }[]; role?: 'worker' | 'librarian'; skills?: string[]; hooks?: string[]; skill?: string; model?: string };
+  if ((body as { join?: boolean }).join === true) {
+    const runner = String((body as { runner?: string }).runner ?? '').replace(/[^\w.@-]+/g, '-').slice(0, 80) || 'remote';
+    const joined = await createSession(p.dir, product, { agent: AGENTS.find(a => a.id === body.agent)?.id ?? 'claude-code', instruction: (body.instruction ?? '').trim() || `an agent on ${runner}`, refs: (body.refs ?? []).filter(r => typeof r === 'string').slice(0, 50), mode: 'run', runner });
+    return NextResponse.json(joined, { status: 201 });
+  }
   // Ask Wye (req:exec.ask-wye): a librarian session — claude on the host with the librarian prompt, in the Wye repo
   // Remember (skill:remember): what the person pasted, filed as knowledge by a librarian — a conversation, no request page
   const remember = body.remember === true;
@@ -41,7 +49,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   if (skillId && !(body.instruction ?? '').trim()) body.instruction = `Run "${skillMeta!.title}" on ${(body.refs ?? [])[0] ?? 'the product'}.`;
   const role = body.pr === true || body.role === 'librarian' || remember || (skillMeta && skillMeta.role !== 'worker') ? 'librarian' : 'worker';
   if (skillMeta?.role === 'worker') { body.agent = body.agent ?? 'claude-code'; body.mode = 'chat'; body.cwd = body.cwd?.trim() || REPO_ROOT; }
-  const agent = role === 'librarian' ? 'claude-code' : AGENTS.find(a => a.id === body.agent)?.id;
+  // a Prompt Request's librarian runs on the agent the person chose in the box — Claude Code unless they said Codex
+  // (decision:wf2.pr-agent-and-model); Remember and a skill's librarian stay on Claude Code
+  const agent = role === 'librarian' ? (body.pr === true && AGENT_IDS.includes(body.agent ?? '') ? body.agent! : 'claude-code') : AGENTS.find(a => a.id === body.agent)?.id;
   const instruction = (body.instruction ?? '').trim();
   if (!agent) return NextResponse.json({ error: 'invalid', message: 'unknown agent' }, { status: 422 });
   const images = Array.isArray(body.images) ? body.images.filter(i => i && typeof i.dataUrl === 'string').slice(0, 8) : [];

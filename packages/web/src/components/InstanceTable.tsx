@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import { EmbeddedCard } from './EmbeddedCard';
@@ -19,7 +20,10 @@ const items = (v: string) => v.replace(/^\[|\]$/g, '').split(',').map(s => s.tri
 // a page keeps it in the URL (urlState), a view block in its key=value line (onChange). `empty` stands in for the tools and the rows while the type has
 // no instance at all (a filter that matches none keeps the table and its "No … match" line); the list's new line stays.
 export function InstanceTable({ product, table, initial, urlState, onChange, readOnly, as = 'table', compact = false, onNew, coverage = false, empty }: { product: string; table: Table; initial?: Filters; urlState?: boolean; onChange?: (f: Filters) => void; as?: 'table' | 'list'; readOnly?: boolean; compact?: boolean; onNew?: (title: string) => Promise<string | null>; coverage?: boolean; empty?: ReactNode }) {
-  const { open, openId, index } = usePeek();
+  const { open, openId, index } = usePeek(); const router = useRouter();
+  // a view over the whole workspace: rows of other vaults open in their own vault, and every row names its vault
+  const across = !!table.vaults && table.vaults.length > 1;
+  const foreign = (r: InstanceRow) => !!r.vault && r.vault !== product;
   const [f, setF] = useState<Filters>(initial ?? EMPTY_FILTERS);
   useEffect(() => { setF(initial ?? EMPTY_FILTERS); }, [initial]);
   const set = (patch: Partial<Filters>) => {
@@ -28,33 +32,38 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
     if (urlState && typeof window !== 'undefined') { const q = filtersToQuery(next); history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash); }
   };
   const setProp = (k: string, v: string) => set({ props: { ...f.props, [k]: f.props[k] === v ? '' : v } });
-  const rows = useMemo(() => sortRows(filterRows(table.rows, f, { me: table.me }), f.sort), [table.rows, f, table.me]);
+  // a quick filter by vault on a view over the workspace: this browser's choice for the moment, never written to the view's line
+  const [vault, setVault] = useState('');
+  const inVault = useMemo(() => across && vault ? table.rows.filter(r => r.vault === vault) : table.rows, [table.rows, across, vault]);
+  const rows = useMemo(() => sortRows(filterRows(inVault, f, { me: table.me }), f.sort), [inVault, f, table.me]);
   const groups = useMemo(() => groupRows(rows, f.group), [rows, f.group]);
   // values a ref or free column actually holds, for its filter select
   const seen = (name: string) => { const s = new Set<string>(); for (const r of table.rows) for (const v of items(r.props[name] ?? '')) s.add(v); return [...s].sort(); };
   const label = (id: string) => { const e = index[id]; return e && e.title !== id ? plain(e.title) : id; };
-  const groupable = ['doc', 'status', ...table.columns.filter(c => c.kind !== 'string').map(c => c.name)];
+  const groupable = [...(across ? ['vault'] : []), 'doc', 'status', ...table.columns.filter(c => c.kind !== 'string').map(c => c.name)];
   const sortOn = (col: string) => set({ sort: f.sort === col ? '-' + col : f.sort === '-' + col ? '' : col });
   const arrow = (col: string) => f.sort === col ? ' ▲' : f.sort === '-' + col ? ' ▼' : '';
   const active = Object.values(f.props).some(Boolean) || f.q || f.status || f.open || f.due;
   // `coverage=1` on a req view: one more cell per row saying whether the requirement is covered and what is missing
   const cover = coverage && table.slug === 'req';
-  const span = 2 + table.columns.length + (table.typed ? 0 : 1) + (cover ? 1 : 0);
+  const span = 2 + table.columns.length + (table.typed ? 0 : 1) + (cover ? 1 : 0) + (across ? 1 : 0);
   const Row = ({ r }: { r: InstanceRow }) => {
     const where = docRoute(r.file);
-    const page = index[r.id]?.doc; // a page instance (rule:page-node-line) links to the document itself
-    const href = page && where ? `/${product}/${where.project}/d/${page}` : where ? `/${product}/${where.project}/d/${where.doc}#n-${encodeURIComponent(r.id)}` : '';
+    const far = foreign(r), at = far ? r.vault! : product;
+    const page = far ? undefined : index[r.id]?.doc; // a page instance (rule:page-node-line) links to the document itself
+    const href = page && where ? `/${at}/${where.project}/d/${page}` : where ? `/${at}/${where.project}/d/${where.doc}#n-${encodeURIComponent(r.id)}` : '';
     return (
-      <tr className={`${r.id === openId ? 'on' : ''} ${cover && coverageOf(r).gap.length ? 'gap' : ''}`} onClick={() => open(r.id)} role="button">
+      <tr className={`${!far && r.id === openId ? 'on' : ''} ${cover && coverageOf(r).gap.length ? 'gap' : ''}`} onClick={() => { if (far) { if (href) router.push(href); } else open(r.id); }} role="button" title={far ? `in ${r.vaultTitle} — opens there` : undefined}>
         {cover && (() => { const c = coverageOf(r); return (
           <td className={`itable-cover ${c.gap.length ? 'no' : 'ok'}`} title={c.gap.length ? c.gap.join('; ') : `${c.satisfiedBy.length} satisfying, ${c.verifiedBy.length} verifying, ${c.tasks.length} task(s)`}>
             {c.gap.length === 0
               ? <span>✓ covered{c.tasks.length ? ` · ${c.tasks.length} task${c.tasks.length > 1 ? 's' : ''}` : ''}</span>
               : <button className="linkish" onClick={e => { e.stopPropagation(); requestSend({ text: `${c.verifiedBy.length ? 'Design how' : 'Define the test cases for how'} ${r.id} is ${c.verifiedBy.length ? 'satisfied' : 'verified'}: ${plain(r.title)}`, refs: [r.id] }); }} title="Send this gap to an agent">{c.gap.join(' · ')}</button>}
           </td>); })()}
-        <td><div className="itable-id"><SmartTag id={r.id} /><StatusPill status={r.status} />{href && <Link className="klist-doc" href={href} title={page ? 'a page — open it' : r.doc} onClick={e => e.stopPropagation()}>{page ? '📄' : '↗'}</Link>}</div><div className="itable-title">{r.title !== r.id && !r.id.endsWith(':' + r.title) ? plain(r.title) : ''}</div></td>
-        {table.columns.map(c => <td key={c.name} className={r.props[c.name] ? '' : 'empty'}>{r.props[c.name] ? <Linkified text={r.props[c.name].replace(/^\[|\]$/g, '')} base={assetBase(r.file)} /> : <span className="muted">—</span>}</td>)}
-        {!table.typed && <td className="itable-rels">{(r.rels ?? []).slice(0, 6).map(e => <span key={e.verb + e.to} className="klist-rel"><small>{e.verb}</small><SmartTag id={e.to} /></span>)}</td>}
+        <td><div className="itable-id">{far ? <code className="itable-far">{r.id}</code> : <SmartTag id={r.id} />}<StatusPill status={r.status} />{href && <Link className="klist-doc" href={href} title={page ? 'a page — open it' : r.doc} onClick={e => e.stopPropagation()}>{page ? '📄' : '↗'}</Link>}</div><div className="itable-title">{r.title !== r.id && !r.id.endsWith(':' + r.title) ? plain(r.title) : ''}</div></td>
+        {across && <td className="itable-vault"><span className="vault-chip">{r.vaultTitle}</span></td>}
+        {table.columns.map(c => <td key={c.name} className={r.props[c.name] ? '' : 'empty'}>{r.props[c.name] ? far ? <span>{r.props[c.name].replace(/^\[|\]$/g, '')}</span> : <Linkified text={r.props[c.name].replace(/^\[|\]$/g, '')} base={assetBase(r.file)} /> : <span className="muted">—</span>}</td>)}
+        {!table.typed && <td className="itable-rels">{(r.rels ?? []).slice(0, 6).map(e => <span key={e.verb + e.to} className="klist-rel"><small>{e.verb}</small>{far ? <code className="itable-far">{e.to}</code> : <SmartTag id={e.to} />}</span>)}</td>}
         <td className="itable-doc">{href ? <Link href={href} onClick={e => e.stopPropagation()}>{r.doc}</Link> : <span className="muted">{r.doc}</span>}</td>
       </tr>);
   };
@@ -65,6 +74,12 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
   return (
     <div className={`itable ${readOnly ? 'ro' : ''} ${compact ? 'compact' : ''}`}>
       {compact && <div className="itable-fold"><span className="muted small">{rows.length}{active ? ` of ${table.rows.length}` : ''} {pluralTitle({ slug: table.slug }).toLowerCase()}</span><button className={`collection-filter-toggle ${tools ? 'on' : ''}`} onClick={() => setTools(t => !t)} aria-expanded={tools}>{tools ? '▾ filter' : '▸ filter'}</button></div>}
+      {across && <div className="chips itable-vaults"><span className="chips-label">in</span>
+        <select className="itable-select" value={vault} onChange={e => setVault(e.target.value)} title="The vault whose rows are shown">
+          <option value="">all vaults ({table.rows.length})</option>
+          {table.vaults!.map(v => <option key={v.slug} value={v.slug}>{v.title} ({table.rows.filter(r => r.vault === v.slug).length})</option>)}
+        </select>
+      </div>}
       {tools && <div className="track-tools itable-tools">
         <div className="itable-row">
           <input type="search" placeholder={`Search ${pluralTitle({ slug: table.slug }).toLowerCase()}…`} value={f.q} onChange={e => set({ q: e.target.value })} />
@@ -74,7 +89,7 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
           </div>
         </div>
         <div className="chips">
-          <button className={`chip ${!f.status ? 'on' : ''}`} onClick={() => set({ status: '' })}>All <small>{table.rows.length}</small></button>
+          <button className={`chip ${!f.status ? 'on' : ''}`} onClick={() => set({ status: '' })}>All <small>{inVault.length}</small></button>
           {table.statuses.map(([st, n]) => <button key={st} className={`chip s-${st} ${f.status === st ? 'on' : ''}`} onClick={() => set({ status: f.status === st ? '' : st })}>{st} <small>{n}</small></button>)}
         </div>
         {table.columns.filter(c => c.kind === 'enum' || c.kind === 'bool').map(c => (
@@ -87,12 +102,12 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
               <option value="">any</option>{vals.map(v => <option key={v} value={v}>{label(v)}</option>)}
             </select>
           </div>) : null; })}
-        {active && <div className="chips"><span className="muted small">{rows.length} of {table.rows.length}</span><button className="linkish" onClick={() => set({ ...EMPTY_FILTERS, group: f.group, sort: f.sort })}>clear filters</button></div>}
+        {active && <div className="chips"><span className="muted small">{rows.length} of {inVault.length}</span><button className="linkish" onClick={() => set({ ...EMPTY_FILTERS, group: f.group, sort: f.sort })}>clear filters</button></div>}
       </div>}
       {as === 'list' ? (
         // the block form (rule:view-block, req:wf2.instances.view-as-blocks): every instance as its own card, editable in place
         <div className="ilist">
-          {(groups ?? [['', rows]] as [string, InstanceRow[]][]).map(([k, rs]) => <ListGroup key={k} label={k ? (k.startsWith(k.split(':')[0] + ':') && index[k] ? label(k) : k) : ''} rows={rs} closed={/^(done|complete|retired|superseded|rejected|dismissed)$/.test(k)} />)}
+          {(groups ?? [['', rows]] as [string, InstanceRow[]][]).map(([k, rs]) => <ListGroup key={k} product={product} label={k ? (k.startsWith(k.split(':')[0] + ':') && index[k] ? label(k) : k) : ''} rows={rs} closed={/^(done|complete|retired|superseded|rejected|dismissed)$/.test(k)} />)}
           {!rows.length && <p className="muted">No {table.slug}s match.</p>}
           {onNew && <NewLine slug={table.slug} onNew={onNew} />}
         </div>
@@ -101,14 +116,15 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
         <thead><tr>
           {cover && <th>coverage</th>}
           <th onClick={() => sortOn('title')} className="sortable">id{arrow('title')}</th>
+          {across && <th onClick={() => sortOn('vault')} className="sortable">vault{arrow('vault')}</th>}
           {table.columns.map(c => <th key={c.name} onClick={() => sortOn(c.name)} className="sortable">{c.name}{arrow(c.name)}</th>)}
           {!table.typed && <th>relations</th>}
           <th onClick={() => sortOn('doc')} className="sortable">document{arrow('doc')}</th>
         </tr></thead>
         <tbody>
           {groups
-            ? groups.map(([k, rs]) => <GroupRows key={k} label={k.startsWith(k.split(':')[0] + ':') && index[k] ? label(k) : k} count={rs.length} span={span}>{rs.map(r => <Row key={r.id} r={r} />)}</GroupRows>)
-            : rows.map(r => <Row key={r.id} r={r} />)}
+            ? groups.map(([k, rs]) => <GroupRows key={k} label={k.startsWith(k.split(':')[0] + ':') && index[k] ? label(k) : k} count={rs.length} span={span}>{rs.map(r => <Row key={`${r.vault ?? ''}/${r.id}`} r={r} />)}</GroupRows>)
+            : rows.map(r => <Row key={`${r.vault ?? ''}/${r.id}`} r={r} />)}
           {!rows.length && <tr><td colSpan={span} className="muted">No {table.slug}s match.</td></tr>}
         </tbody>
       </table></div>)}
@@ -119,16 +135,24 @@ export function InstanceTable({ product, table, initial, urlState, onChange, rea
 // a group of cards: folded when it is the done / retired pile, and never more than PAGE cards at once — every card is
 // a live embed that fetches its node, so a page of 285 tasks would be 285 requests
 const PAGE = 40;
-function ListGroup({ label, rows, closed }: { label: string; rows: InstanceRow[]; closed: boolean }) {
+function ListGroup({ label, rows, closed, product }: { label: string; rows: InstanceRow[]; closed: boolean; product: string }) {
   const [open, setOpen] = useState(!closed);
   const [shown, setShown] = useState(PAGE);
   return (
     <div className="ilist-group">
       {label && <div className="ilist-group-head" onClick={() => setOpen(o => !o)} role="button"><span className="tchev">{open ? '▾' : '▸'}</span>{label} <small className="muted">{rows.length}</small></div>}
-      {open && rows.slice(0, shown).map(r => <EmbeddedCard key={r.id} id={r.id} className="ilist-item" />)}
+      {open && rows.slice(0, shown).map(r => r.vault && r.vault !== product ? <FarCard key={`${r.vault}/${r.id}`} r={r} /> : <EmbeddedCard key={r.id} id={r.id} className="ilist-item" />)}
       {open && rows.length > shown && <button className="linkish ilist-more" onClick={() => setShown(n => n + PAGE)}>show {Math.min(PAGE, rows.length - shown)} more of {rows.length - shown}</button>}
     </div>
   );
+}
+
+// a block of another vault in a list over the workspace: its id, title and status, and the way to it — it is edited
+// in its own vault, whose graph and documents it belongs to
+function FarCard({ r }: { r: InstanceRow }) {
+  const where = docRoute(r.file);
+  const href = where ? `/${r.vault}/${where.project}/d/${where.doc}#n-${encodeURIComponent(r.id)}` : `/${r.vault}/n/${encodeURIComponent(r.id)}`;
+  return <Link href={href} className="ilist-item ilist-far" title={`in ${r.vaultTitle} — opens there`}><span className="vault-chip">{r.vaultTitle}</span><code className="itable-far">{r.id}</code><StatusPill status={r.status} /><span className="ilist-far-title">{r.title !== r.id ? plain(r.title) : ''}</span></Link>;
 }
 
 function GroupRows({ label, count, span, children }: { label: string; count: number; span: number; children: React.ReactNode }) {

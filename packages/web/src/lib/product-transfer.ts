@@ -5,8 +5,10 @@
 //            documents; sessions, change records and hook logs are this machine's history and stay here.
 //   import — the archive is listed before anything is written: only those top-level names, no absolute path, no `..`,
 //            no link or device; it is unpacked beside the registry and renamed into place, then built.
-//   open   — a folder holding projects/ (or a repo holding wye/projects/) becomes a product in place: a registry entry
-//            with `root:` pointing at it (decision:wf2.product-folder), nothing copied.
+//   open   — a folder holding projects/ (or a repo holding .wye/projects/ — a vault, lib/vault.js — or wye/projects/)
+//            becomes a product in place: a registry entry with `root:` pointing at it (decision:wf2.product-folder),
+//            nothing copied. A vault's own _product.md names its slug and keeps its links (`parent:`, `vaults:`);
+//            the entry does not repeat the links.
 import { spawn } from 'node:child_process';
 import { access, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -36,6 +38,9 @@ export function portableMeta(md: string): string {
   const lines = fm[1].split('\n').filter(l => !/^root:/.test(l));
   return `---\n${lines.join('\n')}\n---` + md.slice(fm[0].length);
 }
+// the registry entry of a product opened in place: without the vault's links, which are read from the vault itself
+const withoutLinks = (md: string) => md.replace(/^---\n([\s\S]*?)\n---/, (_, fm: string) => `---\n${fm.split('\n').filter(l => !/^(parent|vaults|slug):/.test(l)).join('\n')}\n---`);
+const slugIn = (md: string) => (md.match(/^---\n[\s\S]*?^slug:\s*(.+)$/m)?.[1] ?? '').trim();
 const titleOf = (md: string) => (md.match(/^---\n[\s\S]*?^title:\s*(.+)$/m)?.[1] ?? '').trim();
 
 // A slug no product has yet: `shop`, else `shop-2`, `shop-3`…
@@ -109,11 +114,11 @@ export async function importProduct(data: Buffer, o: { slug?: string; dataRoot?:
   }
 }
 
-// The product folder a path names: the folder itself when it holds projects/, else its wye/ folder (a repo that keeps
-// its product beside the code)
+// The product folder a path names: the folder itself when it holds projects/, else its .wye/ folder (a vault) or its
+// wye/ folder (a repo that keeps its product beside the code)
 export async function productFolderAt(p: string): Promise<string | null> {
   const dir = resolveRoot(p.trim());
-  for (const d of [dir, path.join(dir, 'wye')]) { try { if ((await stat(path.join(d, 'projects'))).isDirectory()) return d; } catch { /* next */ } }
+  for (const d of [dir, path.join(dir, '.wye'), path.join(dir, 'wye')]) { try { if ((await stat(path.join(d, 'projects'))).isDirectory()) return d; } catch { /* next */ } }
   return null;
 }
 
@@ -121,15 +126,17 @@ export async function openProduct(folder: string, o: { slug?: string; dataRoot?:
   const dataRoot = o.dataRoot ?? DATA_ROOT;
   if (!folder.trim()) throw new Error('invalid: a folder is required');
   const dir = await productFolderAt(folder);
-  if (!dir) throw new Error(`invalid: ${resolveRoot(folder.trim())} is not a Wye product folder — it needs a projects/ folder (or wye/projects/)`);
+  if (!dir) throw new Error(`invalid: ${resolveRoot(folder.trim())} is not a Wye product folder — it needs a projects/ folder (or .wye/projects/, wye/projects/)`);
+  // a vault inside the open workspace is found through its links: it needs no entry (decision:wf2.workspace-is-the-top)
+  if (dataRoot === DATA_ROOT) await (await import('./workspace')).noteVault(dir);
   const known = (await listProducts(dataRoot)).find(p => path.resolve(p.dir) === path.resolve(dir));
   if (known) return { slug: known.slug, dir, existing: true };
   if (path.resolve(dir).startsWith(path.resolve(path.join(dataRoot, 'products')) + path.sep)) throw new Error('invalid: that folder is already inside the app\'s products');
   // the folder's own _product.md (an export, a teammate's clone) names it; the registry entry points at the folder
   let meta = ''; try { meta = await readFile(path.join(dir, '_product.md'), 'utf8'); } catch { /* none */ }
-  const title = titleOf(meta) || path.basename(dir === path.join(path.dirname(dir), 'wye') ? path.dirname(dir) : dir);
-  const slug = await freeSlug(o.slug || title, dataRoot);
-  const base = meta ? portableMeta(meta) : `---\ntitle: ${title}\nicon: 📦\n---\n`;
+  const title = titleOf(meta) || path.basename(['wye', '.wye'].includes(path.basename(dir)) ? path.dirname(dir) : dir);
+  const slug = await freeSlug(o.slug || slugIn(meta) || title, dataRoot);
+  const base = meta ? withoutLinks(portableMeta(meta)) : `---\ntitle: ${title}\nicon: 📦\n---\n`;
   const fm = base.match(/^---\n([\s\S]*?)\n---/);
   const next = fm ? `---\n${fm[1]}\nroot: ${dir}\n---${base.slice(fm[0].length)}` : `---\ntitle: ${title}\nroot: ${dir}\n---\n`;
   await mkdir(registryDir(slug, dataRoot), { recursive: true });

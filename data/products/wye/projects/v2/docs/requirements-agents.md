@@ -673,6 +673,26 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 
   - consequence:wf2.agent-launch claude's `auto` mode is silently `default` on a model without it (Haiku, checked 2026-10-05); the opening `init` line shows the mode the CLI really took. A wrong flag of the person's own makes every start of that agent fail with the CLI's error in the conversation — the setting is theirs to fix.
 
+```yaml
+- id: decision:wf2.pr-agent-and-model
+  title: A Prompt Request's librarian runs on the agent and the model the person picks in the box
+  date: 2026-10-05
+  status: proposed
+  affects: [component:command-box, component:agent-model-picker, op:api.sessions, lib:agent-launch, lib:agent-host]
+  related-to: [decision:wf2.agent-launch, decision:wf2.cmd-modes]
+  by: alex
+  evidence: [session:8b52a015-44b6-402d-a6a4-3cfcf3fc78bd]
+  part-of: module:requirements-agents
+```
+
+  - context:wf2.pr-agent-and-model alex, on the ⌘P box in PR mode, which had no fields and said "Wye's librarian on Claude Code": "allow to choose agent and model for PRs too!!". An ad-hoc conversation already had Agent and Model; a request's librarian was always Claude Code on the app's default model.
+
+  - choice:wf2.pr-agent-and-model PR mode has one control for both (component:agent-model-picker): a pill beside Start the PR that names what will run, opening a menu of each agent's models — alex, on the first version with two fields: "nope do better UI!! … one dropdown to choose agent and model". A new ad-hoc conversation uses the same control. The choice is remembered apart from the conversations' (`wf-pr-agent`, `wf-pr-model-<agent>`); POST sessions with `pr: true` takes `agent` and `model` for the librarian, and the model resolves as for any session — the session's own first. The box's line names the agent it will run on. Remember and a skill's librarian stay on Claude Code.
+
+  - alternative:wf2.pr-agent-and-model A setting for the librarian's agent in Settings › Agents only — rejected: the choice is per request (a research request and a small fix want different models). Refusing Codex because it has no closed tool set — rejected: it is the person's choice, said in the box.
+
+  - consequence:wf2.pr-agent-and-model On Claude Code the librarian keeps its closed tool set (wye, reads — no edits, no shell). Codex has none to give it: there the rule of never editing files is the librarian's instructions, not a limit on its tools, and the box says so when Codex is picked; a librarian on Codex is held to the workspace sandbox whatever the mode in Settings › Agents (`codexLaunchArgs` `librarian`) — a read-only sandbox has no network, and `wye` needs the app. Its questions on Codex are text in the conversation; the ask / answered mirroring onto the PR page is Claude Code's AskUserQuestion. The agent that builds an approved PR is still the default of Settings › Agents. Checked in the app: the fields, and the body the box sends; no request was started on Codex.
+
 <!-- /list:req -->
 
 ## Open questions
@@ -750,3 +770,21 @@ What Wye must do here, as behaviours a person can observe: when <trigger>, <outc
 ```
 
 <!-- /list:question -->
+
+```yaml
+- id: req:wf2.vault-write-back
+  title: An agent that changes a folder writes what it learned into that folder's knowledge
+  status: proposed
+  by: agent:wye
+  evidence: [session:fc7ee08157]
+```
+
+  - when:wf2.vault-write-back an agent — started from Wye or by the person in their own terminal — reads or changes files inside a folder that has a vault
+
+  - then:wf2.vault-write-back it reads that vault's knowledge before it acts, and the decisions, requirement changes, questions and tasks it leaves are proposed into that vault, not another; the Inbox shows which vault each proposal goes to, so the person approves it in the right place
+
+  - unless:wf2.vault-write-back the files it touched belong to no vault — then its proposals go to the nearest vault above them, and when there is none it is told to suggest wye init
+
+  verdict:c82d7e456560 duplicate decision:wf2.write-back-nearest-vault — Both describe agents writing knowledge back to their nearest vault; they express the same concept with different implementation details. (kind: duplicate, model: claude-haiku-4-5-20251001, prompt: 6d31662f, pair: decision:wf2.write-back-nearest-vault req:wf2.vault-write-back)
+
+  contradiction:wye.c82d7e456560 req:wf2.vault-write-back duplicates decision:wf2.write-back-nearest-vault — Both describe agents writing knowledge back to their nearest vault; they express the same concept with different implementation details. #open (between: req:wf2.vault-write-back decision:wf2.write-back-nearest-vault, conflict: static)

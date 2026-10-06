@@ -8,11 +8,12 @@ import { loadScope } from './scope';
 import { bareSlug, docRoute, projectTree } from './doc';
 import { rebuild, writeAtomic, withFileLock } from './write';
 import { onSessionEnd, setPrDoc, addRefs } from './sessions';
-import { fromLine, getFrontmatter, prDocBody, nextPrNumber, prsPageId, prStatusOnEnd, prTitle, goalSlug, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, withDefinition, definitionIds, definitionState, readiness, summaryWritten, taskLines, type PrEndStatus, type DefinitionState, type Readiness } from './pr-doc';
+import { fromLine, getFrontmatter, prDocBody, nextPrNumber, prsPageId, prStatusOnEnd, prTitle, goalSlug, requestTaskId, requestTaskStatusOnEnd, resultSection, setFrontmatter, withResult, withDefinition, definitionIds, definitionState, approvalStatus, readiness, summaryWritten, taskLines, type PrEndStatus, type DefinitionState, type Readiness } from './pr-doc';
 import type { Scope } from './scope';
 import { createRequire } from 'node:module';
-import { listChanges } from './changes';
-import { patchProseNode } from './node-edit';
+import { listChanges, claimWrite } from './changes';
+import { statusesByKind } from './props';
+import { patchProseNode, editNode } from './node-edit';
 import { parseNodeLine } from './node-line';
 export { prsPageId };
 import type { Session } from './session-types';
@@ -54,14 +55,19 @@ approved here, then built by an agent (rule:pr-doc).
 // The rail links to them; they leave the Documents tree like PRs does. Nothing else is special about them.
 export const SYSTEM_VIEWS = [
   { slug: 'goals', title: 'Goals', icon: '◎', view: 'goal', query: '', intro: 'Every goal of the product, wherever it is defined — as blocks. Filter, group and sort here; a goal is written on its own page (a goal: line or card) or added under a Goals data list.' },
-  { slug: 'work', title: 'Work', icon: '☑', view: 'task', query: 'group=status', intro: 'Every task of the product, wherever it is written — PRs, definition pages, the Backlog — as blocks, grouped by status. A task\'s panel assigns it, builds a PR or ticks it done.' },
+  { slug: 'work', title: 'Tasks', icon: '☑', view: 'task', query: 'as=table', intro: 'Every task of the product, wherever it is written — PRs, definition pages, the Backlog — and every block of a type that extends task (a bug, a chore). A task\'s panel assigns it, builds a PR or ticks it done.' },
 ] as const;
 export const viewPageId = (projectSlug: string, slug: string) => `module:${projectSlug}-${slug}`;
 export async function ensureViewPages(project: Project): Promise<string[]> {
   const written: string[] = [];
   for (const v of SYSTEM_VIEWS) {
     const file = path.join(project.wyeDir, `${v.slug}.md`);
-    try { await stat(file); continue; } catch { /* write it */ }
+    try {
+      await stat(file);
+      // a page written when the view had its old name (Work → Tasks): the title and the heading follow, nothing else of it
+      if (v.slug === 'work') { const md = await readFile(file, 'utf8'); if (/^title: Work$/m.test(md)) { await writeAtomic(file, md.replace(/^title: Work$/m, 'title: Tasks').replace(/^# Work$/m, '# Tasks')); written.push(file); } }
+      continue;
+    } catch { /* write it */ }
     const md = `---
 node: ${viewPageId(project.slug, v.slug)}
 type: module
@@ -262,10 +268,31 @@ export function prReadiness(scope: Scope, md: string): Readiness { return readin
 // Approval (decision:wf2.pr-approval-is-the-persons-click): the person's click. Sets the status and who / when; the
 // route then tells and stops a live refining session (lib/pr-sessions) — the build is the dispatcher's or Build's,
 // never the librarian's.
-export async function approvePr(productDir: string, product: string, ref: string, by: string): Promise<void> {
+// Approving the request approves what is in it (decision:wf2.approve-approves-the-definition): every block of the
+// Definition that is still proposed takes its approved status in its own document, written as the person's change; a
+// block it supersedes is retired with it. Questions stay open — a question is answered, not approved. A PR that is
+// already approved keeps who approved it and when: approving again only brings the blocks along.
+export async function approvePr(productDir: string, product: string, ref: string, by: string): Promise<{ approved: string[]; left: string[] }> {
   const at = await prDocFile(product, ref); if (!at) throw new Error(`${ref}: not found`);
-  await withFileLock(at.file, async () => { const md = await readFile(at.file, 'utf8'); await writeAtomic(at.file, setFrontmatter(setFrontmatter(setFrontmatter(md, 'status', 'approved'), 'approved-by', by), 'approved-at', new Date().toISOString())); });
+  await withFileLock(at.file, async () => { const md = await readFile(at.file, 'utf8'); if (getFrontmatter(md, 'status') === 'approved' && getFrontmatter(md, 'approved-by')) return; await writeAtomic(at.file, setFrontmatter(setFrontmatter(setFrontmatter(md, 'status', 'approved'), 'approved-by', by), 'approved-at', new Date().toISOString())); });
+  const approved: string[] = []; const left: string[] = [];
+  const scope = await loadScope(product);
+  if (scope) {
+    const lists = statusesByKind(scope.graph.types ?? []);
+    for (const id of definitionIds(await readFile(at.file, 'utf8'))) {
+      const n = scope.idx.byId.get(id); if (!n?.defined) continue;
+      const to = approvalStatus(id, n.status, lists[n.kind]);
+      if (!to) { if (n.kind === 'question' && ['', 'open', 'question'].includes(n.status)) left.push(id); continue; }
+      claimWrite(id, { by });
+      const r = await editNode(scope, id, { status: to }, { rebuild: false }).catch(() => null);
+      if (!r?.ok) { left.push(id); continue; }
+      approved.push(id);
+      // what an approved block supersedes is retired in the same act (decision:memory.bitemporal)
+      if (to === 'approved') for (const e of scope.idx.out.get(id) ?? []) if (e.verb === 'supersedes' && scope.idx.byId.get(e.to)?.defined) { claimWrite(e.to, { by }); await editNode(scope, e.to, { status: 'superseded' }, { rebuild: false }).catch(() => undefined); }
+    }
+  }
   await rebuild(productDir);
+  return { approved, left };
 }
 export async function cancelPr(productDir: string, product: string, ref: string): Promise<void> {
   const at = await prDocFile(product, ref); if (!at) throw new Error(`${ref}: not found`);

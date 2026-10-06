@@ -27,6 +27,7 @@ import { GoneNotice } from '@/components/GoneNotice';
 import { ensureSystemPages, viewProjectOf } from '@/lib/system-pages';
 import { readOnboarding } from '@/lib/onboarding-io';
 import { quickStartLinks } from '@/lib/quick-start-links';
+import { workspaceView } from '@/lib/workspace';
 
 export default async function ProductLayout({ children, params }: { children: ReactNode; params: Promise<{ product: string }> }) {
   const { product } = await params;
@@ -76,6 +77,15 @@ export default async function ProductLayout({ children, params }: { children: Re
  
   // pinned documents (decision:wf2.pinned-documents): the product file's list, those that still exist, in pin order
   const pins = resolvePins(parsePins(scope.product.meta.settings.pinned), scope.projects.flatMap(p => [...treeFor(scope, p.slug).byFile.values()].map(d => ({ project: p.slug, slug: d.slug, title: d.title, icon: icons.get(d.file) || defaultIcon(d.slug) }))));
+  // the workspace (decision:wf2.workspace-is-the-top): its vaults are the Documents roots, and the pins of the other
+  // vaults join this one's — each named by its vault
+  const ws = await workspaceView(products);
+  const vaults = ws.vaults.map(v => ({ ...v, ...(ws.folder && v.folder ? { path: path.relative(ws.folder, v.folder) } : {}) }));
+  // — in an opened folder: the home workspace is a list of separate products, each with its own pins (decision:wf2.home-is-separate-products)
+  for (const other of ws.folder ? products.filter(p => p.inWorkspace && p.slug !== scope.product.slug && p.meta.settings.pinned) : []) {
+    const sc = await loadScope(other.slug).catch(() => null); if (!sc) continue;
+    pins.push(...resolvePins(parsePins(other.meta.settings.pinned), sc.projects.flatMap(p => [...treeFor(sc, p.slug).byFile.values()].map(d => ({ project: p.slug, slug: d.slug, title: d.title, icon: defaultIcon(d.slug) })))).map(pin => ({ ...pin, product: other.slug, vault: other.meta.title })));
+  }
   const projects = scope.projects.map(p => { const t = treeFor(scope, p.slug); return { slug: p.slug, title: p.meta.title, icon: p.meta.icon || (p.meta.kind === 'goal' ? '🎯' : '📁'), kind: p.meta.kind, status: p.meta.status, main: t.main?.slug ?? '', roots: withoutPrs(t.roots, p.slug).map(toItem), docs: [...t.byFile.values()].filter(d => d.file.includes(`/projects/${p.slug}/docs/`)).map(d => ({ slug: d.slug, title: d.title })) }; });
  
   prs.sort((a, b) => b.started.localeCompare(a.started) || a.title.localeCompare(b.title));
@@ -93,9 +103,9 @@ export default async function ProductLayout({ children, params }: { children: Re
   const ownTypes = (scope.graph.types ?? []).filter(t => !isBaseType(t)).map(t => ({ slug: t.slug, ...(t.nestsIn?.length ? { nestsIn: t.nestsIn } : {}), ...(t.plural ? { plural: t.plural } : {}), cols: t.props.filter(p => !isImplicit(p)).map(p => ({ name: p.name, type: p.type, enum: p.enum, ref: p.ref, required: p.required })) }));
  
   return (
-    <PeekProvider product={scope.product.slug} index={rsc ? null : scope.index} kinds={scope.graph.kinds} types={ownTypes} nests={nestingMap(scope.graph.types ?? [])} statuses={statusesByKind(scope.graph.types ?? [])}>
+    <PeekProvider workspace={{ folder: !!ws.folder, ...(ws.folder ? { path: ws.folder } : {}), vaults: ws.vaults.map(v => ({ slug: v.slug, title: v.title })) }} product={scope.product.slug} index={rsc ? null : scope.index} kinds={scope.graph.kinds} types={ownTypes} nests={nestingMap(scope.graph.types ?? [])} statuses={statusesByKind(scope.graph.types ?? [])}>
       <Shell links={links}>
-        <Rail onboarding={onboarding && { done: onboarding.done, total: onboarding.total, show: onboarding.show }} pins={pins} mainProject={rootsHome} products={products.map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} prs={prs} views={views} skills={skills} skillsPage={skillsPage} headings={headings} />
+        <Rail onboarding={onboarding && { done: onboarding.done, total: onboarding.total, show: onboarding.show }} pins={pins} mainProject={rootsHome} workspace={{ folder: ws.folder, name: ws.name, recent: ws.recent }} vaults={vaults} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} prs={prs} views={views} skills={skills} skillsPage={skillsPage} headings={headings} />
         <LiveRefresh product={scope.product.slug} />
         <main className="content"><TopBar product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} docs={docs} />{children}</main>
       </Shell>

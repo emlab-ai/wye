@@ -29,6 +29,7 @@ import { Comments } from './Comments';
 import { HooksSection } from './HooksSection';
 import { WorkflowsSection } from './WorkflowsSection';
 import { CodeView } from './CodeView';
+import { FileView } from './FileView';
 import dynamic from 'next/dynamic';
 const DocEditor = dynamic(() => import('./DocEditor'), { ssr: false });
 import type { GraphNode, TypeDef } from '@/lib/graph';
@@ -76,6 +77,15 @@ export function PeekPanel() {
       {chips}
       <div className="peek-body peek-code">
         <CodeView file={openId.slice('code:'.length)} />
+      </div>
+    </aside>
+  );
+  // a file of the open folder (req:wf2.workspace-files), opened in the column from the Files tree
+  if (openId.startsWith('wsfile:')) return (
+    <aside className="peek" role="dialog" aria-label={openId}>
+      {chips}
+      <div className="peek-body peek-code">
+        <FileView product={product} file={openId.slice('wsfile:'.length)} />
       </div>
     </aside>
   );

@@ -139,3 +139,7 @@ export function ensureFresh(p: Product, graph: GraphData, opts: Pick<RefreshOpts
   runs.set(p.dir, job); return job.p;
 }
 export const backgroundDone = (p: Product): Promise<void> => G.__askBg?.get(p.dir) ?? Promise.resolve();
+// whether a product's index was ever built on this machine (the store is on disk): what a search over the workspace
+// asks before touching another vault — building an index embeds every page in this process and would stall the
+// typing search for everyone; a vault without one is sent to build in the background and answers next time
+export async function indexBuilt(p: Product): Promise<boolean> { try { return (await import('node:fs/promises')).stat(path.join(p.dir, '_build/search.lance')).then(s => s.isDirectory()); } catch { return false; } }

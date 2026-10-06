@@ -29,7 +29,7 @@ export async function Welcome(p: { agents?: Agents }) {
             <p>Without one, documents, the graph and <code>wye check</code> work. The librarian, builds, Ask&apos;s answers, Remember and contradiction checks wait until one is installed.</p>
           </div>}
       <section className="welcome-add">
-        <h2>Add your first product</h2>
+        <h2>Add your first workspace</h2>
         <AddProduct start="code" cancel={false} />
       </section>
     </main>
