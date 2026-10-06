@@ -30,6 +30,8 @@ One sentence.
 
 ## Tasks
 
-Tasks will become nodes with a status once the plan document kind lands; until then, keep them as a list.
+One task line per thing a session can finish and a person can review, in the order they are done — each a node
+with a status: `part of` the requirement it implements, `depends on` what it waits for, `#ready` when a worker
+could start it now.
 
-- [ ] First task
+- [ ] task:{{slug}}.first What it delivers, in one sentence, part of {{kind}}:{{slug}} #ready
