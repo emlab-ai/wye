@@ -81,6 +81,20 @@ async function patchHead(productDir: string, name: string, patch: Record<string,
   for (const [k, v] of Object.entries(patch)) if (!seen.has(k)) out.push(`${k}: ${v}`);
   await writeAtomic(f, '---\n' + out.join('\n') + '\n---\n' + md.slice(fm[0].length));
 }
+// Digest (decision:waterfall.raw-request-to-inbox-then-digest): a raw request kept in the inbox as it was said, and a
+// Remember session (skill:remember) started on its words at once — the librarian splits it into statements, refines
+// what is known, supersedes what changed and raises what contradicts as questions, everything proposed. The item
+// names the session; when none can start (no agent on this machine) the item simply waits, as any note does.
+export type RememberStarter = (o: { instruction: string; refs: string[]; source: Record<string, string> }) => Promise<{ id: string }>;
+export async function digestInboxItem(productDir: string, name: string, start: RememberStarter): Promise<{ session: string | null; error?: string }> {
+  const item = (await listInboxItems(productDir)).find(i => i.name === name); if (!item) return { session: null, error: `inbox item ${name} not found` };
+  const text = [item.title, item.body, ...Object.entries(item.fields).map(([k, v]) => `${k}: ${v}`)].filter(s => s?.trim()).join('\n\n');
+  try {
+    const s = await start({ instruction: text, refs: item.refs, source: { inbox: name, from: item.from } });
+    await patchHead(productDir, name, { session: s.id });
+    return { session: s.id };
+  } catch (e) { return { session: null, error: e instanceof Error ? e.message : String(e) }; }
+}
 export async function dismissItem(productDir: string, name: string): Promise<void> { await patchHead(productDir, name, { status: 'dismissed' }); }
 export async function markFiled(productDir: string, name: string, to: { file: string; node: string }): Promise<void> { await patchHead(productDir, name, { status: 'filed', 'filed-to': to.file, node: to.node }); }
 

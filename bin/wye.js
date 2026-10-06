@@ -38,6 +38,9 @@
 //   wye packet --for "<text>" [--ref id ...] --product p [--budget N] [--all | --as-of d]   the constraints in force for a text:
 //        every rule, constraint, gate, approved decision, goal and open question within two hops of what it touches, complete
 //   wye type add <slug> --product p [--extends parent] [--purpose "…"] [--doc product/project/doc]   a proposed type card
+//   wye remember [--title "…"] [--ref id ...] [--file f] --product p   the person's words as they were said (a request, a brief, a
+//        correction, a pasted document; stdin or the argument): kept in the inbox and digested at once by a Remember session —
+//        new facts proposed, changed ones superseded, contradictions raised as questions
 //   wye inbox add --product p --title "…" [--ref id ...] (body on stdin)   a raw note (pasted material) for later filing;
 //        decisions, questions, requirements and rules are blocks in the documents, not inbox items
 //   wye inbox list --product p [--all]    what is waiting for review
@@ -449,6 +452,16 @@ const commands = {
     const j = await api('GET', `/api/${p}/inbox`); if (flags.json) return out(j);
     for (const i of j.items.filter(i => flags.all || i.status === 'new')) console.log(`${i.status.padEnd(9)} ${i.type.padEnd(11)} ${i.added.slice(0, 16)}  ${i.title}${i.node ? '  → ' + i.node : ''}`);
     return;
+  },
+  // wye remember: the person's words as they were said (a request, a brief, a correction, a pasted document) kept in
+  // the inbox, and digested at once by a Remember session (decision:waterfall.raw-request-to-inbox-then-digest)
+  async remember() {
+    const p = product();
+    const text = flags.file ? fs.readFileSync(flags.file, 'utf8') : (pos[1] || await readStdin());
+    if (!text.trim()) die('wye remember [--title "…"] [--ref id ...] [--file f]  (the person\'s words on stdin or as the argument)');
+    const j = await api('POST', `/api/${p}/inbox`, { type: 'note', title: flags.title || '', text, from: flags.from || (env('SESSION') ? `agent session ${env('SESSION')}` : 'agent'), refs: list(flags.ref), session: env('SESSION'), digest: true });
+    if (flags.json) return out(j);
+    console.log(`inbox: ${j.name}${j.session ? ` — digested by session ${j.session} (${WF_URL}/${p}/sessions/${j.session})` : ` — kept, not digested${j.error ? `: ${j.error}` : ''}`}`);
   },
   async session() {
     const sub = pos[1]; const p = product();
