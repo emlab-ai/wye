@@ -57,3 +57,14 @@ describe('mergeDeltas', () => {
     expect(mergeDeltas([{ ids: ['a'], knowledge: false }, EVERYTHING])).toEqual(EVERYTHING);
   });
 });
+
+import { newPages } from './graph-delta';
+describe('new pages', () => {
+  it('a document no node was in before is a new page, named by the node first in its file', () => {
+    const before = [N('module:a', { file: 'docs/a.md' })];
+    const after = [N('module:a', { file: 'docs/a.md' }), N('req:b.x', { file: 'docs/b.md', line: 12 }), N('plan:b', { file: 'docs/b.md', line: 1, title: 'Plan B' }), N('block:c', { file: 'docs/a.md', line: 4 })];
+    expect(newPages(before, after)).toEqual([{ file: 'docs/b.md', id: 'plan:b', title: 'Plan B' }]);
+    expect(graphDelta({ nodes: before, edges: [] }, { nodes: after, edges: [] }).pages).toEqual([{ file: 'docs/b.md', id: 'plan:b', title: 'Plan B' }]);
+    expect(graphDelta({ nodes: after, edges: [] }, { nodes: after, edges: [] }).pages).toBeUndefined();
+  });
+});

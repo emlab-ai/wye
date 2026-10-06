@@ -6,6 +6,7 @@ import { PeekPanel } from './PeekPanel';
 import { CommandBox } from './CommandBox';
 import { SearchPanel } from './SearchPanel';
 import { QuestionToasts } from './QuestionToasts';
+import { NewPageToasts } from './NewPageToasts';
 import { Help } from './Help';
 import type { QuickStartLinks } from '@/lib/quick-start-links';
 
@@ -60,6 +61,7 @@ export function Shell({ children, links = {} }: { children: ReactNode; links?: Q
       <CommandBox />
       <SearchPanel open={search} onClose={() => setSearch(false)} />
       <QuestionToasts />
+      <NewPageToasts product={product} />
       {help && <Help product={product} links={links} onClose={closeHelp} />}
     </div>
   );

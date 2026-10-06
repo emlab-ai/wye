@@ -7,11 +7,14 @@ import { HIDDEN_KINDS, type GraphData, type GraphNode } from './graph';
 // ids: every node whose record changed (a paragraph's block: node too), was added or removed, or that gained or lost a
 //   relation — null when it is not known (the first graph, more than the cap), which reads as "anything may have changed"
 // knowledge: a node a list shows (not a block:, field: or prop:) changed, or a relation other than a paragraph's place
-export interface GraphDelta { ids: string[] | null; knowledge: boolean }
+// pages: the documents that are new in this build — a file no node of the graph before was in — each with its own
+//   node (the first one defined in the file), so the app can say a page arrived from outside (an agent, the CLI)
+export interface GraphDelta { ids: string[] | null; knowledge: boolean; pages?: { file: string; id: string; title: string }[] }
 export const EVERYTHING: GraphDelta = { ids: null, knowledge: true };
 export const NOTHING: GraphDelta = { ids: [], knowledge: false };
 // more ids than this in one change (an import, a rename across the product) is said as "everything"
 export const DELTA_CAP = 400;
+export const PAGES_CAP = 5;
 
 // a node as the pages show it: all of its record but the line it is on, which moves whenever text above it changes
 const sig = (n: GraphNode) => [n.kind, n.title, n.status, n.section, n.subsection, n.body, n.defined ? 1 : 0, n.file, n.owner ?? '', n.form ?? '', n.since ?? '', n.until ?? '', n.by ?? '', n.supersededBy ?? '', n.archived ? 1 : 0, (n.partKeys ?? []).join(',')].join('\u0001');
@@ -38,13 +41,23 @@ export function graphDelta(before: Pick<GraphData, 'nodes' | 'edges'>, after: Pi
   for (const k of now) if (!was.has(k)) edge(k);
   for (const k of was) if (!now.has(k)) edge(k);
   if (ids.size > DELTA_CAP) return EVERYTHING;
-  return { ids: [...ids], knowledge };
+  // a few new documents are said (a page pushed from outside); many at once is an import, not something to announce
+  const pages = newPages(before.nodes, after.nodes);
+  return { ids: [...ids], knowledge, ...(pages.length && pages.length <= PAGES_CAP ? { pages } : {}) };
+}
+// the documents of `after` that no node of `before` was in, each as its page node — the defined node first in the file
+export function newPages(before: GraphNode[], after: GraphNode[]): { file: string; id: string; title: string }[] {
+  const had = new Set(before.map(n => n.file));
+  const first = new Map<string, GraphNode>();
+  for (const n of after) { if (!n.defined || had.has(n.file) || !n.file.endsWith('.md')) continue; const f = first.get(n.file); if (!f || n.line < f.line) first.set(n.file, n); }
+  return [...first.values()].map(n => ({ file: n.file, id: n.id, title: n.title || n.id }));
 }
 
 // Several changes as one (the events of one burst, the builds since a subscriber last heard).
 export function mergeDeltas(ds: GraphDelta[]): GraphDelta {
   if (!ds.length) return NOTHING;
   if (ds.some(d => d.ids === null)) return EVERYTHING;
-  const ids = new Set(ds.flatMap(d => d.ids!));
-  return ids.size > DELTA_CAP ? EVERYTHING : { ids: [...ids], knowledge: ds.some(d => d.knowledge) };
+  const ids = new Set(ds.flatMap(d => d.ids!)); const pages = ds.flatMap(d => d.pages ?? []);
+  const base = ids.size > DELTA_CAP ? EVERYTHING : { ids: [...ids], knowledge: ds.some(d => d.knowledge) };
+  return pages.length ? { ...base, pages } : base;
 }
