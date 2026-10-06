@@ -38,10 +38,24 @@ section; the page's node is `module:<slug>` — the id every task of the plan is
 - **Goal** — one sentence saying what is true when the plan is done, and the goals / decisions it serves as links on
   the words: `[the vault's note](decision:<v>.x)`. Never a bare id in prose.
 - **Scope** — what is in, what is out, in two short lists.
-- **Requirements** — the `req:` blocks this plan implements, **defined on the plan page as yaml cards** (one fence
-  per card: `id`, `title`, `status: proposed`, `when` / `then` / `unless`, `part-of: module:<slug>`), never as links
-  to cards written elsewhere. A requirement that already exists is linked on its words instead; a plan with no
-  requirement is a to-do list — fine for a chore, say so.
+- **Requirements** — the `req:` blocks this plan implements, **defined on the plan page**, never as links to cards
+  written elsewhere. A card holds only `id`, `title`, `status: proposed`, `part-of: module:<slug>`; its When / Then /
+  Unless are **content lines indented two spaces under the fence**, each a node of its own — never yaml properties:
+
+  ```markdown
+  ```yaml
+  - id: req:<v>.<slug>.<x>
+    title: <what is true for the person, one sentence>
+    status: proposed
+    part-of: module:<slug>
+  ```
+    - when:<slug>.<x> <the trigger, a sentence>
+    - then:<slug>.<x> <the outcome>
+    - unless:<slug>.<x> <the exception>
+  ```
+
+  A requirement that already exists is linked on its words instead; a plan with no requirement is a to-do list —
+  fine for a chore, say so.
 - **Phases** — the table: what each delivers and the exit criterion that says it is done ("it works" is not one).
 - **Tasks** — checkbox lines in the order they are done, one per thing a session can finish and a person can review:
 

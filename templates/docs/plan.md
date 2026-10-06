@@ -28,13 +28,13 @@ What must be true for a person, as behaviours they can observe — each a block 
 
 ```yaml
 - id: req:{{slug}}.first
-  title: <when …, then …>
+  title: <what is true for the person, in one sentence>
   status: proposed
-  when: <the trigger>
-  then: <the outcome>
-  unless: <the exception>
   part-of: {{kind}}:{{slug}}
 ```
+  - when:{{slug}}.first <the trigger>
+  - then:{{slug}}.first <the outcome>
+  - unless:{{slug}}.first <the exception>
 
 ## Phases
 
