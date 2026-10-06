@@ -64,3 +64,17 @@ describe('raw input', () => {
     expect((await listInboxItems(dir)).map(i => i.name)).toEqual([name]); // the sidecar is not an item
   });
 });
+
+import { settleDigested } from './inbox';
+describe('digested', () => {
+  it('a raw item leaves the queue once its session has ended', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'wf-inbox-raw-'));
+    const name = await addInboxItem(dir, { text: 'words', raw: true });
+    await digestInboxItem(dir, name, async () => ({ id: 's1' }));
+    const open = await settleDigested(dir, await listInboxItems(dir), async () => 'running');
+    expect(open[0].status).toBe('new');
+    const settled = await settleDigested(dir, await listInboxItems(dir), async () => 'done');
+    expect(settled[0].status).toBe('digested');
+    expect((await listInboxItems(dir))[0].status).toBe('digested'); // kept, not derived again
+  });
+});

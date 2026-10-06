@@ -16,7 +16,7 @@ export type InboxType = 'decision' | 'requirement' | 'rule' | 'question' | 'note
 // impact judged on arrival are what Wye makes of it (decision:waterfall.raw-input-stays-raw)
 export type InboxImpactCandidate = { id: string; kind: string; title: string; verdict: 'update' | 'rework' | 'contradicts' | 'ask'; reason: string; question?: string };
 export type InboxImpact = { at: string; judged: number; candidates: InboxImpactCandidate[] };
-export interface InboxItem { name: string; type: InboxType; title: string; from: string; added: string; status: 'new' | 'filed' | 'dismissed'; refs: string[]; session?: string; raw?: boolean; impact?: InboxImpact; fields: Record<string, string>; body: string; filedTo?: string; node?: string; size: number; mtime: string }
+export interface InboxItem { name: string; type: InboxType; title: string; from: string; added: string; status: 'new' | 'filed' | 'dismissed' | 'digested'; refs: string[]; session?: string; raw?: boolean; impact?: InboxImpact; fields: Record<string, string>; body: string; filedTo?: string; node?: string; size: number; mtime: string }
 
 const FIELD_KEYS = ['context', 'choice', 'alternatives', 'consequences', 'when', 'then', 'unless', 'statement', 'source', 'q'];
 
@@ -123,6 +123,16 @@ export async function digestInboxItem(productDir: string, name: string, start: R
   } catch (e) { return { session: null, error: e instanceof Error ? e.message : String(e) }; }
 }
 export async function dismissItem(productDir: string, name: string): Promise<void> { await patchHead(productDir, name, { status: 'dismissed' }); }
+// A raw item whose digest session has ended has nothing left to review: it leaves the queue as `digested` (still
+// listed under All, with its session). Reconciled when the inbox is listed, from the session's status.
+export async function settleDigested(productDir: string, items: InboxItem[], sessionStatus: (id: string) => Promise<string | null>): Promise<InboxItem[]> {
+  const out: InboxItem[] = [];
+  for (const i of items) {
+    if (i.raw && i.status === 'new' && i.session && ['done', 'failed'].includes((await sessionStatus(i.session)) ?? '')) { await patchHead(productDir, i.name, { status: 'digested' }); out.push({ ...i, status: 'digested' }); }
+    else out.push(i);
+  }
+  return out;
+}
 export async function markFiled(productDir: string, name: string, to: { file: string; node: string }): Promise<void> { await patchHead(productDir, name, { status: 'filed', 'filed-to': to.file, node: to.node }); }
 
 // Which document should an item go to, and as which node? The closest existing knowledge decides the document

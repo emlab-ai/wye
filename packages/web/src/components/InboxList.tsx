@@ -68,7 +68,8 @@ export function InboxList({ product, initial, quiet }: { product: string; initia
                     {i.impact ? (i.impact.candidates.length ? <ul className="inbox-impact">{i.impact.candidates.map(c => <li key={c.id}><span className={`pill s impact-${c.verdict}`}>{c.verdict}</span> <SmartTag id={c.id} /> <span className="muted">{c.question ?? c.reason}</span></li>)}</ul>
                       : <p className="muted">no impact on what is known — nothing among the {i.impact.judged} closest block{i.impact.judged === 1 ? '' : 's'} needs an update, is contradicted or asks a question.</p>)
                       : <p className="muted">impact not judged yet.</p>}
-                    {i.status === 'new' && <div className="sec-actions">
+                    {i.status === 'digested' && i.session && <p className="muted">digested — what it meant is proposed in the documents (the blocks above, to approve or reject); <a href={`/${product}/sessions/${i.session}`}>session {i.session.slice(0, 6)}</a>.</p>}
+                    {(i.status === 'new' || i.status === 'digested') && <div className="sec-actions">
                       <button className="pri" disabled={busy} onClick={() => act(i.name, { action: 'digest' }, true)} title="judge the impact again and start a new Remember session that files what the input means">{i.session ? 'Digest again' : 'Digest'}</button>
                       <button disabled={busy} onClick={() => act(i.name, { action: 'impact' }, true)} title="judge again what this input touches in what is known">Impact again</button>
                       {i.session && <a className="btn" href={`/${product}/sessions/${i.session}`}>session {i.session.slice(0, 6)}</a>}

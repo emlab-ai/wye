@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { loadScope } from '@/lib/scope';
-import { listInboxItems } from '@/lib/inbox';
+import { listInboxItems, settleDigested } from '@/lib/inbox';
+import { getSession } from '@/lib/sessions';
 import { reviewQueue, attachVerdicts } from '@/lib/review';
 import { verdictLog, verdictsEnabled } from '@/lib/verdicts';
 import { InboxNote } from '@/components/InboxNote';
@@ -33,7 +34,7 @@ export default async function InboxPage({ params, searchParams }: { params: Prom
   const projects = scope.projects.map(p => ({ slug: p.slug, title: p.meta.title }));
   const inProject = (file: string) => !project || docRoute(file)?.project === project;
   if (project) queue = queue.filter(i => inProject(i.file));
-  const notes = project ? [] : (await listInboxItems(scope.product.dir)).filter(i => i.status === 'new' || i.type === 'note');
+  const notes = project ? [] : await settleDigested(scope.product.dir, (await listInboxItems(scope.product.dir)).filter(i => i.status === 'new' || i.type === 'note'), async id => (await getSession(scope.product.dir, id))?.status ?? null);
   // pending edits of existing blocks (req:exec.change-kept): old and new side by side, with the verdicts the
   // write-time pass left under the node (req:exec.change-validated)
   const log = await verdictLog(scope.product.dir);
