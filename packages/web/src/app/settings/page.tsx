@@ -3,9 +3,10 @@ import { readSettings, publicSettings } from '@/lib/settings';
 import { SettingsJev } from '@/components/SettingsJev';
 import { SettingsAgents } from '@/components/SettingsAgents';
 import { ThemeSettings } from '@/components/ThemeSwitch';
+import { SettingsRemote } from '@/components/SettingsRemote';
 
 // The app's settings: what is stored here is about this machine, not about one product — the theme, the key Jev links
-// with, how many agents build at once. All of it lives in <data>/_settings.json. A product's own settings — where its
+// with, how many agents build at once, the servers it keeps a tunnel to. All of it lives in <data>/_settings.json. A product's own settings — where its
 // folder is, deleting it — are at /<product>/settings.
 export default async function AppSettingsPage({ searchParams }: { searchParams: Promise<{ from?: string }> }) {
   const { from } = await searchParams;
@@ -19,6 +20,7 @@ export default async function AppSettingsPage({ searchParams }: { searchParams: 
       </header>
       <ThemeSettings />
       <SettingsAgents initial={s.agents} launch={s.launch} />
+      <SettingsRemote />
       <SettingsJev initial={s.jev} />
     </div>
   );

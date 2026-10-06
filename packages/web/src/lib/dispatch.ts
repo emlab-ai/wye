@@ -8,8 +8,8 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { REPO_ROOT, slugOfDir } from './products';
 import { loadScope, type Scope } from './scope';
-import { getFrontmatter, prNumberOf, requestTaskId } from './pr-doc';
-import { readPrDoc } from './pr-docs';
+import { getFrontmatter, prNumberOf, requestTaskId, prFileRef } from './pr-doc';
+import { readPrDoc, prDefinition } from './pr-docs';
 import { parseScope, overlap } from './pr-scope';
 import { readSettings, agentSettings } from './settings';
 import { listSessions, updateSession, onSessionEnd } from './sessions';
@@ -49,7 +49,7 @@ async function prRows(scope: Scope): Promise<{ approved: Approved[]; building: B
   const approved: Approved[] = []; const building: Building[] = []; const stale: string[] = [];
   for (const n of scope.graph.nodes) {
     if (n.kind !== 'pr' || !n.defined || !['approved', 'building'].includes(n.status)) continue;
-    const r = n.file.match(/products\/[^/]+\/projects\/([^/]+)\/docs\/([^/]+)\.md$/); if (!r) continue;
+    const at = prFileRef(n.file); if (!at) continue; const r = ['', at.project, at.slug];   // a PR's page is in .wye/ (lib/pr-doc#prFileRef)
     const ref = `${scope.product.slug}/${r[1]}/${r[2]}`;
     let md: string; try { md = await readFile(path.join(REPO_ROOT, n.file), 'utf8'); } catch { continue; }
     const row = { ref, num: prNumberOf(r[2]), scope: parseScope(md).scope };
@@ -83,6 +83,11 @@ export async function dispatch(product: string, wfUrl?: string): Promise<{ start
       const at = await readPrDoc(product, ref); if (!at) continue; const md = at.md;
       const task = getFrontmatter(md, 'task') ?? (md.includes(`${requestTaskId(slug)} `) ? requestTaskId(slug) : null);
       if (!task) { waiting[ref] = 'no request task to build'; continue; }
+      // approving a request approves its Definition (decision:wf2.approve-approves-the-definition); one approved before
+      // that, whose blocks are still proposed, is not built behind the person's back — it waits for them to be approved
+      // (or for Build now, which is the person saying so)
+      const proposed = prDefinition(scope, md).items.filter(i => !i.agreed && !i.missing && !i.id.startsWith('question:')).length;
+      if (proposed) { waiting[ref] = `${proposed} block${proposed === 1 ? '' : 's'} of the Definition not approved yet`; continue; }
       const r = await assignTask(scope, task, { worker: agent, build: ref, wfUrl: st.wfUrl, by: 'dispatcher', force: true });
       if (!r.ok) { waiting[ref] = `could not start: ${r.message}`; continue; }
       started.push(ref);

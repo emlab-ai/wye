@@ -108,11 +108,14 @@ export function claudeLaunchArgs(launch: AgentLaunch, o: { model?: string; libra
 
 // What the host adds to `codex exec …` (after `exec`, or after `exec resume <thread>`). `resume` has no --sandbox or
 // --approve-for-me: a sandbox other than the workspace goes as config, the rest stays as the thread started.
-export function codexLaunchArgs(launch: AgentLaunch, o: { model?: string; resume?: boolean; own?: boolean } = {}): string[] {
+// A librarian on Codex (decision:wf2.pr-agent-and-model) is kept to the workspace sandbox whatever the mode says —
+// never full access, never without a sandbox: Codex has no closed tool set to give it, so this is the tightest it
+// runs with `wye` still reaching the app (a read-only sandbox has no network).
+export function codexLaunchArgs(launch: AgentLaunch, o: { model?: string; resume?: boolean; own?: boolean; librarian?: boolean } = {}): string[] {
   const args: string[] = [];
   if (o.model) args.push('--model', o.model);
   if (o.own) return args;
-  const mode = launch.mode || 'workspace-write';
+  const mode = o.librarian ? 'workspace-write' : launch.mode || 'workspace-write';
   if (mode === 'yolo') args.push('--dangerously-bypass-approvals-and-sandbox');
   else if (o.resume) { if (mode === 'read-only' || mode === 'danger-full-access') args.push('-c', `sandbox_mode=${mode}`); }
   else if (mode === 'approve-for-me') args.push('--approve-for-me');

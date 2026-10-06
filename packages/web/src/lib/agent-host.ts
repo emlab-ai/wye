@@ -78,7 +78,7 @@ export function refiningNote(prDoc?: string): string {
   const slug = prDoc.split('/')[2];
   return `\n## The request page
 This conversation refines the Prompt Request \`${prDoc}\` (node \`pr:${slug}\`, status refining) until it is clear and agreed. The person reads it live and decides from it — work on the page, not in chat:
-- **Summary** first, at the top of the page: what will be built, in a person's words — a paragraph, then ### What gets built (the content the product gains, and the code changes it needs with a size each), ### How it works, ### What you will see (one concrete example), ### Plan, ### Out of scope, ### Still open — \`wye doc write ${prDoc} --section Summary --file <f>\` (the outline is in your system prompt).
+- **Summary** first, at the top of the page: what will be built, in a person's words — a paragraph, then ### What gets built (the content the product gains, and the code changes it needs with a size each), ### How it works, ### What you will see (one concrete example), ### Plan, ### Out of scope, ### Still open (each question in words with its id in brackets after — no line of the Summary opens with an id) — \`wye doc write ${prDoc} --section Summary --file <f>\` (the outline is in your system prompt).
 - **Analysis** (the analyse-request skill under Skills below): what the request changes and where, the code it lands in, the risks and constraints in force, what it contradicts — \`wye doc write ${prDoc} --section Analysis --file <f>\`.
 - **Context**: what the request touches — modules, documents, nodes, code paths — as tags (\`kind:slug\`) and embeds (\`![[kind:slug]]\`) (\`wye doc write\`, this section only).
 - **Definition**: every block the request needs — requirements (a title; when: / then: / unless: child blocks under the card, in the person's words), decisions (a title, then context: / choice: / alternative: / consequence: child blocks under the card — the ones that have something to say), constraints, questions for what you cannot decide, tasks — proposed into their home documents with \`wye propose --pr ${prDoc}\` (they embed here by themselves); edits of existing blocks with \`wye node set\` under your session (they are tracked as change records and embedded too).
@@ -459,7 +459,7 @@ function codexTurn(l: Live, cwd: string, text: string, fromQueue = false, imageP
   // without network made every wye call fail with `fetch failed`)
   const net = ['-c', 'sandbox_workspace_write.network_access=true'];
   // the model, the sandbox or approvals and the person's own flags, as Settings › Agents says (decision:wf2.agent-launch)
-  const how = (resume: boolean) => codexLaunchArgs(l.launch ?? {}, { model: l.launchModel, resume, own: !!l.ownConfig });
+  const how = (resume: boolean) => codexLaunchArgs(l.launch ?? {}, { model: l.launchModel, resume, own: !!l.ownConfig, librarian: l.role === 'librarian' });
   const args = l.codexThread ? [...net, 'exec', 'resume', l.codexThread, '--json', ...how(true), ...imgArgs, text] : [...net, 'exec', '--json', ...how(false), ...imgArgs, text];
   // stdin must not be an open pipe: `codex exec` appends piped stdin to the prompt and waits for EOF, so a pipe
   // nobody closes hangs the turn with no output (found 2026-09-20; the prompt is the argument, images are files)

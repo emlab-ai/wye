@@ -55,6 +55,9 @@ describe('agent launch', () => {
   it('codex: the workspace sandbox unless told otherwise; resume takes the sandbox as config', () => {
     expect(codexLaunchArgs({})).toEqual(['--sandbox', 'workspace-write']);
     expect(codexLaunchArgs({}, { resume: true })).toEqual([]);
+    // a librarian is kept to the workspace sandbox whatever the mode: never full access, never unsandboxed
+    expect(codexLaunchArgs({ mode: 'yolo' }, { librarian: true, model: 'gpt-5' })).toEqual(['--model', 'gpt-5', '--sandbox', 'workspace-write']);
+    expect(codexLaunchArgs({ mode: 'danger-full-access' }, { librarian: true, resume: true })).toEqual([]);
     expect(codexLaunchArgs({ mode: 'yolo', effort: 'high' }, { model: 'gpt-5' })).toEqual(['--model', 'gpt-5', '--dangerously-bypass-approvals-and-sandbox', '-c', 'model_reasoning_effort=high']);
     expect(codexLaunchArgs({ mode: 'yolo' }, { resume: true })).toEqual(['--dangerously-bypass-approvals-and-sandbox']);
     expect(codexLaunchArgs({ mode: 'approve-for-me' })).toEqual(['--approve-for-me']);
