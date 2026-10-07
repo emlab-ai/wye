@@ -295,7 +295,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
     const parent = pop.parent;
     const at = parent ? nextTo(parent) : pop.flow;
     setBusy(true);
-    const made = await send({ action: parent ? 'child' : 'node', kind, title: title.trim(), x: at.x, y: at.y, parent, verb: parent ? verb : undefined });
+    const made = await send({ action: parent ? 'child' : 'node', kind, title: title.trim(), x: at.x, y: at.y, parent, verb: parent ? verbSlug(verb) || 'related-to' : undefined });
     setBusy(false);
     if (!made) return;
     setTitle('');
@@ -411,7 +411,9 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
                 <select value={kind} onChange={e => setKind(e.target.value)}>{kinds.map(k => <option key={k} value={k}>{k}</option>)}</select>
               </label>
               {pop.parent && <label><span>link</span>
-                <select value={verb} onChange={e => setVerb(e.target.value)}>{[...new Set([verb, ...offered])].map(v => <option key={v} value={v}>{v}</option>)}</select>
+                {/* the verbs the ontology offers as suggestions, and any other typed — "depends on" is depends-on */}
+                <input list="mpop-verbs" value={verb} placeholder="part-of, depends on, …" onChange={e => setVerb(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void createNode(); if (e.key === 'Escape') setPop(null); }} spellCheck={false} />
+                <datalist id="mpop-verbs">{[...new Set([...offered, 'part-of', 'related-to', 'depends-on', 'refines', 'affects', 'contradicts'])].map(v => <option key={v} value={v} />)}</datalist>
               </label>}
               <input autoFocus placeholder="title" value={title} onChange={e => setTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void createNode(); if (e.key === 'Escape') setPop(null); }} />
               <div className="mpop-row">

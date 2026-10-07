@@ -112,7 +112,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     let id = `${kind}:${base}`;
     for (let n = 2; scope.idx.byId.get(id)?.defined; n++) id = `${kind}:${base}-${n}`;
     created = id;
-    const verb = (body.verb ?? 'part-of').trim();
+    const verb = verbSlug(body.verb ?? 'part-of') || 'part-of';
     // a node drawn on a canvas is a sketch, not settled knowledge: it is proposed where the type allows that, which also
     // keeps `wye check` quiet about a requirement that has nothing satisfying it yet
     const props: Record<string, string> = (t.statuses ?? []).includes('proposed') ? { status: 'proposed' } : {};
