@@ -8,6 +8,7 @@ import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import { Cover, IconPicker, PageComments, TagsRow } from './PageHead';
 import { isSystemSlug } from '@/lib/doc';
+import { KindPicker } from './KindPicker';
 
 // frontmatter keys the header shows in its own places (or never): not properties of the type
 const HEAD_KEYS = new Set(['node', 'type', 'title', 'status', 'icon', 'cover', 'tags', 'owner', 'last-verified', 'order', 'sources', 'source-roots', 'text', 'part-of']);
@@ -110,10 +111,7 @@ export function DocProps({ product, project, slug, file, fm, node, types, titled
         {!vals.cover && <Cover product={product} project={project} value="" onChange={v => setKey('cover', v)} />}
       </div>
       <div className="pills">
-        <select className={`pill k type-sel k-${kind}`} style={{ background: `var(--k-${kind}, var(--k-module))` }} value={kind} onChange={e => retype(e.target.value)} title={type ? `${type.purpose || type.id} — pick another type to retype the page and every link to it` : `${kind} is not a declared type`}>
-          {!type && <option value={kind}>{kind}</option>}
-          {choices.map(t => <option key={t.slug} value={t.slug}>{t.slug}</option>)}
-        </select>
+        <KindPicker className="type-sel" value={kind} options={[...(!type ? [{ value: kind }] : []), ...choices.map(t => ({ value: t.slug }))]} onChange={retype} title={type ? `${type.purpose || type.id} — pick another type to retype the page and every link to it` : `${kind} is not a declared type`} />
         <code className="cid doc-id" title="the page's node">{node}</code>
         <select className="status-sel" value={vals.status ?? ''} onChange={e => { setVals(v => ({ ...v, status: e.target.value })); }} onBlur={() => commit('status')}>{statusOptions(statusesByKind(types), kind, vals.status ?? '').map(v => <option key={v} value={v}>{v || '—'}</option>)}</select>
         <span className={`save-state ${state}`}>{state === 'saving' ? 'saving…' : state === 'saved' ? 'saved' : state === 'error' ? 'save failed' : ''}</span>

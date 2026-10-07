@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { TEMPLATES } from '@/lib/templates';
 import { usePeek } from './PeekProvider';
+import { KindPicker } from './KindPicker';
 
 export function NewDoc({ product, project: initialProject, projects, docs, defaultParent, open: forceOpen, onClose }: { product: string; project: string; projects?: { slug: string; title: string }[]; docs: { slug: string; title: string; project?: string }[]; defaultParent: string; open?: boolean; onClose?: () => void }) {
   const [project, setProject] = useState(initialProject);
@@ -33,7 +34,7 @@ export function NewDoc({ product, project: initialProject, projects, docs, defau
     <div className="newdoc-form form">
       <label><span>title</span><input autoFocus value={title} placeholder="e.g. Inventory PRD" onChange={e => setTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') create(); if (e.key === 'Escape') setOpen(false); }} /></label>
       <label><span>template</span><select value={template} onChange={e => setTemplate(e.target.value)}>{TEMPLATES.map(t => <option key={t} value={t}>{t}</option>)}</select></label>
-      {ownTypes.length > 0 && <label><span>type</span><select value={type} onChange={e => setType(e.target.value)}><option value="module">module (a document)</option>{ownTypes.map(t => <option key={t.slug} value={t.slug}>{t.slug}</option>)}</select></label>}
+      {ownTypes.length > 0 && <label><span>type</span><KindPicker value={type} options={[{ value: 'module', label: 'module', hint: 'a document' }, ...ownTypes.map(t => ({ value: t.slug }))]} onChange={setType} /></label>}
       <label><span>parent</span><select value={parent} onChange={e => setParent(e.target.value)}><option value="">(top level)</option>{docs.map(d => <option key={d.slug} value={d.slug}>{d.title}</option>)}</select></label>
       {!parent && projects && projects.length > 1 && <label><span>folder</span><select value={project} onChange={e => setProject(e.target.value)}>{projects.map(p => <option key={p.slug} value={p.slug}>{p.title}</option>)}</select></label>}
       <div className="sec-actions"><button className="pri" disabled={busy || !title.trim()} onClick={create}>{busy ? 'Creating…' : 'Create'}</button><button disabled={busy} onClick={() => setOpen(false)}>Cancel</button>{msg && <span className="notice">{msg}</span>}</div>

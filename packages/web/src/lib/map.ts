@@ -11,7 +11,7 @@ import { nestingMap } from './types';
 import { appendCard } from './instances';
 
 export type Spot = { id: string; x: number; y: number; ref: boolean; open: boolean };
-export type MapNode = { id: string; kind: string; title: string; status: string; defined: boolean; ref: boolean; x: number; y: number };
+export type MapNode = { id: string; kind: string; title: string; /** the card's `text:` — the lines after the title when a card is written on the map */ text?: string; status: string; defined: boolean; ref: boolean; x: number; y: number };
 export type OffNode = { id: string; kind: string; title: string };
 export type MapGraph = { nodes: MapNode[]; edges: GraphEdge[]; off: OffNode[] };
 
@@ -80,7 +80,8 @@ export function mapGraph(g: Pick<GraphData, 'nodes' | 'edges' | 'types'>, idx: P
   for (const s of spots) {
     const n = idx.byId.get(s.id);
     if (!n?.defined || here.has(n.id) || n.id === mapId) continue;
-    nodes.push({ id: n.id, kind: n.kind, title: n.title, status: n.status, defined: true, ref: n.file !== file, x: s.x, y: s.y });
+    const text = (n.body.match(/^text:\s*(.+)$/m)?.[1] ?? '').trim();
+    nodes.push({ id: n.id, kind: n.kind, title: n.title, ...(text ? { text } : {}), status: n.status, defined: true, ref: n.file !== file, x: s.x, y: s.y });
     here.add(n.id);
   }
   const edges = g.edges.filter(e => !e.generated && here.has(e.from) && here.has(e.to) && e.from !== e.to);

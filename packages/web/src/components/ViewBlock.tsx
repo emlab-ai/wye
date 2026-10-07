@@ -13,6 +13,7 @@ import { GoalsEmpty } from './TrackList';
 import { WorkEmpty } from './WorkList';
 import { detailOf, knowledgeChanged } from '@/lib/change';
 import { parseViewQuery, viewQuery, type Filters, type InstanceTable as Table } from '@/lib/instance-table';
+import { KindPicker } from './KindPicker';
 
 // the kinds a view can list: the product's own types first, then the base kinds people look at as lists
 const BASE_VIEW_KINDS = KINDS.filter(k => !['field', 'prop', 'block', 'product', 'module', 'type', 'value', 'state', 'flag', 'setting', 'drift', 'tool'].includes(k));
@@ -87,9 +88,7 @@ export const ViewBlock = createReactBlockSpec(
         <div className="view-block" contentEditable={false} ref={el => { stop(el); (hostRef as React.MutableRefObject<HTMLDivElement | null>).current = el; }}>
           <div className="view-head">
             <span className="chips-label">view</span>
-            <select className="collection-kind" value={slug} title="the type this view lists" onChange={e => props.editor.updateBlock(props.block, { props: { slug: e.target.value, query: '' } } as never)}>
-              {options.map(o => <option key={o} value={o}>{o}</option>)}
-            </select>
+            <KindPicker className="collection-kind" value={slug} options={options} title="the type this view lists" stopMouseDown onChange={v => props.editor.updateBlock(props.block, { props: { slug: v, query: '' } } as never)} />
             {table && <span className="muted small">{table.rows.length} {table.typed ? '' : '· not a declared type'}</span>}
             <button type="button" className="collection-view-toggle" title={asTable ? 'show as blocks' : 'show as a table'} onClick={() => setAs(!asTable)}>{asTable ? '☰ blocks' : '▤ table'}</button>
             <select className="collection-kind" value={scopeAll ? 'workspace' : scopeProject ? 'project' : 'product'} title="where the blocks come from: every vault of the workspace, this vault, or this document's project" onChange={e => setScope(e.target.value)}>

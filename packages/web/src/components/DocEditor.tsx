@@ -36,6 +36,7 @@ import { LiveTable, type OwnRows } from './LiveTable';
 import { DateField } from './DateField';
 import { requestSend } from './CommandBox';
 import { AskAgentBox, type AskRequest } from './AskAgent';
+import { KindPicker } from './KindPicker';
 
 
 // kind:slug as inline content: a clickable tag in the editor, plain id text when serialised.
@@ -482,9 +483,8 @@ const CollectionBlock = createReactBlockSpec(
           title={live ? "items from the whole product — click for this page's only" : "this page's items — click for the whole product's"}>{live ? '⊕ whole product' : '⊕'}</button>
       );
       const picker = (
-        <select className="collection-kind" value={kind} disabled={locked} title={locked ? 'rows already have ids of this type; start another table for another type' : 'the type of this table'} onChange={e => setKind(e.target.value)} onMouseDown={e => e.stopPropagation()}>
-          {options.map(o => <option key={o} value={o}>{pluralTitle({ slug: o, plural: ownTypes.find(t => t.slug === o)?.plural })}</option>)}
-        </select>
+        <KindPicker className="collection-kind" value={kind} disabled={locked} title={locked ? 'rows already have ids of this type; start another table for another type' : 'the type of this table'} onChange={setKind} stopMouseDown
+          options={options.map(o => ({ value: o, label: pluralTitle({ slug: o, plural: ownTypes.find(t => t.slug === o)?.plural }) }))} />
       );
       const own: OwnRows = {
         has: id => { const b = findNodeBlock(editor.document as AnyBlock[], id); return !b ? null : kids.some(k => (k as { id?: string }).id === (b as { id?: string }).id) ? 'table' : 'page'; },
@@ -767,7 +767,7 @@ function LinkNodePicker({ req, onClose, apply, createDoc, createNode, linkEveryw
       <input autoFocus value={q} placeholder="search id or title — or type “city: London” to make one…" onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { if (hits[0] && !typed) linked(hits[0].id); else if (name) createTyped(); } if (e.key === 'Escape') onClose(); }} />
       <ul>
         {!typed && hits.map(h => <li key={h.id}><button onMouseDown={e => { e.preventDefault(); linked(h.id); }}><span>{h.id}</span><small>{h.title}</small></button></li>)}
-        {name && <li className="linknode-new"><select value={kind} onMouseDown={e => e.stopPropagation()} onChange={e => { setType(e.target.value); if (typed) setQ(name); }} title="the type of the new node">{types.map(t => <option key={t} value={t}>{t}</option>)}</select><button className="create" disabled={busy} onMouseDown={e => { e.preventDefault(); createTyped(); }}><span>+ new <b>{kind}:{name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}</b> “{name}”</span><small>{ownTypes.some(t => t.slug === kind) ? `a row in the ${kind} collection document` : 'a card in this document'}; this word becomes its tag</small></button></li>}
+        {name && <li className="linknode-new"><KindPicker value={kind} options={types} stopMouseDown onChange={v => { setType(v); if (typed) setQ(name); }} title="the type of the new node" /><button className="create" disabled={busy} onMouseDown={e => { e.preventDefault(); createTyped(); }}><span>+ new <b>{kind}:{name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}</b> “{name}”</span><small>{ownTypes.some(t => t.slug === kind) ? `a row in the ${kind} collection document` : 'a card in this document'}; this word becomes its tag</small></button></li>}
         {name && <li><button className="create" disabled={busy} onMouseDown={e => { e.preventDefault(); create(); }}><span>+ new document “{name}”</span><small>creates a page under this one and links to it</small></button></li>}
       </ul>
     </div>

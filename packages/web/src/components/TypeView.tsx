@@ -8,6 +8,7 @@ import { SmartTag } from './SmartTag';
 import { KindPill, StatusPill } from './Pills';
 import { usePeek } from './PeekProvider';
 import { TypeStatuses } from './TypeStatuses';
+import { KindPicker } from './KindPicker';
 
 // The value type of a property as a choice (decision:ontology.one-of-many-of): a scalar, one of / many of a type
 // (a link, with an inverse), one of / many of a list of values (a select / a multi-select). Read from and written
@@ -32,7 +33,7 @@ function ValueType({ spec, types, readOnly, onChange }: { spec: string; types: s
   return (
     <span className="vt">
       <select value={sh.kind} onChange={e => { const kind = e.target.value as Shape['kind']; set({ kind, arg: kind === 'oneType' || kind === 'manyType' ? (types.includes(sh.arg) ? sh.arg : types[0] ?? 'node') : kind === 'oneValue' || kind === 'manyValue' ? sh.arg : '' }); }}>{KINDS.map(k => <option key={k.kind} value={k.kind}>{k.label}</option>)}</select>
-      {(sh.kind === 'oneType' || sh.kind === 'manyType') && <select value={sh.arg} onChange={e => set({ arg: e.target.value })} title="the type it links to">{[...new Set(['node', ...types, sh.arg].filter(Boolean))].map(t => <option key={t} value={t}>{t}</option>)}</select>}
+      {(sh.kind === 'oneType' || sh.kind === 'manyType') && <KindPicker value={sh.arg} onChange={v => set({ arg: v })} title="the type it links to" options={[...new Set(['node', ...types, sh.arg].filter(Boolean))]} />}
       {(sh.kind === 'oneValue' || sh.kind === 'manyValue') && <input value={sh.arg} placeholder="value, value, value" onChange={e => set({ arg: e.target.value })} title="the values, comma-separated" />}
     </span>
   );

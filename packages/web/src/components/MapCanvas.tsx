@@ -9,6 +9,7 @@ import { rootTypes } from '@/lib/types';
 import type { GraphEdge } from '@/lib/graph';
 import { usePeek } from './PeekProvider';
 import { EmbeddedCard } from './EmbeddedCard';
+import { KindPicker } from './KindPicker';
 
 // The canvas of a map page (component:map-canvas, req:wf2.map.canvas). Its nodes and edges are the page's own cards and
 // the links they carry, so a gesture here is an edit to the knowledge: a double click on the canvas adds a node, the +
@@ -20,7 +21,7 @@ import { EmbeddedCard } from './EmbeddedCard';
 type TypeLite = { slug: string; nestsIn?: string[]; props?: { name: string; ref: string | null }[] };
 interface Props { product: string; project: string; slug: string; nodes: MapNode[]; edges: GraphEdge[]; off: OffNode[]; spots: Spot[]; types: TypeLite[]; children?: ReactNode }
 type Picture = { nodes: MapNode[]; edges: GraphEdge[]; off?: OffNode[]; spots?: Spot[]; id?: string | null };
-type NodeData = { kind: string; title: string; status: string; isRef: boolean; near: boolean; open: boolean; onChild: (id: string, at: { x: number; y: number }) => void; onRename: (id: string, title: string) => void; onOpen: (id: string, open: boolean) => void };
+type NodeData = { kind: string; title: string; text: string; status: string; isRef: boolean; near: boolean; open: boolean; onChild: (id: string, at: { x: number; y: number }) => void; onRename: (id: string, title: string, text: string) => void; onOpen: (id: string, open: boolean) => void };
 
 const FLUSH_MS = 350;         // a hand at rest: the whole Layout section goes in one write
 const CHILD_GAP = 90, CHILD_DY = 90, NODE_GUESS = 230;
@@ -45,9 +46,15 @@ const nameOf = (id: string) => id.split(':').slice(1).join(':');
 // keep their own mouse.
 function MapCard({ id, data, selected }: NodeProps<Node<NodeData>>) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(data.title);
-  useEffect(() => setDraft(data.title), [data.title]);
-  const save = () => { setEditing(false); if (draft.trim() && draft.trim() !== data.title) data.onRename(id, draft.trim()); };
+  // what is typed: the first line is the title, the lines after it the card's text (Shift+Enter adds a line)
+  const whole = data.text ? `${data.title}\n${data.text}` : data.title;
+  const [draft, setDraft] = useState(whole);
+  useEffect(() => setDraft(whole), [whole]);
+  const save = () => {
+    setEditing(false);
+    const lines = draft.split('\n').map(l => l.trim()); const title = lines[0] ?? ''; const text = lines.slice(1).filter(Boolean).join('\n');
+    if (title && (title !== data.title || text !== (data.text ?? ''))) data.onRename(id, title, text);
+  };
   const frame = `mnode ${selected ? 'on' : ''} ${data.near || selected ? 'near' : ''} ${data.isRef ? 'is-ref' : ''} s-${data.status || 'none'}`;
   const fold = (
     <button type="button" className="mnode-fold nodrag" title={data.open ? 'Show the title alone' : 'Show the whole card'}
@@ -65,8 +72,8 @@ function MapCard({ id, data, selected }: NodeProps<Node<NodeData>>) {
       {SIDES.map(p => <Handle key={p} id={p} type="source" position={POS[p]} />)}
       <span className="mnode-kind pill k" style={{ background: `var(--k-${data.kind}, var(--k-other))` }}>{data.kind}</span>
       {editing
-        ? <input className="mnode-edit" autoFocus value={draft} onChange={e => setDraft(e.target.value)} onBlur={save} onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setDraft(data.title); setEditing(false); } }} />
-        : <span className="mnode-title" onDoubleClick={e => { e.stopPropagation(); setEditing(true); }}>{data.title || nameOf(id)}</span>}
+        ? <textarea className="mnode-edit nodrag" autoFocus value={draft} rows={Math.min(8, draft.split('\n').length)} onChange={e => setDraft(e.target.value)} onBlur={save} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); } if (e.key === 'Escape') { setDraft(whole); setEditing(false); } }} />
+        : <span className="mnode-words" onDoubleClick={e => { e.stopPropagation(); setEditing(true); }}><span className="mnode-title">{data.title || nameOf(id)}</span>{data.text && <span className="mnode-text">{data.text}</span>}</span>}
       {data.isRef && <span className="mnode-ref" title="This node is written on another page">↗</span>}
       {data.status && <span className={`mnode-state pill s ${data.status}`}>{data.status}</span>}
       {fold}
@@ -184,9 +191,9 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
     }
     setNear(cur => (cur === hit ? cur : hit));
   }, []);
-  const onRename = useCallback((id: string, next: string) => {
-    setPic(p => ({ ...p, nodes: p.nodes.map(n => (n.id === id ? { ...n, title: next } : n)) }));   // the canvas shows it at once
-    void fetch(`/api/${product}/node/${encodeURIComponent(id)}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ props: { title: next } }) });
+  const onRename = useCallback((id: string, next: string, text: string) => {
+    setPic(p => ({ ...p, nodes: p.nodes.map(n => (n.id === id ? { ...n, title: next, ...(text ? { text } : { text: undefined }) } : n)) }));   // the canvas shows it at once
+    void fetch(`/api/${product}/node/${encodeURIComponent(id)}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ props: { title: next, text: text || null } }) });
   }, [product]);
 
   const computed = useMemo(() => {
@@ -197,7 +204,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
     const visible = new Set(pic.nodes.filter(shown).map(n => n.id));
     const rfNodes: Node[] = pic.nodes.map(n => ({
       id: n.id, type: 'map', position: seeded.get(n.id) ?? { x: 0, y: 0 }, hidden: !visible.has(n.id),
-      data: { kind: n.kind, title: n.title, status: n.status, isRef: n.ref, near: n.id === near, open: open.has(n.id), onChild, onRename, onOpen } satisfies NodeData,
+      data: { kind: n.kind, title: n.title, text: n.text ?? '', status: n.status, isRef: n.ref, near: n.id === near, open: open.has(n.id), onChild, onRename, onOpen } satisfies NodeData,
       ...(open.has(n.id) ? { style: { width: CARD_W }, dragHandle: '.embed-from' } : {}),
     }));
     const rfEdges: Edge[] = pic.edges.map(e => ({
@@ -408,7 +415,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
             </> : pop.mode === 'new' ? <>
               <div className="mpop-head">{pop.parent ? `A node linked to ${nameOf(pop.parent)}` : 'A new node'}</div>
               <label><span>type</span>
-                <select value={kind} onChange={e => setKind(e.target.value)}>{kinds.map(k => <option key={k} value={k}>{k}</option>)}</select>
+                <KindPicker value={kind} options={kinds} onChange={setKind} />
               </label>
               {pop.parent && <label><span>link</span>
                 {/* the verbs the ontology offers as suggestions, and any other typed — "depends on" is depends-on */}

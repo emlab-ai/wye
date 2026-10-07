@@ -10,6 +10,7 @@ import { docRoute } from '@/lib/doc';
 import { fitMenu } from '@/lib/menu-fit';
 import { TASK_STATUSES } from '@/lib/props';
 import { isOpen, type InstanceRow, type InstanceTable as Table } from '@/lib/instance-table';
+import { KindPicker } from './KindPicker';
 
 // The Tasks table (page:web/work, req:exec.work-view), issue-tracker style: one row per task — and per block of any
 // type that extends task (a bug, a chore), with the kind shown — its title with where it is written, who holds it, its
@@ -66,7 +67,7 @@ export function TaskTable({ product, table, onNew }: { product: string; table: T
           <button type="button" role="tab" aria-selected={mine} className={`seg ${mine ? 'on' : ''}`} onClick={() => setMine(m => !m)} title={me ? `Held by ${me}` : 'Say who you are first: your name in the Tasks page of the rail'}>Assigned to me{me ? <small> {n.mine}</small> : null}</button>
         </span>
         <input type="search" className="ttask-q" placeholder="Search tasks…" value={q} onChange={e => setQ(e.target.value)} />
-        {kinds.length > 1 && <select className="itable-select" value={kind} onChange={e => setKind(e.target.value)} title="The kind of task shown"><option value="">all types ({table.rows.length})</option>{kinds.map(k => <option key={k} value={k}>{k} ({table.rows.filter(r => r.kind === k).length})</option>)}</select>}
+        {kinds.length > 1 && <KindPicker className="itable-select" value={kind} empty={`all types (${table.rows.length})`} title="The kind of task shown" onChange={setKind} options={kinds.map(k => ({ value: k, hint: String(table.rows.filter(r => r.kind === k).length) }))} />}
         {across && <select className="itable-select" value={vault} onChange={e => setVault(e.target.value)} title="The vault whose tasks are shown"><option value="">all vaults</option>{table.vaults!.map(v => <option key={v.slug} value={v.slug}>{v.title} ({table.rows.filter(r => r.vault === v.slug).length})</option>)}</select>}
         <span className="muted small ttask-count">{rows.length}{rows.length !== table.rows.length ? ` of ${table.rows.length}` : ''}</span>
       </div>

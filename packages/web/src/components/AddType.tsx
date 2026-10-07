@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePeek } from './PeekProvider';
+import { KindPicker } from './KindPicker';
 
 export type TypeChoice = { id: string; slug: string };
 export type DocChoice = { file: string; label: string };
@@ -33,7 +34,7 @@ export function AddType({ product, types, docs, home }: { product: string; types
     <form className="add-instance add-type" onSubmit={e => { e.preventDefault(); submit(); }}>
       <input autoFocus placeholder="new type…" value={name} onChange={e => setName(e.target.value)} disabled={busy} />
       <code className={taken ? 'bad' : 'muted'}>type:{slug || '…'}{taken ? ' exists' : ''}</code>
-      <label className="muted">extends <select value={parent} onChange={e => setParent(e.target.value)} disabled={busy}>{types.map(t => <option key={t.id} value={t.id}>{t.slug}</option>)}</select></label>
+      <label className="muted">extends <KindPicker value={parent} disabled={busy} onChange={setParent} options={types.map(t => ({ value: t.id, label: t.slug }))} colour={false} /></label>
       <input placeholder="purpose — what instances of this type are" value={purpose} onChange={e => setPurpose(e.target.value)} disabled={busy} style={{ minWidth: 280 }} />
       {docs.length > 0 && <label className="muted">in <select value={doc} onChange={e => setDoc(e.target.value)} disabled={busy}>{!home && <option value="">new ontology.md</option>}{docs.map(d => <option key={d.file} value={d.file}>{d.label}</option>)}</select></label>}
       <button type="submit" disabled={!slug || taken || busy}>{busy ? 'Adding…' : 'Add'}</button>
