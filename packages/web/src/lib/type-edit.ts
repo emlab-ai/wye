@@ -32,10 +32,11 @@ export function setTypeProps(md: string, typeId: string, props: OwnProp[] | null
 }
 
 // A new `type:` card: extends and purpose; properties come later through setTypeProps.
-export function newTypeCard(id: string, extendsId: string, purpose: string): string {
+export function newTypeCard(id: string, extendsId: string, purpose: string, color = ''): string {
   const lines = [`- id: ${id}`, `  extends: ${extendsId}`];
   const p = purpose.trim();
   if (p) lines.push(/[:#]|^[-'"[{&*!|>%@`]/.test(p) ? `  purpose: >\n    ${p}` : `  purpose: ${p}`);
+  if (/^#[0-9a-fA-F]{3,8}$/.test(color.trim())) lines.push(`  color: ${color.trim()}`); // the tag colour of the kind; grey when none
   return lines.join('\n');
 }
 // Appended to the yaml fence that declares the document's last type card — types stay together — else to the last

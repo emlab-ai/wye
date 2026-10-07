@@ -41,6 +41,8 @@ const plain = (t: string) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/
 
 // A type in the context column: its card (purpose, extends, open), its own properties as an editable table, the
 // inherited ones greyed with their declaring type, then every instance — the "connected" list of a type.
+// the colours offered for a kind's tag — the base kinds' own palette, so a product's types sit beside them
+const SWATCHES = ['#c8612a', '#2e6e9e', '#3e8a57', '#7452b3', '#b5405f', '#d08a2e', '#1f8f8a', '#b8860b', '#5b6fb5', '#6b4fbb', '#8c8a2a', '#4e7f8c'];
 export function TypeView({ type, instances, index, product, onSaved }: { type: TypeDef; instances: { id: string; title: string; status: string }[]; index: Record<string, IndexEntry>; product: string; onSaved: () => void }) {
   const base = !type.file || type.file.startsWith('schema/');
   const { statuses: byKind } = usePeek(); // the type's statuses, its override applied (lib/props statusesByKind)
@@ -48,14 +50,16 @@ export function TypeView({ type, instances, index, product, onSaved }: { type: T
   const toOwn = (): OwnProp[] => own.map(p => ({ name: p.name, type: p.type, required: p.required, inverse: p.inverse ?? '' }));
   const [rows, setRows] = useState<OwnProp[]>(toOwn);
   const [purpose, setPurpose] = useState(type.purpose);
+  // the tag colour of the kind (`color:` on the card): every pill of this kind reads --k-<slug>; grey when none
+  const [color, setColor] = useState(type.color ?? '');
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  useEffect(() => { setRows(toOwn()); setPurpose(type.purpose); setDirty(false); }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setRows(toOwn()); setPurpose(type.purpose); setColor(type.color ?? ''); setDirty(false); }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
   const edit = (i: number, patch: Partial<OwnProp>) => { setRows(r => r.map((p, k) => k === i ? { ...p, ...patch } : p)); setDirty(true); };
   const save = async () => {
     setBusy(true); setErr('');
-    const r = await fetch(`/api/${product}/types/${type.slug}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ props: rows, scalars: purpose !== type.purpose ? { purpose } : {} }) });
+    const r = await fetch(`/api/${product}/types/${type.slug}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ props: rows, scalars: { ...(purpose !== type.purpose ? { purpose } : {}), ...(color !== (type.color ?? '') ? { color: color || null } : {}) } }) });
     setBusy(false);
     if (!r.ok) { setErr((await r.json().catch(() => ({}))).message ?? 'could not save'); return; }
     setDirty(false); onSaved();
@@ -73,6 +77,12 @@ export function TypeView({ type, instances, index, product, onSaved }: { type: T
           <div><dt>extends</dt><dd>{type.extends ? <SmartTag id={type.extends} label={type.extends.slice(5)} /> : <span className="muted">— (root)</span>}</dd></div>
           {type.chain.length > 2 && <div><dt>chain</dt><dd className="muted">{type.chain.slice(1).map(c => c.slice(5)).join(' › ')}</dd></div>}
           {type.file && <div><dt>declared in</dt><dd className="muted">{base ? 'schema/base-ontology.md' : type.file.split('/').pop()}</dd></div>}
+          {!base && <div><dt>colour</dt><dd className="type-colour">
+            <span className="pill k" style={{ background: color || 'var(--k-other)' }}>{type.slug}</span>
+            {SWATCHES.map(c => <button key={c} type="button" className={`swatch ${color.toLowerCase() === c ? 'on' : ''}`} style={{ background: c }} title={c} onClick={() => { setColor(c); setDirty(true); }} />)}
+            <input type="color" value={color || '#8a8f8c'} title="any colour" onChange={e => { setColor(e.target.value); setDirty(true); }} />
+            {color && <button type="button" className="linkish" onClick={() => { setColor(''); setDirty(true); }}>grey</button>}
+          </dd></div>}
         </dl>
       </article>
 

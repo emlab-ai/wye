@@ -8,14 +8,14 @@ import { instantiate } from '@/lib/templates';
 import { writeAtomic, withFileLock, rebuild } from '@/lib/write';
 import { newTypeCard, appendTypeCard } from '@/lib/type-edit';
 
-// POST { slug, extends?, purpose?, doc?, project? } → appends a `type:<slug>` card (extends, purpose) to the product's
+// POST { slug, extends?, purpose?, color?, doc?, project? } → appends a `type:<slug>` card (extends, purpose) to the product's
 // ontology document — `doc` when given, else ontology.md, else the document that declares its types, else a new
 // ontology.md in `project` (the first project when none) — and rebuilds the graph. Properties come after, through PUT
 // on the type.
 export async function POST(req: Request, { params }: { params: Promise<{ product: string }> }) {
   const { product } = await params;
   const scope = await loadScope(product); if (!scope) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  const body = (await req.json()) as { slug?: string; extends?: string; purpose?: string; doc?: string; project?: string };
+  const body = (await req.json()) as { slug?: string; extends?: string; purpose?: string; color?: string; doc?: string; project?: string };
   const slug = (body.slug ?? '').trim();
   if (!/^[a-z][a-z0-9-]*$/.test(slug)) return NextResponse.json({ error: 'invalid', message: 'slug must be lowercase letters, digits or dashes' }, { status: 422 });
   const id = `type:${slug}`;
@@ -41,7 +41,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const abs = path.join(REPO_ROOT, file);
   await withFileLock(abs, async () => {
     const md = await readFile(abs, 'utf8');
-    await writeAtomic(abs, appendTypeCard(md, newTypeCard(id, parent.startsWith('type:') ? parent : 'type:' + parent, body.purpose ?? '')));
+    await writeAtomic(abs, appendTypeCard(md, newTypeCard(id, parent.startsWith('type:') ? parent : 'type:' + parent, body.purpose ?? '', body.color ?? '')));
   });
   await rebuild(scope.product.dir);
   return NextResponse.json({ ok: true, id, file });

@@ -38,7 +38,8 @@
 //        the passages Ask answers from, ranked (full-text + vectors; --expand adds one hop along the graph)
 //   wye packet --for "<text>" [--ref id ...] --product p [--budget N] [--all | --as-of d]   the constraints in force for a text:
 //        every rule, constraint, gate, approved decision, goal and open question within two hops of what it touches, complete
-//   wye type add <slug> --product p [--extends parent] [--purpose "…"] [--doc product/project/doc]   a proposed type card
+//   wye type add <slug> --product p [--extends parent] [--purpose "…"] [--color "#hex"] [--doc product/project/doc]   a proposed type card
+//        (--color: the tag colour of the kind's pills; grey until one is set, here or on the Types page)
 //   wye remember [--title "…"] [--ref id ...] [--file f] --product p   the person's words as they were said (a request, a brief, a
 //        correction, a pasted document; stdin or the argument): kept in the inbox as raw input — never a block —, its impact on
 //        what is known judged (update | rework | contradicts | ask) and digested at once by a Remember session: new facts
@@ -375,9 +376,9 @@ const commands = {
     for (const [v, ids] of j.relations.out) console.log(`  ${v} → ${ids.join(', ')}`); for (const [v, ids] of j.relations.inc) console.log(`  ← ${v}: ${ids.join(', ')}`);
   },
   async type() {
-    if (pos[1] !== 'add') die('wye type add <slug> [--extends parent] [--purpose "…"] [--doc product/project/doc]');
+    if (pos[1] !== 'add') die('wye type add <slug> [--extends parent] [--purpose "…"] [--color "#hex"] [--doc product/project/doc]');
     const slug = pos[2] || die('wye type add <slug>'); const p = product();
-    const body = { slug, extends: flags.extends || 'node', purpose: flags.purpose || '' };
+    const body = { slug, extends: flags.extends || 'node', purpose: flags.purpose || '', color: flags.color || '' };
     if (flags.doc) { const d = docRef(flags.doc); body.doc = `data/products/${d.product}/projects/${d.project}/${d.doc.startsWith('~') ? `.wye/${d.doc.slice(1)}` : `docs/${d.doc}`}.md`; body.project = d.project; } // the route wants the repo-relative file
     const j = await api('POST', `/api/${p}/types`, body);
     return out(flags.json ? j : `type:${slug} added to ${j.file} (proposed — properties: wye node set or the type page ${WF_URL}/${p}/types/${slug})`);

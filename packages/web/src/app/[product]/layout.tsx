@@ -106,6 +106,8 @@ export default async function ProductLayout({ children, params }: { children: Re
     <PeekProvider workspace={{ folder: !!ws.folder, ...(ws.folder ? { path: ws.folder } : {}), vaults: ws.vaults.map(v => ({ slug: v.slug, title: v.title })) }} product={scope.product.slug} index={rsc ? null : scope.index} kinds={scope.graph.kinds} types={ownTypes} nests={nestingMap(scope.graph.types ?? [])} statuses={statusesByKind(scope.graph.types ?? [])}>
       <Shell links={links}>
         <Rail onboarding={onboarding && { done: onboarding.done, total: onboarding.total, show: onboarding.show }} pins={pins} mainProject={rootsHome} workspace={{ folder: ws.folder, name: ws.name, recent: ws.recent }} vaults={vaults} product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} projects={projects} prs={prs} views={views} skills={skills} skillsPage={skillsPage} headings={headings} />
+        {/* a type's own tag colour (`color:` on its card) as the variable every pill of that kind reads; grey otherwise */}
+        {(scope.graph.types ?? []).some(t => t.color) && <style>{`:root{${(scope.graph.types ?? []).filter(t => t.color).map(t => `--k-${t.slug}:${t.color};`).join('')}}`}</style>}
         <LiveRefresh product={scope.product.slug} />
         <main className="content"><TopBar product={{ slug: scope.product.slug, title: scope.product.meta.title, icon: scope.product.meta.icon }} docs={docs} />{children}</main>
       </Shell>
