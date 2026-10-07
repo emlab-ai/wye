@@ -31,6 +31,12 @@ function gitIgnored(dir: string, names: string[]): Promise<Set<string>> {
     c.stdin?.end(names.join('\0'));
   });
 }
+// every file git tracks or does not ignore, relative to the folder, '/'-joined — null when the folder is not a repo
+function gitFiles(dir: string): Promise<string[] | null> {
+  return new Promise(res => {
+    execFile('git', ['-C', dir, 'ls-files', '-z', '--cached', '--others', '--exclude-standard'], { timeout: 8000, maxBuffer: 64 * 1024 * 1024 }, (e, out) => res(e ? null : String(out ?? '').split('\0').filter(Boolean)));
+  });
+}
 const isDir = async (p: string) => { try { return (await stat(p)).isDirectory(); } catch { return false; } };
 const isFile = async (p: string) => { try { return (await stat(p)).isFile(); } catch { return false; } };
 
@@ -46,6 +52,45 @@ export async function listDir(abs: string, o: { hidden?: boolean } = {}): Promis
     out.push({ name: e.name, dir, ...(dir && await isFile(path.join(abs, e.name, '.wye', '_product.md')) ? { vault: true } : {}), ...(dir && await isFile(path.join(abs, e.name, '_product.md')) && await isDir(path.join(abs, e.name, 'projects')) ? { product: true } : {}), ...(ig ? { ignored: true } : {}) });
   }
   return out.sort((a, b) => Number(b.dir) - Number(a.dir) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+}
+
+// Find (req:wf2.files.filter-finds): every file under the folder whose name holds the text, walking the tree with the
+// same rules the listing has (git-ignored and built folders left out unless `hidden`), capped so a huge tree answers
+// in time — `more` says the cap was hit. Paths are relative to the folder, '/'-joined.
+export async function findFiles(abs: string, q: string, o: { hidden?: boolean; limit?: number; budget?: number } = {}): Promise<{ matches: { path: string; name: string; dir: boolean }[]; more: boolean }> {
+  const needle = q.trim().toLowerCase(); const limit = o.limit ?? 200; const budget = o.budget ?? 20000;
+  const matches: { path: string; name: string; dir: boolean }[] = []; let seen = 0; let more = false;
+  if (!needle) return { matches, more };
+  // a git folder: one `git ls-files` says every file that is tracked or not ignored — one process for the whole
+  // tree instead of a check-ignore per folder; the walk below is for a folder that is not a repo, or everything
+  if (!o.hidden) {
+    const listed = await gitFiles(abs);
+    if (listed) {
+      const dirs = new Set<string>();
+      for (const f of listed) {
+        const parts = f.split('/');
+        if (parts.some(x => BUILT.has(x) || x === '.wye' || NEVER.has(x))) continue;
+        // folders are matched too, once each, by their name
+        for (let i = 0; i < parts.length - 1; i++) { const d = parts.slice(0, i + 1).join('/'); if (!dirs.has(d)) { dirs.add(d); if (parts[i].toLowerCase().includes(needle)) matches.push({ path: d, name: parts[i], dir: true }); } }
+        if (parts[parts.length - 1].toLowerCase().includes(needle)) matches.push({ path: f, name: parts[parts.length - 1], dir: false });
+        if (matches.length > limit) { more = true; matches.length = limit; break; }
+      }
+      matches.sort((a, b) => Number(b.dir) - Number(a.dir) || a.path.localeCompare(b.path, undefined, { sensitivity: 'base' }));
+      return { matches, more };
+    }
+  }
+  const walk = async (dir: string, rel: string): Promise<void> => {
+    if (more) return;
+    let entries: FileEntry[]; try { entries = await listDir(dir, { hidden: o.hidden }); } catch { return; }
+    for (const e of entries) {
+      if (++seen > budget || matches.length >= limit) { more = true; return; }
+      const p = rel ? `${rel}/${e.name}` : e.name;
+      if (e.name.toLowerCase().includes(needle)) matches.push({ path: p, name: e.name, dir: e.dir });
+      if (e.dir && !e.vault && !e.product && !e.ignored) await walk(path.join(dir, e.name), p);
+    }
+  };
+  await walk(abs, '');
+  return { matches, more };
 }
 
 export type FileText = { path: string; language: string; text: string; size: number; mtime: string } | { path: string; size: number; mtime: string; binary?: true; large?: true };

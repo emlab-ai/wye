@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, writeFile, realpath } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { inside, languageOf, listDir, readFileAt } from './files';
+import { findFiles, inside, languageOf, listDir, readFileAt } from './files';
 
 // The Files section's reads (req:wf2.workspace-files): a path stays inside its root; a listing leaves out what git
 // ignores, build folders and a vault's own folder unless asked; a folder with a vault says so; a binary or a large
@@ -68,5 +68,47 @@ describe('file operations', () => {
     await expect(fileOp(root, { op: 'move', path: 'a', into: 'a/b' })).rejects.toThrow(/into itself/);
     await expect(fileOp(root, { op: 'move', path: '../etc', into: 'a' })).rejects.toThrow(/leaves/);
     await expect(fileOp(root, { op: 'delete', path: '' })).rejects.toThrow(/not the open folder itself/);
+  });
+});
+
+// the rail's filter finds across the whole folder (req:wf2.files.filter-finds): name holds the text, ignored and built
+// folders left out, a cap answered with `more`
+describe('findFiles', () => {
+  let root = '';
+  beforeAll(async () => {
+    root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'wye-find-')));
+    for (const d of ['src/deep/deeper', 'node_modules/x', 'dist']) await mkdir(path.join(root, d), { recursive: true });
+    await writeFile(path.join(root, 'src/deep/deeper/needle.ts'), '1');
+    await writeFile(path.join(root, 'src/Needle.md'), '1');
+    await writeFile(path.join(root, 'node_modules/x/needle.js'), '1');
+    await writeFile(path.join(root, 'dist/needle.js'), '1');
+    await writeFile(path.join(root, 'hay.ts'), '1');
+  });
+  it('finds by name anywhere below, case-insensitively, not in built or ignored folders', async () => {
+    const r = await findFiles(root, 'needle');
+    expect(r.matches.map(m => m.path).sort()).toEqual(['src/Needle.md', 'src/deep/deeper/needle.ts']);
+    expect(r.more).toBe(false);
+    expect((await findFiles(root, '')).matches).toEqual([]);
+  });
+  it('stops at the cap and says so', async () => {
+    const r = await findFiles(root, 'e', { limit: 1 });
+    expect(r.matches.length).toBe(1); expect(r.more).toBe(true);
+  });
+});
+
+describe('findFiles in a git folder', () => {
+  it('asks git once: tracked and untracked files, ignored and built ones left out', async () => {
+    const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'wye-find-git-')));
+    execFileSync('git', ['init', '-q'], { cwd: root });
+    for (const d of ['src/deep', 'node_modules/x', 'logs']) await mkdir(path.join(root, d), { recursive: true });
+    await writeFile(path.join(root, '.gitignore'), 'logs\n');
+    await writeFile(path.join(root, 'src/deep/needle.ts'), '1');
+    await writeFile(path.join(root, 'needle-untracked.md'), '1');
+    await writeFile(path.join(root, 'node_modules/x/needle.js'), '1');
+    await writeFile(path.join(root, 'logs/needle.log'), '1');
+    execFileSync('git', ['add', 'src'], { cwd: root });
+    const r = await findFiles(root, 'needle');
+    expect(r.matches.map(m => m.path).sort()).toEqual(['needle-untracked.md', 'src/deep/needle.ts']);
+    expect((await findFiles(root, 'deep')).matches).toEqual([{ path: 'src/deep', name: 'deep', dir: true }]);
   });
 });

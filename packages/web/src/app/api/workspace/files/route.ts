@@ -3,7 +3,7 @@ import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { getProduct, listProducts } from '@/lib/products';
 import { filesRoot, vaultLib } from '@/lib/workspace';
-import { fileOp, inside, listDir, readFileAt, type FileOp } from '@/lib/files';
+import { fileOp, inside, listDir, readFileAt, type FileOp, findFiles } from '@/lib/files';
 
 // op:api.workspace-files (req:wf2.workspace-files) — the files of the open folder. The root is the workspace's folder;
 // in the home workspace, the code folder of ?product=<slug> (its `repo:`, or a vault's own folder).
@@ -23,6 +23,12 @@ export async function GET(req: Request) {
   if (!at) return NextResponse.json({ error: 'invalid', message: 'the path leaves the open folder' }, { status: 422 });
   const st = await stat(at.abs).catch(() => null);
   if (!st) return NextResponse.json({ error: 'not_found', message: `${at.rel || '.'} is not in ${root}` }, { status: 404 });
+  // ?find=<text>: the files under the folder whose name holds the text, as a flat list (the rail's filter field)
+  if (sp.get('find') !== null) {
+    if (!st.isDirectory()) return NextResponse.json({ error: 'invalid', message: `${at.rel} is a file` }, { status: 422 });
+    const r = await findFiles(at.abs, sp.get('find') ?? '', { hidden: sp.get('hidden') === '1' });
+    return NextResponse.json({ root, path: at.rel, ...r }, { headers: { 'cache-control': 'no-store' } });
+  }
   if (asDir || st.isDirectory()) {
     if (!st.isDirectory()) return NextResponse.json({ error: 'invalid', message: `${at.rel} is a file` }, { status: 422 });
     const lib = vaultLib(); const vf = lib.vaultOf(at.abs);

@@ -29,6 +29,21 @@ export function FileTree({ product, embedded = false, bare = false, filter = '',
   const [note, setNote] = useState<{ text: string; href: string; label: string } | null>(null); // what Init Wye here did, with the way to the new vault
   const peek = usePeekMaybe();
   const q = product ? `product=${encodeURIComponent(product)}&` : '';
+  // the filter finds across the whole folder (req:wf2.files.filter-finds): the hits as a flat list in place of the
+  // tree, asked of the server a moment after the last keystroke; the tree is back when the field is empty
+  const [found, setFound] = useState<{ q: string; matches: { path: string; name: string; dir: boolean }[]; more: boolean } | null>(null);
+  useEffect(() => {
+    const text = filter.trim();
+    if (!text) { setFound(null); return; }
+    let live = true;
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/workspace/files?${q}dir=&find=${encodeURIComponent(text)}${hidden ? '&hidden=1' : ''}`); const j = await r.json();
+        if (live) setFound(r.ok ? { q: text, matches: j.matches ?? [], more: !!j.more } : { q: text, matches: [], more: false });
+      } catch { if (live) setFound({ q: text, matches: [], more: false }); }
+    }, 180);
+    return () => { live = false; clearTimeout(t); };
+  }, [filter, q, hidden]);
   const load = useCallback(async (dir: string, h = hidden): Promise<Listing | null> => {
     try {
       const r = await fetch(`/api/workspace/files?${q}dir=${encodeURIComponent(dir)}${h ? '&hidden=1' : ''}`); const j = await r.json();
@@ -143,7 +158,22 @@ export function FileTree({ product, embedded = false, bare = false, filter = '',
       </div>}
       {msg && <p className="notice pg-msg ft-msg" role="alert">{msg} <button className="linkish" onClick={() => setMsg('')}>×</button></p>}
       {note && <p className="pg-msg ft-msg ft-note-ok" role="status">{note.text}<Link href={note.href}>{note.label}</Link> <button className="linkish" onClick={() => setNote(null)}>×</button></p>}
-      <ul className="pg-tree ft-tree">{rows('', 0)}</ul>
+      {found ? (
+        <ul className="pg-tree ft-tree ft-found">
+          {!found.matches.length && <li className="ft-note">no file matches “{found.q}”</li>}
+          {found.matches.map(m => { const href = fileHref(product, m.path); const dir = m.path.includes('/') ? m.path.slice(0, m.path.lastIndexOf('/')) : ''; return (
+            <li key={m.path}>
+              <div className={`pg-row ft-row ${!m.dir && path === href ? 'on' : ''}`} style={{ paddingLeft: 10 }} onContextMenu={ev => openMenu(ev, m.path, m.dir)}>
+                {m.dir
+                  ? <button className="ft-dir" onClick={() => { setOpen(o => ({ ...o, [m.path]: true })); void load(m.path); }}><span className="pg-caret" aria-hidden>▸</span><span className="pg-title">{m.name}</span>{dir && <span className="ft-where muted">{dir}</span>}</button>
+                  : embedded
+                    ? <button className="ft-dir ft-file" onClick={() => onOpenFile?.(m.path)}><span className="pg-dot" aria-hidden /><span className="pg-title">{m.name}</span>{dir && <span className="ft-where muted">{dir}</span>}</button>
+                    : <Link href={href} className="pg-link ft-file" draggable={false}><span className="pg-dot" aria-hidden /><span className="pg-title">{m.name}</span>{dir && <span className="ft-where muted">{dir}</span>}</Link>}
+              </div>
+            </li>); })}
+          {found.more && <li className="ft-note">more than {found.matches.length} — narrow the text</li>}
+        </ul>
+      ) : <ul className="pg-tree ft-tree">{rows('', 0)}</ul>}
       {menu && menu.ask && <div ref={menuEl} className="pg-menu pg-rename" style={{ left: menu.x, top: menu.y }}>
         <input autoFocus aria-label={menu.ask.kind === 'rename' ? 'New name' : menu.ask.kind === 'mkdir' ? 'Folder name' : 'File name'} value={menu.ask.value} placeholder={menu.ask.kind === 'rename' ? 'Name, then Enter' : menu.ask.kind === 'mkdir' ? 'New folder, then Enter' : 'New file, then Enter'} onFocus={e => { const i = e.target.value.lastIndexOf('.'); e.target.setSelectionRange(0, menu.ask!.kind === 'rename' && i > 0 ? i : e.target.value.length); }}
           onChange={e => setMenu({ ...menu, ask: { ...menu.ask!, value: e.target.value } })} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void named(menu); } }} />
