@@ -1167,6 +1167,13 @@ The editor's blocks and the components the pages are made of, by area.
     this browser's for the moment, never written to the view's line.
   status: proposed
   part-of: module:components
+- id: component:new-page-toasts
+  file: packages/web/src/components/NewPageToasts.tsx
+  side: client
+  purpose: >
+    (no header comment)
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->

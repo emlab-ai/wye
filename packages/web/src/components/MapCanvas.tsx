@@ -300,7 +300,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
     if (!made) return;
     setTitle('');
     if (made.id) { setShowContext(true); select(made.id); }
-    if (!parent) setPop(null);            // on the canvas: one node per double click
+    setPop(null);                          // the node is there: the popup is done (another child is + again)
   }
   // where a child goes: to the right of its parent, below the children it already has
   function nextTo(parent: string) {
@@ -423,7 +423,10 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
             </> : <>
               <div className="mpop-head">{nameOf(pop.from)} → {nameOf(pop.to)}</div>
               <div className="mpop-verbs">{offered.map(v => <button key={v} type="button" className={v === pop.was ? 'on' : ''} onClick={() => void setEdgeVerb(v)}>{v}</button>)}</div>
-              <input placeholder="another verb — e.g. depends on" defaultValue="" autoFocus onKeyDown={e => { if (e.key === 'Enter') void setEdgeVerb((e.target as HTMLInputElement).value); if (e.key === 'Escape') setPop(null); }} onBlur={e => { if (verbSlug(e.target.value)) void setEdgeVerb(e.target.value); }} />
+              <div className="mpop-verb-row">
+                <input placeholder="any other verb — e.g. depends on" value={verb === pop.was ? '' : verb} autoFocus onChange={e => setVerb(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void setEdgeVerb((e.target as HTMLInputElement).value); if (e.key === 'Escape') setPop(null); }} spellCheck={false} />
+                <button type="button" className="pri" disabled={busy || !verbSlug(verb) || verbSlug(verb) === pop.was} onClick={() => void setEdgeVerb(verb)}>Rename</button>
+              </div>
               {msg && <div className="notice small">{msg}</div>}
               <div className="mpop-row">
                 <button type="button" className="linkish bad" onClick={() => void unlink()} disabled={busy}>Unlink</button>

@@ -173,4 +173,14 @@ console.log('ok — content: indented blocks under a paragraph node, a list item
   assert(/^when: b happens$/m.test(g4.node('req:prt.a.b').body), 'the part\'s text is read back as the key');
   assert(out4('block:prt.' + blockHash('# P')).includes('has>req:prt.a.b') && out4('block:prt.' + blockHash('# P')).includes('has>' + 'block:prt.' + blockHash('After.')), 'the heading still has the reqs and the paragraph after');
 }
-console.log('ok — parts right under a prose node are its content');
+
+// a key the type does not declare whose value is only ids is a link named by the key (decision:map.verb-is-the-key);
+// prose that mentions an id, and a bookkeeping key, stay mentions
+{
+  const md5 = `---\nnode: module:vk\n---\n# V\n\n\`\`\`yaml\n- id: req:vk.a\n  title: A\n  answers: question:vk.q\n  blocked-by: [req:vk.b, req:vk.c]\n  evidence: the decision decision:vk.d said so\n  source: decision:vk.d2\n\`\`\`\n`;
+  const file5 = path.join(dir, 'vk.md'); fs.writeFileSync(file5, md5);
+  const g5 = new Graph(parseFiles([file5]));
+  const out5 = (g5.out.get('req:vk.a') || []).filter(e => !e.to.startsWith('block:')).map(e => `${e.verb}>${e.to}`).sort();
+  assert.deepStrictEqual(out5, ['answers>question:vk.q', 'blocked-by>req:vk.b', 'blocked-by>req:vk.c', 'mentions>decision:vk.d', 'mentions>decision:vk.d2'].sort(), 'ids-only keys are verbs, prose and bookkeeping keys are mentions: ' + out5);
+}
+console.log('ok — parts right under a prose node are its content; an ids-only key is a verb');
