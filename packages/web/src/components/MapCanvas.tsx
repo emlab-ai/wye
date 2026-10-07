@@ -222,13 +222,37 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
 
   // a link let go anywhere on a card, not only on one of its dots: when the editor found no handle under the pointer,
   // the card under it (the element at the point) is the target
+  const reconnecting = useRef(false); // an edge's end being dragged: the editor's connect-end fires for it too, and must not make a second link
   const onConnectEnd = useCallback((e: MouseEvent | TouchEvent, state: { isValid: boolean | null; fromNode: { id: string } | null }) => {
-    if (state.isValid || !state.fromNode) return;
+    if (reconnecting.current || state.isValid || !state.fromNode) return;
     const pt = 'changedTouches' in e ? e.changedTouches[0] : (e as MouseEvent);
     const el = document.elementFromPoint(pt.clientX, pt.clientY)?.closest('.react-flow__node[data-id]');
     const target = el?.getAttribute('data-id');
     if (target && target !== state.fromNode.id) void onConnect({ source: state.fromNode.id, target, sourceHandle: null, targetHandle: null });
   }, [onConnect]);
+
+  // an edge's end dragged to another card (decision:map.edge-moves-by-its-tip): the same link, the same verb, from
+  // or to the other card — the old link taken off the first card and written on the new one
+  const moveEdge = useCallback(async (edge: Edge, next: { source: string; target: string }) => {
+    const [from, verb, to] = String(edge.id).split('|');
+    if ((next.source === from && next.target === to) || next.source === next.target) return;
+    setBusy(true);
+    const ok = await send({ action: 'unlink', from, to, verb });
+    if (ok) await send({ action: 'link', from: next.source, to: next.target, verb });
+    setBusy(false);
+  }, [send]);
+  const onReconnect = useCallback((edge: Edge, c: Connection) => { if (c.source && c.target) void moveEdge(edge, { source: c.source, target: c.target }); }, [moveEdge]);
+  const onReconnectStart = useCallback(() => { reconnecting.current = true; }, []);
+  // let go anywhere on a card, as a new link may be: the card under the pointer takes the end that was dragged.
+  // `fixed` is the editor's name for the end that stayed — 'source' when the arrow's tip was dragged
+  const onReconnectEnd = useCallback((e: MouseEvent | TouchEvent, edge: Edge, fixed: 'source' | 'target', state: { isValid: boolean | null }) => {
+    reconnecting.current = false;
+    if (state.isValid) return;
+    const pt = 'changedTouches' in e ? e.changedTouches[0] : (e as MouseEvent);
+    const id = document.elementFromPoint(pt.clientX, pt.clientY)?.closest('.react-flow__node[data-id]')?.getAttribute('data-id');
+    if (!id) return;
+    void moveEdge(edge, fixed === 'source' ? { source: edge.source, target: id } : { source: id, target: edge.target });
+  }, [moveEdge]);
 
   const onEdgeClick: EdgeMouseHandler = useCallback((e, edge) => {
     const [from, was, to] = String(edge.id).split('|');
@@ -338,6 +362,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
         <ReactFlow
           nodes={rfNodes} edges={rfEdges} nodeTypes={NODE_TYPES} edgeTypes={EDGE_TYPES} onInit={i => { rf.current = i; }}
           onNodesChange={onChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onConnectEnd={onConnectEnd as never}
+          onReconnect={onReconnect} onReconnectStart={onReconnectStart} onReconnectEnd={onReconnectEnd as never} edgesReconnectable reconnectRadius={24}
           onEdgeClick={onEdgeClick} onNodeClick={onNodeClick} onNodeContextMenu={onNodeContextMenu} onPaneClick={() => setPop(null)}
           onMove={(e: MouseEvent | TouchEvent | null) => { if (e) moved.current = true; setNear(null); }}
           fitView fitViewOptions={{ padding: 0.2, maxZoom: 1 }} minZoom={0.1} deleteKeyCode={null} zoomOnDoubleClick={false}
