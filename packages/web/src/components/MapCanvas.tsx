@@ -103,6 +103,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
   // a node on the board is made from nothing, so a kind that may only nest is not offered here
   // (decision:ontology.a-type-can-be-nested-only)
   const kinds = useMemo(() => rootTypes(types).map(t => t.slug).sort(), [types]);
+  const kindCounts = useMemo(() => { const c = new Map<string, number>(); for (const n of pic.nodes) c.set(n.kind, (c.get(n.kind) ?? 0) + 1); return [...c].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])); }, [pic]);
   const [kind, setKind] = useState(() => (types.some(t => t.slug === 'req') ? 'req' : rootTypes(types)[0]?.slug ?? 'req'));
   // the one popup: a new node (on the canvas or off a parent) or the verb of one edge
   const [pop, setPop] = useState<null | { mode: 'new'; at: { x: number; y: number }; flow: { x: number; y: number }; parent?: string } | { mode: 'verb'; at: { x: number; y: number }; from: string; to: string; was: string } | { mode: 'node'; at: { x: number; y: number }; id: string; isRef: boolean }>(null);
@@ -110,6 +111,15 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
   const [verb, setVerb] = useState('part-of');
   const [near, setNear] = useState<string | null>(null);
   const [open, setOpen] = useState<Set<string>>(() => new Set(spots.filter(sp => sp.open).map(sp => sp.id)));
+  // the filter: kinds hidden with one click on their chip, remembered per map in this browser (a viewer's convenience)
+  const hiddenKey = `wf-map-hidden:${product}/${project}/${slug}`;
+  const [hiddenKinds, setHiddenKinds] = useState<Set<string>>(() => { try { return new Set(JSON.parse(localStorage.getItem(hiddenKey) ?? '[]') as string[]); } catch { return new Set(); } });
+  const toggleKind = (k: string) => setHiddenKinds(h => { const n = new Set(h); if (n.has(k)) n.delete(k); else n.add(k); try { localStorage.setItem(hiddenKey, JSON.stringify([...n])); } catch { /* no storage */ } return n; });
+  // focus (decision:map.focus-is-a-view): one node and what is linked to it, and whatever is added while focused —
+  // a stack, so a neighbour focused goes deeper and Back returns one level up to the whole map
+  const [focus, setFocus] = useState<{ id: string; seen: Set<string> }[]>([]);
+  const focusOn = useCallback((id: string) => { setPop(null); setFocus(f => [...f, { id, seen: new Set(pic.nodes.map(n => n.id)) }]); setTimeout(() => rf.current?.fitView({ padding: 0.3, maxZoom: 1 }), 80); }, [pic]);
+  const back = useCallback(() => { setFocus(f => f.slice(0, -1)); setTimeout(() => rf.current?.fitView({ padding: 0.2, maxZoom: 1 }), 80); }, []);
 
   // where each node sits: its line in the page's Layout, which is also what put it on the board
   const seeded = useMemo(() => new Map(pic.nodes.map(n => [n.id, { x: n.x, y: n.y }])), [pic]);
@@ -180,19 +190,24 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
   }, [product]);
 
   const computed = useMemo(() => {
+    // what is shown: the focus and its neighbours plus what came after the focus began, less the hidden kinds
+    const top = focus[focus.length - 1];
+    const near1 = top ? new Set([top.id, ...pic.edges.flatMap(e => e.from === top.id ? [e.to] : e.to === top.id ? [e.from] : [])]) : null;
+    const shown = (n: MapNode) => !hiddenKinds.has(n.kind) && (!near1 || near1.has(n.id) || !top!.seen.has(n.id));
+    const visible = new Set(pic.nodes.filter(shown).map(n => n.id));
     const rfNodes: Node[] = pic.nodes.map(n => ({
-      id: n.id, type: 'map', position: seeded.get(n.id) ?? { x: 0, y: 0 },
+      id: n.id, type: 'map', position: seeded.get(n.id) ?? { x: 0, y: 0 }, hidden: !visible.has(n.id),
       data: { kind: n.kind, title: n.title, status: n.status, isRef: n.ref, near: n.id === near, open: open.has(n.id), onChild, onRename, onOpen } satisfies NodeData,
       ...(open.has(n.id) ? { style: { width: CARD_W }, dragHandle: '.embed-from' } : {}),
     }));
     const rfEdges: Edge[] = pic.edges.map(e => ({
-      id: `${e.from}|${e.verb}|${e.to}`, source: e.from, target: e.to, label: e.verb, type: 'floating',
+      id: `${e.from}|${e.verb}|${e.to}`, source: e.from, target: e.to, label: e.verb, type: 'floating', hidden: !visible.has(e.from) || !visible.has(e.to),
       markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: 'var(--line-2)' },
       style: { stroke: e.verb === 'contradicts' ? 'var(--bad)' : 'var(--line-2)' },
       labelStyle: { fontSize: 10, fill: 'var(--muted)' }, labelBgStyle: { fill: 'var(--ground)' }, labelBgPadding: [4, 2] as [number, number],
     }));
     return { rfNodes, rfEdges };
-  }, [pic, seeded, near, open, onChild, onRename, onOpen]);
+  }, [pic, seeded, near, open, onChild, onRename, onOpen, hiddenKinds, focus]);
   const [rfNodes, setNodes, onNodesChange] = useNodesState(computed.rfNodes);
   const [rfEdges, setEdges, onEdgesChange] = useEdgesState(computed.rfEdges);
   useEffect(() => {
@@ -348,6 +363,8 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
   return (
     <section className="mwrap">
       <div className="mbar">
+        {focus.length > 0 && <button type="button" className="mfocus-back" onClick={back} title="one level up — the whole map at the top">← Back</button>}
+        {focus.length > 0 && <span className="mfocus-on" title={focus.map(f => f.id).join(' › ')}>focus: <b>{nameOf(focus[focus.length - 1].id)}</b>{focus.length > 1 ? ` (${focus.length} deep)` : ''}</span>}
         <button type="button" onClick={addOnCanvas}>+ Node</button>
         <button type="button" onClick={() => { moved.current = false; rf.current?.fitView({ padding: 0.2, maxZoom: 1 }); }}>Fit</button>
         <button type="button" onClick={tidy} title="Arrange every node, left to right">Tidy</button>
@@ -358,7 +375,12 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
         <span className="mbar-gap" />
         <button type="button" className={text ? 'on' : ''} onClick={() => setText(t => !t)}>{text ? 'Map' : 'Page text'}</button>
       </div>
-      <div ref={canvas} className="mcanvas" onMouseMove={onPointer} onMouseLeave={() => setNear(null)} onDoubleClick={e => { if ((e.target as Element).closest('.react-flow__node, .react-flow__edge, .mpop')) return; onPaneDoubleClick(e); }}>
+      {/* the filter: one chip per kind on the map, its count, a click hides or shows that kind */}
+      {kindCounts.length > 1 && <div className="mbar mkinds">
+        {kindCounts.map(([k, n]) => <button key={k} type="button" className={`mkind ${hiddenKinds.has(k) ? 'off' : ''}`} onClick={() => toggleKind(k)} title={hiddenKinds.has(k) ? `show the ${k} nodes` : `hide the ${k} nodes`}><i style={{ background: `var(--k-${k}, var(--k-other))` }} />{k} <small>{n}</small></button>)}
+        {hiddenKinds.size > 0 && <button type="button" className="linkish small" onClick={() => { setHiddenKinds(new Set()); try { localStorage.removeItem(hiddenKey); } catch { /* none */ } }}>show all</button>}
+      </div>}
+      <div ref={canvas} className="mcanvas" tabIndex={-1} onKeyDown={e => { if ((e.target as HTMLElement).closest('input, textarea, [contenteditable="true"]')) return; if (e.key === 'f' || e.key === 'F') { const sel = rfNodes.find(n => n.selected); if (sel) { e.preventDefault(); focusOn(sel.id); } } if (e.key === 'Escape' && focus.length) { e.preventDefault(); back(); } }} onMouseMove={onPointer} onMouseLeave={() => setNear(null)} onDoubleClick={e => { if ((e.target as Element).closest('.react-flow__node, .react-flow__edge, .mpop')) return; onPaneDoubleClick(e); }}>
         <ReactFlow
           nodes={rfNodes} edges={rfEdges} nodeTypes={NODE_TYPES} edgeTypes={EDGE_TYPES} onInit={i => { rf.current = i; }}
           onNodesChange={onChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onConnectEnd={onConnectEnd as never}
@@ -377,6 +399,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
             {pop.mode === 'node' ? <>
               <div className="mpop-head">{pop.id}</div>
               <div className="mpop-row">
+                <button type="button" onClick={() => focusOn(pop.id)} title="only this node and what is linked to it; Back returns">Focus</button>
                 {sure
                   ? <button type="button" className="bad" onClick={() => void drop(pop.id)} disabled={busy}>{pop.isRef ? 'Take it off?' : 'Delete it?'}</button>
                   : <button type="button" onClick={() => setSure(true)}>{pop.isRef ? 'Take off the map' : 'Delete'}</button>}
