@@ -4,7 +4,7 @@ import { ReactFlow, Background, BaseEdge, Controls, MiniMap, Handle, Position, M
 import '@xyflow/react/dist/style.css';
 import { layoutMindMap } from '@/lib/layout';
 import { edgeEnds, type Side } from '@/lib/floating';
-import { verbsFor, type MapNode, type OffNode, type Spot } from '@/lib/map';
+import { verbSlug, verbsFor, type MapNode, type OffNode, type Spot } from '@/lib/map';
 import { rootTypes } from '@/lib/types';
 import type { GraphEdge } from '@/lib/graph';
 import { usePeek } from './PeekProvider';
@@ -220,6 +220,16 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
     setVerb(v); setPop({ mode: 'verb', at, from: c.source, to: c.target, was: v });
   }, [send, types]);
 
+  // a link let go anywhere on a card, not only on one of its dots: when the editor found no handle under the pointer,
+  // the card under it (the element at the point) is the target
+  const onConnectEnd = useCallback((e: MouseEvent | TouchEvent, state: { isValid: boolean | null; fromNode: { id: string } | null }) => {
+    if (state.isValid || !state.fromNode) return;
+    const pt = 'changedTouches' in e ? e.changedTouches[0] : (e as MouseEvent);
+    const el = document.elementFromPoint(pt.clientX, pt.clientY)?.closest('.react-flow__node[data-id]');
+    const target = el?.getAttribute('data-id');
+    if (target && target !== state.fromNode.id) void onConnect({ source: state.fromNode.id, target, sourceHandle: null, targetHandle: null });
+  }, [onConnect]);
+
   const onEdgeClick: EdgeMouseHandler = useCallback((e, edge) => {
     const [from, was, to] = String(edge.id).split('|');
     setVerb(was); setPop({ mode: 'verb', at: { x: e.clientX, y: e.clientY }, from, to, was });
@@ -262,12 +272,15 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
     const taken = rfNodes.filter(n => kids.includes(n.id) && n.position.x > p.x);
     return { x: p.x + dx, y: p.y + (taken.length ? Math.max(...taken.map(n => n.position.y)) - p.y + CHILD_DY : 0) };
   }
+  // the verb a person types is taken as they meant it ("depends on" → depends-on); the popup stays open with the
+  // message when the write fails, so a refused verb is seen and not mistaken for the preset
   async function setEdgeVerb(next: string) {
     if (pop?.mode !== 'verb') return;
-    const v = next.trim(); if (!v) return;
+    const v = verbSlug(next); if (!v) return;
+    if (v === pop.was) { setPop(null); return; }
     setBusy(true);
-    if (v !== pop.was) await send({ action: 'verb', from: pop.from, to: pop.to, verb: v, was: pop.was });
-    setBusy(false); setPop(null);
+    const ok = await send({ action: 'verb', from: pop.from, to: pop.to, verb: v, was: pop.was });
+    setBusy(false); if (ok) setPop(null);
   }
   async function unlink() {
     if (pop?.mode !== 'verb') return;
@@ -324,7 +337,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
       <div ref={canvas} className="mcanvas" onMouseMove={onPointer} onMouseLeave={() => setNear(null)} onDoubleClick={e => { if ((e.target as Element).closest('.react-flow__node, .react-flow__edge, .mpop')) return; onPaneDoubleClick(e); }}>
         <ReactFlow
           nodes={rfNodes} edges={rfEdges} nodeTypes={NODE_TYPES} edgeTypes={EDGE_TYPES} onInit={i => { rf.current = i; }}
-          onNodesChange={onChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
+          onNodesChange={onChange} onEdgesChange={onEdgesChange} onConnect={onConnect} onConnectEnd={onConnectEnd as never}
           onEdgeClick={onEdgeClick} onNodeClick={onNodeClick} onNodeContextMenu={onNodeContextMenu} onPaneClick={() => setPop(null)}
           onMove={(e: MouseEvent | TouchEvent | null) => { if (e) moved.current = true; setNear(null); }}
           fitView fitViewOptions={{ padding: 0.2, maxZoom: 1 }} minZoom={0.1} deleteKeyCode={null} zoomOnDoubleClick={false}
@@ -360,7 +373,8 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
             </> : <>
               <div className="mpop-head">{nameOf(pop.from)} → {nameOf(pop.to)}</div>
               <div className="mpop-verbs">{offered.map(v => <button key={v} type="button" className={v === pop.was ? 'on' : ''} onClick={() => void setEdgeVerb(v)}>{v}</button>)}</div>
-              <input placeholder="another verb" defaultValue="" onKeyDown={e => { if (e.key === 'Enter') void setEdgeVerb((e.target as HTMLInputElement).value); if (e.key === 'Escape') setPop(null); }} />
+              <input placeholder="another verb — e.g. depends on" defaultValue="" autoFocus onKeyDown={e => { if (e.key === 'Enter') void setEdgeVerb((e.target as HTMLInputElement).value); if (e.key === 'Escape') setPop(null); }} onBlur={e => { if (verbSlug(e.target.value)) void setEdgeVerb(e.target.value); }} />
+              {msg && <div className="notice small">{msg}</div>}
               <div className="mpop-row">
                 <button type="button" className="linkish bad" onClick={() => void unlink()} disabled={busy}>Unlink</button>
                 <button type="button" className="linkish" onClick={() => setPop(null)}>Close</button>

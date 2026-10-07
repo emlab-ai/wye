@@ -97,6 +97,9 @@ export function mapGraph(g: Pick<GraphData, 'nodes' | 'edges' | 'types'>, idx: P
 // kind that points at the target's kind — or at any node — read from the type cards, so the inverse comes with it.
 // `related-to` is always offered, and is what a link drawn before it is named says.
 export type VerbSource = { slug: string; props?: { name: string; ref: string | null }[] };
+// A verb as a person types it — "depends on", "Blocks", "is part of" — made into the one the graph takes: lowercase
+// words joined by dashes. Empty when nothing is left.
+export function verbSlug(text: string): string { return String(text).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
 export function verbsFor(types: VerbSource[] | undefined, fromKind: string, toKind: string): string[] {
   const t = (types ?? []).find(x => x.slug === fromKind);
   const chain = new Set([toKind, 'node']);

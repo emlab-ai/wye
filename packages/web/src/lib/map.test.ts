@@ -131,3 +131,14 @@ describe('a link on a card', () => {
     expect(withoutLink('- id: req:a\n  refines: req:b\n  title: A', 'refines', 'req:b')).toBe('- id: req:a\n  title: A');
   });
 });
+
+import { verbSlug } from './map';
+describe('verbSlug', () => {
+  it('takes a verb as a person types it', () => {
+    expect(verbSlug('depends on')).toBe('depends-on');
+    expect(verbSlug('  Blocks ')).toBe('blocks');
+    expect(verbSlug('is part of!')).toBe('is-part-of');
+    expect(verbSlug('related-to')).toBe('related-to');
+    expect(verbSlug('   ')).toBe('');
+  });
+});

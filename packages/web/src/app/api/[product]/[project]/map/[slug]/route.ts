@@ -3,7 +3,7 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { claimWrite } from '@/lib/changes';
 import { docRoute, pageBySlug, projectTree } from '@/lib/doc';
-import { addCard, dropIn, mapGraph, moveIn, openIn, parseLayout, withLink, withoutLink, writeLayout } from '@/lib/map';
+import { addCard, dropIn, mapGraph, moveIn, openIn, parseLayout, withLink, withoutLink, writeLayout, verbSlug } from '@/lib/map';
 import { cardText, newInstanceCard, removeCard, replaceCard } from '@/lib/instances';
 import { REPO_ROOT } from '@/lib/products';
 import { loadScope, type Scope } from '@/lib/scope';
@@ -138,8 +138,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     if (!src?.defined || !src.file) return bad(`${from} is not a node`, 404);
     if (!scope.idx.byId.get(to)?.defined) return bad(`${to} is not a node`, 404);
     if (from === to) return bad('a node cannot link to itself');
-    const verb = ((body.action === 'link' ? body.verb : body.verb) ?? 'related-to').trim();
-    if (!/^[a-z][a-z0-9-]*$/.test(verb)) return bad(`"${verb}" is not a verb — lowercase words joined by dashes`);
+    // the verb as typed is taken as the person meant it: "depends on" is depends-on (lib/map#verbSlug)
+    const verb = verbSlug(body.verb ?? 'related-to') || 'related-to';
+    if (!/^[a-z][a-z0-9-]*$/.test(verb)) return bad(`"${body.verb}" is not a verb — words joined by dashes`);
     const was = body.action === 'verb' ? (body.was ?? '').trim() : body.action === 'unlink' ? verb : '';
     err = await editNode(scope, src.file, from, cardBody => {
       let out = cardBody;
