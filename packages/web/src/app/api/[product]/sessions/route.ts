@@ -3,7 +3,7 @@ import { markStep } from '@/lib/onboarding-io';
 import { getProduct, productRepo } from '@/lib/products';
 import { AGENTS, addRefs, createSession, listSessions, listRunners, setPrDoc } from '@/lib/sessions';
 import { validModel } from '@/lib/agent-launch';
-import { AGENT_IDS } from '@/lib/settings';
+import { AGENT_IDS, agentSettings, readSettings } from '@/lib/settings';
 import { startChat, liveState, reconcileStale } from '@/lib/agent-host';
 import { askingOf } from '@/lib/asking';
 import { createPrDoc, goalForRequest, readPrDoc, setRefining } from '@/lib/pr-docs';
@@ -50,8 +50,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const role = body.pr === true || body.role === 'librarian' || remember || (skillMeta && skillMeta.role !== 'worker') ? 'librarian' : 'worker';
   if (skillMeta?.role === 'worker') { body.agent = body.agent ?? 'claude-code'; body.mode = 'chat'; body.cwd = body.cwd?.trim() || REPO_ROOT; }
   // a Prompt Request's librarian runs on the agent the person chose in the box — Claude Code unless they said Codex
-  // (decision:wf2.pr-agent-and-model); Remember and a skill's librarian stay on Claude Code
-  const agent = role === 'librarian' ? (body.pr === true && AGENT_IDS.includes(body.agent ?? '') ? body.agent! : 'claude-code') : AGENTS.find(a => a.id === body.agent)?.id;
+  // (decision:wf2.pr-agent-and-model); Remember and a skill's librarian run on Settings › Agents › librarian
+  const agent = role === 'librarian' ? (body.pr === true && AGENT_IDS.includes(body.agent ?? '') ? body.agent! : agentSettings(await readSettings()).librarian) : AGENTS.find(a => a.id === body.agent)?.id;
   const instruction = (body.instruction ?? '').trim();
   if (!agent) return NextResponse.json({ error: 'invalid', message: 'unknown agent' }, { status: 422 });
   const images = Array.isArray(body.images) ? body.images.filter(i => i && typeof i.dataUrl === 'string').slice(0, 8) : [];

@@ -22,12 +22,12 @@ describe('settings', () => {
     expect(publicSettings(gone).jev).toEqual({ set: false, last4: '' });
   });
   it('agents: defaults, the clamp on parallel, an unknown agent falls back', async () => {
-    expect(agentSettings({})).toEqual({ parallel: 1, agent: 'claude-code', hooks: true });
-    expect(agentSettings({ agents: { parallel: 20, agent: 'codex', hooks: false } })).toEqual({ parallel: 8, agent: 'codex', hooks: false });
-    expect(agentSettings({ agents: { parallel: 0, agent: 'gpt' } })).toEqual({ parallel: 1, agent: 'claude-code', hooks: true });
+    expect(agentSettings({})).toEqual({ parallel: 1, agent: 'claude-code', librarian: 'claude-code', librarianModel: '', hooks: true });
+    expect(agentSettings({ agents: { parallel: 20, agent: 'codex', librarian: 'codex', librarianModel: ' gpt-5 ', hooks: false } })).toEqual({ parallel: 8, agent: 'codex', librarian: 'codex', librarianModel: 'gpt-5', hooks: false });
+    expect(agentSettings({ agents: { parallel: 0, agent: 'gpt', librarian: 'gpt' } })).toEqual({ parallel: 1, agent: 'claude-code', librarian: 'claude-code', librarianModel: '', hooks: true });
     const root = await mkdtemp(path.join(os.tmpdir(), 'wf-settings-'));
     await writeSettings({ agents: { parallel: 3 } }, root);
-    expect(publicSettings(await readSettings(root)).agents).toEqual({ parallel: 3, agent: 'claude-code', hooks: true });
+    expect(publicSettings(await readSettings(root)).agents).toEqual({ parallel: 3, agent: 'claude-code', librarian: 'claude-code', librarianModel: '', hooks: true });
   });
   it('timezone: stored when Intl knows it, dropped when empty or unknown (decision:ea.time-based-hooks)', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'wf-settings-'));
