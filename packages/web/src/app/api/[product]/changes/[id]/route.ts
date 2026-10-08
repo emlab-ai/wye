@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { loadScope } from '@/lib/scope';
-import { getChange, mutateChange, changedSince, revertPatch, claimWrite, saveChange } from '@/lib/changes';
+import { getChange, mutateChange, changedSince, revertPatch, claimWrite, saveChange, putBack } from '@/lib/changes';
+import { REPO_ROOT } from '@/lib/products';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { rebuild, writeAtomic, withFileLock } from '@/lib/write';
 import { editNode } from '@/lib/node-edit';
 import { randomBytes } from 'node:crypto';
 
@@ -28,6 +32,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   if (body.action === 'reopen') {
     await mutateChange(scope.product.dir, id, c => { c.state = 'pending'; delete c.acceptedBy; delete c.acceptedAt; });
     return NextResponse.json({ ok: true, state: 'pending' });
+  }
+  if (body.action === 'revert' && r.removed) {
+    // a removal reverted: the text goes back where it was taken from (req:exec.reject-undo)
+    if (scope.idx.byId.get(r.node)?.defined) return NextResponse.json({ error: 'exists', message: `${r.node} is defined again already` }, { status: 409 });
+    if (r.state === 'reverted') return NextResponse.json({ ok: true, state: 'reverted' });
+    const file = path.join(REPO_ROOT, r.file);
+    claimWrite(r.node, { by, silent: true });
+    await withFileLock(file, async () => { const md = await readFile(file, 'utf8'); await writeAtomic(file, putBack(md, r.removed!.text, r.removed!.at)); });
+    await mutateChange(scope.product.dir, id, c => { c.state = 'reverted'; c.revertedBy = by; c.revertedAt = now; });
+    await saveChange(scope.product.dir, { ...r, id: randomBytes(5).toString('hex'), before: r.after, after: r.before, changed: ['restored'], removed: undefined, by, session: undefined, at: now, updatedAt: now, state: 'accepted', acceptedBy: by, acceptedAt: now, revertOf: id });
+    await rebuild(scope.product.dir);
+    return NextResponse.json({ ok: true, state: 'reverted', restored: r.node });
   }
   if (body.action === 'revert') {
     const cur = scope.idx.byId.get(r.node);

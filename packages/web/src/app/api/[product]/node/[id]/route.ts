@@ -67,14 +67,16 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ produ
   });
   if (removed === null) return NextResponse.json({ error: 'invalid', message: `${id} could not be taken out of ${node.file}` }, { status: 422 });
   const at = new Date().toISOString();
-  await saveChange(scope.product.dir, removalRecord(node, removed, req.headers.get('x-wf-by') ?? 'person', product, at, docIdOf(scope.graph, node.file) ?? ''));
+  // the record says where the text sat, so a revert puts it back there (req:exec.reject-undo)
+  const record = removalRecord(node, removed.text, req.headers.get('x-wf-by') ?? 'person', product, at, docIdOf(scope.graph, node.file) ?? '', removed.at);
+  await saveChange(scope.product.dir, record);
   await rebuild(scope.product.dir);
-  return NextResponse.json({ ok: true, id, file: node.file });
+  return NextResponse.json({ ok: true, id, file: node.file, change: record.id });
 }
 // the lines that were taken out: what lies between the lines both versions start with and the lines they end with
-function takenOut(before: string, after: string): string {
+function takenOut(before: string, after: string): { text: string; at: number } {
   const x = before.split('\n'), y = after.split('\n');
   let a = 0; while (a < y.length && x[a] === y[a]) a++;
   let b = 0; while (b < y.length - a && x[x.length - 1 - b] === y[y.length - 1 - b]) b++;
-  return x.slice(a, x.length - b).join('\n').trim();
+  return { text: x.slice(a, x.length - b).join('\n').trim(), at: a };
 }

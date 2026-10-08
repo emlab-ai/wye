@@ -80,3 +80,13 @@ describe('removalRecord', () => {
     expect(r.before.title).toBe('A'); expect(r.after.body).toBe('');
   });
 });
+
+import { putBack } from './changes';
+describe('putBack', () => {
+  it('puts the removed text back at its line, as a paragraph of its own', () => {
+    const md = '# P\n\nfirst\n\n```yaml\n- id: req:b\n  title: B\n```\n';
+    const text = '```yaml\n- id: req:a\n  title: A\n```';
+    expect(putBack(md, text, 4)).toBe('# P\n\nfirst\n\n```yaml\n- id: req:a\n  title: A\n```\n\n```yaml\n- id: req:b\n  title: B\n```\n');
+    expect(putBack('# P\n', text, 99)).toBe('# P\n\n```yaml\n- id: req:a\n  title: A\n```');
+  });
+});

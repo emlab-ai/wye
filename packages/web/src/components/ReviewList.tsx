@@ -56,6 +56,26 @@ export function ReviewList({ product, items }: { product: string; items: ReviewI
     try { await put(it.id, { status }); } catch (e) { setMsg(e instanceof Error ? e.message : String(e)); setBusy(null); return; }
     setBusy(null); router.refresh();
   };
+  // Reject on a block that is still proposed — new, never approved — takes it out of its document (req:exec.reject-undo):
+  // a rejected proposal has nothing to keep. The removal is a change record with the text, so Undo puts it back.
+  const [undo, setUndo] = useState<{ id: string; title: string; change: string } | null>(null);
+  const reject = async (it: ReviewItem) => {
+    if (it.status !== 'proposed') return setStatus(it, 'rejected');
+    setBusy(it.id); setMsg(null);
+    try {
+      const r = await fetch(`/api/${product}/node/${encodeURIComponent(it.id)}`, { method: 'DELETE' }); const j = await r.json();
+      if (!r.ok) throw new Error(j.message ?? j.error);
+      setUndo({ id: it.id, title: it.title || it.id, change: j.change });
+      setTimeout(() => setUndo(u => (u?.change === j.change ? null : u)), 15000);
+    } catch (e) { setMsg(e instanceof Error ? e.message : String(e)); setBusy(null); return; }
+    setBusy(null); router.refresh();
+  };
+  const undoReject = async () => {
+    if (!undo) return; const u = undo; setUndo(null); setMsg(null);
+    try { const r = await fetch(`/api/${product}/changes/${u.change}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'revert' }) }); const j = await r.json(); if (!r.ok) throw new Error(j.message ?? j.error); }
+    catch (e) { setMsg(e instanceof Error ? e.message : String(e)); return; }
+    router.refresh();
+  };
   // Approving a block with an open contradicts / duplicate verdict asks what to do with the other side
   // (req:memory.verdicts): supersede it, say this refines it, or dismiss the verdict with a reason. Each choice edits
   // the block and resolves the contradiction node; approving the block then retires what it supersedes.
@@ -85,6 +105,7 @@ export function ReviewList({ product, items }: { product: string; items: ReviewI
         {kinds.map(k => <button key={k} className={`chip ${filter === k ? 'on' : ''}`} onClick={() => setFilter(filter === k ? '' : k)}>{LABEL[k] ?? k} <small>{items.filter(i => i.kind === k).length}</small></button>)}
       </div></div>
       {msg && <p className="notice">{msg}</p>}
+      {undo && <div className="qtoasts undo" aria-live="polite"><div className="qtoast undo"><div className="qtoast-head"><span className="qtoast-dot" />rejected and taken out<button className="qtoast-x" onClick={() => setUndo(null)} title="hide">×</button></div><div className="qtoast-q">{undo.title}</div><div className="qtoast-sub"><button className="linkish" onClick={() => void undoReject()}>Undo</button> <span className="muted">— it goes back where it was</span></div></div></div>}
       {!shown.length && <p className="muted">Nothing waits for review: every decision, requirement and rule is approved and every question is resolved.</p>}
       {groups.map(([kind, its]) => (
         <section key={kind} className="review-group">
@@ -138,7 +159,7 @@ export function ReviewList({ product, items }: { product: string; items: ReviewI
                     ? <><button className="pri" disabled={busy === it.id} onClick={() => setStatus(it, 'resolved')} title="The answer is recorded (as a decision) — close the question">Resolve</button><button disabled={busy === it.id} onClick={() => setStatus(it, 'rejected')}>Reject</button></>
                     : it.kind === 'contradiction'
                     ? <><button className="pri" disabled={busy === it.id} onClick={() => setStatus(it, 'resolved')} title="One side was superseded or refined — close it">Resolved</button><button disabled={busy === it.id} onClick={() => setStatus(it, 'dismissed')} title="Not a contradiction">Dismiss</button></>
-                    : <><button className="pri" disabled={busy === it.id || choosing === it.id} onClick={() => approve(it)}>Approve{openConflicts(it).length ? '…' : ''}</button><button disabled={busy === it.id} onClick={() => setStatus(it, 'rejected')}>Reject</button></>}
+                    : <><button className="pri" disabled={busy === it.id || choosing === it.id} onClick={() => approve(it)}>Approve{openConflicts(it).length ? '…' : ''}</button><button disabled={busy === it.id} onClick={() => reject(it)} title={it.status === 'proposed' ? 'A proposal rejected is taken out of its document — Undo brings it back' : 'Mark it rejected'}>Reject</button></>}
                   <a href={it.href} className="linkish" onClick={e => e.stopPropagation()}>Open in document</a>
                   <button className="linkish" onClick={() => requestSend({ refs: [it.id], text: `${it.kind}: ${plain(it.title)}\n\n${plain(it.text)}`, source: { project: it.project, doc: it.doc, link: location.origin + it.href } })}>⇢ agent</button>
                 </div>

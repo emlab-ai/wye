@@ -22,7 +22,7 @@ export type ChangeRecord = {
   also?: string[];                                                 // later writers whose edits folded into this record
   tracking?: boolean;                                              // only status / tracking keys changed: accepted at once, not listed
   own?: boolean;                                                   // a person's edit of a proposed block: accepted at once
-  removed?: { text: string };                                     // the node was taken out of its document: its text as it was
+  removed?: { text: string; at?: number };                       // the node was taken out of its document: its text as it was, and the line it sat at
   acceptedBy?: string; acceptedAt?: string; revertedBy?: string; revertedAt?: string; revertOf?: string;
   impact?: unknown;                                                // the impact run (E.3, lib/impact-run)
 };
@@ -97,9 +97,19 @@ export function recordsFromDiff(before: GraphData, after: GraphData, changes: Bl
 
 // A node a person deleted (the column's Delete): the rebuild diff records only changed nodes, so the delete writes its
 // own record — the node as it was and the text that was taken out — accepted, since it is the person's own act.
-export function removalRecord(n: Pick<GraphNode, 'id' | 'kind' | 'body' | 'status' | 'title' | 'file' | 'line'>, text: string, by: string, product: string, at: string, doc: string): ChangeRecord {
+export function removalRecord(n: Pick<GraphNode, 'id' | 'kind' | 'body' | 'status' | 'title' | 'file' | 'line'>, text: string, by: string, product: string, at: string, doc: string, line?: number): ChangeRecord {
   const empty: NodeValue = { text: '', textKey: '', status: '', props: {}, body: '', title: '' };
-  return { id: randomBytes(5).toString('hex'), product, node: n.id, kind: n.kind, doc, file: n.file, line: n.line, before: nodeValue(n), after: empty, changed: ['removed'], by, at, updatedAt: at, state: 'accepted', acceptedBy: by, acceptedAt: at, removed: { text } };
+  return { id: randomBytes(5).toString('hex'), product, node: n.id, kind: n.kind, doc, file: n.file, line: n.line, before: nodeValue(n), after: empty, changed: ['removed'], by, at, updatedAt: at, state: 'accepted', acceptedBy: by, acceptedAt: at, removed: { text, ...(line !== undefined ? { at: line } : {}) } };
+}
+// The removed text put back where it was taken from (req:exec.reject-undo): at its line when the file still has
+// that many lines, else at the end — a paragraph of its own, so it never joins the block before it.
+export function putBack(md: string, text: string, at?: number): string {
+  const lines = md.split('\n'); const i = at !== undefined && at >= 0 && at <= lines.length ? at : lines.length;
+  const block = text.replace(/\s+$/, '');
+  const before = lines.slice(0, i), after = lines.slice(i);
+  const gapBefore = before.length && before[before.length - 1].trim() ? [''] : [];
+  const gapAfter = after.length && after[0].trim() ? [''] : [];
+  return [...before, ...gapBefore, block, ...gapAfter, ...after].join('\n');
 }
 
 // ---- the store
