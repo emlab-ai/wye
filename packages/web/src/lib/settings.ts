@@ -4,20 +4,23 @@
 import { readFile, writeFile, chmod } from 'node:fs/promises';
 import path from 'node:path';
 import { DATA_ROOT } from './products';
-import { cleanLaunch, type LaunchSettings } from './agent-launch';
+import { cleanLaunch, validModel, type LaunchSettings } from './agent-launch';
 
 // onboarding: the Quick start's marked steps and dismissal per product slug — about the person at this machine, so here
 // and never in a product file, Git or an export (docs/superpowers/specs/2026-10-05-onboarding-design.md)
-export interface Settings { jev?: { key?: string }; agents?: { parallel?: number; agent?: string; hooks?: boolean }; /** how each agent CLI is launched: model, mode, effort, the person's own flags (lib/agent-launch) */ launch?: LaunchSettings; timezone?: string; onboarding?: Record<string, { done?: string[]; dismissed?: boolean }>; /** servers this app keeps an SSH reverse tunnel to, and whether each is wanted on (lib/remote) — replaced whole by a patch */ remotes?: { host: string; port: number; on?: boolean }[]; /** the folder open as the workspace (lib/workspace) — none: the app's own products; `workspaces` the recent ones, newest first; `workspaceScan` the vaults a Rescan found under a folder no vault names */ workspace?: string; workspaces?: string[]; workspaceScan?: Record<string, string[]> }
+export interface Settings { jev?: { key?: string }; agents?: { parallel?: number; agent?: string; librarian?: string; librarianModel?: string; hooks?: boolean }; /** how each agent CLI is launched: model, mode, effort, the person's own flags (lib/agent-launch) */ launch?: LaunchSettings; timezone?: string; onboarding?: Record<string, { done?: string[]; dismissed?: boolean }>; /** servers this app keeps an SSH reverse tunnel to, and whether each is wanted on (lib/remote) — replaced whole by a patch */ remotes?: { host: string; port: number; on?: boolean }[]; /** the folder open as the workspace (lib/workspace) — none: the app's own products; `workspaces` the recent ones, newest first; `workspaceScan` the vaults a Rescan found under a folder no vault names */ workspace?: string; workspaces?: string[]; workspaceScan?: Record<string, string[]> }
 
 // The dispatcher's knobs (decision:wf2.pr-scheduler): how many builds run at once, and which agent builds by default.
 export const AGENT_IDS = ['claude-code', 'codex'];
 export const DEFAULT_AGENTS = { parallel: 1, agent: 'claude-code' };
 // hooks: whether the hooks engine fires at all (decision:wf2.hooks-and-skills); on unless switched off here or WF_HOOKS=0
-export function agentSettings(s: Settings): { parallel: number; agent: string; hooks: boolean } {
+// librarian: the harness a librarian (Prompt Requests, Remember, Ask, a skill's librarian) runs on unless the person picked one
+export function agentSettings(s: Settings): { parallel: number; agent: string; librarian: string; librarianModel: string; hooks: boolean } {
   const n = Number(s.agents?.parallel); const parallel = Number.isFinite(n) ? Math.max(1, Math.min(8, Math.round(n))) : DEFAULT_AGENTS.parallel;
   const agent = AGENT_IDS.includes(s.agents?.agent ?? '') ? s.agents!.agent! : DEFAULT_AGENTS.agent;
-  return { parallel, agent, hooks: s.agents?.hooks !== false };
+  const librarian = AGENT_IDS.includes(s.agents?.librarian ?? '') ? s.agents!.librarian! : DEFAULT_AGENTS.agent;
+  const lm = (s.agents?.librarianModel ?? '').trim(); const librarianModel = validModel(lm) ? lm : '';
+  return { parallel, agent, librarian, librarianModel, hooks: s.agents?.hooks !== false };
 }
 
 // how each agent is launched (decision:wf2.agent-launch): every known agent, empty when nothing is set
@@ -57,6 +60,6 @@ const mergeOnboarding = (cur: Settings['onboarding'], patch: NonNullable<Setting
 };
 // the stored key, or the environment's for tests and evals outside the app
 export async function jevKey(root: string = DATA_ROOT): Promise<string> { return (await readSettings(root)).jev?.key || (root === DATA_ROOT ? process.env.TYPESAFE_API_KEY : '') || ''; }
-export function publicSettings(s: Settings): { jev: { set: boolean; last4: string }; agents: { parallel: number; agent: string; hooks: boolean }; launch: LaunchSettings; timezone: string } {
+export function publicSettings(s: Settings): { jev: { set: boolean; last4: string }; agents: { parallel: number; agent: string; librarian: string; librarianModel: string; hooks: boolean }; launch: LaunchSettings; timezone: string } {
   const k = s.jev?.key ?? ''; return { jev: { set: !!k, last4: k.slice(-4) }, agents: agentSettings(s), launch: launchSettings(s), timezone: timeZoneOf(s) };
 }

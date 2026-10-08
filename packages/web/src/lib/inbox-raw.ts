@@ -7,6 +7,7 @@ import { rawInputJudge } from './impact-run';
 import { loadScope } from './scope';
 import { createSession } from './sessions';
 import { startChat } from './agent-host';
+import { agentSettings, readSettings } from './settings';
 import { markStep } from './onboarding-io';
 
 export async function judgeRawImpact(productDir: string, product: string, name: string): Promise<InboxImpact | null> {
@@ -21,10 +22,10 @@ export function rawBrief(name: string, from: string | undefined, text: string, i
   return `Raw input${from ? ` from ${from}` : ''}, kept in the inbox as ${name}. It is a request or a remark in the person's own words — not a statement of what the product does, so do not restate it as req: blocks or as a decision the person did not make. File only what it states that is new (a fact, a decision the person made, a constraint they set), refine or supersede what it changes, raise what it contradicts as an open question, and leave the rest. Impact judged on arrival against what is known:\n${lines.join('\n')}\n\nThe input:\n\n${text}`;
 }
 
-// a Remember conversation as the command box starts one — a librarian on Claude Code, in the Wye folder
+// a Remember conversation as the command box starts one — a librarian on the harness Settings › Agents names, in the Wye folder
 export async function digestRaw(p: Product, product: string, name: string, impact: InboxImpact | null, wfUrl: string): Promise<{ session: string | null; error?: string }> {
   return digestInboxItem(p.dir, name, async o => {
-    const s = await createSession(p.dir, product, { agent: 'claude-code', instruction: rawBrief(name, o.source.from, o.instruction, impact), refs: o.refs.slice(0, 50), source: o.source, mode: 'chat', cwd: REPO_ROOT, role: 'librarian', skills: ['skill:remember'], hooks: [] });
+    const s = await createSession(p.dir, product, { agent: agentSettings(await readSettings()).librarian, instruction: rawBrief(name, o.source.from, o.instruction, impact), refs: o.refs.slice(0, 50), source: o.source, mode: 'chat', cwd: REPO_ROOT, role: 'librarian', skills: ['skill:remember'], hooks: [] });
     void markStep(p.slug, 'remember');
     const started = await startChat(p.dir, product, s.id, { wfUrl });
     return { id: (started ?? s).id };

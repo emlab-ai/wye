@@ -78,7 +78,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ produc
       return NextResponse.json({ ok: true, session: live.id, mode: 'told' });
     }
     const [, project, doc] = body.ref.split('/'); const node = getFrontmatter(pr.md, 'node') ?? '';
-    const s = await createSession(scope.product.dir, product, { agent: 'claude-code', instruction: `Revisit this request with the current approach (${SKILL}).`, refs: node ? [node] : [], source: { project, doc }, mode: 'chat', role: 'librarian', skills: [SKILL] });
+    const s = await createSession(scope.product.dir, product, { agent: agentSettings(await readSettings()).librarian, instruction: `Revisit this request with the current approach (${SKILL}).`, refs: node ? [node] : [], source: { project, doc }, mode: 'chat', role: 'librarian', skills: [SKILL] });
     await setPrDoc(scope.product.dir, s.id, body.ref, `revisits ${body.ref}`);
     await setRefining(scope.product.dir, product, body.ref);   // a draft goes to refining; any other status stays
     await startChat(scope.product.dir, product, s.id, { wfUrl });

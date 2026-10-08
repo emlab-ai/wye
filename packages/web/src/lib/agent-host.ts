@@ -223,7 +223,11 @@ export async function launchOf(product: string, s: Session): Promise<{ launch: A
     for (const id of new Set([...(s.hook?.skill ? [s.hook.skill] : []), ...(s.skills ?? [])])) sources.push({ from: id, value: card(id) });
     if (stage) for (const e of scope.idx.out.get(stage) ?? []) if (e.verb === 'part-of' && e.to.startsWith('workflow:')) sources.push({ from: e.to, value: card(e.to) });
   }
-  if (!s.ownConfig) sources.push({ from: 'Settings › Agents', value: launch.model });
+  if (!s.ownConfig) {
+    // a librarian's own default comes before the agent's: Settings › Agents › librarian
+    if (s.role === 'librarian') sources.push({ from: 'Settings › Agents › librarian', value: agentSettings(await readSettings()).librarianModel });
+    sources.push({ from: 'Settings › Agents', value: launch.model });
+  }
   return { launch, model: resolveModel(s.agent, sources) };
 }
 async function startProcess(l: Live, s: Session, product: string, opts: { wfUrl: string; firstMessage?: string; shown?: string; images?: string[]; resume?: boolean }): Promise<Session | null> {

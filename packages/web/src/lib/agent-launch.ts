@@ -100,7 +100,7 @@ export function claudeLaunchArgs(launch: AgentLaunch, o: { model?: string; libra
   const args: string[] = [];
   if (o.model) args.push('--model', o.model);
   if (o.own) return args;
-  if (launch.mode && !o.librarian) args.push(...(launch.mode === 'bypassPermissions' ? ['--dangerously-skip-permissions'] : ['--permission-mode', launch.mode]));
+  if (launch.mode) args.push(...(launch.mode === 'bypassPermissions' ? ['--dangerously-skip-permissions'] : ['--permission-mode', launch.mode]));
   if (launch.effort) args.push('--effort', launch.effort);
   args.push(...splitArgs(launch.args ?? ''));
   return args;
@@ -115,7 +115,7 @@ export function codexLaunchArgs(launch: AgentLaunch, o: { model?: string; resume
   const args: string[] = [];
   if (o.model) args.push('--model', o.model);
   if (o.own) return args;
-  const mode = o.librarian ? 'workspace-write' : launch.mode || 'workspace-write';
+  const mode = launch.mode || 'workspace-write';
   if (mode === 'yolo') args.push('--dangerously-bypass-approvals-and-sandbox');
   else if (o.resume) { if (mode === 'read-only' || mode === 'danger-full-access') args.push('-c', `sandbox_mode=${mode}`); }
   else if (mode === 'approve-for-me') args.push('--approve-for-me');
@@ -131,7 +131,7 @@ export function launchLine(agent: string, launch: AgentLaunch, model: { model: s
   if (model) parts.push(`model ${model.model} (${model.from})`);
   if (!o.own) {
     const mode = LAUNCH_OPTIONS[agent]?.modes.find(m => m.id === launch.mode);
-    if (mode && !(o.librarian && agent === 'claude-code')) parts.push(mode.flag);
+    if (mode) parts.push(mode.flag);
     if (launch.effort) parts.push(`effort ${launch.effort}`);
     if (launch.args) parts.push(launch.args);
   }

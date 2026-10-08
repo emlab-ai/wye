@@ -45,19 +45,19 @@ describe('agent launch', () => {
     expect(resolveModel('claude-code', [{ from: 'skill:prd' }, app])).toEqual({ model: 'sonnet', from: 'Settings › Agents' });
     expect(resolveModel('codex', [{ from: 'skill:prd' }])).toBeNull();
   });
-  it('claude: model, mode, effort, own flags; a librarian keeps its tool set; a scheduled job only its model', () => {
+  it('claude: model, mode, effort, own flags; a librarian follows the same mode; a scheduled job only its model', () => {
     expect(claudeLaunchArgs({})).toEqual([]);
     expect(claudeLaunchArgs({ mode: 'auto', effort: 'high', args: '--asdfads' }, { model: 'opus' })).toEqual(['--model', 'opus', '--permission-mode', 'auto', '--effort', 'high', '--asdfads']);
     expect(claudeLaunchArgs({ mode: 'bypassPermissions' })).toEqual(['--dangerously-skip-permissions']);
-    expect(claudeLaunchArgs({ mode: 'bypassPermissions', effort: 'low' }, { librarian: true })).toEqual(['--effort', 'low']);
+    expect(claudeLaunchArgs({ mode: 'bypassPermissions', effort: 'low' }, { librarian: true })).toEqual(['--dangerously-skip-permissions', '--effort', 'low']);
     expect(claudeLaunchArgs({ mode: 'auto', args: '--x' }, { model: 'opus', own: true })).toEqual(['--model', 'opus']);
   });
   it('codex: the workspace sandbox unless told otherwise; resume takes the sandbox as config', () => {
     expect(codexLaunchArgs({})).toEqual(['--sandbox', 'workspace-write']);
     expect(codexLaunchArgs({}, { resume: true })).toEqual([]);
-    // a librarian is kept to the workspace sandbox whatever the mode: never full access, never unsandboxed
-    expect(codexLaunchArgs({ mode: 'yolo' }, { librarian: true, model: 'gpt-5' })).toEqual(['--model', 'gpt-5', '--sandbox', 'workspace-write']);
-    expect(codexLaunchArgs({ mode: 'danger-full-access' }, { librarian: true, resume: true })).toEqual([]);
+    // a librarian runs with the mode Settings › Agents gives the agent
+    expect(codexLaunchArgs({ mode: 'yolo' }, { librarian: true, model: 'gpt-5' })).toEqual(['--model', 'gpt-5', '--dangerously-bypass-approvals-and-sandbox']);
+    expect(codexLaunchArgs({ mode: 'danger-full-access' }, { librarian: true, resume: true })).toEqual(['-c', 'sandbox_mode=danger-full-access']);
     expect(codexLaunchArgs({ mode: 'yolo', effort: 'high' }, { model: 'gpt-5' })).toEqual(['--model', 'gpt-5', '--dangerously-bypass-approvals-and-sandbox', '-c', 'model_reasoning_effort=high']);
     expect(codexLaunchArgs({ mode: 'yolo' }, { resume: true })).toEqual(['--dangerously-bypass-approvals-and-sandbox']);
     expect(codexLaunchArgs({ mode: 'approve-for-me' })).toEqual(['--approve-for-me']);
@@ -68,6 +68,6 @@ describe('agent launch', () => {
   it('the console line says what was added and where the model came from', () => {
     expect(launchLine('claude-code', {}, null)).toBe('');
     expect(launchLine('claude-code', { mode: 'auto', effort: 'high' }, { model: 'opus', from: 'skill:prd' })).toBe('model opus (skill:prd) · --permission-mode auto · effort high');
-    expect(launchLine('claude-code', { mode: 'auto' }, null, { librarian: true })).toBe('');
+    expect(launchLine('claude-code', { mode: 'auto' }, null, { librarian: true })).toBe('--permission-mode auto');
   });
 });
