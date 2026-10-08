@@ -117,15 +117,18 @@ async function startServer() {
   throw new Error(`the app server did not answer on ${URL_} after two minutes; see .cache/desktop-web.log in the checkout`);
 }
 
+// the app's own origin (not a prefix: localhost:30001 is not localhost:3000), and only web or mail links leave it
+const isApp = (url) => { try { return new URL(url).origin === new URL(URL_).origin; } catch { return false; } };
+const openOutside = (url) => { try { if (/^(https?|mailto):$/.test(new URL(url).protocol)) shell.openExternal(url); } catch { /* not a url */ } };
 function createWindow() {
   // standard OS title bar and window controls on every platform
   win = new BrowserWindow({ width: 1500, height: 960, minWidth: 900, minHeight: 600, title: 'Wye', backgroundColor: '#141614', webPreferences: { contextIsolation: true, nodeIntegration: false } });
   win.loadURL(URL_);
   // an app link the page opens as a new window (target=_blank) stays in this window; File › New window is the way
   // to get a second one (rule:app-link)
-  win.webContents.setWindowOpenHandler(({ url }) => { if (url.startsWith(URL_)) { if (win) win.loadURL(url); } else shell.openExternal(url); return { action: 'deny' }; });
+  win.webContents.setWindowOpenHandler(({ url }) => { if (isApp(url)) { if (win) win.loadURL(url); } else openOutside(url); return { action: 'deny' }; });
   // a click on a foreign link (a transcript, a document) opens the system browser; the window stays on the app (rule:app-link)
-  win.webContents.on('will-navigate', (ev, url) => { if (url.startsWith(URL_)) return; ev.preventDefault(); shell.openExternal(url); });
+  win.webContents.on('will-navigate', (ev, url) => { if (isApp(url)) return; ev.preventDefault(); openOutside(url); });
   win.on('closed', () => { win = null; });
 }
 
