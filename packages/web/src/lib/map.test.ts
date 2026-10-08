@@ -142,3 +142,14 @@ describe('verbSlug', () => {
     expect(verbSlug('   ')).toBe('');
   });
 });
+
+import { withLink as withLink2, withoutLink as withoutLink2 } from './map';
+describe('withLink on a card that ends with a block scalar', () => {
+  it('puts the key after the id line, not inside the text block', () => {
+    const card = `- id: decision:x\n  title: X\n  status: proposed\n  text: |\n    why it was\n    chosen so\n`;
+    const out = withLink2(card, 'related-to', 'question:q');
+    expect(out).toBe(`- id: decision:x\n  title: X\n  status: proposed\n  related-to: question:q\n  text: |\n    why it was\n    chosen so\n`);
+    expect(withoutLink2(out, 'related-to', 'question:q')).toBe(card);
+    expect(withLink2(out, 'related-to', 'question:r')).toContain('related-to: [question:q, question:r]');
+  });
+});

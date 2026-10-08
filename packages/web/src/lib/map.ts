@@ -113,14 +113,39 @@ export function verbsFor(types: VerbSource[] | undefined, fromKind: string, toKi
 // indentation of the card's own keys is kept, so a card edited here reads like the ones beside it.
 const KEY = (verb: string) => new RegExp(`^([ \\t]*)${verb.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:[ \\t]*(.*)$`, 'm');
 const items = (raw: string) => raw.trim().replace(/^\[|\]$/g, '').split(/[\s,]+/).filter(Boolean);
+// where a block scalar that runs to the end of the card starts (the `key: |` or `key: >` line, at the card's key
+// indentation) — -1 when the card does not end in one
+function blockTail(body: string, ind: string): number {
+  const lines = body.replace(/\s+$/, '').split('\n'); let start = -1;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const l = lines[i]; if (!l.trim()) continue;
+    const key = l.match(/^([ \t]*-?[ \t]*)[A-Za-z][\w-]*:\s*(.*)$/);
+    const atKey = key && (key[1] === ind || key[1].replace('-', ' ') === ind);
+    if (!atKey) continue; // a line of the block, deeper than the keys
+    if (/^[|>][+-]?\d*$/.test(key[2].trim())) start = i; // the block's own line
+    break;
+  }
+  if (start < 0) return -1;
+  return lines.slice(0, start).join('\n').length + (start > 0 ? 1 : 0);
+}
+// the indentation of the card's keys: the `id:` line's, with a list dash counted as a space — never the deeper
+// indentation of a block scalar's lines, which is where a key appended at the end would land
 function keyIndent(body: string): string {
   const lines = body.split('\n').filter(l => l.trim());
-  for (let i = lines.length - 1; i >= 0; i--) { const m = lines[i].match(/^([ \t]+)\S/); if (m) return m[1]; }
-  return /^-\s/.test(lines[0] ?? '') ? '  ' : '';
+  const idLine = lines.find(l => /^[ \t]*-?[ \t]*id:/.test(l)) ?? lines[0] ?? '';
+  const m = idLine.match(/^([ \t]*)(-[ \t]+)?/);
+  return (m?.[1] ?? '') + (m?.[2] ? ' '.repeat(m[2].length) : '');
 }
 export function withLink(body: string, verb: string, id: string): string {
   const m = body.match(KEY(verb));
-  if (!m) return `${body.replace(/\s+$/, '')}\n${keyIndent(body)}${verb}: ${id}`;
+  if (!m) {
+    const ind = keyIndent(body); const line = `${ind}${verb}: ${id}`;
+    // a card that ends with a block scalar (`text: |` and its lines) would swallow a line appended after it as more
+    // text, and the link would read as prose: the key goes before that block instead
+    const block = blockTail(body, ind);
+    if (block >= 0) return `${body.slice(0, block)}${line}\n${body.slice(block)}`;
+    return `${body.replace(/\s+$/, '')}\n${line}`;
+  }
   const cur = items(m[2]);
   if (cur.includes(id)) return body;
   return body.replace(KEY(verb), `${m[1]}${verb}: [${[...cur, id].join(', ')}]`);
