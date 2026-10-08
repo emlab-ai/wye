@@ -58,7 +58,7 @@ function MapCard({ id, data, selected }: NodeProps<Node<NodeData>>) {
   const frame = `mnode ${selected ? 'on' : ''} ${data.near || selected ? 'near' : ''} ${data.isRef ? 'is-ref' : ''} s-${data.status || 'none'}`;
   const fold = (
     <button type="button" className="mnode-fold nodrag" title={data.open ? 'Show the title alone' : 'Show the whole card'}
-      onClick={e => { e.stopPropagation(); data.onOpen(id, !data.open); }}>{data.open ? '⌃' : '⌄'}</button>
+      onClick={e => { e.stopPropagation(); data.onOpen(id, !data.open); }}><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden><path d={data.open ? 'M1.5 6.5 L5 3 L8.5 6.5' : 'M1.5 3.5 L5 7 L8.5 3.5'} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
   );
   if (data.open) return (
     <div className={`${frame} open`} data-id={id}>
@@ -70,7 +70,7 @@ function MapCard({ id, data, selected }: NodeProps<Node<NodeData>>) {
   return (
     <div className={frame} data-id={id}>
       {SIDES.map(p => <Handle key={p} id={p} type="source" position={POS[p]} />)}
-      <span className="mnode-kind pill k" style={{ background: `var(--k-${data.kind}, var(--k-other))` }}>{data.kind}</span>
+      <span className="mnode-kind" style={{ background: `var(--k-${data.kind}, var(--k-other))` }} title={data.kind}>{data.kind.slice(0, 1)}</span>
       {editing
         ? <textarea className="mnode-edit nodrag" autoFocus value={draft} rows={Math.min(8, draft.split('\n').length)} onChange={e => setDraft(e.target.value)} onBlur={save} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); } if (e.key === 'Escape') { setDraft(whole); setEditing(false); } }} />
         : <span className="mnode-words" onDoubleClick={e => { e.stopPropagation(); setEditing(true); }}><span className="mnode-title">{data.title || nameOf(id)}</span>{data.text && <span className="mnode-text">{data.text}</span>}</span>}
@@ -102,7 +102,7 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
   // that opens while the right column is still appearing is not left half off-screen
   const moved = useRef(false);
   const [pic, setPic] = useState<Picture>({ nodes, edges, off, spots });
-  const { select, setShowContext } = usePeek();
+  const { select, setShowContext, index } = usePeek();
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState(false);
@@ -118,6 +118,24 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
   const [verb, setVerb] = useState('part-of');
   const [near, setNear] = useState<string | null>(null);
   const [open, setOpen] = useState<Set<string>>(() => new Set(spots.filter(sp => sp.open).map(sp => sp.id)));
+  // a node the vault already has, offered while a title is typed (decision:map.new-node-finds-existing): up to eight
+  // whose title or id holds the words, not yet on the map; ↓ or Tab moves into the list, Enter places the one chosen
+  const [pick, setPick] = useState(-1);
+  const existing = useMemo(() => {
+    const t = (pop?.mode === 'new' ? title : '').trim().toLowerCase(); if (t.length < 2) return [];
+    const here = new Set(pic.nodes.map(n => n.id)); const words = t.split(/\s+/);
+    return Object.values(index).filter(e => e.defined && !here.has(e.id) && !['block', 'prop', 'field', 'module', 'product', 'map', 'type'].includes(e.kind) && words.every(w => e.title.toLowerCase().includes(w) || e.id.toLowerCase().includes(w))).slice(0, 8);
+  }, [index, pic, pop, title]);
+  useEffect(() => { setPick(-1); }, [title]);
+  async function placeExisting(id: string) {
+    if (pop?.mode !== 'new') return;
+    const parent = pop.parent; const at = parent ? nextTo(parent) : pop.flow;
+    setBusy(true);
+    const ok = await send({ action: 'ref', id, x: at.x, y: at.y });
+    if (ok && parent) await send({ action: 'link', from: id, to: parent, verb: verbSlug(verb) || 'related-to' });
+    setBusy(false); setTitle(''); setPop(null);
+    if (ok) { setShowContext(true); select(id); }
+  }
   // the filter: kinds hidden with one click on their chip, remembered per map in this browser (a viewer's convenience)
   const hiddenKey = `wf-map-hidden:${product}/${project}/${slug}`;
   const [hiddenKinds, setHiddenKinds] = useState<Set<string>>(() => { try { return new Set(JSON.parse(localStorage.getItem(hiddenKey) ?? '[]') as string[]); } catch { return new Set(); } });
@@ -422,7 +440,19 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
                 <input list="mpop-verbs" value={verb} placeholder="part-of, depends on, …" onChange={e => setVerb(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void createNode(); if (e.key === 'Escape') setPop(null); }} spellCheck={false} />
                 <datalist id="mpop-verbs">{[...new Set([...offered, 'part-of', 'related-to', 'depends-on', 'refines', 'affects', 'contradicts'])].map(v => <option key={v} value={v} />)}</datalist>
               </label>}
-              <input autoFocus placeholder="title" value={title} onChange={e => setTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') void createNode(); if (e.key === 'Escape') setPop(null); }} />
+              <input autoFocus placeholder="title — or the words of a node the vault has" value={title} onChange={e => setTitle(e.target.value)} spellCheck={false}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') { setPop(null); return; }
+                  if ((e.key === 'ArrowDown' || e.key === 'Tab') && existing.length) { e.preventDefault(); setPick(i => Math.min(existing.length - 1, i + 1)); return; }
+                  if (e.key === 'ArrowUp' && pick >= 0) { e.preventDefault(); setPick(i => i - 1); return; }
+                  if (e.key === 'Enter') { if (pick >= 0 && existing[pick]) void placeExisting(existing[pick].id); else void createNode(); }
+                }} />
+              {existing.length > 0 && <ul className="mpop-existing" role="listbox">
+                {existing.map((e, i) => <li key={e.id} role="option" aria-selected={i === pick} className={i === pick ? 'at' : ''} onMouseEnter={() => setPick(i)} onMouseDown={ev => { ev.preventDefault(); void placeExisting(e.id); }}>
+                  <i style={{ background: `var(--k-${e.kind}, var(--k-other))` }} /><span className="mpop-ex-title">{e.title || e.id}</span><small>{e.id}</small>
+                </li>)}
+                <li className="mpop-ex-hint">↓ / Tab to pick one of these — it is put on the map{pop.parent ? ' and linked' : ''}; Enter on the title makes a new node</li>
+              </ul>}
               <div className="mpop-row">
                 <button type="button" onClick={() => void createNode()} disabled={busy || !title.trim()}>Add</button>
                 <button type="button" className="linkish" onClick={() => setPop(null)}>Close</button>
