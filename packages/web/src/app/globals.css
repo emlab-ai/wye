@@ -17,6 +17,20 @@
     --pill-ink:#101413;
     color-scheme: dark;
 }
+/* system: no data-theme yet (the person has not chosen, or the page has not applied it) — follow the OS */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --ground:#111413; --surface:#181C1A; --sunk:#1F2422; --ink:#ECEFEC; --ink-2:#BFC7C2; --muted:#8B948F; --line:#2A302D; --line-2:#3A423E;
+    --accent:#5FBFB8; --accent-ink:#0F1A19; --accent-soft:#1B302E;
+    --k-req:#E8834C; --k-rule:#5B9BD0; --k-entity:#63B47B; --k-op:#A182E0; --k-page:#E0688A; --k-action:#E5A64E; --k-gate:#BEBB55; --k-flag:#BEBB55; --k-state:#4FC1BB; --k-value:#98A7AF; --k-test:#9FB0BA; --k-ui-test:#9FB0BA; --k-drift:#EB6B6B; --k-module:#D3D8D5; --k-product:#D3D8D5; --k-field:#7FB3C2; --k-decision:#8FA1E6; --k-question:#E0688A; --k-goal:#E0B84C; --k-plan:#D9B25A; --k-task:#4FC1BB; --k-type:#9D86E8; --k-prop:#B3A8DE; --k-block:#8A8F8C; --k-comment:#DBB05A; --k-text:#A0A5A2; --k-other:#A0A5A2;
+    --ok:#56B975; --warn:#E0AE3D; --bad:#EB6B6B;
+    --pill-ink:#101413;
+    color-scheme: dark;
+}
+  :root:not([data-theme]) .tag-chip { background: hsl(var(--h) 30% 26%); color: hsl(var(--h) 50% 88%); }
+  :root:not([data-theme]) .code-block { background: #141614; border-color: #2a2e2a; }
+}
+
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--ground); color: var(--ink); font: 15px/1.5 var(--font-b); }
 a { color: var(--accent); }
@@ -1594,3 +1608,17 @@ div.help-row { cursor: default; }
 .kp .kp-name, .kp .kp-caret, .mpop label .kp span { width: auto; } .kp .kp-name { flex: 1 1 auto; white-space: nowrap; }
 .mpop-existing { list-style: none; margin: 2px 0 0; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--ground); max-height: 220px; overflow-y: auto; } .mpop-existing li { display: flex; align-items: center; gap: 7px; padding: 4px 6px; border-radius: 6px; font-size: 12px; cursor: pointer; min-width: 0; } .mpop-existing li.at { background: var(--sunk); } .mpop-existing li i { width: 8px; height: 8px; border-radius: 50%; flex: none; } .mpop-ex-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .mpop-existing small { flex: none; max-width: 55%; overflow: hidden; text-overflow: ellipsis; } .mpop-existing small { color: var(--muted); font: 10px var(--font-m); white-space: nowrap; } .mpop-existing .mpop-ex-hint { color: var(--muted); font-size: 10.5px; cursor: default; white-space: normal; }
 .mnode-fold svg { display: block; }
+
+
+/* ---- a Slack thread card: the mark, "Open in Slack", the thread's title, where it is and what it is about */
+.snode { background: var(--sunk); }
+.slack-mark { display: inline-flex; align-items: center; justify-content: center; padding: 3px; border: 0; border-radius: 6px; background: var(--surface); cursor: pointer; }
+.slack-chip { font: 600 11px/1 var(--font-m); padding: 4px 8px; border-radius: 999px; background: var(--line); color: var(--ink-2); }
+.slack-chip.a-reply { background: #e01e5a; color: #fff; }
+.slack-chip.a-attention { background: #ecb22e; color: #222; }
+.slack-acts { margin-left: auto; display: inline-flex; align-items: center; gap: 10px; }
+.slack-open { font: 500 12px/1 var(--font-m); color: var(--ink-2); text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; background: var(--surface); white-space: nowrap; }
+.slack-open:hover { border-color: var(--ink-2); color: var(--ink); }
+.slack-meta { margin: 0 0 4px; font: 12px/1.4 var(--font-m); color: var(--muted); }
+.slack-summary { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+button.slack-open { cursor: pointer; } button.slack-open:disabled { opacity: .6; cursor: default; }

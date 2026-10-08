@@ -3,6 +3,9 @@
 const moment = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
 const day = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 const time = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-export const formatWhen = (iso: string) => moment.format(new Date(iso));
-export const formatDay = (iso: string) => day.format(new Date(iso));
-export const formatTime = (iso: string) => time.format(new Date(iso));
+// A missing or unparsable date prints as nothing: Intl's format throws a RangeError on an invalid Date, and one bad
+// timestamp in a log or a list must not take the page down.
+const fmt = (f: Intl.DateTimeFormat) => (iso?: string) => { const d = new Date(iso ?? ''); return Number.isNaN(d.getTime()) ? '' : f.format(d); };
+export const formatWhen = fmt(moment);
+export const formatDay = fmt(day);
+export const formatTime = fmt(time);

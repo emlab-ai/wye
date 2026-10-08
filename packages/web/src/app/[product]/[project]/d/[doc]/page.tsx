@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { isRscRequest } from '@/lib/request';
 import { loadScope, treeFor } from '@/lib/scope';
 import { loadMarkdown } from '@/lib/load';
@@ -24,7 +25,13 @@ import { GoneNotice } from '@/components/GoneNotice';
 export default async function DocPage({ params }: { params: Promise<{ product: string; project: string; doc: string }> }) {
   const { product, project, doc } = await params;
   let scope = await loadScope(product, project);
-  if (!scope) { const all = await loadScope(product); return <GoneNotice what="project" slug={project} product={product} projects={(all?.projects ?? []).map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} />; }
+  // a link or tab written with a project that is not (or no longer) the document's: the one project of the product that
+  // does hold a page of that slug takes it, rather than a notice for a page that exists
+  const elsewhere = (all: NonNullable<Awaited<ReturnType<typeof loadScope>>> | null) => {
+    const hits = (all?.projects ?? []).filter(p => p.slug !== project && pageBySlug(treeFor(all!, p.slug).byFile.values(), p.slug, decodeURIComponent(doc)));
+    return hits.length === 1 ? `/${product}/${hits[0].slug}/d/${doc}` : null;
+  };
+  if (!scope) { const all = await loadScope(product); const to = elsewhere(all); if (to) redirect(to); return <GoneNotice what="project" slug={project} product={product} projects={(all?.projects ?? []).map(p => ({ slug: p.slug, title: p.meta.title, icon: p.meta.icon }))} />; }
   // an app-written page (~goals, ~work…) asked for before the layout's first pass built it (lib/system-pages): written
   // and built here, so a brand-new product's rail links never land on "not found"
   if (isSystemSlug(decodeURIComponent(doc)) && !pageBySlug(treeFor(scope, project).byFile.values(), project, decodeURIComponent(doc))) scope = await ensureSystemPages(scope);
@@ -33,7 +40,7 @@ export default async function DocPage({ params }: { params: Promise<{ product: s
   // content, not a 404 boundary: the layout (top bar, rail, tabs) stays and the next live refresh brings the document
   // back when its file reappears (decision:wf2.deleted-outside-stays-put)
   const d = pageBySlug(tree.byFile.values(), project, decodeURIComponent(doc));
-  if (!d) return <DocNotFound slug={doc} project={project} />;
+  if (!d) { const to = elsewhere(scope); if (to) redirect(to); return <DocNotFound slug={doc} project={project} />; }
   const md = await loadMarkdown(REPO_ROOT, d.file).catch(() => null); // gone between the graph and this render
   if (md === null) return <DocNotFound slug={doc} project={project} />;
   const split = splitDocument(md);

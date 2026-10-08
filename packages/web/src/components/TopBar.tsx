@@ -63,14 +63,16 @@ function usePageTabs(product: string, path: string, label: string, icon: string,
       return next;
     });
   }, [tabs === null, path, label, icon, provisional, product, key]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the side effects (storage, the router) run here, not inside a setState updater: React runs updaters while it renders
+  // the latest tabs, for `close`: a state updater must stay pure, so the navigation and the storage write happen
+  // here, outside it (router.push inside an updater is a setState on the Router during TopBar's render)
+  const tabsRef = useRef<PageTab[] | null>(null); tabsRef.current = tabs;
   const close = useCallback((href: string) => {
-    setTabs(cur => {
-      const list = cur ?? []; const i = list.findIndex(t => t.href === href); if (i < 0) return list;
-      const next = list.filter(t => t.href !== href);
-      try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* ignore */ }
-      if (href === path) { const to = next[i] ?? next[i - 1]; lastPath.current = to?.href ?? `/${product}`; router.push(to?.href ?? `/${product}`); }
-      return next;
-    });
+    const list = tabsRef.current ?? []; const i = list.findIndex(t => t.href === href); if (i < 0) return;
+    const next = list.filter(t => t.href !== href);
+    try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* ignore */ }
+    setTabs(next);
+    if (href === path) { const to = next[i] ?? next[i - 1]; lastPath.current = to?.href ?? `/${product}`; router.push(to?.href ?? `/${product}`); }
   }, [key, path, product, router]);
   return { tabs: tabs ?? [], pick: (href: string) => { if (href !== path) router.push(href); }, close };
 }

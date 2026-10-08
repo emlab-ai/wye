@@ -7,4 +7,5 @@ describe('when', () => {
   it('a moment: day, short month, 24-hour time', () => { expect(formatWhen(iso)).toBe('3 Oct, 12:50'); });
   it('a day', () => { expect(formatDay(iso)).toBe('3 Oct 2026'); });
   it('a time of day', () => { expect(formatTime(iso)).toBe('12:50:00'); });
+  it('a missing or invalid date is empty, not an error', () => { for (const f of [formatWhen, formatDay, formatTime]) { expect(f('')).toBe(''); expect(f('not a date')).toBe(''); expect(f(undefined)).toBe(''); } });
 });
