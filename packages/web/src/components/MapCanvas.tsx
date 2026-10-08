@@ -124,7 +124,10 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
   const existing = useMemo(() => {
     const t = (pop?.mode === 'new' ? title : '').trim().toLowerCase(); if (t.length < 2) return [];
     const here = new Set(pic.nodes.map(n => n.id)); const words = t.split(/\s+/);
-    return Object.values(index).filter(e => e.defined && !here.has(e.id) && !['block', 'prop', 'field', 'module', 'product', 'map', 'type'].includes(e.kind) && words.every(w => e.title.toLowerCase().includes(w) || e.id.toLowerCase().includes(w))).slice(0, 8);
+    const all = Object.values(index).filter(e => e.defined && !here.has(e.id) && !['block', 'prop', 'field', 'product', 'map', 'type'].includes(e.kind));
+    // text shaped like an id — `module:`, `req:shop.` — is matched on the id's start: a pasted id finds its node first
+    if (/^[a-z][a-z0-9-]*:/.test(t)) { const exact = all.find(e => e.id.toLowerCase() === t); return [...(exact ? [exact] : []), ...all.filter(e => e !== exact && e.id.toLowerCase().startsWith(t))].slice(0, 8); }
+    return all.filter(e => words.every(w => e.title.toLowerCase().includes(w) || e.id.toLowerCase().includes(w))).slice(0, 8);
   }, [index, pic, pop, title]);
   useEffect(() => { setPick(-1); }, [title]);
   async function placeExisting(id: string) {
@@ -445,13 +448,14 @@ export function MapCanvas({ product, project, slug, nodes, edges, off, spots, ty
                   if (e.key === 'Escape') { setPop(null); return; }
                   if ((e.key === 'ArrowDown' || e.key === 'Tab') && existing.length) { e.preventDefault(); setPick(i => Math.min(existing.length - 1, i + 1)); return; }
                   if (e.key === 'ArrowUp' && pick >= 0) { e.preventDefault(); setPick(i => i - 1); return; }
-                  if (e.key === 'Enter') { if (pick >= 0 && existing[pick]) void placeExisting(existing[pick].id); else void createNode(); }
+                  // Enter: the node picked — or the one whose id was typed or pasted whole — else a new node
+                  if (e.key === 'Enter') { const exact = existing.find(x => x.id.toLowerCase() === title.trim().toLowerCase()); if (pick >= 0 && existing[pick]) void placeExisting(existing[pick].id); else if (exact) void placeExisting(exact.id); else void createNode(); }
                 }} />
               {existing.length > 0 && <ul className="mpop-existing" role="listbox">
                 {existing.map((e, i) => <li key={e.id} role="option" aria-selected={i === pick} className={i === pick ? 'at' : ''} onMouseEnter={() => setPick(i)} onMouseDown={ev => { ev.preventDefault(); void placeExisting(e.id); }}>
                   <i style={{ background: `var(--k-${e.kind}, var(--k-other))` }} /><span className="mpop-ex-title">{e.title || e.id}</span><small>{e.id}</small>
                 </li>)}
-                <li className="mpop-ex-hint">↓ / Tab to pick one of these — it is put on the map{pop.parent ? ' and linked' : ''}; Enter on the title makes a new node</li>
+                <li className="mpop-ex-hint">↓ / Tab to pick one — it is put on the map{pop.parent ? ' and linked' : ''}; an id typed whole is added on Enter; other text makes a new node</li>
               </ul>}
               <div className="mpop-row">
                 <button type="button" onClick={() => void createNode()} disabled={busy || !title.trim()}>Add</button>
