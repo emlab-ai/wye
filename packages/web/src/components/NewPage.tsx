@@ -88,7 +88,7 @@ export function NewPage({ product, project: initialProject, projects, docs, defa
           <button type="button" className="np-x" onClick={onClose} aria-label="Close">×</button>
         </div>
         {/* what to start with — the sheet's tabs: Page (write), Template, Typed page and Import switch what fills the
-            sheet below; Ask an agent, Mind map, Timeline make the page at once */}
+            sheet below; Ask an agent, Mind map, Analytics make the page at once */}
         {!page && <div className="np-tabs" role="tablist">
           {tab('Page', '✎', view === 'page', () => { setMode('page'); setPick(null); })}
           {tab('Template', '▤', view === 'template', () => { setMode('page'); setPick('template'); })}
@@ -97,7 +97,7 @@ export function NewPage({ product, project: initialProject, projects, docs, defa
           <span className="np-tabs-sep" />
           {chip('Ask an agent', '⇢', () => create({ ask: true }))}
           {chip('Mind map', '◈', () => create({ template: 'map' }))}
-          {chip('Timeline', '▤', () => create({ template: 'timeline' }))}
+          {chip('Analytics', '▦', () => create({ template: 'analytics' }))}
         </div>}
         {msg && <p className="notice">{msg}</p>}
         {view === 'page' && <>

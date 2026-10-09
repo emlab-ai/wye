@@ -1,4 +1,4 @@
-export const TEMPLATES = ['blank', 'digest', 'prd', 'dev-design', 'test-design', 'plan', 'research', 'map', 'timeline'] as const;
+export const TEMPLATES = ['blank', 'digest', 'prd', 'dev-design', 'test-design', 'plan', 'research', 'map', 'analytics'] as const;
 export type TemplateName = typeof TEMPLATES[number];
 
 export function slugify(title: string): string {
@@ -24,5 +24,5 @@ export const TEMPLATE_INFO: Record<Exclude<TemplateName, 'blank'>, { title: stri
   plan: { title: 'Plan', icon: '🗺', description: 'How the work gets done: the goal, the phases, and the tasks — the ones a runner can take are marked ready.', sections: ['Goal', 'Phases', 'Tasks'] },
   research: { title: 'Research', icon: '🔎', description: 'Before deciding: what was asked, what exists in the product today, what the outside world says, what a change would touch, and the questions it leaves.', sections: ['What was asked', 'What exists today', 'What the outside says', 'What this would touch', 'Open questions'] },
   map: { title: 'Mind map', icon: '◈', description: 'A canvas whose nodes are the page’s own blocks: drag them, link them, group them; every node stays a block in the document.', sections: ['Layout'] },
-  timeline: { title: 'Timeline', icon: '▤', description: 'The page’s dated blocks — goals, tasks, milestones — laid out on a time axis, dragged to move their dates.', sections: [] },
+  analytics: { title: 'Analytics', icon: '▦', description: 'The product’s blocks grouped any way: rows and columns are each a stack of dimensions — a property, a team, a status, a month — and every cell is the cards at that intersection. A kanban, a timeline or a team-by-month grid are each one query line.', sections: [] },
 };

@@ -25,6 +25,7 @@ export const FEATURES: Feature[] = [
   { key: 'prs', icon: '🗺', title: 'Prompt Requests', line: 'Your suggestion to change the knowledge, refined with the librarian, approved, then built.', href: b => `${b}/prs` },
   { key: 'knowledge', icon: '◈', title: 'Knowledge', line: 'Every block with an id, by kind, with its links and where it is written.', href: b => `${b}/knowledge` },
   { key: 'map', icon: '◇', title: 'Mind map', line: 'A page whose nodes are its own blocks: drag, link and group them, and the document follows.', act: () => open.newPage(), further: true },
+  { key: 'analytics', icon: '▦', title: 'Analytics', line: 'A page that groups the product’s blocks any way: rows and columns as stacks of dimensions, time as one of them — a kanban, a timeline, a team-by-month grid from one query line.', act: () => open.newPage(), further: true },
   { key: 'tables', icon: '▦', title: 'Tables and SQL', line: 'A table on a page is a query over the graph; write the SQL or ask for it in words.', href: b => `${b}/knowledge`, further: true },
   { key: 'constitution', icon: '§', title: 'Constitution', line: 'The product’s standing constraints, given to every agent before it starts.', href: b => `${b}/constitution`, further: true },
   { key: 'types', icon: '⬡', title: 'Types', line: 'The product’s own vocabulary: kinds of pages and blocks, with their fields.', href: b => `${b}/types`, further: true },

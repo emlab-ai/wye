@@ -17,8 +17,8 @@ import { DocNotFound } from '@/components/DocNotFound';
 import { MapCanvas } from '@/components/MapCanvas';
 import { mapGraph, parseLayout } from '@/lib/map';
 import { runSpots } from '@/lib/runs';
-import { buildTimeline, facetsOf, parseTimelineQuery } from '@/lib/timeline';
-import { TimelineView } from '@/components/TimelineView';
+import { buildAnalytics, facetsOf, parseAnalyticsQuery } from '@/lib/analytics';
+import { AnalyticsView } from '@/components/AnalyticsView';
 import { GoneNotice } from '@/components/GoneNotice';
 
 export default async function DocPage({ params }: { params: Promise<{ product: string; project: string; doc: string }> }) {
@@ -55,17 +55,20 @@ export default async function DocPage({ params }: { params: Promise<{ product: s
   // a run whose page was written before it had a map: its stages are read straight from the page, in order
   if (isMap && !spots.length && d.module.kind === 'run') spots = runSpots(scope.graph, d.file);
   const drawn = isMap ? mapGraph(scope.graph, scope.idx, d.file, d.module.id, spots) : null;
-  // a timeline page is its chart (decision:wf2.timeline-is-a-query): the query in its front matter says what it draws
-  if (d.module.kind === 'timeline') {
+  // an analytics page is its grid (decision:waterfall.analytics-view-replaces-timeline, decision:wf2.timeline-is-a-query):
+  // the query in its front matter says what it draws and how it is grouped. A page still typed `timeline` is the same
+  // view with the track it always had.
+  if (d.module.kind === 'analytics' || d.module.kind === 'timeline') {
     const query = split.frontmatter.query ?? '';
-    const timeline = buildTimeline(scope.graph, scope.idx, parseTimelineQuery(query));
+    const legacy = d.module.kind === 'timeline';
+    const q = parseAnalyticsQuery(query, { legacyTrack: legacy });
+    const analytics = buildAnalytics(scope.graph, scope.idx, q);
     const kinds = [...new Set(scope.graph.nodes.filter(n => n.defined && n.kind !== 'type' && n.form !== 'block').map(n => n.kind))].sort();
-    // what this page can filter by: the properties the nodes it draws actually carry, with their values
-    const q = parseTimelineQuery(query);
+    // what this page can filter and group by: the properties the nodes it draws actually carry, with their values
     const facets = facetsOf(scope.graph.nodes.filter(n => n.defined && n.form !== 'block' && (!q.kinds.length || q.kinds.includes(n.kind))));
     return (
       <div className="page page-map">
-        <TimelineView product={product} project={project} slug={d.slug} query={query} timeline={timeline} kinds={kinds} facets={facets} />
+        <AnalyticsView product={product} project={project} slug={d.slug} query={query} legacy={legacy} analytics={analytics} kinds={kinds} facets={facets} />
       </div>
     );
   }

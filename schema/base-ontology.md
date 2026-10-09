@@ -502,12 +502,23 @@ type means instances may carry properties the type does not declare without a wa
     What a workflow stage produces (a research write-up, a PRD, a design, a plan) is one of these, so a run's
     documents do not enter the product's list of modules.
   open: true
+- id: type:analytics
+  extends: type:node
+  purpose: >
+    a page that groups the product's blocks any way (decision:waterfall.analytics-view-replaces-timeline): its
+    `query:` line says which nodes it watches and what the rows (`y=`) and the columns (`x=`) group by — each a
+    list of dimensions, outer first: a property, `kind`, `status`, a path of links like `worker.part-of`, or a date
+    field with a bucket (`due:month`, `when:week`; `when:span` is a continuous track, the old timeline). Every cell
+    is the cards at that intersection, never a count. Nothing is stored per item (decision:wf2.timeline-is-a-query):
+    a node is on the page because the query admits it, and leaves when it stops.
+  open: true
+  props:
+    query: string?
 - id: type:timeline
   extends: type:node
   purpose: >
-    a page that draws when things happen (decision:wf2.timeline-is-a-query): its `query:` line says which nodes it
-    watches, what the rows group by — a property, or a path of links like `worker.part-of` — and the window. Nothing
-    is stored per item: a node is on the chart because it says when it happens, and leaves when it stops saying so.
+    the old name of type:analytics — a page that draws when things happen on a track. A page still typed this way
+    is drawn by the analytics view with `rows=` read as `y=` and the track as its column; new pages are analytics.
   open: true
   props:
     query: string?
