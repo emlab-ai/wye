@@ -16,7 +16,7 @@ export type Dim = { key: string; bucket?: Bucket };
 export const isTimeDim = (d: Dim): boolean => d.key in TIME_FIELDS;
 export const isSpan = (d: Dim | undefined): boolean => !!d && d.bucket === 'span';
 
-export type AnalyticsQuery = { kinds: string[]; x: Dim[]; y: Dim[]; from: string; to: string; q: string; status: string[]; props: Record<string, string> };
+export type AnalyticsQuery = { kinds: string[]; x: Dim[]; y: Dim[]; from: string; to: string; q: string; status: string[]; props: Record<string, string>; /** the page's own SQL (decision:wf2.table-is-sql): its `id` column picks the cards, and the strip's switches step aside */ sql?: string };
 export type Span = { from: string; to: string; point: boolean };
 // a card on the grid: the node, and when it happens if it says so (what a span column draws as a bar)
 export type Item = { id: string; kind: string; title: string; status: string; span: Span | null; lane: number; /** a line under the title: who holds it, when it is due */ meta: string };
@@ -73,19 +73,48 @@ export const dimString = (d: Dim): string => isTimeDim(d) ? `${d.key}:${d.bucket
 export function parseAnalyticsQuery(query: string, opts: { legacyTrack?: boolean } = {}): AnalyticsQuery {
   const m: Record<string, string> = {};
   // a key may be a path — `worker.part-of=Till` filters by the team of the worker
-  for (const [, k, quoted, bare] of (query || '').matchAll(/([A-Za-z][\w.-]*)=(?:"([^"]*)"|(\S+))/g)) m[k] = quoted ?? bare ?? '';
+  for (const [, k, quoted, bare] of (query || '').matchAll(/([A-Za-z][\w.-]*)=(?:"((?:[^"\\]|\\.)*)"|(\S+))/g)) m[k] = quoted !== undefined ? quoted.replace(/\\([\\"])/g, '$1') : bare ?? '';
   const list = (s: string) => (s || '').split(',').map(x => x.trim()).filter(Boolean);
-  const { kind, rows, x, y, from, to, q, status, ...props } = m;
+  const { kind, rows, x, y, from, to, q, status, sql, ...props } = m;
   const dims = (s: string) => list(s).map(parseDim);
   let xs = dims(x ?? '');
   // a span is a track, and a track is the last column level; one at most
   const spans = xs.filter(isSpan); if (spans.length) xs = [...xs.filter(d => !isSpan(d)), spans[0]];
   if (!xs.length && opts.legacyTrack && !('x' in m)) xs = [{ key: 'when', bucket: 'span' }];
-  return { kinds: list(kind), x: xs, y: dims(y ?? rows ?? '').filter(d => !isSpan(d)), from: day(from ?? ''), to: day(to ?? ''), q: (q ?? '').trim(), status: list(status), props };
+  return { kinds: list(kind), x: xs, y: dims(y ?? rows ?? '').filter(d => !isSpan(d)), from: day(from ?? ''), to: day(to ?? ''), q: (q ?? '').trim(), status: list(status), props, ...(sql?.trim() ? { sql: sql.trim() } : {}) };
 }
 export function analyticsQueryString(t: AnalyticsQuery): string {
-  const parts: [string, string][] = [['kind', t.kinds.join(',')], ['y', t.y.map(dimString).join(',')], ['x', t.x.map(dimString).join(',')], ['status', t.status.join(',')], ['from', t.from], ['to', t.to], ['q', t.q], ...Object.entries(t.props)];
-  return parts.filter(([, v]) => v).map(([k, v]) => `${k}=${/\s/.test(v) ? `"${v}"` : v}`).join(' ');
+  const parts: [string, string][] = [['kind', t.kinds.join(',')], ['y', t.y.map(dimString).join(',')], ['x', t.x.map(dimString).join(',')], ['status', t.status.join(',')], ['from', t.from], ['to', t.to], ['q', t.q], ...Object.entries(t.props), ['sql', t.sql ?? '']];
+  return parts.filter(([, v]) => v).map(([k, v]) => `${k}=${/[\s"\\]/.test(v) ? `"${v.replace(/[\\"]/g, '\\$&')}"` : v}`).join(' ');
+}
+
+// ---- the SQL the strip writes ----
+// The page's data is a query over the graph, as a table's is (decision:wf2.table-is-sql): the strip's switches — the
+// kinds, the statuses, the words, each filter — write this SQL, and its `id` column picks the cards. Edited by hand it
+// becomes the page's own (`sql=` on the query line) and the switches step aside. Nothing is hidden for being done:
+// a board's done column is the point of it.
+const lit = (s: string) => `'${s.replace(/'/g, "''")}'`;
+export function analyticsSql(q: AnalyticsQuery): string {
+  const where: string[] = [];
+  if (q.kinds.length) where.push(q.kinds.length === 1 ? `kind = ${lit(q.kinds[0])}` : `kind IN (${q.kinds.map(lit).join(', ')})`);
+  if (q.status.length) where.push(q.status.length === 1 ? `status = ${lit(q.status[0])}` : `status IN (${q.status.map(lit).join(', ')})`);
+  if (q.q) { const like = lit(`%${q.q}%`); where.push(`(title ILIKE ${like} OR id ILIKE ${like})`); }
+  for (const [k, v] of Object.entries(q.props)) {
+    const wants = v.split(',').map(x => x.trim()).filter(Boolean); if (!wants.length) continue;
+    const path = k.split('.');
+    if (path.length === 1) {
+      // a property: the words it holds, or the id it points at; `none` is a node that says nothing for it
+      const cell = `coalesce(props->>${lit(k)}, '')`;
+      where.push(`(${wants.map(w => (w === 'none' ? `${cell} = ''` : `${cell} ILIKE ${lit(`%${w}%`)}`)).join(' OR ')})`);
+    } else {
+      // a path of links: edges joined step by step, the last one's target matched by id or title
+      const joins = path.map((verb, i) => `JOIN edges e${i} ON ${i ? `e${i}.src = e${i - 1}.dst` : 'e0.src = n.id'} AND e${i}.verb = ${lit(verb)}`).join(' ');
+      const last = `e${path.length - 1}.dst`;
+      const found = `SELECT n.id FROM nodes n ${joins} JOIN nodes t ON t.id = ${last} WHERE ${wants.filter(w => w !== 'none').map(w => `(t.id ILIKE ${lit(`%${w}%`)} OR t.title ILIKE ${lit(`%${w}%`)})`).join(' OR ') || 'true'}`;
+      where.push(wants.includes('none') ? `id NOT IN (SELECT n.id FROM nodes n ${joins})` : `id IN (${found})`);
+    }
+  }
+  return `SELECT id FROM nodes${where.length ? `\nWHERE ${where.join('\n  AND ')}` : ''}`;
 }
 
 // ---- time buckets ----
@@ -181,12 +210,15 @@ function leavesOf(answers: Step[][], dims: Dim[]): Leaf[] {
 // The grid a page draws: every node the query admits, placed by what each level of `y` and `x` answers for it. A
 // node that a level cannot answer for goes under "—" rather than disappearing. When the last column level is a span,
 // the nodes with no dates are counted, not drawn.
-export function buildAnalytics(g: Pick<GraphData, 'nodes'>, idx: Pick<GraphIndex, 'byId'> & { out: Map<string, GraphEdge[]> }, query: AnalyticsQuery): Analytics {
+// `ids`: what the page's SQL returned — then the SQL has done the choosing and the strip's switches are not applied
+// again (they wrote that SQL, or stepped aside for the page's own)
+export function buildAnalytics(g: Pick<GraphData, 'nodes'>, idx: Pick<GraphIndex, 'byId'> & { out: Map<string, GraphEdge[]> }, query: AnalyticsQuery, ids?: Set<string>): Analytics {
   const kinds = new Set(query.kinds);
   const statuses = new Set(query.status);
   const q = query.q.toLowerCase();
   const wanted = g.nodes.filter(n => {
     if (!n.defined || n.kind === 'type' || n.form === 'block') return false;
+    if (ids) return ids.has(n.id);
     if (kinds.size && !kinds.has(n.kind)) return false;
     if (statuses.size && !statuses.has(n.status || '')) return false;
     if (q && !`${n.id} ${n.title}`.toLowerCase().includes(q)) return false;

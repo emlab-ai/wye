@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { analyticsQueryString, bucketOf, buildAnalytics, cellKey, days, facetsOf, nextBucket, parseAnalyticsQuery, spanOf, ticksFor, type AnalyticsQuery } from './analytics';
+import { analyticsQueryString, analyticsSql, bucketOf, buildAnalytics, cellKey, days, facetsOf, nextBucket, parseAnalyticsQuery, spanOf, ticksFor, type AnalyticsQuery } from './analytics';
 import { indexGraph, type GraphData, type GraphNode } from './graph';
 
 const node = (id: string, body = '', o: Partial<GraphNode> = {}): GraphNode =>
@@ -64,6 +64,28 @@ describe('the query line', () => {
     expect(parseAnalyticsQuery('x=when:span,status').x).toEqual([{ key: 'status' }, { key: 'when', bucket: 'span' }]);
     expect(parseAnalyticsQuery('y=when:span,worker').y).toEqual([{ key: 'worker' }]);
     expect(parseAnalyticsQuery('x=due:never').x).toEqual([{ key: 'due', bucket: 'month' }]);   // an unknown bucket is a month
+  });
+});
+
+describe('the SQL the strip writes', () => {
+  const sql = (q: string) => analyticsSql(parseAnalyticsQuery(q)).replace(/\s+/g, ' ');
+  it('picks the kinds, the statuses and the words', () => {
+    expect(sql('')).toBe('SELECT id FROM nodes');
+    expect(sql('kind=task')).toBe("SELECT id FROM nodes WHERE kind = 'task'");
+    expect(sql('kind=task,goal status=open,done q=till')).toBe("SELECT id FROM nodes WHERE kind IN ('task', 'goal') AND status IN ('open', 'done') AND (title ILIKE '%till%' OR id ILIKE '%till%')");
+  });
+  it('filters by a property, by several values, by none, and by a path of links', () => {
+    expect(sql('worker=ana,bo')).toBe("SELECT id FROM nodes WHERE (coalesce(props->>'worker', '') ILIKE '%ana%' OR coalesce(props->>'worker', '') ILIKE '%bo%')");
+    expect(sql('worker=none')).toBe("SELECT id FROM nodes WHERE (coalesce(props->>'worker', '') = '')");
+    expect(sql('worker.part-of=Till')).toBe("SELECT id FROM nodes WHERE id IN (SELECT n.id FROM nodes n JOIN edges e0 ON e0.src = n.id AND e0.verb = 'worker' JOIN edges e1 ON e1.src = e0.dst AND e1.verb = 'part-of' JOIN nodes t ON t.id = e1.dst WHERE (t.id ILIKE '%Till%' OR t.title ILIKE '%Till%'))");
+    expect(sql("q=o'hara")).toContain("'%o''hara%'");
+  });
+  it('keeps a page\'s own SQL on the query line, quotes and all', () => {
+    const q = parseAnalyticsQuery('kind=task y=worker sql="SELECT id FROM nodes WHERE title ILIKE \'%till%\' AND kind = \'task\'"');
+    expect(q.sql).toBe("SELECT id FROM nodes WHERE title ILIKE '%till%' AND kind = 'task'");
+    expect(parseAnalyticsQuery(analyticsQueryString(q))).toEqual(q);
+    const quoted = parseAnalyticsQuery(analyticsQueryString({ ...q, sql: 'SELECT id FROM nodes WHERE title = "x"' }));
+    expect(quoted.sql).toBe('SELECT id FROM nodes WHERE title = "x"');
   });
 });
 
@@ -160,6 +182,11 @@ describe('the grid', () => {
     const ids = (q: string) => Object.values(run(q).cells).flatMap(c => c.items.map(i => i.id)).sort();
     expect(ids('kind=task status=open y=worker')).toEqual(['task:a', 'task:c', 'task:d', 'task:e']);
     expect(ids('kind=task q=receipt')).toEqual(['task:b']);
+  });
+  it('takes the ids a query returned instead of choosing itself', () => {
+    const a = buildAnalytics(g, idx, parseAnalyticsQuery('kind=goal y=worker'), new Set(['task:a', 'task:c', 'type:x']));
+    expect(Object.values(a.cells).flatMap(c => c.items.map(i => i.id)).sort()).toEqual(['task:a', 'task:c']);   // the kind switch stepped aside
+    expect(buildAnalytics(g, idx, parseAnalyticsQuery(''), new Set()).total).toBe(0);
   });
   it('writes a line under each card: who holds it, when it is due', () => {
     const a = run('kind=task y=worker');

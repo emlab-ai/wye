@@ -17,7 +17,8 @@ import { DocNotFound } from '@/components/DocNotFound';
 import { MapCanvas } from '@/components/MapCanvas';
 import { mapGraph, parseLayout } from '@/lib/map';
 import { runSpots } from '@/lib/runs';
-import { buildAnalytics, facetsOf, parseAnalyticsQuery } from '@/lib/analytics';
+import { analyticsSql, buildAnalytics, facetsOf, parseAnalyticsQuery } from '@/lib/analytics';
+import { runQuery } from '@/lib/query';
 import { AnalyticsView } from '@/components/AnalyticsView';
 import { GoneNotice } from '@/components/GoneNotice';
 
@@ -62,13 +63,20 @@ export default async function DocPage({ params }: { params: Promise<{ product: s
     const query = split.frontmatter.query ?? '';
     const legacy = d.module.kind === 'timeline';
     const q = parseAnalyticsQuery(query, { legacyTrack: legacy });
-    const analytics = buildAnalytics(scope.graph, scope.idx, q);
+    // the data is a query over the graph, as a table's is (decision:wf2.table-is-sql): the strip's SQL, or the page's own,
+    // run here; its `id` column picks the cards. A query that fails draws nothing and says why; the strip's SQL that
+    // cannot run (no engine) falls back to the same choosing in memory
+    const sql = q.sql || analyticsSql(q);
+    const ran = await runQuery(product, sql);
+    const ids = ran.ok ? new Set(ran.result.rows.map(r => String(r.id ?? ''))) : q.sql ? new Set<string>() : undefined;
+    const analytics = buildAnalytics(scope.graph, scope.idx, q, ids);
+    const sqlError = ran.ok ? (ran.result.columns.includes('id') ? '' : 'the query has no id column, so no card is picked') : ran.message;
     const kinds = [...new Set(scope.graph.nodes.filter(n => n.defined && n.kind !== 'type' && n.form !== 'block').map(n => n.kind))].sort();
     // what this page can filter and group by: the properties the nodes it draws actually carry, with their values
     const facets = facetsOf(scope.graph.nodes.filter(n => n.defined && n.form !== 'block' && (!q.kinds.length || q.kinds.includes(n.kind))));
     return (
       <div className="page page-map">
-        <AnalyticsView product={product} project={project} slug={d.slug} query={query} legacy={legacy} analytics={analytics} kinds={kinds} facets={facets} />
+        <AnalyticsView product={product} project={project} slug={d.slug} query={query} legacy={legacy} analytics={analytics} kinds={kinds} facets={facets} sql={sql} sqlError={sqlError} />
       </div>
     );
   }

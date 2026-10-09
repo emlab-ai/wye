@@ -2,26 +2,33 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePeek } from './PeekProvider';
-import { BUCKETS, TIME_FIELDS, analyticsQueryString, cellKey, daysBetween, dimString, isDay, isSpan, isTimeDim, parseAnalyticsQuery, ticksFor, type Analytics, type AnalyticsQuery, type Bucket, type Dim, type Item, type Leaf } from '@/lib/analytics';
+import { SqlBox } from './LiveTable';
+import { oneLine } from '@/lib/table-sql';
+import { BUCKETS, TIME_FIELDS, analyticsQueryString, analyticsSql, cellKey, daysBetween, dimString, isDay, isSpan, isTimeDim, parseAnalyticsQuery, ticksFor, type Analytics, type AnalyticsQuery, type Bucket, type Dim, type Item, type Leaf } from '@/lib/analytics';
 
 // The analytics page (component:analytics-view, decision:waterfall.analytics-view-replaces-timeline): a strip that
-// edits the page's query, the rows and the columns as stacks of dimensions, and the grid under them. Every cell is
-// the cards at that intersection — one line each, a status stripe at the left — and on a span column the cards are
-// bars on a track, the old timeline. Clicking a card selects the node in the Context panel, the way a click on a block
-// does (rule:block-select); its fields are edited on its card there.
-interface Props { product: string; project: string; slug: string; query: string; legacy: boolean; analytics: Analytics; kinds: string[]; facets: { name: string; values: string[] }[] }
+// edits the page's query, two wells — the rows and the columns, each a list of dimensions outer first, dragged to
+// reorder or across — and the grid under them. The data is a query over the graph, as a table's is
+// (decision:wf2.table-is-sql): the strip's switches write the SQL shown under it, and edited by hand it is the page's
+// own. Every cell is the cards at that intersection — one line each, a status stripe at the left — and on a span
+// column the cards are bars on a track, the old timeline. Clicking a card selects the node in the Context panel, the
+// way a click on a block does (rule:block-select); its fields are edited on its card there.
+interface Props { product: string; project: string; slug: string; query: string; legacy: boolean; analytics: Analytics; kinds: string[]; facets: { name: string; values: string[] }[]; /** the SQL that chose the cards, and why it chose none */ sql: string; sqlError: string }
 
 const QUICK_DIMS = ['worker', 'owner', 'status', 'kind', 'part-of', 'worker.part-of'];
 const MIN_BAR = 0.8;   // a one-day bar is still visible, in percent of the window
 const LANE = 24;       // the height of one lane of bars on a track
 const SEP = '\u0001';
+type Axis = 'x' | 'y';
+const name = (d: Dim) => (d.key === 'worker.part-of' ? 'team' : d.key);
 
-export function AnalyticsView({ product, project, slug, query, legacy, analytics, kinds, facets }: Props) {
+export function AnalyticsView({ product, project, slug, query, legacy, analytics, kinds, facets, sql, sqlError }: Props) {
   const router = useRouter();
   const { select, setShowContext, index } = usePeek();
   const [saving, setSaving] = useState(false);
   const [adding, setAdding] = useState<{ name: string; value: string } | null>(null);   // the filter being written
-  const [picking, setPicking] = useState<'x' | 'y' | null>(null);                         // the axis whose level menu is open
+  const [picking, setPicking] = useState<Axis | null>(null);                             // the well whose Add menu is open
+  const [showSql, setShowSql] = useState(false);
   const q = useMemo(() => parseAnalyticsQuery(query, { legacyTrack: legacy }), [query, legacy]);
 
   // the query lives in the page's front matter, so changing it is an ordinary document write
@@ -32,7 +39,6 @@ export function AnalyticsView({ product, project, slug, query, legacy, analytics
     router.refresh();
   }, [product, project, slug, router]);
   const set = (patch: Partial<AnalyticsQuery>) => void write({ ...q, ...patch });
-  const toggleKind = (k: string) => set({ kinds: q.kinds.includes(k) ? q.kinds.filter(x => x !== k) : [...q.kinds, k] });
   // a filter is one property (or path) and a value: `quarter=q3`, `worker=ana,bo`, `worker.part-of=Till`
   const setFilter = (name: string, value: string) => {
     const props = { ...q.props };
@@ -40,10 +46,28 @@ export function AnalyticsView({ product, project, slug, query, legacy, analytics
     set({ props });
   };
   const values = (name: string) => facets.find(f => f.name === name)?.values ?? [];
+  const custom = !!q.sql;
+  const generated = useMemo(() => analyticsSql(q), [q]);
   const used = new Set([...q.x, ...q.y].map(d => d.key));
-  // a level joins an axis at the end — before the track, which stays last
-  const addLevel = (axis: 'x' | 'y', d: Dim) => { const dims = q[axis]; set({ [axis]: [...dims.filter(x => !isSpan(x)), d, ...dims.filter(isSpan)] }); setPicking(null); };
-  const setTrack = () => set({ x: [...q.x.filter(x => !isTimeDim(x)), { key: 'when', bucket: 'span' }] });
+  // a dimension joins a well at the end — before the track, which stays last
+  const addDim = (axis: Axis, d: Dim) => { const dims = q[axis]; set({ [axis]: [...dims.filter(x => !isSpan(x)), d, ...dims.filter(isSpan)] }); setPicking(null); };
+  const setTrack = () => { set({ x: [...q.x.filter(x => !isTimeDim(x)), { key: 'when', bucket: 'span' }] }); setPicking(null); };
+  // a drag moves a dimension within its well or into the other; it lands before the field it is dropped on, or last
+  const drag = useRef<{ axis: Axis; i: number } | null>(null);
+  const [over, setOver] = useState<{ axis: Axis; i: number } | null>(null);   // i = -1: the well itself
+  const drop = (axis: Axis, i: number) => {
+    const from = drag.current; drag.current = null; setOver(null);
+    if (!from) return;
+    const d = q[from.axis][from.i]; if (!d) return;
+    if (isSpan(d) && axis === 'y') return;   // a track is a column
+    const src = q[from.axis].filter((_, j) => j !== from.i);
+    const dst = from.axis === axis ? src : [...q[axis]];
+    const track = dst.filter(isSpan), rest = dst.filter(x => !isSpan(x));
+    let at = i < 0 ? rest.length : Math.min(i - (from.axis === axis && from.i < i ? 1 : 0), rest.length);
+    if (at < 0) at = 0;
+    const next = isSpan(d) ? [...rest, d] : [...rest.slice(0, at), d, ...rest.slice(at), ...track];
+    set(from.axis === axis ? { [axis]: next } : { [from.axis]: src, [axis]: next });
+  };
 
   const open = (id: string) => { setShowContext(true); select(id); };
   const { from, to } = analytics;
@@ -95,15 +119,19 @@ export function AnalyticsView({ product, project, slug, query, legacy, analytics
     ths.forEach((th, i) => { gridRef.current!.style.setProperty(`--an-l${i}`, `${left}px`); left += th.offsetWidth; });
   });
 
-  const levelChip = (axis: 'x' | 'y', d: Dim, i: number) => {
-    const dims = q[axis]; const other = axis === 'x' ? 'y' : 'x';
-    const swap = (j: number) => { const n = [...dims]; [n[i], n[j]] = [n[j], n[i]]; set({ [axis]: n }); };
+  const field = (axis: Axis, d: Dim, i: number) => {
+    const dims = q[axis];
     return (
-      <span key={dimString(d)} className={`an-level ${isTimeDim(d) ? 'time' : ''}`}>
-        <span className="an-level-n">{i + 1}</span>
-        <span className="an-level-name">{d.key === 'worker.part-of' ? 'team' : d.key}</span>
+      <div key={dimString(d)} className={`an-field ${isTimeDim(d) ? 'time' : ''} ${drag.current?.axis === axis && drag.current.i === i ? 'dragging' : ''} ${over?.axis === axis && over.i === i ? 'before' : ''}`}
+        draggable onDragStart={e => { drag.current = { axis, i }; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dimString(d)); }}
+        onDragEnd={() => { drag.current = null; setOver(null); }}
+        onDragOver={e => { if (!drag.current) return; e.preventDefault(); e.stopPropagation(); if (over?.axis !== axis || over.i !== i) setOver({ axis, i }); }}
+        onDrop={e => { e.preventDefault(); e.stopPropagation(); drop(axis, i); }}>
+        <span className="an-field-grip" aria-hidden>⋮⋮</span>
+        <span className="an-field-n">{i + 1}</span>
+        <span className="an-field-name" title={TIME_FIELDS[d.key] ?? d.key}>{name(d)}</span>
         {isTimeDim(d) && (
-          <select className="an-level-bucket" value={d.bucket ?? 'month'} title={`${TIME_FIELDS[d.key]} — bucketed by`} onChange={e => {
+          <select className="an-field-bucket" value={d.bucket ?? 'month'} title={`${TIME_FIELDS[d.key]} — bucketed by`} onChange={e => {
             const bucket = e.target.value as Bucket;
             if (bucket === 'span') { set({ [axis]: [...dims.filter((_, j) => j !== i), { key: d.key, bucket }] }); return; }
             set({ [axis]: dims.map((x, j) => (j === i ? { key: x.key, bucket } : x)) });
@@ -111,54 +139,51 @@ export function AnalyticsView({ product, project, slug, query, legacy, analytics
             {BUCKETS.filter(b => b !== 'span' || axis === 'x').map(b => <option key={b} value={b}>{b === 'span' ? 'span · a track' : b}</option>)}
           </select>
         )}
-        <button className="an-ib" title="Move out a level" disabled={i === 0} onClick={() => swap(i - 1)}>◂</button>
-        <button className="an-ib" title="Move in a level" disabled={i === dims.length - 1 || isSpan(dims[i + 1])} onClick={() => swap(i + 1)}>▸</button>
-        {!isSpan(d) && <button className="an-ib" title={`Move to ${other === 'x' ? 'columns' : 'rows'}`} onClick={() => set({ [axis]: dims.filter((_, j) => j !== i), [other]: [...q[other], d] })}>{other === 'x' ? '→' : '←'}</button>}
-        <button className="an-ib x" title="Remove this level" onClick={() => set({ [axis]: dims.filter((_, j) => j !== i) })}>×</button>
-      </span>
+        <button className="an-ib x" title="Remove this dimension" onClick={() => set({ [axis]: dims.filter((_, j) => j !== i) })}>×</button>
+      </div>
     );
   };
-  const axisBox = (axis: 'x' | 'y') => (
-    <div className={`an-axis an-axis-${axis}`}>
+  const well = (axis: Axis) => (
+    <div className={`an-well ${over?.axis === axis && over.i < 0 ? 'over' : ''}`}
+      onDragOver={e => { if (!drag.current) return; e.preventDefault(); if (over?.axis !== axis || over.i !== -1) setOver({ axis, i: -1 }); }}
+      onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(null); }}
+      onDrop={e => { e.preventDefault(); drop(axis, -1); }}>
       <h2>{axis === 'y' ? 'Rows' : 'Columns'} <span className="muted">· {axis === 'y' ? 'Y' : 'X'}, outer first</span></h2>
-      <div className="an-levels">
-        {q[axis].map((d, i) => levelChip(axis, d, i))}
-        <span className="an-picker">
-          <button className="an-chip ghost" onClick={() => setPicking(picking === axis ? null : axis)}>+ level</button>
-          {picking === axis && (
-            <div className="an-menu" onMouseLeave={() => setPicking(null)}>
-              <div className="an-menu-h">group by</div>
-              {[...new Set([...QUICK_DIMS, ...facets.map(f => f.name)])].filter(k => !used.has(k)).map(k => (
-                <button key={k} onClick={() => addLevel(axis, { key: k })}><span>{k === 'worker.part-of' ? 'team' : k}</span><span className="an-menu-how">{k === 'worker.part-of' ? 'worker.part-of' : k === 'kind' || k === 'status' ? k : 'property'}</span></button>
-              ))}
-              <input className="an-path" placeholder="a path: worker.part-of" title="A property, or a path of links — worker.part-of is the team of the worker"
-                onKeyDown={e => { const v = (e.target as HTMLInputElement).value.trim(); if (e.key === 'Enter' && v) addLevel(axis, { key: v }); if (e.key === 'Escape') setPicking(null); }} />
-              <div className="an-menu-h">time · a date field, bucketed</div>
-              {Object.entries(TIME_FIELDS).filter(([k]) => !used.has(k)).map(([k, how]) => (
-                <button key={k} onClick={() => addLevel(axis, { key: k, bucket: 'month' })}><span>{k}</span><span className="an-menu-how">{how}</span></button>
-              ))}
-              {axis === 'x' && !q.x.some(isSpan) && <button onClick={() => { setTrack(); setPicking(null); }}><span>when · a track</span><span className="an-menu-how">the Gantt, last level</span></button>}
-            </div>
-          )}
-        </span>
-        {!q[axis].length && <span className="muted small">{axis === 'y' ? 'one row of everything' : 'one column of all'}</span>}
+      <div className="an-fields">
+        {q[axis].map((d, i) => field(axis, d, i))}
+        {!q[axis].length && <div className="an-empty-well">{axis === 'y' ? 'No rows yet — one row of everything. Add a dimension, or drop one here.' : 'No columns yet — one column of all. Add a dimension, or drop one here.'}</div>}
       </div>
+      <span className="an-picker an-add">
+        <button className="an-chip ghost" onClick={() => setPicking(picking === axis ? null : axis)}>+ Add dimension</button>
+        {picking === axis && (
+          <div className="an-menu" onMouseLeave={() => setPicking(null)}>
+            <div className="an-menu-h">group by</div>
+            {[...new Set([...QUICK_DIMS, ...facets.map(f => f.name)])].filter(k => !used.has(k)).map(k => (
+              <button key={k} onClick={() => addDim(axis, { key: k })}><span>{name({ key: k })}</span><span className="an-menu-how">{k === 'worker.part-of' ? 'worker.part-of' : k === 'kind' || k === 'status' ? k : 'property'}</span></button>
+            ))}
+            <input className="an-path" placeholder="a path: worker.part-of" title="A property, or a path of links — worker.part-of is the team of the worker"
+              onKeyDown={e => { const v = (e.target as HTMLInputElement).value.trim(); if (e.key === 'Enter' && v) addDim(axis, { key: v }); if (e.key === 'Escape') setPicking(null); }} />
+            <div className="an-menu-h">time · a date field, bucketed</div>
+            {Object.entries(TIME_FIELDS).filter(([k]) => !used.has(k)).map(([k, how]) => (
+              <button key={k} onClick={() => addDim(axis, { key: k, bucket: 'month' })}><span>{k}</span><span className="an-menu-how">{how}</span></button>
+            ))}
+            {axis === 'x' && !q.x.some(isSpan) && <button onClick={setTrack}><span>when · a track</span><span className="an-menu-how">the Gantt, last level</span></button>}
+          </div>
+        )}
+      </span>
     </div>
   );
 
   return (
     <section className="anwrap">
       <div className="anbar">
-        <span className="an-group">
-          <span className="muted small">kinds</span>
-          {kinds.map(k => <button key={k} className={`an-chip ${q.kinds.includes(k) ? 'on' : ''}`} onClick={() => toggleKind(k)}>{k}</button>)}
-        </span>
+        <MultiSelect label="kinds" all="all kinds" options={kinds} value={q.kinds} onChange={v => set({ kinds: v })} disabled={custom} />
         <span className="an-group">
           <span className="muted small">where</span>
           {Object.entries(q.props).map(([k, v]) => (
             <span key={k} className="an-filter">
               <b>{k}</b>
-              <input list={`anv-${k}`} defaultValue={v} onBlur={e => { if (e.target.value.trim() !== v) setFilter(k, e.target.value); }} onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
+              <input list={`anv-${k}`} defaultValue={v} disabled={custom} onBlur={e => { if (e.target.value.trim() !== v) setFilter(k, e.target.value); }} onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
               <datalist id={`anv-${k}`}>{values(k).map(x => <option key={x} value={x} />)}</datalist>
               <button className="an-x" onClick={() => setFilter(k, '')} title={`Drop ${k}`}>×</button>
             </span>
@@ -173,8 +198,10 @@ export function AnalyticsView({ product, project, slug, query, legacy, analytics
                 <datalist id="anv-new">{values(adding.name).map(x => <option key={x} value={x} />)}</datalist>
                 <button className="an-x" onClick={() => { if (adding.name.trim() && adding.value.trim()) setFilter(adding.name, adding.value); setAdding(null); }} title="Add this filter">✓</button>
               </span>
-            : <button className="an-chip ghost" onClick={() => setAdding({ name: '', value: '' })} title="Filter by a property — quarter=q3, worker=ana, worker.part-of=Till">+ filter</button>}
+            : <button className="an-chip ghost" disabled={custom} onClick={() => setAdding({ name: '', value: '' })} title={custom ? 'This page runs its own SQL — the filters step aside' : 'Filter by a property — quarter=q3, worker=ana, worker.part-of=Till'}>+ filter</button>}
         </span>
+        <input className="an-find" defaultValue={q.q} disabled={custom} placeholder="words…" onBlur={e => { if (e.target.value.trim() !== q.q) set({ q: e.target.value.trim() }); }} onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
+        <button className={`an-chip ${custom || showSql ? 'on' : ''}`} onClick={() => setShowSql(s => !s)} title={custom ? 'This page runs its own SQL' : 'The SQL the switches write — edit it to make the page your own'}>SQL{custom ? ' · own' : ''} {showSql ? '▴' : '▾'}</button>
         {analytics.span && (
           <span className="an-group">
             <span className="muted small">from</span>
@@ -184,18 +211,22 @@ export function AnalyticsView({ product, project, slug, query, legacy, analytics
             {(q.from || q.to) && <button className="an-chip" onClick={() => set({ from: '', to: '' })} title="Fit the window to what is on the track">fit</button>}
           </span>
         )}
-        <input className="an-find" defaultValue={q.q} placeholder="words…" onBlur={e => { if (e.target.value.trim() !== q.q) set({ q: e.target.value.trim() }); }} onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
         <span className="an-count muted small">{analytics.total} on the page{analytics.undated ? ` · ${analytics.undated} with no dates` : ''}{saving ? ' · saving…' : ''}</span>
       </div>
+      {(showSql || sqlError) && (
+        <SqlBox sql={custom ? q.sql! : sql || generated} custom={custom} ctx={{ product, kind: q.kinds[0] ?? 'node' }}
+          onRun={s => set({ sql: s && oneLine(s) !== oneLine(generated) ? oneLine(s) : undefined })} />
+      )}
+      {sqlError && <p className="notice an-sql-error">{sqlError}</p>}
       <div className="an-axes">
-        {axisBox('y')}
-        <button className="an-swap" title="Swap rows and columns" onClick={() => set({ x: q.y, y: q.x.filter(d => !isSpan(d)) })}>⇄</button>
-        {axisBox('x')}
+        {well('y')}
+        {well('x')}
       </div>
 
       {!analytics.total ? (
         <p className="an-empty muted">
-          {analytics.span
+          {sqlError ? <>The query drew nothing — see what it said above.</>
+            : analytics.span
             ? <>Nothing on this track yet. A node joins it by saying when it happens — <code>starts</code> and <code>ends</code>, a <code>duration</code>, or a <code>due</code> date — and the strip above chooses which nodes it watches.</>
             : <>Nothing admitted by this query. The strip above chooses the kinds and the filters; the rows and the columns say how what is admitted is grouped.</>}
         </p>
@@ -207,8 +238,8 @@ export function AnalyticsView({ product, project, slug, query, legacy, analytics
                 <tr key={l}>
                   {l === 0 && (
                     <th className="an-corner" rowSpan={xLevels + (analytics.span ? 1 : 0)} colSpan={yLevels}>
-                      <div className="an-ax">{q.y.map(d => d.key).join(' ▸ ') || 'everything'}</div>
-                      <div className="an-ax muted">↓ rows · columns → {[...xdims.map(d => d.key), ...(analytics.span ? ['when'] : [])].join(' ▸ ') || 'all'}</div>
+                      <div className="an-ax">{q.y.map(name).join(' ▸ ') || 'everything'}</div>
+                      <div className="an-ax muted">↓ rows · columns → {[...xdims.map(name), ...(analytics.span ? ['when'] : [])].join(' ▸ ') || 'all'}</div>
                     </th>
                   )}
                   {rs.map(r => <th key={r.start} colSpan={r.span} className={`${l === 0 ? 'lvl0' : ''} ${xdims[l] && isTimeDim(xdims[l]) ? 'time' : ''}`}>{label(r.step)}</th>)}
@@ -264,5 +295,40 @@ export function AnalyticsView({ product, project, slug, query, legacy, analytics
         </div>
       )}
     </section>
+  );
+}
+
+// One chip that says what is picked, a checklist under it: the kinds a page draws (none picked is every kind).
+function MultiSelect({ label, all, options, value, onChange, disabled }: { label: string; all: string; options: string[]; value: string[]; onChange: (v: string[]) => void; disabled?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [find, setFind] = useState('');
+  const ref = useRef<HTMLSpanElement>(null);
+  // the list closes on a click outside it (the App Router's root is document: check the target)
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h);
+  }, [open]);
+  const shown = options.filter(o => !find || o.includes(find.toLowerCase()));
+  const toggle = (o: string) => onChange(value.includes(o) ? value.filter(x => x !== o) : [...options.filter(x => value.includes(x) || x === o)]);
+  return (
+    <span className="an-ms" ref={ref}>
+      <button className={`an-chip ${value.length ? 'on' : ''}`} disabled={disabled} onClick={() => setOpen(o => !o)} title={disabled ? 'This page runs its own SQL — the switches step aside' : 'The kinds this page draws'}>
+        {label} · {value.length ? value.join(', ') : all} {open ? '▴' : '▾'}
+      </button>
+      {open && (
+        <div className="an-ms-menu">
+          <input type="search" autoFocus placeholder="find a kind…" value={find} onChange={e => setFind(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') setOpen(false); if (e.key === 'Enter' && shown.length === 1) toggle(shown[0]); }} />
+          {shown.map(o => (
+            <label key={o}><input type="checkbox" checked={value.includes(o)} onChange={() => toggle(o)} />{o}</label>
+          ))}
+          {!shown.length && <span className="muted small" style={{ padding: '4px 8px' }}>no kind matches</span>}
+          <div className="an-ms-foot">
+            {value.length > 0 && <button onClick={() => onChange([])}>every kind</button>}
+            <button onClick={() => setOpen(false)}>done</button>
+          </div>
+        </div>
+      )}
+    </span>
   );
 }

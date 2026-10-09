@@ -1166,20 +1166,42 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .an-x:hover { color: var(--ink); }
 .an-count { margin-left: auto; }
 .an-empty { padding: 28px 24px; max-width: 620px; }
-/* the axes: rows and columns, each a stack of levels in order, deepest last */
-.an-axes { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: stretch; padding: 8px 14px; border-bottom: 1px solid var(--line); }
-.an-axis { display: grid; gap: 6px; min-width: 0; }
-.an-axis h2 { margin: 0; font: 600 10.5px var(--font-m); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
-.an-axis h2 .muted { font-weight: 400; letter-spacing: 0; text-transform: none; }
-.an-levels { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 26px; }
-.an-level { display: inline-flex; align-items: center; gap: 1px; background: var(--surface); border: 1px solid var(--line-2); border-radius: 999px; padding: 1px 3px 1px 9px; font: 11px var(--font-m); color: var(--ink-2); }
-.an-level.time { border-color: color-mix(in srgb, var(--accent) 55%, var(--line-2)); }
-.an-level-n { color: var(--muted); font-size: 9.5px; margin-right: 5px; }
-.an-level-name { font-weight: 600; color: var(--ink); }
-.an-level-bucket { background: transparent; border: 0; margin-left: 3px; color: var(--ink-2); font: 11px var(--font-m); cursor: pointer; }
+/* a multiselect: one chip that says what is picked, a checklist under it */
+.an-ms { position: relative; display: inline-block; }
+.an-ms-menu { position: absolute; z-index: 6; top: calc(100% + 4px); left: 0; background: var(--surface); border: 1px solid var(--line-2); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.14); padding: 6px; min-width: 200px; max-height: 320px; overflow: auto; display: grid; gap: 1px; }
+.an-ms-menu input[type=search] { margin: 0 2px 4px; background: var(--ground); border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 8px; color: var(--ink); font: 12px var(--font-m); }
+.an-ms-menu input[type=search]:focus { outline: none; border-color: var(--accent); }
+.an-ms-menu label { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 6px; font: 12px var(--font-m); color: var(--ink); cursor: pointer; }
+.an-ms-menu label:hover { background: var(--sunk); }
+.an-ms-menu label input { accent-color: var(--accent); margin: 0; }
+.an-ms-menu label .n { margin-left: auto; color: var(--muted); font-size: 10.5px; }
+.an-ms-foot { display: flex; gap: 8px; padding: 4px 8px 2px; border-top: 1px solid var(--line); margin-top: 4px; }
+.an-ms-foot button { background: none; border: 0; padding: 0; color: var(--accent); font: 11px var(--font-m); cursor: pointer; }
+/* the SQL under the strip: the table's box, on this page a toggle away */
+.anwrap .sql-box { padding: 8px 14px; }
+.an-sql-error { padding: 0 14px 8px; margin: 0; }
+/* the wells: rows and columns, each a box whose fields are a list in order, outer first, dragged to reorder or across */
+.an-axes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--line); }
+.an-well { display: grid; grid-template-rows: auto 1fr auto; gap: 4px; min-width: 0; background: var(--surface); border: 1px solid var(--line-2); border-radius: 8px; padding: 6px 8px 6px; }
+.an-well.over { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.an-well h2 { margin: 0; font: 600 10.5px var(--font-m); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); display: flex; gap: 8px; align-items: baseline; }
+.an-well h2 .muted { font-weight: 400; letter-spacing: 0; text-transform: none; }
+.an-fields { display: grid; gap: 3px; min-height: 30px; align-content: start; }
+.an-field { display: flex; align-items: center; gap: 6px; background: var(--ground); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px 3px 4px; font: 12px var(--font-m); color: var(--ink-2); cursor: grab; }
+.an-field.time { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+.an-field.dragging { opacity: .4; }
+.an-field.before { box-shadow: 0 -2px 0 0 var(--accent); }
+.an-field-grip { color: var(--line-2); letter-spacing: -2px; cursor: grab; }
+.an-field-n { color: var(--muted); font-size: 9.5px; min-width: 10px; }
+.an-field-name { font-weight: 600; color: var(--ink); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.an-field-bucket { background: transparent; border: 1px solid var(--line-2); border-radius: 999px; padding: 0 6px; color: var(--ink-2); font: 11px var(--font-m); cursor: pointer; }
+.an-field .an-ib { font-size: 12px; }
+.an-add { justify-self: start; }
+.an-well .an-empty-well { color: var(--muted); font: 11.5px var(--font-b); padding: 6px 4px; border: 1px dashed var(--line-2); border-radius: 6px; text-align: center; }
+
 .an-ib { background: transparent; border: 0; padding: 0 4px; color: var(--muted); border-radius: 999px; line-height: 1; font-size: 13px; cursor: pointer; }
 .an-ib:hover { color: var(--ink); background: var(--sunk); } .an-ib:disabled { opacity: .3; cursor: default; background: none; } .an-ib.x:hover { color: var(--bad); }
-.an-swap { align-self: center; background: transparent; border: 1px solid var(--line-2); border-radius: 999px; width: 28px; height: 28px; color: var(--ink-2); cursor: pointer; font-size: 14px; }
+.an-swap { align-self: start; margin-top: 18px; background: transparent; border: 1px solid var(--line-2); border-radius: 999px; width: 28px; height: 28px; color: var(--ink-2); cursor: pointer; font-size: 14px; }
 .an-swap:hover { color: var(--ink); border-color: var(--accent); }
 .an-picker { position: relative; }
 .an-menu { position: absolute; z-index: 6; top: calc(100% + 4px); left: 0; background: var(--surface); border: 1px solid var(--line-2); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.14); padding: 6px; min-width: 260px; display: grid; gap: 2px; }
