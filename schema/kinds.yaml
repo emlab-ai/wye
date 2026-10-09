@@ -6,6 +6,7 @@
 kinds:
   action:         { purpose: something a user can do on a page }
   alternative:    { purpose: a way not taken — a child block of the decision that considered it, its text saying what it was and why not, nests-in: [decision] }
+  analytics:      { purpose: a page that groups the product's blocks any way }
   choice:         { purpose: what was chosen, when a decision wants it as a block of its own under the decision rather than in its text, nests-in: [decision] }
   comment:        { purpose: a remark on a node — kept as a card in the Comments document of the node's project, never nested under the node, required: [on] }
   consequence:    { purpose: what follows from a decision — a child block of it, nests-in: [decision] }
@@ -48,7 +49,7 @@ kinds:
   text:           { purpose: a passage of a document that someone needed to point at }
   then:           { purpose: the outcome of a requirement — a child block of it, nests-in: [req, rule, test, ui-test] }
   timed:          { purpose: the properties of something that happens in time }
-  timeline:       { purpose: a page that draws when things happen: its `query:` line says which nodes it watches, what the rows group by }
+  timeline:       { purpose: the old name of type:analytics — a page that draws when things happen on a track }
   tool:           { purpose: an MCP tool or CLI command an agent can call }
   ui-test:        { purpose: an end-to-end spec }
   unless:         { purpose: the exception of a requirement — a child block of it, nests-in: [req, rule, test, ui-test] }

@@ -388,7 +388,7 @@ type means instances may carry properties the type does not declare without a wa
   open: true
   statuses: [todo, open, in-progress, blocked, review, done]
   props:
-    due: string?
+    due: date?                                        # a day, picked on the card (decision:waterfall.task-due-is-a-date)
     session: string?
     worker: string?                                   # a person's name or an agent name; who holds the task now
     priority: number?                                 # lower first, across plans; document order inside one
