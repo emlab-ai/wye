@@ -148,13 +148,9 @@ export function AnalyticsView({ product, project, slug, query, legacy, analytics
       onDragOver={e => { if (!drag.current) return; e.preventDefault(); if (over?.axis !== axis || over.i !== -1) setOver({ axis, i: -1 }); }}
       onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(null); }}
       onDrop={e => { e.preventDefault(); drop(axis, -1); }}>
-      <h2>{axis === 'y' ? 'Rows' : 'Columns'} <span className="muted">· {axis === 'y' ? 'Y' : 'X'}, outer first</span></h2>
-      <div className="an-fields">
-        {q[axis].map((d, i) => field(axis, d, i))}
-        {!q[axis].length && <div className="an-empty-well">{axis === 'y' ? 'No rows yet — one row of everything. Add a dimension, or drop one here.' : 'No columns yet — one column of all. Add a dimension, or drop one here.'}</div>}
-      </div>
+      <h2>{axis === 'y' ? 'Rows' : 'Columns'} <span className="muted">· outer first</span>
       <span className="an-picker an-add">
-        <button className="an-chip ghost" onClick={() => setPicking(picking === axis ? null : axis)}>+ Add dimension</button>
+        <button className="an-chip ghost" onClick={() => setPicking(picking === axis ? null : axis)} title="Add a dimension — a property, a team, a status, a month">+ dimension</button>
         {picking === axis && (
           <div className="an-menu" onMouseLeave={() => setPicking(null)}>
             <div className="an-menu-h">group by</div>
@@ -171,6 +167,11 @@ export function AnalyticsView({ product, project, slug, query, legacy, analytics
           </div>
         )}
       </span>
+      </h2>
+      <div className="an-fields">
+        {q[axis].map((d, i) => field(axis, d, i))}
+        {!q[axis].length && <div className="an-empty-well">{axis === 'y' ? 'one row of everything — drop a dimension here' : 'one column of all — drop a dimension here'}</div>}
+      </div>
     </div>
   );
 
