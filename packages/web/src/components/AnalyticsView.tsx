@@ -29,6 +29,19 @@ export function AnalyticsView({ product, project, slug, query, legacy, analytics
   const [adding, setAdding] = useState<{ name: string; value: string } | null>(null);   // the filter being written
   const [picking, setPicking] = useState<Axis | null>(null);                             // the well whose Add menu is open
   const [showSql, setShowSql] = useState(false);
+  // ask an agent what the page should show (decision:waterfall.analytics-from-words): the words → a query line the
+  // server has checked once → the page's own line
+  const [asking, setAsking] = useState(false);
+  const [ask, setAsk] = useState(''); const [busy, setBusy] = useState(false); const [askMsg, setAskMsg] = useState('');
+  const askAgent = async () => {
+    if (!ask.trim() || busy) return; setBusy(true); setAskMsg('');
+    try {
+      const r = await fetch(`/api/${product}/analytics/write`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ask, query }) });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.query) { setAskMsg(`${j.cards} card${j.cards === 1 ? '' : 's'} · ${j.query}`); setAsk(''); await write(parseAnalyticsQuery(j.query)); }
+      else setAskMsg(j.message ?? 'the agent could not write the page');
+    } catch (e) { setAskMsg(String(e)); } finally { setBusy(false); }
+  };
   const q = useMemo(() => parseAnalyticsQuery(query, { legacyTrack: legacy }), [query, legacy]);
 
   // the query lives in the page's front matter, so changing it is an ordinary document write
@@ -202,6 +215,7 @@ export function AnalyticsView({ product, project, slug, query, legacy, analytics
             : <button className="an-chip ghost" disabled={custom} onClick={() => setAdding({ name: '', value: '' })} title={custom ? 'This page runs its own SQL — the filters step aside' : 'Filter by a property — quarter=q3, worker=ana, worker.part-of=Till'}>+ filter</button>}
         </span>
         <input className="an-find" defaultValue={q.q} disabled={custom} placeholder="words…" onBlur={e => { if (e.target.value.trim() !== q.q) set({ q: e.target.value.trim() }); }} onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
+        <button className={`an-chip ask ${asking ? 'on' : ''}`} onClick={() => setAsking(a => !a)} title="Ask an agent what this page should show — it writes the whole line: the kinds, the filters, the rows and the columns">✦ Ask</button>
         <button className={`an-chip ${custom || showSql ? 'on' : ''}`} onClick={() => setShowSql(s => !s)} title={custom ? 'This page runs its own SQL' : 'The SQL the switches write — edit it to make the page your own'}>SQL{custom ? ' · own' : ''} {showSql ? '▴' : '▾'}</button>
         {analytics.span && (
           <span className="an-group">
@@ -214,6 +228,15 @@ export function AnalyticsView({ product, project, slug, query, legacy, analytics
         )}
         <span className="an-count muted small">{analytics.total} on the page{analytics.undated ? ` · ${analytics.undated} with no dates` : ''}{saving ? ' · saving…' : ''}</span>
       </div>
+      {asking && (
+        <div className="sql-ask an-ask">
+          <span className="sql-ask-mark" aria-hidden>✦</span>
+          <input autoFocus value={ask} disabled={busy} spellCheck={false} placeholder="What should this page show? e.g. tasks by team per month · a board of what is blocked, by worker · a timeline of this quarter's goals"
+            onChange={e => setAsk(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void askAgent(); } if (e.key === 'Escape') setAsking(false); }} />
+          <button type="button" onClick={() => void askAgent()} disabled={busy || !ask.trim()}>{busy ? 'writing…' : 'Write the page'}</button>
+          {askMsg && <span className="an-ask-msg muted small">{askMsg}</span>}
+        </div>
+      )}
       {(showSql || sqlError) && (
         <SqlBox sql={custom ? q.sql! : sql || generated} custom={custom} ctx={{ product, kind: q.kinds[0] ?? 'node' }}
           onRun={s => set({ sql: s && oneLine(s) !== oneLine(generated) ? oneLine(s) : undefined })} />

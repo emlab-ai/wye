@@ -1177,6 +1177,10 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .an-ms-menu label .n { margin-left: auto; color: var(--muted); font-size: 10.5px; }
 .an-ms-foot { display: flex; gap: 8px; padding: 4px 8px 2px; border-top: 1px solid var(--line); margin-top: 4px; }
 .an-ms-foot button { background: none; border: 0; padding: 0; color: var(--accent); font: 11px var(--font-m); cursor: pointer; }
+/* ask an agent what the page should show: the table's ask line, under the bar */
+.an-ask { padding: 4px 14px 6px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.an-ask-msg { flex-basis: 100%; padding-left: 22px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.an-chip.ask { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, var(--line-2)); } .an-chip.ask.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 /* the SQL under the strip: the table's box, on this page a toggle away */
 .anwrap .sql-box { padding: 8px 14px; }
 .an-sql-error { padding: 0 14px 8px; margin: 0; }

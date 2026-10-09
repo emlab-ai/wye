@@ -505,7 +505,7 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     query line — which nodes are on it, when each one happens, and what the rows are. Pure: the graph in, rows of
     bars out. The query is the view block's language (lib/instance-table) with three keys of its own: `rows` says
     what the Y axis groups by, `from` and `to` the window.
-  status: proposed
+  status: retired
   part-of: module:app-storage
 - id: lib:ask
   file: packages/web/src/lib/ask/ask.ts
@@ -1126,6 +1126,33 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     decision&#58;waterfall.raw-request-to-inbox-then-digest): the person's words from `wye remember`, their impact
     on what is known judged on arrival, and the digest — a Remember conversation told that the input is a request,
     not knowledge. Shared by the inbox routes (arrival, Digest again).
+  status: proposed
+  part-of: module:app-storage
+- id: lib:analytics-write
+  file: packages/web/src/lib/analytics-write.ts
+  side: server
+  purpose: >
+    An analytics page written from words (decision&#58;waterfall.analytics-from-words,
+    decision:wf2.query-from-words): the person says what the page should show — "tasks by team per month", "a board
+    of what is blocked, by worker" — and one `claude -p` call (no tools) writes the page's whole query line from the
+    graph's real shape: the kinds with counts, the properties the nodes carry with the values they hold, the verbs
+    of `edges`, and the line as it is. A line that carries `sql=` is run once before it is handed back; one that
+    fails is sent back once with the engine's message. Nothing is saved here: the page keeps the line in its front
+    matter.
+  status: proposed
+  part-of: module:app-storage
+- id: lib:analytics
+  file: packages/web/src/lib/analytics.ts
+  side: server
+  purpose: >
+    An analytics page (decision&#58;waterfall.analytics-view-replaces-timeline, decision:wf2.timeline-is-a-query):
+    what a cross-tab of cards draws, worked out from the graph and one query line — which nodes are on it, and what
+    the rows and the columns group by. Pure: the graph in, a grid of cards out. The query is the view block's
+    language (lib/instance-table) with keys of its own: `y` and `x`, each a list of dimensions outer first, and
+    `from` / `to`, the window of a span column. A dimension is a property, `kind`, `status`, a path of links
+    (`worker.part-of` is the team of the worker), or a date field with a bucket — `due:month`, `when:week`;
+    `when:span` is the continuous track the old timeline drew, and may only be the last column level. A cell shows
+    the cards at its intersection, never a count: the page is for seeing the work, not counting it.
   status: proposed
   part-of: module:app-storage
 ```

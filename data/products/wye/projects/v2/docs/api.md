@@ -939,6 +939,15 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/workspace/route.ts
   status: proposed
   part-of: module:api
+- id: op:api.analytics-write
+  args: POST /api/<product>/analytics/write
+  does: >
+    (decision&#58;waterfall.analytics-from-words) — POST { ask, query? } → { query, cards }: an analytics page's
+    query line an agent wrote from the words, checked once on the server; 422 with why when it could not.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/analytics/write/route.ts
+  status: proposed
+  part-of: module:api
 ```
 
 <!-- /list:op -->

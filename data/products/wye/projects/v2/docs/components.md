@@ -895,7 +895,7 @@ The editor's blocks and the components the pages are made of, by area.
     `duration`, a `due` date — and the rows are whatever the query groups by, a property or a path of links
     (`worker.part-of` puts a person's work under their team). Clicking a bar selects the node in the Context panel,
     the way a click on a block does (rule:block-select); the dates themselves are edited on its card there.
-  status: proposed
+  status: retired
   part-of: module:components
 - id: component:delete-product
   file: packages/web/src/components/DeleteProduct.tsx
@@ -1179,6 +1179,19 @@ The editor's blocks and the components the pages are made of, by area.
   side: client
   purpose: >
     (no header comment)
+  status: proposed
+  part-of: module:components
+- id: component:analytics-view
+  file: packages/web/src/components/AnalyticsView.tsx
+  side: client
+  purpose: >
+    The analytics page (component&#58;analytics-view, decision&#58;waterfall.analytics-view-replaces-timeline): a
+    strip that edits the page's query, two wells — the rows and the columns, each a list of dimensions outer first,
+    dragged to reorder or across — and the grid under them. The data is a query over the graph, as a table's is
+    (decision:wf2.table-is-sql): the strip's switches write the SQL shown under it, and edited by hand it is the
+    page's own. Every cell is the cards at that intersection — one line each, a status stripe at the left — and on a
+    span column the cards are bars on a track, the old timeline. Clicking a card selects the node in the Context
+    panel, the way a click on a block does (rule:block-select); its fields are edited on its card there.
   status: proposed
   part-of: module:components
 ```
