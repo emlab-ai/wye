@@ -28,6 +28,7 @@ function gitIgnored(dir: string, names: string[]): Promise<Set<string>> {
   return new Promise(res => {
     if (!names.length) return res(new Set());
     const c = execFile('git', ['-C', dir, 'check-ignore', '--stdin', '-z'], { timeout: 4000 }, (_e, out) => res(new Set(String(out ?? '').split('\0').filter(Boolean))));
+    c.stdin?.on('error', () => {});   // outside a repository git exits before reading: the write is EPIPE, not an error of ours
     c.stdin?.end(names.join('\0'));
   });
 }
