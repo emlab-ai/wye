@@ -113,6 +113,7 @@ const PropRows = ({ rows, stop }: { rows: { key: string; value: string }[]; stop
 export function NodeCard({ p, set, host }: { p: CardP; set: (patch: Partial<CardP>) => void; host: CardHost }) {
   if (p.kind === 'question' && p.form === 'yaml') return <QuestionCard p={p} set={set} host={host} />;
   if (p.kind === 'decision' && p.form === 'yaml') return <DecisionCard p={p} set={set} host={host} />;
+  if (p.kind === 'slack' && p.form === 'yaml') return <SlackCard p={p} set={set} host={host} />;
   return <ProseCard p={p} set={set} host={host} />;
 }
 
@@ -238,6 +239,75 @@ export function DecisionCard({ p, set, host }: { p: CardP; set: (patch: Partial<
         <div className="qnode-details" contentEditable={false} ref={host.stop}>
           {others.length > 0 && <PropRows rows={others} />}
           <textarea className="nblock-yaml" value={p.body} rows={Math.min(20, p.body.split('\n').length + 1)} onChange={e => set({ body: e.target.value })} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Slack's mark, in its own colours: what a slack card carries in place of the kind pill.
+export function SlackIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg className="slack-icon" width={size} height={size} viewBox="0 0 122.8 122.8" aria-hidden="true">
+      <path fill="#E01E5A" d="M25.8 77.6c0 7.1-5.8 12.9-12.9 12.9S0 84.7 0 77.6s5.8-12.9 12.9-12.9h12.9v12.9zm6.5 0c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9v32.3c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V77.6z" />
+      <path fill="#36C5F0" d="M45.2 25.8c-7.1 0-12.9-5.8-12.9-12.9S38.1 0 45.2 0s12.9 5.8 12.9 12.9v12.9H45.2zm0 6.5c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H12.9C5.8 58.1 0 52.3 0 45.2s5.8-12.9 12.9-12.9h32.3z" />
+      <path fill="#2EB67D" d="M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z" />
+      <path fill="#ECB22E" d="M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z" />
+    </svg>
+  );
+}
+
+// A Slack thread card: the thread's title and what it is about (`summary`), where it is (#channel, last activity),
+// whether it waits on the person (`attention`), and a link that opens it in Slack. The url, ids and sync times sit
+// in "details" with the yaml — they are plumbing, not what the person reads.
+export function SlackCard({ p, set, host }: { p: CardP; set: (patch: Partial<CardP>) => void; host: CardHost }) {
+  const { statuses } = usePeek();
+  const [details, setDetails] = useState(false);
+  const { product } = usePeek();
+  // Refresh: an agent task that re-reads this one conversation, rewrites its summary and imports only what is new,
+  // linked to this card (the slack-thread-sync skill); the card then links to the session
+  const [refresh, setRefresh] = useState<{ busy?: boolean; session?: string; error?: string }>({});
+  const rows = parseBody(p.body);
+  const get = (k: string) => (rows.find(r => r.key === k)?.value ?? '').replace(/^"(.*)"$/s, '$1');
+  const url = get('url'); const channel = get('channel'); const attention = get('attention'); const involvement = get('involvement');
+  const summary = get('summary'); const active = get('last_activity');
+  const link = /^https:\/\//.test(url) ? url : '';
+  const id = `${p.kind}:${p.slug}`;
+  const startRefresh = async (e: React.MouseEvent) => {
+    e.stopPropagation(); setRefresh({ busy: true });
+    const instruction = `Refresh this Slack conversation with the slack-thread-sync skill, for this one thread only (not a full sync): ${link || id}\nCard: ${id}${get('channel_id') ? `\nChannel id: ${get('channel_id')}` : ''}${get('thread_ts') ? `\nthread_ts: ${get('thread_ts')}` : ''}\nRead the whole thread, rewrite the card's summary so it covers all of it, update last_activity, last_synced and attention, and import only what is new with wye remember --ref ${id}.`;
+    const r = await fetch(`/api/${product}/sessions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ agent: 'claude-code', instruction, refs: [id], mode: 'chat' }) }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
+    setRefresh(r?.ok ? { session: j.id } : { error: j.message ?? j.error ?? 'could not start the task' });
+  };
+  const others = rows.filter(r => !['id', 'title', 'status', 'text', 'summary', p.textKey].includes(r.key));
+  return (
+    <div className={`nblock k-slack snode a-${attention || 'none'} ${host.extraClass ?? ''}`} data-id={`${p.kind}:${p.slug}`} ref={host.hostRef} onClick={selectOn(host)}>
+      <div className="nblock-head" contentEditable={false} ref={host.stop} onClick={host.onHeadClick}>
+        <button type="button" className="slack-mark" title="Open this thread's node in the column" onClick={host.open ?? host.peek}><SlackIcon /></button>
+        {(details || !p.slug) && <input className="nblock-slug" value={p.slug} spellCheck={false} readOnly={host.slugReadOnly} onChange={e => set({ slug: e.target.value.replace(/\s+/g, '-') })} placeholder="slug" />}
+        {attention && attention !== 'fyi' && <span className={`slack-chip a-${attention}`} title={attention === 'reply' ? 'someone is waiting for your answer' : 'a decision or follow-up to watch'}>{attention === 'reply' ? 'needs reply' : attention}</span>}
+        <select className={`status-sel s-${p.status} ${p.status ? '' : 'hover-only'}`} value={p.status} onChange={e => set({ status: e.target.value })}>{statusOptions(statuses, 'slack', p.status).map(s => <option key={s} value={s}>{s || '— status'}</option>)}</select>
+        <FoldToggle host={host} />
+        <span className="slack-acts">
+          {refresh.session && <a className="slack-open" href={`/${product}/sessions/${refresh.session}`} onClick={e => e.stopPropagation()} title="The agent task that is refreshing this conversation">Refreshing → task</a>}
+          {refresh.error && <span className="bad small">{refresh.error}</span>}
+          {!refresh.session && <button type="button" className="slack-open" disabled={refresh.busy} onClick={startRefresh} title="Start an agent task that re-reads this conversation, updates the summary and imports what is new">{refresh.busy ? 'Starting…' : 'Refresh ↻'}</button>}
+          {link && <a className="slack-open" href={link} target="_blank" rel="noopener noreferrer" title="Open this thread in Slack" onClick={e => e.stopPropagation()}>Open in Slack ↗</a>}
+          <span className="nblock-tools hover-only">
+            <button type="button" className="nblock-send" onClick={() => setDetails(d => !d)} title="the link, ids, sync times and the yaml">{details ? 'hide details' : 'details'}</button>
+            <button type="button" className="nblock-send" title="Copy a link to this node" onClick={host.copyLink}>⧉</button>
+            <button type="button" className="nblock-send" title="Send this node to an agent" onClick={host.send}>⇢</button>
+          </span>
+        </span>
+      </div>
+      {host.text('qnode-title nblock-text')}
+      {(channel || active || involvement) && <p className="slack-meta" contentEditable={false} ref={host.stop}>{[channel && `#${channel}`, involvement, active && `active ${active}`].filter(Boolean).join(' · ')}</p>}
+      {summary && <p className="slack-summary" contentEditable={false} ref={host.stop}><Linkified text={summary} /></p>}
+      {details && (
+        <div className="qnode-details" contentEditable={false} ref={host.stop}>
+          {others.length > 0 && <PropRows rows={others} />}
+          <textarea className="nblock-yaml" value={p.body} rows={Math.min(24, p.body.split('\n').length + 1)} onChange={e => set({ body: e.target.value })} />
         </div>
       )}
     </div>

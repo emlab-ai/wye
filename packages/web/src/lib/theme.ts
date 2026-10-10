@@ -6,7 +6,10 @@ import { useEffect, useState } from 'react';
 // The inline script in the root layout applies it before first paint so a dark page never flashes light.
 export type ThemeChoice = 'system' | 'light' | 'dark';
 export const THEME_KEY = 'wf-theme';
-export const THEME_BOOT = `(function(){try{var c=localStorage.getItem('${THEME_KEY}')||'system';var d=c==='dark'||(c==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){}})()`;
+// The choice also lives in a cookie of the same name: the root layout reads it on the server and sets data-theme on <html>,
+// so a light or dark choice paints right with no inline script (a <script> in a component warns in React 19). `system`
+// sets nothing there — the CSS follows prefers-color-scheme until the page applies it.
+const writeCookie = (c: ThemeChoice) => { try { document.cookie = `${THEME_KEY}=${c}; path=/; max-age=31536000; samesite=lax`; } catch { /* ignore */ } };
 
 export function themeChoice(): ThemeChoice { try { const v = localStorage.getItem(THEME_KEY); return v === 'light' || v === 'dark' ? v : 'system'; } catch { return 'system'; } }
 export function applyTheme(choice: ThemeChoice) {
@@ -14,7 +17,9 @@ export function applyTheme(choice: ThemeChoice) {
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
   window.dispatchEvent(new CustomEvent('wf:theme', { detail: dark ? 'dark' : 'light' }));
 }
-export function setThemeChoice(choice: ThemeChoice) { try { localStorage.setItem(THEME_KEY, choice); } catch { /* ignore */ } applyTheme(choice); }
+export function setThemeChoice(choice: ThemeChoice) { try { localStorage.setItem(THEME_KEY, choice); } catch { /* ignore */ } writeCookie(choice); applyTheme(choice); }
+// On load: apply the stored choice, and make sure the cookie matches it (a choice made before the cookie existed)
+export function syncTheme() { const c = themeChoice(); writeCookie(c); applyTheme(c); }
 
 // Is the page dark now? Components that pick a theme by name (Monaco, Excalidraw, BlockNote) re-render on change.
 export function isDark(): boolean { return typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark'; }

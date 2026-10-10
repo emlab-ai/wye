@@ -57,7 +57,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
   const images = Array.isArray(body.images) ? body.images.filter(i => i && typeof i.dataUrl === 'string').slice(0, 8) : [];
   if (!instruction && !images.length) return NextResponse.json({ error: 'invalid', message: 'instruction required' }, { status: 422 });
   const mode = body.mode === 'chat' || role === 'librarian' ? 'chat' : 'run';
-  const cwd = role === 'librarian' ? REPO_ROOT : body.cwd?.trim() || '';
+  // a conversation with no folder named works in the product's own folder (a card's Refresh starts one)
+  const cwd = role === 'librarian' ? REPO_ROOT : body.cwd?.trim() || (mode === 'chat' ? productRepo(p) ?? '' : '');
   if (mode === 'chat') {
     // a conversation always works in a folder: the agent's tools read and write there
     if (!cwd) return NextResponse.json({ error: 'invalid', message: 'a working folder is required' }, { status: 422 });
