@@ -1,6 +1,6 @@
 {
     "name": "@emlab/wye",
-    "version": "0.4.0",
+    "version": "0.4.1",
     "description": "Product definition and long-term memory for coding agents: requirements, rules, decisions and constraints as Markdown in Git, a graph Claude Code and Codex query before they build, and an app to review what they decide.",
     "keywords": [
         "coding-agents",
