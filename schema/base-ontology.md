@@ -418,6 +418,28 @@ type means instances may carry properties the type does not declare without a wa
     role: string?                                     # the session role that filled it: librarian | worker (decision:exec.wye-is-a-role)
     skills: list of skill?                            # attached skills: their bodies ride in every session on this request (decision:wf2.hooks-and-skills)
     hooks: list of hook?                              # attached hooks: fire on this request's events, paused or not
+- id: type:lib
+  extends: type:node
+  purpose: >
+    a library module of the code — a file or a folder of code that pages, components and operations are built from.
+    `wye init` writes one per file (or per folder when there are many), and a requirement's `satisfied-by` names it.
+  open: true
+  props:
+    file: string?
+    side: enum [server, shared, client]?
+    purpose: text?
+    part-of: list of module? -(inverse)-> has
+- id: type:component
+  extends: type:node
+  purpose: >
+    a component of the user interface — a React, Vue or Svelte component file, or a route file — that a page is
+    made of. `wye init` writes one per component file, and a requirement's `satisfied-by` names it.
+  open: true
+  props:
+    file: string?
+    side: enum [client, server]?
+    purpose: text?
+    part-of: list of module? -(inverse)-> has
 - id: type:skill
   extends: type:module
   purpose: >

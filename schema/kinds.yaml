@@ -9,6 +9,7 @@ kinds:
   analytics:      { purpose: a page that groups the product's blocks any way }
   choice:         { purpose: what was chosen, when a decision wants it as a block of its own under the decision rather than in its text, nests-in: [decision] }
   comment:        { purpose: a remark on a node — kept as a card in the Comments document of the node's project, never nested under the node, required: [on] }
+  component:      { purpose: a component of the user interface — a React, Vue or Svelte component file, or a route file }
   consequence:    { purpose: what follows from a decision — a child block of it, nests-in: [decision] }
   constraint:     { purpose: a rule about the product or how it is built that no code enforces — "local-first", "markdown is canonical" }
   context:        { purpose: what forced a decision — a child block of it, nests-in: [decision] }
@@ -23,6 +24,7 @@ kinds:
   goal:           { purpose: what the product or a project sets out to achieve }
   hook:           { purpose: "when this happens to that kind of node, do this" — a card in the project's Hooks document, required: [on, do] }
   lesson:         { purpose: procedural memory — "this broke because …", "here we always …" — learned in a session and kept for the next one, required: [statement] }
+  lib:            { purpose: a library module of the code — a file or a folder of code that pages, components and operations are built from }
   map:            { purpose: a page whose blocks are a graph: the nodes drawn on its canvas are cards in this document }
   module:         { purpose: a bounded area of the product; one document per module }
   note:           { purpose: a remark under a rule, a constraint or any node — a child block of it, nests-in: [node] }
@@ -79,7 +81,7 @@ verbs:
   on:             comment → node   (inverse: comments)
   owns:           entity → state   (inverse: owned-by)
   pair:           verdict → node
-  part-of:        any → node   (inverse: has)
+  part-of:        any | component | lib → module | node   (inverse: has)
   produced:       any | run → node   (inverse: produced-by)
   rationale:      constraint → decision   (inverse: rationale-for)
   reads:          op | page → node   (inverse: read-by)

@@ -7,7 +7,7 @@ description: The read/write contract between a coding agent and the product cont
 
 The graph in `data/products/<product>/projects/*/docs/*.md` is the product's single source of truth for **what the system does and why**.
 Treat it as external memory: read from it before you read code, write to it before you write code.
-`wye` is the CLI (`~/Projects/wye/bin/wye.js`, on PATH after `install.sh`). Never `cat` the graph files; query.
+`wye` is the CLI (`bin/wye.js` in the Wye install, on PATH after `install.sh` or `npm i -g @emlab/wye`). Never `cat` the graph files; query.
 
 ## Read contract — before touching code
 
@@ -32,7 +32,7 @@ Every node id you rely on goes into your plan and your PR description (`req:inv.
 ## Write contract — describe, then build
 
 1. **New behaviour ⇒ new or refined `req:` first.** Add it to the module `.md` (or a delta folder, see
-   `~/Projects/wye/templates/delta.yaml`) with `status: proposed`, when/then/unless, and the `satisfied-by`
+   `templates/delta.yaml` in the Wye install) with `status: proposed`, when/then/unless, and the `satisfied-by`
    nodes you intend to create. Add the ops/rules/actions it needs as nodes with `status: proposed`.
 2. **Changing existing behaviour ⇒ `wye graph impact` first**, then edit the affected nodes' bodies. If your change
    contradicts a rule, do not delete the rule: add a drift row and resolve it explicitly in the PR.

@@ -78,24 +78,6 @@ employee:bo Bo joined in March (name: Bo, startDate: 2026-03-09, manager: manage
 ## Types declared elsewhere
 
 ```yaml
-- id: type:component
-  extends: type:node
-  purpose: a React component of the web app (packages/web/src/components or a route file)
-  home: module:app
-  props:
-    file: string
-    side: enum [client, server]
-    purpose: text
-    part-of: list of module? -(inverse)-> has
-- id: type:lib
-  extends: type:node
-  purpose: a library module — packages/web/src/lib, lib/ (graph core) or bin/ (CLIs)
-  home: module:app
-  props:
-    file: string
-    side: enum [server, shared, client]?
-    purpose: text
-    part-of: list of module? -(inverse)-> has
 - id: type:store
   extends: type:node
   purpose: a place data lives on disk — a file or folder pattern with its format and who writes it

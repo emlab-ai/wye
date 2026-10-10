@@ -6,13 +6,14 @@ description: Build the product context graph for one module — requirements, en
 # Describe a module as a context graph
 
 You are producing `data/products/<product>/projects/<project>/docs/<module>.md`: a code-free, graph-shaped description of one module that a
-script can parse (`wye build`) and lint (`wye check`). The inventory pilot (`data/products/wye/projects/v2/docs/inventory.md`) is the
-reference example. The schema is `~/Projects/wye/schema/kinds.yaml`; the skeleton is `~/Projects/wye/templates/module.md`.
+script can parse (`wye build`) and lint (`wye check`). The inventory pilot (`data/products/wye/projects/v2/docs/inventory.md` in the
+Wye repository) is the reference example. The schema is `schema/kinds.yaml` and the skeleton `templates/module.md`, both in the Wye
+install — the folder two levels above the `wye` command: `$(dirname "$(readlink -f "$(which wye)")")/..`.
 
 Rules that are not negotiable:
 - **Requirements first.** Every behaviour is a `req:` node in when/then/unless form. Everything else exists to satisfy one.
 - **Every rule cites a source** (`file:line` or `file#Symbol`). No source ⇒ it is a wish, and `wye check` fails.
-- **Status reflects evidence.** `shipped` only with a test you actually found. Otherwise `unverified`, `api-only`, `proposed` or `question`.
+- **Status reflects evidence.** `shipped` when the code does it — you read the code that delivers it; name the test in `verified-by` when you found one, else say why not. `proposed` when it should and does not, `api-only` when only the server does it, `unverified` when you could not read what delivers it, `question` when you cannot tell.
 - **The drift table is mandatory.** You compared PRD vs server vs client vs tests; write down every disagreement.
 - **Never invent behaviour.** If the code is silent, write a `question`, not a guess.
 
