@@ -52,7 +52,7 @@ jobs:
 
       - name: Publish
         if: github.event_name == 'release' || inputs.dry-run == false
-        run: npm publish
+        run: npm publish --provenance   # provenance only here: npm cannot make it outside a CI run, and a publish from a laptop must still work
         env:
           # only until Trusted Publishing is set up on npmjs.com; npm prefers the workflow's OIDC identity when it is
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
