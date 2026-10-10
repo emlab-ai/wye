@@ -61,7 +61,9 @@ function writeBuild(graph, outDir) {
 switch (cmd) {
     case 'build': {
         // one build path with the app (lib/build): graph.json only — the viewer's data.js is `ctx site`'s
-        const { graph, files } = require('../lib/build').buildGraph(ROOT, { files: positional.length ? findDocs(positional) : undefined });
+        // file paths in the graph are relative to Wye's home, as the app writes them (it reads a page at home + path): not to the
+        // folder this runs in — an agent in a vault's folder would write `.wye/projects/…` and every page would read as gone
+        const { graph, files } = require('../lib/build').buildGraph(ROOT, { cwd: require('./wye-home').home(), files: positional.length ? findDocs(positional) : undefined });
         const g = new Graph(graph), s = g.stats();
         console.log(`built ${BUILD}/graph.json from ${files.length} file(s): ${s.nodes} nodes, ${s.edges} edges`);
         console.log('by kind: ' + Object.entries(s.byKind).map(([k, v]) => `${k} ${v.defined}${v.stub ? '+' + v.stub + ' stub' : ''}`).join(' · '));
