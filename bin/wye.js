@@ -8,6 +8,7 @@
 //   wye check [--root <product dir>] [--strict]   the graph's problems (dangling references, missing fields…)
 //   wye graph <get|neighbors|search|constraints|reqs|stats|site|impact|packet|verdicts> …   every graph command by name
 //
+//   wye --version                         the version and the install it runs from (is the global wye the latest?)
 //   wye setup                             the home (~/.wye when installed from npm: your products in data/) and the Claude Code skills
 //   wye app [folder] [--port 3456] [--browser] [--no-open]   the app in its own window, over the home (--browser: in your browser);
 //        with a folder, that folder is opened as the workspace: its vaults are the Documents roots, its files are under Files
@@ -1000,6 +1001,7 @@ if (GRAPH_CMDS.has(pos[0]) || pos[0] === 'graph') {
 }
 
 (async () => {
+  if (flags.version || pos[0] === 'version') { console.log(`${require('../package.json').version} (${path.resolve(__dirname, '..')})`); process.exit(0); }
   const c = commands[pos[0]];
   if (!c) { // the help is this file's leading comment, whole — every command up to the first line of code
     const lines = fs.readFileSync(__filename, 'utf8').split('\n').slice(2); const end = lines.findIndex(l => !l.startsWith('//'));

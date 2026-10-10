@@ -5,8 +5,9 @@ like, the loop, the command line. These pages go deeper, one topic each.
 
 | page | what |
 |---|---|
+| [Workspaces and vaults](workspaces-and-vaults.md) | install from npm and update; a vault (`wye init`: `.wye/` beside the code, the note to agents, the links between vaults, what to commit); how `wye` finds its vault; a workspace (open a folder: its vaults as roots, Files, Rescan, export and import); several vaults in one repository |
 | [The type system](type-system.md) | every block is a typed node; declaring a type, properties and value types, links and inverses, shapes, instances and collection documents, ids, statuses, time |
-| [Querying the graph](query.md) | every table is SQL over the graph: what the filters write, editing the query, the `nodes` and `edges` tables, graph patterns, `wye query` |
+| [Querying the graph](query.md) | every table is SQL over the graph: what the filters write, editing the query, the `nodes` and `edges` tables, graph patterns, `wye query`; analytics pages — rows and columns as stacks of dimensions, cards in cells |
 | [An agent on another machine](remote-agent.md) | Wye on your laptop, the agent on a server over SSH: a reverse tunnel so `wye` there reaches the app here — setup, what works over it, keeping it up, who else can reach it |
 | [Base ontology](../schema/base-ontology.md) | the source of the base kinds — every `type:` card with its props, inverses and shapes |
 | [Kinds and verbs in prose](../schema/kinds.yaml) | the same, readable: kinds, verbs, statuses, conventions — generated from the ontology by `npm run kinds` |

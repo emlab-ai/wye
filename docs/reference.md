@@ -110,6 +110,20 @@ text stays in a change record).
 
 ## Install and run
 
+**From npm** (to use Wye):
+
+```bash
+npm install -g @emlab/wye          # Node.js 20.9+; Claude Code or Codex installed and signed in for the agents
+wye setup                          # the home (~/.wye: data/products yours, the code linked to the package) and the Claude Code skills
+cd ~/code/shop && wye init         # a vault: this folder's knowledge in .wye/, a note to agents in AGENTS.md / CLAUDE.md
+wye app ~/code/shop                # the app in its own window on that folder (--browser: http://localhost:3456)
+npm install -g @emlab/wye@latest && wye setup    # update: the vault and the home's data are never touched
+```
+
+Vaults, workspaces, the home and what `wye init` writes: [workspaces-and-vaults.md](workspaces-and-vaults.md).
+
+**From a clone** (to work on Wye):
+
 ```bash
 git clone https://github.com/emlab-ai/wye.git && cd wye
 npm install
@@ -118,9 +132,10 @@ wye build --root data/products/wye && wye check --root data/products/wye
 npm run dev               # the app at http://localhost:3000 (npx --workspace=packages/web next dev -p 3456 for the port the CLI and desktop expect)
 ```
 
-`npm run desktop` opens the app in its own window (Electron); it starts the server on 3456 if none is running and
-quits it on exit — see [Desktop app](#desktop-app) for the installable `Wye.app` / AppImage. Wye's own definition
-lives in `data/products/wye` — the app is described in itself, and every change to it goes through the loop above.
+A clone is its own home: its products are in `data/products/`. `npm run desktop` opens the app in its own window
+(Electron); it starts the server on 3456 if none is running and quits it on exit — see [Desktop app](#desktop-app)
+for the installable `Wye.app` / AppImage. Wye's own definition lives in `data/products/wye` — the app is described
+in itself, and every change to it goes through the loop above.
 
 ### First run and the Quick start
 
@@ -142,6 +157,10 @@ dismissed } }`, so they never reach Git or an export. The rail shows Quick start
 card, until all nine are done or it is dismissed; Help (`?`, ⌘/) opens it again.
 
 ### Data layout
+
+A vault is this same folder as `<repo>/.wye/` — plus `_agent.md` (the folder's instructions to agents), `parent:`
+and `vaults:` in `_product.md` (the links to the vaults above and below), `_changes/` (the change history) and a
+`.gitignore` for `_build/`, `_sessions/`, `_changes/`, `_hooks/`, `_impact/`.
 
 ```
 data/products/<product>/_product.md                       title, icon, description
@@ -380,7 +399,13 @@ sandbox as `-c sandbox_mode=`; `wye agent listen` runners keep their own `--cmd`
 | `wye skills` · `wye skill <id>` · `wye hooks [--node id]` | the product's skills; one skill's instruction; the hooks and what fired |
 | `wye workflow list\|show <id>` · `wye workflow run <id> --on <node>` | the workflows and their stages; start a run on a node or document |
 | `wye run list\|show <id>` · `wye run advance\|skip\|reopen\|retry\|cancel <id>` | the runs with the readiness of the stage they are at; the person's moves |
-| `wye init --product <slug> --repo <dir>` | a product's definition from its code, first pass: the layered tree, every module / page / component / library / operation / test, a `#ready` describe task per module — no model, nothing overwritten |
+| `wye init [folder] [--slug s] [--title "…"]` | a vault for the folder (the current one): its knowledge in `.wye/` beside the code — the first definition read from it, `_agent.md`, the note to agents in `AGENTS.md` / `CLAUDE.md`, the links to the vaults above and below. On a folder that has one, only the note is brought up to date |
+| `wye init --product <slug> --repo <dir>` | the same first definition, kept in the home's `data/products/<slug>` instead: the layered tree, every module / page / component / library / operation / test, a `#ready` describe task per module — no model, nothing overwritten |
+| `wye setup` | the home (`~/.wye` when installed from npm) and the Claude Code skills in `~/.claude/skills` |
+| `wye --version` | the version and the install it runs from |
+| `wye app [folder] [--port n] [--browser] [--no-open]` | the app in its own window; with a folder, that folder is the workspace: its vaults are the Documents roots, its files under Files |
+| `wye export <product>` · `wye import <file.wye.tgz>` · `wye open <folder>` | a product as one file; a product from one; a product folder already on disk, used where it is |
+| `wye remember [--title "…"] [--ref id]` | the person's words as they were said, into the inbox — never a block — judged against what is known and digested at once |
 | `wye deepen <module> --product p` | assign the module's describe task to a worker: requirements from the code, each mapped to the file that delivers it |
 | `wye agent listen --product p --agent claude-code\|codex` | a runner: pick up queued sessions, run the agent with the prompt on stdin, stream the output to the session |
 | `wye eval own\|compare\|public\|judge\|report\|ask` | the benchmarks; `ask` is the retriever's recall@k |
@@ -395,6 +420,7 @@ lib/parse.js             markdown → graph: nodes, typed edges, generated inver
 lib/graph.js             queries, packet, impact, lint
 lib/judge.js             the model calls (verdicts, impact) — budgeted, cached by pair hash
 lib/init.js              a definition from a repo
+lib/vault.js             a vault: .wye/ beside the code, the note to agents, the links between vaults, what a workspace reaches
 packages/web             the app (Next.js, BlockNote): documents, cards, views, PRs, inbox, agents, sessions
 packages/desktop         the Electron shell that owns the server
 prompts/                 the worker contract (agent-system.md), the librarian, describe-module, analyse-request, define-tests, and the stages of the Feature workflow (research, prd, tech-design, test-design, plan)
@@ -430,10 +456,11 @@ is what the agents use.
 
 ### From npm
 
-`npm install -g @emlab/wye`, then `wye app`: the app opens in its own window (Electron, an optional dependency of the
-package — its binary, about 100 MB, is fetched the first time when npm did not run its install script). `wye app` owns
-the server over your home (`~/.wye`) and the window is a view on it: closing the window, or Ctrl+C in the terminal,
-stops both. `wye app --browser` opens your browser on `http://localhost:3456` instead, `--no-open` starts the server
+`npm install -g @emlab/wye`, `wye setup`, then `wye app`: the app opens in its own window (Electron, an optional
+dependency of the package — its binary, about 100 MB, is fetched the first time when npm did not run its install
+script). `wye app` owns the server over your home (`~/.wye`: `data/products` yours, the code folders linked to the
+installed package and relinked by `wye setup` after an update) and the window is a view on it: closing the window,
+or Ctrl+C in the terminal, stops both. `wye app --browser` opens your browser on `http://localhost:3456` instead, `--no-open` starts the server
 alone, and an install without Electron falls back to the browser. If a Wye already answers on the port, `wye app` only
 opens a window on it.
 

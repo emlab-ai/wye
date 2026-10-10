@@ -138,15 +138,15 @@ decision:payments.provider Use Stripe for online card processing.
 ```
 
 These are still readable Markdown. Because they have ids, Wye can connect them. You can also start from code:
-`wye init` reads a repository into a first, shallow definition, and `wye deepen` sends an agent to describe each module
-in a person's words. In a monorepo, `wye init` run inside a service's folder gives that folder its own vault — `.wye/`
-committed with the code, a note in `AGENTS.md` / `CLAUDE.md` that sends agents to it, and links to the vault above and
-the ones below. Open the monorepo (or any folder of it) as the **workspace** — `wye app <folder>`, or Open folder… at
-the top of the rail — and every vault it reaches is a root in Documents; Goals, Work, the Inbox, pins and search read
-them all, each item named by its vault. **Files** lists the folder's files: a click opens one in a tab, read only, in
-the VS Code editor, and right-click on a folder offers Init Wye here. Inside a folder that has a vault, `wye` needs no
-`--product`: it finds the nearest `.wye/` above where it runs, so what an agent learns about a service is proposed into
-that service's vault — and a vault's packet carries the approved constraints of the vaults above it.
+`wye init` in a repository gives it a **vault** — its own knowledge in `.wye/`, committed with the code: a first,
+shallow definition read from the files, a note in `AGENTS.md` / `CLAUDE.md` that sends every agent working there to
+it, and links to the vaults above and below it in a monorepo. `wye deepen` then sends an agent to describe each
+module in a person's words — only what the code does not already say. Inside a folder with a vault, `wye` needs no
+`--product`: it finds the nearest `.wye/` above where it runs, so what an agent learns about a service lands in that
+service's vault, and a vault's packet carries the approved constraints of the vaults above it. Open the repository
+(or any folder) as the **workspace** — `wye app <folder>`, or Open folder… at the top of the rail — and every vault
+it reaches is a root in Documents; Goals, Work, the Inbox and search read them all. The whole of it:
+[docs/workspaces-and-vaults.md](docs/workspaces-and-vaults.md).
 
 ### 2. Request
 
@@ -193,9 +193,14 @@ which statement is now in force and what happens to the old one.
 When something is written, Wye's judge compares it with its neighbours in the graph and classifies each pair as
 `duplicate`, `refines`, `consistent` or `contradicts`. For a contradiction it also names the kind: a fact against a
 fact, a later state of the same thing, or a conflict only under some condition. Each verdict records the model and
-prompt that produced it, so it can be replayed and evaluated. A contradiction is itself a node in the graph, and
-approving a block with an open one means choosing: supersede the other side, refine this one, or dismiss it with a
-reason.
+prompt that produced it, so it can be replayed and evaluated.
+
+A contradiction is itself a node, and it waits in the Inbox with its two sides and the decisions that stand behind
+each. **Resolving it is a decision**: you say which side holds — A, B, both, neither, or another way in your own
+words — and why, and Wye writes that as an approved `decision:` block. The losing side and the decisions that stood
+only behind it are marked `superseded` and point at the new decision; the contradiction closes and points at it too.
+Nothing is deleted, and nothing left standing says what was decided against. When you cannot decide yet, **Ask** turns
+it into an open question about both sides, and the contradiction waits for the answer.
 
 ### 5. Approve
 
@@ -324,7 +329,7 @@ Wye has base types such as `req:`, `rule:`, `decision:`, `constraint:`, `goal:`,
 
 | a product for | might add |
 |---|---|
-| software it builds | `component:`, `fact:`, `lib:` |
+| software it builds | `service:`, `store:`, `metric:` (`module:`, `component:`, `lib:`, `op:` and `fact:` are base kinds — `wye init` writes them) |
 | logistics | `vehicle:`, `route:`, `depot:`, `driver:` |
 | evaluation | `eval:`, `dataset:`, `benchmark:`, `run:` |
 | hospitality | `restaurant:`, `menu:`, `dish:`, `table:` |
@@ -421,6 +426,15 @@ Filters write the SQL for you; you can edit it, or describe the table in words a
 
 ![A table's filter opened: the SQL it runs, and an agent ready to write one](docs/screenshots/table.png)
 
+## Analytics
+
+An **analytics** page groups the same blocks any way you like: rows and columns are each a stack of dimensions — a
+property, a team, a status, a month, a path of links like `worker.part-of` — and every cell shows the cards at that
+intersection, never a count. One query line is a kanban (`y=status`), a swimlane board (`y=worker x=status`), a
+planner (`y=worker.part-of,worker x=due:month`) or a Gantt (`x=when:span`); the data is a SQL query like a table's,
+and **✦ Ask** writes the whole page from a sentence. Nothing is stored per card: a block is on the page because the
+query admits it, and leaves when it stops. See [docs/query.md](docs/query.md#analytics-pages).
+
 ## Mind maps
 
 A **map** page is the same knowledge as a canvas: its nodes are blocks and its links are the graph's edges. Add a
@@ -483,14 +497,16 @@ own agent, it runs one of those.
 ```bash
 npm install -g @emlab/wye
 wye setup                                 # the home (~/.wye) and the Claude Code skills (~/.claude/skills)
-wye init --product shop --repo ~/code/shop   # a first definition read from your code
-cd ~/code/mono/services/payments && wye init # or: this folder's own knowledge in .wye/, beside its code (a vault)
-wye app                                   # the app in its own window; --browser for http://localhost:3456
-wye app ~/code/mono                       # …with that folder open as the workspace: its vaults, its files
+cd ~/code/shop && wye init                # this repository's own knowledge in .wye/, beside its code: a vault
+wye app ~/code/shop                       # the app in its own window on that folder; --browser for http://localhost:3456
 ```
 
-Your products live in `~/.wye/data/products/` (set `WYE_HOME` to put them elsewhere), and an update never touches
-them. A product can also keep its documents next to its code: `root: <path>` in its `_product.md`.
+`wye init` reads the code into a first definition, writes a note to agents in `AGENTS.md` / `CLAUDE.md`, and links
+the vault to the ones above and below it in a monorepo; commit `.wye/` with the code. From then on, `wye` run
+anywhere under that folder — by you or by an agent — reads and writes that vault without a flag. To update:
+`npm install -g @emlab/wye@latest && wye setup`; a vault and the home's data are never touched by an update.
+Products you would rather keep out of a repository go in `~/.wye/data/products/` (`wye init --product shop --repo
+~/code/shop`, or Add a product in the app). All of this in detail: [docs/workspaces-and-vaults.md](docs/workspaces-and-vaults.md).
 
 **The first run.** With no products yet, `wye app` opens a Welcome: what Wye is in three steps, whether Claude Code or
 Codex was found, and Add a product, which starts on **From your code** (`wye init` through the app: a folder, and
@@ -540,16 +556,20 @@ else in detail are in [docs/reference.md](docs/reference.md).
 
 ## Data layout
 
+A vault is a product folder inside the repository it describes; a product in Wye's home is the same folder under
+`~/.wye/data/products/<product>/`:
+
 ```text
-data/products/<product>/
-├── _product.md                  title, icon, description
+<repo>/.wye/                     the vault (wye init) — committed with the code
+├── _product.md                  title, slug, icon, description; parent: and vaults: — links to the vaults above and below
+├── _agent.md                    this folder's own instructions to agents
 ├── projects/<project>/
 │   ├── _project.md
 │   └── docs/*.md, docs/assets/  the documents
-├── inbox/                       raw notes dropped for later filing
-├── _sessions/                   agent sessions: instruction, log, result
-├── _hooks/                      what hooks fired
-└── _build/graph.json            generated: the graph, rebuilt after every save
+├── inbox/                       what was said, as it was said (wye remember); raw notes for later filing
+├── _sessions/                   agent sessions: instruction, log, result        (local, gitignored)
+├── _changes/, _hooks/           the change history, what hooks fired            (local, gitignored)
+└── _build/graph.json            generated: the graph, rebuilt after every save  (local, gitignored)
 ```
 
 `_build` is generated; the Markdown files are canonical.
@@ -643,7 +663,7 @@ It also sounds like **why**, which is a good place for any product change to beg
 
 Wye is early, local-first, open source, under active development, and used to build itself. The core workflow needs
 no accounts and no hosted service. Expect the model, the interface and the APIs to change. The current version is
-`0.2.0`.
+`0.4.1`.
 
 ## Contributing
 

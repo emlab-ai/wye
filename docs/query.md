@@ -98,6 +98,42 @@ WHERE kind = 'task' AND open AND has(owner, 'person:me') AND try_cast(due AS DAT
 ORDER BY due
 ```
 
+## Analytics pages
+
+An **analytics** page (type `analytics`; the old `timeline` pages are drawn by it) groups blocks on two axes. Its
+`query:` line in the page's frontmatter says which nodes it watches and how the rows and the columns group them:
+
+```text
+query: kind=task status=open y=worker.part-of,worker x=due:month
+```
+
+| part | meaning |
+|---|---|
+| `kind=a,b` · `status=…` · `q=words` · `<prop>=value` · `<path>=id` | which nodes: kinds, statuses, words in the text, a property, a path of links (`part-of=project:q4`) |
+| `sql="SELECT id FROM nodes WHERE …"` | the data as a query instead — anything that returns `id` ([above](#a-tables-sql)); the strip's SQL chip shows and edits it |
+| `y=d1,d2` · `x=d1,d2` | the rows and the columns: a list of dimensions, outer first |
+
+A **dimension** is a property (`worker`, `owner`, `project`), `kind`, `status`, a path of links (`worker.part-of`:
+the team of the task's worker), or a date field with a bucket: `due`, `when`, `starts`, `ends`, `date`, with
+`:day`, `:week`, `:month`, `:quarter`, `:year`, or `:span` — a continuous track, the old timeline, only as the
+innermost column. Empty buckets between the first and the last date are kept; a node without the date is not
+placed, and the strip counts it ("3 with no dates").
+
+Every cell holds the cards at that intersection, one line each with the status stripe, never a count. In the
+page, the two wells (Rows, Columns) are the same line: drag a dimension between them, **+ dimension** adds one,
+the strip filters the kinds and the words, and **✦ Ask** writes the whole line from a sentence — "tasks by team and
+month", "open questions per owner" — through an agent that knows the grammar and the product's properties.
+
+```text
+y=status                                   a kanban, one column
+y=worker x=status                          a swimlane board
+y=worker.part-of,worker x=due:month        a planner: team, then person, by month
+kind=plan x=when:span                      a Gantt of the plans
+kind=decision y=by x=date:quarter          who decided what, by quarter
+```
+
+Nothing is stored per card: a block is on the page because the query admits it, and leaves when it stops.
+
 ## From the command line and the API
 
 ```sh
