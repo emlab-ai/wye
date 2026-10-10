@@ -101,7 +101,7 @@ const hasValue = (cell: string | undefined, want: string) => !!cell && (cell ===
 // what no longer asks anything of anyone: a done status, or a commitment met or dropped, a message answered
 export const CLOSED = new Set(['done', 'shipped', 'complete', 'met', 'dropped', 'answered', 'cancelled', 'rejected', 'retired', 'superseded', 'dismissed']);
 export const isOpen = (r: Pick<InstanceRow, 'status' | 'props'>) => !CLOSED.has(r.status) && !CLOSED.has(r.props.state ?? '');
-const addDays = (day: string, n: number) => { const d = new Date(`${day}T12:00:00`); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const addDays = (day: string, n: number) => { const d = new Date(`${day}T12:00:00`); if (Number.isNaN(d.getTime())) return ''; d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };   // '' for a day that is not one
 // `due=late` (before today), `due=today` (today or late), `due=7d` (within a week, late included); no date: never in a window
 export function dueIn(due: string | undefined, window: string, today: string): boolean {
   const d = (due ?? '').slice(0, 10); if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;

@@ -6,7 +6,7 @@ import { railAgents, type RailAgent, type RailSession } from '@/lib/rail-agents'
 type Batch = { requestSlug: string; project: string; title: string; total: number; done: number; current: string | null; stopped: boolean; legacy: boolean; next: string[] };
 type Slots = { parallel: number; running: number; waiting: string[] };
 type Job = { hook: string; title: string; schedule: string; does: string; agent: string; status: 'active' | 'paused' | 'off'; next: string | null; last: string | null };
-const when = (iso: string | null) => iso ? new Date(iso).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : '—';
+const when = (iso: string | null) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? d.toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : '—'; };
 
 // The top of the Agents page: everything queued, in one place — what runs now (and how many agent slots it takes),
 // what waits for a slot and in which order, and each background import with the file it is on and the files after it.

@@ -31,7 +31,7 @@ const DAY = 86400000;
 export const day = (s: string): string => (s || '').trim().slice(0, 10);
 const time = (s: string): number => Date.parse(day(s) + 'T00:00:00Z');
 export const isDay = (s: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(day(s)) && !Number.isNaN(time(s));
-export const shift = (s: string, days: number): string => new Date(time(s) + days * DAY).toISOString().slice(0, 10);
+export const shift = (s: string, days: number): string => { const t = time(s); return Number.isNaN(t) ? '' : new Date(t + days * DAY).toISOString().slice(0, 10); };   // '' for a day that is not one
 export const daysBetween = (a: string, b: string): number => Math.round((time(b) - time(a)) / DAY);
 
 // `3d`, `2w`, `1m`, or a bare number of days. Anything else is no duration at all.

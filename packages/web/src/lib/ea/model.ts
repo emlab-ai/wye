@@ -21,7 +21,7 @@ export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export const isDate = (s: unknown): s is string => typeof s === 'string' && DATE_RE.test(s) && !Number.isNaN(Date.parse(s + 'T00:00:00Z'));
 // whole days from a to b (b - a), both YYYY-MM-DD
 export const daysBetween = (a: string, b: string) => Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000);
-export const addDays = (d: string, n: number) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10);
+export const addDays = (d: string, n: number) => { const t = Date.parse(d + 'T00:00:00Z'); return Number.isNaN(t) ? '' : new Date(t + n * 86400000).toISOString().slice(0, 10); };   // '' for a day that is not one
 // the local calendar day — a director's morning is local, not UTC
 export const today = (now = new Date()) => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 

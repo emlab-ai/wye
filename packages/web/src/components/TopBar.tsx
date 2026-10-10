@@ -11,7 +11,8 @@ export type DocMeta = { slug: string; node: string; title: string; icon: string;
 const PAGES: Record<string, string> = { goals: 'Goals', tasks: 'Tasks', work: 'Tasks', questions: 'Questions', knowledge: 'Knowledge', graph: 'Graph', inbox: 'Inbox', sessions: 'Agents', prs: 'PRs', new: 'New workspace', types: 'Types', search: 'Search', start: 'Quick start', settings: 'Settings', constitution: 'Constitution' };
 const PAGE_ICONS: Record<string, string> = { goals: '◎', tasks: '☑', questions: '?', knowledge: '◈', graph: '⌬', inbox: '⇩', sessions: '⚡', types: '⬡', search: '⌕', prs: '🗺️', settings: '⚙', start: '◔', constitution: '§' };
 
-const ago = (iso: string) => { const m = (Date.now() - Date.parse(iso)) / 60000; if (m < 1) return 'just now'; if (m < 60) return `${Math.round(m)} min ago`; if (m < 1440) return `${Math.round(m / 60)} h ago`; const d = Math.round(m / 1440); return d < 30 ? `${d} d ago` : formatDay(iso); };
+// nothing at all when the time is not one (a file whose stat failed has no mtime) — never a thrown RangeError
+const ago = (iso: string) => { const m = (Date.now() - Date.parse(iso)) / 60000; if (Number.isNaN(m)) return ''; if (m < 1) return 'just now'; if (m < 60) return `${Math.round(m)} min ago`; if (m < 1440) return `${Math.round(m / 60)} h ago`; const d = Math.round(m / 1440); return d < 30 ? `${d} d ago` : formatDay(iso); };
 
 // Back and forward through the browser's history (req:wf2.ui.history-nav): the Navigation API says whether there is
 // anywhere to go when the browser has it; otherwise back is possible once the history has more than one entry and
