@@ -5,6 +5,8 @@ import { usePeek } from './PeekProvider';
 import { SmartTag } from './SmartTag';
 import { StatusPill, KindPill } from './Pills';
 import { requestSend } from './CommandBox';
+import { Comments } from './Comments';
+import type { Keep } from '@/lib/contradiction';
 import type { ReviewItem } from '@/lib/review';
 import { describeBlock, verdictSummary } from '@/lib/review-summary';
 
@@ -95,6 +97,24 @@ export function ReviewList({ product, items }: { product: string; items: ReviewI
     } catch (e) { setMsg(e instanceof Error ? e.message : String(e)); setBusy(null); return; }
     setBusy(null); setChoosing(null); router.refresh();
   };
+  // A contradiction resolves into a decision (decision:waterfall.contradiction-resolves-into-a-decision): the person
+  // says which side holds and why; the server writes the decision, supersedes the losing side and the decisions that
+  // stood only behind it, and closes the contradiction. Or the person asks a specific question — a question block
+  // about both sides — and the contradiction waits for the answer. Or comments on it.
+  const [cx, setCx] = useState<Record<string, { mode: 'resolve' | 'ask' | 'comment' | null; keep: Keep; why: string; title: string; q: string }>>({});
+  const cxOf = (id: string) => cx[id] ?? { mode: null, keep: 'a' as Keep, why: '', title: '', q: '' };
+  const setCxFor = (id: string, patch: Partial<ReturnType<typeof cxOf>>) => setCx(m => ({ ...m, [id]: { ...cxOf(id), ...patch } }));
+  const contradictionPost = async (it: ReviewItem, body: Record<string, unknown>) => {
+    setBusy(it.id); setMsg(null);
+    try {
+      const r = await fetch(`/api/${product}/contradiction/${encodeURIComponent(it.id)}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.message ?? r.statusText);
+      setMsg(body.action === 'resolve' ? `${j.decision} written${j.superseded?.length ? ` · superseded: ${j.superseded.join(', ')}` : ''}` : `${j.question} asked — the contradiction waits for the answer`);
+      setCxFor(it.id, { mode: null, why: '', q: '', title: '' });
+    } catch (e) { setMsg(e instanceof Error ? e.message : String(e)); setBusy(null); return; }
+    setBusy(null); router.refresh();
+  };
   const kinds = [...new Set(items.map(i => i.kind))];
   const shown = items.filter(i => !filter || i.kind === filter);
   const groups = [...new Map(shown.map(i => [i.kind, shown.filter(x => x.kind === i.kind)]))];
@@ -126,6 +146,15 @@ export function ReviewList({ product, items }: { product: string; items: ReviewI
                     </div>
                     {!clipped && d.description && d.description !== t && <p className="review-text">{d.description.slice(0, 700)}</p>}
                     {v.open.map((x, i) => <p key={i} className={`verdict v-${x.kind} open`}><b>{x.kind}</b> <SmartTag id={x.other} />{x.conflict && <small className="muted"> {x.conflict}</small>} <span>{plain(x.reason)}</span></p>)}
+                    {it.kind === 'contradiction' && it.sides && (
+                      <div className="cx-sides" onClick={e => e.stopPropagation()}>
+                        <p><b>A</b> <SmartTag id={it.sides.a.id} /> <span className="muted">{it.sides.a.kind} · {it.sides.a.status || 'no status'}</span><span className="cx-vs">against</span><b>B</b> <SmartTag id={it.sides.b.id} /> <span className="muted">{it.sides.b.kind} · {it.sides.b.status || 'no status'}</span></p>
+                        {it.sides.decisions.length
+                          ? <p><b>Decisions behind it</b> {it.sides.decisions.map(d => <span key={d.id} className="cx-decision"><SmartTag id={d.id} /> <small className="muted">{d.side === 'both' ? 'both sides' : `side ${d.side.toUpperCase()}`} · {d.verb}</small></span>)}</p>
+                          : <p className="muted">No decision records either side — resolving writes the first one.</p>}
+                        {it.fields.asked && <p><b>Asked</b> {it.fields.asked.replace(/^\[|\]$/g, '').split(/,\s*/).map(q => <SmartTag key={q} id={q} />)}</p>}
+                      </div>
+                    )}
                     <details className="review-more">
                       <summary>details</summary>
                       <p className="inbox-field"><b>id</b> <SmartTag id={it.id} /> <span className="muted">in {it.project} / {it.doc}{it.session ? ` · session ${it.session.slice(0, 6)}` : ''}{v.line ? ` · ${v.line}` : ''}</span></p>
@@ -146,6 +175,37 @@ export function ReviewList({ product, items }: { product: string; items: ReviewI
                       <button className="linkish" onClick={() => setChoosing(null)}>Cancel</button>
                     </div>
                   </div>)}
+                {it.kind === 'contradiction' && cxOf(it.id).mode === 'resolve' && it.sides && (
+                  <div className="verdict-choice cx-panel" onClick={e => e.stopPropagation()}>
+                    <p>Which holds? The decision is written, approved, with what it supersedes — the losing side and the decisions that stood only behind it.</p>
+                    <div className="cx-keep">
+                      {([['a', `A holds — ${it.sides.b.title} is superseded`], ['b', `B holds — ${it.sides.a.title} is superseded`], ['both', 'Both hold — A refines B'], ['none', 'Neither holds — both are superseded']] as [Keep, string][]).map(([k, label]) => (
+                        <label key={k}><input type="radio" name={`cx-keep-${it.id}`} checked={cxOf(it.id).keep === k} onChange={() => setCxFor(it.id, { keep: k })} /> {label}</label>
+                      ))}
+                    </div>
+                    <input className="cx-title" value={cxOf(it.id).title} placeholder="the decision's title (optional — written from the sides when empty)" onChange={e => setCxFor(it.id, { title: e.target.value })} />
+                    <textarea value={cxOf(it.id).why} rows={3} placeholder="Why — what forced it, what was chosen, what it rules out. This is the decision's text." onChange={e => setCxFor(it.id, { why: e.target.value })}
+                      onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && cxOf(it.id).why.trim()) { e.preventDefault(); void contradictionPost(it, { action: 'resolve', keep: cxOf(it.id).keep, why: cxOf(it.id).why, title: cxOf(it.id).title }); } }} />
+                    <div className="sec-actions">
+                      <button className="pri" disabled={busy === it.id || !cxOf(it.id).why.trim()} onClick={() => contradictionPost(it, { action: 'resolve', keep: cxOf(it.id).keep, why: cxOf(it.id).why, title: cxOf(it.id).title })}>{busy === it.id ? 'Deciding…' : 'Decide (⌘↵)'}</button>
+                      <button className="linkish" onClick={() => setCxFor(it.id, { mode: null })}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+                {it.kind === 'contradiction' && cxOf(it.id).mode === 'ask' && (
+                  <div className="verdict-choice cx-panel" onClick={e => e.stopPropagation()}>
+                    <p>A specific question about these two — a question block about both sides; the contradiction stays open until it is answered.</p>
+                    <div className="sec-actions">
+                      <input autoFocus value={cxOf(it.id).q} placeholder="e.g. Do the shops sell iPads at the counter, or is the universal build an Xcode default?" onChange={e => setCxFor(it.id, { q: e.target.value })}
+                        onKeyDown={e => { if (e.key === 'Enter' && cxOf(it.id).q.trim()) { e.preventDefault(); void contradictionPost(it, { action: 'ask', q: cxOf(it.id).q }); } if (e.key === 'Escape') setCxFor(it.id, { mode: null }); }} />
+                      <button className="pri" disabled={busy === it.id || !cxOf(it.id).q.trim()} onClick={() => contradictionPost(it, { action: 'ask', q: cxOf(it.id).q })}>Ask</button>
+                      <button className="linkish" onClick={() => setCxFor(it.id, { mode: null })}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+                {it.kind === 'contradiction' && cxOf(it.id).mode === 'comment' && (
+                  <div className="cx-panel cx-comments" onClick={e => e.stopPropagation()}><Comments id={it.id} /></div>
+                )}
                 {it.kind === 'question' && (
                   <div className="review-answer" onClick={e => e.stopPropagation()}>
                     <textarea value={draft[it.id] ?? ''} placeholder="Answer it — this is written under the question and closes it" rows={(draft[it.id] ?? '').split('\n').length > 2 ? 4 : 2}
@@ -158,7 +218,12 @@ export function ReviewList({ product, items }: { product: string; items: ReviewI
                   {it.kind === 'question'
                     ? <><button className="pri" disabled={busy === it.id} onClick={() => setStatus(it, 'resolved')} title="The answer is recorded (as a decision) — close the question">Resolve</button><button disabled={busy === it.id} onClick={() => setStatus(it, 'rejected')}>Reject</button></>
                     : it.kind === 'contradiction'
-                    ? <><button className="pri" disabled={busy === it.id} onClick={() => setStatus(it, 'resolved')} title="One side was superseded or refined — close it">Resolved</button><button disabled={busy === it.id} onClick={() => setStatus(it, 'dismissed')} title="Not a contradiction">Dismiss</button></>
+                    ? <>
+                        <button className="pri" disabled={busy === it.id} onClick={() => setCxFor(it.id, { mode: cxOf(it.id).mode === 'resolve' ? null : 'resolve' })} title="Say which side holds and why — a decision is written, the losing side superseded, the contradiction closed">Resolve…</button>
+                        <button disabled={busy === it.id} onClick={() => setCxFor(it.id, { mode: cxOf(it.id).mode === 'ask' ? null : 'ask' })} title="Ask a specific question about the two sides — the contradiction waits for the answer">Ask…</button>
+                        <button disabled={busy === it.id} onClick={() => setCxFor(it.id, { mode: cxOf(it.id).mode === 'comment' ? null : 'comment' })} title="Comment on it">Comment</button>
+                        <button disabled={busy === it.id} onClick={() => setStatus(it, 'dismissed')} title="Not a contradiction">Dismiss</button>
+                      </>
                     : <><button className="pri" disabled={busy === it.id || choosing === it.id} onClick={() => approve(it)}>Approve{openConflicts(it).length ? '…' : ''}</button><button disabled={busy === it.id} onClick={() => reject(it)} title={it.status === 'proposed' ? 'A proposal rejected is taken out of its document — Undo brings it back' : 'Mark it rejected'}>Reject</button></>}
                   <a href={it.href} className="linkish" onClick={e => e.stopPropagation()}>Open in document</a>
                   <button className="linkish" onClick={() => requestSend({ refs: [it.id], text: `${it.kind}: ${plain(it.title)}\n\n${plain(it.text)}`, source: { project: it.project, doc: it.doc, link: location.origin + it.href } })}>⇢ agent</button>

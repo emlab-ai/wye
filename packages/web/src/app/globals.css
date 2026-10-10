@@ -881,6 +881,14 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .verdicts .verdict:not(.open) { opacity: .75; }
 .verdict-choice { margin: 6px 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); font-size: 13px; }
 .verdict-choice p { margin: 0 0 6px; }
+/* a contradiction's two sides, the decisions behind them, and the panels that resolve it (component:review-list) */
+.cx-sides { margin: 4px 0 2px; padding: 6px 10px; border-left: 3px solid var(--line-2); font-size: 13px; display: grid; gap: 3px; } .cx-sides p { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cx-sides b { font: 600 10.5px var(--font-m); letter-spacing: .06em; color: var(--ink-2); } .cx-vs { margin: 0 6px; color: var(--muted); font: 11px var(--font-m); }
+.cx-decision { display: inline-flex; align-items: center; gap: 4px; margin-right: 6px; }
+.cx-panel { display: grid; gap: 6px; } .cx-keep { display: grid; gap: 3px; } .cx-keep label { display: flex; justify-content: flex-start; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; width: auto; } .cx-keep input { accent-color: var(--accent); margin: 0; flex: none; }
+.cx-panel textarea, .cx-panel input.cx-title { width: 100%; padding: 6px 8px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--ground); color: var(--ink); font: 13px/1.45 var(--font-b); resize: vertical; }
+.cx-panel textarea:focus, .cx-panel input:focus { outline: none; border-color: var(--accent); }
+.cx-comments { margin: 6px 0; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; }
 .verdict-choice input { flex: 1; min-width: 160px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
 
 /* ---- Work view (req:exec.work-view): the task grid, the derived state, the assign dialog */

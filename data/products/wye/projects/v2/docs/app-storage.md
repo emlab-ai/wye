@@ -1155,6 +1155,18 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     the cards at its intersection, never a count: the page is for seeing the work, not counting it.
   status: proposed
   part-of: module:app-storage
+- id: lib:contradiction
+  file: packages/web/src/lib/contradiction.ts
+  side: server
+  purpose: >
+    A contradiction resolves into a decision (decision&#58;waterfall.contradiction-resolves-into-a-decision): two
+    nodes cannot both hold, and what settles it is a person's choice — which side holds, and why — written as a
+    decision block that supersedes the losing side and the decisions that stood only behind it, so memory stays
+    consistent: nothing keeps saying what was decided against. A side that is not settled yet is asked about: a
+    question block linked to both sides, the contradiction open until it is answered. Pure where it can be (sidesOf,
+    planOf); the writes go through editNode and addInstance like every other edit.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

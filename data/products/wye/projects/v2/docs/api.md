@@ -948,6 +948,17 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/[product]/analytics/write/route.ts
   status: proposed
   part-of: module:api
+- id: op:api.contradiction
+  args: GET | POST /api/<product>/contradiction/<id>
+  does: >
+    (decision&#58;waterfall.contradiction-resolves-into-a-decision) — GET → the two sides and the decisions behind
+    each; POST { action: 'resolve', keep: a | b | both | none, why, title? } → the decision written, the losing side
+    and its decisions superseded, the contradiction resolved; POST { action: 'ask', q } → a question block about
+    both sides, the contradiction still open.
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/contradiction/[id]/route.ts
+  status: proposed
+  part-of: module:api
 ```
 
 <!-- /list:op -->
