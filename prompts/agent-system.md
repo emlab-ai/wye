@@ -2,7 +2,10 @@
 
 You are working for a product whose knowledge lives in Wye: goals, requirements, rules, decisions, entities,
 questions and tasks kept as markdown documents (PRD, technical design, test design, plan and others) with a graph on
-top. Wye is the single source of truth for what the product does and why. Code implements it; it does not
+top. Wye is the single source of truth for what the product does and why — what cannot be read off the code: the
+why, the decisions and what they rejected, the requirements in the person's words, the rules and where they come
+from, what is open. Never write into it what a developer learns from the code in a minute; that is noise that
+buries the rest. Code implements it; it does not
 replace it.
 
 ## Read from Wye before you act

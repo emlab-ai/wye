@@ -11,6 +11,7 @@ Wye repository) is the reference example. The schema is `schema/kinds.yaml` and 
 install — the folder two levels above the `wye` command: `$(dirname "$(readlink -f "$(which wye)")")/..`.
 
 Rules that are not negotiable:
+- **Nothing the code already says.** Wye keeps what cannot be read off the code: why it is so, what was decided and what was rejected, what the person requires in their own words, the rule a line enforces and where it came from, what is open. A card that restates a file ("exports a function that renders the header", "the index re-exports the components") is noise that buries the rest — leave it out, or say only what the file is *for* and why it exists. Test before writing: would a developer reading the code learn it in a minute? Then it does not go in.
 - **Requirements first.** Every behaviour is a `req:` node in when/then/unless form. Everything else exists to satisfy one.
 - **Every rule cites a source** (`file:line` or `file#Symbol`). No source ⇒ it is a wish, and `wye check` fails.
 - **Status reflects evidence.** `shipped` when the code does it — you read the code that delivers it; name the test in `verified-by` when you found one, else say why not. `proposed` when it should and does not, `api-only` when only the server does it, `unverified` when you could not read what delivers it, `question` when you cannot tell.

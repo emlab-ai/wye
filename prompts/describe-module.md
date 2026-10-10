@@ -23,6 +23,12 @@ page (Systems › <module>) lists the libraries and operations the code declares
    arose; where two things disagree, a `contradicts` edge or a drift row. Never guess.
 7. **Go no wider** than the module: another module's behaviour is a `question:` or a task on the Backlog.
 
+Write only what the code does not already say. Wye keeps what cannot be read off a file in a minute: why it is so,
+what was decided and what was rejected, what the person requires in their words, the rule a line enforces and where it
+came from, what is open or contradicts. A `purpose:` that paraphrases the code ("exports a function that renders the
+header") is noise that buries the rest — say what the file is *for* and why it exists, or leave the scan's line alone.
+Before every card: would a developer reading the code learn this in a minute? Then it does not go in.
+
 Ids are stable and lower-case (`req:<module>.<slug>`, `rule:<module>.<slug>`, `lib:<module>.<name>`); keep every id
 the scan wrote. Prose explains, blocks carry what is required, guaranteed, decided and open. Before you finish:
 `wye check --root data/products/<product> --repo <repo>` is 0 errors; every requirement has `satisfied-by`; every
