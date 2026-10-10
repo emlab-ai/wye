@@ -3,7 +3,7 @@ import { loadScope } from '@/lib/scope';
 import { askOnContradiction, resolveContradiction, sidesOf, type Keep } from '@/lib/contradiction';
 
 // op:api.contradiction (decision:waterfall.contradiction-resolves-into-a-decision) — GET → the two sides and the
-// decisions behind each; POST { action: 'resolve', keep: a | b | both | none, why, title? } → the decision written,
+// decisions behind each; POST { action: 'resolve', keep: a | b | both | none | custom, why?, title? } → the decision written,
 // the losing side and its decisions superseded, the contradiction resolved; POST { action: 'ask', q } → a question
 // block about both sides, the contradiction still open.
 export async function GET(_req: Request, { params }: { params: Promise<{ product: string; id: string }> }) {
@@ -23,7 +23,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ product
     return r.ok ? NextResponse.json(r, { status: 201 }) : NextResponse.json({ error: 'invalid', message: r.message }, { status: r.status });
   }
   if (b.action === 'resolve') {
-    if (!['a', 'b', 'both', 'none'].includes(b.keep ?? '')) return NextResponse.json({ error: 'invalid', message: 'keep must be a, b, both or none' }, { status: 422 });
+    if (!['a', 'b', 'both', 'none', 'custom'].includes(b.keep ?? '')) return NextResponse.json({ error: 'invalid', message: 'keep must be a, b, both, none or custom' }, { status: 422 });
     const r = await resolveContradiction(scope, decodeURIComponent(id), { keep: b.keep!, why: String(b.why ?? ''), title: b.title, by });
     return r.ok ? NextResponse.json(r, { status: 201 }) : NextResponse.json({ error: 'invalid', message: r.message }, { status: r.status });
   }

@@ -12,7 +12,7 @@ import { addInstance } from './instance-add';
 export type Side = { id: string; kind: string; title: string; status: string; defined: boolean };
 export type BehindDecision = { id: string; title: string; status: string; side: 'a' | 'b' | 'both'; verb: string };
 export type Sides = { a: Side; b: Side; decisions: BehindDecision[] };
-export type Keep = 'a' | 'b' | 'both' | 'none';
+export type Keep = 'a' | 'b' | 'both' | 'none' | 'custom';   // custom: the person writes how it is resolved; nothing is superseded for them
 export type Resolution = { keep: Keep; why: string; title?: string; by?: string };
 // what resolving will write, before it is written — the decision card and the statuses it changes
 export type Plan = { decision: { slug: string; title: string; props: Record<string, string> }; supersede: string[]; refines?: [string, string]; resolution: string };
@@ -32,8 +32,9 @@ export function sidesOf(idx: Pick<GraphIndex, 'byId' | 'out' | 'inc'>, c: Pick<G
   const [a, b] = ids;
   const behind = (id: string): Map<string, string> => {
     const out = new Map<string, string>();
-    for (const e of idx.out.get(id) ?? []) if (e.verb !== 'has' && e.verb !== 'mentions' && e.to.startsWith('decision:') && e.to !== id) out.set(e.to, e.verb);
-    for (const e of idx.inc.get(id) ?? []) if (e.verb !== 'has' && e.verb !== 'mentions' && e.from.startsWith('decision:') && e.from !== id) out.set(e.from, e.verb);
+    const own = (x: string) => x === a || x === b;   // a side that is itself a decision is not "behind" the other side
+    for (const e of idx.out.get(id) ?? []) if (e.verb !== 'has' && e.verb !== 'mentions' && e.to.startsWith('decision:') && !own(e.to)) out.set(e.to, e.verb);
+    for (const e of idx.inc.get(id) ?? []) if (e.verb !== 'has' && e.verb !== 'mentions' && e.from.startsWith('decision:') && !own(e.from)) out.set(e.from, e.verb);
     return out;
   };
   const da = behind(a), db = behind(b);
@@ -45,25 +46,28 @@ export function sidesOf(idx: Pick<GraphIndex, 'byId' | 'out' | 'inc'>, c: Pick<G
 
 // What resolving writes: the decision that records the choice, with `affects:` both sides, `supersedes:` what loses
 // (the losing side and the decisions that stood only behind it), `resolves:` the contradiction; and for "both hold",
-// the kept side `refines:` the other instead. Nothing is superseded that stands behind both sides.
+// the kept side `refines:` the other instead; for "custom" the person's text is the whole resolution and nothing is
+// superseded for them. Nothing is superseded that stands behind both sides. The why is optional for the fixed choices
+// (the text is then the title); a custom resolution is its text.
 export function planOf(product: string, c: Pick<GraphNode, 'id'>, s: Sides, r: Resolution): Plan {
   const key = c.id.replace(/^contradiction:/, '').replace(/^[a-z0-9-]+\./, '');
   const slug = `${product}.resolve-${key}`.toLowerCase().replace(/[^a-z0-9.-]+/g, '-').slice(0, 80);
   const loser = r.keep === 'a' ? [s.b] : r.keep === 'b' ? [s.a] : r.keep === 'none' ? [s.a, s.b] : [];
   const behindLoser = s.decisions.filter(d => (r.keep === 'a' && d.side === 'b') || (r.keep === 'b' && d.side === 'a') || (r.keep === 'none' && d.side !== 'both'));
   const supersede = [...loser.map(x => x.id), ...behindLoser.map(d => d.id)];
-  const title = (r.title ?? '').trim() || (r.keep === 'a' ? `${s.a.title} holds; ${s.b.title} is superseded` : r.keep === 'b' ? `${s.b.title} holds; ${s.a.title} is superseded` : r.keep === 'both' ? `${s.a.title} and ${s.b.title} both hold — the first refines the second` : `Neither ${s.a.title} nor ${s.b.title} holds`);
-  const props: Record<string, string> = { status: 'approved', by: r.by || 'the person', date: new Date().toISOString().slice(0, 10), affects: `[${s.a.id}, ${s.b.id}]`, resolves: c.id, evidence: c.id, text: r.why.replace(/\s+/g, ' ').trim() };
+  const why = r.why.replace(/\s+/g, ' ').trim();
+  const title = (r.title ?? '').trim() || (r.keep === 'a' ? `${s.a.title} holds; ${s.b.title} is superseded` : r.keep === 'b' ? `${s.b.title} holds; ${s.a.title} is superseded` : r.keep === 'both' ? `${s.a.title} and ${s.b.title} both hold — the first refines the second` : r.keep === 'none' ? `Neither ${s.a.title} nor ${s.b.title} holds` : (why.match(/^(.+?[.!?])(\s|$)/)?.[1] ?? why).slice(0, 160));
+  const props: Record<string, string> = { status: 'approved', by: r.by || 'the person', date: new Date().toISOString().slice(0, 10), affects: `[${s.a.id}, ${s.b.id}]`, resolves: c.id, evidence: c.id, text: why || title };
   if (supersede.length) props.supersedes = `[${supersede.join(', ')}]`;
   const refines: [string, string] | undefined = r.keep === 'both' ? [s.a.id, s.b.id] : undefined;
-  return { decision: { slug, title: title.slice(0, 160), props }, supersede, refines, resolution: `${r.keep === 'both' ? 'both hold' : r.keep === 'none' ? 'neither holds' : `${r.keep === 'a' ? s.a.id : s.b.id} holds`} — decision:${slug}` };
+  return { decision: { slug, title: title.slice(0, 160), props }, supersede, refines, resolution: `${r.keep === 'both' ? 'both hold' : r.keep === 'none' ? 'neither holds' : r.keep === 'custom' ? title : `${r.keep === 'a' ? s.a.id : s.b.id} holds`} — decision:${slug}` };
 }
 
 const SUPERSEDED: Record<string, string> = { goal: 'non-goal', task: 'done', question: 'resolved' };   // kinds whose status list has no superseded
 export async function resolveContradiction(scope: Scope, cid: string, r: Resolution): Promise<{ ok: true; decision: string; superseded: string[] } | { ok: false; status: number; message: string }> {
   const c = scope.idx.byId.get(cid);
   if (!c?.defined || c.kind !== 'contradiction') return { ok: false, status: 404, message: `${cid} is not a contradiction of this product` };
-  if (!r.why.trim()) return { ok: false, status: 422, message: 'say why — the decision needs its reason' };
+  if (r.keep === 'custom' && !r.why.trim()) return { ok: false, status: 422, message: 'say how it is resolved — that text is the decision' };
   const s = sidesOf(scope.idx, c); if (!s) return { ok: false, status: 422, message: `${cid} does not say which two nodes it is between` };
   const p = planOf(scope.product.slug, c, s, r);
   const made = await addInstance(scope, 'decision', { slug: p.decision.slug, title: p.decision.title, status: 'approved', props: p.decision.props, rebuild: false });

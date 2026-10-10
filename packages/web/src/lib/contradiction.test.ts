@@ -32,6 +32,13 @@ describe('the two sides of a contradiction and the decisions behind them', () =>
     expect(s.a.title).toBe('Phones only');
     expect(s.decisions.map(d => `${d.id}:${d.side}`).sort()).toEqual(['decision:cc.ios-first:both', 'decision:cc.no-tablets:a', 'decision:cc.universal-build:b']);
   });
+  it('a side that is itself a decision is not listed behind the other side', () => {
+    const c2 = { id: 'contradiction:cc.d1', body: 'between: [decision:cc.ios-first, req:cc.phone-only]', title: '' };
+    const s = sidesOf(idx, c2)!;
+    expect(s.a.id).toBe('decision:cc.ios-first');
+    expect(s.decisions.map(d => d.id)).toEqual(['decision:cc.no-tablets']);
+    expect(planOf('cc', c2, s, { keep: 'a', why: '' }).supersede).toEqual(['req:cc.phone-only', 'decision:cc.no-tablets']);
+  });
   it('falls back to the ids the text names when between: is missing', () => {
     const s = sidesOf(idx, { id: 'contradiction:x', body: 'text: req:cc.phone-only contradicts rule:root.tablet-support — reason', title: '' })!;
     expect([s.a.id, s.b.id]).toEqual(['req:cc.phone-only', 'rule:root.tablet-support']);
@@ -62,6 +69,19 @@ describe('what resolving writes', () => {
     expect(p.supersede).toEqual([]);
     expect(p.refines).toEqual(['req:cc.phone-only', 'rule:root.tablet-support']);
     expect(p.decision.props.supersedes).toBeUndefined();
+  });
+  it('the why is optional for a fixed choice: the text is then the title', () => {
+    const p = planOf('cc', c, s, { keep: 'a', why: '' });
+    expect(p.decision.props.text).toBe('Phones only holds; iPad support is superseded');
+  });
+  it('another way: the person writes the resolution, nothing is superseded, the first sentence is the title', () => {
+    const p = planOf('cc', c, s, { keep: 'custom', why: 'Phones are the target; the iPad build stays until the shops replace their tablets. Then it goes.' });
+    expect(p.supersede).toEqual([]);
+    expect(p.refines).toBeUndefined();
+    expect(p.decision.title).toBe('Phones are the target; the iPad build stays until the shops replace their tablets.');
+    expect(p.decision.props.text).toMatch(/^Phones are the target.*Then it goes\.$/);
+    expect(p.decision.props.supersedes).toBeUndefined();
+    expect(p.resolution).toBe('Phones are the target; the iPad build stays until the shops replace their tablets. — decision:cc.resolve-abc123');
   });
   it('neither holds: both sides and both one-sided decisions go', () => {
     const p = planOf('cc', c, s, { keep: 'none', why: 'the question is moot: there is no iOS build', title: 'No iOS build at all' });

@@ -889,7 +889,9 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .cx-panel textarea, .cx-panel input.cx-title { width: 100%; padding: 6px 8px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--ground); color: var(--ink); font: 13px/1.45 var(--font-b); resize: vertical; }
 .cx-panel textarea:focus, .cx-panel input:focus { outline: none; border-color: var(--accent); }
 .cx-comments { margin: 6px 0; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; }
-.verdict-choice input { flex: 1; min-width: 160px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+.verdict-choice input:not([type=radio]):not([type=checkbox]) { flex: 1; min-width: 160px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+.cx-keep input[type=radio] { width: 14px; height: 14px; min-width: 0; flex: none; }
+.cx-note { font-size: 12px; color: var(--bad); align-self: center; }
 
 /* ---- Work view (req:exec.work-view): the task grid, the derived state, the assign dialog */
 .work .trow.wrow { grid-template-columns: minmax(0, 1fr) 96px 84px 150px 100px 150px; }

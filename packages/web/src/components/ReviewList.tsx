@@ -101,18 +101,22 @@ export function ReviewList({ product, items }: { product: string; items: ReviewI
   // says which side holds and why; the server writes the decision, supersedes the losing side and the decisions that
   // stood only behind it, and closes the contradiction. Or the person asks a specific question — a question block
   // about both sides — and the contradiction waits for the answer. Or comments on it.
-  const [cx, setCx] = useState<Record<string, { mode: 'resolve' | 'ask' | 'comment' | null; keep: Keep; why: string; title: string; q: string }>>({});
-  const cxOf = (id: string) => cx[id] ?? { mode: null, keep: 'a' as Keep, why: '', title: '', q: '' };
+  // The panel's own line (`note`) says what stopped it or what was written, next to the button that was pressed —
+  // the page-level notice sits above the list, out of view when the card is far down.
+  const [cx, setCx] = useState<Record<string, { mode: 'resolve' | 'ask' | 'comment' | null; keep: Keep; why: string; title: string; q: string; note: string }>>({});
+  const cxOf = (id: string) => cx[id] ?? { mode: null, keep: 'a' as Keep, why: '', title: '', q: '', note: '' };
   const setCxFor = (id: string, patch: Partial<ReturnType<typeof cxOf>>) => setCx(m => ({ ...m, [id]: { ...cxOf(id), ...patch } }));
   const contradictionPost = async (it: ReviewItem, body: Record<string, unknown>) => {
-    setBusy(it.id); setMsg(null);
+    if (body.action === 'resolve' && body.keep === 'custom' && !String(body.why ?? '').trim()) { setCxFor(it.id, { note: 'Say how it is resolved — that text is the decision.' }); return; }
+    if (body.action === 'ask' && !String(body.q ?? '').trim()) { setCxFor(it.id, { note: 'Ask something.' }); return; }
+    setBusy(it.id); setMsg(null); setCxFor(it.id, { note: '' });
     try {
       const r = await fetch(`/api/${product}/contradiction/${encodeURIComponent(it.id)}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.message ?? r.statusText);
       setMsg(body.action === 'resolve' ? `${j.decision} written${j.superseded?.length ? ` · superseded: ${j.superseded.join(', ')}` : ''}` : `${j.question} asked — the contradiction waits for the answer`);
-      setCxFor(it.id, { mode: null, why: '', q: '', title: '' });
-    } catch (e) { setMsg(e instanceof Error ? e.message : String(e)); setBusy(null); return; }
+      setCxFor(it.id, { mode: null, why: '', q: '', title: '', note: '' });
+    } catch (e) { const m = e instanceof Error ? e.message : String(e); setMsg(m); setCxFor(it.id, { note: m }); setBusy(null); return; }
     setBusy(null); router.refresh();
   };
   const kinds = [...new Set(items.map(i => i.kind))];
@@ -179,16 +183,17 @@ export function ReviewList({ product, items }: { product: string; items: ReviewI
                   <div className="verdict-choice cx-panel" onClick={e => e.stopPropagation()}>
                     <p>Which holds? The decision is written, approved, with what it supersedes — the losing side and the decisions that stood only behind it.</p>
                     <div className="cx-keep">
-                      {([['a', `A holds — ${it.sides.b.title} is superseded`], ['b', `B holds — ${it.sides.a.title} is superseded`], ['both', 'Both hold — A refines B'], ['none', 'Neither holds — both are superseded']] as [Keep, string][]).map(([k, label]) => (
+                      {([['a', `A holds — ${it.sides.b.title} is superseded`], ['b', `B holds — ${it.sides.a.title} is superseded`], ['both', 'Both hold — A refines B'], ['none', 'Neither holds — both are superseded'], ['custom', 'Another way — written below; nothing is superseded for you']] as [Keep, string][]).map(([k, label]) => (
                         <label key={k}><input type="radio" name={`cx-keep-${it.id}`} checked={cxOf(it.id).keep === k} onChange={() => setCxFor(it.id, { keep: k })} /> {label}</label>
                       ))}
                     </div>
                     <input className="cx-title" value={cxOf(it.id).title} placeholder="the decision's title (optional — written from the sides when empty)" onChange={e => setCxFor(it.id, { title: e.target.value })} />
-                    <textarea value={cxOf(it.id).why} rows={3} placeholder="Why — what forced it, what was chosen, what it rules out. This is the decision's text." onChange={e => setCxFor(it.id, { why: e.target.value })}
-                      onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && cxOf(it.id).why.trim()) { e.preventDefault(); void contradictionPost(it, { action: 'resolve', keep: cxOf(it.id).keep, why: cxOf(it.id).why, title: cxOf(it.id).title }); } }} />
+                    <textarea value={cxOf(it.id).why} rows={3} placeholder={cxOf(it.id).keep === 'custom' ? 'How it is resolved — what holds, what changes, what is ruled out. This is the decision.' : 'Why — what forced it, what was chosen, what it rules out (optional; the decision\'s text).'} onChange={e => setCxFor(it.id, { why: e.target.value })}
+                      onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void contradictionPost(it, { action: 'resolve', keep: cxOf(it.id).keep, why: cxOf(it.id).why, title: cxOf(it.id).title }); } }} />
                     <div className="sec-actions">
-                      <button className="pri" disabled={busy === it.id || !cxOf(it.id).why.trim()} onClick={() => contradictionPost(it, { action: 'resolve', keep: cxOf(it.id).keep, why: cxOf(it.id).why, title: cxOf(it.id).title })}>{busy === it.id ? 'Deciding…' : 'Decide (⌘↵)'}</button>
-                      <button className="linkish" onClick={() => setCxFor(it.id, { mode: null })}>Cancel</button>
+                      <button className="pri" disabled={busy === it.id} onClick={() => contradictionPost(it, { action: 'resolve', keep: cxOf(it.id).keep, why: cxOf(it.id).why, title: cxOf(it.id).title })}>{busy === it.id ? 'Deciding…' : 'Decide (⌘↵)'}</button>
+                      <button className="linkish" onClick={() => setCxFor(it.id, { mode: null, note: '' })}>Cancel</button>
+                      {cxOf(it.id).note && <span className="cx-note">{cxOf(it.id).note}</span>}
                     </div>
                   </div>
                 )}
@@ -197,10 +202,11 @@ export function ReviewList({ product, items }: { product: string; items: ReviewI
                     <p>A specific question about these two — a question block about both sides; the contradiction stays open until it is answered.</p>
                     <div className="sec-actions">
                       <input autoFocus value={cxOf(it.id).q} placeholder="e.g. Do the shops sell iPads at the counter, or is the universal build an Xcode default?" onChange={e => setCxFor(it.id, { q: e.target.value })}
-                        onKeyDown={e => { if (e.key === 'Enter' && cxOf(it.id).q.trim()) { e.preventDefault(); void contradictionPost(it, { action: 'ask', q: cxOf(it.id).q }); } if (e.key === 'Escape') setCxFor(it.id, { mode: null }); }} />
-                      <button className="pri" disabled={busy === it.id || !cxOf(it.id).q.trim()} onClick={() => contradictionPost(it, { action: 'ask', q: cxOf(it.id).q })}>Ask</button>
-                      <button className="linkish" onClick={() => setCxFor(it.id, { mode: null })}>Cancel</button>
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void contradictionPost(it, { action: 'ask', q: cxOf(it.id).q }); } if (e.key === 'Escape') setCxFor(it.id, { mode: null, note: '' }); }} />
+                      <button className="pri" disabled={busy === it.id} onClick={() => contradictionPost(it, { action: 'ask', q: cxOf(it.id).q })}>Ask</button>
+                      <button className="linkish" onClick={() => setCxFor(it.id, { mode: null, note: '' })}>Cancel</button>
                     </div>
+                    {cxOf(it.id).note && <span className="cx-note">{cxOf(it.id).note}</span>}
                   </div>
                 )}
                 {it.kind === 'contradiction' && cxOf(it.id).mode === 'comment' && (
