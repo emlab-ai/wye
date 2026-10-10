@@ -1194,6 +1194,22 @@ The editor's blocks and the components the pages are made of, by area.
     panel, the way a click on a block does (rule:block-select); its fields are edited on its card there.
   status: proposed
   part-of: module:components
+- id: component:external-links
+  file: packages/web/src/components/ExternalLinks.tsx
+  side: client
+  purpose: >
+    A link to another site opens outside the app: a new tab in the browser, the system browser in the desktop app
+    (rule:app-link). Links the app or its editors render without target=_blank are caught here, before navigation.
+  status: proposed
+  part-of: module:components
+- id: component:theme-sync
+  file: packages/web/src/components/ThemeSync.tsx
+  side: client
+  purpose: >
+    Applies the person's theme choice once the page is up (lib/theme); the server already painted light or dark from
+    the cookie.
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->
