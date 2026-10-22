@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { access, mkdir, readdir, rename, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { getProduct, registryDir, resolveRoot, libCacheHome, REPO_ROOT } from '@/lib/products';
+import { getProduct, registryDir, resolveRoot, libCacheHome } from '@/lib/products';
 import { writeAtomic, rebuild } from '@/lib/write';
 
 // op:api.folder (decision:wf2.product-folder) — GET → where the product's folder is (root, default or not, and what
@@ -40,7 +40,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ product:
     catch (e) { return NextResponse.json({ error: 'invalid', message: `could not move ${n}: ${e instanceof Error ? e.message : e} (a folder on another disk must be moved by hand)`, moved }, { status: 422 }); }
   }
   // the cache folder is named by the vault's path (decision:waterfall.cache-keyed-by-vault-path): it follows the move
-  { const c = libCacheHome(), root = c.cacheRoot(REPO_ROOT); try { await rename(path.join(root, c.keyOf(p.dir)), path.join(root, c.keyOf(target))); } catch { /* none yet, or the new one exists: it rebuilds */ } }
+  { const c = libCacheHome(), root = c.cacheRoot(); try { await rename(path.join(root, c.keyOf(p.dir)), path.join(root, c.keyOf(target))); } catch { /* none yet, or the new one exists: it rebuilds */ } }
 
   // the registry entry points at the folder
   const reg = path.join(registryDir(product), '_product.md');

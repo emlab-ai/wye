@@ -15,7 +15,7 @@ import { graphDelta, mergeDeltas, EVERYTHING, NOTHING, type GraphDelta } from '.
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const req = createRequire(path.join(REPO_ROOT, 'package.json'));
-type Lib = { newParseCache(): unknown; findDocs(root: string): string[]; staleFiles(root: string): string[] | null; buildGraph(root: string, o: { cache?: unknown; cwd?: string; files?: string[] }): { graph: GraphData; files: string[] }; checkLines(graph: GraphData, o: { repo: string; strict?: boolean }): { errors: string[]; warnings: string[]; output: string } };
+type Lib = { newParseCache(): unknown; findDocs(root: string): string[]; staleFiles(root: string, out: string): string[] | null; buildGraph(root: string, o: { cache?: unknown; cwd?: string; files?: string[]; out?: string }): { graph: GraphData; files: string[] }; checkLines(graph: GraphData, o: { repo: string; strict?: boolean }): { errors: string[]; warnings: string[]; output: string } };
 const LIB = ['./lib/parse.js', './lib/build.js', './lib/shipped.js'];
 // The parser is CommonJS, required once and kept in Node's module cache, which Next's reload does not touch: editing
 // lib/parse.js while the dev server runs used to leave it building yesterday's graph, silently. In development the
@@ -127,7 +127,7 @@ export function buildProduct(productDir: string, info: BuildInfo = { external: f
       // the documents and their mtimes, then the read — all in one turn, so a stamp is never newer than what was read
       const docs = lib().findDocs(productDir); const read = new Map<string, number>();
       for (const f of docs) { try { read.set(f, statSync(f).mtimeMs); } catch { /* gone between the walk and here: the parse says so */ } }
-      ({ graph, files } = lib().buildGraph(productDir, { cache: s.caches.get(productDir), cwd: REPO_ROOT, ...(docs.length ? { files: docs } : {}) }));
+      ({ graph, files } = lib().buildGraph(productDir, { cache: s.caches.get(productDir), cwd: REPO_ROOT, out: cacheDirOf(productDir), ...(docs.length ? { files: docs } : {}) }));
       s.read.set(productDir, read);
     } catch (e) { return { code: 1, output: `build failed: ${e instanceof Error ? e.message : e}`, graph: null, before }; }
     const t1 = performance.now();
@@ -163,7 +163,7 @@ export async function freshOnOpen(productDir: string): Promise<string[] | null> 
   const s = st(); const moved = headMoved(productDir, 'load');
   if (s.checked.has(productDir) && !moved) return []; s.checked.add(productDir);
   if (!(await stampOf(graphPathOf(productDir)))) return [];   // no graph: the first load builds it anyway
-  let stale: string[] | null; try { stale = lib().staleFiles(productDir); } catch { return []; }
+  let stale: string[] | null; try { stale = lib().staleFiles(productDir, cacheDirOf(productDir)); } catch { return []; }
   if (stale === null || stale.length) {
     console.log(`[wf] ${path.basename(path.dirname(productDir)) || productDir}: ${stale ? `${stale.length} file(s) changed since the last build` : 'built before manifests'} — building again`);
     await buildProduct(productDir, { external: true });
@@ -175,7 +175,7 @@ export async function freshOnOpen(productDir: string): Promise<string[] | null> 
 // changed since the last build (null: there was no manifest) and whether the graph was built again.
 export async function refreshGraph(productDir: string): Promise<{ stale: string[] | null; built: boolean }> {
   st().checked.add(productDir); headMoved(productDir, 'load');
-  let stale: string[] | null = null; try { stale = lib().staleFiles(productDir); } catch { /* no manifest */ }
+  let stale: string[] | null = null; try { stale = lib().staleFiles(productDir, cacheDirOf(productDir)); } catch { /* no manifest */ }
   const built = stale === null || stale.length > 0 || !(await stampOf(graphPathOf(productDir)));
   if (built) await buildProduct(productDir, { external: true });
   return { stale, built };

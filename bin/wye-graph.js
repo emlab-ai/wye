@@ -53,10 +53,10 @@ function die(msg) { console.error('wye: ' + msg); process.exit(2); }
 // build — a checkout, a pull, an edit with no app running — or there is none yet, it is built first
 function load() {
     if (graphFile === path.join(BUILD, 'graph.json') && fs.existsSync(path.join(ROOT, 'projects'))) {
-        const b = require('../lib/build'); const stale = fs.existsSync(graphFile) ? b.staleFiles(ROOT) : null;
+        const b = require('../lib/build'); const stale = fs.existsSync(graphFile) ? b.staleFiles(ROOT, BUILD) : null;
         if (stale === null || stale.length) {
             console.error(`wye: ${stale ? `${stale.length} file(s) changed since the last build` : 'no current build'} — building ${ROOT}`);
-            b.buildGraph(ROOT, { cwd: require('./wye-home').home() });
+            b.buildGraph(ROOT, { cwd: require('./wye-home').home(), out: BUILD });
         }
     }
     if (!fs.existsSync(graphFile)) die(`no ${graphFile} — run \`wye build\` first`);
@@ -75,7 +75,7 @@ switch (cmd) {
         // one build path with the app (lib/build): graph.json only — the viewer's data.js is `ctx site`'s
         // file paths in the graph are relative to Wye's home, as the app writes them (it reads a page at home + path): not to the
         // folder this runs in — an agent in a vault's folder would write `.wye/projects/…` and every page would read as gone
-        const { graph, files } = require('../lib/build').buildGraph(ROOT, { cwd: require('./wye-home').home(), files: positional.length ? findDocs(positional) : undefined });
+        const { graph, files } = require('../lib/build').buildGraph(ROOT, { cwd: require('./wye-home').home(), files: positional.length ? findDocs(positional) : undefined, out: BUILD });
         const g = new Graph(graph), s = g.stats();
         console.log(`built ${BUILD}/graph.json from ${files.length} file(s): ${s.nodes} nodes, ${s.edges} edges`);
         console.log('by kind: ' + Object.entries(s.byKind).map(([k, v]) => `${k} ${v.defined}${v.stub ? '+' + v.stub + ' stub' : ''}`).join(' · '));

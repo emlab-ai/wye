@@ -16,10 +16,10 @@ export const DATA_ROOT = process.env.WATERFALL_DATA ? path.resolve(process.cwd()
 
 // A vault's cache folder, out of the vault in the Wye home (lib/cache-home, decision:waterfall.caches-live-in-the-wye-home):
 // the graph, the Ask index, the context-search vectors, what Wye ships rendered for it, and the model judgements
-type CacheHome = { cacheDir(dir: string, home?: string): string; cacheRoot(home?: string): string; keyOf(dir: string): string; gitHead(dir: string): string | null; shippedParts(file: string): { vault: string; project: string; name: string } | null };
+type CacheHome = { cacheDir(dir: string): string; cacheRoot(): string; keyOf(dir: string): string; gitHead(dir: string): string | null; shippedParts(file: string): { vault: string; project: string; name: string } | null };
 let cacheHome: CacheHome | null = null;
 export const libCacheHome = (): CacheHome => (cacheHome ??= createRequire(path.join(REPO_ROOT, 'package.json'))('./lib/cache-home.js') as CacheHome);
-export const cacheDirOf = (productDir: string): string => libCacheHome().cacheDir(productDir, REPO_ROOT);
+export const cacheDirOf = (productDir: string): string => libCacheHome().cacheDir(productDir);
 
 // people: the names that can hold work (`people: alex, bo` in _product.md — req:exec.human-work); settings: every
 // other frontmatter key as written (`impact: manual`, `auto-take: off`, `verdicts: on`), read by the features they switch

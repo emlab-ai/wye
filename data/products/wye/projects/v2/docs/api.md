@@ -1044,6 +1044,14 @@ Every operation the UI, the wye CLI and agents call, by area; the CLI commands a
   source: packages/web/src/app/api/system/me/route.ts
   status: proposed
   part-of: module:api
+- id: op:api.refresh
+  args: POST /api/<product>/refresh
+  does: >
+    (no header comment)
+  gate: none (local app)
+  source: packages/web/src/app/api/[product]/refresh/route.ts
+  status: proposed
+  part-of: module:api
 ```
 
 <!-- /list:op -->

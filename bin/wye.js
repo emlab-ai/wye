@@ -269,8 +269,8 @@ const commands = {
     catch (e) {
       if (!/fetch failed|ECONNREFUSED/.test(e.message)) die(`refresh: ${e.message}`);
       const root = flags.root ? path.resolve(flags.root) : path.join(hereVault(), '.wye'); const b = require('../lib/build');
-      const stale = b.staleFiles(root);
-      if (stale === null || stale.length) b.buildGraph(root, { cwd: require('./wye-home').home() });
+      const out = require('../lib/cache-home').cacheDir(root); const stale = b.staleFiles(root, out);
+      if (stale === null || stale.length) b.buildGraph(root, { cwd: require('./wye-home').home(), out });
       console.log(`graph: ${stale === null ? 'built (no earlier manifest)' : stale.length ? `${stale.length} file(s) changed — built again` : 'up to date'}`);
       return console.log(`index: the app is not running (${WF_URL}) — the Ask index catches up when it next answers`);
     }
