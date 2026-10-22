@@ -10,7 +10,7 @@ import { stepText, refsFromToolUse, refsFromToolResult } from './refs';
 
 export type DeepEvent = { type: 'step'; text: string } | { type: 'refs'; refs: string[] } | { type: 'delta'; text: string } | { type: 'done'; cut: boolean };
 const HOLD = 400;
-export type DeepOpts ={ signal: AbortSignal; product: string; productDir: string; codeRoot: string; wfUrl: string; known: (id: string) => boolean; maxTools?: number; timeoutMs?: number; model?: string; graph?: string };
+export type DeepOpts ={ signal: AbortSignal; product: string; productDir: string; codeRoot: string; wfUrl: string; known: (id: string) => boolean; maxTools?: number; timeoutMs?: number; model?: string; graph?: string; planned?: boolean };
 
 export function deepArgs(o: { product: string; productDir: string; codeRoot: string; wfUrl: string; model?: string }): string[] {
   const brief = readFileSync(path.join(REPO_ROOT, 'prompts/ask-deep.md'), 'utf8').replaceAll('{{product}}', o.product).replaceAll('{{code}}', o.codeRoot || '(this product names no code folder)').replaceAll('{{docs}}', o.productDir);
@@ -32,7 +32,7 @@ export async function* runDeep(q: string, history: { q: string; a: string }[], o
   const inner = new AbortController(); const stop = () => inner.abort(); o.signal.addEventListener('abort', stop, { once: true });
   const timer = setTimeout(() => { cut = true; inner.abort(); }, o.timeoutMs ?? 120000);
   const roots = { code: o.codeRoot, product: o.productDir };
-  const prompt = `${history.length ? `Earlier in this conversation:\n${history.map(x => `Q: ${x.q}\nA: ${x.a}`).join('\n\n')}\n\n` : ''}${o.graph ? `What the knowledge graph links to this question (start from it, open what you need):\n${o.graph}\n\n` : ''}Question: ${q}`;
+  const prompt = `${history.length ? `Earlier in this conversation:\n${history.map(x => `Q: ${x.q}\nA: ${x.a}`).join('\n\n')}\n\n` : ''}${o.graph ? `${o.planned ? 'The query plan for this question and what its queries returned (start from it; confirm a row in its source before you use it):' : 'What the knowledge graph links to this question (start from it, open what you need):'}\n${o.graph}\n\n` : ''}Question: ${q}`;
   try {
     for await (const l of spawnClaude(deepArgs(o), prompt, { signal: inner.signal, cwd: o.codeRoot && existsSync(o.codeRoot) ? o.codeRoot : existsSync(o.productDir) ? o.productDir : undefined, env: deepEnv(o) })) {
       const content = ((l.message as { content?: unknown[] } | undefined)?.content ?? []) as Record<string, unknown>[];

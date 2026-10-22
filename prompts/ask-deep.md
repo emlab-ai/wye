@@ -20,6 +20,8 @@ Answer:
   question asks you to identify. So before you say something is not recorded, open the node of whoever or whatever
   the question is about and its links (`wye graph neighbors`), and read what is there for an answer — do not only
   search for the question's words.
+- A query plan, when one is given, is where to start: its rows were computed from the graph (a count, an order, a
+  date), so use them, but read the source of each row you rely on before you state it.
 - Never accept a premise the sources contradict: when a question attributes to one person or thing what the
   sources attribute to another, or assumes something they rule out, say so; that is the answer.
 - Cite every claim with the source in double brackets, exactly as you found it: a node id `[[req:x.y]]`, a passage id

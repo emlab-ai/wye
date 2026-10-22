@@ -10,8 +10,12 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { runDeep } from './deep';
 import { graphFind, graphNote } from './graphq';
+import { planFind, planNote, sqlRunner, modelPlanner, type RunSql, type Planner } from './plan';
+import type { TypeDef } from '../graph';
+import type { UsedSource, SourceUse } from './types';
 
-export type AskEnvLike = { ctx: RetrieveCtx; productDir: string; codeRoot: string; degraded?: string; indexing?: boolean };
+// types: the vault's type definitions, which the query plan reads; runSql / planner: stand-ins for lib/query and the model (tests)
+export type AskEnvLike = { ctx: RetrieveCtx; productDir: string; codeRoot: string; degraded?: string; indexing?: boolean; types?: TypeDef[]; runSql?: RunSql; planner?: Planner };
 export const DEEP_MAX_PER_PRODUCT = 2;
 export const GRAPH_HITS = 20;   // graph nodes added to the search's hits, best reranked first
 const deepRunning = new Map<string, number>();
@@ -70,8 +74,24 @@ export async function* ask(env: AskEnvLike, req: AskRequest, o: { signal: AbortS
   if (o.signal.aborted) return;
   // the graph step (decision:waterfall.ask-queries-the-graph): what the question's entities link to, and the graph
   // queries a planner makes of it, join the search's hits — reranked against the question, always kept
-  let graphLines = '';
-  if (req.graph !== false && hits.length + env.ctx.idx.byId.size > 0) {
+  let graphLines = ''; let planned = false;
+  if (req.graph !== false && (req.rounds != null || req.hops != null) && env.ctx.idx.byId.size > 0) {
+    // the query plan (plan:ask-query-plan): asked for by rounds or hops, else the graph step below as it was
+    try {
+      const steps: string[] = [];
+      const r = await planFind(env.ctx.idx, req.q, { signal: o.signal, rounds: req.rounds, hops: req.hops, types: env.types, seen: hits.flatMap(h => h.nodes),
+        run: env.runSql ?? sqlRunner(product), planner: req.planner === false ? async () => '' : env.planner ?? modelPlanner({ signal: o.signal }), onStep: t => steps.push(t) });
+      for (const t of steps) yield { type: 'step', text: t };
+      const have = new Set(hits.map(h => h.id));
+      const why = new Map(r.found.map(f => [`node:${f.id}`, f.why]));
+      // what the plan's rows name comes before what the search did not find on its own, reranked within it
+      let extra = (await getChunks(env.ctx.store, r.found.map(f => `node:${f.id}`).filter(id => !have.has(id)))).map(c => ({ ...c, score: 0, via: `graph: ${why.get(c.id)}`, href: hrefFor(product, c, env.ctx.idx) }));
+      if (extra.length && env.ctx.rerank) { const s = await env.ctx.rerank(req.q, extra.map(h => `${h.title}\n${h.text}`)); extra = extra.map((h, i) => ({ ...h, score: s[i] })).sort((a, b) => b.score - a.score); }
+      hits = [...hits, ...extra.slice(0, GRAPH_HITS)];
+      graphLines = planNote(r, env.ctx.idx); planned = !r.fallback;
+    } catch (e) { if (!o.signal.aborted) yield { type: 'error', lane: 'retrieve', message: `plan: ${String(e instanceof Error ? e.message : e)}` }; }
+  }
+  else if (req.graph !== false && hits.length + env.ctx.idx.byId.size > 0) {
     try {
       const steps: string[] = [];
       const found = await graphFind(env.ctx.idx, req.q, hits.flatMap(h => h.nodes), { signal: o.signal, onStep: t => steps.push(t), planner: req.planner !== false });
@@ -120,7 +140,7 @@ export async function* ask(env: AskEnvLike, req: AskRequest, o: { signal: AbortS
         if (head) ch.push({ type: 'deep.delta', text: head });
       };
       try {
-        for await (const e of runDeep(req.q, history, { signal: o.signal, model: req.model, graph: graphLines, maxTools: o.maxTools, product, productDir: env.productDir, codeRoot: env.codeRoot, wfUrl: o.wfUrl, known: id => env.ctx.idx.byId.has(id) })) {
+        for await (const e of runDeep(req.q, history, { signal: o.signal, model: req.model, graph: graphLines, planned, maxTools: o.maxTools, product, productDir: env.productDir, codeRoot: env.codeRoot, wfUrl: o.wfUrl, known: id => env.ctx.idx.byId.has(id) })) {
           if (e.type === 'step') ch.push({ type: 'step', text: e.text });
           else if (e.type === 'refs') for (const r of e.refs) { const c = await resolveRef(r, env); if (!c) continue; const x = cites.add(c); if (!used.includes(x)) { used.push(x); ch.push({ type: 'found', citation: x }); } }
           else if (e.type === 'delta') { pending += e.text; await flush(false); }
@@ -136,6 +156,27 @@ export async function* ask(env: AskEnvLike, req: AskRequest, o: { signal: AbortS
     })();
   }
   if (!lanes.length) return;
-  for await (const e of ch.drain(o.signal)) yield e;
+  // every source the answer used, and how (req.sources): found by the search or the graph, read by the deep agent, cited
+  const used = new Map<string, UsedSource>();
+  const use = (c: { ref: string; source: UsedSource['source']; title: string; href: string | null }, how: SourceUse) => {
+    const k = `${c.source}:${c.ref}`; const u = used.get(k) ?? { ref: c.ref, source: c.source, title: c.title, href: c.href, how: [] };
+    if (!u.how.includes(how)) u.how.push(how); used.set(k, u);
+  };
+  if (req.sources) for (const h of hits) use(h, 'found');
+  let deepText = '';
+  for await (const e of ch.drain(o.signal)) {
+    if (req.sources) {
+      if (e.type === 'deep.delta') deepText += e.text;
+      else if (e.type === 'found') use(e.citation, 'read');
+      else if (e.type === 'fast.done') for (const c of e.citations) use(c, 'cited');
+      // the deep lane's citations are what it opened and what it cited: cited only when its [n] is in the answer
+      else if (e.type === 'deep.done') { const n = new Set(citedNumbers(deepText)); for (const c of e.citations) use(c, n.has(c.n) ? 'cited' : 'read'); }
+    }
+    yield e;
+  }
+  if (req.sources && !o.signal.aborted) {
+    const rank = (u: UsedSource) => u.how.includes('cited') ? 0 : u.how.includes('read') ? 1 : 2;
+    yield { type: 'sources', sources: [...used.values()].sort((a, b) => rank(a) - rank(b)) };
+  }
   if (!o.signal.aborted) yield { type: 'done' };
 }

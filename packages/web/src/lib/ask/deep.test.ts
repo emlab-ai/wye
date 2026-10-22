@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 
 // the agent's stream, as claude -p --output-format stream-json --include-partial-messages writes it
-let lines: Record<string, unknown>[] = [];
-vi.mock('./claude', () => ({ spawnClaude: async function* () { for (const l of lines) yield l; } }));
+let lines: Record<string, unknown>[] = []; let prompt = '';
+vi.mock('./claude', () => ({ spawnClaude: async function* (_a: string[], p: string) { prompt = p; for (const l of lines) yield l; } }));
 const { runDeep } = await import('./deep');
 
 const se = (event: Record<string, unknown>) => ({ type: 'stream_event', event });
@@ -23,5 +23,12 @@ describe('the deep lane\'s answer', () => {
     const long = 'x'.repeat(500);
     lines = msg([text(long), text(' and more')], 'end_turn');
     expect(await answer()).toBe(`${long} and more`);
+  });
+  it('starts from the query plan and its rows when one ran (plan:ask-query-plan)', async () => {
+    lines = msg([text('Two.')], 'end_turn');
+    for await (const _ of runDeep('q', [], { signal: new AbortController().signal, product: 'p', productDir: '/nowhere', codeRoot: '', wfUrl: 'http://x', known: () => true, graph: 'Plan: shape count\n\nQuery results:\n- races: 2 row(s)', planned: true })) void _;
+    expect(prompt).toContain('The query plan for this question and what its queries returned'); expect(prompt).toContain('races: 2 row(s)');
+    for await (const _ of runDeep('q', [], { signal: new AbortController().signal, product: 'p', productDir: '/nowhere', codeRoot: '', wfUrl: 'http://x', known: () => true, graph: '- a node' })) void _;
+    expect(prompt).toContain('What the knowledge graph links to this question');
   });
 });

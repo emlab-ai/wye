@@ -33,7 +33,7 @@
 //   wye impact <id> --after "<new text>" --product p [--no-judge] [--json]   what an edit would reach and what each reached node
 //        needs (unaffected | update | rework | contradicts | ask) — run it before editing an approved node; nothing is written
 //   wye context "<text>" --product p [--all | --as-of d]   knowledge closest to a text (local semantic search; ended nodes hidden)
-//   wye ask "<question>" [--vault <name>] --product p [--fast | --deep] [--model m] [--json]   a cited answer from the product's knowledge, documents,
+//   wye ask "<question>" [--vault <name>] --product p [--fast | --deep] [--model m] [--rounds n] [--hops n] [--sources] [--json]   a cited answer from the product's knowledge, documents,
 //        code and sessions: a fast answer, the sources a deeper search opens as it works, then its answer
 //        --model m: the claude model both lanes answer with (an alias or id), else the app's (WYE_ASK_MODEL)
 //        --vault <name>: another vault answers — parent, a vault below by its name, or a linked repo (wye links); when it
@@ -473,14 +473,14 @@ const commands = {
     if (j.candidates.some(c => c.verdict && c.verdict !== 'unaffected')) console.log('\nList the updates you make and the tasks you leave (wye work add) in your summary.');
   },
   async ask() {
-    const q = pos.slice(1).join(' ') || (await readStdin()); if (!q.trim()) die('wye ask "<question>" [--fast | --deep] [--model m] [--json]');
+    const q = pos.slice(1).join(' ') || (await readStdin()); if (!q.trim()) die('wye ask "<question>" [--fast | --deep] [--model m] [--rounds n] [--hops n] [--sources] [--json]');
     const lanes = flags.fast ? ['fast'] : flags.deep ? ['deep'] : ['fast', 'deep'];
     // --vault <name>: another vault answers — the one above (parent), one below, or a linked repo (plan:vault-links)
     const other = flags.vault ? await otherVault(String(flags.vault)) : null;
     if (other && !flags.json) process.stderr.write(`  asking ${other.name} — ${other.folder}\n`);
-    const r = await fetch(`${WF_URL}/api/${other ? other.slug : product()}/ask`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q, lanes, ...(flags.model ? { model: String(flags.model) } : {}) }) });
+    const r = await fetch(`${WF_URL}/api/${other ? other.slug : product()}/ask`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ q, lanes, ...(flags.model ? { model: String(flags.model) } : {}), ...(flags.rounds != null && flags.rounds !== true ? { rounds: Number(flags.rounds) } : {}), ...(flags.hops != null && flags.hops !== true ? { hops: Number(flags.hops) } : {}), ...(flags.sources ? { sources: true } : {}) }) });
     if (!r.ok) die(`ask → ${r.status}: ${(await r.text()).slice(0, 200)}`);
-    const res = { fast: '', deep: '', citations: new Map(), cut: false, errors: [] };
+    const res = { fast: '', deep: '', citations: new Map(), cut: false, errors: [], sources: null };
     const show = !flags.json; let section = '';
     const head = s => { if (show && section !== s) { section = s; process.stdout.write(`\n\n## ${s}\n`); } };
     let buf = '';
@@ -495,6 +495,7 @@ const commands = {
         else if (e.type === 'step') { if (show) process.stderr.write(`  … ${e.text}\n`); }
         else if (e.type === 'deep.delta') { head('Deeper answer'); res.deep += e.text; if (show) process.stdout.write(e.text); }
         else if (e.type === 'fast.done' || e.type === 'deep.done') { for (const c of e.citations) res.citations.set(c.n, c); if (e.cut) res.cut = true; }
+        else if (e.type === 'sources') res.sources = e.sources;
         else if (e.type === 'error') { res.errors.push(e); if (show) process.stderr.write(`  ! ${e.lane}: ${e.message}\n`); }
       }
     }
@@ -505,10 +506,12 @@ const commands = {
     // a question another vault could not answer is filed there as an open question, its answer sent back when settled
     // (decision:waterfall.cross-vault-question-answers-now-else-queues)
     const queued = other && unanswered && !flags['no-queue'] ? await queueQuestion(other, q) : null;
-    if (flags.json) return out({ fast: res.fast, deep: res.deep, citations: cites, cut: res.cut, errors: res.errors, unanswered, ...(other ? { vault: other.name } : {}), ...(queued ? { queued } : {}) });
+    if (flags.json) return out({ fast: res.fast, deep: res.deep, citations: cites, cut: res.cut, errors: res.errors, unanswered, ...(res.sources ? { sources: res.sources } : {}), ...(other ? { vault: other.name } : {}), ...(queued ? { queued } : {}) });
     if (queued) console.log(queued.already ? `\n\n${other.name} could not answer it; it was asked there before as ${queued.id} — its answer comes back to this vault's inbox` : `\n\n${other.name} could not answer it: filed there as ${queued.id} (${queued.file}); the answer comes back to this vault's inbox`);
     if (res.cut) console.log('\n\n(the deep search was cut short at its limit)');
     console.log(`\n\n## Sources\n${cites.map(c => `[${c.n}] ${c.ref}${c.href ? `  ${WF_URL}${c.href}` : ''}`).join('\n')}`);
+    // --sources: everything the answer used, cited first, then read by the deep agent, then found by the search / plan
+    if (res.sources) console.log(`\n## All sources used (${res.sources.length})\n${res.sources.map(u => `${u.how.join(', ').padEnd(18)} ${u.source === 'node' ? '' : u.source + ':'}${u.ref}${u.href ? `  ${WF_URL}${u.href}` : ''}`).join('\n')}`);
   },
   async 'ask-search'() {
     const q = pos.slice(1).join(' ') || (await readStdin()); if (!q.trim()) die('wye ask-search "<words>" [--source s] [--limit n] [--expand] [--rerank]');

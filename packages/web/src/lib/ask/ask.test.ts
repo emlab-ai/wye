@@ -62,6 +62,26 @@ describe('ask', () => {
       expect(text).not.toContain('[['); expect(text).toMatch(/^Dropped, see \[\d+\] and \[\d+\]\.$/);
     } finally { process.env.STUB_DEEP = path.join(FX, 'deep.jsonl'); }
   });
+  it('runs the query plan only when rounds or hops are set (plan:ask-query-plan)', async () => {
+    const asked: string[] = []; const planner = async (p: string) => { asked.push(p); return '{"shape":"lookup","queries":[{"sql":"SELECT id FROM nodes","why":"every node"}]}'; };
+    const runSql = async () => ({ ok: true as const, rows: [{ id: 'decision:no-email' }] });
+    const plain = await collect(ask({ ...(await env()), planner, runSql }, { q: 'why no invite email?', lanes: ['fast'] }, { signal: new AbortController().signal, wfUrl: 'http://x' }));
+    expect(asked).toHaveLength(0); expect(plain.some(e => e.type === 'step')).toBe(false);
+    const ev = await collect(ask({ ...(await env()), planner, runSql }, { q: 'why no invite email?', lanes: ['fast'], rounds: 2 }, { signal: new AbortController().signal, wfUrl: 'http://x' }));
+    expect(asked.length).toBeGreaterThanOrEqual(1); expect(asked.length).toBeLessThanOrEqual(2);
+    const steps = ev.filter(e => e.type === 'step').map(e => (e as { text: string }).text);
+    expect(steps[0]).toMatch(/^Plan: lookup/); expect(steps).toContain('Query: every node — 1 row(s)');
+  });
+  it('returns every source it used when asked, cited first, each once', async () => {
+    const ev = await collect(ask(await env(), { q: 'why no invite email?', sources: true }, { signal: new AbortController().signal, wfUrl: 'http://x' }));
+    const s = ev.find(e => e.type === 'sources') as Extract<AskEvent, { type: 'sources' }>;
+    expect(ev.at(-2)).toBe(s); expect(s.sources.length).toBeGreaterThan(0);
+    expect(s.sources[0].how).toContain('cited');
+    expect(new Set(s.sources.map(x => `${x.source}:${x.ref}`)).size).toBe(s.sources.length);
+    expect(s.sources.every(x => x.how.length > 0)).toBe(true);
+    const off = await collect(ask(await env(), { q: 'why no invite email?' }, { signal: new AbortController().signal, wfUrl: 'http://x' }));
+    expect(off.some(e => e.type === 'sources')).toBe(false);
+  });
   it('runs only the lanes asked for', async () => {
     const ev = await collect(ask(await env(), { q: 'why no invite email?', lanes: ['fast'] }, { signal: new AbortController().signal, wfUrl: 'http://x' }));
     expect(ev.some(e => e.type.startsWith('deep') || e.type === 'step')).toBe(false);
