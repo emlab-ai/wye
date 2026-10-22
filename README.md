@@ -544,6 +544,195 @@ npm run dev                               # the dev server; or npm run desktop f
 A clone is its own home: its products are in `data/products/`. The `wye` command, the desktop app and everything
 else in detail are in [docs/reference.md](docs/reference.md).
 
+## Command line
+
+Every command and its parameters (`wye --help` prints the same). Inside a folder with a vault, `--product p` can be
+left out: `wye` finds the vault from the current folder. Most commands that print take `--json`. Commands that read
+or write knowledge go through the running app (`WYE_URL`, default `http://localhost:3456`); the graph commands read
+the Markdown directly and need no app.
+
+**Environment.** `WYE_URL` the app to talk to · `WYE_PRODUCT` the default `--product` · `WYE_SESSION` the agent
+session writes are attributed to (`wye session join` prints it) · `WYE_HOME` the home (`~/.wye`) · `WYE_PORT` the
+app's port · `WYE_PUBLIC_URL` the public address of a served app · `WYE_ASK_MODEL` Ask's default model ·
+`WYE_READONLY` only commands that read are allowed (Ask's deep lane runs under it).
+
+**Install and the app**
+
+```text
+wye --version                                   the version and the install it runs from
+wye setup                                       the home (~/.wye) and the agent skills (Claude Code, Codex)
+wye app [folder] [--port 3456] [--browser] [--no-open] [--public https://…]
+                                                the app in its own window; --browser: in your browser; --public: on a
+                                                server behind a TLS proxy (docs/server.md); a folder opens as the workspace
+wye init [folder] [--slug s] [--title "…"] [--icon i] [--description "…"]
+                                                a vault for the folder in .wye/ beside its code, linked to the vaults above
+                                                and below; on a folder that has one, only the note in CLAUDE.md / AGENTS.md
+                                                is brought up to date
+wye init --product <slug> --repo <dir> [--title "…"] [--project x] [--feature "<name>" --path <dir>]
+                                                a product's (or a feature's) definition from its code, shallow, with a
+                                                describe task per module; no model, nothing overwritten
+wye deepen <module> --product p [--worker claude-code]
+                                                hand a module's describe task to an agent: requirements from the code
+wye export <product> [--out file]               the product as one <product>.wye.tgz (documents, pages, inbox; not sessions)
+wye import <file.wye.tgz> [--slug s]            a new product from an export
+wye open <folder> [--slug s]                    a product folder already on disk, used where it is
+```
+
+**Ask and search**
+
+```text
+wye ask "<question>" --product p [--fast | --deep] [--model m] [--rounds n] [--hops n] [--sources] [--json]
+        [--vault <name>] [--no-queue]
+    a cited answer from the knowledge, documents, code and sessions: a fast answer, then a deeper agent's
+    --fast / --deep   only that lane (both by default)
+    --model m         the claude model both lanes answer with (an alias or id), else WYE_ASK_MODEL
+    --rounds n        plan first (1–5): a query plan over the type system (entities, kinds, props, time) whose SQL
+                      queries run on the graph, then planned again on what is still missing, n rounds at most; it
+                      stops early when a round finds nothing new. Without --rounds or --hops, Ask works as before
+    --hops n          how many links the plan may follow (1–4); either flag turns the plan on (default 2 for the other)
+    --sources         end with every source used, each marked cited, read by the agent, or found by the search or plan
+    --vault <name>    another vault answers (parent, one below, or a linked repo); when it cannot, the question is
+                      filed there as open and its answer comes back to this inbox (--no-queue: don't file it)
+wye ask-search "<words>" --product p [--source node|doc|code|session] [--limit n] [--expand] [--rerank] [--json]
+    the passages Ask answers from, ranked (full-text + vectors); --expand adds one hop along the graph
+wye context "<text>" --product p [--limit n] [--all | --as-of d] [--json]
+    the knowledge closest to a text (local semantic search; ended nodes hidden unless --all)
+wye packet --for "<text>" [--ref id ...] --product p [--budget N] [--all | --as-of d] [--json]
+    every rule, constraint, gate, approved decision, goal and open question within two hops of what a text touches
+wye query "<SQL>" [--file f] [--json]
+    one read-only query over the graph: nodes(id, kind, title, status, project, page, file, text, props JSON, a
+    column per prop) and edges(src, dst, verb); MATCH patterns on graph wye via GRAPH_TABLE
+wye explain <id | "text"> --product p          the state of the product around a node or a text (the librarian, one turn)
+```
+
+**Nodes, documents and types**
+
+```text
+wye resolve <link|id>                           what a link points at: document, node, block or section, with its text
+wye node <id> [--product p]                     a node with its relations
+wye node set <id> --product p [--status s] [--text t] [--title "…"] [--set key=value ...] [--unset key ...]
+wye node content <id> [--product p] [--file f]  the blocks under a node as Markdown; --file or stdin replaces them
+wye node add <type>:<slug> --product p [--title "…"] [--doc project/doc]
+                                                a new instance of a type (a base kind needs --doc)
+wye doc <product/project/doc>                   a document's Markdown body
+wye doc write <product/project/doc> [--file f] [--section "<heading>"]
+                                                replace the body, or one ## section, checked against the current hash
+wye doc create <product/project/slug> --title "…" [--template blank] [--parent doc] [--type module]
+wye doc set <product/project/doc> [--status s] [--set key=value ...]   the page's own frontmatter
+wye doc retype <product/project/doc> --type <slug>   the page becomes an instance of that type; links follow
+wye type add <slug> --product p [--extends parent] [--purpose "…"] [--color "#hex"] [--doc product/project/doc]
+wye propose [<product/project/doc>] [--pr <product/project/pr-x>] --product p [--file f]
+                                                a proposed block (a YAML card with `- id: kind:slug`, stdin or --file)
+                                                into the document where its kind lives
+wye impact <id> --after "<new text>" --product p [--no-judge] [--json]
+                                                what an edit would reach and what each node needs (unaffected | update |
+                                                rework | contradicts | ask); nothing is written
+wye verdicts <id ...> --product p               classify nodes against their neighbours (duplicate | refines |
+                                                consistent | contradicts)
+```
+
+**Remember, inbox and other vaults**
+
+```text
+wye remember [--title "…"] [--ref id ...] [--file f] [--from who] --product p
+    the person's words as said (stdin or the argument), kept in the inbox and judged against what is known
+wye inbox add --product p --title "…" [--type note] [--ref id ...] [--from who]   a raw note (body on stdin)
+wye inbox list --product p [--all]              what is waiting for review
+wye links [--json]                              the vaults this one reaches (parent, below, linked repos)
+wye link <repo URL> [--name n]                  link a vault in another repo by its URL
+wye link <name> --path <folder>                 where a linked vault is on this machine (kept locally)
+wye link --remove <name>
+wye request <vault> [--title "…"] [--file f]    a request to another vault (stdin), digested there; a task on each side
+wye requests [--all]                            requests other vaults sent here, not answered yet
+wye request done <item> [--note "…"]            tell the vault that asked; closes the tasks on both sides
+wye request decline <item> [--why "…"]
+```
+
+**Work, requests and plans**
+
+```text
+wye work list --product p [--unassigned | --mine <name> | --goal <id> | --plan <id> | --pr <id>] [--project x] [--done]
+wye work add "<text>" --product p [--part-of <id>] [--ready]
+wye work next --product p [--goal <id>]         the oldest ready, unblocked, unassigned task
+wye work assign <task> --worker <person|claude-code|codex|runner> --product p [--note "…"] [--by name] [--force]
+wye pr <product/project/pr-x> [--status draft|refining|approved|building|done|failed|cancelled]
+wye pr approve|cancel|reopen <product/project/pr-x> [--by name]
+wye pr revisit <product/project/pr-x>           bring a page written under older rules up to the current approach
+wye pr build <product/project/pr-x> [--worker claude-code|codex|runner] [--note "…"] [--force]
+wye import <file|dir> --product p [--project x] [--parent doc] [--no-analyse] [--brief "…"]
+    Markdown files as documents, then an agent extracts types, requirements, facts and decisions as proposed blocks
+wye import --code <dir> --name "<module>" --product p [--project x] [--parent doc] [--no-analyse] [--brief "…"]
+    a page for a module, written by an agent from its code
+```
+
+**Agent sessions**
+
+```text
+wye session list --product p [--all]            sessions, active first; runners online
+wye session show <id> --product p [--full]      one session with its log
+wye session changes <id> [--json]               every block it added, changed or removed, per document
+wye session create --product p --agent a "<instruction>" [--ref id ...] [--link url]
+wye session join ["what you are working on"] --product p [--agent a] [--name n] [--ref id ...]
+    an agent already running joins as a session; prints `export WYE_SESSION=<id>`
+wye session log <id> --product p "<line>"       append to the log (or stdin)
+wye session done|fail <id> --product p ["result"]
+wye session handoff <id> --product p --agent a ["note"]
+wye session open <id> --product p <product/project/doc[#node] | url>   navigate the person's browser to a page
+wye session take <id> --product p [--runner name]   mark it running under you
+wye agent listen --product p --agent claude-code|codex [--cmd "<command>"] [--name n] [--once] [--cwd dir]
+        [--take-ready [--goal <id>]] [--wye-root dir]
+    pick up queued sessions for that agent and run them; --take-ready also claims the oldest ready task
+```
+
+**Skills, hooks, workflows and packages**
+
+```text
+wye skills --product p                          the product's skills
+wye skill <id> --product p                      print a skill's instruction
+wye hooks --product p [--node <id>]             hooks and what fired
+wye hooks tick --product p [--now <iso>]        one tick of the hooks clock
+wye workflow list | show <id>                   workflows: stages, what each produces, its gate (wye workflows = list)
+wye workflow run <id> --on <node> [--again]
+wye run list | show <id>
+wye run advance|skip|retry|cancel <id>
+wye run reopen <id> --stage <s>
+wye packages [--product p] [--json]             the system library: each package and what it holds
+wye install <package> --product p --project x [--dry-run] [--create-product "<title>"] [--by name]
+wye uninstall <package> --product p --project x
+```
+
+**The graph, without the app**
+
+```text
+wye build [--root <product dir>]                parse the documents → _build/graph.json
+wye check [--root <product dir>] [--strict] [--deep [--limit n] [--budget-pairs n] [--budget-calls n]]
+                                                the graph's problems; --deep also judges same-kind pairs for contradictions
+wye graph get <id>                              one node with all edges
+wye graph neighbors <id> [-d N] [--kinds a,b] [--structural]
+wye graph search <terms...> [--all | --as-of <date>]
+wye graph impact <id> [--explain] [--semantic] [--after "<new text>"] [--json]
+wye graph packet --task "<text>" [--budget N] [--seeds n] [--all | --as-of d]
+wye graph constraints --task "<text>" [--ref id,id] [--budget N] [--all | --as-of d] [--json]
+wye graph verdicts <id ...> [--limit N] [--budget-pairs N] [--budget-calls N] [--json]
+wye graph reqs [--status s]                     the requirement tree
+wye graph stats
+wye graph site [--out dir]                      a static viewer, ready to publish
+```
+
+**Benchmarks** (each takes `--product p`)
+
+```text
+wye eval own [--suite s] [--live] [--build-truth] [--baseline "<why>"] [--tolerance n]
+wye eval compare --request "<text>" [--ref id ...] [--plan id] --agent claude-code --runs 5 [--arms with,without]
+wye eval public <moosedev|reqpairs|memoryagentbench|memorybench> --fetch | --import | --run [--live] | --report
+        [--set s] [--sample n] [--limit n] [--provider p] [--model m] [--judge m] [--judge-passes n]
+        [--run-id id] [--from-run id] [--parallel n] [--competency c]
+wye eval ask [--k 10] [--rerank] [--json]       the Ask retriever's recall@k
+wye eval judge --agreement [--live] | --sample 50
+wye eval report [--suite s] [--since date]
+wye eval cards                                  the results as cards in the Evaluation project
+```
+
 ## Repository structure
 
 | path | what |
