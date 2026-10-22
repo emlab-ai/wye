@@ -63,6 +63,17 @@ describe('refresh', () => {
     await refresh(p, g, { embed: fakeEmbed, listCode });
     expect([...(await state(await getStore(p))).keys()].filter(id => id.startsWith('doc:')).length).toBe(1);
   });
+  it('a file a branch switch rewrote with the same content is not read again; one with other content is (plan:cache-home)', async () => {
+    await refresh(p, g, { embed: fakeEmbed, listCode });
+    const code = path.join(repo, 'lib/invite.ts'), doc = path.join(dir, 'projects/v2/docs/m.md'); const later = new Date(Date.now() + 5000);
+    await utimes(code, later, later); await utimes(doc, later, later);
+    const st = await refresh(p, g, { embed: fakeEmbed, listCode });
+    expect(st.read).toBe(0); expect(st.embedded).toBe(0);
+    expect((await refresh(p, g, { embed: fakeEmbed, listCode })).read).toBe(0);   // the new mtimes were kept
+    await writeFile(code, 'export function sendInvite() {\n  return 2;\n}\n'); await utimes(code, later, new Date(Date.now() + 9000));
+    const st2 = await refresh(p, g, { embed: fakeEmbed, listCode });
+    expect(st2.read).toBe(1); expect(st2.changed.code).toBe(1);
+  });
   it('leaves scopes.json alone when nothing changed', async () => {
     await refresh(p, g, { embed: fakeEmbed, listCode });
     const f = path.join(cacheDirOf(dir), 'search.lance/scopes.json'); const before = (await stat(f)).mtimeMs;

@@ -6,6 +6,7 @@ import { readFile, stat, readdir } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import type { Product } from '../products';
 import { REPO_ROOT, DATA_ROOT, productRepo, cacheDirOf } from '../products';
@@ -15,7 +16,7 @@ import { openStore, stateOf, idsByScope, idsNotOfModel, apply, getChunks, saveSc
 import { nodeChunks, docChunks, codeChunks, sessionChunks } from './chunk';
 import { getEmbedder, toVector, EMBED_MODEL, EMBED_DIM, type Embed } from './embed';
 
-export type RefreshStats = { changed: Record<Source, number>; embedded: number; degraded?: 'no-vectors'; indexing?: boolean };
+export type RefreshStats = { changed: Record<Source, number>; embedded: number; read?: number; degraded?: 'no-vectors'; indexing?: boolean };
 const MAX_CODE = 200 * 1024;
 const CODE_EXT = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|kt|swift|rb|php|sh|sql|css|scss|html|md|yml|yaml|toml|c|h|cpp|hpp|cs|graphql)$/i;
 
@@ -34,18 +35,19 @@ export function getStore(p: Product): Promise<Store> {
   return s;
 }
 const gitFiles = async (root: string) => (await promisify(execFile)('git', ['ls-files'], { cwd: root, maxBuffer: 64 * 1024 * 1024 })).stdout.split('\n').filter(Boolean);
+const fileHash = (b: Buffer) => createHash('sha1').update(b).digest('hex').slice(0, 16);
 const mtimeOf = async (f: string) => { try { return (await stat(f)).mtimeMs; } catch { return null; } };
 const inside = (f: string, dir: string) => f === dir || f.startsWith(path.resolve(dir) + path.sep);
 const abs = (f: string) => path.isAbsolute(f) ? f : path.resolve(REPO_ROOT, f);
 
 // every file of every source with its mtime (a scope is `<source>:<path>` — one file can feed two sources), and a reader for the ones that changed
 async function walk(p: Product, graph: GraphData, listCode: (root: string) => Promise<string[]>, sources: Set<Source>) {
-  const files: { scope: string; source: Source; mtime: number; read: () => Promise<ChunkRow[]> }[] = [];
+  const files: { scope: string; source: Source; mtime: number; file?: string; read: () => Promise<ChunkRow[]> }[] = [];
   const gm = (await mtimeOf(path.join(cacheDirOf(p.dir), 'graph.json'))) ?? graph.nodes.length;
   if (sources.has('node')) files.push({ scope: 'graph', source: 'node', mtime: gm, read: async () => nodeChunks(graph) });
   for (const f of sources.has('doc') ? graph.files : []) {
     const a = abs(f); const m = await mtimeOf(a); if (m === null) continue;
-    files.push({ scope: 'doc:' + a, source: 'doc', mtime: m, read: async () => docChunks(path.relative(REPO_ROOT, a), await readFile(a, 'utf8')) });
+    files.push({ scope: 'doc:' + a, source: 'doc', mtime: m, file: a, read: async () => docChunks(path.relative(REPO_ROOT, a), await readFile(a, 'utf8')) });
   }
   const root = codeRoot(p);
   if (sources.has('code') && root && existsSync(root)) {
@@ -54,14 +56,14 @@ async function walk(p: Product, graph: GraphData, listCode: (root: string) => Pr
       const a = path.join(root, rel); if (inside(a, path.join(p.dir, 'projects')) || inside(a, path.join(p.dir, '_sessions')) || inside(a, DATA_ROOT)) continue;   // knowledge, not code
       let st; try { st = await stat(a); } catch { continue; }
       if (!st.isFile() || st.size > MAX_CODE) continue;
-      files.push({ scope: 'code:' + a, source: 'code', mtime: st.mtimeMs, read: async () => { const t = await readFile(a, 'utf8'); return t.includes('\0') ? [] : codeChunks(rel, t); } });
+      files.push({ scope: 'code:' + a, source: 'code', mtime: st.mtimeMs, file: a, read: async () => { const t = await readFile(a, 'utf8'); return t.includes('\0') ? [] : codeChunks(rel, t); } });
     }
   }
   const sdir = path.join(p.dir, '_sessions');
   let names: string[] = []; if (sources.has('session')) try { names = (await readdir(sdir)).filter(n => n.endsWith('.json') && !n.startsWith('_')); } catch { /* none */ }
   for (const n of names) {
     const a = path.join(sdir, n); const m = await mtimeOf(a); if (m === null) continue;
-    files.push({ scope: 'session:' + a, source: 'session', mtime: m, read: async () => { try { return sessionChunks(JSON.parse(await readFile(a, 'utf8'))); } catch { return []; } } });
+    files.push({ scope: 'session:' + a, source: 'session', mtime: m, file: a, read: async () => { try { return sessionChunks(JSON.parse(await readFile(a, 'utf8'))); } catch { return []; } } });
   }
   return files;
 }
@@ -86,7 +88,18 @@ export async function refresh(p: Product, graph: GraphData, opts: RefreshOpts = 
   const model = embed ? EMBED_MODEL : '';
   const changed: Record<Source, number> = { node: 0, doc: 0, code: 0, session: 0 }; let embedded = 0; let wrote = false;
   const files = await walk(p, graph, opts.listCode ?? gitFiles, sources); const present = new Set(files.map(f => f.scope));
-  const todo = files.filter(f => s.scopes[f.scope]?.mtime !== f.mtime);
+  // a file whose mtime moved but whose content did not (a branch switched away and back, a checkout that rewrote it the
+  // same) is not read again: its content hash, kept beside the mtime, says so and only the mtime is updated
+  // (req:waterfall.cache-home.branch-switch)
+  const moved = files.filter(f => s.scopes[f.scope]?.mtime !== f.mtime);
+  const contentOf = new Map<string, string>(); const touched: typeof files = [];
+  for (const f of moved) {
+    if (!f.file) continue;
+    try { contentOf.set(f.scope, fileHash(await readFile(f.file))); } catch { continue; }
+    if (s.scopes[f.scope]?.file === contentOf.get(f.scope)) touched.push(f);
+  }
+  if (touched.length) await withLock(p.dir, async () => { const scopes = { ...s.scopes }; for (const f of touched) scopes[f.scope] = { ...scopes[f.scope], mtime: f.mtime }; s.scopes = scopes; await saveScopes(s); });
+  const todo = moved.filter(f => !touched.includes(f)); let read = 0;
   const size = opts.batch ?? Number.MAX_SAFE_INTEGER;
   for (let i = 0; i === 0 || i < todo.length; i += size) {
     const slice = todo.slice(i, i + size); const last = i + size >= todo.length;
@@ -97,8 +110,8 @@ export async function refresh(p: Product, graph: GraphData, opts: RefreshOpts = 
       const remove: string[] = []; const add: (ChunkRow & { scope: string; hash: string })[] = []; const scopes = { ...s.scopes };
       for (const f of slice) {
         if (s.scopes[f.scope]?.mtime === f.mtime) continue;          // another refresh did it while this one waited
-        scopes[f.scope] = { source: f.source, mtime: f.mtime };
-        const rows = await f.read(); const ids = new Set<string>();
+        scopes[f.scope] = { source: f.source, mtime: f.mtime, ...(contentOf.has(f.scope) ? { file: contentOf.get(f.scope) } : {}) };
+        const rows = await f.read(); read++; const ids = new Set<string>();
         for (const c of rows) { if (ids.has(c.id)) continue; ids.add(c.id); const h = hashOf(c); const was = have.get(c.id); if (was?.hash === h && was.scope === f.scope) continue; add.push({ ...c, scope: f.scope, hash: h }); changed[f.source]++; }
         for (const id of byScope.get(f.scope) ?? []) if (!ids.has(id)) remove.push(id);
       }
@@ -127,7 +140,7 @@ export async function refresh(p: Product, graph: GraphData, opts: RefreshOpts = 
     });
   }
   if (wrote) await withLock(p.dir, () => tidy(s));                    // one compaction for the whole refresh
-  return { changed, embedded, ...(embed ? {} : { degraded: 'no-vectors' as const }) };
+  return { changed, embedded, read, ...(embed ? {} : { degraded: 'no-vectors' as const }) };
 }
 
 // Before a query (spec §6): blocks and documents are brought up to date and waited for — at most every 5 s; code,

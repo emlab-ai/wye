@@ -1,7 +1,7 @@
 // The Ask index on disk (decision:wf2.ask-sources): one embedded LanceDB database per product, <cache folder>/
 // search.lance — one row per passage with its vector, a full-text index over title + text, and hybrid search (BM25 and
 // vectors fused by reciprocal rank). Writes are batched (state → apply) so a refresh is one delete and one add, not one
-// per file. Which file each passage came from, and that file's mtime, is kept beside it in scopes.json.
+// per file. Which file each passage came from, and that file's mtime and content hash, is kept beside it in scopes.json.
 import * as lancedb from '@lancedb/lancedb';
 import { Schema, Field, Utf8, Float32, FixedSizeList } from 'apache-arrow';
 import { createHash } from 'node:crypto';
@@ -11,7 +11,7 @@ import type { ChunkRow, Source } from './types';
 import { keywords } from '../semantic';
 
 export type StoredRow = ChunkRow & { scope: string; hash: string; model: string; vector: number[] };
-export type Store = { dir: string; dim: number; db: lancedb.Connection; table: lancedb.Table; hasFts: boolean; scopes: Record<string, { source: Source; mtime: number }> };
+export type Store = { dir: string; dim: number; db: lancedb.Connection; table: lancedb.Table; hasFts: boolean; scopes: Record<string, { source: Source; mtime: number; file?: string }> };
 export type Scored = ChunkRow & { score: number };
 
 const TABLE = 'chunks';
