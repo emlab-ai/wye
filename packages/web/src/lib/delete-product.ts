@@ -4,10 +4,10 @@
 // its registry entry, not a folder someone else's repo holds. A vault of the open workspace (lib/workspace) has no
 // entry: its .wye/ folder is what goes to the trash, and its links go with it (decision:wf2.vault-links) — the vault
 // above stops naming it and takes its children, each child names that vault as its parent. The note to agents in the
-// folder's AGENTS.md / CLAUDE.md stays; it is the person's file.
+// folder's AGENTS.md / CLAUDE.md stays; it is the person's file. Its cache folder in the Wye home is deleted.
 import { mkdir, rename, access, cp, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { DATA_ROOT, isVaultDir, listProducts, registryDir } from './products';
+import { DATA_ROOT, isVaultDir, listProducts, registryDir, cacheDirOf } from './products';
 
 export interface Deleted {
   slug: string;
@@ -30,6 +30,8 @@ export async function deleteProduct(slug: string, dataRoot: string = DATA_ROOT):
   // the stamp is to the second, so a slug deleted twice within one second still gets its own folder
   let dest = path.join(trash, `${slug}-${stamp()}`);
   for (let n = 2; await there(dest); n++) dest = path.join(trash, `${slug}-${stamp()}-${n}`);
+  // its cache folder (lib/cache-home) is only what can be rebuilt and judged again: removed, not trashed
+  await rm(cacheDirOf(product.dir), { recursive: true, force: true }).catch(() => {});
   const entry = await there(registry);
   if (entry) await rename(registry, dest);
   // a vault the workspace found through its links: the entry (when there was one) was only a pointer

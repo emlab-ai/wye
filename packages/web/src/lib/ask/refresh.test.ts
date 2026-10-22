@@ -6,6 +6,7 @@ import { refresh, getStore, ensureFresh, backgroundDone } from './refresh';
 import { search, state } from './store';
 import type { Product } from '../products';
 import type { GraphData } from '../graph';
+import { cacheDirOf } from '../products';
 
 const fakeEmbed = async (t: string[]) => t.map(x => [(x.length % 7) / 7, 1, 0]);
 let dir: string; let repo: string; let p: Product; let g: GraphData;
@@ -64,7 +65,7 @@ describe('refresh', () => {
   });
   it('leaves scopes.json alone when nothing changed', async () => {
     await refresh(p, g, { embed: fakeEmbed, listCode });
-    const f = path.join(dir, '_build/search.lance/scopes.json'); const before = (await stat(f)).mtimeMs;
+    const f = path.join(cacheDirOf(dir), 'search.lance/scopes.json'); const before = (await stat(f)).mtimeMs;
     await new Promise(r => setTimeout(r, 20));
     await refresh(p, g, { embed: fakeEmbed, listCode });
     expect((await stat(f)).mtimeMs).toBe(before);

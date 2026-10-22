@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { installPackage, uninstallPackage, syncPackageTypes, listPackages, readRecord, parseRecord, formatRecord, InstallRefused, linkPath } from './install';
 import { docRoute, docSlug, packageOfSlug } from './doc';
-import { pageFile } from './products';
+import { pageFile, cacheDirOf } from './products';
 import { writeAtomic } from './write';
 
 // A scratch system library (WYE_SYSTEM) with one fixture package, and a scratch data root with the product `acme`
@@ -23,7 +23,7 @@ const PEOPLE = '---\nnode: module:people\ntitle: People\n---\n\n# People\n\n```y
 let system: string, data: string, productDir: string, project: string;
 const gone = async (p: string) => { try { await access(p); return false; } catch { return true; } };
 async function write(root: string, files: Record<string, string>) { for (const [f, t] of Object.entries(files)) { await mkdir(path.dirname(path.join(root, f)), { recursive: true }); await writeFile(path.join(root, f), t); } }
-const graphOf = async () => JSON.parse(await readFile(path.join(productDir, '_build/graph.json'), 'utf8'));
+const graphOf = async () => JSON.parse(await readFile(path.join(cacheDirOf(productDir), 'graph.json'), 'utf8'));
 
 beforeEach(async () => {
   const tmp = await mkdtemp(path.join(os.tmpdir(), 'wf-install-'));

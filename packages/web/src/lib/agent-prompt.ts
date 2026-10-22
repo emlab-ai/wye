@@ -3,7 +3,7 @@
 import { toolchain, toolsLine } from './toolchain';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { REPO_ROOT } from './products';
+import { REPO_ROOT, cacheDirOf } from './products';
 import { readdir } from 'node:fs/promises';
 import { loadGraph } from './load';
 import { indexGraph } from './graph';
@@ -30,7 +30,7 @@ export async function agentSystemPrompt(product: string, productDir: string, wfU
   const env = `\n\n## This product\n- product: \`${product}\` (WYE_PRODUCT=${product}); Wye repo: ${REPO_ROOT}; app: ${wfUrl}\n- documents: ${productDir}/projects/<project>/docs/*.md; graph check: \`wye check --root ${path.relative(REPO_ROOT, productDir).startsWith('..') ? productDir : path.relative(REPO_ROOT, productDir)}\` (run from ${REPO_ROOT})\n- the \`wye\` CLI is on PATH (WYE_URL=${wfUrl})${plans.length ? `\n- plan documents (follow-ups go here as task lines):\n${plans.join('\n')}` : ''}`;
   // the constitution (decision:memory.constraint-type): the product's approved constraints, verbatim, in every prompt
   let constitution = '';
-  try { const g = await loadGraph(path.join(productDir, '_build/graph.json')); constitution = constitutionSection(g, indexGraph(g)); } catch { /* no graph yet */ }
+  try { const g = await loadGraph(path.join(cacheDirOf(productDir), 'graph.json')); constitution = constitutionSection(g, indexGraph(g)); } catch { /* no graph yet */ }
   // what the agent can call (lib/toolchain), so it does not probe PATH
   let tools = '';
   try { tools = `\n${toolsLine(await toolchain())}`; } catch { /* unknown: say nothing */ }

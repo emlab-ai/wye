@@ -4,7 +4,7 @@
 // (WYE_URL, default http://localhost:3456), and the graph itself — `wye build`, `wye check`, `wye get`, `wye search`,
 // `wye reqs`, `wye site`, `wye stats` (bin/wye-graph.js) read and build a product's graph without the app.
 //
-//   wye build [--root <product dir>]      parse the documents → _build/graph.json
+//   wye build [--root <product dir>]      parse the documents → graph.json in the vault's cache folder
 //   wye check [--root <product dir>] [--strict]   the graph's problems (dangling references, missing fields…)
 //   wye graph <get|neighbors|search|constraints|reqs|stats|site|impact|packet|verdicts> …   every graph command by name
 //

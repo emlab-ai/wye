@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { transcriptExcerpt, parseCandidates, candidateSlug, candidateCard, insertIntoPlanSection, consolidateSession, consolidateEnabled, touchedFiles, vaultFor } from './consolidate';
 import { rebuild } from './write';
-import { REPO_ROOT } from './products';
+import { REPO_ROOT, cacheDirOf } from './products';
 import type { ChatEvent, Session } from './session-types';
 import type { JevClient } from './jev';
 
@@ -101,7 +101,7 @@ _What was understood._
     expect(md.match(/related-to: \[task:shop.gross\]/g)).toHaveLength(3);
     expect(md.indexOf('```yaml')).toBeLessThan(md.indexOf('## Tasks'));
     await rebuild(dir);
-    const g = JSON.parse(await readFile(path.join(dir, '_build/graph.json'), 'utf8')) as { nodes: { id: string; kind: string; status: string; defined: boolean }[] };
+    const g = JSON.parse(await readFile(path.join(cacheDirOf(dir), 'graph.json'), 'utf8')) as { nodes: { id: string; kind: string; status: string; defined: boolean }[] };
     expect(g.nodes.filter(n => n.defined && ['constraint', 'lesson', 'question'].includes(n.kind)).length).toBe(3);
     expect(g.nodes.find(n => n.kind === 'lesson')?.status).toBe('proposed');
   });

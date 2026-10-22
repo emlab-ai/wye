@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { rebuild } from './write';
 import { runVerdicts, verdictLog, verdictsEnabled } from './verdicts';
-import { REPO_ROOT } from './products';
+import { REPO_ROOT, cacheDirOf } from './products';
 
 // the write-time verdict pass end to end with the fake judge (test/fake-judge.js): pairs → verdicts → lines under the node
 const doc = `---
@@ -62,7 +62,7 @@ describe('verdict pass', () => {
     expect(r.written).toBe(0);
   });
   it('the written lines are nodes: an open contradiction between the two, content of the decision', async () => {
-    const g = JSON.parse(await readFile(path.join(dir, '_build/graph.json'), 'utf8')) as { nodes: { id: string; kind: string; status: string }[]; edges: { from: string; to: string; verb: string }[] };
+    const g = JSON.parse(await readFile(path.join(cacheDirOf(dir), 'graph.json'), 'utf8')) as { nodes: { id: string; kind: string; status: string }[]; edges: { from: string; to: string; verb: string }[] };
     const c = g.nodes.find(n => n.kind === 'contradiction'); expect(c?.status).toBe('open');
     expect(g.edges.some(e => e.from === 'decision:pay.gross' && e.verb === 'has' && e.to === c!.id)).toBe(true);
     expect(g.edges.filter(e => e.from === c!.id && e.verb === 'between').map(e => e.to).sort()).toEqual(['decision:pay.gross', 'decision:pay.net']);

@@ -1,4 +1,4 @@
-// The Ask index on disk (decision:wf2.ask-sources): one embedded LanceDB database per product, <product>/_build/
+// The Ask index on disk (decision:wf2.ask-sources): one embedded LanceDB database per product, <cache folder>/
 // search.lance — one row per passage with its vector, a full-text index over title + text, and hybrid search (BM25 and
 // vectors fused by reciprocal rank). Writes are batched (state → apply) so a refresh is one delete and one add, not one
 // per file. Which file each passage came from, and that file's mtime, is kept beside it in scopes.json.

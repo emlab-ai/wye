@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtemp, mkdir, writeFile, readFile, access, symlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { listProducts, productRepo } from './products';
+import { listProducts, productRepo, cacheDirOf } from './products';
 import { archiveProblems, exportProduct, importProduct, openProduct, portableMeta } from './product-transfer';
 
 // a data root holding the products named, each with one document, a session log and a built graph — what an export
@@ -69,7 +69,7 @@ describe('export and import', () => {
     expect(r.slug).toBe('shop-2');
     expect(await readFile(path.join(to, 'products/shop-2/projects/main/docs/prd.md'), 'utf8')).toMatch(/req:refund\.window/);
     expect(await there(path.join(to, 'products/shop-2/inbox'))).toBe(true);
-    expect(await there(path.join(to, 'products/shop-2/_build/graph.json'))).toBe(true);
+    expect(await there(path.join(cacheDirOf(path.join(to, 'products/shop-2')), 'graph.json'))).toBe(true);
   });
 
   it('refuses an archive that is not a product, and writes nothing', async () => {

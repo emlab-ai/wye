@@ -8,7 +8,7 @@ import { promisify } from 'node:util';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { Product } from '../products';
-import { REPO_ROOT, DATA_ROOT, productRepo } from '../products';
+import { REPO_ROOT, DATA_ROOT, productRepo, cacheDirOf } from '../products';
 import type { GraphData } from '../graph';
 import type { ChunkRow, Source } from './types';
 import { openStore, stateOf, idsByScope, idsNotOfModel, apply, getChunks, saveScopes, tidy, hashOf, type Store, type StoredRow } from './store';
@@ -23,9 +23,11 @@ const CODE_EXT = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|kt|swift|rb|php|sh|sql|
 export const codeRoot = (p: Product): string | null => productRepo(p);
 const stores = ((globalThis as { __askStores?: Map<string, Promise<Store>> }).__askStores ??= new Map());
 export function getStore(p: Product): Promise<Store> {
-  let s = stores.get(p.dir);
+  // keyed by where the store is, so a store opened at the vault's old _build/ is never used after the move (lib/cache-home)
+  const where = path.join(cacheDirOf(p.dir), 'search.lance');
+  let s = stores.get(where);
   if (!s) {
-    s = openStore(path.join(p.dir, '_build/search.lance'), EMBED_DIM); s.catch(() => stores.delete(p.dir)); stores.set(p.dir, s);
+    s = openStore(where, EMBED_DIM); s.catch(() => stores.delete(where)); stores.set(where, s);
     // the versions an earlier run left behind go when the store is first opened (decision:waterfall.index-compacts-once-per-refresh)
     void s.then((st: Store) => withLock(p.dir, () => tidy(st))).catch((e: unknown) => console.warn(`[ask] ${p.slug}: tidying the index failed — ${e instanceof Error ? e.message : e}`));
   }
@@ -39,7 +41,7 @@ const abs = (f: string) => path.isAbsolute(f) ? f : path.resolve(REPO_ROOT, f);
 // every file of every source with its mtime (a scope is `<source>:<path>` — one file can feed two sources), and a reader for the ones that changed
 async function walk(p: Product, graph: GraphData, listCode: (root: string) => Promise<string[]>, sources: Set<Source>) {
   const files: { scope: string; source: Source; mtime: number; read: () => Promise<ChunkRow[]> }[] = [];
-  const gm = (await mtimeOf(path.join(p.dir, '_build/graph.json'))) ?? graph.nodes.length;
+  const gm = (await mtimeOf(path.join(cacheDirOf(p.dir), 'graph.json'))) ?? graph.nodes.length;
   if (sources.has('node')) files.push({ scope: 'graph', source: 'node', mtime: gm, read: async () => nodeChunks(graph) });
   for (const f of sources.has('doc') ? graph.files : []) {
     const a = abs(f); const m = await mtimeOf(a); if (m === null) continue;
@@ -150,7 +152,7 @@ export const backgroundDone = (p: Product): Promise<void> => G.__askBg?.get(p.di
 // whether a product's index was ever built on this machine (the store is on disk): what a search over the workspace
 // asks before touching another vault — building an index embeds every page in this process and would stall the
 // typing search for everyone; a vault without one is sent to build in the background and answers next time
-export async function indexBuilt(p: Product): Promise<boolean> { try { return (await import('node:fs/promises')).stat(path.join(p.dir, '_build/search.lance')).then(s => s.isDirectory()); } catch { return false; } }
+export async function indexBuilt(p: Product): Promise<boolean> { try { return (await import('node:fs/promises')).stat(path.join(cacheDirOf(p.dir), 'search.lance')).then(s => s.isDirectory()); } catch { return false; } }
 // whether the index is being written now — a query's refresh or the background pass (the status bar's "rebuilding")
 export const indexingNow = (p: Product): boolean => !!G.__askBg?.has(p.dir) || G.__askRuns?.get(p.dir)?.settled === false;
 // Forget the index (Clear and rebuild): waits for the writer, then drops the open store and every run, under the
@@ -158,7 +160,7 @@ export const indexingNow = (p: Product): boolean => !!G.__askBg?.has(p.dir) || G
 export async function dropIndex(p: Product, remove: () => Promise<void>): Promise<void> {
   await backgroundDone(p).catch(() => undefined);
   await withLock(p.dir, async () => {
-    stores.delete(p.dir); G.__askRuns?.delete(p.dir); G.__askIndexed?.delete(p.dir);
+    stores.delete(path.join(cacheDirOf(p.dir), 'search.lance')); G.__askRuns?.delete(p.dir); G.__askIndexed?.delete(p.dir);
     await remove();
   });
 }

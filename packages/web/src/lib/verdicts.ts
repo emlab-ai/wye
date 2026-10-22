@@ -3,13 +3,13 @@
 // judge (lib/judge.js, through the agent CLI — decision:memory.model-calls-via-cli); a verdict that is not
 // "consistent" is written under the node as its content — a verdict: line and, for duplicate / contradicts, an open
 // contradiction: line — so it reaches the Inbox with the block. Consistent verdicts stay in the judge log
-// (_build/verdicts.json) and show as "checked against n". Off unless the product's _product.md says `verdicts: on`
+// (verdicts.json in the vault's cache folder) and show as "checked against n". Off unless the product's _product.md says `verdicts: on`
 // or WF_VERDICTS=1; budgeted per run; one run at a time per product, ids arriving meanwhile wait for the next.
 import { reconcileVerdicts } from './verdict-reconcile';
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { REPO_ROOT } from './products';
+import { REPO_ROOT, cacheDirOf } from './products';
 import { loadGraph } from './load';
 import { writeAtomic, withFileLock } from './write';
 import { claimWrite } from './changes';
@@ -36,7 +36,7 @@ export async function verdictsEnabled(productDir: string): Promise<boolean> {
 
 // The judge log for a product: every verdict ever given, keyed by pair
 export async function verdictLog(productDir: string): Promise<Verdict[]> {
-  try { const c = JSON.parse(await readFile(path.join(productDir, '_build/verdicts.json'), 'utf8')) as { entries: Record<string, Omit<Verdict, 'key'>> }; return Object.entries(c.entries ?? {}).map(([key, v]) => ({ ...v, key })); } catch { return []; }
+  try { const c = JSON.parse(await readFile(path.join(cacheDirOf(productDir), 'verdicts.json'), 'utf8')) as { entries: Record<string, Omit<Verdict, 'key'>> }; return Object.entries(c.entries ?? {}).map(([key, v]) => ({ ...v, key })); } catch { return []; }
 }
 
 // Called by the watcher with the rebuild's diff: schedule the pass for the judged kinds among the added / changed nodes.
@@ -62,10 +62,10 @@ async function drain(productDir: string, product: string, log: (m: string) => vo
 // The pass for given node ids: pairs → verdicts (cached, budgeted) → lines under each node that has none for them yet.
 export async function runVerdicts(productDir: string, product: string, ids: string[], opts: { budget?: { pairs: number; calls: number }; limit?: number; log?: (m: string) => void } = {}): Promise<{ judged: number; written: number; verdicts: Verdict[] }> {
   const { Graph, judge } = lib();
-  const graph = new Graph(await loadGraph(path.join(productDir, '_build/graph.json')));
+  const graph = new Graph(await loadGraph(path.join(cacheDirOf(productDir), 'graph.json')));
   const pairs = graph.verdictPairs(ids, { limit: opts.limit ?? 12 });
   if (!pairs.length) return { judged: 0, written: 0, verdicts: [] };
-  const verdicts = (await judge.judgePairs(pairs, { cacheFile: path.join(productDir, '_build/verdicts.json'), budget: opts.budget ?? { pairs: 30, calls: 4 }, log: opts.log ?? (() => {}) })).filter(Boolean) as Verdict[];
+  const verdicts = (await judge.judgePairs(pairs, { cacheFile: path.join(cacheDirOf(productDir), 'verdicts.json'), budget: opts.budget ?? { pairs: 30, calls: 4 }, log: opts.log ?? (() => {}) })).filter(Boolean) as Verdict[];
   let written = 0;
   const byNode = new Map<string, Verdict[]>();
   // consistent ones too: they write no line, but they replace the pair's older verdict and close its open contradiction

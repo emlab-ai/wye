@@ -8,7 +8,7 @@
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { REPO_ROOT, getProduct } from './products';
+import { REPO_ROOT, getProduct, cacheDirOf } from './products';
 import { loadGraph } from './load';
 import { loadScope } from './scope';
 import { search } from './semantic';
@@ -26,7 +26,7 @@ const lib = () => ({ Graph: req('./lib/graph.js').Graph as any, impact: req('./l
 // the judge as the inbox uses it on raw input (lib/inbox#impactInboxItem): the same model, cache and budget as a change
 export async function rawInputJudge(productDir: string): Promise<(change: { node: string; kind: string; before: string; after: string }, cands: { id: string; kind: string; status?: string; path: string; text: string }[]) => Promise<({ verdict: string; reason: string; question?: string | null } | null)[]>> {
   const { impact } = lib(); const budget = { candidates: await impactBudget(productDir), calls: 3 };
-  return (change, cands) => impact.judgeImpact(change, cands, { cacheFile: path.join(productDir, '_build/impact.json'), budget });
+  return (change, cands) => impact.judgeImpact(change, cands, { cacheFile: path.join(cacheDirOf(productDir), 'impact.json'), budget });
 }
 export type ImpactVerdict = 'unaffected' | 'update' | 'rework' | 'contradicts' | 'ask';
 export type ImpactCandidate = { id: string; kind: string; title: string; status?: string; path: string; via: 'content' | 'structure' | 'text'; weight: number; text: string; hash: string; verdict?: ImpactVerdict; reason?: string; update?: { text?: string; props?: Record<string, string> }; question?: string; cached?: boolean; outcome?: { state: 'applied' | 'skipped' | 'task' | 'contradiction' | 'question'; ref?: string; by?: string; at?: string; reason?: string } };
@@ -50,7 +50,7 @@ const st = (): State => (g.__wfImpact ??= { running: new Map(), rerun: new Set()
 // can tell when the candidate moved on (req:exec.impact-patch).
 export async function candidatesFor(productDir: string, product: string, node: string, afterText: string): Promise<ImpactCandidate[]> {
   const { Graph, impact, judge } = lib();
-  const graph = new Graph(await loadGraph(path.join(productDir, '_build/graph.json')));
+  const graph = new Graph(await loadGraph(path.join(cacheDirOf(productDir), 'graph.json')));
   const cands: ImpactCandidate[] = impact.structuralCandidates(graph, node).map((c: any) => ({ ...c, hash: hashText(c.text) }));
   try {
     const have = new Set(cands.map(c => c.id));
@@ -107,7 +107,7 @@ export async function runImpact(productDir: string, product: string, changeId: s
     const todo = cands.map((c, i) => [c, i] as const).filter(([c]) => !c.verdict);
     const change = { node: r.node, kind: r.kind, before: beforeText, after: afterText };
     const budget = { candidates: await impactBudget(productDir), calls: 3 };
-    const verdicts = await impact.judgeImpact(change, todo.map(([c]) => c), { cacheFile: path.join(productDir, '_build/impact.json'), budget, log, onBatch: async (landed: { i: number; v: any }[]) => {
+    const verdicts = await impact.judgeImpact(change, todo.map(([c]) => c), { cacheFile: path.join(cacheDirOf(productDir), 'impact.json'), budget, log, onBatch: async (landed: { i: number; v: any }[]) => {
       for (const { i, v } of landed) { const c = cands[todo[i][1]]; c.verdict = v.verdict; c.reason = v.reason; c.update = v.update ?? undefined; c.question = v.question ?? undefined; c.cached = v.cached; }
       set = { ...set, candidates: cands, pending: cands.filter(c => !c.verdict).length, model: landed[0]?.v.model };
       await mutateChange(productDir, changeId, c => { c.impact = set; });
@@ -201,7 +201,7 @@ export async function whatIf(product: string, id: string, after: string, opts: {
   const cands = await candidatesFor(p.dir, product, id, after);
   if (opts.judge === false) return { candidates: cands };
   const before = judge.nodeText(n);
-  const verdicts = await impact.judgeImpact({ node: id, kind: n.kind, before, after }, cands, { cacheFile: path.join(p.dir, '_build/impact.json'), budget: { candidates: await impactBudget(p.dir), calls: 3 } });
+  const verdicts = await impact.judgeImpact({ node: id, kind: n.kind, before, after }, cands, { cacheFile: path.join(cacheDirOf(p.dir), 'impact.json'), budget: { candidates: await impactBudget(p.dir), calls: 3 } });
   cands.forEach((c, i) => { const v = verdicts[i]; if (v) { c.verdict = v.verdict; c.reason = v.reason; c.update = v.update ?? undefined; c.question = v.question ?? undefined; c.cached = v.cached; } });
   return { candidates: cands };
 }

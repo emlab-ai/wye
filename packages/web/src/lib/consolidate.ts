@@ -7,7 +7,7 @@
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { REPO_ROOT, slugOfDir } from './products';
+import { REPO_ROOT, slugOfDir, cacheDirOf } from './products';
 import { onSessionEnd, updateSession } from './sessions';
 import type { Session, ChatEvent } from './session-types';
 import { loadGraph } from './load';
@@ -110,7 +110,7 @@ export async function consolidateSession(productDir: string, product: string, s:
   const candidates = parseCandidates(answer).slice(0, 12);
   if (!candidates.length || !s.prDoc) return { candidates, filed: [] };
   // the plan document from the graph: pr:<slug> is the page node, its file the target
-  const slug = s.prDoc.split('/')[2]; const graph = await loadGraph(path.join(productDir, '_build/graph.json')).catch(() => null);
+  const slug = s.prDoc.split('/')[2]; const graph = await loadGraph(path.join(cacheDirOf(productDir), 'graph.json')).catch(() => null);
   const page = graph?.nodes.find(n => n.id === `pr:${slug}` && n.defined); if (!graph || !page) return { candidates, filed: [] };
   const file = path.join(REPO_ROOT, page.file);
   const taken = new Set(graph.nodes.map(n => n.id));
@@ -151,7 +151,7 @@ async function fileInVault(folder: string, list: Candidate[], s: Session, date: 
   const projects = (await readdir(path.join(dir, 'projects'), { withFileTypes: true }).catch(() => [])).filter(e => e.isDirectory()).map(e => e.name);
   let file = ''; for (const p of [slug, ...projects]) { const f = path.join(dir, 'projects', p, 'docs', 'plan.md'); try { await readFile(f, 'utf8'); file = f; break; } catch { /* next */ } }
   if (!file) return null;
-  const graph = await loadGraph(path.join(dir, '_build/graph.json')).catch(() => null);
+  const graph = await loadGraph(path.join(cacheDirOf(dir), 'graph.json')).catch(() => null);
   const taken = new Set((graph?.nodes ?? []).map(n => n.id)); const ids: string[] = [], cards: string[] = [], parts: string[][] = [];
   for (const c of list) { const id = candidateSlug(slug, c, taken); taken.add(id); ids.push(id); cards.push(candidateCard(id, c, s, '', s.agent, date)); parts.push(decisionParts(id, c)); }
   await withFileLock(file, async () => { const md = await readFile(file, 'utf8'); await writeAtomic(file, insertIntoPlanSection(md, cards, parts)); });

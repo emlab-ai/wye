@@ -3,6 +3,7 @@ import { mkdir, open, realpath, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { buildProduct, checkProduct } from './build';
 import { splitDocument } from './doc';
+import { libCacheHome } from './products';
 
 // Server-only: pure text operations on a document plus the atomic write and the graph rebuild.
 export type WriteResult = { md: string; error?: 'conflict' | 'not_found' | 'invalid'; current?: string };
@@ -106,12 +107,12 @@ export function renamePage(md: string, title: string): WriteResult {
 // The temp name is unique per call, not per process: two writes of one file in flight at once (a save and the debounced
 // one behind it) must never share a temp file — one would truncate the other's and the rename that lost would fail.
 let writeSeq = 0;
-// A shipped document (lib/shipped, rendered into <product>/_build/shipped/<project>/) is never written: an edit to it
+// A shipped document (lib/shipped, rendered into <cache folder>/shipped/<project>/) is never written: an edit to it
 // becomes the project's own copy in projects/<project>/.wye/, which the next build uses in its place
 // (req:waterfall.global-skills.override). The copy keeps the shipped `source-hash:` it started from.
 export const overrideOf = (file: string): string | null => {
-  const m = file.match(/^(.*)\/_build\/shipped\/([^/]+)\/([^/]+\.md)$/);
-  return m ? path.join(m[1], 'projects', m[2], '.wye', m[3]) : null;
+  const m = libCacheHome().shippedParts(file);
+  return m ? path.join(m.vault, 'projects', m.project, '.wye', m.name) : null;
 };
 // `live`: the write is a live page storing itself (lib/collab); any other write of a page that is open live is merged
 // into its live document, so the people editing it see it at once and their next store keeps it (plan:collaboration)

@@ -1,11 +1,11 @@
 // A product's cache on disk (req:waterfall.cache-size.status-bar): each part with its size, for the status bar and
 // its popover, and Clear and rebuild. Only what rebuilds here without a model call is cleared — the Ask index, the
 // graph, the context search's vectors, the viewer's data (decision:waterfall.history-is-not-cache); the model
-// judgements cached in _build (verdicts, impact, cleanup, jev) cost agent calls to remake and are kept, as are the
+// judgements in the cache folder (verdicts, impact, cleanup, jev) cost agent calls to remake and are kept, as are the
 // eval results, the history (_sessions, _changes, _hooks) and the shared models.
 import { readdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { REPO_ROOT, type Product } from './products';
+import { REPO_ROOT, type Product, cacheDirOf } from './products';
 import { dropIndex, indexingNow } from './ask/refresh';
 import { loadScope } from './scope';
 
@@ -27,13 +27,13 @@ const G = globalThis as { __cacheClearing?: Set<string> };
 const clearing = () => (G.__cacheClearing ??= new Set());
 
 export async function cacheInfo(p: Product): Promise<CacheInfo> {
-  const b = (f: string) => path.join(p.dir, '_build', f);
+  const b = (f: string) => path.join(cacheDirOf(p.dir), f);
   const parts: Part[] = [];
   for (const [f, label] of CLEARS) parts.push({ key: f, label, bytes: await sizeOf(b(f)), clears: true });
   let judged = 0; for (const f of JUDGED) judged += await sizeOf(b(f));
   parts.push({ key: 'judged', label: 'Model judgements', bytes: judged, clears: false });
-  const known = new Set([...CLEARS.map(c => c[0]), ...JUDGED]);
-  let other = 0; for (const f of await readdir(path.join(p.dir, '_build')).catch(() => [] as string[])) if (!known.has(f)) other += await sizeOf(b(f));
+  const known = new Set([...CLEARS.map(c => c[0]), ...JUDGED, 'vault.json', 'eval']);
+  let other = 0; for (const f of await readdir(cacheDirOf(p.dir)).catch(() => [] as string[])) if (!known.has(f)) other += await sizeOf(b(f));
   if (other) parts.push({ key: 'other', label: 'Other build files', bytes: other, clears: false });
   for (const [d, label] of HISTORY) parts.push({ key: d, label, bytes: await sizeOf(path.join(p.dir, d)), clears: false });
   parts.push({ key: 'models', label: 'Embedding models', bytes: await sizeOf(path.join(REPO_ROOT, '.cache/models')), clears: false, shared: true });
@@ -47,7 +47,7 @@ export async function clearAndRebuild(p: Product): Promise<void> {
   if (clearing().has(p.dir)) return;
   clearing().add(p.dir);
   try {
-    await dropIndex(p, async () => { for (const [f] of CLEARS) await rm(path.join(p.dir, '_build', f), { recursive: true, force: true }); });
+    await dropIndex(p, async () => { for (const [f] of CLEARS) await rm(path.join(cacheDirOf(p.dir), f), { recursive: true, force: true }); });
   } catch (e) { clearing().delete(p.dir); throw e; }
   void loadScope(p.slug).catch(e => console.warn(`[wf] ${p.slug}: rebuilding after a clear failed — ${e instanceof Error ? e.message : e}`)).finally(() => clearing().delete(p.dir));
 }

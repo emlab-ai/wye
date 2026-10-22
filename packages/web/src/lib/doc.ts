@@ -33,9 +33,10 @@ export function taskProgress(nodes: Pick<GraphNode, 'kind' | 'status' | 'file' |
 export const SYSTEM_DIR = '.wye';
 export const SYSTEM_MARK = '~';
 export const isSystemFile = (file: string) => /(^|\/)projects\/[^/]+\/\.wye\//.test(file) || isShippedFile(file);
-// What Wye ships (skills, workflows, hooks — lib/shipped) is rendered from the install into <product>/_build/shipped/<project>/
+// What Wye ships (skills, workflows, hooks — lib/shipped) is rendered from the install into <cache folder>/shipped/<project>/
 // and opens as that project's system page, read-only: an edit is saved as the project's own copy in .wye/
-const SHIPPED_DOC = /(?:^|\/)_build\/shipped\/([^/]+)\/([^/]+)\.md$/;
+// — the vault's cache folder (<name>-<8 hex>, lib/cache-home), or _build/ in a vault not yet moved
+const SHIPPED_DOC = /(?:^|\/)(?:_build|[^/]*-[0-9a-f]{8})\/shipped\/([^/]+)\/([^/]+)\.md$/;
 export const isShippedFile = (file: string) => SHIPPED_DOC.test(file);
 export const isSystemSlug = (slug: string) => slug.startsWith(SYSTEM_MARK);
 // the file name of a page's slug, without the mark (`~pr-12` → `pr-12`)

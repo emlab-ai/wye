@@ -1293,6 +1293,35 @@ HTTP operations this module serves (`op:` cards); the wf CLI and the UI call the
     overwrite each other.
   status: proposed
   part-of: module:app-storage
+- id: lib:graphq
+  file: packages/web/src/lib/ask/graphq.ts
+  side: server
+  purpose: >
+    Ask's graph step (decision&#58;waterfall.ask-queries-the-graph): between the search and the two answer lanes,
+    the question is read for the graph's own entities, a planner turns it into a few graph queries, a second round
+    follows up on what they found, and the nodes they reach join the search hits for the reranker. Internal to Ask —
+    no command or API takes a graph query; a person or an agent asks a question and nothing else. entities names and
+    aliases of the graph's nodes said in the question (deterministic) queries start at nodes, walk their links (both
+    ways, any verb unless named), keep nodes of a kind, in a time window, with words; a node linked to several of
+    the starts ranks first (an association) planner one tool-less model call per round (WYE_ASK_PLAN_MODEL, else
+    haiku); without it, or when it fails, the entities' neighbourhoods and their common neighbours are queried
+    anyway
+  status: proposed
+  part-of: module:app-storage
+- id: lib:plan
+  file: packages/web/src/lib/ask/plan.ts
+  side: server
+  purpose: >
+    Ask's query plan (decision&#58;waterfall.ask-plans-over-the-ontology, plan:ask-query-plan): opt-in, when the
+    caller sets rounds or hops (decision&#58;waterfall.ask-plan-is-opt-in) — else the graph step (graphq) runs as
+    before. ontology what the planner knows of the vault: each kind in use, what one instance is, its props, which
+    carry time and which link to what plan one tool-less model call per round: the answer's shape, the entities,
+    kinds, props and time it is about, and SQL (or SQL/PGQ MATCH) over the nodes and edges tables of lib/query
+    rounds plan → run → plan again on what the rows left missing, up to `rounds`, stopping when a round adds nothing
+    The rows only add to what the search found; a plan never removes a hit. A query that fails is said in the steps;
+    when no query of the first round runs, the graph step's own queries are used instead.
+  status: proposed
+  part-of: module:app-storage
 ```
 
 <!-- /list:lib -->

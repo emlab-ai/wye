@@ -2,16 +2,24 @@
 //   <data>/products/<product>/_product.md
 //   <data>/products/<product>/projects/<project>/_project.md
 //   <data>/products/<product>/projects/<project>/docs/*.md
-//   <data>/products/<product>/_build/graph.json      (one graph per product: all its projects' docs)
+//   <home>/.cache/vaults/<product>-<hash>/graph.json (one graph per product, in its cache folder — lib/cache-home)
 //   <data>/products/<product>/inbox/                 (dropped inputs, not processed yet)
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import { createRequire } from 'node:module';
 
 // The folder laid out like the Wye checkout that everything reads and writes (bin/wye-home.js): the clone when running
 // from source, WYE_HOME (~/.wye) when the package was installed from npm — its data/ is the person's, the rest links in.
 export const REPO_ROOT = process.env.WYE_HOME ? path.resolve(process.env.WYE_HOME) : path.resolve(process.cwd(), '../..');
 export const DATA_ROOT = process.env.WATERFALL_DATA ? path.resolve(process.cwd(), process.env.WATERFALL_DATA) : path.join(REPO_ROOT, 'data');
+
+// A vault's cache folder, out of the vault in the Wye home (lib/cache-home, decision:waterfall.caches-live-in-the-wye-home):
+// the graph, the Ask index, the context-search vectors, what Wye ships rendered for it, and the model judgements
+type CacheHome = { cacheDir(dir: string, home?: string): string; cacheRoot(home?: string): string; keyOf(dir: string): string; shippedParts(file: string): { vault: string; project: string; name: string } | null };
+let cacheHome: CacheHome | null = null;
+export const libCacheHome = (): CacheHome => (cacheHome ??= createRequire(path.join(REPO_ROOT, 'package.json'))('./lib/cache-home.js') as CacheHome);
+export const cacheDirOf = (productDir: string): string => libCacheHome().cacheDir(productDir, REPO_ROOT);
 
 // people: the names that can hold work (`people: alex, bo` in _product.md — req:exec.human-work); settings: every
 // other frontmatter key as written (`impact: manual`, `auto-take: off`, `verdicts: on`), read by the features they switch
@@ -72,7 +80,7 @@ export async function listProducts(dataRoot: string = DATA_ROOT): Promise<Produc
     const meta = await readMeta(metaFile, slug);
     const dir = meta.settings.root ? resolveRoot(meta.settings.root) : path.join(base, slug);
     const v = await asVault(dir, meta.title);
-    return v ? { slug, dir, graphPath: path.join(dir, '_build/graph.json'), ...v, meta: { ...v.meta, settings: { ...v.meta.settings, root: meta.settings.root } } } : { slug, dir, graphPath: path.join(dir, '_build/graph.json'), meta, metaFile };
+    return v ? { slug, dir, graphPath: path.join(cacheDirOf(dir), 'graph.json'), ...v, meta: { ...v.meta, settings: { ...v.meta.settings, root: meta.settings.root } } } : { slug, dir, graphPath: path.join(cacheDirOf(dir), 'graph.json'), meta, metaFile };
   }));
   // the open workspace applies to the app's own data only (a test's data root has no workspace)
   if (dataRoot === DATA_ROOT) {
@@ -87,7 +95,7 @@ export async function listProducts(dataRoot: string = DATA_ROOT): Promise<Produc
         const own = (a.meta.settings.slug || path.basename(v.folder)).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'vault';
         let slug = own; for (let n = 2; taken.has(slug); n++) slug = `${own}-${n}`;
         taken.add(slug);
-        list.push({ slug, dir: v.dir, graphPath: path.join(v.dir, '_build/graph.json'), ...a, inWorkspace: true });
+        list.push({ slug, dir: v.dir, graphPath: path.join(cacheDirOf(v.dir), 'graph.json'), ...a, inWorkspace: true });
       }
     } else for (const p of list) p.inWorkspace = true;
   }

@@ -2,11 +2,11 @@
 // trivial (constraint:waterfall.no-trivial-cards) or say what another card says, each with the reason, for the person to
 // drop together. Duplicates: the vault search finds the close pairs (lib/propose-card DUP_NEAR) and the pair judge
 // (lib/judge) confirms them; trivial: the worth judge applies the bar every prompt carries. Both are cached by the
-// judge, the list itself in _build/cleanup.json. Nothing is dropped until the person ticks it.
+// judge, the list itself in the cache folder's cleanup.json. Nothing is dropped until the person ticks it.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { REPO_ROOT } from './products';
+import { REPO_ROOT, cacheDirOf } from './products';
 import { search } from './semantic';
 import { DUP_NEAR } from './propose-card';
 import { editNode } from './node-edit';
@@ -22,7 +22,7 @@ export type Cleanup = { at: string; scanned: number; items: CleanupItem[]; unjud
 
 const CARD = /^(req|decision):/;
 const LIVE = new Set(['proposed', 'approved', '']);
-const file = (dir: string) => path.join(dir, '_build/cleanup.json');
+const file = (dir: string) => path.join(cacheDirOf(dir), 'cleanup.json');
 
 // Of two cards that say the same, the one to drop: a proposed one before an approved one, then the one fewer blocks
 // link to, then the later one (by file and line) — the older, better-linked, approved card stays.
@@ -51,7 +51,7 @@ export async function scanCleanup(scope: Scope, log: (m: string) => void = () =>
     for (const h of hits) { const m = byId.get(h.id); if (!m || m.id === n.id || h.score < DUP_NEAR) continue; const k = [n.id, m.id].sort().join('|'); if (!pairs.has(k)) pairs.set(k, { a: n, b: m }); }
   }
   log(`cleanup: ${cards.length} cards, ${pairs.size} close pairs`);
-  const cacheFile = path.join(dir, '_build/verdicts.json');
+  const cacheFile = path.join(cacheDirOf(dir), 'verdicts.json');
   const asCard = (n: GraphNode) => ({ id: n.id, text: nodeText(n), status: n.status });
   const pv = await judgePairs([...pairs.values()].map(p => ({ a: asCard(p.a), b: asCard(p.b) })), { cacheFile, budget: { pairs: 200, calls: 20 }, log });
   const items: CleanupItem[] = []; const dropped = new Set<string>();

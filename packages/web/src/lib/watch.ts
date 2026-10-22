@@ -4,7 +4,7 @@
 import { watch, type FSWatcher } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
-import { slugOfDir } from './products';
+import { slugOfDir, cacheDirOf } from './products';
 import { buildProduct, onBuilt, readStamps } from './build';
 import { creditDocumentChange, creditBlockChanges } from './artifacts';
 import { diffGraphs } from './graph-diff';
@@ -20,7 +20,7 @@ import { sweepRuns } from './runs-run';
 
 type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other'; file: string }) => void;
 // bump when the watcher callback changes: dev reloads keep globalThis, so an old watcher would keep running old code
-const VERSION = 18;
+const VERSION = 19;
 type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>> };
 const g = globalThis as unknown as { __wfWatch?: State };
 const st = (): State => (g.__wfWatch ??= { watchers: new Map(), subs: new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map() });
@@ -36,7 +36,7 @@ const mtimeOf = (file: string) => stat(file).then(x => x.mtimeMs, () => null);
 
 export function classify(rel: string): 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other' {
   if (rel.startsWith('_build/search.lance/')) return 'other';   // the Ask index: its own writes, nothing a page shows
-  if (rel.startsWith('_build/')) return 'graph';
+  if (rel.startsWith('_build/')) return 'graph';                  // a vault whose caches were not moved yet
   if (rel.startsWith('inbox/')) return 'inbox';
   if (rel.startsWith('_sessions/')) return 'session';
   if (rel.startsWith('_changes/')) return 'change';
@@ -82,6 +82,18 @@ export function ensureWatch(productDir: string) {
     w.on('error', () => { s.watchers.delete(productDir); });
     s.watchers.set(productDir, w);
   } catch { /* platform without recursive watch */ }
+  // the graph is in the vault's cache folder now (lib/cache-home): a build outside the app (`wye build`) is seen there
+  try {
+    const cdir = cacheDirOf(productDir), key = productDir + '#cache';
+    if (!s.watchers.has(key)) {
+      const cw = watch(cdir, (_ev, file) => {
+        if (String(file) !== 'graph.json') return;
+        for (const fn of s.subs.get(productDir) ?? []) { try { fn({ kind: 'graph', file: 'graph.json' }); } catch { /* gone */ } }
+      });
+      cw.on('error', () => { s.watchers.delete(key); });
+      s.watchers.set(key, cw);
+    }
+  } catch { /* no cache folder yet */ }
 }
 
 // After every build (lib/build#onBuilt): the diff of the graph before and after is what the app knows about the change

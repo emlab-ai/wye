@@ -5,6 +5,7 @@ import path from 'node:path';
 import { candidateText, judgeText, confidentIds, linksFor } from './links';
 import type { GraphData, GraphNode } from './graph';
 import type { JevClient } from './jev';
+import { cacheDirOf } from './products';
 
 // automatic links (Jev auto-linking design §3): the search finds candidates, Jev judges them, the confident ones are
 // the links; a block's verdict is cached by its text so it is never judged twice
@@ -38,7 +39,7 @@ describe('links', () => {
     expect(given).toEqual([{ id: 'req:login', score: 0.2, p: 0.9 }]); expect(searches).toBe(before);
   });
   it('linksFor judges each block once and leaves out what it already links', async () => {
-    const dir = await mkdtemp(path.join(os.tmpdir(), 'wf-links-')); await mkdir(path.join(dir, '_build'), { recursive: true });
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'wf-links-')); 
     const calls: string[] = [];
     const j = fakeJev({ 'rule:round': 0.93, 'req:login': 0.9 }, calls);
     const blocks = [{ key: 'b1', text: 'Checkout rounds half-up', linked: ['req:login'] }, { key: 'b2', text: 'short', linked: [] }];
@@ -46,7 +47,7 @@ describe('links', () => {
     expect(calls).toEqual(['Checkout rounds half-up']); // b2 is under the minimum length
     expect(await linksFor(dir, g, blocks, j, searchFn as never)).toEqual({ b1: ['rule:round'] });
     expect(calls.length).toBe(1); // cached
-    const cache = JSON.parse(await readFile(path.join(dir, '_build/jev.json'), 'utf8'));
+    const cache = JSON.parse(await readFile(path.join(cacheDirOf(dir), 'jev.json'), 'utf8'));
     expect(Object.keys(cache.entries).length).toBe(1);
     expect(await linksFor(dir, g, blocks, off, searchFn as never)).toEqual({});
   });

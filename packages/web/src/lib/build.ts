@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { stat } from 'node:fs/promises';
 import { statSync } from 'node:fs';
-import { REPO_ROOT } from './products';
+import { REPO_ROOT, cacheDirOf } from './products';
 import { indexGraph, type GraphData, type GraphIndex } from './graph';
 import { nodeIndex, type IndexEntry } from './doc';
 import { loadGraph } from './load';
@@ -45,7 +45,7 @@ const st = (): State => { const s = (g.__wfBuild ??= { caches: new Map(), graphs
 
 export type BuildResult = { code: number; output: string; graph: GraphData | null; before: GraphData | null };
 
-const graphPathOf = (productDir: string) => path.join(productDir, '_build/graph.json');
+const graphPathOf = (productDir: string) => path.join(cacheDirOf(productDir), 'graph.json');
 const stampOf = async (graphPath: string) => { try { const s = await stat(graphPath); return `${s.mtimeMs}:${s.size}`; } catch { return ''; } };
 const stampNow = (graphPath: string) => { try { const s = statSync(graphPath); return `${s.mtimeMs}:${s.size}`; } catch { return ''; } };
 

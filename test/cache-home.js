@@ -28,5 +28,30 @@ process.env.WYE_CACHE = path.join(tmp, 'elsewhere');
 assert.strictEqual(path.dirname(cacheDir(a, home)), path.join(tmp, 'elsewhere'), 'WYE_CACHE moves the root');
 delete process.env.WYE_CACHE;
 
+// the one-time move: an existing vault's _build/ goes to its cache folder, eval results stay, a part the cache
+// folder already has wins, and an empty _build/ is removed
+process.env.WYE_CACHE_MOVE = '1';
+const { cacheDir: fresh } = (() => { delete require.cache[require.resolve('../lib/cache-home')]; return require('../lib/cache-home'); })();
+const v = path.join(tmp, 'moving', '.wye'), w = path.join(tmp, 'moving-2', '.wye');
+const put = (f, t) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, t); };
+put(path.join(v, '_build', 'graph.json'), 'old graph'); put(path.join(v, '_build', 'search.lance', 'data', 'x.lance'), 'vectors');
+put(path.join(v, '_build', 'verdicts.json'), '{}'); put(path.join(v, '_build', 'shipped', 'p', 'skill-x.md'), '# x'); put(path.join(v, '_build', 'eval', 'run.json'), '{}');
+const cv = path.join(home, '.cache', 'vaults', keyOf(v)); put(path.join(cv, 'graph.json'), 'newer graph');
+const got = fresh(v, home);
+assert.strictEqual(got, cv);
+assert.strictEqual(fs.readFileSync(path.join(cv, 'search.lance', 'data', 'x.lance'), 'utf8'), 'vectors', 'the index is moved, not rebuilt');
+assert.ok(fs.existsSync(path.join(cv, 'verdicts.json')) && fs.existsSync(path.join(cv, 'shipped', 'p', 'skill-x.md')), 'judgements and shipped pages move');
+assert.strictEqual(fs.readFileSync(path.join(cv, 'graph.json'), 'utf8'), 'newer graph', 'what the cache folder has wins');
+assert.deepStrictEqual(fs.readdirSync(path.join(v, '_build')), ['eval'], 'eval results stay in the vault');
+put(path.join(w, '_build', 'graph.json'), 'g'); fresh(w, home);
+assert.ok(!fs.existsSync(path.join(w, '_build')), 'an emptied _build/ goes');
+const sp = require('../lib/cache-home').shippedParts(path.join(cv, 'shipped', 'p', 'skill-x.md'));
+assert.deepStrictEqual(sp, { vault: v, project: 'p', name: 'skill-x.md' }, 'a shipped page names its vault from the cache folder');
+assert.deepStrictEqual(require('../lib/cache-home').shippedParts(path.join(v, '_build', 'shipped', 'p', 'skill-x.md')), { vault: v, project: 'p', name: 'skill-x.md' });
+
+process.env.WYE_CACHE_MOVE = '0';
+const z = path.join(tmp, 'kept', '.wye'); put(path.join(z, '_build', 'graph.json'), 'g'); fresh(z, home);
+assert.ok(fs.existsSync(path.join(z, '_build', 'graph.json')), 'WYE_CACHE_MOVE=0 moves nothing');
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log('cache-home: ok');

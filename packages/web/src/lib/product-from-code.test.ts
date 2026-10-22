@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, writeFile, readFile, readdir, access } from 'node:fs/pr
 import os from 'node:os';
 import path from 'node:path';
 import { productFromCode } from './product-from-code';
+import { cacheDirOf } from './products';
 
 const there = async (p: string) => { try { await access(p); return true; } catch { return false; } };
 const data = () => mkdtemp(path.join(os.tmpdir(), 'wf-fromcode-data-'));
@@ -30,7 +31,7 @@ describe('productFromCode', () => {
     expect(docs.length).toBeGreaterThan(1);
     expect(res.written).toBeGreaterThan(1);
     expect(await there(path.join(dir, 'inbox'))).toBe(true);
-    const graph = JSON.parse(await readFile(path.join(dir, '_build', 'graph.json'), 'utf8')) as { nodes: { id: string }[] };
+    const graph = JSON.parse(await readFile(path.join(cacheDirOf(dir), 'graph.json'), 'utf8')) as { nodes: { id: string }[] };
     expect(graph.nodes.some(n => n.id === 'module:kitchen-pos')).toBe(true);
   });
 

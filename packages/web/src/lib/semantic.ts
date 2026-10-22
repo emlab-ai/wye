@@ -1,6 +1,6 @@
 // Local semantic search over a product's knowledge: every defined node (title + text) is embedded once with a small
 // sentence model that runs in-process (transformers.js, MiniLM, ~23 MB, cached under .cache/models); vectors are
-// cached in the product's _build/embeddings.json and refreshed when graph.json is newer. Queries blend cosine
+// cached in the product's cache folder (embeddings.json) and refreshed when graph.json is newer. Queries blend cosine
 // similarity with a keyword score so ids, code names and rare terms still rank. Nothing leaves the machine.
 import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -9,6 +9,7 @@ import type { GraphData, GraphNode } from './graph';
 import { HIDDEN_KINDS, isCurrent } from './graph';
 import { parseBody } from './graph';
 import { getEmbedder, EMBED_MODEL as MODEL } from './ask/embed';
+import { cacheDirOf } from './products';
 
 const PROSE_KEYS = ['text', 'title', 'statement', 'description', 'when', 'then', 'unless', 'q', 'choice', 'context', 'purpose', 'intent', 'note'];
 
@@ -44,7 +45,7 @@ const indexes = new Map<string, Promise<{ nodes: GraphNode[]; texts: Map<string,
 async function buildIndex(productDir: string, graph: GraphData) {
   const nodes = graph.nodes.filter(n => n.defined && !HIDDEN_KINDS.has(n.kind) && n.kind !== 'module');
   const texts = new Map(nodes.map(n => [n.id, nodeText(n)]));
-  const file = path.join(productDir, '_build/embeddings.json');
+  const file = path.join(cacheDirOf(productDir), 'embeddings.json');
   let cache: Cache = { model: MODEL, entries: {} };
   try {
     const c = JSON.parse(await readFile(file, 'utf8')) as { model: string; entries: Record<string, Stored> };
@@ -68,7 +69,7 @@ async function buildIndex(productDir: string, graph: GraphData) {
 // One index per product, rebuilt when graph.json changes (its mtime is part of the key).
 export async function getIndex(productDir: string, graph: GraphData) {
   let key = productDir;
-  try { key += ':' + (await stat(path.join(productDir, '_build/graph.json'))).mtimeMs; } catch { /* no graph yet */ }
+  try { key += ':' + (await stat(path.join(cacheDirOf(productDir), 'graph.json'))).mtimeMs; } catch { /* no graph yet */ }
   if (!indexes.has(key)) { for (const k of indexes.keys()) if (k.startsWith(productDir + ':')) indexes.delete(k); indexes.set(key, buildIndex(productDir, graph)); }
   return indexes.get(key)!;
 }

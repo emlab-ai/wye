@@ -9,7 +9,8 @@ import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
-import { REPO_ROOT, type Project } from './products';
+import { REPO_ROOT, type Project, cacheDirOf } from './products';
+import { isShippedFile } from './doc';
 import { writeAtomic } from './write';
 import { bodyOf } from './write';
 import type { Scope } from './scope';
@@ -146,7 +147,7 @@ export async function listSkills(scope: Scope): Promise<{ id: string; title: str
   for (const p of scope.projects) {
     // the project's own skill pages, then those of the packages it installed (.wye/packages/<pkg>/skill-*.md)
     // and what Wye ships, rendered from the install by the build (lib/shipped) — after the project's own, which win
-    const dirs: [string, string][] = [[p.wyeDir, ''], [path.join(p.dir, '../..', '_build', 'shipped', p.slug), '']];
+    const dirs: [string, string][] = [[p.wyeDir, ''], [path.join(cacheDirOf(path.join(p.dir, '../..')), 'shipped', p.slug), '']];
     try { for (const pkg of await readdir(path.join(p.wyeDir, 'packages'))) dirs.splice(1, 0, [path.join(p.wyeDir, 'packages', pkg), `${pkg}.`]); } catch { /* no packages */ }
     for (const [dir, prefix] of dirs) {
       let files: string[] = []; try { files = (await readdir(dir)).filter(f => /^skill-.*\.md$/.test(f)); } catch { continue; }
@@ -174,7 +175,7 @@ export function skillTakes(takes: string, kind: string): boolean {
 export type ShippedStatus = { kind: 'shipped' } | { kind: 'own'; edited: boolean; behind: boolean; shippedText: string };
 export async function shippedStatus(productDir: string, file: string): Promise<ShippedStatus | null> {
   const abs = path.resolve(REPO_ROOT, file);
-  if (/\/_build\/shipped\/[^/]+\/[^/]+\.md$/.test(abs)) return { kind: 'shipped' };
+  if (isShippedFile(abs)) return { kind: 'shipped' };
   if (!/\/projects\/[^/]+\/\.wye\/(skill-[^/]+|workflow-[^/]+|shipped-hooks)\.md$/.test(abs)) return null;
   let md = ''; try { md = await readFile(abs, 'utf8'); } catch { return null; }
   const st = (createRequire(path.join(REPO_ROOT, 'package.json'))('./lib/shipped.js') as { copyState(dir: string, md: string): { edited: boolean; behind: boolean; shippedText: string } | null }).copyState(productDir, md);

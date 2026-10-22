@@ -2,7 +2,7 @@
 'use strict';
 // wye's graph commands (bin/wye.js forwards `wye build`, `wye check`, `wye get`… here; `wye graph <cmd>` for the rest)
 // — query and maintain a product context graph stored as markdown, no app needed.
-//   wye build [files...]           parse docs/context-graph/*.md → _build/graph.json + data.js
+//   wye build [files...]           parse docs/context-graph/*.md → graph.json + data.js in the vault's cache folder
 //   wye site  [files...] [--out d] build the phone-friendly viewer (index.html + data.js) ready to publish
 //   wye get <id>                   one node with all edges
 //   wye neighbors <id> [-d N] [--kinds a,b] [--structural]
@@ -33,7 +33,7 @@ const HERE_VAULT = (() => { const v = require('../lib/vault.js').vaultOf(process
 const ROOT = opt('root', process.env.CTX_ROOT || HERE_VAULT || (require('fs').existsSync('data/products/wye') ? 'data/products/wye' : 'docs/context-graph'));
 // a vault's code is the folder it sits in: `check` reads it from there when --repo is not given
 const REPO_DEFAULT = require('path').basename(require('path').resolve(ROOT)) === '.wye' ? require('path').dirname(require('path').resolve(ROOT)) : '.';
-const BUILD = path.join(ROOT, '_build');
+const BUILD = require('../lib/cache-home').cacheDir(ROOT);   // the vault's cache folder (decision:waterfall.caches-live-in-the-wye-home)
 const graphFile = opt('graph', path.join(BUILD, 'graph.json'));
 
 // Every .md under the root (a product folder: projects/*/docs/*.md, or a flat docs folder), skipping _build and
@@ -144,7 +144,7 @@ switch (cmd) {
     }
     case 'verdicts': {
         // the verdict pass for given nodes (decision:memory.write-time-verdict): pairs against their neighbours, judged
-        // and cached in _build/verdicts.json; prints every verdict, contradictions first. --json for the app.
+        // and cached in the cache folder's verdicts.json; prints every verdict, contradictions first. --json for the app.
         const g = load(); const ids = positional.map(id => resolveOne(g, id)); if (!ids.length) die('verdicts <id...> [--limit N] [--budget-pairs N] [--budget-calls N] [--json]');
         const { judgePairs } = require('../lib/judge');
         const pairs = g.verdictPairs(ids, { limit: +opt('limit', 12) });

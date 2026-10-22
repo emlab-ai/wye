@@ -1,13 +1,14 @@
 // Automatic links (Jev auto-linking design §3): the local search finds candidates for a text, Jev judges each
 // ("is the text about it?" → probability), and the ids above LINK_MIN are the links. judgeText is the shared step
 // (inbox, editor, consolidation); linksFor is the editor's batch — per block, cached by the text's hash in
-// <product>/_build/jev.json so an unchanged block is never judged twice, invalidated when the question wording changes.
+// jev.json in the vault's cache folder so an unchanged block is never judged twice, invalidated when the question wording changes.
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { search as semanticSearch } from './semantic';
 import { parseBody, type GraphData, type GraphNode } from './graph';
 import { LINK_MIN, promptVersion, type JevClient } from './jev';
+import { cacheDirOf } from './products';
 
 export type JudgedHit = { id: string; score: number; p: number };
 export type SearchFn = typeof semanticSearch;
@@ -42,7 +43,7 @@ async function readCache(file: string): Promise<Cache> {
 
 export async function linksFor(productDir: string, graph: GraphData, blocks: { key: string; text: string; linked: string[] }[], jev: JevClient, searchFn?: SearchFn): Promise<Record<string, string[]>> {
   if (!jev.enabled) return {};
-  const file = path.join(productDir, '_build/jev.json');
+  const file = path.join(cacheDirOf(productDir), 'jev.json');
   const cache = await readCache(file); let dirty = false;
   const out: Record<string, string[]> = {};
   for (const b of blocks) {
