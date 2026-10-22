@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { access } from 'node:fs/promises';
 import path from 'node:path';
-import { DATA_ROOT, listProducts } from '@/lib/products';
+import { DATA_ROOT, listProducts, libCacheHome } from '@/lib/products';
 import { slugify } from '@/lib/templates';
 import { createProduct } from '@/lib/product-create';
 import { productFromCode } from '@/lib/product-from-code';
 
-export async function GET() { return NextResponse.json({ products: (await listProducts()).map(p => ({ slug: p.slug, ...p.meta })) }); }
+// cache: the name of the product's cache folder (lib/cache-home) — how `wye cache` finds which product a folder is
+export async function GET() { return NextResponse.json({ products: (await listProducts()).map(p => ({ slug: p.slug, ...p.meta, cache: libCacheHome().keyOf(p.dir) })) }); }
 
 // Create a product: POST { title, description, icon, folder?, repo? } — with `folder`, the product's documents live in
 // that folder (`root:` in its _product.md, lib/product-create) instead of the app's data; with `repo`, from that code folder the way `wye init`

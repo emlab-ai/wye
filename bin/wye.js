@@ -12,6 +12,12 @@
 //   wye setup                             the home (~/.wye when installed from npm: your products in data/) and the agent skills (Claude Code, Codex)
 //   wye app [folder] [--port 3456] [--browser] [--no-open] [--public https://…]   the app in its own window, over the home (--browser: in your browser; --public: on a server behind a TLS proxy, docs/server.md);
 //        with a folder, that folder is opened as the workspace: its vaults are the Documents roots, its files are under Files
+//   wye refresh [--product p] [--json]  the quick refresh after a branch switch: the documents against the last build, the graph
+//        built again when any changed (not recorded as edits), the Ask index re-reading only files whose content changed
+//   wye cache list [--json]               every vault's cache folder in the Wye home (<home>/.cache/vaults, WYE_CACHE): its vault,
+//        size, last use, and orphans whose vault is gone
+//   wye cache clear <vault | cache folder | product> [--judgements] | --orphans | --all   empty the parts that rebuild (graph,
+//        Ask index, vectors, viewer data, shipped pages) — --judgements also the model judgements; --orphans removes orphans
 //   wye export <product> [--out file]     the product as one file, <product>.wye.tgz (documents, pages, inbox; not sessions)
 //   wye import <file.wye.tgz> [--slug s]  a new product from an export (markdown into a product: wye import <file|dir> --product p, below)
 //   wye open <folder> [--slug s]          a product folder already on disk (projects/, or a repo's wye/) used where it is
@@ -253,6 +259,66 @@ const commands = {
     try { const c = h.linkCli(); console.log(`wye      → ${c.link}  ${c.onPath ? '(on PATH)' : `(add ${c.dir} to PATH)`}`); } catch (e) { console.error(`wye: ${e.message}`); }
     for (const l of h.linkSkills()) console.log(`skill    → ${l}`);
     console.log('\nnext: wye app   (the app, in its own window)\n      or start from your code: wye init --product <slug> --repo <dir>');
+  },
+  // wye refresh (req:waterfall.cache-home.manage): the quick refresh after a branch switch — the documents against the
+  // last build's manifest, the graph built again when any changed, the Ask index re-reading only files whose content
+  // changed. Through the app, which holds the index; with no app running, the graph alone, here.
+  async refresh() {
+    const p = product(); let j;
+    try { j = await api('POST', `/api/${p}/refresh`); }
+    catch (e) {
+      if (!/fetch failed|ECONNREFUSED/.test(e.message)) die(`refresh: ${e.message}`);
+      const root = flags.root ? path.resolve(flags.root) : path.join(hereVault(), '.wye'); const b = require('../lib/build');
+      const stale = b.staleFiles(root);
+      if (stale === null || stale.length) b.buildGraph(root, { cwd: require('./wye-home').home() });
+      console.log(`graph: ${stale === null ? 'built (no earlier manifest)' : stale.length ? `${stale.length} file(s) changed — built again` : 'up to date'}`);
+      return console.log(`index: the app is not running (${WF_URL}) — the Ask index catches up when it next answers`);
+    }
+    if (flags.json) return out(j);
+    const g = j.graph, x = j.index, c = x.changed || {};
+    console.log(`graph: ${g.stale === null ? 'built (no earlier manifest)' : g.stale.length ? `${g.stale.length} file(s) changed — built again (${g.nodes} nodes)` : `up to date (${g.nodes} nodes)`}`);
+    if (g.stale && g.stale.length) for (const f of g.stale.slice(0, 12)) console.log(`  ${f}`), g.stale.length > 12 && f === g.stale[11] && console.log(`  … ${g.stale.length - 12} more`);
+    console.log(`index: re-read ${x.read || 0} file(s), ${Object.entries(c).filter(([, n]) => n).map(([k, n]) => `${n} ${k} passage(s)`).join(', ') || 'no passage'} changed, ${x.embedded} embedded${x.degraded ? ' (no vectors: the model is not loaded)' : ''}`);
+    console.log(`in ${(j.ms / 1000).toFixed(1)} s`);
+  },
+  // wye cache list | clear (req:waterfall.cache-home.manage): every vault's cache folder in the Wye home
+  // (lib/cache-home) — its vault, size, last use, and whether that vault is still there. clear empties the parts that
+  // rebuild (graph, index, vectors, viewer data, shipped pages); --judgements also the model judgements, which cost
+  // calls to make again. A vault the running app has open is cleared through it (it waits for the index's writer).
+  async cache() {
+    const sub = pos[1] || 'list'; const ch = require('../lib/cache-home'); const root = ch.cacheRoot();
+    const size = d => { let n = 0; try { const st = fs.statSync(d); if (!st.isDirectory()) return st.size; for (const e of fs.readdirSync(d)) n += size(path.join(d, e)); } catch { /* gone */ } return n; };
+    const mb = n => n >= 1e9 ? `${(n / 1e9).toFixed(1)} GB` : n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.ceil(n / 1e3)} KB`;
+    const all = (() => { try { return fs.readdirSync(root); } catch { return []; } })().filter(k => fs.statSync(path.join(root, k)).isDirectory()).map(key => {
+      const dir = path.join(root, key); let v = {}; try { v = JSON.parse(fs.readFileSync(path.join(dir, 'vault.json'), 'utf8')); } catch { /* none */ }
+      return { key, dir, vault: v.vault || null, name: v.name || key, used: v.used || null, bytes: size(dir), orphan: !v.vault || !fs.existsSync(v.vault) };
+    }).sort((a, b) => b.bytes - a.bytes);
+    if (sub === 'list') {
+      if (flags.json) return out({ root, caches: all });
+      if (!all.length) return console.log(`no caches in ${root}`);
+      console.log(`${root}\n`);
+      for (const c of all) console.log(`${mb(c.bytes).padStart(9)}  ${c.key.padEnd(44)} ${c.orphan ? '(orphan — its vault is gone' + (c.vault ? `: ${c.vault}` : '') + ')' : c.vault}${c.used ? `  · used ${c.used.slice(0, 10)}` : ''}`);
+      const orphans = all.filter(c => c.orphan);
+      return console.log(`\n${all.length} cache(s), ${mb(all.reduce((n, c) => n + c.bytes, 0))}${orphans.length ? `; ${orphans.length} orphan(s), ${mb(orphans.reduce((n, c) => n + c.bytes, 0))} — wye cache clear --orphans` : ''}`);
+    }
+    if (sub !== 'clear') die('wye cache list [--json] | wye cache clear <vault | cache folder | product> [--judgements] | --orphans | --all');
+    if (flags.orphans) {
+      const o = all.filter(c => c.orphan); for (const c of o) fs.rmSync(c.dir, { recursive: true, force: true });
+      return console.log(o.length ? `removed ${o.length} orphan cache(s), ${mb(o.reduce((n, c) => n + c.bytes, 0))}` : 'no orphans');
+    }
+    const want = pos[2];
+    const targets = flags.all ? all.filter(c => !c.orphan) : want ? all.filter(c => c.key === want || c.name === want || (c.vault && path.resolve(want) === c.vault) || (c.vault && path.resolve(want, '.wye') === c.vault)) : [];
+    let known = []; try { known = (await api('GET', '/api/products')).products || []; } catch { /* no app: cleared here */ }
+    if (want && !targets.length) { const p = known.find(k => k.slug === want); const c = p && all.find(x => x.key === p.cache); if (c) targets.push(c); }
+    if (!targets.length) die(want ? `no cache for ${want} — wye cache list` : 'wye cache clear <vault | cache folder | product> | --orphans | --all');
+    const PARTS = ['graph.json', 'manifest.json', 'search.lance', 'embeddings.json', 'data.js', 'shipped', 'site'], JUDGED = ['verdicts.json', 'impact.json', 'cleanup.json', 'jev.json'];
+    for (const c of targets) {
+      const before = c.bytes; const app = known.find(k => k.cache === c.key);
+      if (app && !flags.judgements) { await api('POST', `/api/${app.slug}/cache`); console.log(`${c.key}: cleared through the app (${app.slug}) and rebuilding — was ${mb(before)}`); continue; }
+      if (app) console.error(`wye: ${app.slug} is open in the app — its index is dropped here; the app rebuilds it on the next question`);
+      for (const f of [...PARTS, ...(flags.judgements ? JUDGED : [])]) fs.rmSync(path.join(c.dir, f), { recursive: true, force: true });
+      console.log(`${c.key}: cleared ${mb(before - size(c.dir))}${flags.judgements ? ' (with the model judgements)' : ' (model judgements kept)'} — rebuilt on next use`);
+    }
   },
   // wye export / import / open (decision:wf2.product-transfer) — through the running app
   async export() {

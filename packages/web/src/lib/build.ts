@@ -171,6 +171,16 @@ export async function freshOnOpen(productDir: string): Promise<string[] | null> 
   return stale;
 }
 
+// `wye refresh` (req:waterfall.cache-home.manage): the check above, now, whatever was checked before — the files that
+// changed since the last build (null: there was no manifest) and whether the graph was built again.
+export async function refreshGraph(productDir: string): Promise<{ stale: string[] | null; built: boolean }> {
+  st().checked.add(productDir); headMoved(productDir, 'load');
+  let stale: string[] | null = null; try { stale = lib().staleFiles(productDir); } catch { /* no manifest */ }
+  const built = stale === null || stale.length > 0 || !(await stampOf(graphPathOf(productDir)));
+  if (built) await buildProduct(productDir, { external: true });
+  return { stale, built };
+}
+
 // The check (`wye check`) over the graph in memory: its lines as the CLI prints them, for the routes that show them.
 export async function checkProduct(productDir: string, strict = false): Promise<{ code: number; output: string; errors: string[]; warnings: string[] }> {
   const c = await graphFor(productDir);
