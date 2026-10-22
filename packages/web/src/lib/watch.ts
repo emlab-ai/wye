@@ -5,7 +5,7 @@ import { watch, type FSWatcher } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { slugOfDir, cacheDirOf } from './products';
-import { buildProduct, onBuilt, readStamps } from './build';
+import { buildProduct, onBuilt, readStamps, headMoved } from './build';
 import { creditDocumentChange, creditBlockChanges } from './artifacts';
 import { diffGraphs } from './graph-diff';
 import { scheduleVerdicts } from './verdicts';
@@ -20,7 +20,7 @@ import { sweepRuns } from './runs-run';
 
 type Listener = (e: { kind: 'doc' | 'inbox' | 'session' | 'graph' | 'change' | 'other'; file: string }) => void;
 // bump when the watcher callback changes: dev reloads keep globalThis, so an old watcher would keep running old code
-const VERSION = 19;
+const VERSION = 20;
 type State = { version?: number; watchers: Map<string, FSWatcher>; subs: Map<string, Set<Listener>>; rebuildTimer: Map<string, ReturnType<typeof setTimeout>>; rebuilding: Set<string>; changedDocs: Map<string, Set<string>> };
 const g = globalThis as unknown as { __wfWatch?: State };
 const st = (): State => (g.__wfWatch ??= { watchers: new Map(), subs: new Map(), rebuildTimer: new Map(), rebuilding: new Set(), changedDocs: new Map() });
@@ -52,6 +52,7 @@ export function ensureWatch(productDir: string) {
     return ensureWatch(productDir);
   }
   if (s.watchers.has(productDir)) return;
+  headMoved(productDir, 'watch');   // where the repo stands when watching starts: a later burst that moved it is a checkout
   try {
     const w = watch(productDir, { recursive: true }, (_ev, file) => {
       if (!file) return;
@@ -72,8 +73,11 @@ export function ensureWatch(productDir: string) {
           const docs = [...(s.changedDocs.get(productDir) ?? [])]; s.changedDocs.get(productDir)?.clear();
           try {
             const now = await Promise.all(docs.map(async d => { const f = path.resolve(productDir, d); return [f, await mtimeOf(f)] as [string, number | null]; }));
-            if (!builtWith(readStamps(productDir), now)) await buildProduct(productDir);
-            for (const d of docs) await creditDocumentChange(productDir, slugOfDir(productDir), d).catch(() => {});
+            // a burst while the repo's HEAD moved is a checkout or a pull, not an edit (decision:waterfall.branch-switch-is-not-an-edit)
+            const external = headMoved(productDir, 'watch');
+            if (!builtWith(readStamps(productDir), now)) await buildProduct(productDir, { external });
+            if (external) console.log(`[wf] ${slugOfDir(productDir)}: the repo moved to another commit — ${docs.length} file(s) rebuilt, not recorded as edits`);
+            else for (const d of docs) await creditDocumentChange(productDir, slugOfDir(productDir), d).catch(() => {});
           } finally { s.rebuilding.delete(productDir); }
         }, 400));
       }

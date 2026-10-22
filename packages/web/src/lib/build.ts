@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { stat } from 'node:fs/promises';
 import { statSync } from 'node:fs';
-import { REPO_ROOT, cacheDirOf } from './products';
+import { REPO_ROOT, cacheDirOf, libCacheHome } from './products';
 import { indexGraph, type GraphData, type GraphIndex } from './graph';
 import { nodeIndex, type IndexEntry } from './doc';
 import { loadGraph } from './load';
@@ -144,12 +144,24 @@ export function buildProduct(productDir: string, info: BuildInfo = { external: f
   return p.finally(() => { if (s.running.get(productDir) === p) s.running.delete(productDir); });
 }
 
-// Once per product per process, before its graph is first served (req:waterfall.cache-home.branch-switch): the files
-// on disk against the manifest of the last build (lib/build#staleFiles). When any changed while nothing was watching —
-// a checkout with the app closed — or the graph predates manifests, it is built again, as an external change. While
-// the app runs the watcher sees changes itself. Resolves to the files that changed (null: no manifest; [] fresh).
+// Whether the git repo holding the product moved — another branch, a pull, a reset — since this consumer last asked
+// (lib/cache-home#gitHead: two small reads, no git process). The first ask only records where it stands. Each consumer
+// (the load, the watcher) keeps its own record, so each sees a move once.
+const heads = ((globalThis as { __wyeHeads?: Map<string, string | null> }).__wyeHeads ??= new Map());
+export function headMoved(productDir: string, consumer: string): boolean {
+  let now: string | null = null; try { now = libCacheHome().gitHead(productDir); } catch { /* not a repo */ }
+  const k = `${consumer}|${productDir}`; const had = heads.has(k); const was = heads.get(k); heads.set(k, now);
+  return had && was !== now;
+}
+
+// Before a product's graph is served (req:waterfall.cache-home.branch-switch): the files on disk against the manifest
+// of the last build (lib/build#staleFiles) — once per product per process, and again whenever its repo's HEAD moved.
+// When any changed while nothing was watching — a checkout with the app closed, or while no page was open — or the
+// graph predates manifests, it is built again, as an external change. Resolves to the files that changed (null: no
+// manifest; [] fresh).
 export async function freshOnOpen(productDir: string): Promise<string[] | null> {
-  const s = st(); if (s.checked.has(productDir)) return []; s.checked.add(productDir);
+  const s = st(); const moved = headMoved(productDir, 'load');
+  if (s.checked.has(productDir) && !moved) return []; s.checked.add(productDir);
   if (!(await stampOf(graphPathOf(productDir)))) return [];   // no graph: the first load builds it anyway
   let stale: string[] | null; try { stale = lib().staleFiles(productDir); } catch { return []; }
   if (stale === null || stale.length) {
