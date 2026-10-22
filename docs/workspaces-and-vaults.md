@@ -52,11 +52,17 @@ package. The same layout as any product, next to the code, in the same Git histo
 │   ├── _project.md
 │   └── docs/*.md            the documents — the definition read from the code, then everything written since
 ├── inbox/                   what was said, as it was said (wye remember), and raw notes for later filing
-├── .gitignore               _build/ _sessions/ _changes/ _hooks/ _impact/ _ea/ — generated and local, never committed
-├── _build/graph.json        generated: the graph, rebuilt after every save
+├── .gitignore               _build/ _sessions/ _changes/ _hooks/ _impact/ _ea/ — local, never committed
 ├── _sessions/               agent sessions: instruction, log, result (this machine)
 └── _changes/, _hooks/       the change history and what hooks fired (this machine)
 ```
+
+What is generated from the documents — the graph, the Ask index, the context-search vectors, the model judgements —
+is not in the vault: it is in `~/.wye/.cache/vaults/<vault>-<hash of its path>/` (`WYE_CACHE` moves the root), one
+folder per vault per machine, so a branch switch changes only knowledge. The app and `wye` see a switch (the repo's
+HEAD moved, or files differ from the last build's manifest) and rebuild what changed, not recorded as edits;
+`wye refresh` does it by hand, `wye cache list | clear` manages the folders. An older vault's `_build/` is copied there
+once and removed when nothing has written it for three days.
 
 ```bash
 cd ~/code/shop && wye init                    # this folder: vault "shop", titled from the folder name

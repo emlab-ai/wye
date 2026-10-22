@@ -554,7 +554,8 @@ the Markdown directly and need no app.
 **Environment.** `WYE_URL` the app to talk to · `WYE_PRODUCT` the default `--product` · `WYE_SESSION` the agent
 session writes are attributed to (`wye session join` prints it) · `WYE_HOME` the home (`~/.wye`) · `WYE_PORT` the
 app's port · `WYE_PUBLIC_URL` the public address of a served app · `WYE_ASK_MODEL` Ask's default model ·
-`WYE_READONLY` only commands that read are allowed (Ask's deep lane runs under it).
+`WYE_READONLY` only commands that read are allowed (Ask's deep lane runs under it) · `WYE_CACHE` where every vault's
+cache folder is (default `~/.wye/.cache/vaults`).
 
 **Install and the app**
 
@@ -571,6 +572,13 @@ wye init [folder] [--slug s] [--title "…"] [--icon i] [--description "…"]
 wye init --product <slug> --repo <dir> [--title "…"] [--project x] [--feature "<name>" --path <dir>]
                                                 a product's (or a feature's) definition from its code, shallow, with a
                                                 describe task per module; no model, nothing overwritten
+wye refresh [--product p] [--json]              after a branch switch or a pull: the graph rebuilt from the files that
+                                                changed, the Ask index re-reading only files whose content changed
+wye cache list [--json]                         every vault's cache folder on this machine: its vault, size, last use,
+                                                orphans whose vault is gone
+wye cache clear <vault | cache folder | product> [--judgements] | --orphans | --all
+                                                empty the parts that rebuild (graph, Ask index, vectors); --judgements
+                                                also the model judgements; --orphans removes orphaned folders
 wye deepen <module> --product p [--worker claude-code]
                                                 hand a module's describe task to an agent: requirements from the code
 wye export <product> [--out file]               the product as one <product>.wye.tgz (documents, pages, inbox; not sessions)
@@ -704,7 +712,7 @@ wye uninstall <package> --product p --project x
 **The graph, without the app**
 
 ```text
-wye build [--root <product dir>]                parse the documents → _build/graph.json
+wye build [--root <product dir>]                parse the documents → graph.json in the vault's cache folder
 wye check [--root <product dir>] [--strict] [--deep [--limit n] [--budget-pairs n] [--budget-calls n]]
                                                 the graph's problems; --deep also judges same-kind pairs for contradictions
 wye graph get <id>                              one node with all edges
@@ -762,11 +770,17 @@ A vault is a product folder inside the repository it describes; a product in Wye
 │   └── docs/*.md, docs/assets/  the documents
 ├── inbox/                       what was said, as it was said (wye remember); raw notes for later filing
 ├── _sessions/                   agent sessions: instruction, log, result        (local, gitignored)
-├── _changes/, _hooks/           the change history, what hooks fired            (local, gitignored)
-└── _build/graph.json            generated: the graph, rebuilt after every save  (local, gitignored)
+└── _changes/, _hooks/           the change history, what hooks fired            (local, gitignored)
 ```
 
-`_build` is generated; the Markdown files are canonical.
+The Markdown files are canonical; everything generated from them is a cache, kept outside the vault in one folder
+per machine: `~/.wye/.cache/vaults/<vault>-<hash of its path>/` — the graph, the Ask index, the context-search
+vectors and the model judgements. A vault folder holds only knowledge, so switching git branches never carries or
+clobbers a cache: the app and `wye` notice the files changed (the repo's HEAD moved, or a file's content differs from
+the last build) and rebuild only what changed, without recording the switch as anyone's edits. `wye refresh` does it
+by hand; `wye cache list` shows every cache on the machine with its size and the ones whose vault is gone, and
+`wye cache clear` empties one, the orphans or all. A vault that still has an old `_build/` folder is copied once and
+the folder goes when nothing has written it for three days.
 
 ## A node can be almost anything
 

@@ -160,8 +160,10 @@ card, until all nine are done or it is dismissed; Help (`?`, ⌘/) opens it agai
 
 A vault is this same folder as `<repo>/.wye/` — plus `_agent.md` (the folder's instructions to agents), `parent:`
 and `vaults:` in `_product.md` (the links to the vaults above and below), `_changes/` (the change history) and a
-`.gitignore` for the cache folders `_build/`, `_sessions/`, `_changes/`, `_hooks/`, `_impact/`, `_ea/` — `wye init` on an
-existing vault appends the ones its `.gitignore` lacks.
+`.gitignore` for the local folders `_build/`, `_sessions/`, `_changes/`, `_hooks/`, `_impact/`, `_ea/` — `wye init` on an
+existing vault appends the ones its `.gitignore` lacks. What is generated — graph, Ask index, vectors, model judgements —
+is in the vault's cache folder, `~/.wye/.cache/vaults/<vault>-<hash of its path>/` (lib/cache-home; `WYE_CACHE` moves
+the root): `wye cache list | clear`, `wye refresh` after a branch switch.
 
 ```
 data/products/<product>/_product.md                       title, icon, description
@@ -171,7 +173,7 @@ data/products/<product>/projects/<project>/docs/assets/   images pasted into doc
 data/products/<product>/inbox/                            raw notes dropped for later filing
 data/products/<product>/_sessions/                        agent sessions: instruction, log, result
 data/products/<product>/_hooks/                           what hooks fired
-data/products/<product>/_build/graph.json                 generated: the product's graph, rebuilt after every save
+~/.wye/.cache/vaults/<product>-<hash>/graph.json          generated: the product's graph, rebuilt after every save
 ```
 
 ## The basics: documents, nodes, links
@@ -268,7 +270,7 @@ Wye is memory for agents, and the memory is honest by construction rather than b
   successor. `wye check` says so.
 - **One verdict per pair.** When a block's text changes, the pair is judged again and the new verdict replaces the
   old one; a contradiction that no longer holds closes itself, one the person settled stays as they left it.
-- **Search that answers.** One local index per product (LanceDB in `_build/search.lance`: full-text and MiniLM vectors
+- **Search that answers.** One local index per product (LanceDB in its cache folder's `search.lance`: full-text and MiniLM vectors
   fused by reciprocal rank, one hop along the graph, a local cross-encoder reranking a question's passages) over
   blocks, document prose, the product's code (its `repo:`) and agent sessions. `wye ask "<question>"` and ⌘F answer
   from it with citations; `wye ask-search` returns the passages; `wye eval ask` measures recall on a question set
@@ -367,7 +369,9 @@ sandbox as `-c sandbox_mode=`; `wye agent listen` runners keep their own `--cmd`
 
 | command | what |
 |---|---|
-| `wye build [--root dir]` | parse the documents → `_build/graph.json` |
+| `wye build [--root dir]` | parse the documents → `graph.json` in the vault's cache folder (reading the graph rebuilds it first when files changed since) |
+| `wye refresh` | after a branch switch or a pull: the graph and the Ask index caught up, only what changed re-read (through the app) |
+| `wye cache list \| clear` | every vault's cache folder on the machine — size, vault, orphans; clear one, `--orphans` or `--all` |
 | `wye check [--root dir] [--strict]` | lint: shapes per type, dangling references, missing sources, open contradictions; exit 1 on errors |
 | `wye get <id>` | one node with every edge (`wye get oversell` resolves suffixes) |
 | `wye search <terms>` | ranked search over ids, titles, bodies |
