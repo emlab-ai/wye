@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 // each part with its size and Clear and rebuild, which deletes what rebuilds without a model call and builds it again
 // (lib/cache). Hidden off a product's pages. Polled every minute, every two seconds while a rebuild runs.
 type Part = { key: string; label: string; bytes: number; clears: boolean; shared?: boolean };
-type Info = { product: string; parts: Part[]; total: number; clearable: number; rebuilding: boolean };
+type Info = { product: string; folder?: string; parts: Part[]; total: number; clearable: number; rebuilding: boolean };
 
 export const size = (b: number) => b >= 2 ** 30 ? `${(b / 2 ** 30).toFixed(1)} GB` : b >= 1000 * 1024 ? `${(b / 2 ** 20).toFixed(b >= 10 * 2 ** 20 ? 0 : 1)} MB` : b >= 1024 ? `${Math.round(b / 1024)} KB` : b ? `${b} B` : '—';
 const NOT_PRODUCTS = new Set(['', 'api', 'settings', 'new']);   // the app's own top-level routes
@@ -56,6 +56,7 @@ export function CacheItem() {
       {open && (
         <div className="sb-pop sb-pop-right" role="dialog" aria-label="Cache">
           <div className="sb-pop-head"><b>Cache</b><span className="muted">{size(info.total)} on disk</span></div>
+          {info.folder && <div className="sb-cache-where" title={`${info.folder} — every vault's cache is under the Wye home; wye cache list shows them all`}>{info.folder}</div>}
           <div className="sb-row"><div className="sb-row-head"><b>Rebuilt by Clear</b><span className="muted">{size(info.clearable)}</span></div>{info.parts.filter(p => p.clears).map(row)}</div>
           <div className="sb-row"><div className="sb-row-head"><b>Kept</b><span className="muted">history, model judgements, models</span></div>{info.parts.filter(p => !p.clears).map(row)}</div>
           <div className="sb-cache-foot">

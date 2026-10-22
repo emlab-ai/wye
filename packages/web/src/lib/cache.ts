@@ -5,14 +5,16 @@
 // eval results, the history (_sessions, _changes, _hooks) and the shared models.
 import { readdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import { REPO_ROOT, type Product, cacheDirOf } from './products';
 import { dropIndex, indexingNow } from './ask/refresh';
 import { loadScope } from './scope';
 
 export type Part = { key: string; label: string; bytes: number; clears: boolean; shared?: boolean };
-export type CacheInfo = { product: string; parts: Part[]; total: number; clearable: number; rebuilding: boolean };
+// folder: where the product's cache is (lib/cache-home), with the home folder as ~
+export type CacheInfo = { product: string; folder: string; parts: Part[]; total: number; clearable: number; rebuilding: boolean };
 
-const CLEARS: [string, string][] = [['search.lance', 'Search index'], ['graph.json', 'Graph'], ['embeddings.json', 'Context search vectors'], ['data.js', 'Graph viewer data']];
+const CLEARS: [string, string][] = [['search.lance', 'Search index'], ['graph.json', 'Graph'], ['manifest.json', 'Files the graph was built from'], ['embeddings.json', 'Context search vectors'], ['data.js', 'Graph viewer data']];
 const JUDGED = ['verdicts.json', 'impact.json', 'cleanup.json', 'jev.json'];
 const HISTORY: [string, string][] = [['_sessions', 'Agent sessions'], ['_changes', 'Change log'], ['_hooks', 'Hook runs'], ['_impact', 'Impact runs']];
 
@@ -38,7 +40,7 @@ export async function cacheInfo(p: Product): Promise<CacheInfo> {
   for (const [d, label] of HISTORY) parts.push({ key: d, label, bytes: await sizeOf(path.join(p.dir, d)), clears: false });
   parts.push({ key: 'models', label: 'Embedding models', bytes: await sizeOf(path.join(REPO_ROOT, '.cache/models')), clears: false, shared: true });
   const own = parts.filter(x => !x.shared);
-  return { product: p.slug, parts, total: own.reduce((s, x) => s + x.bytes, 0), clearable: parts.filter(x => x.clears).reduce((s, x) => s + x.bytes, 0), rebuilding: clearing().has(p.dir) || indexingNow(p) };
+  return { product: p.slug, folder: cacheDirOf(p.dir).replace(os.homedir(), '~'), parts, total: own.reduce((s, x) => s + x.bytes, 0), clearable: parts.filter(x => x.clears).reduce((s, x) => s + x.bytes, 0), rebuilding: clearing().has(p.dir) || indexingNow(p) };
 }
 
 // Deletes the clearable parts and builds them again: the graph on the next load (lib/scope), which also starts the

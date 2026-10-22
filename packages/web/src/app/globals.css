@@ -1730,6 +1730,7 @@ button.slack-open { cursor: pointer; } button.slack-open:disabled { opacity: .6;
 .sb-cache-btn:hover, .sb-cache.open .sb-cache-btn { background: var(--sunk); }
 .sb-pop.sb-pop-right { left: auto; right: 8px; width: 360px; }
 .sb-cache-part { display: flex; align-items: baseline; gap: 8px; padding: 2px 0; font-size: 13px; } .sb-cache-part span:first-child { flex: 1; } .sb-cache-part .muted { font: 11px var(--font-m); color: var(--muted); } .sb-cache-part b { font: 12px var(--font-m); min-width: 64px; text-align: right; } .sb-cache-part.kept { color: var(--muted); }
+.sb-cache-where { font: 11px var(--font-m, ui-monospace, monospace); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: -4px 0 8px; }
 .sb-cache-foot { display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--line); padding-top: 10px; } .sb-cache-foot .muted { font-size: 11px; color: var(--muted); }
 .sb-cache-foot button { flex: none; white-space: nowrap; padding: 6px 12px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--sunk); color: var(--ink); font: 600 12px var(--font-s, inherit); cursor: pointer; } .sb-cache-foot button:hover:not(:disabled) { border-color: var(--accent); } .sb-cache-foot button:disabled { opacity: .6; cursor: default; }
 .sb-foot { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 2px; font: 11px var(--font-m); line-height: 1.5; }
