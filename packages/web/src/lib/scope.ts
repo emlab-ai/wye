@@ -1,6 +1,6 @@
 // Server-only: everything a page needs for one product (and optionally one project), loaded once per request.
 import { getProduct, getProject, listProjects, type Product, type Project } from './products';
-import { graphFor } from './build';
+import { graphFor, freshOnOpen } from './build';
 import { indexGraph, type GraphData, type GraphIndex } from './graph';
 import { nodeIndex, projectTree, type IndexEntry } from './doc';
 import { prsPageId } from './pr-doc';
@@ -22,6 +22,7 @@ export async function loadScope(productSlug: string, projectSlug?: string): Prom
   // the graph is derived and not in git (rule:build-is-derived): a fresh clone, or a product whose _build was removed,
   // gets it built on first load — once per product at a time; only a build that also fails leaves the graph empty
   // the graph and its indexes come from the build coordinator's memory (lib/build): one parse per change, not per request
+  await freshOnOpen(product.dir);   // files changed while no one watched (a checkout with the app closed): built again first
   let cached = await graphFor(product.dir);
   if (!cached && await hasDocs(product.dir)) {
     building.set(product.slug, building.get(product.slug) ?? rebuild(product.dir).finally(() => building.delete(product.slug)));

@@ -49,7 +49,19 @@ function findDocs(files) {
     return out.sort(docOrder);
 }
 function die(msg) { console.error('wye: ' + msg); process.exit(2); }
-function load() { if (!fs.existsSync(graphFile)) die(`no ${graphFile} — run \`wye build\` first`); return Graph.load(graphFile); }
+// the graph as the vault's files are now (req:waterfall.cache-home.branch-switch): when they changed since the last
+// build — a checkout, a pull, an edit with no app running — or there is none yet, it is built first
+function load() {
+    if (graphFile === path.join(BUILD, 'graph.json') && fs.existsSync(path.join(ROOT, 'projects'))) {
+        const b = require('../lib/build'); const stale = fs.existsSync(graphFile) ? b.staleFiles(ROOT) : null;
+        if (stale === null || stale.length) {
+            console.error(`wye: ${stale ? `${stale.length} file(s) changed since the last build` : 'no current build'} — building ${ROOT}`);
+            b.buildGraph(ROOT, { cwd: require('./wye-home').home() });
+        }
+    }
+    if (!fs.existsSync(graphFile)) die(`no ${graphFile} — run \`wye build\` first`);
+    return Graph.load(graphFile);
+}
 function resolveOne(g, id) { const r = g.resolve(id); if (!r.length) die(`unknown node: ${id}`); if (r.length > 1) die(`ambiguous: ${r.join(', ')}`); return r[0]; }
 function writeBuild(graph, outDir) {
     fs.mkdirSync(outDir, { recursive: true });

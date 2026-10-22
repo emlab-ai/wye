@@ -15,7 +15,7 @@ import { graphDelta, mergeDeltas, EVERYTHING, NOTHING, type GraphDelta } from '.
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const req = createRequire(path.join(REPO_ROOT, 'package.json'));
-type Lib = { newParseCache(): unknown; findDocs(root: string): string[]; buildGraph(root: string, o: { cache?: unknown; cwd?: string; files?: string[] }): { graph: GraphData; files: string[] }; checkLines(graph: GraphData, o: { repo: string; strict?: boolean }): { errors: string[]; warnings: string[]; output: string } };
+type Lib = { newParseCache(): unknown; findDocs(root: string): string[]; staleFiles(root: string): string[] | null; buildGraph(root: string, o: { cache?: unknown; cwd?: string; files?: string[] }): { graph: GraphData; files: string[] }; checkLines(graph: GraphData, o: { repo: string; strict?: boolean }): { errors: string[]; warnings: string[]; output: string } };
 const LIB = ['./lib/parse.js', './lib/build.js', './lib/shipped.js'];
 // The parser is CommonJS, required once and kept in Node's module cache, which Next's reload does not touch: editing
 // lib/parse.js while the dev server runs used to leave it building yesterday's graph, silently. In development the
@@ -36,12 +36,15 @@ function lib(): Lib {
 
 // rev: counts the graphs this process has held for the product — what a change event is relative to (deltaSince)
 export type Cached = { graph: GraphData; idx: GraphIndex; index: Record<string, IndexEntry>; stamp: string; builtAt: number; rev: number };
-export type BuiltListener = ((productDir: string, before: GraphData | null, after: GraphData) => Promise<void> | void) & { key?: string };
+// external: the files changed outside the app — a git checkout, a pull, an edit while it was closed
+// (decision:waterfall.branch-switch-is-not-an-edit): the graph follows, but nobody made those changes
+export type BuildInfo = { external: boolean };
+export type BuiltListener = ((productDir: string, before: GraphData | null, after: GraphData, info: BuildInfo) => Promise<void> | void) & { key?: string };
 type Step = { rev: number; delta: () => GraphDelta };
-type State = { libStamp?: string; caches: Map<string, unknown>; graphs: Map<string, Cached>; running: Map<string, Promise<BuildResult>>; queued: Map<string, Promise<BuildResult>>; listeners: BuiltListener[]; lastBuilt: Map<string, number>; read: Map<string, Map<string, number>>; after: Map<string, Promise<void>>; revs: Map<string, number>; steps: Map<string, Step[]> };
+type State = { libStamp?: string; caches: Map<string, unknown>; graphs: Map<string, Cached>; running: Map<string, Promise<BuildResult>>; queued: Map<string, Promise<BuildResult>>; listeners: BuiltListener[]; lastBuilt: Map<string, number>; read: Map<string, Map<string, number>>; after: Map<string, Promise<void>>; checked: Set<string>; revs: Map<string, number>; steps: Map<string, Step[]> };
 const g = globalThis as unknown as { __wfBuild?: State };
 // on globalThis across dev reloads; a reload that adds a field finds the old state and fills it in
-const st = (): State => { const s = (g.__wfBuild ??= { caches: new Map(), graphs: new Map(), running: new Map(), queued: new Map(), listeners: [], lastBuilt: new Map(), read: new Map(), after: new Map(), revs: new Map(), steps: new Map() }); s.after ??= new Map(); s.revs ??= new Map(); s.steps ??= new Map(); s.read ??= new Map(); return s; };
+const st = (): State => { const s = (g.__wfBuild ??= { caches: new Map(), graphs: new Map(), running: new Map(), queued: new Map(), listeners: [], lastBuilt: new Map(), read: new Map(), after: new Map(), checked: new Set(), revs: new Map(), steps: new Map() }); s.after ??= new Map(); s.checked ??= new Set(); s.revs ??= new Map(); s.steps ??= new Map(); s.read ??= new Map(); return s; };
 
 export type BuildResult = { code: number; output: string; graph: GraphData | null; before: GraphData | null };
 
@@ -105,13 +108,13 @@ export async function graphFor(productDir: string): Promise<Cached | null> {
 export function graphInMemory(productDir: string): GraphData | null { return st().graphs.get(productDir)?.graph ?? null; }
 
 // Build the product now: parse (cached), write graph.json, keep the graph, run the listeners. Serialised per product.
-export function buildProduct(productDir: string): Promise<BuildResult> {
+export function buildProduct(productDir: string, info: BuildInfo = { external: false }): Promise<BuildResult> {
   const s = st();
   const running = s.running.get(productDir);
   if (running) {
     // one more build after this one is enough for everyone who asks meanwhile
     const queued = s.queued.get(productDir); if (queued) return queued;
-    const next = running.then(() => { s.queued.delete(productDir); return buildProduct(productDir); }, () => { s.queued.delete(productDir); return buildProduct(productDir); });
+    const next = running.then(() => { s.queued.delete(productDir); return buildProduct(productDir, info); }, () => { s.queued.delete(productDir); return buildProduct(productDir, info); });
     s.queued.set(productDir, next); return next;
   }
   const p = (async (): Promise<BuildResult> => {
@@ -134,11 +137,26 @@ export function buildProduct(productDir: string): Promise<BuildResult> {
     keep(s, productDir, graph, stampNow(graphPathOf(productDir)));
     const output = `built ${path.relative(REPO_ROOT, graphPathOf(productDir))} from ${files.length} file(s): ${graph.nodes.length} nodes, ${graph.edges.length} edges in ${(t1 - t0).toFixed(0)} ms (+${(performance.now() - t1).toFixed(0)} ms indexes)`;
     // the listeners run after the reply, in build order per product: the save returns as soon as the graph is written
-    s.after.set(productDir, (s.after.get(productDir) ?? Promise.resolve()).then(async () => { for (const fn of s.listeners) { try { await fn(productDir, before, graph); } catch (e) { console.log(`[wf] after build: ${e instanceof Error ? e.message : e}`); } } }));
+    s.after.set(productDir, (s.after.get(productDir) ?? Promise.resolve()).then(async () => { for (const fn of s.listeners) { try { await fn(productDir, before, graph, info); } catch (e) { console.log(`[wf] after build: ${e instanceof Error ? e.message : e}`); } } }));
     return { code: 0, output, graph, before };
   })();
   s.running.set(productDir, p);
   return p.finally(() => { if (s.running.get(productDir) === p) s.running.delete(productDir); });
+}
+
+// Once per product per process, before its graph is first served (req:waterfall.cache-home.branch-switch): the files
+// on disk against the manifest of the last build (lib/build#staleFiles). When any changed while nothing was watching —
+// a checkout with the app closed — or the graph predates manifests, it is built again, as an external change. While
+// the app runs the watcher sees changes itself. Resolves to the files that changed (null: no manifest; [] fresh).
+export async function freshOnOpen(productDir: string): Promise<string[] | null> {
+  const s = st(); if (s.checked.has(productDir)) return []; s.checked.add(productDir);
+  if (!(await stampOf(graphPathOf(productDir)))) return [];   // no graph: the first load builds it anyway
+  let stale: string[] | null; try { stale = lib().staleFiles(productDir); } catch { return []; }
+  if (stale === null || stale.length) {
+    console.log(`[wf] ${path.basename(path.dirname(productDir)) || productDir}: ${stale ? `${stale.length} file(s) changed since the last build` : 'built before manifests'} — building again`);
+    await buildProduct(productDir, { external: true });
+  }
+  return stale;
 }
 
 // The check (`wye check`) over the graph in memory: its lines as the CLI prints them, for the routes that show them.

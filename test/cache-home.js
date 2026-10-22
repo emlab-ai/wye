@@ -53,5 +53,22 @@ process.env.WYE_CACHE_MOVE = '0';
 const z = path.join(tmp, 'kept', '.wye'); put(path.join(z, '_build', 'graph.json'), 'g'); fresh(z, home);
 assert.ok(fs.existsSync(path.join(z, '_build', 'graph.json')), 'WYE_CACHE_MOVE=0 moves nothing');
 
+// the manifest (req:waterfall.cache-home.branch-switch): after a build nothing is stale; a file only touched is not a
+// change; one with other content, a new one and a removed one are
+process.env.WYE_CACHE = path.join(tmp, 'm-cache');
+const { buildGraph, staleFiles } = require('../lib/build');
+const mv = path.join(tmp, 'mvault', '.wye'), doc = n => path.join(mv, 'projects', 'p', 'docs', n);
+put(path.join(mv, '_product.md'), '---\ntitle: M\n---\n'); put(doc('a.md'), '---\nnode: module:a\ntitle: A\n---\n# A\n'); put(doc('b.md'), '---\nnode: module:b\ntitle: B\n---\n# B\n');
+assert.strictEqual(staleFiles(mv), null, 'no manifest before the first build');
+buildGraph(mv, { cwd: tmp, shipped: false });
+assert.deepStrictEqual(staleFiles(mv), []);
+const later = new Date(Date.now() + 5000); fs.utimesSync(doc('a.md'), later, later);
+assert.deepStrictEqual(staleFiles(mv), [], 'a touched file with the same content is not a change');
+fs.writeFileSync(doc('a.md'), '---\nnode: module:a\ntitle: A2\n---\n# A2\n'); fs.rmSync(doc('b.md')); put(doc('c.md'), '# C\n');
+assert.deepStrictEqual(staleFiles(mv).sort(), ['projects/p/docs/a.md', 'projects/p/docs/b.md', 'projects/p/docs/c.md']);
+buildGraph(mv, { cwd: tmp, shipped: false });
+assert.deepStrictEqual(staleFiles(mv), []);
+delete process.env.WYE_CACHE;
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log('cache-home: ok');

@@ -98,8 +98,11 @@ export function ensureWatch(productDir: string) {
 
 // After every build (lib/build#onBuilt): the diff of the graph before and after is what the app knows about the change
 // — block-level attribution, change records, impact, the request Definitions, the hooks, the verdict pass.
-onBuilt(async (productDir, before, after) => {
+onBuilt(async (productDir, before, after, info) => {
   if (!before || !st().watchers.has(productDir)) return; // a product nobody follows (a test's scratch, a CLI-only use) keeps no records
+  // files changed outside the app — a git checkout, a pull (decision:waterfall.branch-switch-is-not-an-edit): the graph
+  // follows them, but they are nobody's edits here — no change records, no impact, hooks or verdict pass
+  if (info?.external) { await sweepRuns(slugOfDir(productDir), m => console.log(`[wf] ${m}`)).catch(() => {}); return; }
   const changes = diffGraphs(before, after, new Date().toISOString());
   // the live runs are swept on every build, even one that changed no node: a stage's criterion can turn on something
   // outside the graph (a session ending), and a run written before run pages is moved to one here
