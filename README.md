@@ -871,7 +871,7 @@ It also sounds like **why**, which is a good place for any product change to beg
 
 Wye is early, local-first, open source, under active development, and used to build itself. The core workflow needs
 no accounts and no hosted service. Expect the model, the interface and the APIs to change. The current version is
-`0.6.2`.
+`0.7.0`.
 
 ## Contributing
 
