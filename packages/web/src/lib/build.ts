@@ -160,6 +160,9 @@ export function headMoved(productDir: string, consumer: string): boolean {
 // graph predates manifests, it is built again, as an external change. Resolves to the files that changed (null: no
 // manifest; [] fresh).
 export async function freshOnOpen(productDir: string): Promise<string[] | null> {
+  // the vault is watched from its first load, not only while a page is open (req:waterfall.cache-home.watched): an
+  // edit by an agent or an editor, a stash, a pull is built in at once (a dynamic import: watch imports this module)
+  void import('./watch').then(w => w.ensureWatch(productDir)).catch(() => {});
   const s = st(); const moved = headMoved(productDir, 'load');
   if (s.checked.has(productDir) && !moved) return []; s.checked.add(productDir);
   if (!(await stampOf(graphPathOf(productDir)))) return [];   // no graph: the first load builds it anyway
