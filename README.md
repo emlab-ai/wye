@@ -548,14 +548,16 @@ else in detail are in [docs/reference.md](docs/reference.md).
 
 Every command and its parameters (`wye --help` prints the same). Inside a folder with a vault, `--product p` can be
 left out: `wye` finds the vault from the current folder. Most commands that print take `--json`. Commands that read
-or write knowledge go through the running app (`WYE_URL`, default `http://localhost:3456`); the graph commands read
-the Markdown directly and need no app.
+or write knowledge go through the home's Wye server (`WYE_URL`, default `http://localhost:3456`). When nothing answers,
+the command starts it, without a window, and leaves it running for the next command and for the window; an agent
+writing to the vault never needs the app open. The graph commands read the Markdown directly and need no server.
 
 **Environment.** `WYE_URL` the app to talk to · `WYE_PRODUCT` the default `--product` · `WYE_SESSION` the agent
 session writes are attributed to (`wye session join` prints it) · `WYE_HOME` the home (`~/.wye`) · `WYE_PORT` the
 app's port · `WYE_PUBLIC_URL` the public address of a served app · `WYE_ASK_MODEL` Ask's default model ·
 `WYE_READONLY` only commands that read are allowed (Ask's deep lane runs under it) · `WYE_CACHE` where every vault's
-cache folder is (default `~/.wye/.cache/vaults`).
+cache folder is (default `~/.wye/.cache/vaults`) · `WYE_AUTOSTART=0` a command that finds no server fails instead of
+starting one.
 
 **Install and the app**
 
@@ -564,7 +566,12 @@ wye --version                                   the version and the install it r
 wye setup                                       the home (~/.wye) and the agent skills (Claude Code, Codex)
 wye app [folder] [--port 3456] [--browser] [--no-open] [--public https://…]
                                                 the app in its own window; --browser: in your browser; --public: on a
-                                                server behind a TLS proxy (docs/server.md); a folder opens as the workspace
+                                                server behind a TLS proxy (docs/server.md); a folder opens as the workspace.
+                                                The window connects to the home's one server (started without a window
+                                                when none runs) and leaves it running when it closes; --no-open is the
+                                                server itself, in the foreground
+wye server [status | start | stop] [--json]     the home's one server: where it runs (pid, port), start it without a
+                                                window, or stop it and the agents it runs
 wye init [folder] [--slug s] [--title "…"] [--icon i] [--description "…"]
                                                 a vault for the folder in .wye/ beside its code, linked to the vaults above
                                                 and below; on a folder that has one, only the note in CLAUDE.md / AGENTS.md

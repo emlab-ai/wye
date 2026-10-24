@@ -463,11 +463,14 @@ is what the agents use.
 
 `npm install -g @emlab/wye`, `wye setup`, then `wye app`: the app opens in its own window (Electron, an optional
 dependency of the package — its binary, about 100 MB, is fetched the first time when npm did not run its install
-script). `wye app` owns the server over your home (`~/.wye`: `data/products` yours, the code folders linked to the
-installed package and relinked by `wye setup` after an update) and the window is a view on it: closing the window,
-or Ctrl+C in the terminal, stops both. `wye app --browser` opens your browser on `http://localhost:3456` instead, `--no-open` starts the server
-alone, and an install without Electron falls back to the browser. If a Wye already answers on the port, `wye app` only
-opens a window on it.
+script). A home (`~/.wye`: `data/products` yours, the code folders linked to the
+installed package and relinked by `wye setup` after an update) has one Wye server, and every window and every `wye`
+command uses it. `wye app` opens a window on it: the running server, wherever its record (`<home>/.cache/server.json`)
+says, else one it starts without a window. Closing the window, or Ctrl+C in the terminal, closes the window only: the
+server stays for the agents and the CLI, and `wye server stop` ends it. Any `wye` command that needs the server and
+finds none starts it the same way (its output in `<home>/.cache/server.log`; two commands at once start one). `wye app
+--browser` opens your browser on `http://localhost:3456` instead, `--no-open` runs the server itself in the
+foreground, and an install without Electron falls back to the browser.
 
 ### Install from a checkout
 

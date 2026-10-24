@@ -11,7 +11,10 @@
 //   wye --version                         the version and the install it runs from (is the global wye the latest?)
 //   wye setup                             the home (~/.wye when installed from npm: your products in data/) and the agent skills (Claude Code, Codex)
 //   wye app [folder] [--port 3456] [--browser] [--no-open] [--public https://…]   the app in its own window, over the home (--browser: in your browser; --public: on a server behind a TLS proxy, docs/server.md);
-//        with a folder, that folder is opened as the workspace: its vaults are the Documents roots, its files are under Files
+//        with a folder, that folder is opened as the workspace: its vaults are the Documents roots, its files are under Files;
+//        the window connects to the home's one server (started without a window when none runs) and leaves it running when closed
+//   wye server [status | start | stop] [--json]   the home's one Wye server: where it runs; start it without a window; stop it.
+//        Any command that needs the app starts it by itself when nothing answers (WYE_AUTOSTART=0 turns that off)
 //   wye refresh [--product p] [--json]  the quick refresh after a branch switch: the documents against the last build, the graph
 //        built again when any changed (not recorded as edits), the Ask index re-reading only files whose content changed
 //   wye cache list [--json]               every vault's cache folder in the Wye home (<home>/.cache/vaults, WYE_CACHE): its vault,
@@ -145,8 +148,9 @@ const { spawn } = require('child_process');
 
 // WYE_URL / WYE_PRODUCT / WYE_SESSION; the WF_ names still work for the sessions that were started with them
 const env = (k) => process.env['WYE_' + k] || process.env['WF_' + k];
-const WF_URL = (env('URL') || 'http://localhost:3456').replace(/\/$/, '');
 const argv = process.argv.slice(2);
+// the home's one server (bin/wye-server, req:waterfall.server.one-per-home): where its record says, else the default port
+const WF_URL = (env('URL') || require('./wye-server').urlOf(require('./wye-home.js').home())).replace(/\/$/, '');
 // the agent skills follow the install on every call — an upgrade links the new ones, drops the gone (req:waterfall.global-skills.agent-skills)
 require('./wye-home.js').keepSkillsLinked();
 const flags = {}; const pos = [];
@@ -155,6 +159,25 @@ for (let i = 0; i < argv.length; i++) {
   if (a.startsWith('--')) { const k = a.slice(2); const v = argv[i + 1]; if (v === undefined || v.startsWith('--')) flags[k] = true; else { (flags[k] === undefined ? (flags[k] = v) : (flags[k] = [].concat(flags[k], v))); i++; } }
   else pos.push(a);
 }
+// A command that reaches the app starts it when nothing answers (req:waterfall.server.cli-starts-it): the home's
+// server, without a window, left running for the next command and the window — so an agent writes to the vault with
+// the app closed. Only the home's own address (another WYE_URL is someone else's server), never for the commands that
+// work without the app or own the server, and not with WYE_AUTOSTART=0 (the tests).
+const rawFetch = globalThis.fetch;
+const autoStart = () => process.env.WYE_AUTOSTART !== '0' && !['app', 'server', 'setup', 'eval', 'refresh', 'cache', 'version'].includes(pos[0]) && !flags.version
+  && (() => { try { const u = new URL(WF_URL), d = new URL(require('./wye-server').urlOf(require('./wye-home.js').home())); return ['localhost', '127.0.0.1'].includes(u.hostname) && u.port === d.port; } catch { return false; } })();
+let started = null;
+globalThis.fetch = async (url, opts) => {
+  try { return await rawFetch(url, opts); }
+  catch (e) {
+    const refused = e && (e.cause?.code === 'ECONNREFUSED' || /ECONNREFUSED/.test(String(e.cause?.message || e.message)));
+    if (!refused || !String(url).startsWith(WF_URL) || !autoStart()) throw e;
+    started = started || require('./wye-server').ensure(require('./wye-home.js').ensureHome());
+    await started;
+    // a timeout signal made before the wait has run out by now: the retry gets its own
+    return rawFetch(url, opts && opts.signal ? { ...opts, signal: AbortSignal.timeout(30000) } : opts);
+  }
+};
 const list = v => v === undefined ? [] : [].concat(v);
 const die = (m, code = 1) => { console.error(m); process.exit(code); };
 // The product a command is about: --product, WYE_PRODUCT, else the vault of the folder this runs in — the nearest
@@ -342,14 +365,19 @@ const commands = {
     console.log(`${j.existing ? 'already open as' : 'opened as'} ${j.slug} → ${WF_URL}/${j.slug}  (${j.dir})`);
   },
   // wye app: the built web app over the home, on WYE_PORT (default 3456) — the port the CLI and the agents expect — in
-  // its own window: this process owns the server, the Electron shell (packages/desktop, WYE_ATTACH) is the window on
-  // it, and closing the window stops both. --browser opens the system browser instead; --no-open is the server alone.
-  // Without Electron (an install that skipped the optional dependency or its download) the browser is the window.
+  // its own window. The home has one server (req:waterfall.server.one-per-home): a window only connects to it — the
+  // running one, wherever its record says, else one started without a window (bin/wye-server) that stays when the
+  // window closes, for the agents and the CLI (decision:waterfall.window-never-owns-the-server; wye server stop ends
+  // it). The Electron shell (packages/desktop, WYE_ATTACH) is the window; --browser opens the system browser instead;
+  // --no-open is the server itself, in this process. Without Electron (an install that skipped the optional
+  // dependency or its download) the browser is the window.
   async app() {
     const h = require('./wye-home.js'); const dir = h.ensureHome();
     const web = path.join(h.INSTALL, 'packages', 'web');
     if (!fs.existsSync(path.join(web, '.next', 'BUILD_ID'))) die(h.isCheckout() ? 'no build yet: npm run build --workspace=packages/web (or npm run dev for the dev server)' : `the package has no app build (${web}/.next) — reinstall it`);
-    const port = String(flags.port || process.env.WYE_PORT || 3456);
+    const srv = require('./wye-server'); const rec = srv.running(dir);
+    if (rec && flags.port && String(flags.port) !== new URL(rec.url).port) console.log(`the Wye server of ${dir} already runs on ${rec.url} — using it, not --port ${flags.port}`);
+    const port = rec ? new URL(rec.url).port : String(flags.port || process.env.WYE_PORT || 3456);
     const url = `http://localhost:${port}`;
     const browser = () => { const o = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'; try { spawn(o, [url], { stdio: 'ignore', detached: true, shell: process.platform === 'win32' }).unref(); } catch { /* no opener */ } };
     // the Electron binary of this install, or null: the package lists it as optional so an install without it still runs
@@ -369,17 +397,23 @@ const commands = {
         }
       }
     }
-    // a Wye already answering on the port: this one is only a window on it
-    const up = await fetch(`${url}/api/products`, { signal: AbortSignal.timeout(1500) }).then(() => true, () => false);
-    console.log(`Wye on ${url} — home ${dir}  (${up ? 'already running' : electron ? 'close the window or Ctrl+C to stop it' : 'Ctrl+C stops it'})`);
-    if (!electron && !flags.browser && !flags['no-open']) console.log('no Electron in this install — opening your browser instead (reinstall with: npm install -g @emlab/wye --include=optional --allow-scripts=electron)');
-    // the app's own server (packages/web/server.js): Next, and the websocket the page editors share live pages over
     // --public <https URL>: Wye on a server for several people, behind a TLS proxy that answers on that address
     // (docs/server.md); the app itself still listens on this machine only, for the proxy
     const pub = flags.public ? String(flags.public) : process.env.WYE_PUBLIC_URL || '';
     if (pub && !/^https:\/\/[^/]+/.test(pub)) die('wye app --public takes the https address the server is reached at, e.g. https://wye.example.com');
-    const start = () => { const cwd = h.prepareApp(web, dir); return spawn(process.execPath, [path.join(cwd, 'server.js'), '-p', port, '-H', '127.0.0.1'], { cwd, stdio: 'inherit', env: { ...process.env, WYE_HOME: dir, WYE_URL: url, ...(pub ? { WYE_PUBLIC_URL: pub.replace(/\/+$/, '') } : {}) } }); };
+    if (pub) process.env.WYE_PUBLIC_URL = pub.replace(/\/+$/, '');
+    // a Wye already answering on the port: this one is only a window on it
+    let up = await srv.answers(url);
+    const serve = !!flags['no-open'];   // this process is the server; otherwise only a window on the home's server
+    // a window starts the home's server without one; a server whose recorded owner is restarting is waited for
+    if (!up && (!serve || rec)) { try { await srv.ensure(dir, { quiet: true }); up = true; } catch (e) { die(e.message); } }
+    console.log(`Wye on ${url} — home ${dir}  (${serve ? (up ? 'already running' : 'Ctrl+C stops it') : 'the server stays when the window closes — wye server stop ends it'})`);
+    if (!electron && !flags.browser && !serve) console.log('no Electron in this install — opening your browser instead (reinstall with: npm install -g @emlab/wye --include=optional --allow-scripts=electron)');
+    // the app's own server (packages/web/server.js): Next, and the websocket the page editors share live pages over;
+    // recorded as the home's server (bin/wye-server) while this process runs it
+    const start = () => { const cwd = h.prepareApp(web, dir); return spawn(process.execPath, [path.join(cwd, 'server.js'), '-p', port, '-H', '127.0.0.1'], { cwd, stdio: 'inherit', env: { ...process.env, WYE_HOME: dir, WYE_URL: url } }); };
     let child = up ? null : start();
+    if (child) { srv.record(dir, { pid: process.pid, port: Number(port), url, home: dir }); process.on('exit', () => srv.unrecord(dir)); }
     // wye app <folder>: that folder is the workspace (decision:wf2.workspace-is-the-top) — asked of the app once it answers
     if (pos[1]) {
       const folder = path.resolve(pos[1].replace(/^~(?=$|\/)/, os.homedir()));
@@ -399,11 +433,11 @@ const commands = {
       // ELECTRON_RUN_AS_NODE (set by some shells and editors) would make the binary run main.js as plain Node
       const env = { ...process.env, WYE_ATTACH: '1', WYE_PORT: port, WYE_HOME: dir }; delete env.ELECTRON_RUN_AS_NODE;
       shell = spawn(electron, [desktop], { stdio: ['ignore', 'ignore', 'inherit'], env });
-      const fallback = why => { shell = null; if (done) return; console.log(`the window could not open (${why}) — the app stays on ${url}`); if (up) process.exit(0); browser(); };
+      const fallback = why => { shell = null; if (done) return; console.log(`the window could not open (${why}) — the app stays on ${url}`); browser(); if (!child) setTimeout(() => process.exit(0), 500); };
       shell.on('error', e => fallback(e.message));
-      // the window closed: the app stops with it — unless Electron never got as far as a window (no display)
+      // the window closed: this command ends, the server stays — unless Electron never got as far as a window (no display)
       shell.on('exit', code => { if (!shell) return; if (code && Date.now() - started < 8000) return fallback(`Electron exit ${code}`); shell = null; stop('SIGTERM'); });
-    } else if (!flags['no-open']) setTimeout(browser, up ? 0 : 2500);
+    } else if (!serve) setTimeout(browser, 0);
     if (!child) { if (!electron) return; await new Promise(() => {}); }
     // the server ends itself past its memory cap (packages/web/src/lib/memory-guard, WYE_MAX_MEMORY_GB) with exit 77,
     // the code `next dev` restarts on — here it is started again; the sessions it hosted resume with their context
@@ -414,6 +448,22 @@ const commands = {
       };
       child.on('exit', onExit);
     });
+  },
+  // wye server [status | start | stop] (req:waterfall.server.one-per-home): the home's one server — where it runs,
+  // start it without a window (what any command reaching the app does by itself), or stop it and the agents it runs
+  async server() {
+    const h = require('./wye-home.js'); const dir = h.ensureHome(); const srv = require('./wye-server');
+    const sub = pos[1] || 'status';
+    if (sub === 'start') { const url = await srv.ensure(dir); return console.log(`Wye server on ${url} — home ${dir}`); }
+    if (sub === 'stop') {
+      const r = await srv.stop(dir);
+      if (r) return console.log(`stopped the Wye server on ${r.url} (pid ${r.pid})`);
+      return console.log(await srv.answers(srv.defaultUrl()) ? `no recorded server for ${dir} — the one answering on ${srv.defaultUrl()} was not started by wye app (a dev server?); stop it where it runs` : 'no Wye server running');
+    }
+    if (sub !== 'status') die('wye server [status | start | stop]');
+    const r = srv.running(dir), url = r ? r.url : srv.defaultUrl(), up = await srv.answers(url);
+    if (flags.json) return out({ home: dir, url, up, pid: r ? r.pid : null, started: r ? r.started : null });
+    console.log(up ? `Wye server on ${url}${r ? ` — pid ${r.pid}, since ${r.started}` : ' (not recorded: a dev server or an older Wye)'} — home ${dir}` : `no Wye server answers on ${url} — the next wye command that needs it starts it (or: wye server start)`);
   },
   // the benchmarks (eval/cli.js): runs here, reads the documents, asks the app for hits and packets; exit 2 when the gate fails
   async eval() { const code = await require('../eval/cli.js').main(pos.slice(1), flags); if (code) process.exit(code); },
