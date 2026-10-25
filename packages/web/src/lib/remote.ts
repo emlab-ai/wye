@@ -12,6 +12,9 @@
 // the box's Wye checked and started over ssh first (req:waterfall.remote-ws.wye-on-box) — or an address, no tunnel.
 import { spawn, type ChildProcess } from 'node:child_process';
 import net from 'node:net';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { REPO_ROOT } from './products';
 import { readSettings, writeSettings } from './settings';
 
 import { boxCheckArgs, cleanHost, cleanName, cleanPort, cleanRemotes, cleanUrl, nameFor, openUrl, readBoxCheck, readLine, retryDelay, sshArgs, type RemoteSpec, type RemoteState, type RemoteView } from './remote-view';
@@ -73,7 +76,9 @@ const view = (spec: RemoteSpec, t?: Tunnel): RemoteView => ({
   ...(spec.use === 'workspace' ? { name: spec.name, ...(spec.local ? { local: spec.local } : {}), ...(spec.url ? { url: spec.url } : {}), ...(spec.user ? { user: spec.user } : {}), ...(t?.spec.version || spec.version ? { version: t?.spec.version || spec.version } : {}), open: openUrl(spec) } : {}),
 });
 export async function listRemotes(): Promise<RemoteView[]> {
-  const s = st(); return cleanRemotes((await readSettings()).remotes).map(r => view(r, s.tunnels.get(keyOf(r))));
+  const s = st(); const list = cleanRemotes((await readSettings()).remotes);
+  await Promise.all(list.filter(r => r.use === 'workspace' && r.url).map(r => probeAddress(r)));
+  return list.map(r => view(r, s.tunnels.get(keyOf(r))));
 }
 const save = async (fn: (list: RemoteSpec[]) => RemoteSpec[]) => { await writeSettings({ remotes: fn(cleanRemotes((await readSettings()).remotes)) }); };
 
@@ -110,6 +115,29 @@ export async function startRemotes(): Promise<void> {
 }
 
 // ---- workspaces (plan:remote-workspaces)
+
+// the passwords of address workspaces, kept apart from the settings (lib/credentials, req:waterfall.remote-ws.url)
+type Credentials = { get(url: string): { user: string; password: string } | null; set(url: string, user: string, password: string): void; remove(url: string): void; header(url: string): string | null };
+let creds: Credentials | null = null;
+export const credentials = (): Credentials => (creds ??= createRequire(path.join(REPO_ROOT, 'package.json'))('./lib/credentials.js') as Credentials);
+
+// An address has no tunnel: where it stands is whether it answers, and to the stored password (asked again at most every
+// 10 s, on a list or a connect).
+async function probeAddress(r: RemoteSpec, force = false): Promise<void> {
+  const s = st(); const key = keyOf(r); const url = r.url as string;
+  let t = s.tunnels.get(key);
+  if (!t) { t = { spec: { ...r }, local: 0, child: null, state: 'off', message: '', since: '', tries: 0, timer: null, wanted: !!r.on }; s.tunnels.set(key, t); }
+  if (!r.on) { t.state = 'off'; t.message = ''; return; }
+  if (!force && t.since && Date.now() - Date.parse(t.since) < 10_000 && t.state !== 'connecting') return;
+  const set = (state: RemoteState, message = '') => { t.state = state; t.message = message; t.since = new Date().toISOString(); };
+  const auth = credentials().header(url);
+  try {
+    const res = await fetch(`${url}/api/products`, { headers: auth ? { authorization: auth } : {}, signal: AbortSignal.timeout(8000), redirect: 'manual' });
+    if (res.status === 401 || res.status === 403) set('failed', auth ? 'the address refused the user and password' : 'the address asks for a user and password');
+    else if (res.ok) set('connected');
+    else set('failed', `the address answered ${res.status} — is it a Wye?`);
+  } catch (e) { set('failed', `the address does not answer (${(e as Error & { cause?: { code?: string } }).cause?.code || (e as Error).message})`); }
+}
 
 // a local port for a box's tunnel, chosen once and kept on its row: the first free one from 3460, not another row's
 async function freePort(taken: number[]): Promise<number> {
@@ -149,7 +177,7 @@ async function openWorkspace(r: RemoteSpec): Promise<void> {
 }
 
 // Add (or change) a workspace and connect it: a box over ssh, or an address. → the list, or what is wrong with the input.
-export async function connectWorkspace(input: { host?: unknown; url?: unknown; name?: unknown; port?: unknown; user?: unknown }): Promise<RemoteView[] | { error: string }> {
+export async function connectWorkspace(input: { host?: unknown; url?: unknown; name?: unknown; port?: unknown; user?: unknown; password?: unknown }): Promise<RemoteView[] | { error: string }> {
   const url = input.url ? cleanUrl(input.url) : null; const host = url ? null : cleanHost(input.host);
   if (input.url && !url) return { error: 'an address like https://wye.example.com — no user or password in it' };
   if (!url && !host) return { error: 'a box as you would give it to ssh (server, you@server), or an address (https://…)' };
@@ -167,7 +195,13 @@ export async function connectWorkspace(input: { host?: unknown; url?: unknown; n
     row = { use: 'workspace', name, host: host as string, port: cleanPort(input.port, was?.port || 3456), local, on: true };
   }
   await save(l => { const i = l.findIndex(r => r.use === 'workspace' && r.name === name); if (i < 0) return [...l, row]; const c = [...l]; c[i] = row; return c; });
-  if (!url) await openWorkspace(row);
+  if (url) {
+    // the password goes to the credentials file, never the settings; a user without one keeps the stored password
+    const user = cleanUser(input.user);
+    if (user && input.password != null && String(input.password) !== '') credentials().set(url, user, String(input.password));
+    else if (!user && input.password === '') credentials().remove(url);
+    await probeAddress(row, true);
+  } else await openWorkspace(row);
   return listRemotes();
 }
 const cleanUser = (u: unknown) => { const v = String(u ?? '').trim(); return v && /^[^:\s]{1,100}$/.test(v) ? v : undefined; };
@@ -176,6 +210,7 @@ export async function disconnectWorkspace(nameIn: unknown, forget = false): Prom
   const name = cleanName(nameIn); const s = st();
   if (name) {
     const t = s.tunnels.get(`workspace:${name}`); if (t) { close(t); if (forget) s.tunnels.delete(`workspace:${name}`); }
+    if (forget) { const row = cleanRemotes((await readSettings()).remotes).find(r => r.use === 'workspace' && r.name === name); if (row?.url) credentials().remove(row.url); }
     await save(list => forget ? list.filter(r => !(r.use === 'workspace' && r.name === name)) : list.map(r => r.use === 'workspace' && r.name === name ? { ...r, on: undefined } : r));
   }
   return listRemotes();

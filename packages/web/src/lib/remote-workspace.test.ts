@@ -88,3 +88,25 @@ describe('a box workspace', () => {
     expect(both.map(x => x.use)).toEqual(['workspace']);
   });
 });
+
+describe('a workspace at an address (req:waterfall.remote-ws.url)', () => {
+  it('answers with the stored password; a wrong or missing one is said as such; the password is never in the settings', async () => {
+    process.env.WYE_CREDENTIALS = path.join(dir, 'credentials.json');
+    const proxy = http.createServer((q, r) => { if (q.headers.authorization !== 'Basic ' + Buffer.from('alex:s3cret').toString('base64')) { r.statusCode = 401; r.setHeader('www-authenticate', 'Basic realm="wye"'); return r.end(); } r.end('[]'); });
+    await new Promise<void>(r => proxy.listen(0, '127.0.0.1', r));
+    const url = `http://127.0.0.1:${(proxy.address() as { port: number }).port}`;
+    let l = await remote.connectWorkspace({ url, name: 'team', user: 'alex', password: 's3cret' }) as { name?: string; state: string; message: string }[];
+    expect(l.find(x => x.name === 'team')).toMatchObject({ state: 'connected' });
+    expect(readFileSync(path.join(dir, '_settings.json'), 'utf8')).not.toMatch(/s3cret/);
+    expect(JSON.stringify(l)).not.toMatch(/s3cret/);
+    expect(readFileSync(process.env.WYE_CREDENTIALS, 'utf8')).toMatch(/s3cret/);
+    l = await remote.connectWorkspace({ url, name: 'team', user: 'alex', password: 'wrong' }) as typeof l;
+    expect(l.find(x => x.name === 'team')?.message).toMatch(/refused the user and password/);
+    await remote.disconnectWorkspace('team', true);
+    expect(readFileSync(process.env.WYE_CREDENTIALS, 'utf8')).not.toMatch(/wrong|s3cret/);
+    l = await remote.connectWorkspace({ url, name: 'team2' }) as typeof l;
+    expect(l.find(x => x.name === 'team2')?.message).toMatch(/asks for a user and password/);
+    await remote.disconnectWorkspace('team2', true);
+    proxy.close();
+  });
+});
