@@ -88,6 +88,11 @@ the top of a page renames them.
 On your own laptop (`localhost`) nobody is asked. Presence shows your git name, and your changes are recorded as
 before.
 
+From the Wye app and the CLI on a laptop, add it as a workspace: **App settings › Remote workspaces**, the address and
+the proxy's user and password, or `wye connect https://wye.example.com --user <user>` with the password on stdin. The
+window's **Workspace** menu then opens it, and `wye --workspace <name> …` sends a command there
+([docs/remote-workspaces.md](remote-workspaces.md)).
+
 ## What it does not do yet
 
 - **Sign-in and roles.** Who may read or change which vault: owner, editor or viewer per vault. These come later. Until

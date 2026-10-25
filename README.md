@@ -557,7 +557,8 @@ session writes are attributed to (`wye session join` prints it) · `WYE_HOME` th
 app's port · `WYE_PUBLIC_URL` the public address of a served app · `WYE_ASK_MODEL` Ask's default model ·
 `WYE_READONLY` only commands that read are allowed (Ask's deep lane runs under it) · `WYE_CACHE` where every vault's
 cache folder is (default `~/.wye/.cache/vaults`) · `WYE_AUTOSTART=0` a command that finds no server fails instead of
-starting one.
+starting one · `WYE_WORKSPACE` the remote workspace commands go to · `WYE_PASSWORD` the password `wye connect` stores
+for an address · `WYE_CREDENTIALS` where those are kept (default `~/.wye/credentials.json`).
 
 **Install and the app**
 
@@ -572,6 +573,13 @@ wye app [folder] [--port 3456] [--browser] [--no-open] [--public https://…]
                                                 server itself, in the foreground
 wye server [status | start | stop] [--json]     the home's one server: where it runs (pid, port), start it without a
                                                 window, or stop it and the agents it runs
+wye connect <host | https://address> [--name n] [--port p] [--user u]
+                                                a remote workspace (docs/remote-workspaces.md): a box over ssh (wye
+                                                checked and started there, a forward tunnel) or a Wye at an address (its
+                                                password on stdin or WYE_PASSWORD); the window opens it from Workspace
+wye workspaces [--json]                         the remote workspaces, their state and where each opens
+wye disconnect <name> [--forget]                close a workspace's tunnel; --forget removes it and its password
+--workspace <name>                              on any command (or WYE_WORKSPACE): run it against that workspace's Wye
 wye init [folder] [--slug s] [--title "…"] [--icon i] [--description "…"]
                                                 a vault for the folder in .wye/ beside its code, linked to the vaults above
                                                 and below; on a folder that has one, only the note in CLAUDE.md / AGENTS.md
