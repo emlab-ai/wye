@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { agentStart, cleanHost, cleanPort, cleanRemotes, readLine, retryDelay, serverSetup, sshArgs } from './remote-view';
+import { agentStart, boxCheckArgs, cleanHost, cleanName, cleanPort, cleanRemotes, cleanUrl, openUrl, readBoxCheck, readLine, retryDelay, serverSetup, sshArgs } from './remote-view';
 
 describe('cleanHost', () => {
   it('takes what ssh takes: a name, user@host, a config alias', () => {
@@ -55,5 +55,48 @@ describe('retryDelay / what to run on the server', () => {
   it('each agent joins as a session of its own before it starts', () => {
     const lines = agentStart('shop').split('\n');
     expect(lines[0]).toBe('export WYE_PRODUCT=shop'); expect(lines[1]).toMatch(/^eval "\$\(wye session join /); expect(lines[2]).toBe('claude');
+  });
+});
+
+describe('workspaces (plan:remote-workspaces)', () => {
+  it('an address is http(s) with a host, never credentials, a query or a fragment; https when no scheme is given', () => {
+    expect(cleanUrl('https://wye.example.com/')).toBe('https://wye.example.com');
+    expect(cleanUrl('wye.example.com')).toBe('https://wye.example.com');
+    expect(cleanUrl('http://10.0.0.5:3456/team')).toBe('http://10.0.0.5:3456/team');
+    for (const u of ['https://me:pw@wye.example.com', 'ftp://x', 'https://x/?a=1', 'https://x/#y', '', 'javascript:alert(1)']) expect(cleanUrl(u)).toBeNull();
+  });
+  it('a name is lowercase words with dashes', () => { expect(cleanName(' GPU Box 2 ')).toBe('gpu-box-2'); expect(cleanName('!!')).toBeNull(); });
+  it('one list: agent hosts once, workspaces once per name; a box can be both; old rows are agent rows', () => {
+    const l = cleanRemotes([
+      { host: 'box', port: 3456, on: true },
+      { use: 'workspace', host: 'you@box.lan', port: 3456, local: 3471, on: true },
+      { use: 'workspace', name: 'box', host: 'other', port: 3456 },
+      { use: 'workspace', url: 'https://wye.example.com/', user: 'alex' },
+      { use: 'workspace', url: 'https://me:pw@x.example.com' },
+      { use: 'workspace', host: '-oProxyCommand=x' },
+    ]);
+    expect(l).toEqual([
+      { host: 'box', port: 3456, on: true },
+      { use: 'workspace', name: 'box', host: 'you@box.lan', port: 3456, local: 3471, on: true },
+      { use: 'workspace', name: 'wye', host: '', port: 0, url: 'https://wye.example.com', user: 'alex' },
+    ]);
+    expect(openUrl(l[1])).toBe('http://localhost:3471'); expect(openUrl(l[2])).toBe('https://wye.example.com');
+  });
+  it("a workspace's tunnel forwards a local port to the box's Wye", () => {
+    const a = sshArgs({ use: 'workspace', host: 'you@box', port: 3456, local: 3471 }, 3456);
+    expect(a.slice(-4)).toEqual(['-L', '3471:localhost:3456', '--', 'you@box']);
+    expect(a).toContain('BatchMode=yes'); expect(a).not.toContain('-R');
+  });
+  it("ssh's local-forward lines", () => {
+    expect(readLine('debug1: Local connections to LOCALHOST:3471 forwarded to remote address localhost:3456')).toEqual({ up: true });
+    expect(readLine('bind [127.0.0.1]:3471: Address already in use').reason).toMatch(/local port is already in use/);
+    expect(readLine('channel 2: open failed: connect failed: Connection refused').reason).toMatch(/does not answer/);
+  });
+  it('the box check: one login-shell command after --, read back to a version and a port or what to do', () => {
+    const a = boxCheckArgs('you@box'); expect(a.slice(-3, -1)).toEqual(['--', 'you@box']); expect(a.at(-1)).toMatch(/^bash -lc '.*wye server start.*wye server --json'$/);
+    expect(readBoxCheck('WYE-MISSING\n').error).toMatch(/npm install -g @emlab\/wye/);
+    expect(readBoxCheck('WYE-VERSION 0.7.0 (/usr/lib/node_modules/@emlab/wye)\n').error).toMatch(/@latest/);
+    expect(readBoxCheck('WYE-VERSION 0.8.0 (/x)\n{\n "home": "/h", "url": "http://localhost:3456", "up": true\n}\n')).toEqual({ version: '0.8.0', port: 3456 });
+    expect(readBoxCheck('WYE-VERSION 0.8.1 (/x)\n{ "url": "http://localhost:3456", "up": false }').error).toMatch(/did not start/);
   });
 });
