@@ -13,6 +13,11 @@
 //   wye app [folder] [--port 3456] [--browser] [--no-open] [--public https://…]   the app in its own window, over the home (--browser: in your browser; --public: on a server behind a TLS proxy, docs/server.md);
 //        with a folder, that folder is opened as the workspace: its vaults are the Documents roots, its files are under Files;
 //        the window connects to the home's one server (started without a window when none runs) and leaves it running when closed
+//   wye connect <host | https://address> [--name n] [--port p] [--user u]   a remote workspace: a box over ssh (wye
+//        checked and its server started there, a forward tunnel to it) or a Wye at an address (its password on stdin or
+//        WYE_PASSWORD, kept in ~/.wye/credentials.json); the window opens it from its Workspace menu
+//   wye workspaces [--json] · wye disconnect <name> [--forget]   the remote workspaces and their state; close or forget one
+//   --workspace <name> (or WYE_WORKSPACE) on any command: run it against that workspace's Wye, not the folder's vault here
 //   wye server [status | start | stop] [--json]   the home's one Wye server: where it runs; start it without a window; stop it.
 //        Any command that needs the app starts it by itself when nothing answers (WYE_AUTOSTART=0 turns that off)
 //   wye refresh [--product p] [--json]  the quick refresh after a branch switch: the documents against the last build, the graph
@@ -150,7 +155,8 @@ const { spawn } = require('child_process');
 const env = (k) => process.env['WYE_' + k] || process.env['WF_' + k];
 const argv = process.argv.slice(2);
 // the home's one server (bin/wye-server, req:waterfall.server.one-per-home): where its record says, else the default port
-const WF_URL = (env('URL') || require('./wye-server').urlOf(require('./wye-home.js').home())).replace(/\/$/, '');
+let WF_URL = (env('URL') || require('./wye-server').urlOf(require('./wye-home.js').home())).replace(/\/$/, '');
+const HOME_URL = WF_URL;   // this machine's server — where the workspaces are kept, whatever --workspace points WF_URL at
 // the agent skills follow the install on every call — an upgrade links the new ones, drops the gone (req:waterfall.global-skills.agent-skills)
 require('./wye-home.js').keepSkillsLinked();
 const flags = {}; const pos = [];
@@ -167,8 +173,17 @@ const rawFetch = globalThis.fetch;
 const autoStart = () => process.env.WYE_AUTOSTART !== '0' && !['app', 'server', 'setup', 'eval', 'refresh', 'cache', 'version'].includes(pos[0]) && !flags.version
   && (() => { try { const u = new URL(WF_URL), d = new URL(require('./wye-server').urlOf(require('./wye-home.js').home())); return ['localhost', '127.0.0.1'].includes(u.hostname) && u.port === d.port; } catch { return false; } })();
 let started = null;
+// a Wye at an address behind a proxy's password (req:waterfall.remote-ws.url): the stored one is sent with every request
+// to it — WYE_URL set to the address, or --workspace naming it
+const credentialFor = u => { try { return require('../lib/credentials.js').header(u); } catch { return null; } };
 globalThis.fetch = async (url, opts) => {
-  try { return await rawFetch(url, opts); }
+  const auth = String(url).startsWith(WF_URL) && credentialFor(WF_URL);
+  if (auth) opts = { ...(opts || {}), headers: { ...((opts && opts.headers) || {}), authorization: auth } };
+  try {
+    const r = await rawFetch(url, opts);
+    if (r.status === 401 && String(url).startsWith(WF_URL) && (auth || WF_URL !== HOME_URL)) die(`${WF_URL} asks for a user and password${auth ? ' and refused the stored ones' : ''} — wye connect ${WF_URL} --user <user> (the password on stdin or WYE_PASSWORD)`);
+    return r;
+  }
   catch (e) {
     const refused = e && (e.cause?.code === 'ECONNREFUSED' || /ECONNREFUSED/.test(String(e.cause?.message || e.message)));
     if (!refused || !String(url).startsWith(WF_URL) || !autoStart()) throw e;
@@ -198,6 +213,29 @@ async function findHereProduct() {
   // the app opens the vault when it does not know it yet, and says which name it has there (a second vault with one
   // slug on this machine is shown as <slug>-2); with no app running, the vault's own name
   try { const r = await fetch(`${WF_URL}/api/products/open`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ folder: path.join(folder, '.wye') }), signal: AbortSignal.timeout(4000) }); const j = await r.json(); hereProduct = (r.ok && j.slug) || own; } catch { hereProduct = own; }
+}
+
+// Remote workspaces (plan:remote-workspaces), kept by this machine's server (GET/POST /api/system/remote): a box over a
+// forward ssh tunnel, or an address. A box whose tunnel is not up is connected first (its Wye started on the box).
+const workspaceRows = async () => ((await (await fetch(`${HOME_URL}/api/system/remote`)).json()).remotes || []).filter(r => r.use === 'workspace');
+async function connectWorkspace(body) {
+  const r = await fetch(`${HOME_URL}/api/system/remote`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'workspace-connect', ...body }) });
+  const j = await r.json().catch(() => ({})); if (!r.ok) die(j.message || `workspace-connect → ${r.status}`);
+  const name = body.name ? String(body.name) : null;
+  let row = (j.remotes || []).filter(x => x.use === 'workspace').find(x => name ? x.name === name : body.url ? x.url && x.url.startsWith(String(body.url).replace(/\/+$/, '').replace(/^(?![a-z]+:\/\/)/i, 'https://')) : x.host === body.host);
+  // a box: the check on the box and the tunnel take a moment (a first start of its Wye longer)
+  for (let i = 0; row && !row.url && row.state === 'connecting' && i < 480; i++) { await new Promise(res => setTimeout(res, 500)); row = (await workspaceRows()).find(x => x.name === row.name) || row; }
+  return row;
+}
+async function useWorkspace(name) {
+  let row = (await workspaceRows()).find(r => r.name === name);
+  if (!row) die(`no workspace "${name}" — wye workspaces lists them; wye connect <host | URL> adds one`);
+  if (!row.url && row.state !== 'connected') {
+    console.error(`wye: connecting workspace ${name} (${row.host})…`);
+    row = await connectWorkspace({ name: row.name, host: row.host, port: row.port });
+  }
+  if (!row || row.state !== 'connected') die(`workspace ${name} is not connected${row && row.message ? `: ${row.message}` : ''} — nothing was sent`);
+  WF_URL = row.open.replace(/\/$/, '');
 }
 
 // the vault folder of the folder this runs in (the nearest .wye/ at or above it)
@@ -448,6 +486,36 @@ const commands = {
       };
       child.on('exit', onExit);
     });
+  },
+  // wye connect <host | URL> [--name n] [--port p] [--user u]: a remote workspace (plan:remote-workspaces) — a box over
+  // ssh (its Wye checked and started there, a forward tunnel to it) or a Wye at an address; the password of an address
+  // from WYE_PASSWORD or stdin, kept in ~/.wye/credentials.json (lib/credentials)
+  async connect() {
+    const target = pos[1] || die('wye connect <host | https://address> [--name n] [--port p] [--user u]');
+    const isUrl = /^https?:\/\//i.test(target);
+    const body = { ...(isUrl ? { url: target } : { host: target }), ...(flags.name ? { name: String(flags.name) } : {}), ...(flags.port ? { port: Number(flags.port) } : {}) };
+    if (isUrl && flags.user) {
+      body.user = String(flags.user);
+      body.password = process.env.WYE_PASSWORD || (await readStdin()).replace(/\r?\n$/, '');
+      if (!body.password) die('the password: on stdin (wye connect … --user u <<< "…") or in WYE_PASSWORD');
+    }
+    const row = await connectWorkspace(body);
+    if (flags.json) return out(row);
+    if (!row) die('the workspace was not added');
+    console.log(`${row.name}: ${row.state}${row.message ? ` — ${row.message}` : ''}${row.state === 'connected' ? `\n  open: ${row.open}${row.version ? `  (wye ${row.version} on the box)` : ''}\n  use:  wye --workspace ${row.name} <command> --product <p>` : ''}`);
+    if (row.state !== 'connected') process.exitCode = 1;
+  },
+  async disconnect() {
+    const name = pos[1] || die('wye disconnect <workspace> [--forget]');
+    const r = await fetch(`${HOME_URL}/api/system/remote`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: flags.forget ? 'workspace-remove' : 'workspace-disconnect', name }) });
+    if (!r.ok) die(`disconnect → ${r.status}`);
+    console.log(flags.forget ? `${name}: removed (its stored password too)` : `${name}: disconnected (wye connect ${name} … again, or --workspace ${name} reconnects it)`);
+  },
+  async workspaces() {
+    const rows = await workspaceRows();
+    if (flags.json) return out(rows);
+    if (!rows.length) return console.log('no remote workspaces — wye connect <host> (a box over ssh) or wye connect https://… --user u (a Wye at an address)');
+    for (const r of rows) console.log(`${r.name.padEnd(16)} ${(r.url || r.host).padEnd(34)} ${r.state}${r.message ? ` — ${r.message}` : ''}${r.state === 'connected' ? `  → ${r.open}` : ''}`);
   },
   // wye server [status | start | stop] (req:waterfall.server.one-per-home): the home's one server — where it runs,
   // start it without a window (what any command reaching the app does by itself), or stop it and the agents it runs
@@ -1257,11 +1325,15 @@ if (GRAPH_CMDS.has(pos[0]) || pos[0] === 'graph') {
 
 (async () => {
   if (flags.version || pos[0] === 'version') { console.log(`${require('../package.json').version} (${path.resolve(__dirname, '..')})`); process.exit(0); }
+  // --workspace <name> | WYE_WORKSPACE: this command goes to that workspace's Wye (decision:waterfall.remote-ws.cli-asks-for-it) —
+  // never the folder's vault here, so the product is named, not found from the folder
+  const ws = flags.workspace || env('WORKSPACE');
+  if (ws && !['connect', 'disconnect', 'workspaces', 'app', 'server', 'setup'].includes(pos[0]) && !['local', 'this-mac'].includes(String(ws))) await useWorkspace(String(ws));
   const c = commands[pos[0]];
   if (!c) { // the help is this file's leading comment, whole — every command up to the first line of code
     const lines = fs.readFileSync(__filename, 'utf8').split('\n').slice(2); const end = lines.findIndex(l => !l.startsWith('//'));
     console.log(lines.slice(0, end < 0 ? undefined : end).map(l => l.replace(/^\/\/ ?/, '')).join('\n')); process.exit(pos[0] ? 1 : 0); }
   // the commands that work on a folder or on the app itself never ask which product
-  if (!['setup', 'app', 'init', 'initHere', 'open', 'importProduct', 'eval', 'link', 'links'].includes(pos[0])) await findHereProduct();
+  if (!ws && !['setup', 'app', 'init', 'initHere', 'open', 'importProduct', 'eval', 'link', 'links', 'connect', 'disconnect', 'workspaces'].includes(pos[0])) await findHereProduct();
   try { await c(); } catch (e) { die(e.message); }
 })();
