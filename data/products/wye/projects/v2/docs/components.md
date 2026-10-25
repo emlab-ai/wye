@@ -1284,6 +1284,18 @@ The editor's blocks and the components the pages are made of, by area.
     write this browser makes (x-wf-by), so the change history says who.
   status: proposed
   part-of: module:components
+- id: component:settings-workspaces
+  file: packages/web/src/components/SettingsWorkspaces.tsx
+  side: client
+  purpose: >
+    App settings › Remote workspaces (plan:remote-workspaces): a Wye on another machine opened from this one — a box
+    reached over SSH (its Wye checked and started there, a forward tunnel to it) or the address of a Wye served
+    elsewhere with its proxy's password. Opening one loads that Wye itself
+    (decision&#58;waterfall.remote-ws.window-loads-the-box): in the window it takes the window's place (the
+    Workspace menu switches back), in a browser it opens in a tab. The rows are the workspace rows of the same
+    remotes list as Remote agents (decision&#58;waterfall.remote-ws.one-list).
+  status: proposed
+  part-of: module:components
 ```
 
 <!-- /list:component -->
