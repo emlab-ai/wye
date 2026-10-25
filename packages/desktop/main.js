@@ -119,7 +119,28 @@ async function startServer() {
 }
 
 // the app's own origin (not a prefix: localhost:30001 is not localhost:3000), and only web or mail links leave it
-const isApp = (url) => { try { return new URL(url).origin === new URL(URL_).origin; } catch { return false; } };
+const isApp = (url) => { try { const o = new URL(url).origin; return o === new URL(URL_).origin || workspaces.some(w => w.open && new URL(w.open).origin === o); } catch { return false; } };
+
+// Remote workspaces (plan:remote-workspaces): the Wye of another machine, opened in this window by loading its own
+// origin (decision:waterfall.remote-ws.window-loads-the-box) — the tunnel's local end, or an address. The list is this
+// machine's app's (GET /api/system/remote, its workspace rows), asked again every few seconds; the Workspace menu is
+// rebuilt when it changes. An address behind a proxy's password is answered from ~/.wye/credentials.json (lib/credentials).
+let workspaces = [];
+function getJson(url) { return new Promise(res => { const r = http.get(url, x => { let b = ''; x.on('data', d => { b += d; }); x.on('end', () => { try { res(JSON.parse(b)); } catch { res(null); } }); }); r.on('error', () => res(null)); r.setTimeout(4000, () => { r.destroy(); res(null); }); }); }
+async function refreshWorkspaces() {
+  const j = await getJson(URL_ + '/api/system/remote'); if (!j || !Array.isArray(j.remotes)) return;
+  const next = j.remotes.filter(r => r.use === 'workspace').map(r => ({ name: r.name, open: r.open, state: r.state, where: r.url || r.host }));
+  if (JSON.stringify(next) !== JSON.stringify(workspaces)) { workspaces = next; buildMenu(); }
+}
+function watchWorkspaces() { void refreshWorkspaces(); setInterval(() => void refreshWorkspaces(), 5000).unref(); }
+const credentials = (() => { try { return require(path.join(__dirname, '..', '..', 'lib', 'credentials.js')); } catch { return null; } })();
+app.on('login', (event, _wc, details, authInfo, callback) => {
+  if (authInfo.isProxy || !credentials) return;
+  const c = credentials.get(details.url); if (!c) return;
+  event.preventDefault(); callback(c.user, c.password);
+});
+const showing = () => { try { return win ? new URL(win.webContents.getURL()).origin : ''; } catch { return ''; } };
+function openWorkspace(url) { if (!win) createWindow(); win.loadURL(url); }
 const openOutside = (url) => { try { if (/^(https?|mailto):$/.test(new URL(url).protocol)) shell.openExternal(url); } catch { /* not a url */ } };
 function createWindow() {
   // standard OS title bar and window controls on every platform
@@ -130,6 +151,8 @@ function createWindow() {
   win.webContents.setWindowOpenHandler(({ url }) => { if (isApp(url)) { if (win) win.loadURL(url); } else openOutside(url); return { action: 'deny' }; });
   // a click on a foreign link (a transcript, a document) opens the system browser; the window stays on the app (rule:app-link)
   win.webContents.on('will-navigate', (ev, url) => { if (isApp(url)) return; ev.preventDefault(); openOutside(url); });
+  // the Workspace menu marks the workspace the window shows
+  win.webContents.on('did-navigate', () => buildMenu());
   win.on('closed', () => { win = null; });
 }
 
@@ -140,6 +163,12 @@ function buildMenu() {
     { label: 'File', submenu: [{ label: 'New window', accelerator: 'CmdOrCtrl+N', click: createWindow }, { label: 'Open in browser', click: () => shell.openExternal(win ? win.webContents.getURL() : URL_) }, ...(ATTACH ? [] : [{ label: 'Choose checkout…', click: chooseRoot }]), { type: 'separator' }, isMac ? { role: 'close' } : { role: 'quit' }] },
     { label: 'Edit', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },
     { label: 'View', submenu: [{ role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' }, { type: 'separator' }, { label: 'Back', accelerator: 'CmdOrCtrl+[', click: () => win && win.webContents.navigationHistory.canGoBack() && win.webContents.navigationHistory.goBack() }, { label: 'Forward', accelerator: 'CmdOrCtrl+]', click: () => win && win.webContents.navigationHistory.canGoForward() && win.webContents.navigationHistory.goForward() }, { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'togglefullscreen' }] },
+    { label: 'Workspace', submenu: [
+      { label: 'This machine', type: 'radio', checked: showing() === new URL(URL_).origin || !workspaces.some(w => w.open && new URL(w.open).origin === showing()), click: () => openWorkspace(URL_) },
+      ...workspaces.map(w => ({ label: `${w.name} — ${w.where}${w.state === 'connected' ? '' : ` (${w.state === 'connecting' ? 'connecting…' : 'not connected'})`}`, type: 'radio', enabled: w.state === 'connected' && !!w.open, checked: !!w.open && new URL(w.open).origin === showing(), click: () => openWorkspace(w.open) })),
+      { type: 'separator' },
+      { label: 'Add or manage workspaces…', click: () => openWorkspace(URL_ + '/settings') },
+    ] },
     // ⌘M belongs to Wye (the command box in Remember mode); Minimize moves to ⌥⌘M
     { label: 'Window', submenu: [{ role: 'minimize', accelerator: 'CmdOrCtrl+Alt+M' }, { role: 'zoom' }, ...(isMac ? [{ type: 'separator' }, { role: 'front' }] : [])] },
   ];
@@ -187,7 +216,7 @@ app.whenReady().then(async () => {
     let up = false; for (let i = 0; i < 240 && !(up = await ping()); i++) await new Promise(r => setTimeout(r, 500));
     hideStatus();
     if (!up) { dialog.showErrorBox('Wye', `The app server did not answer on ${URL_} after two minutes — see the terminal \`wye app\` runs in.`); app.exit(1); return; }
-    createWindow(); createTray();
+    createWindow(); createTray(); watchWorkspaces();
     app.on('activate', () => { if (!win) createWindow(); });
     return;
   }
@@ -199,7 +228,7 @@ app.whenReady().then(async () => {
   if (DEV) watchSelf();
   try { await ensureBuilt(); await startServer(); } catch (e) { hideStatus(); dialog.showErrorBox('Wye', e.message); app.quit(); return; }
   hideStatus();
-  createWindow(); createTray();
+  createWindow(); createTray(); watchWorkspaces();
   app.on('activate', () => { if (!win) createWindow(); });
 });
 app.on('window-all-closed', () => { app.quit(); });

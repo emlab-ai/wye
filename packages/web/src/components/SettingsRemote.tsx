@@ -17,7 +17,8 @@ export function SettingsRemote() {
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState('');
-  const take = (j: { remotes: RemoteView[]; port: number }) => { setRemotes(j.remotes); setPort(j.port); };
+  // the agent hosts only: workspace rows of the same list are Remote workspaces (SettingsWorkspaces)
+  const take = (j: { remotes: RemoteView[]; port: number }) => { setRemotes(j.remotes.filter(r => r.use !== 'workspace')); setPort(j.port); };
   const load = useCallback(async () => { try { const r = await fetch('/api/system/remote', { cache: 'no-store' }); if (r.ok) take(await r.json()); } catch { /* the app is restarting: the next tick asks again */ } }, []);
   // a tunnel that is being opened, or opened again after a drop, changes within seconds; a settled one is only watched
   const moving = (remotes ?? []).some(r => r.state === 'connecting' || (r.on && r.state === 'failed'));

@@ -4,6 +4,7 @@ import { SettingsJev } from '@/components/SettingsJev';
 import { SettingsAgents } from '@/components/SettingsAgents';
 import { ThemeSettings } from '@/components/ThemeSwitch';
 import { SettingsRemote } from '@/components/SettingsRemote';
+import { SettingsWorkspaces } from '@/components/SettingsWorkspaces';
 
 // The app's settings: what is stored here is about this machine, not about one product — the theme, the key Jev links
 // with, how many agents build at once, the servers it keeps a tunnel to. All of it lives in <data>/_settings.json. A product's own settings — where its
@@ -20,6 +21,7 @@ export default async function AppSettingsPage({ searchParams }: { searchParams: 
       </header>
       <ThemeSettings />
       <SettingsAgents initial={s.agents} launch={s.launch} />
+      <SettingsWorkspaces />
       <SettingsRemote />
       <SettingsJev initial={s.jev} />
     </div>

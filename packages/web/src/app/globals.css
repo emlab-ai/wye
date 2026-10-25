@@ -1014,6 +1014,7 @@ body.resizing-y { cursor: row-resize; user-select: none; } body.resizing-y ifram
 .remote.s-failed .remote-state { color: var(--bad); } .remote.s-failed .remote-why { color: var(--ink-2); }
 .remote-acts { display: flex; gap: 6px; margin-left: auto; } .remote-acts button, .remote-next button { background: var(--surface); border: 1px solid var(--line-2); border-radius: 6px; padding: 3px 9px; font: 12px var(--font-b); color: var(--ink-2); cursor: pointer; } .remote-acts button:hover, .remote-next button:hover { border-color: var(--accent); color: var(--ink); }
 .remote-next { margin: 8px 0 2px 16px; } .remote-next p { margin: 0 0 6px; font-size: 12px; } .remote-next button + p { margin-top: 12px; } .remote-next pre { margin: 0 0 6px; padding: 8px 10px; background: var(--ground); border: 1px solid var(--line); border-radius: 8px; font: 12px/1.5 var(--font-m); white-space: pre-wrap; overflow-wrap: anywhere; }
+.remote-acts .remote-open { background: var(--accent); color: var(--accent-ink); border-radius: 6px; padding: 3px 10px; font: 600 12px var(--font-b); text-decoration: none; }
 .settings-section .remote-caution { margin: 12px 0 0; font-size: 12px; } .settings-section .inbox-row input[type=number] { width: 84px; }
 
 /* the PR's head (component:pr-head): status, the readiness list, the person's moves */
