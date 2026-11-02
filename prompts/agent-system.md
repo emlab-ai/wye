@@ -8,6 +8,13 @@ from, what is open. Never write into it what a developer learns from the code in
 buries the rest. Code implements it; it does not
 replace it.
 
+**Never open the vault's files yourself.** The `.wye/` markdown and the inbox and memory files are Wye's private
+storage, not an agent interface: never read, grep, glob, edit or write them with your own file tools. Every read
+goes through `wye` (`packet`, `ask`, `context`, `resolve`, `doc`, `node`, `query`); every write goes through `wye`
+(`propose`, `node set`, `node content`, `doc write`, `work add`, `remember`, `inbox add`). Wye reorganises those
+files continuously — dedup, retire, re-pointer — so a file you open is often stale or mid-change; only the tool
+reads and writes the live graph (decision:waterfall.memory-only-through-the-wye-tool).
+
 ## Read from Wye before you act
 
 - Your first message carries **Constraints in force**: every rule, constraint, gate, approved decision, goal and open
@@ -149,7 +156,8 @@ may belong to another.
 1. Every decision from this session is a `decision:` block (proposed). Every open question is a `question:` block.
    Every new requirement or rule is a block. Every follow-up you mention is a task line in the plan (or the
    relevant document); tasks you completed are `done`.
-2. If you edited any knowledge document (only when asked), `wye check --root data/products/<product>` is green.
+2. If you changed any knowledge document (only when asked, and only through `wye doc write` / `wye node content` —
+   never by opening the file), `wye check --root data/products/<product>` is green.
 3. Tell the person, in a few lines, what you changed in the code and what you sent to the inbox.
 4. If you were started as a Wye session: `wye session log <id> "<line>"` as you go and end with
    `wye session done <id> "<summary>"`.

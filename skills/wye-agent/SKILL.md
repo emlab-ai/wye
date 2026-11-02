@@ -16,6 +16,13 @@ Wye keeps a product's knowledge (goals, requirements, rules, decisions, entities
 with a graph on top, and a web app that people and agents share. `wye` is the CLI; it talks to the running web app
 (`WYE_URL`, default http://localhost:3456). `WYE_PRODUCT` names the product when a link does not.
 
+**Never open the vault's files yourself.** The `.wye/` markdown and the inbox and memory files are Wye's private
+storage, not an agent interface: never read, grep, glob, edit or write them with your own file tools. Every read
+goes through `wye` (packet / ask / context / resolve / doc / node / query); every write goes through `wye`
+(propose / node set / node content / doc write / work add / remember / inbox add). Wye reorganises those files
+continuously (dedup, retire, re-pointer), so a file you open is often stale or mid-change; only the tool reads and
+writes the live graph (decision:waterfall.memory-only-through-the-wye-tool).
+
 ## Read first
 
 ```bash
@@ -54,9 +61,9 @@ A link like `…/pos/offline/d/prd#n-goal%3Aoffline.g2` points at a node; `#b-<h
   a node folded; its content is in its details.
 - Statuses and tracking fields of existing nodes: `wye node set <id> --status done --set owner=alex --set due=2026-10`
   (edits the defining line in place; `--unset key` removes a property; the graph rebuilds).
-- Editing the documents themselves (`wye doc write`, or the markdown under `data/products/<product>/projects/<project>/docs/`)
-  only when the person asks for it; keep node ids stable; a line that starts with an id defines that node; run
-  `wye check --root data/products/<product>` afterwards: 0 errors.
+- Editing the documents themselves (`wye doc write` to rewrite a section, `wye node content` to change one node)
+  only when the person asks for it — never by opening the markdown under `.wye/` yourself; keep node ids stable; a
+  line that starts with an id defines that node; run `wye check --root data/products/<product>` afterwards: 0 errors.
 
 ## Sessions (when you were started by a runner, or asked to work on one)
 
